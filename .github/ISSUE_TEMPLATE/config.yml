@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Existing Android delivery program
+    url: https://github.com/Pick-Your-AI/pickyour.ai/issues/34
+    about: Coordinate work in the canonical planning repository before opening duplicate issues.
+  - name: Delivery Project
+    url: https://github.com/orgs/Pick-Your-AI/projects/4
+    about: Inspect ownership, prerequisites and existing work packages.
