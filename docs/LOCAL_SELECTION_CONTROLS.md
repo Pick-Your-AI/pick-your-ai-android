@@ -38,6 +38,10 @@ uses the library-bound adapter with original revision/hash. Repeated taps cannot
 create another revision. External concurrent edits are detected by canonical CAS;
 conflict and uncertainty revoke edit authority until explicit reopen. Invalid
 forms and ordinary command rejections stay visible without acknowledging a save.
+Every mutation dialog has its own polite inline feedback, cleared on retry. It
+shows the exact outcome wording: correctable invalid/rejected input remains
+distinct from conflict or uncertain acknowledgement requiring explicit reopen.
+The latter never claims that no revision was committed.
 Dismissing or canceling a dialog revokes its callbacks. While a command is in
 flight, form fields, checkbox and cancellation are disabled so later user edits
 cannot be silently discarded by completion. Invalid/rejected outcomes restore

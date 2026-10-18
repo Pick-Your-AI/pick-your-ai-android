@@ -466,9 +466,9 @@ class PreviewActivity : Activity() {
     }
 
     private fun commitSelection(expected: PreviewStoredDraft, hash: String?, prepare: () -> PreviewSelectionPreparation,
-        completed: (Boolean) -> Unit) {
+        completed: (Boolean, String) -> Unit) {
         if (destroyed || !storageReady || storageBusy || savedRecord !== expected || !matchesSaved() ||
-            hash != null && componentCatalog?.hash?.hex != hash) { completed(false); return }
+            hash != null && componentCatalog?.hash?.hex != hash) { completed(false, getString(R.string.draft_reconcile)); return }
         val id = currentDraftId
         val snapshot = componentCatalog
         storageBusy = true
@@ -505,7 +505,7 @@ class PreviewActivity : Activity() {
                             R.string.draft_history_full else R.string.draft_save_failed)
                     }
                     updateEditingEnabled()
-                    completed(acknowledged)
+                    completed(acknowledged, saveStatus.text.toString())
                 }
             }
         }

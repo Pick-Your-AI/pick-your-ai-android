@@ -1216,11 +1216,16 @@ class PreviewActivityTest {
         form.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
         await { hasText(R.string.component_invalid) && form.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled }
         assertTrue(form.isShowing)
+        val feedback = views(form.window!!.decorView).filterIsInstance<TextView>()
+            .single { it.text.toString() == activity.getString(R.string.component_invalid) }
+        assertEquals(View.ACCESSIBILITY_LIVE_REGION_POLITE, feedback.accessibilityLiveRegion)
+        assertTrue(feedback.isShown)
         assertEquals(invalid, settings.text.toString())
         assertEquals(before, loaded().baselineIdentity)
         role.setText("Primary")
         settings.setText("{}")
         form.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+        assertEquals("", feedback.text.toString()) // The prior error clears synchronously on retry.
         await { hasText(R.string.component_invalid) && form.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled }
         assertEquals("Primary", role.text.toString())
         assertEquals(before, loaded().baselineIdentity)
@@ -1238,6 +1243,9 @@ class PreviewActivityTest {
         form.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
         await { hasText(R.string.draft_conflict) && !form.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled }
         assertTrue(form.isShowing)
+        assertTrue(views(form.window!!.decorView).filterIsInstance<TextView>().any {
+            it.text.toString() == activity.getString(R.string.draft_conflict) && it.isShown
+        })
         assertEquals("primary", dialogField(form, R.string.component_role).text.toString())
         assertEquals(newer.baselineIdentity, loaded().baselineIdentity)
         assertTrue(loaded().components.selections.isEmpty())
@@ -1345,6 +1353,9 @@ class PreviewActivityTest {
             form.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
             assertFalse(role.isEnabled)
             assertFalse(settings.isEnabled)
+            assertFalse(views(form.window!!.decorView).filterIsInstance<TextView>().any {
+                it.text.toString() == activity.getString(R.string.component_invalid)
+            })
             assertFalse(enabled.isEnabled)
             assertFalse(form.getButton(AlertDialog.BUTTON_NEGATIVE).isEnabled)
             assertFalse(form.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled)

@@ -10,12 +10,13 @@ import ai.pickyour.core.preview.*
 
 /** Explicit local draft edits. A form is transient and never grants replacement save authority. */
 class SelectionEditSection(private val activity: Activity,
-    private val commit: (PreviewStoredDraft, String?, () -> PreviewSelectionPreparation, (Boolean) -> Unit) -> Unit,
+    private val commit: (PreviewStoredDraft, String?, () -> PreviewSelectionPreparation, (Boolean, String) -> Unit) -> Unit,
 ) : LinearLayout(activity) {
     private var closed = false
     private var editable = false
     private var baseline: PreviewStoredDraft? = null
     private val dialogs = mutableListOf<AlertDialog>()
+    private val dialogFeedback = mutableMapOf<AlertDialog, TextView>()
     private val status = TextView(activity)
     private val manage = Button(activity)
     private val choose = Button(activity)
@@ -67,9 +68,10 @@ class SelectionEditSection(private val activity: Activity,
         closed = true; editable = false; baseline = null; manage.isEnabled = false; choose.isEnabled = false
         dialogs.toList().forEach { it.dismiss() }; dialogs.clear()
     }
-    private fun show(dialog: AlertDialog): AlertDialog {
+    private fun show(dialog: AlertDialog, feedback: TextView? = null): AlertDialog {
         dialogs += dialog
-        dialog.setOnDismissListener { dialogs.remove(dialog) }
+        if (feedback != null) dialogFeedback[dialog] = feedback
+        dialog.setOnDismissListener { dialogs.remove(dialog); dialogFeedback.remove(dialog) }
         dialog.show()
         return dialog
     }
@@ -133,6 +135,9 @@ class SelectionEditSection(private val activity: Activity,
             }.setNegativeButton(R.string.close, null).create())
     }
 
+    private fun feedback() = TextView(activity).apply {
+        accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
+    }
     private fun field(layout: LinearLayout, title: Int, value: String): EditText {
         val label = TextView(activity).apply { setText(title) }
         val editor = EditText(activity).apply {
@@ -149,9 +154,10 @@ class SelectionEditSection(private val activity: Activity,
         val role = field(layout, R.string.component_role, "")
         val settings = field(layout, R.string.component_settings, "{}")
         val enabled = CheckBox(activity).apply { setText(R.string.component_enabled); isChecked = false }.also(layout::addView)
+        val feedback = feedback().also(layout::addView)
         val selectionId = "selection_" + java.util.UUID.randomUUID().toString().replace("-", "")
         val dialog = show(AlertDialog.Builder(activity).setTitle(R.string.component_add).setView(ScrollView(activity).apply { addView(layout) })
-            .setNegativeButton(R.string.close, null).setPositiveButton(R.string.component_commit, null).create())
+            .setNegativeButton(R.string.close, null).setPositiveButton(R.string.component_commit, null).create(), feedback)
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
             if (!active(expected)) return@setOnClickListener
             val form = PreviewSelectionForm(role.text.toString(), enabled.isChecked, settings.text.toString())
@@ -169,8 +175,9 @@ class SelectionEditSection(private val activity: Activity,
         val layout = LinearLayout(activity).apply { orientation = VERTICAL }
         layout.addView(TextView(activity).apply { setText(R.string.component_settings_warning) })
         val settings = field(layout, R.string.component_settings, text)
+        val feedback = feedback().also(layout::addView)
         val dialog = show(AlertDialog.Builder(activity).setTitle(label(selection)).setView(ScrollView(activity).apply { addView(layout) })
-            .setNegativeButton(R.string.close, null).setPositiveButton(R.string.component_commit, null).create())
+            .setNegativeButton(R.string.close, null).setPositiveButton(R.string.component_commit, null).create(), feedback)
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
             if (!active(expected)) return@setOnClickListener
             val raw = settings.text.toString()
@@ -180,19 +187,22 @@ class SelectionEditSection(private val activity: Activity,
     private fun confirm(expected: PreviewStoredDraft, hash: String?, title: String, message: String,
         prepare: () -> PreviewSelectionPreparation) {
         if (!active(expected)) return
-        val dialog = show(AlertDialog.Builder(activity).setTitle(title).setMessage(message)
-            .setNegativeButton(R.string.close, null).setPositiveButton(R.string.component_commit, null).create())
+        val feedback = feedback()
+        val dialog = show(AlertDialog.Builder(activity).setTitle(title).setMessage(message).setView(feedback)
+            .setNegativeButton(R.string.close, null).setPositiveButton(R.string.component_commit, null).create(), feedback)
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
             if (active(expected)) submit(dialog, expected, hash, prepare)
         }
     }
     private fun submit(dialog: AlertDialog, expected: PreviewStoredDraft, hash: String?, prepare: () -> PreviewSelectionPreparation) {
         if (!active(expected) || !open(dialog) || hash != null && hash != catalogHash) return
+        dialogFeedback[dialog]?.text = ""
         freezeForm(dialog, true)
-        commit(expected, hash, prepare) { acknowledged ->
+        commit(expected, hash, prepare) { acknowledged, message ->
             if (closed) return@commit
             if (acknowledged) dialog.dismiss()
             else if (open(dialog)) {
+                dialogFeedback[dialog]?.text = message
                 freezeForm(dialog, false)
                 dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = active(expected)
             }
