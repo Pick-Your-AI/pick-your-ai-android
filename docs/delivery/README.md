@@ -7,10 +7,15 @@ dependency graph, receiving acceptance, or a replacement for GitHub status.
 The earlier [issue audit](../proposals/issues-snapshot.md) remains a historical
 snapshot; it is not rewritten to imply it observed later implementation.
 
-Every criterion is **incomplete**. References to merged PRs identify
-partial issue context, not an assertion that a linked artifact passes each
-criterion. Exact
-artifact revisions and limitations are in the top-level `evidence` catalog.
+Three criteria for **Android #23, data inventory and threat model**, have a
+complete reviewed documentary/design outcome. Its [canonical 14.01 record](android/work-packages/14.01.md)
+and [ADR 0001](../decisions/0001-android-23-acceptance-record.md) were independently
+reviewed and merged through [PR #279](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/279).
+The record pins the accepted source, actual receiving reviews and subsequent
+current-source reconciliation. The other **438 criteria remain incomplete**.
+Their merged PR references identify partial issue context, not an assertion that
+a linked artifact passes each criterion. Exact artifact revisions and limitations
+are in the top-level `evidence` catalog.
 No JVM, unsigned APK, lint or fixture result proves installed-device, production,
 source rights, store distribution or operational acceptance.
 
@@ -58,10 +63,14 @@ features have issue-level scope notes and remain incomplete, not silently waived
 These classifications are review aids, not an assertion that the complete native
 prerequisite graph has been resolved.
 
-The `canonical_acceptance_record` fields preserve all original paths in
-`Pick-Your-AI/pickyour.ai`. They name intended records and do not assert those files
-exist. Parent coordination must reconcile accepted evidence there without moving
-those records or assigning owners. In particular, Android #35 still needs one
+The `canonical_acceptance_record` fields preserve every original relative path.
+Only #23's repository changes to `Pick-Your-AI/pick-your-ai-android`, through the
+reviewed ADR 0001 placement. Its `accepted_design_outcome` retains the historical
+website repository/path, exact decision and record URLs, receiving review URLs,
+and source-review revision. All other records remain intended paths in
+`Pick-Your-AI/pickyour.ai`; their presence in this index does not assert those files
+exist. Parent coordination must reconcile accepted evidence without silently
+moving records or assigning owners. In particular, Android #35 still needs one
 shared-service placement coordinated with website #17 and Apple #23; local
 engineering decisions must not invent an operator or competing backend.
 
@@ -77,13 +86,15 @@ To verify exact criteria and acceptance paths against a fresh read (requires an
 already-authorized GitHub session):
 
 ```sh
-gh issue list --repo Pick-Your-AI/pick-your-ai-android --state open --limit 200 \
+gh issue list --repo Pick-Your-AI/pick-your-ai-android --state all --limit 200 \
   --json number,title,body,assignees > /tmp/android-ledger-issues.json
 python scripts/check_delivery_ledger.py --issues /tmp/android-ledger-issues.json
 python -m unittest discover -s scripts/tests -p 'test_delivery_ledger.py'
 ```
 
-The offline check explicitly reports that no live comparison occurred. A changed
+Use all issue states so closing an accepted issue does not remove its exact
+criteria and history from comparison. The offline check explicitly reports that
+no live comparison occurred. A changed
 issue inventory, criterion, order or path fails the live check and needs deliberate
 reconciliation; the script never changes GitHub. Update digests only after reading
 the changed criterion, not to suppress a discrepancy. If criteria are reordered,
@@ -92,6 +103,12 @@ reconcile their old ordinal references before recording new ones.
 Refresh PR state and revision explicitly when evidence advances. Do not replace a
 pinned artifact with a mutable branch link or turn a proposed test into a reported
 pass. Add exact test commands/results, recovery cases and receiving dispositions
-before narrowing a criterion's remaining work. This version intentionally rejects
-completion claims: any future completion-support change needs independent review
-and criterion-level receipts, rather than merely switching a status field.
+before narrowing a criterion's remaining work. Ledger schema version 2 permits
+only #23's three exact, reviewed design criteria to be complete. The validator
+requires its immutable merged #279 artifact, both actual receiving reviews,
+explicit scope and source pins, preserved placement history, and no unfinished
+requirement for those criteria. Changing another status, transplanting that proof
+to another issue, removing a review or substituting another revision fails.
+Future completion or placement support needs independent review and its own
+criterion-level receipts. This exception supplies no implementation, device,
+service, store or release acceptance for another issue.
