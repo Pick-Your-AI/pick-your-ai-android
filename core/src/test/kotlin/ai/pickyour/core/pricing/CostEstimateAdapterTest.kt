@@ -1,10 +1,15 @@
 package ai.pickyour.core.pricing
 
+import ai.pickyour.core.contracts.FrozenDocument
+import ai.pickyour.core.contracts.FrozenSchemaValidator
+import ai.pickyour.core.contracts.FrozenValidation
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.databind.node.ObjectNode
 import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.DynamicTest
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestFactory
 import java.math.BigInteger
 
 class CostEstimateAdapterTest {
@@ -107,6 +112,36 @@ class CostEstimateAdapterTest {
             rejected(CostRejection.MIXED_CURRENCY, e)
         }
     }
+    @TestFactory
+    fun `schema permitted terminal LF money returns a controlled rejection`(): List<DynamicTest> =
+        listOf("currency", "/line_items/0/unit_price/amount", "/line_items/0/amount/amount",
+            "/subtotal/amount", "/tax/amount", "/total/amount").map { path -> DynamicTest.dynamicTest(path) {
+            val e = fixture("cost-estimate")
+            if (path == "currency") {
+                // Keep all currencies equal so this reaches the typed-money boundary, not MIXED_CURRENCY.
+                e.findParents("currency").forEach { node ->
+                    (node as ObjectNode).put("currency", node["currency"].textValue() + "\n")
+                }
+            } else {
+                val money = e.at(path.substringBeforeLast('/')) as ObjectNode
+                money.put("amount", money["amount"].textValue() + "\n")
+            }
+            val original = e.toString()
+            assertEquals(FrozenValidation.Valid,
+                FrozenSchemaValidator().validate(FrozenDocument.COST_ESTIMATE, original.byteInputStream()))
+            class Tracked(bytes: ByteArray) : java.io.ByteArrayInputStream(bytes) {
+                var closed = false
+                override fun close() { closed = true; super.close() }
+            }
+            val build = Tracked(fixture("build").toString().toByteArray())
+            val estimate = Tracked(original.toByteArray())
+            assertEquals(CostReception.Rejected(CostRejection.INVALID_ESTIMATE), adapter.inspect(build, estimate))
+            assertFalse(build.closed)
+            assertFalse(estimate.closed)
+            assertEquals(original, e.toString())
+            // Rejection must not poison a later read on the same adapter or silently coerce the input.
+            assertEquals("578.50", value().reportedTotal.amount.encoded)
+        } }
     @Test fun `declared amount reconciliation is exact and never rounds away a discrepancy`() {
         val e = fixture("cost-estimate")
         (e["line_items"][0]["amount"] as ObjectNode).put("amount", "0.100000000001")
@@ -118,6 +153,14 @@ class CostEstimateAdapterTest {
         (e["total"] as ObjectNode).put("amount", "0.30")
         rejected(CostRejection.INCONSISTENT_AMOUNTS, e)
         rejected(CostRejection.INCONSISTENT_AMOUNTS, fixture("cost-estimate").apply { (this["subtotal"] as ObjectNode).put("amount", "1") })
+    }
+    @Test fun `schema permitted terminal LF quantity remains recorded rather than treated as money`() {
+        val e = fixture("cost-estimate")
+        (e["line_items"][0] as ObjectNode).put("quantity", "720\n")
+        val result = value(e)
+        assertEquals("720\n", result.lines.first().quantity)
+        assertEquals("720\n", mapper.readTree(result.recordedJson)["line_items"][0]["quantity"].textValue())
+        assertEquals("578.50", result.reportedTotal.amount.encoded)
     }
     @Test fun `unknown disabled and duplicate identities cannot disappear in indexing`() {
         val e = fixture("cost-estimate")

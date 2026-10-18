@@ -1,0 +1,148 @@
+{
+  "local_format_version": 3,
+  "revision": 2,
+  "legacy_source_hash": null,
+  "history": [
+    {
+      "number": 0,
+      "change": "INITIAL",
+      "restored_from": null,
+      "content": {
+        "objective": "",
+        "context": null,
+        "primaryModel": "entered-model",
+        "optional": {
+          "T3": {
+            "activation": "UNKNOWN",
+            "selections": [
+              "opaque"
+            ],
+            "settings": {
+              "amount": "0.00"
+            }
+          },
+          "T4": {
+            "activation": "DISABLED",
+            "selections": [],
+            "settings": {}
+          },
+          "T5": {
+            "activation": "ENABLED",
+            "selections": [],
+            "settings": {}
+          }
+        },
+        "workload": {
+          "region": "entered-region",
+          "currency": "EUR",
+          "monthly_budget_amount": "25.0000",
+          "requests_per_day": 0,
+          "avg_input_tokens": null,
+          "avg_output_tokens": null,
+          "max_concurrency": 7,
+          "max_latency_ms": null,
+          "data_classification": "confidential"
+        }
+      },
+      "metadata": {
+        "pin": "old",
+        "preview.format": "1",
+        "preview.title": "old"
+      }
+    },
+    {
+      "number": 1,
+      "change": "EDIT",
+      "restored_from": null,
+      "content": {
+        "objective": "",
+        "context": "",
+        "primaryModel": "entered-model",
+        "optional": {
+          "T3": {
+            "activation": "UNKNOWN",
+            "selections": [
+              "opaque"
+            ],
+            "settings": {
+              "amount": "0.00"
+            }
+          },
+          "T4": {
+            "activation": "DISABLED",
+            "selections": [],
+            "settings": {}
+          },
+          "T5": {
+            "activation": "ENABLED",
+            "selections": [],
+            "settings": {}
+          }
+        },
+        "workload": {
+          "region": "entered-region",
+          "currency": "EUR",
+          "monthly_budget_amount": "25.0000",
+          "requests_per_day": 0,
+          "avg_input_tokens": null,
+          "avg_output_tokens": null,
+          "max_concurrency": 7,
+          "max_latency_ms": null,
+          "data_classification": "confidential"
+        }
+      },
+      "metadata": {
+        "pin": "current",
+        "preview.format": "1",
+        "preview.title": "current"
+      }
+    },
+    {
+      "number": 2,
+      "change": "RESTORE",
+      "restored_from": 0,
+      "content": {
+        "objective": "",
+        "context": null,
+        "primaryModel": "entered-model",
+        "optional": {
+          "T3": {
+            "activation": "UNKNOWN",
+            "selections": [
+              "opaque"
+            ],
+            "settings": {
+              "amount": "0.00"
+            }
+          },
+          "T4": {
+            "activation": "DISABLED",
+            "selections": [],
+            "settings": {}
+          },
+          "T5": {
+            "activation": "ENABLED",
+            "selections": [],
+            "settings": {}
+          }
+        },
+        "workload": {
+          "region": "entered-region",
+          "currency": "EUR",
+          "monthly_budget_amount": "25.0000",
+          "requests_per_day": 0,
+          "avg_input_tokens": null,
+          "avg_output_tokens": null,
+          "max_concurrency": 7,
+          "max_latency_ms": null,
+          "data_classification": "confidential"
+        }
+      },
+      "metadata": {
+        "pin": "current",
+        "preview.format": "1",
+        "preview.title": "current"
+      }
+    }
+  ]
+}

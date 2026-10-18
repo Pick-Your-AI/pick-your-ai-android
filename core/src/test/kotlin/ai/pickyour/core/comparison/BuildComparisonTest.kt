@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.databind.node.ObjectNode
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
+import java.math.BigDecimal
 import java.math.BigInteger
 
 class BuildComparisonTest {
@@ -59,6 +60,72 @@ class BuildComparisonTest {
         assertEquals(HistoricalOutputState.NOT_LOADED, result.historicalCost)
         assertEquals(HistoricalOutputState.NOT_LOADED, result.historicalFindings)
         assertEquals(SnapshotIdentityCondition.SAME_IDENTITY, result.identityCondition)
+    }
+
+    @Test fun `equivalent JSON numeric representations do not invent changes or different locks`() {
+        val left = example()
+        val right = left.deepCopy().put("revision", BigDecimal("1.00"))
+        (right["locks"] as ObjectNode).put("dependency_graph_revision", BigDecimal("1.0"))
+        settings(right).put("concurrency", BigDecimal("2.000"))
+        left.putObject("extensions").putArray("x_numbers").add(1).addObject().put("nested", BigInteger("9007199254740993"))
+        right.putObject("extensions").putArray("x_numbers").add(BigDecimal("1.0")).addObject()
+            .put("nested", BigDecimal("9007199254740993.00"))
+
+        val result = BuildComparator.compare(snapshot(left), snapshot(right))
+
+        assertTrue(result.changes.isEmpty(), result.changes.joinToString { it.path })
+        assertEquals(SnapshotIdentityCondition.SAME_IDENTITY, result.identityCondition)
+        assertEquals(EvidenceCondition.SAME_RECORDED_LOCKS_NOT_PROOF_OF_COMPARABILITY, result.evidenceCondition)
+    }
+
+    @Test fun `equivalent graph revision spelling retains recorded text without claiming changed evidence`() {
+        val left = snapshot(example())
+        val node = example()
+        (node["locks"] as ObjectNode).put("dependency_graph_revision", BigDecimal("1.0"))
+        val right = snapshot(node)
+
+        assertEquals("1", left.locks["dependency_graph_revision"])
+        assertEquals("1.0", right.locks["dependency_graph_revision"])
+        val result = BuildComparator.compare(left, right)
+        assertEquals(EvidenceCondition.SAME_RECORDED_LOCKS_NOT_PROOF_OF_COMPARABILITY, result.evidenceCondition)
+        assertEquals(SnapshotIdentityCondition.SAME_IDENTITY, result.identityCondition)
+        assertTrue(result.changes.isEmpty())
+    }
+
+    @Test fun `actual numeric changes remain exact beyond binary float precision`() {
+        val left = example()
+        val right = left.deepCopy()
+        left.putObject("extensions").put("x_value", BigInteger("9007199254740993"))
+            .put("x_tiny", BigDecimal("1e-1000"))
+        right.putObject("extensions").put("x_value", BigDecimal("9007199254740993.0000000000000000001"))
+            .put("x_tiny", BigDecimal("2e-1000"))
+
+        val result = BuildComparator.compare(snapshot(left), snapshot(right))
+
+        assertEquals(listOf("/extensions/x_tiny", "/extensions/x_value"), result.changes.map { it.path })
+        assertEquals("9007199254740993", result.changes[1].beforeJson)
+        assertEquals("9007199254740993.0000000000000000001", result.changes[1].afterJson)
+        assertEquals(SnapshotIdentityCondition.SAME_IDENTITY_WITH_DIFFERENCES, result.identityCondition)
+    }
+
+    @Test fun `numeric equality preserves string boolean and atomic array distinctions`() {
+        val left = example()
+        val right = left.deepCopy()
+        (left["objectives"] as ObjectNode).put("monthly_budget_amount", "100")
+        (right["objectives"] as ObjectNode).put("monthly_budget_amount", "100.00")
+        left.putObject("extensions").put("x_type", 1).put("x_bool", 1).putArray("x_order").add(1).add(2)
+        right.putObject("extensions").put("x_type", "1").put("x_bool", true)
+            .putArray("x_order").add(BigDecimal("2.0")).add(BigDecimal("1.0"))
+
+        val result = BuildComparator.compare(snapshot(left), snapshot(right))
+
+        assertEquals(listOf("/extensions/x_bool", "/extensions/x_order", "/extensions/x_type",
+            "/objectives/monthly_budget_amount"), result.changes.map { it.path })
+        assertTrue(result.changes.all { it.kind == ChangeKind.CHANGED })
+        assertEquals("[1,2]", result.changes[1].beforeJson)
+        assertEquals("[2.0,1.0]", result.changes[1].afterJson)
+        assertEquals("\"100\"", result.changes.last().beforeJson)
+        assertEquals("\"100.00\"", result.changes.last().afterJson)
     }
 
     @Test fun `changed pricebook rules and missing optional pin disclosed without computing reports`() {

@@ -20,9 +20,11 @@ class PreviewRevisionComparisonTest {
             assertEquals(PreviewComparedValueKind.TEXT, display.kind)
             assertEquals("\"$literal\"", display.quotedLiteral)
         }
-        val controls = PreviewComparedValue.from("a\n\t\r\"\\\u0000\u202e").quotedLiteral!!
-        assertEquals("\"a\\n\\t\\r\\\"\\\\\\u0000\\u202e\"", controls)
+        val controls = PreviewComparedValue.from("a\n\t\r\"\\\u0000\u202e\u2028\u2029").quotedLiteral!!
+        assertEquals("\"a\\n\\t\\r\\\"\\\\\\u0000\\u202e\\u2028\\u2029\"", controls)
         assertFalse(controls.contains('\n'))
+        assertFalse(controls.contains('\u2028'))
+        assertFalse(controls.contains('\u2029'))
         val bounded = PreviewComparedValue.from("x".repeat(161))
         assertTrue(bounded.truncated)
         assertEquals("\"" + "x".repeat(160) + "\"", bounded.quotedLiteral)

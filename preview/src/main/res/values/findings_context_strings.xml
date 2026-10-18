@@ -1,0 +1,19 @@
+<resources>
+    <string name="findings_context_open">Selections</string>
+    <string name="findings_context_title">Recorded selection context</string>
+    <string name="findings_context_scope">Read-only selections from the same checked synthetic build as this report. This is separate from your editable draft. Settings, notes, extensions, owner and credential references are withheld. Text is shown as a literal. Long text is visibly truncated; its recorded values remain retained. No catalog lookup, rule execution, evidence fetch or save occurs.</string>
+    <string name="findings_context_identity">Report: %1$s\nRecorded build: %2$s, revision %3$s</string>
+    <string name="findings_context_locks">Recorded catalog snapshot: %1$s\nRecorded ruleset: %2$s at %3$s\nRecorded dependency graph: %4$s, revision %5$s</string>
+    <string name="findings_context_page">Page %1$d of %2$d · selections %3$d–%4$d of %5$d</string>
+    <string name="findings_context_none">This finding names no affected selection.</string>
+    <string name="findings_context_selection">Recorded selection ID: %1$s</string>
+    <string name="findings_context_inspect">Inspect selection %1$d</string>
+    <string name="findings_context_recorded">Kind: %1$s\nRecorded role: %2$s\nRecorded catalog item: %3$s\nRecorded item version: %4$s\nRecorded enabled state: %5$s</string>
+    <string name="findings_context_enabled">Enabled</string>
+    <string name="findings_context_disabled">Disabled</string>
+    <string name="findings_context_missing">Unavailable: this ID has no recorded selection context. No role or version is inferred.</string>
+    <string name="findings_context_ambiguous">Unavailable: this ID occurs more than once in the checked build, including any disabled rows. No role or version is selected.</string>
+    <string name="findings_context_next">Next selections</string>
+    <string name="findings_context_previous">Previous selections</string>
+    <string name="findings_context_back">Back to selections</string>
+</resources>

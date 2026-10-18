@@ -1,0 +1,14 @@
+<resources>
+    <string name="catalog_sources">Review sources</string>
+    <string name="catalog_source_page">Sources · page %1$d of %2$d · %3$d records</string>
+    <string name="catalog_source_row">Source %1$d: %2$s</string>
+    <string name="catalog_source_next">Next sources</string>
+    <string name="catalog_source_previous">Previous sources</string>
+    <string name="catalog_source_back">Back to sources</string>
+    <string name="catalog_source_missing">No source URI was supplied for this provenance record.</string>
+    <string name="catalog_source_blocked">This source cannot be opened under the current HTTPS host policy. Its recorded value has not changed. No external app was opened.</string>
+    <string name="catalog_source_confirm_title">Open this source?</string>
+    <string name="catalog_source_confirm">Source %1$d\nHost: %2$s\n\n%3$s\n\nThe full URL will be sent to an external app selected by Android. That app controls subsequent redirects and may use its own signed-in session. Opening the source does not verify its claims.</string>
+    <string name="catalog_source_open">Open source</string>
+    <string name="catalog_source_unavailable">No compatible app could open this source, or the device restricted the action. Your pending draft remains here. Return to the source list to try again.</string>
+</resources>

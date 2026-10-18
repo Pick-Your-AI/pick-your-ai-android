@@ -1,0 +1,20 @@
+<resources>
+    <string name="catalog_detail_missing">Not supplied; unknown</string>
+    <string name="catalog_detail_explicit_unknown">Explicitly unknown</string>
+    <string name="catalog_detail_empty_collection">[] — no members supplied; completeness is not established</string>
+    <string name="catalog_detail_contains_unknown">%1$s — contains explicit unknown entries</string>
+    <string name="catalog_detail_truncated">%1$s … [display truncated]</string>
+    <string name="catalog_detail_field">%1$s [%2$s]: %3$s</string>
+    <string name="catalog_detail_snapshot">Snapshot: %1$s\nRevision: %2$s\nSHA-256: %3$s</string>
+    <string name="catalog_detail_dates">Snapshot captured_at: %1$s\nItem updated_at: %2$s</string>
+    <string name="catalog_detail_status">Recorded item status: %1$s\nRecorded billing class: %2$s</string>
+    <string name="catalog_detail_provider">A provider record or provider_ref identifies a catalog provider. It does not identify an offering or serving route.</string>
+    <string name="catalog_detail_description">Description: %1$s</string>
+    <string name="catalog_detail_specs">Specification fields\nCanonical names retain their stated units; no conversion is applied.\n%1$s</string>
+    <string name="catalog_detail_license">Recorded license fields\nThese synthetic declarations do not establish legal reuse rights.\n%1$s</string>
+    <string name="catalog_detail_source_count">Provenance records displayed: %1$d / %2$d. Additional records are retained in the snapshot, not hidden by a combined verification grade.</string>
+    <string name="catalog_detail_source">Provenance %1$d\nSource URI: %2$s\nChecked at: %3$s\nRaw status: %4$s\nDisplay label: %5$s\nNotes: %6$s</string>
+    <string name="catalog_detail_price">No accepted price or complete cost estimate is established here. A recorded free or included billing class is not an applicable zero-cost quote.</string>
+    <string name="catalog_detail_source_limits">Source URIs remain plain text here. Review sources offers a separate confirmation for links permitted by the configured HTTPS host policy; no source hosts are enabled in this synthetic preview. Source dates and declared status do not prove that a source was checked. Conflicting provenance is retained without choosing a winner. Missing pinned versions never fall back to the latest item.</string>
+    <string name="catalog_detail_unavailable">Details for this exact item version and snapshot are unavailable. Return to the catalog and retry; no newer version has been substituted.</string>
+</resources>

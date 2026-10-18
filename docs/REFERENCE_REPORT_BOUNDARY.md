@@ -63,8 +63,8 @@ JSON rather than being coerced to a fact or a floating-point display number.
 
 The UI exposes summary outcome counts and one finding dialog at a time, with
 explicit raw outcome/severity labels and evidence/authority limitations. Optional
-remediation is displayed as reported text, never executed. Selection IDs are
-shown without fabricating a navigation destination. Work stays on the existing
+remediation is displayed as reported text, never executed. Selection IDs now link
+to the same-build recorded context described below. Work stays on the existing
 worker; concurrent inspection is disabled and destroyed Activities ignore late
 callbacks. Recreation resets this read-only diagnostic. This rendering is scoped
 to the fixed bundled fixture, not a general untrusted large-report renderer.
@@ -74,5 +74,64 @@ failure independence, null/absence/large-number distinctions and immutable lists
 A required Robolectric Activity case checks labels, evidence limitations and no
 implicit guest save. Installed TalkBack/focus/contrast and actual evaluation
 integration remain unverified. This is partial #101: required-presence versus
-component-conflict categorization, current-draft analysis tickets, actionable
-role/version navigation and verified evidence/remediation remain separate work.
+component-conflict categorization, current-draft analysis tickets and navigation,
+and verified evidence/remediation remain separate work.
+
+## Recorded selection context (#101, partial)
+
+The finding's **Selections** action opens read-only details from the same Build
+that passed `ReferenceReportAdapter` with that report. A minimal immutable projection
+retains the exact selection ID, kind, recorded role, catalog item ID/version and
+enabled flag. It copies no build owner, selection settings, notes, extensions or
+credential references. Report/build revisions and catalog/ruleset/graph identities
+remain those of the accepted report. The inspector never resolves an item against
+the current catalog, substitutes a primary role, fetches evidence or edits/saves
+the guest draft.
+
+Every affected ID resolves only when exactly one selection in the accepted build
+has that ID. Duplicate identities remain explicitly unavailable, including an
+active row colliding with a disabled row; missing context has its own unavailable
+reason. This is conservative presentation of the existing receiving result, not
+a new frozen-schema restriction or a reinterpretation of the evaluator's findings.
+
+Sixteen selections appear per page, with all affected selections reachable.
+Identity text uses the existing literal helper: controls, formatting characters,
+surrogates and delimiters are escaped; values longer than 160 UTF-16 units have
+an explicit display-truncation marker. Complete immutable values remain retained.
+The bounded receiver's supported integer revision digits are displayed without
+machine-integer narrowing. The context contains textual labels and single-column,
+scrollable actions with minimum 48dp targets. These primitives do not establish
+installed accessibility or complete localization.
+
+The showing finding authorizes the transition into its captured context. Every
+context action then requires the same accepted report object, its current owned
+showing dialog and a live Activity. Cancellation, replacement and destruction
+retire the navigation permanently. A unique inspection request also rejects an
+older worker completion even when its report's wire identities match. Recreation
+resets the diagnostic and does not bind the old report to restored guest edits.
+The existing report/finding text formatter remains separate from this context
+projection and navigation.
+
+Three focused core regressions exercise multiple roles/versions, ambiguity
+including disabled rows, private-field omission and immutable copied collections.
+The mandatory nine-case native suite covers actual fixture navigation and pending
+draft authority, private/literal fields, ambiguity, full supported revision digits,
+complete paging, canceled and superseded controls, reverse-order receiving work,
+Activity recreation and measured 320dp RTL/200% text layout. Record actual
+execution, source hashes and independent review on the delivering PR; these
+tests are simulations and do not supply installed TalkBack or device acceptance.
+
+This addresses the recorded-context portion of #101 criterion 3 only within the
+fixed synthetic inspector. Current-draft evaluation/classification, accepted
+evidence and feasible remediation, result-change announcements, installed
+accessibility, named compatibility/Android receiving roles and all native
+prerequisites remain outstanding. The original `09.03.md` acceptance-record path
+in `Pick-Your-AI/pickyour.ai` remains authoritative; this source document does not
+move it or close the issue.
+
+Primary Android references checked 2026-10-18:
+[Dialog lifetime](https://developer.android.com/reference/android/app/Dialog#isShowing()),
+[Activity lifecycle](https://developer.android.com/guide/components/activities/activity-lifecycle)
+and [accessible controls](https://developer.android.com/guide/topics/ui/accessibility/apps).
+Dialog visibility and Activity callbacks provide in-memory navigation authority,
+not durable persistence or evidence of process-death recovery.
