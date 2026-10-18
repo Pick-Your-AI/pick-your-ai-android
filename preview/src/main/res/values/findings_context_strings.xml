@@ -4,7 +4,12 @@
     <string name="findings_context_scope">Read-only selections from the same checked synthetic build as this report. This is separate from your editable draft. Settings, notes, extensions, owner and credential references are withheld. Text is shown as a literal. Long text is visibly truncated; its recorded values remain retained. No catalog lookup, rule execution, evidence fetch or save occurs.</string>
     <string name="findings_context_identity">Report: %1$s\nRecorded build: %2$s, revision %3$s</string>
     <string name="findings_context_locks">Recorded catalog snapshot: %1$s\nRecorded ruleset: %2$s at %3$s\nRecorded dependency graph: %4$s, revision %5$s</string>
-    <string name="findings_context_page">Page %1$d of %2$d · selections %3$d–%4$d of %5$d</string>
+    <!-- Quantity is the complete affected-selection total, including on a last page with one row.
+         Arguments: current page, total pages, first displayed index, last displayed index, total selections. -->
+    <plurals name="findings_context_page">
+        <item quantity="one">Page %1$d of %2$d · %5$d selection · %3$d–%4$d displayed</item>
+        <item quantity="other">Page %1$d of %2$d · %5$d selections · %3$d–%4$d displayed</item>
+    </plurals>
     <string name="findings_context_none">This finding names no affected selection.</string>
     <string name="findings_context_selection">Recorded selection ID: %1$s</string>
     <string name="findings_context_inspect">Inspect selection %1$d</string>
