@@ -54,7 +54,8 @@ def main():
         result = subprocess.call([sys.executable, str(ROOT / 'scripts' / name)], cwd=ROOT)
         if result:
             return result
-    return 0
+    return subprocess.call([sys.executable,
+                            str(ROOT / 'scripts' / 'check_dependency_graph_fixtures.py')], cwd=ROOT)
 
 
 if __name__ == '__main__':
