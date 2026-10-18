@@ -696,3 +696,93 @@ Android's [saved UI state guidance](https://developer.android.com/topic/librarie
 (checked 2026-10-18) distinguishes small transient state from durable storage and
 user-initiated dismissal. This preview uses that distinction; Bundle recreation
 tests do not establish force-stop or physical-device recovery.
+
+### Retry after the final deletion acknowledgement is lost
+
+The final deletion marker can already be absent when directory synchronization or
+transaction cleanup prevents an acknowledgement. The library correctly returns
+`Unconfirmed`, but an absent row previously left the Activity with no reachable
+retry action. The Activity now captures the affected local ID before dispatching
+deletion, retains it in saved instance state, and exposes **Retry local cleanup**
+independently of the library rows. Cancellation or a busy retry retains that ID.
+Only a confirmed removal, a conflict requiring fresh inspection, or a known failure
+before a new deletion starts clears it. Another deletion cannot silently replace
+the one unresolved operation in that Activity. Unrelated editor identity, pending
+title/context and save authority remain subject to the existing session transition.
+
+`PreviewDraftLibrary.retryDeletion` reconciles the named earlier operation. A
+still-active directory without a deletion marker returns conflict even when its
+contents are unreadable or incomplete; a retry does not become fresh permission
+to discard it. Existing intent uses the canonical cleanup sequence. If the draft
+and pending marker are both absent, retry synchronizes that absence without
+creating another pending library row. This also works at the 64-draft limit and
+retains the permanent legacy-default suppression marker. It introduces no new
+draft format, persistence engine, retention policy or remote deletion behavior.
+
+The simulated regression
+`interruptedFinalCleanupCanBeRetriedAfterRecreationWithoutLibraryRow` drives the
+native confirmation and injects the existing `TOMBSTONE_REMOVED` failure. On
+accepted main `5359a3b`, it reached an empty library and recreated Activity but
+failed because no retry control existed. With this correction it preserves the
+pending title/objective, cancels a retry, encounters a busy retry, recreates again,
+and explicitly completes cleanup without recreating the deleted guest. CI requires
+the named case to execute and pass. Three core regressions separately cover
+refusal of active readable/corrupt/incomplete rows, existing/absent final intent,
+and safe acknowledgement when the remaining library is full.
+
+Local verification on 2026-10-18 passed **215 core JVM tests and 9 simulated
+Activity tests**, with no failures, errors or skips. A clean unsigned preview
+assembly and lint passed; lint retained the existing `ViewConstructor` warning
+for the unchanged, programmatically constructed `OptionalTierSection`. The frozen
+43-file import and both manifests, 21 Python references, four report fixtures,
+four integrity regressions, six ledger regressions and wrapper integrity also
+passed. The ledger still matches all 129 issue identities and 441 incomplete
+criteria. The saved-instance checkpoint is UI recovery context; installed process
+termination, filesystem power loss and receiving acceptance for #86/#67 remain
+separate evidence requirements.
+
+After reconciliation with accepted catalog search at `a4e7df2`, the same recovery
+delta in local commit `f4dd243` passed a fresh clean build on 2026-10-18:
+**221 core JVM tests and 11 simulated Activity tests**, with zero failures, errors
+or skips. The combined `:core:clean :preview:clean :core:check :core:assemble
+:preview:assembleDebug :preview:lintDebug :preview:testDebugUnitTest` run completed
+all 58 tasks in 47 seconds. Lint reported zero errors and two existing warnings:
+`PluralsCandidate` in catalog search strings and `ViewConstructor` in
+`OptionalTierSection`. This later receipt preserves the earlier 215/9 result;
+neither run supplies installed-device or whole-issue acceptance.
+
+The integration with the later workload, pending-copy and objective guidance
+preserves their saved state and controls alongside the pending cleanup ID. Both
+the shared cleanup confirmation and deletion-dispatch entry reject a destroyed
+Activity before opening a dialog, changing the pending operation or submitting
+work. Two additional simulated regressions restore the pending-ID receipt, retain
+the actual retry control or positive confirmation, recreate the Activity, then
+deliver those old callbacks. They require the current pending fields, retry state
+and acknowledged baseline to remain unchanged. The existing interruption test
+above continues to exercise how the pending cleanup receipt is produced. The
+combined native gate requires all three cleanup regressions; this source addition
+does not itself supply an installed-device result.
+
+The pending identity is also checked again immediately before deletion dispatch
+in the same live Activity. A retained positive confirmation for another ID cannot
+replace the current cleanup receipt. If that same ID has since become pending,
+dispatch uses retry-only semantics, including retaining the receipt when storage
+is busy. The confirmation's earlier view of the operation is not sufficient
+authority for a later submission.
+
+Two further simulated regressions retain actual positive controls across these
+state changes. One creates two distinct drafts, leaves the second absent after an
+injected final-acknowledgement failure, and requires its saved retry receipt and
+the first draft's acknowledged contents to survive the older confirmation. The
+other requires the same-ID callback to preserve its new retry receipt after a
+busy result. Both recreate and explicitly reconcile the pending operation; the
+native workflow requires both cases alongside all accepted Activity regressions.
+
+The failing-before source `284881bf1c7d2037ef9da5e78551e66c1b97b210` (tree
+`0f5702715795770184fd38675fc75609441291ff`) ran all 40 simulated Activity cases in
+[hosted run 39104121579](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39104121579).
+Exactly these two new cases failed, with no errors or skips: the first observed
+the pending UUID replaced by `guest-draft`, and the second observed the new-delete
+failure result instead of a receipt-preserving retry failure. All 38 earlier
+cases passed. This establishes the regression targets; passing verification of
+the corrected source is recorded separately, with no installed-device inference.
