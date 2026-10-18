@@ -25,6 +25,9 @@ ACTIVITY = PACKAGE + ".PreviewActivity"
 SERIAL = "emulator-5554"
 SYSTEM_IMAGE = "system-images;android-35;default;x86_64"
 IMAGE_REVISION = "2"
+HVF_EMULATOR_VERSION = "37.1.11.0"
+HVF_HOST_IDENTITY = {"runner_environment": "github-hosted", "runner_os": "macOS",
+                     "runner_arch": "X64", "system": "Darwin", "machine": "x86_64"}
 CASE_IDS = (
     "installed_synthetic_launch",
     "acknowledged_save_survives_force_stop",
@@ -48,6 +51,12 @@ GUEST_READINESS_COMMANDS = (
     ("ui_dump_readable", ("test", "-r", UI_DUMP_DIRECTORY), ("",)),
     ("ui_dump_writable", ("test", "-w", UI_DUMP_DIRECTORY), ("",)),
     ("ui_dump_searchable", ("test", "-x", UI_DUMP_DIRECTORY), ("",)),
+)
+BOOT_FAILURE_COMMANDS = (
+    ("adb_state", ("get-state",)),
+    ("emulator_name", ("emu", "avd", "name")),
+    ("emulator_property", ("shell", "getprop", "ro.kernel.qemu")),
+    ("boot_animation", ("shell", "getprop", "init.svc.bootanim")),
 )
 
 
@@ -73,6 +82,98 @@ def check_kvm_access(device: Path = Path("/dev/kvm")) -> None:
             "KVM read/write access is unavailable; no host permissions were changed")
 
 
+def hvf_host_passes(host: dict) -> bool:
+    if not (isinstance(host, dict) and all(host.get(key) == value for key, value in HVF_HOST_IDENTITY.items())
+            and host.get("kern_hv_support") == "1" and "error" not in host):
+        return False
+    observed = host.get("support_check")
+    return (hvf_command_passes(observed) and len(observed["stdout"]) <= 1024
+            and observed["stdout"].strip() == "1")
+
+
+def hvf_command_passes(observed: dict) -> bool:
+    return (isinstance(observed, dict) and type(observed.get("exit_code")) is int
+            and observed["exit_code"] == 0 and observed.get("stderr") == ""
+            and isinstance(observed.get("stdout"), str) and observed.get("output_truncated") is False
+            and "command_timeout_seconds" not in observed and "error" not in observed)
+
+
+def observe_hvf_command(args: list[str], observed: dict, *, timeout: int, output_limit: int) -> None:
+    """Keep bounded complete-result or timeout evidence in the caller's receipt."""
+    observed.clear()
+    try:
+        result = command(args, timeout=timeout, check=False)
+        observed.update(exit_code=result.returncode,
+                        stdout=bounded_text(result.stdout, output_limit),
+                        stderr=bounded_text(result.stderr, output_limit),
+                        output_truncated=len(result.stdout) > output_limit or len(result.stderr) > output_limit)
+    except subprocess.TimeoutExpired as error:
+        observed.update(command_timeout_seconds=error.timeout,
+                        stdout=bounded_text(error.stdout, output_limit),
+                        stderr=bounded_text(error.stderr, output_limit),
+                        output_truncated=len(error.stdout or "") > output_limit or len(error.stderr or "") > output_limit)
+        raise
+    except Exception as error:
+        observed["error"] = bounded_text(str(error), 1200)
+        raise
+
+
+def check_hvf_access(observed: dict | None = None) -> dict:
+    """Observe the explicit hosted Intel Mac; never install or enable a hypervisor."""
+    host = {} if observed is None else observed
+    host.clear()
+    host.update(runner_environment=os.environ.get("RUNNER_ENVIRONMENT"),
+                runner_os=os.environ.get("RUNNER_OS"), runner_arch=os.environ.get("RUNNER_ARCH"),
+                system=platform.system(), machine=platform.machine(), macos_version=platform.mac_ver()[0])
+    try:
+        require(os.environ.get("GITHUB_ACTIONS") == "true" and
+                all(host[key] == value for key, value in HVF_HOST_IDENTITY.items()),
+                "HVF mode requires the explicit GitHub-hosted Intel macOS runner")
+        emulator = Path(os.environ["ANDROID_HOME"]) / "emulator/emulator"
+        require(emulator.is_file() and not emulator.is_symlink(), "Expected the existing Intel macOS emulator")
+        support = {}
+        host["support_check"] = support
+        observe_hvf_command(["/usr/sbin/sysctl", "-n", "kern.hv_support"], support, timeout=10, output_limit=1024)
+        require(hvf_command_passes(support) and len(support["stdout"]) <= 1024
+                and support["stdout"].strip() == "1",
+                "Existing Hypervisor.Framework support is unavailable; no host setting was changed")
+        host["kern_hv_support"] = support["stdout"].strip()
+        return host
+    except Exception as error:
+        host["error"] = bounded_text(str(error), 1200)
+        raise
+    finally:
+        print("HVF host preflight: " + json.dumps(host, sort_keys=True), flush=True)
+
+
+def hvf_acceleration_passes(observed: dict) -> bool:
+    return (hvf_command_passes(observed) and len(observed["stdout"]) <= 2048
+            and re.fullmatch(r"accel:\r?\n0\r?\nHypervisor\.Framework OS X Version [0-9]+(?:\.[0-9]+)*\r?\naccel\r?\n?",
+                             observed["stdout"]) is not None)
+
+
+def check_hvf_acceleration(emulator: Path, observed: dict | None = None) -> dict:
+    observed = {} if observed is None else observed
+    observed.clear()
+    try:
+        require(emulator.is_file() and not emulator.is_symlink(), "Expected the existing Intel macOS emulator")
+        observe_hvf_command([str(emulator), "-accel-check"], observed, timeout=30, output_limit=2048)
+        require(hvf_acceleration_passes(observed),
+                "The existing emulator did not confirm usable Hypervisor.Framework acceleration")
+        return observed
+    except Exception as error:
+        observed["error"] = bounded_text(str(error), 1200)
+        raise
+    finally:
+        print("HVF acceleration preflight: " + json.dumps(observed, sort_keys=True), flush=True)
+
+
+def require_apk_handoff(actual_hash: str, expected_hash: str | None) -> None:
+    require(isinstance(expected_hash, str) and re.fullmatch(r"[0-9a-f]{64}", expected_hash) is not None
+            and expected_hash == actual_hash,
+            "Unsigned APK does not match the successful Linux build's exact SHA-256 handoff")
+
+
 def emulation_settings(receipt: dict | None = None) -> dict:
     """Select one explicit mode; an unavailable mode never becomes a skipped pass."""
     mode = os.environ.get("PYAI_EMULATOR_MODE", "kvm")
@@ -85,11 +186,20 @@ def emulation_settings(receipt: dict | None = None) -> dict:
     if receipt is not None:
         receipt["emulation"] = settings
     if mode == "hvf":
-        observed = {}
-        settings["hvf_preflight"] = observed
-        check_hvf_access(observed)
+        host = {}
+        settings["host"] = host
+        check_hvf_access(host)
     print("Emulation settings: " + json.dumps(settings, sort_keys=True))
     return settings
+
+
+def emulation_environment(environment: dict, mode: str) -> dict:
+    require(mode in ("kvm", "software", "hvf"), "Unknown emulator environment mode")
+    selected = dict(environment)
+    selected.pop("ANDROID_I_WANT_MY_TCG", None)
+    if mode == "software":
+        selected["ANDROID_I_WANT_MY_TCG"] = "yes"
+    return selected
 
 
 def command(args: list[str], *, env=None, timeout=30, input=None, check=True):
@@ -114,60 +224,6 @@ def bounded_text(value: str | bytes | None, limit=6000) -> str:
     if isinstance(value, bytes):
         value = value.decode("utf-8", errors="replace")
     return (value or "")[-limit:]
-
-
-def hvf_preflight_passes(observed: dict) -> bool:
-    if not isinstance(observed, dict) or any(observed.get(key) != expected for key, expected in (
-            ("runner_os", "macOS"), ("runner_arch", "X64"), ("system", "Darwin"), ("machine", "x86_64"))):
-        return False
-    checks = observed.get("checks")
-    if not isinstance(checks, dict) or set(checks) != {"kern_hv_support", "acceleration"}:
-        return False
-    for value in checks.values():
-        if not (isinstance(value, dict) and type(value.get("exit_code")) is int and value["exit_code"] == 0
-                and value.get("output_truncated") is False and "command_timeout_seconds" not in value
-                and isinstance(value.get("stdout_tail"), str) and isinstance(value.get("stderr_tail"), str)
-                and not value["stderr_tail"].strip()):
-            return False
-    return checks["kern_hv_support"]["stdout_tail"].strip() == "1" and re.fullmatch(
-        r"accel:\r?\n0\r?\nHypervisor\.Framework OS X Version [0-9]+(?:\.[0-9]+)*\r?\naccel",
-        checks["acceleration"]["stdout_tail"].strip()) is not None
-
-
-def check_hvf_access(observed: dict | None = None) -> dict:
-    """Observe the existing Intel macOS host; never enable virtualization or alter access."""
-    if observed is None:
-        observed = {}
-    observed.update(runner_os=os.environ.get("RUNNER_OS"), runner_arch=os.environ.get("RUNNER_ARCH"),
-                    system=platform.system(), machine=platform.machine(), checks={})
-    try:
-        require(os.environ.get("GITHUB_ACTIONS") == "true" and
-                os.environ.get("RUNNER_ENVIRONMENT") == "github-hosted" and
-                observed["runner_os"] == "macOS" and observed["runner_arch"] == "X64" and
-                observed["system"] == "Darwin" and observed["machine"] == "x86_64",
-                "HVF requires the explicit GitHub-hosted Intel macOS runner")
-        emulator = Path(os.environ["ANDROID_HOME"]) / "emulator/emulator"
-        require(emulator.is_file() and not emulator.is_symlink(), "Expected the existing Intel macOS emulator")
-        for name, args, timeout in (
-                ("kern_hv_support", ["/usr/sbin/sysctl", "-n", "kern.hv_support"], 5),
-                ("acceleration", [str(emulator), "-accel-check"], 30)):
-            try:
-                result = command(args, timeout=timeout, check=False)
-                observed["checks"][name] = {"exit_code": result.returncode,
-                                            "stdout_tail": bounded_text(result.stdout, 1200),
-                                            "stderr_tail": bounded_text(result.stderr, 1200),
-                                            "output_truncated": len(result.stdout) > 1200 or len(result.stderr) > 1200}
-            except subprocess.TimeoutExpired as error:
-                observed["checks"][name] = {"command_timeout_seconds": error.timeout,
-                                            "stdout_tail": bounded_text(error.stdout, 1200),
-                                            "stderr_tail": bounded_text(error.stderr, 1200)}
-        require(hvf_preflight_passes(observed), "Existing HVF capability was not established; no host access was changed")
-        return observed
-    except Exception as error:
-        observed["error"] = bounded_text(str(error), 1200)
-        raise
-    finally:
-        print("HVF preflight: " + json.dumps(observed, sort_keys=True), flush=True)
 
 
 def validate_target(serial: str, qemu: str, avd_name: str, expected_name: str) -> None:
@@ -215,6 +271,90 @@ def labelled_editor(root: ET.Element, label: str) -> ET.Element | None:
             if field.get("class") == EDITOR and visible(field):
                 return field
     return None
+
+
+def wait_for_boot_completed(device, receipt: dict, timeout_seconds):
+    """Retain bounded observations of the original boot-property gate."""
+    require(0 < timeout_seconds <= 900, "Invalid boot deadline")
+    state = {"completed": False, "timeout_seconds": timeout_seconds,
+             "attempts": 0, "recent_probes": []}
+    receipt["boot_wait"] = state
+    started = time.monotonic()
+    deadline = started + timeout_seconds
+    try:
+        while time.monotonic() < deadline:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                break
+            state["attempts"] += 1
+            probe_started = time.monotonic()
+            probe = {"attempt": state["attempts"],
+                     "started_seconds": round(probe_started - started, 3)}
+            state["last_probe"] = probe
+            try:
+                result = device.adb("shell", "getprop", "sys.boot_completed",
+                                    timeout=min(10, remaining), check=False)
+                probe.update(exit_code=result.returncode,
+                             stdout_tail=bounded_text(result.stdout, 1200),
+                             stderr_tail=bounded_text(result.stderr, 1200),
+                             output_truncated=len(result.stdout) > 1200 or len(result.stderr) > 1200,
+                             boot_property_passed=(result.returncode == 0 and result.stdout.strip() == "1"
+                                                   and not result.stderr.strip()))
+            except subprocess.TimeoutExpired as error:
+                probe.update(command_timeout_seconds=error.timeout,
+                             stdout_tail=bounded_text(error.stdout, 1200),
+                             stderr_tail=bounded_text(error.stderr, 1200))
+                raise  # Preserve the existing command-timeout failure; never accept partial stdout.
+            except Exception as error:
+                probe["error"] = bounded_text(str(error), 1200)
+                raise
+            finally:
+                probe["seconds"] = round(time.monotonic() - probe_started, 3)
+                state.setdefault("first_probe", probe)
+                state["recent_probes"].append(probe)
+                del state["recent_probes"][:-16]
+            if probe.get("boot_property_passed") is True and time.monotonic() < deadline:
+                state["completed"] = True
+                return
+            remaining = deadline - time.monotonic()
+            if remaining > 0:
+                time.sleep(min(1, remaining))
+        raise SmokeFailure(f"Owned emulator did not boot within {timeout_seconds} seconds")
+    except Exception as error:
+        state["error"] = bounded_text(str(error), 1200)
+        raise
+    finally:
+        state["seconds"] = round(time.monotonic() - started, 3)
+
+
+def retain_boot_failure_state(device, receipt: dict):
+    """Read the same owned serial after failure; observations cannot rescue boot."""
+    state = {"timeout_seconds": 20, "checks": {}}
+    receipt["boot_failure_observations"] = state
+    started = time.monotonic()
+    deadline = started + state["timeout_seconds"]
+    try:
+        for name, args in BOOT_FAILURE_COMMANDS:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                state["deadline_reached"] = True
+                break
+            check = {"arguments": list(args)}
+            state["checks"][name] = check
+            try:
+                result = device.adb(*args, timeout=min(5, remaining), check=False)
+                check.update(exit_code=result.returncode,
+                             stdout_tail=bounded_text(result.stdout, 1200),
+                             stderr_tail=bounded_text(result.stderr, 1200),
+                             output_truncated=len(result.stdout) > 1200 or len(result.stderr) > 1200)
+            except subprocess.TimeoutExpired as error:
+                check.update(command_timeout_seconds=error.timeout,
+                             stdout_tail=bounded_text(error.stdout, 1200),
+                             stderr_tail=bounded_text(error.stderr, 1200))
+            except Exception as error:
+                check["error"] = bounded_text(str(error), 1200)
+    finally:
+        state["seconds"] = round(time.monotonic() - started, 3)
 
 
 def guest_readiness_checks_pass(checks: dict) -> bool:
@@ -278,7 +418,7 @@ def wait_for_guest_ready(device, receipt: dict, timeout_seconds=180):
         state["seconds"] = round(time.monotonic() - started, 3)
 
 
-def complete_receipt(receipt: dict, source_sha: str) -> None:
+def complete_receipt(receipt: dict, source_sha: str, expected_mode: str | None = None) -> None:
     require(receipt.get("source_commit") == source_sha, "Receipt source commit differs")
     require(receipt.get("scope") == "owned-installed-aosp-emulator", "Wrong evidence scope")
     require(receipt.get("status") == "passed", "Installed smoke did not pass")
@@ -294,8 +434,16 @@ def complete_receipt(receipt: dict, source_sha: str) -> None:
             emulation.get("boot_timeout_seconds") == (900 if software else 300) and
             emulation.get("unsupported_software_opt_in") is software,
             "Emulation settings differ from the explicit selected mode")
+    if expected_mode is not None:
+        require(emulation.get("mode") == expected_mode,
+                "Receipt does not use the selected emulator mode")
     if emulation["mode"] == "hvf":
-        require(hvf_preflight_passes(emulation.get("hvf_preflight")), "Complete existing-HVF observations are missing")
+        require(emulation.get("accel_argument") == "on"
+                and emulation.get("unsupported_software_opt_in") is False
+                and hvf_host_passes(emulation.get("host"))
+                and hvf_acceleration_passes(receipt.get("host_acceleration")),
+                "Complete hosted Intel Hypervisor.Framework evidence is missing")
+        require_apk_handoff(receipt.get("unsigned_apk_sha256"), receipt.get("expected_unsigned_apk_sha256"))
     readiness = receipt.get("guest_readiness", {})
     require(isinstance(readiness, dict) and readiness.get("ready") is True and
             readiness.get("ui_dump_path") == UI_DUMP_PATH and
@@ -629,6 +777,10 @@ def main() -> int:
         original_hash = digest(apk)
         receipt["unsigned_apk_sha256"] = original_hash
         settings = emulation_settings(receipt)
+        if settings["mode"] == "hvf":
+            expected_hash = os.environ.get("PYAI_EXPECTED_APK_SHA256")
+            require_apk_handoff(original_hash, expected_hash)
+            receipt["expected_unsigned_apk_sha256"] = expected_hash
         if settings["mode"] == "software":
             receipt["limitations"].append("software CPU emulation is a vendor-unsupported diagnostic mode")
         sdk = Path(os.environ["ANDROID_HOME"])
@@ -656,6 +808,13 @@ def main() -> int:
         receipt["adb_version"] = command([str(adb), "version"]).stdout.strip()
         if settings["mode"] == "kvm":
             command([str(emulator), "-accel-check"])
+        elif settings["mode"] == "hvf":
+            require(receipt["emulator_version"].splitlines()[0].startswith(
+                    "Android emulator version " + HVF_EMULATOR_VERSION + " "),
+                    "The preinstalled HVF emulator version changed; review its capability before updating the pin")
+            acceleration = {}
+            receipt["host_acceleration"] = acceleration
+            check_hvf_acceleration(emulator, acceleration)
         connected = command([str(adb), "devices"]).stdout.splitlines()[1:]
         require(not any(line.strip() for line in connected), "Existing adb devices found; refusing shared-device execution")
         badging = command([str(build_tools / "aapt"), "dump", "badging", str(apk)]).stdout
@@ -694,29 +853,26 @@ def main() -> int:
             receipt["installed_apk_sha256"] = digest(signed_apk)
             receipt["disposable_certificate_sha256"] = cert_hash.group(1)
             emulator_log = scratch / "emulator.log"
-            emulator_env = dict(env)
-            emulator_env.pop("ANDROID_I_WANT_MY_TCG", None)
-            if settings["mode"] == "software":
-                emulator_env["ANDROID_I_WANT_MY_TCG"] = "yes"
+            emulator_env = emulation_environment(env, settings["mode"])
             try:
                 with emulator_log.open("wb") as log:
                     process = subprocess.Popen(
                         [str(emulator), "-avd", avd_name, "-port", "5554", "-no-window", "-no-audio",
-                         "-no-boot-anim", "-no-snapshot", "-no-metrics", "-gpu", "swiftshader_indirect",
+                         "-no-boot-anim", "-no-snapshot", "-no-metrics", "-show-kernel", "-gpu", "swiftshader_indirect",
                          "-accel", settings["accel_argument"], "-cores", "2", "-memory", "2048",
                          "-camera-front", "none", "-camera-back", "none"],
                         env=emulator_env, stdout=log, stderr=subprocess.STDOUT, start_new_session=True,
                     )
                     device = Device(adb, env, process, avd_name, receipt)
                     boot_timeout = settings["boot_timeout_seconds"]
-                    deadline = time.monotonic() + boot_timeout
-                    while time.monotonic() < deadline:
-                        boot = device.adb("shell", "getprop", "sys.boot_completed", timeout=10, check=False)
-                        if boot.returncode == 0 and boot.stdout.strip() == "1" and not boot.stderr.strip():
-                            break
-                        time.sleep(1)
-                    else:
-                        raise SmokeFailure(f"Owned emulator did not boot within {boot_timeout} seconds")
+                    try:
+                        wait_for_boot_completed(device, receipt, boot_timeout)
+                    except Exception:
+                        try:
+                            retain_boot_failure_state(device, receipt)
+                        except Exception as diagnostic_error:
+                            receipt["boot_failure_diagnostics_error"] = bounded_text(str(diagnostic_error), 1200)
+                        raise
                     device.verify_identity()
                     receipt["device"] = {key: device.shell("getprop", key) for key in
                                          ("ro.build.fingerprint", "ro.build.version.sdk", "ro.product.cpu.abi",
@@ -752,7 +908,7 @@ def main() -> int:
                         (output / "emulator.log").write_bytes(log.read())
         receipt["unsigned_apk_unchanged"] = digest(apk) == original_hash
         receipt["status"] = "passed"
-        complete_receipt(receipt, source)
+        complete_receipt(receipt, source, expected_mode=settings["mode"])
     except Exception as error:
         receipt.update(status="failed", error=str(error))
         print("Installed emulator smoke failed: " + str(error), file=sys.stderr)

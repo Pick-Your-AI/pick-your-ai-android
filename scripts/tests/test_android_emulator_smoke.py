@@ -5,6 +5,7 @@ import importlib.util
 import io
 import os
 from pathlib import Path
+import re
 import stat
 import subprocess
 import tempfile
@@ -27,13 +28,6 @@ def ready_checks():
             for name, _, expected in smoke.GUEST_READINESS_COMMANDS}
 
 
-def hvf_observations():
-    return {"runner_os": "macOS", "runner_arch": "X64", "system": "Darwin", "machine": "x86_64", "checks": {
-        "kern_hv_support": {"exit_code": 0, "stdout_tail": "1\n", "stderr_tail": "", "output_truncated": False},
-        "acceleration": {"exit_code": 0, "stdout_tail": "accel:\n0\nHypervisor.Framework OS X Version 15.7\naccel\n",
-                         "stderr_tail": "", "output_truncated": False}}}
-
-
 class ReadinessClock:
     def __init__(self):
         self.now = 0
@@ -46,6 +40,479 @@ class ReadinessClock:
 
 
 class EmulatorSmokeGuardTest(unittest.TestCase):
+    def test_boot_poll_retains_transport_failure_then_completed_property(self):
+        receipt, clock = {}, ReadinessClock()
+        device = Mock(spec=smoke.Device)
+        device.adb.side_effect = [subprocess.CompletedProcess([], 1, "", "adb: device offline"),
+                                  subprocess.CompletedProcess([], 0, "0\n", ""),
+                                  subprocess.CompletedProcess([], 0, "1\n", "")]
+        with patch.object(smoke.time, "monotonic", clock.monotonic), patch.object(smoke.time, "sleep", clock.sleep):
+            smoke.wait_for_boot_completed(device, receipt, 20)
+        state = receipt["boot_wait"]
+        self.assertTrue(state["completed"])
+        self.assertEqual(3, state["attempts"])
+        self.assertEqual(2, state["seconds"])
+        self.assertEqual("adb: device offline", state["first_probe"]["stderr_tail"])
+        self.assertEqual("1\n", state["last_probe"]["stdout_tail"])
+        self.assertTrue(state["last_probe"]["boot_property_passed"])
+        self.assertEqual([1, 2, 3], [p["attempt"] for p in state["recent_probes"]])
+        self.assertEqual([call("shell", "getprop", "sys.boot_completed", timeout=10, check=False)] * 3,
+                         device.adb.call_args_list)
+        device.launch.assert_not_called()
+        device.shell.assert_not_called()
+
+    def test_boot_poll_deadline_streams_and_recent_history_are_bounded(self):
+        receipt, clock = {}, ReadinessClock()
+        device = Mock(spec=smoke.Device)
+        device.adb.return_value = subprocess.CompletedProcess([], 1, "x" * 3000, "y" * 3000 + "offline")
+        with patch.object(smoke.time, "monotonic", clock.monotonic), patch.object(smoke.time, "sleep", clock.sleep):
+            with self.assertRaisesRegex(smoke.SmokeFailure, "did not boot within 21.5 seconds"):
+                smoke.wait_for_boot_completed(device, receipt, 21.5)
+        state = receipt["boot_wait"]
+        self.assertFalse(state["completed"])
+        self.assertEqual(22, state["attempts"])
+        self.assertEqual(21.5, state["seconds"])
+        self.assertEqual(1, state["first_probe"]["attempt"])
+        self.assertEqual(list(range(7, 23)), [p["attempt"] for p in state["recent_probes"]])
+        self.assertEqual(22, state["last_probe"]["attempt"])
+        for probe in state["recent_probes"] + [state["first_probe"]]:
+            self.assertTrue(probe["output_truncated"])
+            self.assertEqual(1200, len(probe["stdout_tail"]))
+            self.assertEqual(1200, len(probe["stderr_tail"]))
+            self.assertTrue(probe["stderr_tail"].endswith("offline"))
+        self.assertEqual(0.5, device.adb.call_args_list[-1].kwargs["timeout"])
+        self.assertTrue(all(x.kwargs["timeout"] <= 10 for x in device.adb.call_args_list))
+
+    def test_boot_property_must_succeed_without_error_before_its_deadline(self):
+        for code, stdout, stderr in ((1, "1\n", ""), (0, "0\n", ""),
+                                     (0, "11\n", ""), (0, "1\n", "device error")):
+            receipt, clock = {}, ReadinessClock()
+            device = Mock(spec=smoke.Device)
+            device.adb.return_value = subprocess.CompletedProcess([], code, stdout, stderr)
+            with self.subTest(code=code, stdout=stdout, stderr=stderr), \
+                    patch.object(smoke.time, "monotonic", clock.monotonic), patch.object(smoke.time, "sleep", clock.sleep):
+                with self.assertRaises(smoke.SmokeFailure):
+                    smoke.wait_for_boot_completed(device, receipt, 1)
+            self.assertFalse(receipt["boot_wait"]["completed"])
+            self.assertFalse(receipt["boot_wait"]["last_probe"]["boot_property_passed"])
+        receipt, clock = {}, ReadinessClock()
+
+        def late_result(*args, **kwargs):
+            clock.now = 2
+            return subprocess.CompletedProcess([], 0, "1\n", "")
+
+        device.adb.side_effect = late_result
+        with patch.object(smoke.time, "monotonic", clock.monotonic), patch.object(smoke.time, "sleep", clock.sleep):
+            with self.assertRaises(smoke.SmokeFailure):
+                smoke.wait_for_boot_completed(device, receipt, 1)
+        self.assertTrue(receipt["boot_wait"]["last_probe"]["boot_property_passed"])
+        self.assertFalse(receipt["boot_wait"]["completed"])
+
+    def test_boot_timeout_and_owned_process_errors_keep_the_original_failure(self):
+        errors = [subprocess.TimeoutExpired(["adb"], 2, output=b"x" * 3000 + b"1", stderr=b"y" * 3000),
+                  smoke.SmokeFailure("Owned emulator process exited")]
+        for error in errors:
+            receipt, clock = {}, ReadinessClock()
+            device = Mock(spec=smoke.Device)
+            device.adb.side_effect = error
+            with self.subTest(error=type(error).__name__), \
+                    patch.object(smoke.time, "monotonic", clock.monotonic), patch.object(smoke.time, "sleep", clock.sleep):
+                with self.assertRaises(type(error)) as raised:
+                    smoke.wait_for_boot_completed(device, receipt, 2)
+            self.assertIs(error, raised.exception)
+            device.adb.assert_called_once_with("shell", "getprop", "sys.boot_completed", timeout=2, check=False)
+            state = receipt["boot_wait"]
+            self.assertFalse(state["completed"])
+            self.assertEqual(1, state["attempts"])
+            self.assertNotIn("boot_property_passed", state["last_probe"])
+            self.assertIn("error", state)
+            if isinstance(error, subprocess.TimeoutExpired):
+                self.assertEqual(2, state["last_probe"]["command_timeout_seconds"])
+                self.assertEqual(1200, len(state["last_probe"]["stdout_tail"]))
+                self.assertEqual(1200, len(state["last_probe"]["stderr_tail"]))
+            else:
+                self.assertEqual(str(error), state["last_probe"]["error"])
+
+    def test_failed_boot_observations_only_read_the_owned_transport_and_keep_failure(self):
+        receipt = {"status": "failed", "error": "original boot failure", "boot_wait": {"completed": False}}
+        device = Mock(spec=smoke.Device)
+        device.adb.return_value = subprocess.CompletedProcess([], 0, "device\n", "")
+        smoke.retain_boot_failure_state(device, receipt)
+        self.assertEqual([
+            call("get-state", timeout=5, check=False),
+            call("emu", "avd", "name", timeout=5, check=False),
+            call("shell", "getprop", "ro.kernel.qemu", timeout=5, check=False),
+            call("shell", "getprop", "init.svc.bootanim", timeout=5, check=False),
+        ], device.adb.call_args_list)
+        self.assertEqual("failed", receipt["status"])
+        self.assertEqual("original boot failure", receipt["error"])
+        self.assertFalse(receipt["boot_wait"]["completed"])
+        self.assertEqual(4, len(receipt["boot_failure_observations"]["checks"]))
+        device.launch.assert_not_called()
+        device.shell.assert_not_called()
+
+    def test_failed_boot_diagnostic_timeouts_are_bounded_and_cannot_mask_failure(self):
+        receipt, clock = {"status": "failed", "error": "original"}, ReadinessClock()
+        device = Mock(spec=smoke.Device)
+
+        def timeout(*args, **kwargs):
+            clock.now += kwargs["timeout"]
+            raise subprocess.TimeoutExpired(["adb"], kwargs["timeout"], output=b"x" * 3000, stderr=b"offline")
+
+        device.adb.side_effect = timeout
+        with patch.object(smoke.time, "monotonic", clock.monotonic):
+            smoke.retain_boot_failure_state(device, receipt)
+        self.assertEqual("original", receipt["error"])
+        self.assertEqual("failed", receipt["status"])
+        self.assertEqual(20, receipt["boot_failure_observations"]["seconds"])
+        self.assertEqual(4, len(receipt["boot_failure_observations"]["checks"]))
+        for observed in receipt["boot_failure_observations"]["checks"].values():
+            self.assertEqual(5, observed["command_timeout_seconds"])
+            self.assertEqual(1200, len(observed["stdout_tail"]))
+            self.assertEqual("offline", observed["stderr_tail"])
+        device.adb.side_effect = smoke.SmokeFailure("Owned emulator process exited")
+        smoke.retain_boot_failure_state(device, receipt)
+        self.assertTrue(all(x["error"] == "Owned emulator process exited"
+                            for x in receipt["boot_failure_observations"]["checks"].values()))
+        self.assertEqual("original", receipt["error"])
+
+    def test_invalid_boot_deadlines_fail_before_any_device_command(self):
+        device = Mock(spec=smoke.Device)
+        for timeout in (0, -1, 901, float("inf"), float("nan")):
+            with self.subTest(timeout=timeout), self.assertRaisesRegex(smoke.SmokeFailure, "Invalid boot deadline"):
+                smoke.wait_for_boot_completed(device, {}, timeout)
+        device.adb.assert_not_called()
+
+    def test_hvf_workflow_artifact_id_download_reaches_the_harness_apk_path(self):
+        # v4.3.0 src/download-artifact.ts treats only a name lookup as a single
+        # artifact download. An ID list needs merge-multiple even with one ID.
+        # Exercise that pinned dependency's extraction rule with the workflow
+        # inputs, including the previously broken default as a negative case.
+        workflow = (ROOT / ".github/workflows/core.yml").read_text()
+        action = "actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093"
+        matches = re.findall(r"(?m)^      - uses: " + re.escape(action) + r"[^\n]*\n((?:        [^\n]*\n)+)", workflow)
+        self.assertEqual(1, len(matches))
+        inputs = dict(line.strip().split(":", 1) for line in matches[0].splitlines() if line.startswith("          "))
+        inputs = {key: value.strip() for key, value in inputs.items()}
+        self.assertEqual("${{ needs.android-preview.outputs.unsigned_artifact_id }}", inputs["artifact-ids"])
+        self.assertNotIn("name", inputs)
+        self.assertNotIn("pattern", inputs)
+        self.assertEqual("true", inputs.get("merge-multiple"))
+        artifact_name = "android-preview-" + "a" * 40
+        archive_entry = Path("outputs/apk/debug/preview-debug-unsigned.apk")
+        expected = Path("preview/build/outputs/apk/debug/preview-debug-unsigned.apk")
+
+        def extracted_path(options):
+            root = Path(options["path"])
+            return (root if options.get("name") or options.get("merge-multiple") == "true"
+                    else root / artifact_name) / archive_entry
+
+        self.assertEqual(expected, extracted_path(inputs))
+        without_merge = dict(inputs)
+        without_merge.pop("merge-multiple")
+        self.assertNotEqual(expected, extracted_path(without_merge))
+
+    def test_hvf_accepts_only_observed_host_support_without_kvm_or_permission_changes(self):
+        with patch.dict(os.environ, {"PYAI_EMULATOR_MODE": "hvf", "RUNNER_ENVIRONMENT": "github-hosted",
+                                     "RUNNER_OS": "macOS", "RUNNER_ARCH": "X64", "GITHUB_ACTIONS": "true",
+                                     "ANDROID_HOME": "/sdk"}, clear=True), \
+                patch.multiple(smoke.platform, system=lambda: "Darwin", machine=lambda: "x86_64",
+                               mac_ver=lambda: ("15.7.9", (), "")), \
+                patch.object(Path, "is_file", return_value=True), patch.object(Path, "is_symlink", return_value=False), \
+                patch.object(smoke, "command", return_value=subprocess.CompletedProcess([], 0, "1\n", "")) as command, \
+                patch.object(smoke, "check_kvm_access") as kvm, \
+                patch.object(smoke.os, "chmod") as chmod, patch.object(smoke.os, "chown") as chown, \
+                patch("sys.stdout", new_callable=io.StringIO):
+            settings = smoke.emulation_settings()
+        command.assert_called_once_with(["/usr/sbin/sysctl", "-n", "kern.hv_support"], timeout=10, check=False)
+        self.assertEqual("hvf", settings["mode"])
+        self.assertEqual("on", settings["accel_argument"])
+        self.assertEqual(300, settings["boot_timeout_seconds"])
+        self.assertFalse(settings["unsupported_software_opt_in"])
+        self.assertTrue(smoke.hvf_host_passes(settings["host"]))
+        self.assertEqual("15.7.9", settings["host"]["macos_version"])
+        kvm.assert_not_called()
+        chmod.assert_not_called()
+        chown.assert_not_called()
+
+    def test_hvf_rejects_foreign_or_unobserved_host_before_any_command(self):
+        env = {"PYAI_EMULATOR_MODE": "hvf", "RUNNER_ENVIRONMENT": "github-hosted",
+               "RUNNER_OS": "macOS", "RUNNER_ARCH": "X64", "GITHUB_ACTIONS": "true", "ANDROID_HOME": "/sdk"}
+        for changed, system, machine in (
+            ({"GITHUB_ACTIONS": "false"}, "Darwin", "x86_64"),
+            ({"RUNNER_ENVIRONMENT": "self-hosted"}, "Darwin", "x86_64"),
+            ({"RUNNER_OS": "Linux"}, "Darwin", "x86_64"),
+            ({"RUNNER_ARCH": "ARM64"}, "Darwin", "x86_64"),
+            ({"RUNNER_ARCH": ""}, "Darwin", "x86_64"),
+            ({}, "Linux", "x86_64"),
+            ({}, "Darwin", "arm64"),
+        ):
+            with self.subTest(changed=changed, system=system, machine=machine), \
+                    patch.dict(os.environ, dict(env, **changed), clear=True), \
+                    patch.object(smoke.platform, "system", return_value=system), \
+                    patch.object(smoke.platform, "machine", return_value=machine), \
+                    patch.object(smoke, "command") as command, patch.object(smoke, "check_kvm_access") as kvm:
+                with self.assertRaisesRegex(smoke.SmokeFailure, "explicit GitHub-hosted Intel"):
+                    smoke.emulation_settings()
+                command.assert_not_called()
+                kvm.assert_not_called()
+
+    def test_hvf_failed_or_ambiguous_support_never_falls_back(self):
+        env = {"PYAI_EMULATOR_MODE": "hvf", "RUNNER_ENVIRONMENT": "github-hosted",
+               "RUNNER_OS": "macOS", "RUNNER_ARCH": "X64", "GITHUB_ACTIONS": "true", "ANDROID_HOME": "/sdk"}
+        invalid = [(0, "0\n", ""), (1, "1\n", ""), (0, "1\n", "failure"),
+                   (0, "1\n", " "), (0, "1\nextra", ""), (False, "1\n", ""),
+                   (0, " " * 2048 + "1\n", "")]
+        for code, stdout, stderr in invalid:
+            with self.subTest(code=code, stdout=stdout[-12:], stderr=stderr), \
+                    patch.dict(os.environ, env, clear=True), \
+                    patch.multiple(smoke.platform, system=lambda: "Darwin", machine=lambda: "x86_64"), \
+                    patch.object(Path, "is_file", return_value=True), patch.object(Path, "is_symlink", return_value=False), \
+                    patch.object(smoke, "command", return_value=subprocess.CompletedProcess([], code, stdout, stderr)), \
+                    patch.object(smoke, "check_kvm_access") as kvm:
+                with self.assertRaisesRegex(smoke.SmokeFailure, "support is unavailable"):
+                    smoke.emulation_settings()
+                kvm.assert_not_called()
+        with patch.dict(os.environ, env, clear=True), \
+                patch.multiple(smoke.platform, system=lambda: "Darwin", machine=lambda: "x86_64"), \
+                patch.object(Path, "is_file", return_value=True), patch.object(Path, "is_symlink", return_value=False), \
+                patch.object(smoke, "command", side_effect=subprocess.TimeoutExpired(["sysctl"], 10)), \
+                patch.object(smoke, "check_kvm_access") as kvm:
+            with self.assertRaises(subprocess.TimeoutExpired):
+                smoke.emulation_settings()
+            kvm.assert_not_called()
+
+    def test_hvf_acceleration_requires_complete_successful_hypervisor_output(self):
+        valid = {"exit_code": 0, "stdout": "accel:\n0\nHypervisor.Framework OS X Version 15.7\naccel\n",
+                 "stderr": "", "output_truncated": False}
+        with patch.object(smoke, "command", return_value=subprocess.CompletedProcess([], 0, valid["stdout"], "")) as command, \
+                patch.object(Path, "is_file", return_value=True), patch.object(Path, "is_symlink", return_value=False):
+            self.assertEqual(valid, smoke.check_hvf_acceleration(Path("/sdk/emulator/emulator")))
+        command.assert_called_once_with(["/sdk/emulator/emulator", "-accel-check"], timeout=30, check=False)
+        for change in ({"exit_code": 1}, {"exit_code": False}, {"stderr": "warning"},
+                       {"stdout": "Hypervisor.Framework is unavailable"},
+                       {"stdout": "accel:\n0\nKVM is installed and usable.\naccel\n"},
+                       {"stdout": valid["stdout"] + "unexpected"},
+                       {"stdout": " " * 3000 + valid["stdout"]},
+                       *({"stdout": valid["stdout"].replace("15.7", malformed)}
+                         for malformed in (".", "15..7", ".15", "15."))):
+            observed = dict(valid, **change)
+            with self.subTest(change=change), patch.object(smoke, "command", return_value=subprocess.CompletedProcess(
+                    [], observed["exit_code"], observed["stdout"], observed["stderr"])), \
+                    patch.object(Path, "is_file", return_value=True), patch.object(Path, "is_symlink", return_value=False):
+                with self.assertRaisesRegex(smoke.SmokeFailure, "did not confirm usable"):
+                    smoke.check_hvf_acceleration(Path("/sdk/emulator/emulator"))
+        with patch.object(smoke, "command", side_effect=subprocess.TimeoutExpired(["emulator"], 30)), \
+                patch.object(Path, "is_file", return_value=True), patch.object(Path, "is_symlink", return_value=False):
+            with self.assertRaises(subprocess.TimeoutExpired):
+                smoke.check_hvf_acceleration(Path("/sdk/emulator/emulator"))
+
+    def test_apk_handoff_rejects_missing_malformed_or_different_build_digest(self):
+        actual = "a" * 64
+        smoke.require_apk_handoff(actual, actual)
+        for expected in (None, "", "a" * 63, "b" * 64, actual + "\n", actual.upper(), False):
+            with self.subTest(expected=expected), self.assertRaisesRegex(smoke.SmokeFailure, "exact SHA-256 handoff"):
+                smoke.require_apk_handoff(actual, expected)
+
+    def test_hvf_refuses_missing_directory_or_linked_emulator_before_any_command(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            regular = root / "regular-emulator"
+            regular.write_text("unused test file")
+            for kind in ("missing", "directory", "symlink"):
+                sdk = root / kind
+                emulator = sdk / "emulator/emulator"
+                emulator.parent.mkdir(parents=True)
+                if kind == "directory":
+                    emulator.mkdir()
+                elif kind == "symlink":
+                    emulator.symlink_to(regular)
+                environment = {"GITHUB_ACTIONS": "true", "RUNNER_ENVIRONMENT": "github-hosted",
+                               "RUNNER_OS": "macOS", "RUNNER_ARCH": "X64", "ANDROID_HOME": str(sdk)}
+                with self.subTest(kind=kind), patch.dict(os.environ, environment, clear=True), \
+                        patch.multiple(smoke.platform, system=lambda: "Darwin", machine=lambda: "x86_64"), \
+                        patch.object(smoke, "command") as command, patch("sys.stdout", new_callable=io.StringIO):
+                    with self.assertRaisesRegex(smoke.SmokeFailure, "existing Intel macOS emulator"):
+                        smoke.check_hvf_access()
+                    with self.assertRaisesRegex(smoke.SmokeFailure, "existing Intel macOS emulator"):
+                        smoke.check_hvf_acceleration(emulator)
+                    command.assert_not_called()
+
+    def test_hvf_host_failure_retains_bounded_partial_receipt_and_original_error(self):
+        environment = {"GITHUB_ACTIONS": "true", "RUNNER_ENVIRONMENT": "github-hosted",
+                       "RUNNER_OS": "macOS", "RUNNER_ARCH": "X64", "ANDROID_HOME": "/sdk",
+                       "PYAI_EMULATOR_MODE": "hvf"}
+        answers = (subprocess.CompletedProcess([], 1, "x" * 3000, "failure"),
+                   subprocess.TimeoutExpired("sysctl", 10, output=b"x" * 3000, stderr=b"partial"),
+                   OSError("observed sysctl failure"))
+        for answer in answers:
+            receipt = {"status": "failed", "cases": [{"status": "not_run"} for _ in smoke.CASE_IDS]}
+
+            def observe(*args, **kwargs):
+                self.assertEqual({}, receipt["emulation"]["host"]["support_check"])
+                if isinstance(answer, BaseException):
+                    raise answer
+                return answer
+
+            with self.subTest(answer=type(answer).__name__), patch.dict(os.environ, environment, clear=True), \
+                    patch.multiple(smoke.platform, system=lambda: "Darwin", machine=lambda: "x86_64"), \
+                    patch.object(Path, "is_file", return_value=True), patch.object(Path, "is_symlink", return_value=False), \
+                    patch.object(smoke, "command", side_effect=observe) as command, \
+                    patch.object(smoke, "check_kvm_access") as kvm, patch("sys.stdout", new_callable=io.StringIO) as log:
+                with self.assertRaises(type(answer) if isinstance(answer, BaseException) else smoke.SmokeFailure) as raised:
+                    smoke.emulation_settings(receipt)
+            if isinstance(answer, BaseException):
+                self.assertIs(answer, raised.exception)
+            host = receipt["emulation"]["host"]
+            check = host["support_check"]
+            self.assertFalse(smoke.hvf_host_passes(host))
+            self.assertNotIn("kern_hv_support", host)
+            self.assertLessEqual(len(check.get("stdout", "")), 1024)
+            self.assertLessEqual(len(check.get("stderr", "")), 1024)
+            self.assertIn("HVF host preflight:", log.getvalue())
+            self.assertEqual("failed", receipt["status"])
+            self.assertTrue(all(case["status"] == "not_run" for case in receipt["cases"]))
+            command.assert_called_once_with(["/usr/sbin/sysctl", "-n", "kern.hv_support"], timeout=10, check=False)
+            kvm.assert_not_called()
+            if isinstance(answer, subprocess.TimeoutExpired):
+                self.assertEqual(10, check["command_timeout_seconds"])
+                self.assertEqual("x" * 1024, check["stdout"])
+                self.assertEqual("partial", check["stderr"])
+                self.assertTrue(check["output_truncated"])
+
+    def test_hvf_acceleration_failure_retains_bounded_partial_receipt_and_original_error(self):
+        answers = (subprocess.CompletedProcess([], 1, "x" * 3000, "failure"),
+                   subprocess.TimeoutExpired("emulator", 30, output=b"x" * 3000, stderr=b"partial"),
+                   OSError("observed emulator query failure"))
+        for answer in answers:
+            observed = {}
+            receipt = {"status": "failed", "host_acceleration": observed}
+
+            def observe(*args, **kwargs):
+                self.assertIs(observed, receipt["host_acceleration"])
+                self.assertEqual({}, observed)
+                if isinstance(answer, BaseException):
+                    raise answer
+                return answer
+
+            with self.subTest(answer=type(answer).__name__), \
+                    patch.object(Path, "is_file", return_value=True), patch.object(Path, "is_symlink", return_value=False), \
+                    patch.object(smoke, "command", side_effect=observe) as command, \
+                    patch("sys.stdout", new_callable=io.StringIO) as log:
+                with self.assertRaises(type(answer) if isinstance(answer, BaseException) else smoke.SmokeFailure) as raised:
+                    smoke.check_hvf_acceleration(Path("/sdk/emulator/emulator"), observed)
+            if isinstance(answer, BaseException):
+                self.assertIs(answer, raised.exception)
+            self.assertFalse(smoke.hvf_acceleration_passes(observed))
+            self.assertLessEqual(len(observed.get("stdout", "")), 2048)
+            self.assertLessEqual(len(observed.get("stderr", "")), 2048)
+            self.assertEqual("failed", receipt["status"])
+            self.assertIn("HVF acceleration preflight:", log.getvalue())
+            command.assert_called_once_with(["/sdk/emulator/emulator", "-accel-check"], timeout=30, check=False)
+            if isinstance(answer, subprocess.TimeoutExpired):
+                self.assertEqual(30, observed["command_timeout_seconds"])
+                self.assertEqual("x" * 2048, observed["stdout"])
+                self.assertEqual("partial", observed["stderr"])
+                self.assertTrue(observed["output_truncated"])
+
+    def test_emulation_environment_removes_inherited_software_opt_in_for_hardware(self):
+        inherited = {"ANDROID_I_WANT_MY_TCG": "inherited", "ANDROID_AVD_HOME": "/owned/avd", "OTHER": "retained"}
+        before = dict(inherited)
+        for mode in ("kvm", "hvf", "software"):
+            with self.subTest(mode=mode):
+                selected = smoke.emulation_environment(inherited, mode)
+                self.assertIsNot(selected, inherited)
+                self.assertEqual("/owned/avd", selected["ANDROID_AVD_HOME"])
+                self.assertEqual("retained", selected["OTHER"])
+                if mode == "software":
+                    self.assertEqual("yes", selected["ANDROID_I_WANT_MY_TCG"])
+                else:
+                    self.assertNotIn("ANDROID_I_WANT_MY_TCG", selected)
+                self.assertEqual(before, inherited)
+        with self.assertRaises(smoke.SmokeFailure):
+            smoke.emulation_environment(inherited, "automatic")
+        self.assertEqual(before, inherited)
+
+    def test_receipts_require_consistent_mode_settings_without_an_expected_mode_argument(self):
+        receipt = {"source_commit": "a" * 40, "scope": "owned-installed-aosp-emulator", "status": "passed",
+                   "unsigned_apk_unchanged": True,
+                   "guest_readiness": {"ready": True, "ui_dump_path": smoke.UI_DUMP_PATH, "last_checks": ready_checks()},
+                   "cases": [{"id": name, "status": "passed"} for name in smoke.CASE_IDS]}
+        for value in (None, {}, {"mode": "automatic"}):
+            receipt["emulation"] = value
+            with self.subTest(value=value), self.assertRaises(smoke.SmokeFailure):
+                smoke.complete_receipt(receipt, "a" * 40)
+        receipt.pop("emulation")
+        with self.assertRaises(smoke.SmokeFailure):
+            smoke.complete_receipt(receipt, "a" * 40)
+        for mode, accel, budget, opt_in in (("kvm", "on", 300, False), ("software", "off", 900, True)):
+            settings = {"mode": mode, "accel_argument": accel, "boot_timeout_seconds": budget,
+                        "unsupported_software_opt_in": opt_in}
+            receipt["emulation"] = settings
+            smoke.complete_receipt(receipt, "a" * 40)
+            for field in settings:
+                changed = copy.deepcopy(receipt)
+                changed["emulation"].pop(field)
+                with self.subTest(mode=mode, missing=field), self.assertRaises(smoke.SmokeFailure):
+                    smoke.complete_receipt(changed, "a" * 40)
+            for field, value in (("accel_argument", "off" if accel == "on" else "on"),
+                                 ("boot_timeout_seconds", 900 if budget == 300 else 300),
+                                 ("unsupported_software_opt_in", not opt_in)):
+                changed = copy.deepcopy(receipt)
+                changed["emulation"][field] = value
+                with self.subTest(mode=mode, field=field), self.assertRaises(smoke.SmokeFailure):
+                    smoke.complete_receipt(changed, "a" * 40)
+
+    def test_hvf_receipt_cannot_replace_host_handoff_or_installed_evidence(self):
+        receipt = {"source_commit": "a" * 40, "scope": "owned-installed-aosp-emulator", "status": "passed",
+                   "unsigned_apk_unchanged": True, "unsigned_apk_sha256": "b" * 64,
+                   "expected_unsigned_apk_sha256": "b" * 64,
+                   "emulation": {"mode": "hvf", "accel_argument": "on", "boot_timeout_seconds": 300,
+                                 "unsupported_software_opt_in": False,
+                                 "host": dict(smoke.HVF_HOST_IDENTITY, kern_hv_support="1", support_check={
+                                     "exit_code": 0, "stdout": "1\n", "stderr": "", "output_truncated": False})},
+                   "host_acceleration": {"exit_code": 0, "stderr": "", "output_truncated": False,
+                                         "stdout": "accel:\n0\nHypervisor.Framework OS X Version 15.7\naccel\n"},
+                   "guest_readiness": {"ready": True, "ui_dump_path": smoke.UI_DUMP_PATH, "last_checks": ready_checks()},
+                   "cases": [{"id": name, "status": "passed"} for name in smoke.CASE_IDS]}
+        smoke.complete_receipt(receipt, "a" * 40, expected_mode="hvf")
+        smoke.complete_receipt(receipt, "a" * 40)
+        invalid = []
+        for key in ("expected_unsigned_apk_sha256", "unsigned_apk_sha256", "host_acceleration", "emulation"):
+            changed = copy.deepcopy(receipt)
+            changed.pop(key)
+            invalid.append(changed)
+        for key, value in (("mode", "software"), ("accel_argument", "off"), ("boot_timeout_seconds", 900),
+                           ("unsupported_software_opt_in", True), ("host", {"kern_hv_support": "1"})):
+            changed = copy.deepcopy(receipt)
+            changed["emulation"][key] = value
+            invalid.append(changed)
+        for name in ("support", "acceleration"):
+            for missing in ("exit_code", "stdout", "stderr", "output_truncated"):
+                changed = copy.deepcopy(receipt)
+                target = (changed["emulation"]["host"]["support_check"] if name == "support"
+                          else changed["host_acceleration"])
+                target.pop(missing)
+                invalid.append(changed)
+            for key, value in (("exit_code", False), ("output_truncated", True),
+                               ("command_timeout_seconds", 30), ("error", "failed")):
+                changed = copy.deepcopy(receipt)
+                target = (changed["emulation"]["host"]["support_check"] if name == "support"
+                          else changed["host_acceleration"])
+                target[key] = value
+                invalid.append(changed)
+        changed = copy.deepcopy(receipt)
+        changed["guest_readiness"]["last_checks"]["ui_dump_writable"]["exit_code"] = 1
+        invalid.append(changed)
+        changed = copy.deepcopy(receipt)
+        changed["cases"][0]["status"] = "not_run"
+        invalid.append(changed)
+        for changed in invalid:
+            with self.subTest(receipt=changed), self.assertRaises(smoke.SmokeFailure):
+                smoke.complete_receipt(changed, "a" * 40, expected_mode="hvf")
+            with self.subTest(default_mode_receipt=changed), self.assertRaises(smoke.SmokeFailure):
+                smoke.complete_receipt(changed, "a" * 40)
+
     def test_guest_readiness_requires_all_read_only_observations_on_the_verified_target(self):
         receipt, clock = {}, ReadinessClock()
         device = Mock(spec=smoke.Device)
@@ -207,126 +674,6 @@ class EmulatorSmokeGuardTest(unittest.TestCase):
             with self.assertRaisesRegex(smoke.SmokeFailure, "Unknown emulator mode"):
                 smoke.emulation_settings()
             kvm.assert_not_called()
-
-    def test_hvf_requires_explicit_hosted_intel_macos_before_any_command(self):
-        environment = {"GITHUB_ACTIONS": "true", "RUNNER_ENVIRONMENT": "github-hosted",
-                       "RUNNER_OS": "macOS", "RUNNER_ARCH": "X64", "ANDROID_HOME": "/sdk"}
-        for changed in ({"RUNNER_OS": "Linux"}, {"RUNNER_ARCH": "ARM64"},
-                        {"GITHUB_ACTIONS": "false"}, {"RUNNER_ENVIRONMENT": "self-hosted"}):
-            with self.subTest(changed=changed), patch.dict(os.environ, environment | changed, clear=True), \
-                    patch.object(smoke.platform, "system", return_value="Darwin"), \
-                    patch.object(smoke.platform, "machine", return_value="x86_64"), \
-                    patch.object(smoke, "command") as command, patch("sys.stdout", new_callable=io.StringIO):
-                with self.assertRaisesRegex(smoke.SmokeFailure, "explicit GitHub-hosted Intel macOS"):
-                    smoke.check_hvf_access()
-                command.assert_not_called()
-        for system, machine in (("Linux", "x86_64"), ("Darwin", "arm64")):
-            with self.subTest(system=system, machine=machine), patch.dict(os.environ, environment, clear=True), \
-                    patch.object(smoke.platform, "system", return_value=system), \
-                    patch.object(smoke.platform, "machine", return_value=machine), \
-                    patch.object(smoke, "command") as command, patch("sys.stdout", new_callable=io.StringIO):
-                with self.assertRaises(smoke.SmokeFailure):
-                    smoke.check_hvf_access()
-                command.assert_not_called()
-
-    def test_hvf_uses_only_bounded_existing_support_and_acceleration_observations(self):
-        expected = hvf_observations()
-        environment = {"GITHUB_ACTIONS": "true", "RUNNER_ENVIRONMENT": "github-hosted", "RUNNER_OS": "macOS",
-                       "RUNNER_ARCH": "X64", "ANDROID_HOME": "/sdk", "PYAI_EMULATOR_MODE": "hvf"}
-        answers = [subprocess.CompletedProcess([], 0, row["stdout_tail"], "") for row in expected["checks"].values()]
-        receipt = {}
-        with patch.dict(os.environ, environment, clear=True), patch.object(smoke.platform, "system", return_value="Darwin"), \
-                patch.object(smoke.platform, "machine", return_value="x86_64"), \
-                patch.object(Path, "is_file", return_value=True), patch.object(Path, "is_symlink", return_value=False), \
-                patch.object(smoke, "command", side_effect=answers) as command, \
-                patch.object(smoke, "check_kvm_access") as kvm, patch.object(smoke.os, "chmod") as chmod, \
-                patch.object(smoke.os, "chown") as chown, patch("sys.stdout", new_callable=io.StringIO):
-            settings = smoke.emulation_settings(receipt)
-        self.assertEqual({"mode": "hvf", "accel_argument": "on", "boot_timeout_seconds": 300,
-                          "unsupported_software_opt_in": False, "hvf_preflight": expected}, settings)
-        self.assertIs(settings, receipt["emulation"])
-        self.assertEqual([call(["/usr/sbin/sysctl", "-n", "kern.hv_support"], timeout=5, check=False),
-                          call(["/sdk/emulator/emulator", "-accel-check"], timeout=30, check=False)], command.call_args_list)
-        kvm.assert_not_called()
-        chmod.assert_not_called()
-        chown.assert_not_called()
-
-    def test_hvf_never_accepts_missing_failed_truncated_or_different_acceleration_evidence(self):
-        self.assertTrue(smoke.hvf_preflight_passes(hvf_observations()))
-        self.assertFalse(smoke.hvf_preflight_passes(None))
-        for key, changes in (
-                ("kern_hv_support", {"stdout_tail": "0"}),
-                ("kern_hv_support", {"exit_code": False}),
-                ("acceleration", {"exit_code": 1}),
-                ("acceleration", {"stdout_tail": "accel:\n0\nKVM is installed and usable\naccel\n"}),
-                ("acceleration", {"stdout_tail": "accel:\n1\nHypervisor.Framework OS X Version 15.7\naccel\n"}),
-                ("acceleration", {"stderr_tail": "failed"}),
-                ("acceleration", {"output_truncated": True}),
-                ("acceleration", {"command_timeout_seconds": 30})):
-            with self.subTest(key=key, changes=changes):
-                observed = hvf_observations()
-                observed["checks"][key].update(changes)
-                self.assertFalse(smoke.hvf_preflight_passes(observed))
-        for field in ("runner_os", "runner_arch", "system", "machine", "checks"):
-            observed = hvf_observations()
-            observed.pop(field)
-            self.assertFalse(smoke.hvf_preflight_passes(observed))
-        observed = hvf_observations()
-        observed["checks"].pop("kern_hv_support")
-        self.assertFalse(smoke.hvf_preflight_passes(observed))
-
-    def test_hvf_accepts_actual_hosted_response_only_with_complete_acceleration_markers(self):
-        # Exact stdout in #244 run 39104147868/job 117606323632, including its closing marker.
-        actual = "accel:\n0\nHypervisor.Framework OS X Version 15.7\naccel\n"
-        observed = hvf_observations()
-        self.assertEqual(actual, observed["checks"]["acceleration"]["stdout_tail"])
-        self.assertTrue(smoke.hvf_preflight_passes(observed))
-        for incomplete in (
-                actual.removesuffix("accel\n"),
-                actual.replace("\naccel\n", "\naccel:\n"),
-                actual + "accel\n",
-                actual.removeprefix("accel:\n"),
-                actual.replace("\n0\n", "0")):
-            with self.subTest(stdout=incomplete):
-                observed["checks"]["acceleration"]["stdout_tail"] = incomplete
-                self.assertFalse(smoke.hvf_preflight_passes(observed))
-
-    def test_hvf_timeout_retains_partial_observations_in_failed_receipt_without_fallback(self):
-        environment = {"GITHUB_ACTIONS": "true", "RUNNER_ENVIRONMENT": "github-hosted", "RUNNER_OS": "macOS",
-                       "RUNNER_ARCH": "X64", "ANDROID_HOME": "/sdk", "PYAI_EMULATOR_MODE": "hvf"}
-        receipt = {}
-        answers = [subprocess.CompletedProcess([], 0, "1\n", ""),
-                   subprocess.TimeoutExpired("emulator", 30, output=b"accel:\n0\n" + b"x" * 3000, stderr=b"partial")]
-        with patch.dict(os.environ, environment, clear=True), patch.object(smoke.platform, "system", return_value="Darwin"), \
-                patch.object(smoke.platform, "machine", return_value="x86_64"), \
-                patch.object(Path, "is_file", return_value=True), patch.object(Path, "is_symlink", return_value=False), \
-                patch.object(smoke, "command", side_effect=answers), patch.object(smoke, "check_kvm_access") as kvm, \
-                patch("sys.stdout", new_callable=io.StringIO) as output:
-            with self.assertRaisesRegex(smoke.SmokeFailure, "Existing HVF capability was not established"):
-                smoke.emulation_settings(receipt)
-        settings = receipt["emulation"]
-        self.assertEqual("hvf", settings["mode"])
-        self.assertFalse(settings["unsupported_software_opt_in"])
-        row = settings["hvf_preflight"]["checks"]["acceleration"]
-        self.assertEqual(30, row["command_timeout_seconds"])
-        self.assertEqual("x" * 1200, row["stdout_tail"])
-        self.assertEqual("partial", row["stderr_tail"])
-        self.assertIn("HVF preflight:", output.getvalue())
-        self.assertFalse(smoke.hvf_preflight_passes(settings["hvf_preflight"]))
-        kvm.assert_not_called()
-
-    def test_hvf_refuses_missing_or_linked_emulator_without_running_it(self):
-        environment = {"GITHUB_ACTIONS": "true", "RUNNER_ENVIRONMENT": "github-hosted", "RUNNER_OS": "macOS",
-                       "RUNNER_ARCH": "X64", "ANDROID_HOME": "/sdk"}
-        for present, linked in ((False, False), (True, True)):
-            with self.subTest(present=present, linked=linked), patch.dict(os.environ, environment, clear=True), \
-                    patch.object(smoke.platform, "system", return_value="Darwin"), \
-                    patch.object(smoke.platform, "machine", return_value="x86_64"), \
-                    patch.object(Path, "is_file", return_value=present), patch.object(Path, "is_symlink", return_value=linked), \
-                    patch.object(smoke, "command") as command, patch("sys.stdout", new_callable=io.StringIO):
-                with self.assertRaisesRegex(smoke.SmokeFailure, "existing Intel macOS emulator"):
-                    smoke.check_hvf_access()
-                command.assert_not_called()
 
     def test_kvm_preflight_rejects_missing_regular_and_symlink_devices(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -578,19 +925,6 @@ class EmulatorSmokeGuardTest(unittest.TestCase):
         for changed in invalid + [missing, duplicate, skipped]:
             with self.assertRaises(smoke.SmokeFailure):
                 smoke.complete_receipt(changed, "a" * 40)
-        for key, value in (("mode", "automatic"), ("accel_argument", "on"),
-                           ("boot_timeout_seconds", 300), ("unsupported_software_opt_in", False)):
-            changed = copy.deepcopy(receipt)
-            changed["emulation"][key] = value
-            with self.assertRaises(smoke.SmokeFailure):
-                smoke.complete_receipt(changed, "a" * 40)
-        receipt["emulation"] = {"mode": "hvf", "accel_argument": "on", "boot_timeout_seconds": 300,
-                                "unsupported_software_opt_in": False, "hvf_preflight": hvf_observations()}
-        smoke.complete_receipt(receipt, "a" * 40)
-        for value in (None, {}, {"checks": hvf_observations()["checks"]}):
-            receipt["emulation"]["hvf_preflight"] = value
-            with self.assertRaises(smoke.SmokeFailure):
-                smoke.complete_receipt(receipt, "a" * 40)
 
     def test_setup_failure_report_never_counts_unexecuted_cases_as_passed(self):
         receipt = {"status": "failed", "error": "No KVM", "cases":
