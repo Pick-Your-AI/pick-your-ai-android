@@ -10,9 +10,11 @@ import com.networknt.schema.JsonSchemaFactory
 import com.networknt.schema.SchemaLocation
 import com.networknt.schema.SchemaValidatorsConfig
 import com.networknt.schema.SpecVersion.VersionFlag
+import com.networknt.schema.regex.RegularExpression
 import com.networknt.schema.resource.InputStreamSource
 import com.networknt.schema.serialization.JsonNodeReader
 import java.io.InputStream
+import java.util.regex.Pattern
 
 /** An explicit expected document type; untrusted input cannot select its own schema or dialect. */
 enum class FrozenDocument(val schemaName: String) {
@@ -38,7 +40,12 @@ sealed interface FrozenValidation {
  */
 class FrozenSchemaValidator {
     private val reader = BoundedJsonReader()
-    private val config = SchemaValidatorsConfig.builder().formatAssertionsEnabled(true).build()
+    private val config = SchemaValidatorsConfig.builder().formatAssertionsEnabled(true)
+        .regularExpressionFactory { regex ->
+            // Frozen Python patterns permit only a final LF at $. Keep find semantics for ^/ too.
+            val pattern = Pattern.compile(regex, Pattern.UNIX_LINES)
+            RegularExpression { value -> pattern.matcher(value).find() }
+        }.build()
     private val factory = JsonSchemaFactory.getInstance(VersionFlag.V202012) { builder ->
         // Read only bundled schema integers at arbitrary precision. networknt 1.5.6's
         // IntNode/LongNode threshold shortcut narrows integral DecimalNode inputs through

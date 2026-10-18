@@ -85,7 +85,9 @@ class CatalogPriceBrowserActivityTest {
         val state = Bundle()
         controller.pause().saveInstanceState(state).stop().destroy()
         controller = Robolectric.buildActivity(PreviewActivity::class.java).create(state).start().resume().visible()
-        await { button(R.string.retry_catalog).isEnabled && samples().isNotEmpty() }
+        // Catalog rows can arrive before durable draft recovery finishes.
+        await { field(R.string.draft_title).isEnabled &&
+            button(R.string.retry_catalog).isEnabled && samples().isNotEmpty() }
     }
     private fun state() = Bundle().also { controller.saveInstanceState(it) }
     private fun assertDraftState(before: Bundle) {
