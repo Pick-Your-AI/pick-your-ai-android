@@ -93,6 +93,7 @@ jobs:
               "confirmedCurrentDraftDeletionRetainsPendingFormAndRevokesSaveAuthority",
               "catalogQuerySurvivesDetailsAndRecreationWithoutChangingPinnedSelection",
               "emptyCatalogSearchCanRecoverAndReloadUsesTheCurrentQuery",
+              "interruptedFinalCleanupCanBeRetriedAfterRecreationWithoutLibraryRow",
               "largeTextRtlButtonsRetainMeasuredTargetsAndUntruncatedLabels",
               "forwardFocusOrderKeepsEditorsAndClearActionReachable",
               "catalogQuerySortAndPageSurviveDetailsAndRecreationWithoutChangingDraft",
