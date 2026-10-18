@@ -1,4 +1,4 @@
-# Repository scope and unresolved decisions
+# Repository scope and decision boundaries
 
 The maintainer requested creation of separate Apple and Android repositories according to their delivery Projects. `Pick-Your-AI/pick-your-ai-android` is the Android client repository created under that instruction. [Project 4](https://github.com/orgs/Pick-Your-AI/projects/4) and [Pick-Your-AI/pick-your-ai-android#1](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/1) remain the delivery authorities.
 
@@ -12,15 +12,33 @@ SDK 35 and minSdk 26. The pins describe this experiment, not Play compliance or 
 qualified device matrix. See the [architecture record](proposals/02-native-architecture.md)
 and [reproduction instructions](ANDROID_PREVIEW.md).
 
-This engineering disposition does not close
-[Android #34](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/34).
-The earlier Compose/Room product recommendation remains a later architecture option;
-those libraries are not the current preview implementation. Production package
-ownership, product/device receiving acceptance, service hosting, an accepted
-operations owner and delivery commitments remain separate. Apple work does not
-automatically include additional Apple platforms.
+The [product decision](proposals/01-product-scope.md) and
+[native decision](proposals/02-native-architecture.md) select the bounded guest-local
+planning slice and retain Kotlin/platform Views plus the canonical local revision
+store through independent receiving review and normal reviewed merge. The earlier
+immediate Compose/Room recommendation is superseded for that slice; both remain
+documented alternatives. `ai.pickyour.android` is the selected future product
+engineering namespace, with source governance in this Android project. Publisher
+identity, Play registration, product/device qualification, service hosting,
+operations ownership and delivery commitments retain their own requirements.
+Completing #20/#24/#34 requires their literal decision criteria and exact-version
+receiving records; it does not accept implementation or release.
 
-The existing Android acceptance record for repository/framework selection remains `docs/delivery/android/work-packages/01.03.md` in `Pick-Your-AI/pickyour.ai`. [ADR 0001](decisions/0001-android-23-acceptance-record.md) records the sole placement decision for Android #23: its previously nonexistent `docs/delivery/android/work-packages/14.01.md` record belongs in this Android repository once that ADR and receipt receive independent review and normal merge. All other issue deliverable paths remain authoritative; this bounded decision does not migrate them.
+[ADR 0001](decisions/0001-android-23-acceptance-record.md) places #23's
+`docs/delivery/android/work-packages/14.01.md` record in this repository.
+[ADR 0002](decisions/0002-android-foundation-records.md) adds only #20/#24/#34's
+`01.01.md`, `01.02.md` and `01.03.md` records under that same directory after its
+independently reviewed merge. Their original intended website paths are preserved
+as history; the pinned website tree contained none of these records.
+[ADR 0003](decisions/0003-android-25-acceptance-record.md) separately places only
+#25's `01.05.md` record here after its independent receiving review and normal
+merge. The [account and revenue decision](delivery/android/work-packages/01.05.md)
+selects free guest-local planning, excludes optional services from the first slice,
+and retains canonical authority for any later remote branch. Every other issue
+path retains its current authority. The canonical current acceptance schema must
+bind exact delivered artifacts and reviews before issue completion, preserving
+all original criteria, prior evidence and immutable ledger-version history.
+This document delivery changes no ledger, validator or test.
 
 The existing website remains static. Shared-service placement requires [Pick-Your-AI/pick-your-ai-android#35](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/35) and Apple integration requires [Pick-Your-AI/pick-your-ai-apple#23](https://github.com/Pick-Your-AI/pick-your-ai-apple/issues/23). Canonical website inputs remain [Pick-Your-AI/pickyour.ai#15](https://github.com/Pick-Your-AI/pickyour.ai/issues/15), [Pick-Your-AI/pickyour.ai#16](https://github.com/Pick-Your-AI/pickyour.ai/issues/16), [Pick-Your-AI/pickyour.ai#17](https://github.com/Pick-Your-AI/pickyour.ai/issues/17) and [Pick-Your-AI/pickyour.ai#18](https://github.com/Pick-Your-AI/pickyour.ai/issues/18). Reuse those outputs and Android/shared-service work; do not independently assign the same backend work twice. No runtime code belongs in the research repository.
 

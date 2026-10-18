@@ -29,6 +29,8 @@ class ComparisonSnapshot private constructor(private val document: ObjectNode, v
         document["locks"].properties().associate { it.key to if (it.value.isTextual) it.value.textValue() else it.value.toString() },
     )
     internal fun copyDocument(): ObjectNode = document.deepCopy()
+    internal fun hasSameRecordedLocks(other: ComparisonSnapshot): Boolean =
+        sameJsonValues(document["locks"], other.document["locks"])
     override fun toString(): String = "ComparisonSnapshot"
 
     companion object {
@@ -85,7 +87,7 @@ class BuildComparison internal constructor(
         changes.isEmpty() && !limitExceeded -> SnapshotIdentityCondition.SAME_IDENTITY
         else -> SnapshotIdentityCondition.SAME_IDENTITY_WITH_DIFFERENCES
     }
-    val evidenceCondition: EvidenceCondition = if (before.locks == after.locks)
+    val evidenceCondition: EvidenceCondition = if (before.hasSameRecordedLocks(after))
         EvidenceCondition.SAME_RECORDED_LOCKS_NOT_PROOF_OF_COMPARABILITY else EvidenceCondition.RECORDED_LOCKS_DIFFER
     /** No historical report was supplied or recomputed. This never means zero cost or no findings. */
     val historicalCost = HistoricalOutputState.NOT_LOADED
@@ -106,7 +108,7 @@ object BuildComparator {
             changes += SnapshotChange(path, category, kind, a?.toString(), b?.toString())
         }
         fun walk(path: String, category: ChangeCategory, a: JsonNode?, b: JsonNode?) {
-            if (a == b) return
+            if (sameJsonValues(a, b)) return
             if (a != null && b != null && a.isObject && b.isObject) {
                 (a.fieldNames().asSequence().toSet() + b.fieldNames().asSequence().toSet()).sorted().forEach { field ->
                     walk("$path/${escape(field)}", category, a[field], b[field])
@@ -147,4 +149,16 @@ object BuildComparator {
     }
     private class ComparisonLimitReached : RuntimeException()
     private fun escape(value: String): String = value.replace("~", "~0").replace("/", "~1")
+}
+
+/** Exact value comparison for already bounded retained JSON; numeric spellings may differ, strings stay literal. */
+internal fun sameJsonValues(a: JsonNode?, b: JsonNode?): Boolean = when {
+    a === b -> true
+    a == null || b == null -> false
+    a.isNumber && b.isNumber -> a.decimalValue().compareTo(b.decimalValue()) == 0
+    a.isObject && b.isObject -> a.size() == b.size() &&
+        a.properties().all { (name, value) -> sameJsonValues(value, b[name]) }
+    a.isArray && b.isArray -> a.size() == b.size() &&
+        (0 until a.size()).all { index -> sameJsonValues(a[index], b[index]) }
+    else -> a == b
 }

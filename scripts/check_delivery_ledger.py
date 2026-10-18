@@ -19,6 +19,99 @@ EXTERNAL_KINDS = {
     'user_evidence', 'signing_custody', 'operational_evidence', 'domain_control',
 }
 
+# Preserve the first reviewed documentary outcome and its exact receipts. The
+# additional source-defined outcomes below do not authorize other completion.
+DESIGN_23_REVISION = 'e86e8bd7645234e12b9887f1e6a0148a2d52073e'
+DESIGN_23_PATH = 'docs/delivery/android/work-packages/14.01.md'
+DESIGN_23_RECORD = {'repository': REPOSITORY, 'path': DESIGN_23_PATH}
+DESIGN_23_ACCEPTANCE = {
+    'scope': 'planned_data_inventory_and_mitigation_handoff',
+    'evidence_ref': 'pr-279',
+    'decision_revision': DESIGN_23_REVISION,
+    'decision_url': f'{BASE}/blob/{DESIGN_23_REVISION}/docs/decisions/0001-android-23-acceptance-record.md',
+    'record_url': f'{BASE}/blob/{DESIGN_23_REVISION}/{DESIGN_23_PATH}',
+    'receiving_reviews': [
+        f'{BASE}/pull/279#pullrequestreview-5562297375',
+        f'{BASE}/pull/279#pullrequestreview-5562386507',
+    ],
+    'source_review_revision': '8162a5571147874635d3139e73a171a1077a6d2b',
+    'historical_acceptance_record': {
+        'repository': 'Pick-Your-AI/pickyour.ai', 'path': DESIGN_23_PATH,
+    },
+}
+DESIGN_23_CRITERIA = [
+    'df30567f84cf670a382658c134de05c36d1de247d71f1597f1f3410e399bc8f8',
+    '4cc396aeec72b467fa8300a28f11638007a6644498982e90b94a57c13e0122ef',
+    'f4804f53f5566bc5b20ec73034ac19bbe3870f1a06adc523ab8195c29f8b9c5f',
+]
+COMPLETE_DESIGN_RELATION = 'criterion_complete_reviewed_design_outcome'
+
+REVIEWED_DESIGNS = {
+    23: {
+        'record': DESIGN_23_RECORD,
+        'acceptance': DESIGN_23_ACCEPTANCE,
+        'criteria': DESIGN_23_CRITERIA,
+        'artifact_url': DESIGN_23_ACCEPTANCE['record_url'],
+    },
+}
+
+# Signed #297 delivers only these three additional decision records. The shared
+# evidence entry identifies their ADR; each outcome still has its own exact
+# record, criterion hashes, scope and historical placement.
+FOUNDATION_REVISION = '93bebf787a091fe4858c1c70fd07cabefe17170f'
+FOUNDATION_DECISION = f'{BASE}/blob/{FOUNDATION_REVISION}/docs/decisions/0002-android-foundation-records.md'
+FOUNDATION_REVIEWS = [
+    f'{BASE}/pull/291#pullrequestreview-5562594206',
+    f'{BASE}/pull/291#pullrequestreview-5562605533',
+    f'{BASE}/pull/297#pullrequestreview-5562661670',
+]
+
+
+def foundation_design(path, scope, criterion_hashes):
+    """Build a source-defined receipt; never derive acceptance from ledger input."""
+    return {
+        'record': {'repository': REPOSITORY, 'path': path},
+        'acceptance': {
+            'scope': scope,
+            'evidence_ref': 'pr-297',
+            'decision_revision': FOUNDATION_REVISION,
+            'decision_url': FOUNDATION_DECISION,
+            'record_url': f'{BASE}/blob/{FOUNDATION_REVISION}/{path}',
+            'receiving_reviews': FOUNDATION_REVIEWS,
+            'source_review_revision': '43ad25781210ad0f7578203626ac823d814cf385',
+            'historical_acceptance_record': {
+                'repository': 'Pick-Your-AI/pickyour.ai', 'path': path,
+            },
+        },
+        'criteria': criterion_hashes,
+        'artifact_url': FOUNDATION_DECISION,
+    }
+
+
+REVIEWED_DESIGNS.update({
+    20: foundation_design(
+        'docs/delivery/android/work-packages/01.01.md',
+        'android_users_and_primary_journey_decision', [
+            'dc58a23cb9732c5bf2556342f52250d9e099d913b4e27fe9004d6b7ca362f26c',
+            'aa791f6ae7af9fd3a01b475257b79bff2a7463752b2b4a8e76ae241ed419442e',
+            'd29ff8ea1323e5421fa999bd670d15316c9a4a1706f9fb479d263a6ca26c1f4c',
+        ]),
+    24: foundation_design(
+        'docs/delivery/android/work-packages/01.02.md',
+        'android_mvp_and_phased_capability_decision', [
+            '835380a6476cb5a140a94eb5644e551ba49c5b7aeff435209589ab3ac904102d',
+            'ae8d63e6b78fd37c8739d3343b3522688dfa4635b32593a04a91ba1a644e9b34',
+            '25e9cb0571a398455fb474057f419c405d3dd6a378fbca238735d607f0c434e4',
+        ]),
+    34: foundation_design(
+        'docs/delivery/android/work-packages/01.03.md',
+        'android_native_repository_and_module_decision', [
+            '5d2ef9ad52e7c85cebe2a491bae176f458428fc81c3bd1bbea55b6a868143af1',
+            '3ef15900a9c57ffafc2f782a6ea1e38c6437941185cc738f1b95277017d8bdc8',
+            'e7376b8e0a66f0149028e64b2d394763885599cf1bf943a1cfc5ea7df1e6c8c2',
+        ]),
+})
+
 
 def require(condition, message):
     if not condition:
@@ -32,7 +125,7 @@ def source_criteria(body):
 
 
 def validate(ledger, source=None):
-    require(ledger['schema_version'] == 1, 'unsupported schema version')
+    require(type(ledger['schema_version']) is int and ledger['schema_version'] == 3, 'unsupported schema version')
     require(ledger['repository'] == REPOSITORY, 'wrong repository')
     evidence = ledger['evidence']
     require(bool(evidence), 'missing evidence catalog')
@@ -45,11 +138,13 @@ def validate(ledger, source=None):
         require(bool(artifact['scope_limit'].strip()), 'missing evidence limitation')
     issues = ledger['issues']
     numbers = [issue['number'] for issue in issues]
+    require(all(type(number) is int for number in numbers), 'ledger issue numbers must be integers')
     require(numbers == list(range(1, 130)), 'expected unique ordered issue numbers 1–129')
     require(sum(len(issue['criteria']) for issue in issues) == 441, 'expected 441 criteria')
     source_by_number = None
     if source is not None:
         require(isinstance(source, list), 'source must be a gh issue-list array')
+        require(all(type(issue['number']) is int for issue in source), 'source issue numbers must be integers')
         source_by_number = {issue['number']: issue for issue in source}
         require(len(source) == len(source_by_number), 'duplicate source issue')
         require(set(source_by_number) == set(numbers), 'live issue inventory differs; reconcile explicitly')
@@ -57,7 +152,22 @@ def validate(ledger, source=None):
         number = issue['number']
         require(issue['url'] == f'{BASE}/issues/{number}', f'wrong issue URL: {number}')
         record = issue['canonical_acceptance_record']
-        require(record['repository'] == 'Pick-Your-AI/pickyour.ai', f'acceptance repository moved: {number}')
+        accepted_design = REVIEWED_DESIGNS.get(number)
+        if accepted_design:
+            expected = accepted_design['acceptance']
+            require(record == accepted_design['record'], f'unreviewed acceptance placement: {number}')
+            require(issue.get('accepted_design_outcome') == expected,
+                    f'missing or changed reviewed design acceptance: {number}')
+            require([c['text_sha256'] for c in issue['criteria']] == accepted_design['criteria'],
+                    f'reviewed design criterion set changed: {number}')
+            receipt = evidence.get(expected['evidence_ref'], {})
+            require(receipt.get('observed_state') == 'merged' and
+                    receipt.get('revision') == expected['decision_revision'] and
+                    receipt.get('artifact_url') == accepted_design['artifact_url'],
+                    f'accepted design receipt is not the reviewed merged artifact: {number}')
+        else:
+            require('accepted_design_outcome' not in issue, f'unsupported design acceptance: {number}')
+            require(record['repository'] == 'Pick-Your-AI/pickyour.ai', f'acceptance repository moved: {number}')
         require(re.fullmatch(r'docs/delivery/android/(program|epics/[0-9]{2}|work-packages/[0-9]{2}\.[0-9]{2})\.md', record['path']) is not None, f'invalid acceptance path: {number}')
         require(bool(issue['criteria']), f'empty issue: {number}')
         for index, criterion in enumerate(issue['criteria'], 1):
@@ -66,10 +176,18 @@ def validate(ledger, source=None):
             text = criterion['text']
             require(isinstance(text, str) and bool(text.strip()), f'empty criterion: {key}')
             require(criterion['text_sha256'] == hashlib.sha256(text.encode()).hexdigest(), f'criterion text digest mismatch: {key}')
-            # This ledger version deliberately supports no closure or completion assertions.
-            require(criterion['status'] == 'incomplete' and criterion['completion_evidence'] == [], f'unreviewed completion claim: {key}')
-            require(bool(criterion['remaining_engineering'].strip()), f'missing remaining work: {key}')
-            require(criterion['evidence_relation'] in {'issue_context_only; inspect artifact scope before attributing any criterion result', 'criterion_partial_results_with_issue_context'}, f'unsupported evidence attribution: {key}')
+            if accepted_design:
+                require(criterion['status'] == 'complete' and
+                        criterion['completion_evidence'] == [accepted_design['acceptance']['evidence_ref']],
+                        f'missing reviewed design completion evidence: {key}')
+                require(criterion['remaining_engineering'] == '' and criterion['external_prerequisites'] == [],
+                        f'completed criterion still has unfinished requirements: {key}')
+                require(criterion['evidence_relation'] == COMPLETE_DESIGN_RELATION,
+                        f'unsupported design completion attribution: {key}')
+            else:
+                require(criterion['status'] == 'incomplete' and criterion['completion_evidence'] == [], f'unreviewed completion claim: {key}')
+                require(bool(criterion['remaining_engineering'].strip()), f'missing remaining work: {key}')
+                require(criterion['evidence_relation'] in {'issue_context_only; inspect artifact scope before attributing any criterion result', 'criterion_partial_results_with_issue_context'}, f'unsupported evidence attribution: {key}')
             refs = criterion['partial_evidence_refs']
             require(len(refs) == len(set(refs)) and set(refs) <= set(evidence), f'unknown/duplicate evidence reference: {key}')
             results = criterion.get('partial_results', [])
@@ -91,7 +209,7 @@ def validate(ledger, source=None):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--ledger', type=Path, default=ROOT / 'docs/delivery/criterion-evidence.json')
-    parser.add_argument('--issues', type=Path, help='fresh gh issue list JSON for authoritative text/path comparison')
+    parser.add_argument('--issues', type=Path, help='fresh gh issue list --state all JSON for authoritative text/path comparison')
     args = parser.parse_args()
     try:
         source = json.loads(args.issues.read_text()) if args.issues else None
@@ -99,7 +217,7 @@ def main():
     except (OSError, ValueError, KeyError, TypeError) as error:
         print(f'Delivery ledger check failed: {error}', file=sys.stderr)
         return 1
-    print('PASS: 129 unique issue URLs, 441 incomplete criteria, pinned partial evidence and canonical paths' +
+    print('PASS: 129 unique issue URLs, 429 incomplete criteria, 12 reviewed design criteria, pinned evidence and canonical paths' +
           ('; exact source criteria matched.' if source is not None else '; live source comparison NOT performed.'))
     return 0
 
