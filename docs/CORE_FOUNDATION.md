@@ -232,3 +232,13 @@ retains every frozen manifest/approval field, exact build revision, ordered arra
 and optional absence. Recorded statuses and approval decisions are unverified
 input; decoding grants no approval, URI access, deployment or release authority.
 Shared Python/Kotlin cases preserve frozen schema outcomes and sanitized failures.
+
+## Frozen EvaluationReport structural values
+
+The [frozen report reader](FROZEN_EVALUATION_REPORT_BOUNDARY.md) preserves all
+recorded fields, exact integer revisions/counters, optional absence and arbitrary
+immutable evidence JSON through the existing bounded parser and bundled schema.
+It does not bind a Build, run rules, reconcile findings or grant readiness. The
+existing reference receiver and inspection/caller APIs retain their stronger
+consistency and current-state boundaries. Its shared Python/Kotlin panel is
+additive to the original reference-report fixture check.
