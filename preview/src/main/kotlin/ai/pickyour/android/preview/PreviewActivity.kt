@@ -94,6 +94,7 @@ class PreviewActivity : Activity() {
     private var restoration: PreviewDraftRestoration? = null
     private lateinit var findings: FindingsInspectionSection
     private lateinit var diagnostics: LocalDiagnostics
+    private lateinit var help: LocalHelp
     private var diagnosticsResumed = false
     private var entryBlocked = false
     private var unsupportedEntry = false
@@ -331,6 +332,8 @@ class PreviewActivity : Activity() {
             )
         }, { !destroyed && diagnosticsResumed })
         diagnostics.attach(content)
+        help = LocalHelp(this, { !destroyed && diagnosticsResumed }, diagnostics::show)
+        help.attach(content)
         setContentView(ScrollView(this).apply { addView(content) })
         content.setOnApplyWindowInsetsListener { view, insets ->
             val padding = (24 * resources.displayMetrics.density).toInt()
@@ -1263,6 +1266,7 @@ class PreviewActivity : Activity() {
     override fun onPause() {
         diagnosticsResumed = false
         if (::diagnostics.isInitialized) diagnostics.dismiss()
+        if (::help.isInitialized) help.dismiss()
         super.onPause()
     }
 
@@ -1270,6 +1274,7 @@ class PreviewActivity : Activity() {
         destroyed = true
         if (::findings.isInitialized) findings.close()
         if (::diagnostics.isInitialized) diagnostics.close()
+        if (::help.isInitialized) help.close()
         if (::catalogPinRecovery.isInitialized) catalogPinRecovery.close()
         catalogDetailDialog?.dismiss()
         catalogDetailDialog = null

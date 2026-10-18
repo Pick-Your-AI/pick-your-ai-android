@@ -1,0 +1,65 @@
+name: Android evidence correction
+description: Request review of a public claim, source, recorded price or evidence presentation.
+title: "[Android evidence correction]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **This issue and any attachments will be public.** Check [existing Android reports](https://github.com/Pick-Your-AI/pick-your-ai-android/issues) first and read the [help and triage guide](https://github.com/Pick-Your-AI/pick-your-ai-android/blob/main/SUPPORT.md).
+
+        Provide public references and only the affected public item/version or value. Do not include a private build, personal information, credentials, private URLs, raw downloads or copied material without permission. No private reporting destination is verified for this preview: keep confidential and sensitive security details out of this form.
+
+        The bundled examples are synthetic. A correction request does not verify a claim, change pinned historical records or publish real catalog data. Android presentation defects stay in this project; changes to shared evidence, pricing, contracts or source-use rights require their existing canonical review. The app uploads nothing here. You review and submit the issue yourself; no response-time guarantee is offered.
+  - type: checkboxes
+    id: public-review
+    attributes:
+      label: Public-content review
+      options:
+        - label: I reviewed the text and any attachments and excluded private information, credentials and sensitive security details.
+          required: true
+  - type: input
+    id: version
+    attributes:
+      label: App version and Android API
+      description: Copy only the app version/code and Android API shown in Help. No device identifier is needed.
+      placeholder: 0.0.1-synthetic (code 1), Android API 28
+    validations:
+      required: true
+  - type: dropdown
+    id: correction-kind
+    attributes:
+      label: Requested review
+      options:
+        - Incorrect public value or presentation
+        - Missing or mismatched item, version or snapshot
+        - Stale, superseded or retracted evidence
+        - Recorded price, unit, region or coverage
+        - Provenance, attribution or source-use rights
+    validations:
+      required: true
+  - type: textarea
+    id: affected-reference
+    attributes:
+      label: Affected public reference
+      description: Give a public source/issue URL or canonical item ID, version and snapshot shown by the app. Identify synthetic examples as synthetic. Omit private record IDs and private or credential-bearing URLs.
+    validations:
+      required: true
+  - type: textarea
+    id: correction
+    attributes:
+      label: Observed claim and requested correction
+      description: State the displayed claim or missing value, the proposed correction and its conditions. For prices, retain units, currency, region and recorded dates. Do not treat an unknown value as zero or a compatibility pass.
+    validations:
+      required: true
+  - type: textarea
+    id: public-basis
+    attributes:
+      label: Public basis and uncertainty
+      description: Link to the public basis and explain any missing proof or rights limitation. A link or concise citation is preferable to uploading a source download. If support is unknown, say so; do not invent verification or a publication date.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Optional synthetic reproduction or related issue
+      description: Name the relevant controls or an existing public report. Do not attach a private draft or automatically collected diagnostics.

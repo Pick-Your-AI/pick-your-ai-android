@@ -442,6 +442,33 @@ jobs:
               raise SystemExit("Diagnostic preview result count does not match executed cases")
           print(f"Verified {len(cases)} simulated diagnostic preview tests; no installed or delivery claim")
           PYTEST
+      - name: Require local help and public-report consent regressions to execute
+        run: |
+          python - <<'PYTEST'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          report = pathlib.Path("preview/build/test-results/testDebugUnitTest/TEST-ai.pickyour.android.preview.LocalHelpActivityTest.xml")
+          suite = ET.parse(report).getroot()
+          expected = {
+              "localHelpAndActualBrowserIntentExcludeSavedAndPendingPrivateContent",
+              "eachPublicDestinationRequiresReviewAndOnlyOneExplicitFixedUriDispatch",
+              "cancelledDismissedAndReplacedHelpAndDestinationCallbacksCannotNavigate",
+              "missingOrForbiddenBrowserRetainsSafeDestinationAndNeedsFreshReview",
+              "helpDiagnosticsReusesTheExistingPreviewWithoutSharingOrRetainedNavigation",
+              "pauseAndRecreationRetireBothHelpReviewLevelsAndOldEntryButtons",
+              "closedHelpOwnerCannotOpenDiagnosticsOrDispatchRetainedPublicControls",
+              "narrowRtlLargeTextHelpAndDestinationKeepCompleteReachableActions",
+          }
+          cases = suite.findall("testcase")
+          names = [case.attrib["name"] for case in cases]
+          if not expected <= set(names) or len(names) != len(set(names)):
+              raise SystemExit("Missing or repeated local help regression")
+          if any(case.findall("failure") or case.findall("error") or case.findall("skipped") for case in cases):
+              raise SystemExit("Local help regression did not pass")
+          if int(suite.attrib["tests"]) != len(cases):
+              raise SystemExit("Local help result count does not match executed cases")
+          print(f"Verified {len(cases)} simulated help tests; no browser, submission or triage claim")
+          PYTEST
       - name: Require explicit retained-revision pair regressions to execute
         run: |
           python - <<'PYTEST'
