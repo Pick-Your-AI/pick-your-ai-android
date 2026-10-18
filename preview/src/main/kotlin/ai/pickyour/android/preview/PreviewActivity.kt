@@ -344,16 +344,20 @@ class PreviewActivity : Activity() {
             )
         }, { !destroyed && diagnosticsResumed })
         diagnostics.attach(content)
-        setContentView(ScrollView(this).apply { addView(content) })
-        content.setOnApplyWindowInsetsListener { view, insets ->
-            val padding = (24 * resources.displayMetrics.density).toInt()
-            view.setPadding(padding + insets.systemWindowInsetLeft, padding + insets.systemWindowInsetTop,
-                padding + insets.systemWindowInsetRight, padding + insets.systemWindowInsetBottom)
-            insets
-        }
-        // Also provide padding before the first insets dispatch.
         val padding = (24 * resources.displayMetrics.density).toInt()
         content.setPadding(padding, padding, padding, padding)
+        val viewport = ScrollView(this).apply {
+            addView(content)
+            // Keep system-bar protection fixed while the form scrolls.
+            clipToPadding = true
+            setOnApplyWindowInsetsListener { view, insets ->
+                view.setPadding(insets.systemWindowInsetLeft, insets.systemWindowInsetTop,
+                    insets.systemWindowInsetRight, insets.systemWindowInsetBottom)
+                insets
+            }
+        }
+        setContentView(viewport)
+        viewport.requestApplyInsets()
         updateEditingEnabled()
         loadCatalog()
         if (entryBlocked) {
