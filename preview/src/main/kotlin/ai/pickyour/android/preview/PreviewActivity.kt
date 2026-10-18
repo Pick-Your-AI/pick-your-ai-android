@@ -169,12 +169,15 @@ class PreviewActivity : Activity() {
         reopen = Button(this).apply {
             setText(R.string.reopen_draft)
             setOnClickListener {
-                if (destroyed) return@setOnClickListener
+                if (destroyed || storageBusy || !selectionResolved) return@setOnClickListener
+                val baseline = savedRecord
+                val draftId = currentDraftId
                 AlertDialog.Builder(this@PreviewActivity).setTitle(R.string.reopen_draft)
                     .setMessage(R.string.reopen_warning)
                     .setNegativeButton(R.string.keep_edits, null)
                     .setPositiveButton(R.string.reopen_confirm) { confirmation, _ ->
-                        if ((confirmation as? AlertDialog)?.isShowing == true && !storageBusy) loadDraft(false)
+                        if ((confirmation as? AlertDialog)?.isShowing == true && !destroyed && !storageBusy &&
+                            selectionResolved && currentDraftId == draftId && savedRecord === baseline) loadDraft(false)
                     }.show()
             }
         }
