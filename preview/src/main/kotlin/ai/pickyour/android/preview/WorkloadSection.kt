@@ -43,7 +43,7 @@ class WorkloadSection(context: Context, initial: PreviewWorkloadInputs,
                 id = View.generateViewId(); isSaveEnabled = false; setSingleLine(true)
                 inputType = android.text.InputType.TYPE_CLASS_TEXT
                 imeOptions = android.view.inputmethod.EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING
-                                setHint(R.string.workload_unanswered)
+                setHint(R.string.workload_unanswered)
                 setText(values(inputs)[index])
                 filters = arrayOf(InputFilter { source, start, end, dest, dstart, dend ->
                     if (dest.length - (dend - dstart) + (end - start) <= MAX_RAW_LENGTH) null
