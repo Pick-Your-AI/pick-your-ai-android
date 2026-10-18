@@ -4,6 +4,7 @@ plugins {
 }
 android {
     namespace = "ai.pickyour.android.preview"
+    buildFeatures.buildConfig = true
     compileSdk = 35
     defaultConfig {
         applicationId = "ai.pickyour.android.preview"

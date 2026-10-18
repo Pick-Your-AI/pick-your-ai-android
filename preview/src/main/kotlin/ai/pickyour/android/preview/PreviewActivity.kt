@@ -82,6 +82,8 @@ class PreviewActivity : Activity() {
         }
     private var restoringFields = false
     private var restoration: PreviewDraftRestoration? = null
+    private lateinit var diagnostics: LocalDiagnostics
+    private var diagnosticsResumed = false
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -281,6 +283,19 @@ class PreviewActivity : Activity() {
         content.addView(run)
         CostInspectionSection(this, worker) { !destroyed }.attach(content)
         FindingsInspectionSection(this, worker) { !destroyed }.attach(content)
+        diagnostics = LocalDiagnostics(this, {
+            LocalDiagnosticReport(
+                when {
+                    storageBusy -> DiagnosticStorageState.BUSY
+                    storageReady -> DiagnosticStorageState.READY
+                    savedRecord != null -> DiagnosticStorageState.RECONCILIATION_REQUIRED
+                    else -> DiagnosticStorageState.UNAVAILABLE
+                },
+                if (catalogFixture?.catalog != null) DiagnosticCatalogState.SYNTHETIC_LOADED
+                else DiagnosticCatalogState.UNAVAILABLE_OR_LOADING,
+            )
+        }, { !destroyed && diagnosticsResumed })
+        diagnostics.attach(content)
         setContentView(ScrollView(this).apply { addView(content) })
         content.setOnApplyWindowInsetsListener { view, insets ->
             val padding = (24 * resources.displayMetrics.density).toInt()
@@ -1113,8 +1128,20 @@ class PreviewActivity : Activity() {
         ).joinToString("\n\n")
     }
 
+    override fun onResume() {
+        super.onResume()
+        diagnosticsResumed = true
+    }
+
+    override fun onPause() {
+        diagnosticsResumed = false
+        if (::diagnostics.isInitialized) diagnostics.dismiss()
+        super.onPause()
+    }
+
     override fun onDestroy() {
         destroyed = true
+        if (::diagnostics.isInitialized) diagnostics.close()
         catalogDetailDialog?.dismiss()
         catalogDetailDialog = null
         catalogPriceBrowser?.retire()
