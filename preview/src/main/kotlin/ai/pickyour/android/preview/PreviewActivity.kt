@@ -44,6 +44,7 @@ class PreviewActivity : Activity() {
     private lateinit var save: Button
     private lateinit var reopen: Button
     private lateinit var clear: Button
+    private lateinit var history: Button
     private lateinit var saveStatus: TextView
     private var persistence: PreviewDraftPersistence? = null // Accessed only on the single worker.
     private var savedRecord: PreviewStoredDraft? = null // UI-thread owned.
@@ -112,6 +113,8 @@ class PreviewActivity : Activity() {
         }
         content.addView(save)
         content.addView(reopen)
+        history = Button(this).apply { setText(R.string.draft_history); setOnClickListener { showHistory() } }
+        content.addView(history)
         title.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { formChanged() }
@@ -254,7 +257,45 @@ class PreviewActivity : Activity() {
         clear.isEnabled = !storageBusy
         save.isEnabled = storageReady && !storageBusy && savedRecord?.fields != fields()
         reopen.isEnabled = !storageBusy
+        history.isEnabled = storageReady && !storageBusy && savedRecord != null
         if (::catalog.isInitialized) for (index in 0 until catalog.childCount) catalog.getChildAt(index).isEnabled = !storageBusy
+    }
+
+    private fun showHistory() {
+        val baseline = savedRecord ?: return
+        if (!storageReady || storageBusy) return
+        val revisions = baseline.history.reversed()
+        val rows = revisions.map { revision ->
+            getString(if (revision.fields == null) R.string.history_unavailable else R.string.history_revision,
+                revision.revision.toString())
+        }.toTypedArray()
+        AlertDialog.Builder(this).setTitle(R.string.draft_history)
+            .setItems(rows) { _, index ->
+                val revision = revisions[index]
+                val oldFields = revision.fields
+                if (oldFields == null) {
+                    AlertDialog.Builder(this).setMessage(R.string.history_unavailable_detail)
+                        .setPositiveButton(R.string.close, null).show()
+                } else {
+                    AlertDialog.Builder(this).setTitle(getString(R.string.history_revision, revision.revision.toString()))
+                        .setMessage(getString(R.string.history_copy_warning, oldFields.title,
+                            if (baseline.earlierHistoryUnavailable) getString(R.string.history_earlier_unavailable) else ""))
+                        .setNegativeButton(R.string.keep_edits, null)
+                        .setPositiveButton(R.string.history_copy) { _, _ ->
+                            // A dialog opened before another save/load cannot adopt that operation's baseline.
+                            if (storageReady && !storageBusy && savedRecord === baseline) {
+                                restoringFields = true
+                                title.setText(oldFields.title)
+                                selectedId = oldFields.selectedId
+                                selectedVersion = oldFields.selectedVersion
+                                selectedCatalogHash = oldFields.catalogHash
+                                restoringFields = false
+                                showSelection()
+                                formChanged()
+                            }
+                        }.show()
+                }
+            }.setNegativeButton(R.string.close, null).show()
     }
 
     private fun openPersistence(): PreviewDraftPersistence {

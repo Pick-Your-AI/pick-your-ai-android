@@ -15,6 +15,39 @@ class PreviewDraftPersistenceTest {
     private fun loaded() = (adapter().load() as PreviewDraftLoad.Available).record
     private fun saved(result: PreviewDraftSave) = (result as PreviewDraftSave.Saved).record
 
+    @Test fun `guest history retains exact form pins and copying requires explicit new save`() {
+        val original = PreviewDraftFields("old", "id.old", "v1", "a".repeat(64))
+        val first = saved(adapter().save(null, original))
+        val current = saved(adapter().save(first, PreviewDraftFields("new")))
+        val history = loaded().history
+        assertEquals(listOf(0L, 1L), history.map { it.revision })
+        assertEquals(original, history.first().fields)
+        assertEquals("new", loaded().fields.title)
+        val copy = history.first().fields!!
+        assertEquals("new", loaded().fields.title) // Reading/copying has no write side effect.
+        val edited = saved(adapter().save(current, copy))
+        assertEquals(original, edited.fields)
+        assertEquals(3, edited.history.size)
+        assertEquals(StoredRevisionChange.EDIT, (store().load() as DraftLoad.Available).draft.history.last().change)
+        assertThrows(UnsupportedOperationException::class.java) { (history as MutableList).clear() }
+        assertEquals("PreviewDraftRevision", history.first().toString())
+    }
+    @Test fun `historical unknown guest metadata is unavailable rather than invented`() {
+        val raw = store().save(null, DraftContent(), mapOf("preview.format" to "future")) as DraftSave.Saved
+        store().save(raw.draft.version, DraftContent(), mapOf("preview.format" to "1", "preview.title" to "current"))
+        assertNull(loaded().history.first().fields)
+        assertEquals("current", loaded().history.last().fields!!.title)
+        assertFalse(loaded().earlierHistoryUnavailable)
+    }
+    @Test fun `copied historical form cannot overwrite a concurrently saved head`() {
+        val first = saved(adapter().save(null, PreviewDraftFields("old")))
+        val second = saved(adapter().save(first, PreviewDraftFields("middle")))
+        val pending = second.history.first().fields!!
+        saved(adapter().save(second, PreviewDraftFields("other writer")))
+        assertEquals(PreviewDraftSave.Conflict, adapter().save(second, pending))
+        assertEquals("other writer", loaded().fields.title)
+        assertEquals("old", pending.title)
+    }
     @Test fun `recreation rejects newer disk baseline without adopting its save authority`() {
         val first = saved(adapter().save(null, PreviewDraftFields("first")))
         val checkpoint = PreviewDraftRestoration.capture(first, true, false)
