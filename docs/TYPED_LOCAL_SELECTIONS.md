@@ -15,18 +15,30 @@ does not resolve them. Canonical receiving records remain `07.05.md` and `08.02.
 under `docs/delivery/android/work-packages/` in `Pick-Your-AI/pickyour.ai`; this file
 is implementation evidence, not a relocated acceptance record or closure receipt.
 
-The exact command subset is the frozen registry's T1/T2 kinds: `model_provider`,
+The exact command subset is the frozen registry's T0/T1/T2/T3/T4 kinds: `workload`,
+`deployment_mode`, `model_provider`,
 `model`, `context_policy`, `hosting_platform`, `accelerator`, `compute_profile`,
-`inference_engine` and `storage`. All other valid frozen kinds can be retained,
+`inference_engine`, `storage`, `data_source`, `knowledge_base`, `embedding_model`,
+`vector_database`, `rag_pipeline`, `agent_framework`, `tool`, `mcp_server`,
+`memory_store` and `integration`. All other valid frozen kinds can be retained,
 compared, duplicated and restored; their mutation commands return
 `UNSUPPORTED_KIND`. Optional legacy tier controls retain their existing meaning.
+The [explicit foundation editor](FOUNDATION_SELECTIONS.md) adds only the two T0
+kinds to the same commands; it does not adapt placement or decide applicability.
+The [retrieval editor](RETRIEVAL_SELECTIONS.md) subsequently adds exactly the five
+T3 kinds. Typed edits preserve the separate optional-tier intent and retained
+opaque tier inputs; they do not activate T3, resolve references or run retrieval.
+The [agent editor](AGENT_SELECTIONS.md) then adds the five frozen T4 kinds through
+the same commands. Declared permission scopes, endpoints and opaque references
+remain input values; no connection, external action or permission grant follows.
 
 ## Payload and aggregate
 
 `LocalSelection` validates the complete unmodified frozen Selection schema.
 Identity, kind, exact catalog item/version, role, enabled and settings are explicit.
 Required typed settings are never guessed, including accelerator device count,
-compute instances and context reservations. Numeric settings retain arbitrary
+compute instances, context reservations and vector index dimension/metric.
+Numeric settings retain arbitrary
 precision subject to existing parser budgets. Notes and namespaced extensions,
 including nested null/boolean/numeric values, survive round trips. Objects exposed
 to callers are defensive snapshots; `toString` excludes payload content.
@@ -41,8 +53,9 @@ It enforces unique selection IDs, unique `(kind, role)` pairs across both enable
 and disabled entries, unique link IDs, and existing endpoints. The role-scope
 invariant also appears in the frozen reference conformance tests; roles such as
 `primary` and `fallback` are examples, not a new enum. Only enabled selections count
-against registry cardinality. `context_policy` is cardinality-one; the other T1/T2
-kinds are many. Disabled entries cannot reuse an existing role.
+against registry cardinality. `workload`, `deployment_mode` and `context_policy`
+are cardinality-one; the other editable kinds are many. Disabled entries cannot
+reuse an existing role.
 
 Local bounds are 256 selections and 1,024 links, plus the existing 1 MiB envelope,
 128-history-entry and JSON depth/token/string/name/number budgets. These limits do
@@ -80,7 +93,10 @@ does not enforce library entry liveness during concurrent deletion.
 - Add retains the supplied explicit role/settings and requires exact catalog pins.
 - Replace keeps target selection ID, kind, role, enabled state, notes and extensions.
   Settings also stay intact unless an explicit replacement settings object is supplied.
-- Configure replaces only the typed settings object.
+- Configure with no explicit role replaces only the typed settings object. An
+  explicit changed role is one atomic `CONFIGURE_ROLE` command that preserves
+  identity and all other fields besides the supplied role/settings. The native
+  [role editor](LOCAL_SELECTION_ROLES.md) supplies the complete original settings.
 - Disable/re-enable changes only enabled state and rechecks active cardinality.
 - Remove deletes the selected identity and exactly its incident links. It never
   promotes a secondary selection or changes an unrelated selection/link.
@@ -95,7 +111,10 @@ content by sorted selection/link ID and stable JSON field order.
 
 ## Migration and preservation
 
-New writes use private local envelope version 4. Every content entry includes a
+New drafts use private local envelope version 4. A real explicit selection role
+change upgrades to version 5 without changing format-4 `CONFIGURE` semantics;
+[the role history boundary](LOCAL_SELECTION_ROLES.md) preserves earlier records
+and keeps subsequent writes at version 5. Every content entry includes a
 `components` object with `selections` and `links`; every history entry includes a
 nullable `selection_change`. Unknown versions and unknown/missing/invalid fields
 fail closed without rewriting or resetting stored bytes. Frozen v1 files are unchanged.

@@ -131,13 +131,16 @@ class SelectionEditSection(private val activity: Activity,
         val selection = expected?.components?.selections?.singleOrNull { it.id == pending.selectionId }
         if (exactDraft && when (pending.mode) {
                 ComponentFormCheckpoint.ADD -> item != null && catalogHash == pending.catalogHash
-                ComponentFormCheckpoint.CONFIGURE -> selection != null && PreviewSelectionForms.supported(selection.kind)
+                ComponentFormCheckpoint.CONFIGURE, ComponentFormCheckpoint.ROLE -> selection != null && PreviewSelectionForms.supported(selection.kind)
                 else -> false
             }) {
             recovery = ComponentFormRecovery.None
             update(baseline, editable)
-            if (pending.mode == ComponentFormCheckpoint.ADD) addForm(expected, requireNotNull(item), requireNotNull(pending.catalogHash), pending)
-            else settingsForm(expected, requireNotNull(selection), pending)
+            when (pending.mode) {
+                ComponentFormCheckpoint.ADD -> addForm(expected, requireNotNull(item), requireNotNull(pending.catalogHash), pending)
+                ComponentFormCheckpoint.CONFIGURE -> settingsForm(expected, requireNotNull(selection), pending)
+                ComponentFormCheckpoint.ROLE -> roleForm(expected, requireNotNull(selection), pending)
+            }
             return
         }
         val layout = LinearLayout(activity).apply { orientation = VERTICAL }
@@ -158,7 +161,8 @@ class SelectionEditSection(private val activity: Activity,
             value(R.string.component_role, pending.role)
             layout.addView(CheckBox(activity).apply { setText(R.string.component_enabled); isChecked = pending.enabled; isEnabled = false })
         }
-        value(R.string.component_settings, pending.settings)
+        if (pending.mode == ComponentFormCheckpoint.ROLE) value(R.string.component_role, pending.role)
+        if (pending.mode != ComponentFormCheckpoint.ROLE) value(R.string.component_settings, pending.settings)
         show(AlertDialog.Builder(activity).setTitle(R.string.component_recovery_review)
             .setView(ScrollView(activity).apply { addView(layout) }).setNegativeButton(R.string.close, null).create())
     }
@@ -181,7 +185,7 @@ class SelectionEditSection(private val activity: Activity,
                 .setNegativeButton(R.string.close, null).create())
             return
         }
-        val options = arrayOf(activity.getString(R.string.component_configure),
+        val options = arrayOf(activity.getString(R.string.component_configure), activity.getString(R.string.component_edit_role),
             activity.getString(if (selection.enabled) R.string.component_disable else R.string.component_enable),
             activity.getString(R.string.component_remove))
         lateinit var picker: AlertDialog
@@ -189,10 +193,11 @@ class SelectionEditSection(private val activity: Activity,
             if (!canOpen(expected) || !open(picker)) return@setItems
             when (index) {
                 0 -> settingsForm(expected, selection)
-                1 -> confirm(expected, null, label(selection), activity.getString(R.string.component_toggle_warning)) {
+                1 -> roleForm(expected, selection)
+                2 -> confirm(expected, null, label(selection), toggleWarning(selection.kind)) {
                     PreviewSelectionPreparation.Ready(SelectionCommand.SetEnabled(selection.id, !selection.enabled))
                 }
-                2 -> {
+                3 -> {
                     val links = expected.components.links.filter { it.fromSelectionId == selection.id || it.toSelectionId == selection.id }.map { it.id }.sorted()
                     confirm(expected, null, label(selection), activity.getString(R.string.component_remove_warning, links.joinToString(", ").ifEmpty { "0" })) {
                         PreviewSelectionPreparation.Ready(SelectionCommand.Remove(selection.id))
@@ -223,6 +228,47 @@ class SelectionEditSection(private val activity: Activity,
     private fun feedback() = TextView(activity).apply {
         accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
     }
+    private fun foundationGuidance(layout: LinearLayout, kind: String, showRoleChoice: Boolean = false) {
+        val guidance = when (kind) {
+            "workload" -> R.string.component_workload_guidance
+            "deployment_mode" -> R.string.component_deployment_guidance
+            else -> return
+        }
+        layout.addView(TextView(activity).apply { setText(guidance) })
+        if (showRoleChoice) layout.addView(TextView(activity).apply { setText(R.string.component_foundation_role_guidance) })
+    }
+    private fun retrievalGuidanceResource(kind: String): Int? = when (kind) {
+        "data_source" -> R.string.component_data_source_guidance
+        "knowledge_base" -> R.string.component_knowledge_base_guidance
+        "embedding_model" -> R.string.component_embedding_model_guidance
+        "vector_database" -> R.string.component_vector_database_guidance
+        "rag_pipeline" -> R.string.component_rag_pipeline_guidance
+        else -> null
+    }
+    private fun retrievalGuidance(layout: LinearLayout, kind: String) {
+        val guidance = retrievalGuidanceResource(kind) ?: return
+        layout.addView(TextView(activity).apply { setText(guidance) })
+        layout.addView(TextView(activity).apply { setText(R.string.component_retrieval_intent_guidance) })
+    }
+    private fun agentGuidanceResource(kind: String): Int? = when (kind) {
+        "agent_framework" -> R.string.component_agent_framework_guidance
+        "tool" -> R.string.component_tool_guidance
+        "mcp_server" -> R.string.component_mcp_server_guidance
+        "memory_store" -> R.string.component_memory_store_guidance
+        "integration" -> R.string.component_integration_guidance
+        else -> null
+    }
+    private fun agentGuidance(layout: LinearLayout, kind: String) {
+        val guidance = agentGuidanceResource(kind) ?: return
+        layout.addView(TextView(activity).apply { setText(guidance) })
+        layout.addView(TextView(activity).apply { setText(R.string.component_agent_intent_guidance) })
+    }
+    private fun toggleWarning(kind: String): String = activity.getString(R.string.component_toggle_warning) +
+        when {
+            retrievalGuidanceResource(kind) != null -> "\n\n" + activity.getString(R.string.component_retrieval_intent_guidance)
+            agentGuidanceResource(kind) != null -> "\n\n" + activity.getString(R.string.component_agent_intent_guidance)
+            else -> ""
+        }
     private fun field(layout: LinearLayout, title: Int, value: String): EditText {
         val label = TextView(activity).apply { setText(title) }
         val editor = EditText(activity).apply {
@@ -238,6 +284,9 @@ class SelectionEditSection(private val activity: Activity,
         val draftId = requireNotNull(currentDraftId)
         val layout = LinearLayout(activity).apply { orientation = VERTICAL }
         layout.addView(TextView(activity).apply { text = activity.getString(R.string.component_add_warning, item.id, item.version, hash) })
+        foundationGuidance(layout, item.kind, showRoleChoice = true)
+        retrievalGuidance(layout, item.kind)
+        agentGuidance(layout, item.kind)
         layout.addView(TextView(activity).apply { setText(R.string.component_recovery_limit) })
         val role = field(layout, R.string.component_role, restored?.role.orEmpty())
         val settings = field(layout, R.string.component_settings, restored?.settings ?: "{}")
@@ -270,6 +319,9 @@ class SelectionEditSection(private val activity: Activity,
         }
         val layout = LinearLayout(activity).apply { orientation = VERTICAL }
         layout.addView(TextView(activity).apply { setText(R.string.component_settings_warning) })
+        foundationGuidance(layout, selection.kind)
+        retrievalGuidance(layout, selection.kind)
+        agentGuidance(layout, selection.kind)
         layout.addView(TextView(activity).apply { setText(R.string.component_recovery_limit) })
         val settings = field(layout, R.string.component_settings, text)
         val feedback = feedback().also(layout::addView)
@@ -284,6 +336,28 @@ class SelectionEditSection(private val activity: Activity,
             if (!active(expected)) return@setOnClickListener
             val raw = settings.text.toString()
             submit(dialog, expected, null) { PreviewSelectionForms.configure(selection, raw) }
+        }
+    }
+    private fun roleForm(expected: PreviewStoredDraft, selection: LocalSelection, restored: ComponentFormCheckpoint? = null) {
+        if (!canOpen(expected)) return
+        val draftId = requireNotNull(currentDraftId)
+        val layout = LinearLayout(activity).apply { orientation = VERTICAL }
+        layout.addView(TextView(activity).apply { text = activity.getString(R.string.component_role_warning, selection.id) })
+        layout.addView(TextView(activity).apply { setText(R.string.component_recovery_limit) })
+        val role = field(layout, R.string.component_role, restored?.role ?: selection.role)
+        val feedback = feedback().also(layout::addView)
+        val dialog = show(AlertDialog.Builder(activity).setTitle(R.string.component_edit_role)
+            .setView(ScrollView(activity).apply { addView(layout) })
+            .setNegativeButton(R.string.close, null).setPositiveButton(R.string.component_commit, null).create(), feedback)
+        formBinding = FormBinding(dialog) { saving ->
+            ComponentFormCheckpoint(ComponentFormCheckpoint.ROLE, draftId, expected.baselineIdentity, selection.id,
+                null, null, null, null, role.text.toString(), "", false, saving)
+        }
+        update(baseline, editable)
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+            if (!active(expected)) return@setOnClickListener
+            val raw = role.text.toString()
+            submit(dialog, expected, null) { PreviewSelectionForms.configureRole(selection, raw) }
         }
     }
     private fun confirm(expected: PreviewStoredDraft, hash: String?, title: String, message: String,

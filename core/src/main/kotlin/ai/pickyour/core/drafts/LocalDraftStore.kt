@@ -116,9 +116,70 @@ class LocalDraftStore internal constructor(
     /** Read immutable history without activating it; restoring is an explicit new save with current token. */
     fun revision(hash: ArtifactHash): DraftLoad = guarded({ DraftLoad.Failed(it) }) { decode(cache.pinned(hash)) }
 
+    /** Read-only review of one current durable draft. No migration, save, ID allocation or publication. */
+    fun prepareSnapshotCandidate(expected: DraftVersion, inputs: DraftSnapshotInputs): DraftProjectionPreparation =
+        guarded({ DraftProjectionPreparation.Failed(it) }) {
+            val read = cache.active()
+            val current = when (val loaded = decode(read)) {
+                DraftLoad.Missing -> return@guarded DraftProjectionPreparation.Conflict
+                is DraftLoad.Failed -> return@guarded DraftProjectionPreparation.Failed(loaded.reason)
+                is DraftLoad.Available -> loaded.draft
+            }
+            if (!matchesProjectionSource(expected, current)) return@guarded DraftProjectionPreparation.Conflict
+            DraftSnapshotProjection.prepare(current, inputs, (read as CacheRead.Available).bytes)
+        }
+
+    /**
+     * Materialize only the reviewed candidate and complete retained-only acknowledgment. Recheck the
+     * source under the same canonical transaction, including no-op and foreign-store attempts.
+     * Created means independent bytes in memory; it is never a saved immutable revision receipt.
+     */
+    fun createSnapshotCandidate(review: DraftProjectionPreparation.Review, acknowledgment: DraftProjectionAcknowledgment?): DraftProjectionCreation =
+        guarded({ DraftProjectionCreation.Failed(it) }) {
+            val current = when (val loaded = decode(cache.active())) {
+                DraftLoad.Missing -> return@guarded DraftProjectionCreation.Conflict
+                is DraftLoad.Failed -> return@guarded DraftProjectionCreation.Failed(loaded.reason)
+                is DraftLoad.Available -> loaded.draft
+            }
+            if (!matchesProjectionSource(review.source.version, current)) return@guarded DraftProjectionCreation.Conflict
+            if (acknowledgment?.review !== review)
+                return@guarded DraftProjectionCreation.ReviewAcknowledgmentMismatch
+            DraftProjectionCreation.Created(DraftSnapshotCandidate(review))
+        }
+
+    /**
+     * Retain the complete reviewed input bundle while the live source transaction remains locked.
+     * Exact source, acknowledgment and archive-head checks precede any bundle/index publication.
+     */
+    fun archiveSnapshotCandidate(review: DraftProjectionPreparation.Review, acknowledgment: DraftProjectionAcknowledgment?,
+        archive: LocalSnapshotArchive, expectedArchive: SnapshotArchiveVersion): DraftSnapshotArchival {
+        var attempted: SnapshotArchiveEntry? = null
+        return guarded({ reason -> attempted?.let { DraftSnapshotArchival.Uncertain(it) }
+            ?: DraftSnapshotArchival.SourceUnavailable(reason) }) {
+            val current = when (val loaded = decode(cache.active())) {
+                DraftLoad.Missing -> return@guarded DraftSnapshotArchival.SourceConflict
+                is DraftLoad.Failed -> return@guarded DraftSnapshotArchival.SourceUnavailable(loaded.reason)
+                is DraftLoad.Available -> loaded.draft
+            }
+            if (!matchesProjectionSource(review.source.version, current)) return@guarded DraftSnapshotArchival.SourceConflict
+            if (acknowledgment?.review !== review) return@guarded DraftSnapshotArchival.ReviewAcknowledgmentMismatch
+            if (!archive.isDisjointFrom(root)) return@guarded DraftSnapshotArchival.ArchiveUnavailable(SnapshotArchiveFailure.CORRUPT)
+            val result = archive.append(DraftSnapshotCandidate(review), expectedArchive) { attempted = it }
+            attempted = when (result) {
+                is DraftSnapshotArchival.Archived -> result.entry
+                is DraftSnapshotArchival.Uncertain -> result.entry
+                else -> null
+            }
+            result
+        }
+    }
+
+    private fun matchesProjectionSource(expected: DraftVersion, current: StoredDraft): Boolean =
+        expected.store == root && expected.hash == current.version.hash && expected.number == current.version.number
+
     /**
      * Omitted metadata preserves the current map; an explicit empty map clears it.
-     * A current format-2/3/4 token with unchanged content/metadata reuses its durable revision.
+     * A current supported nonlegacy-format token with unchanged content/metadata reuses its durable revision.
      * Token validation precedes deduplication; a stale retry never acknowledges another writer.
      */
     fun save(expected: DraftVersion?, content: DraftContent, metadata: Map<String, String>? = null): DraftSave =
@@ -177,7 +238,7 @@ class LocalDraftStore internal constructor(
                 current == null -> StoredRevisionChange.INITIAL
                 else -> StoredRevisionChange.EDIT
             }, restore, restored?.content ?: requireNotNull(nextContent), metadata ?: current?.metadata ?: emptyMap(), selectionEdit?.change)
-            val bytes = try { DraftEnvelope.encode(previous + next, current?.legacySourceHash) } catch (_: EnvelopeFailure) {
+            val bytes = try { DraftEnvelope.encode(previous + next, current?.legacySourceHash, current?.localFormatVersion ?: 4) } catch (_: EnvelopeFailure) {
                 return@guarded DraftSave.Failed(DraftStorageFailure.LIMIT_EXCEEDED)
             }
             // Apply the same parser limits to writes, so every acknowledged envelope can be reopened.
@@ -240,11 +301,11 @@ class LocalDraftStore internal constructor(
     }
 }
 
-private class EnvelopeFailure(val reason: DraftStorageFailure) : RuntimeException()
-private data class DecodedEnvelope(val format: Int, val history: List<StoredRevision>, val legacySourceHash: ArtifactHash?)
+internal class EnvelopeFailure(val reason: DraftStorageFailure) : RuntimeException()
+internal data class DecodedEnvelope(val format: Int, val history: List<StoredRevision>, val legacySourceHash: ArtifactHash?)
 
 /** Private local formats, never frozen contracts or BuildSnapshots. Reads never rewrite bytes. */
-private object DraftEnvelope {
+internal object DraftEnvelope {
     private val mapper = ObjectMapper()
     private fun bad(): Nothing = throw EnvelopeFailure(DraftStorageFailure.CORRUPT)
     fun decode(bytes: ByteArray): DecodedEnvelope {
@@ -258,7 +319,7 @@ private object DraftEnvelope {
                 null, content(node["content"], 1), strings(node["metadata"]))), null)
         }
         val format = version.intValue()
-        if (format !in 2..4) throw EnvelopeFailure(DraftStorageFailure.UNSUPPORTED_VERSION)
+        if (format !in 2..5) throw EnvelopeFailure(DraftStorageFailure.UNSUPPORTED_VERSION)
         fields(node, setOf("local_format_version", "revision", "legacy_source_hash", "history"))
         val head = number(node["revision"])
         val legacy = node["legacy_source_hash"].let {
@@ -272,7 +333,7 @@ private object DraftEnvelope {
             StoredRevision(number(entry["number"]), change,
                 if (entry["restored_from"].isNull) null else number(entry["restored_from"]),
                 content(entry["content"], format), strings(entry["metadata"]),
-                if (format >= 4) selectionChange(entry["selection_change"]) else null)
+                if (format >= 4) selectionChange(entry["selection_change"], format) else null)
         }
         val first = history.first()
         if (legacy == null) {
@@ -324,10 +385,11 @@ private object DraftEnvelope {
                 node["links"].map { LocalSelectionLink.fromJson(it as? ObjectNode ?: bad()) })
         } catch (_: IllegalArgumentException) { bad() }
     }
-    private fun selectionChange(node: JsonNode): SelectionChange? {
+    private fun selectionChange(node: JsonNode, format: Int): SelectionChange? {
         if (node.isNull) return null
         fields(node, setOf("action", "selection_id", "removed_link_ids", "affected_link_ids"))
         val action = SelectionAction.entries.find { it.name == text(node["action"]) } ?: bad()
+        if (format < 5 && action == SelectionAction.CONFIGURE_ROLE) bad()
         val id = text(node["selection_id"])
         if (!Regex("^[a-z][a-z0-9_-]{2,79}$").matches(id)) bad()
         fun ids(name: String): List<String> {
@@ -362,6 +424,11 @@ private object DraftEnvelope {
                 expected.set<JsonNode>("settings", new.settings)
             }
             SelectionAction.CONFIGURE -> expected.set<JsonNode>("settings", new.settings)
+            SelectionAction.CONFIGURE_ROLE -> {
+                if (old.role == new.role) return false
+                expected.put("role", new.role)
+                expected.set<JsonNode>("settings", new.settings)
+            }
             SelectionAction.ENABLE -> expected.put("enabled", true)
             SelectionAction.DISABLE -> expected.put("enabled", false)
             else -> return false
@@ -397,8 +464,11 @@ private object DraftEnvelope {
         if (!node.isObject || node.any { !it.isTextual }) bad()
         return node.properties().associate { it.key to it.value.textValue() }
     }
-    fun encode(history: List<StoredRevision>, legacy: ArtifactHash?): ByteArray {
-        val node = mapper.createObjectNode().put("local_format_version", 4).put("revision", history.last().number)
+    fun encode(history: List<StoredRevision>, legacy: ArtifactHash?, previousFormat: Int): ByteArray {
+        // Role configuration adds a private history action. Older readers must report an unsupported
+        // version, not reinterpret format-4 CONFIGURE or treat an acknowledged role edit as corrupt.
+        val format = if (previousFormat >= 5 || history.any { it.selectionChange?.action == SelectionAction.CONFIGURE_ROLE }) 5 else 4
+        val node = mapper.createObjectNode().put("local_format_version", format).put("revision", history.last().number)
         node.put("legacy_source_hash", legacy?.hex)
         val entries = node.putArray("history")
         history.forEach { entry ->
