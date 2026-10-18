@@ -5,6 +5,7 @@ import ai.pickyour.core.contracts.FrozenSchemaValidator
 import ai.pickyour.core.contracts.FrozenValidation
 import ai.pickyour.core.importing.BoundedJsonReader
 import ai.pickyour.core.importing.JsonInputResult
+import ai.pickyour.core.importing.localSnapshotRevision
 import java.security.MessageDigest
 import java.util.Collections
 import java.util.Locale
@@ -94,6 +95,7 @@ class PreviewCatalogBrowser private constructor(val hash: String, entries: List<
             if (bytes.size > 1_048_576) return null
             if (FrozenSchemaValidator().validate(FrozenDocument.CATALOG, bytes.inputStream()) != FrozenValidation.Valid) return null
             val root = (BoundedJsonReader().read(bytes.inputStream()) as? JsonInputResult.Parsed)?.value ?: return null
+            if (localSnapshotRevision(root["revision"]) == null) return null
             if (root.path("items").size() > 256) return null
             val entries = root.path("items").map { item ->
                 PreviewCatalogItem(item.path("id").asText(), item.path("name").asText(), item.path("kind").asText(),
