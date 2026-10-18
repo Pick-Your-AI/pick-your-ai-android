@@ -40,6 +40,149 @@ class ReadinessClock:
 
 
 class EmulatorSmokeGuardTest(unittest.TestCase):
+    def test_boot_poll_retains_transport_failure_then_completed_property(self):
+        receipt, clock = {}, ReadinessClock()
+        device = Mock(spec=smoke.Device)
+        device.adb.side_effect = [subprocess.CompletedProcess([], 1, "", "adb: device offline"),
+                                  subprocess.CompletedProcess([], 0, "0\n", ""),
+                                  subprocess.CompletedProcess([], 0, "1\n", "")]
+        with patch.object(smoke.time, "monotonic", clock.monotonic), patch.object(smoke.time, "sleep", clock.sleep):
+            smoke.wait_for_boot_completed(device, receipt, 20)
+        state = receipt["boot_wait"]
+        self.assertTrue(state["completed"])
+        self.assertEqual(3, state["attempts"])
+        self.assertEqual(2, state["seconds"])
+        self.assertEqual("adb: device offline", state["first_probe"]["stderr_tail"])
+        self.assertEqual("1\n", state["last_probe"]["stdout_tail"])
+        self.assertTrue(state["last_probe"]["boot_property_passed"])
+        self.assertEqual([1, 2, 3], [p["attempt"] for p in state["recent_probes"]])
+        self.assertEqual([call("shell", "getprop", "sys.boot_completed", timeout=10, check=False)] * 3,
+                         device.adb.call_args_list)
+        device.launch.assert_not_called()
+        device.shell.assert_not_called()
+
+    def test_boot_poll_deadline_streams_and_recent_history_are_bounded(self):
+        receipt, clock = {}, ReadinessClock()
+        device = Mock(spec=smoke.Device)
+        device.adb.return_value = subprocess.CompletedProcess([], 1, "x" * 3000, "y" * 3000 + "offline")
+        with patch.object(smoke.time, "monotonic", clock.monotonic), patch.object(smoke.time, "sleep", clock.sleep):
+            with self.assertRaisesRegex(smoke.SmokeFailure, "did not boot within 21.5 seconds"):
+                smoke.wait_for_boot_completed(device, receipt, 21.5)
+        state = receipt["boot_wait"]
+        self.assertFalse(state["completed"])
+        self.assertEqual(22, state["attempts"])
+        self.assertEqual(21.5, state["seconds"])
+        self.assertEqual(1, state["first_probe"]["attempt"])
+        self.assertEqual(list(range(7, 23)), [p["attempt"] for p in state["recent_probes"]])
+        self.assertEqual(22, state["last_probe"]["attempt"])
+        for probe in state["recent_probes"] + [state["first_probe"]]:
+            self.assertTrue(probe["output_truncated"])
+            self.assertEqual(1200, len(probe["stdout_tail"]))
+            self.assertEqual(1200, len(probe["stderr_tail"]))
+            self.assertTrue(probe["stderr_tail"].endswith("offline"))
+        self.assertEqual(0.5, device.adb.call_args_list[-1].kwargs["timeout"])
+        self.assertTrue(all(x.kwargs["timeout"] <= 10 for x in device.adb.call_args_list))
+
+    def test_boot_property_must_succeed_without_error_before_its_deadline(self):
+        for code, stdout, stderr in ((1, "1\n", ""), (0, "0\n", ""),
+                                     (0, "11\n", ""), (0, "1\n", "device error")):
+            receipt, clock = {}, ReadinessClock()
+            device = Mock(spec=smoke.Device)
+            device.adb.return_value = subprocess.CompletedProcess([], code, stdout, stderr)
+            with self.subTest(code=code, stdout=stdout, stderr=stderr), \
+                    patch.object(smoke.time, "monotonic", clock.monotonic), patch.object(smoke.time, "sleep", clock.sleep):
+                with self.assertRaises(smoke.SmokeFailure):
+                    smoke.wait_for_boot_completed(device, receipt, 1)
+            self.assertFalse(receipt["boot_wait"]["completed"])
+            self.assertFalse(receipt["boot_wait"]["last_probe"]["boot_property_passed"])
+        receipt, clock = {}, ReadinessClock()
+
+        def late_result(*args, **kwargs):
+            clock.now = 2
+            return subprocess.CompletedProcess([], 0, "1\n", "")
+
+        device.adb.side_effect = late_result
+        with patch.object(smoke.time, "monotonic", clock.monotonic), patch.object(smoke.time, "sleep", clock.sleep):
+            with self.assertRaises(smoke.SmokeFailure):
+                smoke.wait_for_boot_completed(device, receipt, 1)
+        self.assertTrue(receipt["boot_wait"]["last_probe"]["boot_property_passed"])
+        self.assertFalse(receipt["boot_wait"]["completed"])
+
+    def test_boot_timeout_and_owned_process_errors_keep_the_original_failure(self):
+        errors = [subprocess.TimeoutExpired(["adb"], 2, output=b"x" * 3000 + b"1", stderr=b"y" * 3000),
+                  smoke.SmokeFailure("Owned emulator process exited")]
+        for error in errors:
+            receipt, clock = {}, ReadinessClock()
+            device = Mock(spec=smoke.Device)
+            device.adb.side_effect = error
+            with self.subTest(error=type(error).__name__), \
+                    patch.object(smoke.time, "monotonic", clock.monotonic), patch.object(smoke.time, "sleep", clock.sleep):
+                with self.assertRaises(type(error)) as raised:
+                    smoke.wait_for_boot_completed(device, receipt, 2)
+            self.assertIs(error, raised.exception)
+            device.adb.assert_called_once_with("shell", "getprop", "sys.boot_completed", timeout=2, check=False)
+            state = receipt["boot_wait"]
+            self.assertFalse(state["completed"])
+            self.assertEqual(1, state["attempts"])
+            self.assertNotIn("boot_property_passed", state["last_probe"])
+            self.assertIn("error", state)
+            if isinstance(error, subprocess.TimeoutExpired):
+                self.assertEqual(2, state["last_probe"]["command_timeout_seconds"])
+                self.assertEqual(1200, len(state["last_probe"]["stdout_tail"]))
+                self.assertEqual(1200, len(state["last_probe"]["stderr_tail"]))
+            else:
+                self.assertEqual(str(error), state["last_probe"]["error"])
+
+    def test_failed_boot_observations_only_read_the_owned_transport_and_keep_failure(self):
+        receipt = {"status": "failed", "error": "original boot failure", "boot_wait": {"completed": False}}
+        device = Mock(spec=smoke.Device)
+        device.adb.return_value = subprocess.CompletedProcess([], 0, "device\n", "")
+        smoke.retain_boot_failure_state(device, receipt)
+        self.assertEqual([
+            call("get-state", timeout=5, check=False),
+            call("emu", "avd", "name", timeout=5, check=False),
+            call("shell", "getprop", "ro.kernel.qemu", timeout=5, check=False),
+            call("shell", "getprop", "init.svc.bootanim", timeout=5, check=False),
+        ], device.adb.call_args_list)
+        self.assertEqual("failed", receipt["status"])
+        self.assertEqual("original boot failure", receipt["error"])
+        self.assertFalse(receipt["boot_wait"]["completed"])
+        self.assertEqual(4, len(receipt["boot_failure_observations"]["checks"]))
+        device.launch.assert_not_called()
+        device.shell.assert_not_called()
+
+    def test_failed_boot_diagnostic_timeouts_are_bounded_and_cannot_mask_failure(self):
+        receipt, clock = {"status": "failed", "error": "original"}, ReadinessClock()
+        device = Mock(spec=smoke.Device)
+
+        def timeout(*args, **kwargs):
+            clock.now += kwargs["timeout"]
+            raise subprocess.TimeoutExpired(["adb"], kwargs["timeout"], output=b"x" * 3000, stderr=b"offline")
+
+        device.adb.side_effect = timeout
+        with patch.object(smoke.time, "monotonic", clock.monotonic):
+            smoke.retain_boot_failure_state(device, receipt)
+        self.assertEqual("original", receipt["error"])
+        self.assertEqual("failed", receipt["status"])
+        self.assertEqual(20, receipt["boot_failure_observations"]["seconds"])
+        self.assertEqual(4, len(receipt["boot_failure_observations"]["checks"]))
+        for observed in receipt["boot_failure_observations"]["checks"].values():
+            self.assertEqual(5, observed["command_timeout_seconds"])
+            self.assertEqual(1200, len(observed["stdout_tail"]))
+            self.assertEqual("offline", observed["stderr_tail"])
+        device.adb.side_effect = smoke.SmokeFailure("Owned emulator process exited")
+        smoke.retain_boot_failure_state(device, receipt)
+        self.assertTrue(all(x["error"] == "Owned emulator process exited"
+                            for x in receipt["boot_failure_observations"]["checks"].values()))
+        self.assertEqual("original", receipt["error"])
+
+    def test_invalid_boot_deadlines_fail_before_any_device_command(self):
+        device = Mock(spec=smoke.Device)
+        for timeout in (0, -1, 901, float("inf"), float("nan")):
+            with self.subTest(timeout=timeout), self.assertRaisesRegex(smoke.SmokeFailure, "Invalid boot deadline"):
+                smoke.wait_for_boot_completed(device, {}, timeout)
+        device.adb.assert_not_called()
+
     def test_hvf_workflow_artifact_id_download_reaches_the_harness_apk_path(self):
         # v4.3.0 src/download-artifact.ts treats only a name lookup as a single
         # artifact download. An ID list needs merge-multiple even with one ID.

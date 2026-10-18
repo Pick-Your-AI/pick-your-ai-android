@@ -52,6 +52,12 @@ GUEST_READINESS_COMMANDS = (
     ("ui_dump_writable", ("test", "-w", UI_DUMP_DIRECTORY), ("",)),
     ("ui_dump_searchable", ("test", "-x", UI_DUMP_DIRECTORY), ("",)),
 )
+BOOT_FAILURE_COMMANDS = (
+    ("adb_state", ("get-state",)),
+    ("emulator_name", ("emu", "avd", "name")),
+    ("emulator_property", ("shell", "getprop", "ro.kernel.qemu")),
+    ("boot_animation", ("shell", "getprop", "init.svc.bootanim")),
+)
 
 
 class SmokeFailure(RuntimeError):
@@ -204,6 +210,90 @@ def labelled_editor(root: ET.Element, label: str) -> ET.Element | None:
             if field.get("class") == EDITOR and visible(field):
                 return field
     return None
+
+
+def wait_for_boot_completed(device, receipt: dict, timeout_seconds):
+    """Retain bounded observations of the original boot-property gate."""
+    require(0 < timeout_seconds <= 900, "Invalid boot deadline")
+    state = {"completed": False, "timeout_seconds": timeout_seconds,
+             "attempts": 0, "recent_probes": []}
+    receipt["boot_wait"] = state
+    started = time.monotonic()
+    deadline = started + timeout_seconds
+    try:
+        while time.monotonic() < deadline:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                break
+            state["attempts"] += 1
+            probe_started = time.monotonic()
+            probe = {"attempt": state["attempts"],
+                     "started_seconds": round(probe_started - started, 3)}
+            state["last_probe"] = probe
+            try:
+                result = device.adb("shell", "getprop", "sys.boot_completed",
+                                    timeout=min(10, remaining), check=False)
+                probe.update(exit_code=result.returncode,
+                             stdout_tail=bounded_text(result.stdout, 1200),
+                             stderr_tail=bounded_text(result.stderr, 1200),
+                             output_truncated=len(result.stdout) > 1200 or len(result.stderr) > 1200,
+                             boot_property_passed=(result.returncode == 0 and result.stdout.strip() == "1"
+                                                   and not result.stderr.strip()))
+            except subprocess.TimeoutExpired as error:
+                probe.update(command_timeout_seconds=error.timeout,
+                             stdout_tail=bounded_text(error.stdout, 1200),
+                             stderr_tail=bounded_text(error.stderr, 1200))
+                raise  # Preserve the existing command-timeout failure; never accept partial stdout.
+            except Exception as error:
+                probe["error"] = bounded_text(str(error), 1200)
+                raise
+            finally:
+                probe["seconds"] = round(time.monotonic() - probe_started, 3)
+                state.setdefault("first_probe", probe)
+                state["recent_probes"].append(probe)
+                del state["recent_probes"][:-16]
+            if probe.get("boot_property_passed") is True and time.monotonic() < deadline:
+                state["completed"] = True
+                return
+            remaining = deadline - time.monotonic()
+            if remaining > 0:
+                time.sleep(min(1, remaining))
+        raise SmokeFailure(f"Owned emulator did not boot within {timeout_seconds} seconds")
+    except Exception as error:
+        state["error"] = bounded_text(str(error), 1200)
+        raise
+    finally:
+        state["seconds"] = round(time.monotonic() - started, 3)
+
+
+def retain_boot_failure_state(device, receipt: dict):
+    """Read the same owned serial after failure; observations cannot rescue boot."""
+    state = {"timeout_seconds": 20, "checks": {}}
+    receipt["boot_failure_observations"] = state
+    started = time.monotonic()
+    deadline = started + state["timeout_seconds"]
+    try:
+        for name, args in BOOT_FAILURE_COMMANDS:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                state["deadline_reached"] = True
+                break
+            check = {"arguments": list(args)}
+            state["checks"][name] = check
+            try:
+                result = device.adb(*args, timeout=min(5, remaining), check=False)
+                check.update(exit_code=result.returncode,
+                             stdout_tail=bounded_text(result.stdout, 1200),
+                             stderr_tail=bounded_text(result.stderr, 1200),
+                             output_truncated=len(result.stdout) > 1200 or len(result.stderr) > 1200)
+            except subprocess.TimeoutExpired as error:
+                check.update(command_timeout_seconds=error.timeout,
+                             stdout_tail=bounded_text(error.stdout, 1200),
+                             stderr_tail=bounded_text(error.stderr, 1200))
+            except Exception as error:
+                check["error"] = bounded_text(str(error), 1200)
+    finally:
+        state["seconds"] = round(time.monotonic() - started, 3)
 
 
 def guest_readiness_checks_pass(checks: dict) -> bool:
@@ -700,21 +790,21 @@ def main() -> int:
                 with emulator_log.open("wb") as log:
                     process = subprocess.Popen(
                         [str(emulator), "-avd", avd_name, "-port", "5554", "-no-window", "-no-audio",
-                         "-no-boot-anim", "-no-snapshot", "-no-metrics", "-gpu", "swiftshader_indirect",
+                         "-no-boot-anim", "-no-snapshot", "-no-metrics", "-show-kernel", "-gpu", "swiftshader_indirect",
                          "-accel", settings["accel_argument"], "-cores", "2", "-memory", "2048",
                          "-camera-front", "none", "-camera-back", "none"],
                         env=emulator_env, stdout=log, stderr=subprocess.STDOUT, start_new_session=True,
                     )
                     device = Device(adb, env, process, avd_name, receipt)
                     boot_timeout = settings["boot_timeout_seconds"]
-                    deadline = time.monotonic() + boot_timeout
-                    while time.monotonic() < deadline:
-                        boot = device.adb("shell", "getprop", "sys.boot_completed", timeout=10, check=False)
-                        if boot.returncode == 0 and boot.stdout.strip() == "1" and not boot.stderr.strip():
-                            break
-                        time.sleep(1)
-                    else:
-                        raise SmokeFailure(f"Owned emulator did not boot within {boot_timeout} seconds")
+                    try:
+                        wait_for_boot_completed(device, receipt, boot_timeout)
+                    except Exception:
+                        try:
+                            retain_boot_failure_state(device, receipt)
+                        except Exception as diagnostic_error:
+                            receipt["boot_failure_diagnostics_error"] = bounded_text(str(diagnostic_error), 1200)
+                        raise
                     device.verify_identity()
                     receipt["device"] = {key: device.shell("getprop", key) for key in
                                          ("ro.build.fingerprint", "ro.build.version.sdk", "ro.product.cpu.abi",

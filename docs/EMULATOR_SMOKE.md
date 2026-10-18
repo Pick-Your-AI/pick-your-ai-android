@@ -180,10 +180,68 @@ still records inaccessible `/sdcard` with an unlocked user and all four cases
 unexecuted. Hardware support does not establish the cause of that storage failure
 or guarantee a cure. A fresh installed receipt must determine the result.
 
-The additional seven host guard methods bring the local harness suite to 36 passing
-tests. They cover foreign/missing host identity, absent/ambiguous support, command
+The initial HVF adaptation added seven host guard methods to the 29-test baseline,
+for 36 passing tests at that revision. They cover foreign/missing host identity, absent/ambiguous support, command
 timeouts, acceleration output, exact APK handoff and final receipt rejection.
 Those Linux-hosted unit tests do not execute Hypervisor.Framework or install Android.
+
+### Observed HVF boot failure and bounded diagnosis
+
+The first actual HVF [run 39106224144](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39106224144)
+checked out `19bd133bee2581e9512a86e312e84fb8aef37877`, tree
+`5373ea965c2f7a14d26338c5591d33d419b869d7`, with parents `53429869` and `414df7c9`.
+Its core and Linux native jobs passed. The independently downloaded reports contain
+260 core and 29 simulated Activity cases, zero failures/errors/skips, on this older
+canonical readiness baseline. Later current-main features still require their own
+receiving integration and named cases.
+
+The installed job verified hosted macOS 15.7.9/X64, `kern.hv_support=1`, preinstalled
+emulator 37.1.11.0 and the complete successful HVF acceleration output. Its downloaded
+unsigned APK matched the Linux producer SHA-256
+`c3e99c4783b5b71da2df1d6e665c9f6129509f5978f40de46075fe68dfc4449f`.
+The owned emulator did not satisfy the existing boot-property check within 300
+seconds. The original unsigned APK stayed unchanged; all four cases are `not_run`.
+No guest-readiness, installation or launch observation was reached. The receipt's
+`installed_apk_sha256` identifies the separately prepared temporary signed copy;
+creating that copy does not demonstrate installation.
+
+The retained installed artifact `12128991656` has verified ZIP SHA-256
+`cf69bf5582807969431551ff8e3291dec2a9721d64be5e0063dc49e16aa8e01d`.
+Its emulator log records graphics initialization, an increase to 2560 MB guest
+memory and a reduction to one virtual CPU. Those observations do not establish
+the reason for the boot failure. The old poll discarded every ADB response, and
+the retained log had no guest kernel trace. It cannot distinguish a stalled boot
+from an unavailable ADB transport or a rejected boot-property observation.
+
+The diagnostic follow-up preserves the selected emulator, image, graphics, CPU
+arguments and 300-second HVF boot limit. `boot_wait` records the attempt count,
+elapsed time, first and last probe and at most 16 recent probes. Each result keeps
+its exit code, separate stdout/stderr tails of at most 1200 characters and a
+truncation indication. A command timeout retains bounded partial streams and
+still fails immediately; an owned-process failure also remains the original
+failure. Success uses the complete command result and the same boot-property
+predicate, and must arrive before the deadline. Every command and sleep is capped
+by the remaining budget. These observations do not replace the subsequent full
+guest-readiness or installed-case gates.
+
+After a failed boot, `boot_failure_observations` records only the owned serial's
+ADB state, reported AVD name, emulator property and boot-animation property. These
+read-only queries have a separate 20-second total budget and at most five seconds
+per command. Missing, failed or timed-out diagnostics are retained and cannot
+rescue the failed boot or replace its error. They perform no reconnect, reset,
+authorization, permission change or shared-device selection.
+
+The owned emulator also receives the documented
+[`-show-kernel` option](https://developer.android.com/studio/run/emulator-commandline#common),
+which exposes guest kernel messages for boot diagnosis in the existing bounded
+emulator log. The retained log still contains at most its last 1 MiB. No kernel,
+system image, renderer or hypervisor configuration is replaced by this option.
+
+Seven additional host tests verify transport-failure retention, successful and
+late boot results, deadlines, bounded history/streams, original timeout/process
+errors and read-only diagnostic failure handling. All 43 host guards pass locally.
+This is a diagnostic source correction, not a demonstrated boot repair; an actual
+fresh run and its receipt are still required before changing the failure's attribution.
 
 ## Inputs and provenance
 
