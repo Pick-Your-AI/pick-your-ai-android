@@ -60,6 +60,7 @@ class PreviewActivity : Activity() {
     private lateinit var activeDraft: TextView
     private lateinit var libraryButton: Button
     private lateinit var newDraftButton: Button
+    private lateinit var recoverButton: Button
     private lateinit var duplicateButton: Button
     private var savedRecord: PreviewStoredDraft? = null // UI-thread owned.
     private var storageReady = false
@@ -178,6 +179,8 @@ class PreviewActivity : Activity() {
         content.addView(libraryButton)
         content.addView(newDraftButton)
         content.addView(duplicateButton)
+        recoverButton = Button(this).apply { setText(R.string.recovery_copy); setOnClickListener { confirmRecoveryCopy() } }
+        content.addView(recoverButton)
         tierSection = OptionalTierSection(this) { expected, tier, activation ->
             if (storageReady && !storageBusy && savedRecord === expected && matchesSaved())
                 setDraftActivation(expected, tier, activation)
@@ -375,6 +378,7 @@ class PreviewActivity : Activity() {
         libraryButton.isEnabled = !storageBusy
         newDraftButton.isEnabled = !storageBusy
         duplicateButton.isEnabled = storageReady && !storageBusy && savedRecord != null
+        recoverButton.isEnabled = !storageBusy && savedRecord != null && !matchesSaved() && workloadSection.inputs.parsed() != null
         if (::tierSection.isInitialized) tierSection.update(savedRecord, storageReady && !storageBusy && matchesSaved())
         if (::catalog.isInitialized) catalog.selectionEnabled(!storageBusy)
     }
@@ -748,12 +752,33 @@ class PreviewActivity : Activity() {
             }.show()
     }
 
-    private fun createDraft(source: PreviewStoredDraft?) {
+    private fun confirmRecoveryCopy() {
+        if (destroyed || storageBusy) return
+        val source = savedRecord ?: return
+        val rawWorkload = workloadSection.inputs
+        val workload = rawWorkload.parsed() ?: return
+        if (matchesSaved()) return
+        val pending = PreviewPendingDraft(fields(), domainContext, workload)
+        AlertDialog.Builder(this).setTitle(R.string.recovery_copy)
+            .setMessage(getString(R.string.recovery_warning, source.revision.toString()))
+            .setNegativeButton(R.string.keep_edits, null)
+            .setPositiveButton(R.string.recovery_confirm) { _, _ ->
+                if (!destroyed && !storageBusy && savedRecord === source && fields() == pending.fields &&
+                    domainContext == pending.context && workloadSection.inputs === rawWorkload)
+                    createDraft(source, pending)
+            }.show()
+    }
+
+    private fun createDraft(source: PreviewStoredDraft?, pending: PreviewPendingDraft? = null) {
         if (destroyed) return
         storageBusy = true
         updateEditingEnabled()
         worker.execute {
-            val result = try { if (source == null) library().create() else library().duplicate(source) } catch (_: Exception) { null }
+            val result = try {
+                if (source == null) library().create()
+                else if (pending == null) library().duplicate(source)
+                else library().recoverPending(source, pending)
+            } catch (_: Exception) { null }
             runOnUiThread {
                 if (!destroyed) {
                     storageBusy = false
