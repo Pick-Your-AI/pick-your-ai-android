@@ -18,6 +18,19 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 ANDROID = "http://schemas.android.com/apk/res/android:"
+# Framework IDs from the pinned API 35 platform. Android resolves compiled
+# manifest attributes by resource ID; a displayed name alone is not authority.
+FRAMEWORK_ATTRIBUTE_IDS = {
+    "theme": "0x01010000", "label": "0x01010001", "icon": "0x01010002",
+    "name": "0x01010003", "debuggable": "0x0101000f", "exported": "0x01010010",
+    "launchMode": "0x0101001d", "minSdkVersion": "0x0101020c",
+    "versionCode": "0x0101021b", "versionName": "0x0101021c",
+    "targetSdkVersion": "0x01010270", "allowBackup": "0x01010280",
+    "supportsRtl": "0x010103af", "extractNativeLibs": "0x010104ea",
+    "fullBackupContent": "0x010104eb", "usesCleartextTraffic": "0x010104ec",
+    "compileSdkVersion": "0x01010572", "compileSdkVersionCodename": "0x01010573",
+    "dataExtractionRules": "0x0101063e",
+}
 PACKAGE = "ai.pickyour.android.preview"
 APK_PATH = "preview/build/outputs/apk/debug/preview-debug-unsigned.apk"
 RULE_PATH = "res/xml/backup_rules.xml"
@@ -78,7 +91,7 @@ class Element:
 def xmltree(text: str) -> Element:
     """Parse the pinned AAPT2 tree grammar; unknown/truncated lines fail closed."""
     roots: list[Element] = []
-    stack: list[tuple[int, Element]] = []
+    stack: list[tuple[int, Element, int]] = []
     for line in text.splitlines():
         if not line.strip():
             continue
@@ -94,13 +107,26 @@ def xmltree(text: str) -> Element:
                 stack.pop()
             node = Element(match[1])
             (stack[-1][1].children if stack else roots).append(node)
-            stack.append((level, node))
+            stack.append((level, node, 0))
             continue
-        match = re.fullmatch(r"A: ([^=() ]+)(?:\(0x[0-9a-f]{8}\))?=(.+)", body)
+        match = re.fullmatch(r"A: ([^=() ]+)(?:\((0x[0-9a-f]{8})\))?=(.+)", body)
         require(match is not None and bool(stack) and level > stack[-1][0], "XML_TREE_FORMAT")
-        name = match[1].replace(ANDROID, "android:")
+        name, resource_id, value = match.groups()
+        if name.startswith(ANDROID):
+            local_name = name[len(ANDROID):]
+            expected_id = FRAMEWORK_ATTRIBUTE_IDS.get(local_name)
+            require(expected_id is not None and resource_id == expected_id, "XML_ATTRIBUTE_RESOURCE_ID")
+            name = "android:" + local_name
+        else:
+            require(":" not in name and resource_id is None, "XML_ATTRIBUTE_RESOURCE_ID")
         require(name not in stack[-1][1].attributes, "XML_ATTRIBUTE_DUPLICATE")
-        value = match[2]
+        if resource_id is not None:
+            node_level, node, previous_id = stack[-1]
+            framework_id = int(resource_id, 16)
+            require(framework_id > previous_id, "XML_ATTRIBUTE_RESOURCE_ORDER")
+            # Android's framework attribute lookup walks these IDs forwards.
+            # Keep each element's order even across unqualified attributes.
+            stack[-1] = (node_level, node, framework_id)
         if value.startswith('"'):
             # AAPT2 includes the raw spelling for these strings. Both copies
             # must agree; newline or ambiguous display output is not accepted.

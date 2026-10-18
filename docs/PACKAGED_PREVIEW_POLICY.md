@@ -25,6 +25,17 @@ It does not modify the app, artifact, SDK, permissions, emulator or device.
 | Backup declarations | Both cloud-backup and device-transfer exclude the root of all nine currently configured credential/device storage domains, without duplicate domains or narrowed paths |
 | Artifact identity | APK bytes and SHA-256 match the existing runtime inventory; its recorded commit/tree match the clean checkout both before and after tool work; APK and inventory are unchanged through inspection |
 
+Every accepted Android-qualified attribute must also carry its exact API 35
+framework resource ID. Missing, zero or mismatched IDs cannot be replaced by a
+safe-looking attribute name in AAPT2 output. Unqualified attributes cannot carry
+framework IDs, and unexpected namespaces fail. Android's compiled attribute
+lookup uses the resource ID; the package parser defaults `allowBackup` to true
+when that framework attribute is absent. This binding prevents an unrecognized
+compiled attribute from being reported as the explicit backup prohibition.
+Framework IDs must also appear in strictly increasing order within each element,
+because Android's attribute lookup advances through that ordered sequence. The
+separate unqualified backup attributes remain valid and do not reset this order.
+
 This is intentionally a fixed preview policy. A new feature, permission, component,
 SDK pin or resource configuration needs its own source/design review and an explicit
 policy update. The script is not a general Android manifest validator or release policy.
@@ -80,10 +91,15 @@ Real temporary Git repositories also demonstrate that a tracked edit or a new HE
 during inspection cannot receive a passing receipt while APK/inventory bytes remain
 unchanged; the unchanged-source positive control still passes.
 These assertions are supplemented by actual binary packaging: the AAPT2 guard driver
-builds six disposable resource APKs with a positive control and five single-condition
+builds nine disposable resource APKs with a positive control and eight single-condition
 changes. They add INTERNET, add an exported receiver, enable cleartext traffic, remove
 one device-transfer exclusion, or redirect `dataExtractionRules` to a different
-resource. Each negative package must reach its exact policy rejection. Those fixtures
+resource. Two additional controls change only the compiled `allowBackup` resource-map
+entry: one removes its framework ID and one substitutes a different ID while retaining
+the displayed name and false value. Both must fail at the attribute-ID boundary.
+A third changes only the order of the compiled `allowBackup` and `fullBackupContent`
+attribute records. Their valid names, IDs and values cannot conceal broken lookup order.
+Each negative package must reach its exact policy rejection. Those fixtures
 contain no application DEX and never install or execute; their result establishes
 the exercised binary declaration boundary only.
 
@@ -94,6 +110,7 @@ Official Android references checked on 2026-10-18:
 - [AAPT2](https://developer.android.com/tools/aapt2) documents compiled resource inspection and the `dump xmltree` / `dump resources` commands.
 - [Application manifest attributes](https://developer.android.com/guide/topics/manifest/application-element) define the backup, cleartext and application configuration fields.
 - [Auto Backup](https://developer.android.com/identity/data/autobackup) explains the separate backup/device-transfer controls and the OEM-dependent limitations of disabling backup.
+- Android 15's [attribute resolver](https://github.com/aosp-mirror/platform_frameworks_base/blob/android15-release/libs/androidfw/AttributeResolution.cpp) matches compiled attributes by framework ID; its [package parser](https://github.com/aosp-mirror/platform_frameworks_base/blob/android15-release/core/java/com/android/internal/pm/pkg/parsing/ParsingPackageUtils.java) consumes those resolved application attributes and defines the backup default.
 
 The observed declarations establish neither actual backup exclusion on a device nor
 absence of every external transfer. OS input/accessibility services, an explicitly

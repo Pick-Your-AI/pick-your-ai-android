@@ -166,6 +166,36 @@ class PreviewPolicyTest(unittest.TestCase):
             with self.subTest(changed=changed), self.assertRaises(policy.PolicyFailure):
                 policy.xmltree(changed)
 
+    def test_framework_attribute_ids_must_match_the_qualified_name(self):
+        prefix = "E: application (line=1)\n  A: "
+        valid = policy.ANDROID + "allowBackup(0x01010280)=false"
+        self.assertEqual("false", policy.xmltree(prefix + valid).attributes["android:allowBackup"])
+        for attribute in [
+            valid.replace("(0x01010280)", ""),
+            valid.replace("0x01010280", "0x00000000"),
+            valid.replace("0x01010280", "0x01010281"),
+            valid.replace("allowBackup", "fullBackupContent"),
+            valid.replace(policy.ANDROID, "android:"),
+            valid.replace(policy.ANDROID, "http://synthetic.invalid/android:"),
+            'package(0x01010280)="synthetic" (Raw: "synthetic")',
+            'domain(0x01010280)="root" (Raw: "root")',
+        ]:
+            with self.subTest(attribute=attribute), \
+                 self.assertRaisesRegex(policy.PolicyFailure, "^XML_ATTRIBUTE_RESOURCE_ID$"):
+                policy.xmltree(prefix + attribute)
+
+    def test_framework_attribute_ids_keep_lookup_order_within_each_element(self):
+        first = "  A: " + policy.ANDROID + "allowBackup(0x01010280)=false\n"
+        second = "  A: " + policy.ANDROID + "fullBackupContent(0x010104eb)=false\n"
+        plain = '  A: label="synthetic" (Raw: "synthetic")\n'
+        child = "  E: activity (line=2)\n    A: " + policy.ANDROID + 'name(0x01010003)="x" (Raw: "x")\n'
+        # Unqualified zero-ID attributes and a child's separate lower IDs
+        # must not reset or contaminate the parent's framework lookup order.
+        valid = "E: application (line=1)\n" + first + plain + second + child
+        self.assertEqual("false", policy.xmltree(valid).attributes["android:allowBackup"])
+        with self.assertRaisesRegex(policy.PolicyFailure, "^XML_ATTRIBUTE_RESOURCE_ORDER$"):
+            policy.xmltree("E: application (line=1)\n" + second + plain + first)
+
     def test_inventory_must_identify_the_current_commit_tree_and_exact_apk(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
