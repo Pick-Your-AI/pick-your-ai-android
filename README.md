@@ -8,6 +8,11 @@ An [opt-in Android diagnostic](docs/ANDROID_PREVIEW.md) validates a bundled synt
 fixture in an unsigned debug APK. There is no signed installable product,
 production backend or release yet.
 
+The [local draft library](docs/LOCAL_DRAFT_LIBRARY.md) creates, renames, duplicates,
+opens and deletes multiple guest drafts, with explicit recovery of interrupted
+operations and migration of the earlier single saved form. It preserves exact
+fixture pins and uses the existing immutable revision store.
+
 The [foundation review package](docs/proposals/README.md) proposes a bounded scope,
 native architecture and service boundary against the existing delivery issues.
 These proposals await receiving review and do not establish implementation or

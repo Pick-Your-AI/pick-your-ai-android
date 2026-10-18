@@ -248,10 +248,12 @@ PR head; emulator/device, TalkBack, rotation and process-termination flows remai
 unexecuted until an instrumented installation is actually tested. This change does
 not generate a signing key or install/release an app.
 
-Partial criteria: #86 local open/save and recovery; #67 canonical storage integration;
-#122 acknowledgment and retained pending fields; #76 lifecycle restoration. Still
-missing are multiple-draft list/create/duplicate/delete, autosave/domain revision UI,
-retention UX, installed-process-death evidence and receiving acceptance. Canonical
+Partial criteria at that slice: #86 local open/save and recovery; #67 canonical storage integration;
+#122 acknowledgment and retained pending fields; #76 lifecycle restoration.
+The subsequent [local draft library](LOCAL_DRAFT_LIBRARY.md) now adds multiple-draft
+list/create/rename/duplicate/delete, recovery and migration of this prior directory.
+Autosave/domain revision UI, complete retention policy, installed-process-death
+evidence and receiving acceptance remain separate. Canonical
 records remain `11.01.md`, `12.01.md`, `08.06.md` and `02.03.md` under the existing
 website Android work-package path. No issue closes.
 

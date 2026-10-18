@@ -1,0 +1,30 @@
+<resources>
+    <string name="library_open">Local draft library</string>
+    <string name="library_new">Create new draft</string>
+    <string name="library_new_warning">Create and save a new empty local draft? Your current saved draft and its history stay in the library. Unsaved edits in this form will be replaced.</string>
+    <string name="library_current">Current local draft: %1$s</string>
+    <string name="library_new_unsaved">No saved draft selected. Saving this form creates a new local draft.</string>
+    <string name="library_selection_changed">Your visible edits came from the previously selected draft. The saved library selection changed while this screen was away. Reopen or choose a draft before saving; these edits have not been attached to the newly selected draft.</string>
+    <string name="library_working">Updating local draft library…</string>
+    <string name="library_uncertain">The library operation could not be confirmed. Your visible edits are retained, and the operation may already be on disk. Open the library to inspect saved, recoverable or pending-deletion records, or reopen the saved copy before saving again.</string>
+    <string name="library_failed">The local library operation failed. Your visible edits are retained. Open the library or reopen to inspect the current saved state before retrying. Unreadable data is not reset.</string>
+    <string name="library_limit">The local record or history limit was reached. Your visible edits are not saved. Open the library to inspect or explicitly delete a record; recoverable and pending-deletion records count toward the 32-draft limit. Earlier revisions are retained.</string>
+    <string name="library_empty">No local drafts are saved. Close the library and save the form or create a new draft.</string>
+    <string name="library_untitled">Untitled draft</string>
+    <string name="library_unavailable_name">Unreadable local draft</string>
+    <string name="library_row">%1$s · %2$s\nLocal ID: %3$s</string>
+    <string name="library_state_saved">saved</string>
+    <string name="library_state_unavailable">unavailable; retained for recovery or explicit deletion</string>
+    <string name="library_state_recoverable">unregistered; inspect before recovery</string>
+    <string name="library_state_deleting">deletion pending; retry cleanup</string>
+    <string name="library_select">Open saved draft</string>
+    <string name="library_select_warning">Open this saved draft? It replaces unsaved edits in the current form. Cancel to keep your edits. Rename an opened draft by editing its title and saving locally.</string>
+    <string name="library_duplicate">Duplicate saved draft</string>
+    <string name="library_duplicate_warning">Create and open a new local copy of this saved draft? Its guest fields, exact sample pins and local editing content are copied with source lineage. The source and its history stay unchanged. Unknown metadata, remote ownership and shared identity are not copied. Unsaved edits in the current form will be replaced.</string>
+    <string name="library_recover">Recover saved draft</string>
+    <string name="library_recover_warning">This draft was saved on disk but was not registered in the library, for example after an interrupted creation. Recover and open its saved fields? Unsaved edits in the current form will be replaced. No missing facts or history are invented.</string>
+    <string name="library_delete">Delete local draft</string>
+    <string name="library_retry_delete">Retry local deletion</string>
+    <string name="library_delete_warning">Permanently delete this local draft and its retained local history? This cannot be undone. Other saved drafts stay unchanged. Unsaved edits in the current form will be replaced by the remaining selected saved copy or an empty form. Deletion affects this device only. It cannot revoke external copies or guarantee forensic erasure. Interrupted cleanup stays visible in the library until retried.</string>
+    <string name="library_delete_other_warning">Permanently delete this local draft and its retained local history? This cannot be undone. Other drafts and your current visible edits stay unchanged. Deletion affects this device only. It cannot revoke external copies or guarantee forensic erasure. Interrupted cleanup stays visible in the library until retried.</string>
+</resources>

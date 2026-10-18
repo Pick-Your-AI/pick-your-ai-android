@@ -51,10 +51,7 @@
     <string name="draft_saved">Saved locally.</string>
     <string name="draft_unsaved">Unsaved changes. Tap Save locally to commit this form.</string>
     <string name="draft_load_failed">Local draft could not be opened. Your visible edits are retained but are not saved. Reopen to retry; corrupt or unsupported data will not be reset.</string>
-    <string name="draft_save_failed">Save failed. Your visible edits are retained. The previous acknowledged copy is unchanged; retry Save locally or reopen the saved copy.</string>
     <string name="draft_conflict">Another local copy changed. Your edits are retained but were not saved. Reopen the saved copy before editing again; unsaved edits are not overwritten automatically.</string>
-    <string name="draft_uncertain">Save could not be confirmed. Your edits are retained, and the new copy may already be on disk. Reopen the saved copy before retrying.</string>
-    <string name="draft_history_full">Local history or record limit reached. Your visible edits are not saved; earlier revisions are retained. Reopening restores the saved copy. This preview does not yet support history trimming or export.</string>
     <string name="draft_reconcile">Local state needs reconciliation. Your visible edits are retained but are not confirmed saved. Reopen the saved copy before saving again.</string>
     <string name="draft_history">Saved guest form history</string>
     <string name="history_revision">Local revision %1$s</string>
