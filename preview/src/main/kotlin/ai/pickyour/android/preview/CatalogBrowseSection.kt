@@ -91,6 +91,9 @@ class CatalogBrowseSection(
 
     fun contains(item: PreviewCatalogItem, hash: String) = active() && browser?.contains(item, hash) == true
 
+    fun details(item: PreviewCatalogItem, hash: String): PreviewCatalogDetails? =
+        if (active()) browser?.details(item, hash) else null
+
     fun selectedName(id: String?, version: String?, hash: String?): String? = browser?.takeIf { it.hash == hash }
         ?.items?.singleOrNull { it.id == id && it.version == version }?.name
 
