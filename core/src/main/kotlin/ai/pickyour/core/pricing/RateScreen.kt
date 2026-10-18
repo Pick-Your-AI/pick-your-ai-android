@@ -1,14 +1,7 @@
 package ai.pickyour.core.pricing
 
-import ai.pickyour.core.contracts.FrozenDocument
-import ai.pickyour.core.contracts.FrozenSchemaValidator
-import ai.pickyour.core.contracts.FrozenValidation
-import ai.pickyour.core.importing.BoundedJsonReader
-import ai.pickyour.core.importing.JsonInputResult
 import java.io.InputStream
 import java.time.Instant
-import java.time.OffsetDateTime
-import java.time.format.DateTimeParseException
 import java.util.Collections
 
 /** Exact explicit query; no region, currency, clock or component-version defaults. */
@@ -31,6 +24,7 @@ class RateQuery(
 class RateCandidates internal constructor(
     val pricebookId: String,
     val pricebookRevision: String,
+    val pricebookHash: String,
     val asOf: Instant,
     candidates: List<String>,
     unresolved: Set<RateGap>,
@@ -58,49 +52,30 @@ sealed interface RateScreenResult {
  * Schema validation and screening use one bounded private snapshot. No clock, network or mutation.
  */
 class RateScreen {
-    private val reader = BoundedJsonReader()
-    private val validator = FrozenSchemaValidator()
-
-    fun screen(input: InputStream, query: RateQuery): RateScreenResult {
-        val parsed = reader.read(input)
-        if (parsed !is JsonInputResult.Parsed) return RateScreenResult.InvalidDocument
-        val book = parsed.value
-        if (validator.validate(FrozenDocument.PRICEBOOK, book.toString().byteInputStream()) != FrozenValidation.Valid) {
-            return RateScreenResult.InvalidDocument
+    fun screen(input: InputStream, query: RateQuery): RateScreenResult =
+        when (val parsed = RecordedPricebook.read(input)) {
+            RecordedPricebookResult.InvalidDocument -> RateScreenResult.InvalidDocument
+            is RecordedPricebookResult.Parsed -> screen(parsed.pricebook, query)
         }
-        val seen = HashSet<String>()
+
+    /** Uses the same immutable snapshot the caller can inspect; still never accepts or prices a rate. */
+    fun screen(book: RecordedPricebook, query: RateQuery): RateScreenResult.Screened {
         val ids = ArrayList<String>()
         val gaps = mutableSetOf(RateGap.EVIDENCE_REVIEW_REQUIRED)
-        try {
-            // Schema-valid dates may exceed java.time's supported precision/range. Fail closed.
-            timestamp(book["captured_at"].textValue())
-            for (rate in book["rates"]) {
-                val id = rate["id"].textValue()
-                if (!seen.add(id)) return RateScreenResult.InvalidDocument
-                val start = timestamp(rate["valid_from"].textValue())
-                val end = rate["valid_until"]?.let { timestamp(it.textValue()) }
-                if (end != null && end <= start) return RateScreenResult.InvalidDocument
-                if (rate["catalog_item_id"].textValue() != query.itemId ||
-                    rate["catalog_item_version"].textValue() != query.itemVersion ||
-                    rate["meter"].textValue() != query.meter ||
-                    rate["unit_price"]["currency"].textValue() != query.currency ||
-                    query.asOf < start || (end != null && query.asOf >= end)) continue
-                val region = rate["region"]?.textValue()
-                if (region.isNullOrBlank()) { gaps.add(RateGap.REGION_UNSPECIFIED); continue }
-                if (region != query.region) continue
-                if (rate["conditions"]?.isEmpty == false) { gaps.add(RateGap.CONDITIONS_UNRESOLVED); continue }
-                if (rate["price_type"].textValue() != "list") { gaps.add(RateGap.NON_LIST_PRICE); continue }
-                ids.add(id)
-            }
-        } catch (_: DateTimeParseException) {
-            return RateScreenResult.InvalidDocument
+        for (rate in book.ratesFor(query.itemId, query.itemVersion)) {
+            if (rate.meter != query.meter || rate.unitPrice.currency != query.currency ||
+                query.asOf < rate.startsAt || (rate.endsAt != null && query.asOf >= rate.endsAt)) continue
+            val region = rate.region
+            if (region.isNullOrBlank()) { gaps.add(RateGap.REGION_UNSPECIFIED); continue }
+            if (region != query.region) continue
+            if (rate.conditions?.isNotEmpty() == true) { gaps.add(RateGap.CONDITIONS_UNRESOLVED); continue }
+            if (rate.priceType != "list") { gaps.add(RateGap.NON_LIST_PRICE); continue }
+            ids.add(rate.id)
         }
         if (ids.isEmpty()) gaps.add(RateGap.NO_MATCH)
         if (ids.size > 1) gaps.add(RateGap.AMBIGUOUS)
         return RateScreenResult.Screened(RateCandidates(
-            book["id"].textValue(), book["revision"].asText(), query.asOf, ids, gaps,
+            book.id, book.revision.toString(), book.hash, query.asOf, ids, gaps,
         ))
     }
-
-    private fun timestamp(value: String): Instant = OffsetDateTime.parse(value).toInstant()
 }

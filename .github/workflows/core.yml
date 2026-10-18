@@ -128,6 +128,12 @@ jobs:
               "unavailableSourceHandlerPreservesDraftAndRequiresNewConfirmation",
               "catalogSourceCallbackCannotDispatchAfterAuthorityChangeOrRecreation",
               "catalogSourceConfirmationShowsCompleteBoundedUri",
+              "catalogRecordedPriceShowsExactSnapshotUnitsAndDatesWithoutSaving",
+              "catalogRecordedPriceNeverSubstitutesMissingItemOrVersionWithFreePricing",
+              "catalogRecordedPriceKeepsZeroConditionsAndUnknownLiteralsUnassessed",
+              "catalogRecordedPriceBoundsLiteralAlternativesWithoutSelectingOrCombining",
+              "catalogRecordedPriceReadFailureKeepsUnknownContextAndRetryUsesFreshSnapshot",
+              "catalogRecordedPriceReloadAndRetiredDialogCannotChangePendingDraft",
           }
           cases = suite.findall("testcase")
           assert expected <= {case.attrib["name"] for case in cases}, "Missing UI regression"
