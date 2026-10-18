@@ -186,6 +186,33 @@ jobs:
           assert int(suite.attrib["tests"]) >= len(expected)
           print(f"Verified {len(cases)} simulated catalog snapshot callback tests; no installed-device claim")
           PYTEST
+      - name: Require complete recorded-price browser regressions to execute
+        run: |
+          python - <<'PYTEST'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          report = pathlib.Path("preview/build/test-results/testDebugUnitTest/TEST-ai.pickyour.android.preview.CatalogPriceBrowserActivityTest.xml")
+          suite = ET.parse(report).getroot()
+          expected = {
+              "actualPriceBrowserRetiresParentActionsAndPreservesPendingDomainAndSavedBaseline",
+              "everyExactRateAndSnapshotFieldIsReachableWithoutSelectingAnAlternative",
+              "numericRevisionLimitsBoundEveryAcceptedCatalogAndPricebookDigit",
+              "allConditionsRetainStoredOrderAndRemainReachableAcrossBoundedFieldPages",
+              "completeLongLiteralPartsPreserveDecimalsEscapesAndPlainSourceUris",
+              "missingPricebookAndExactRateUseDistinctUnknownRecoveryWithoutFreeFallback",
+              "absentEmptyUnknownAndZeroStayDistinctFromEligibilityAndVerification",
+              "cancelledAndReplacedRateFieldAndValueCallbacksCannotReopenOrReplaceCurrentDialog",
+              "actualReloadSnapshotReplacementAndRecreationRetireTheCapturedBrowser",
+              "actualSavedBaselineChangeRetiresBrowserWithoutDiscardingPendingInputs",
+              "actualNewDetailRetiresOldBrowserEvenWhenItsCapturedDataIsUnchanged",
+              "narrowRtlLargeTextPriceControlsRetainVisibleTargetsAndCompleteLabels",
+          }
+          cases = suite.findall("testcase")
+          assert expected <= {case.attrib["name"] for case in cases}, "Missing recorded-price browser regression"
+          assert all(not case.findall("failure") and not case.findall("error") and not case.findall("skipped") for case in cases), "Recorded-price browser regression did not pass"
+          assert int(suite.attrib["tests"]) >= len(expected)
+          print(f"Verified {len(cases)} simulated recorded-price browser tests; no installed-device claim")
+          PYTEST
       - name: Retain unsigned diagnostic and lint reports
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
