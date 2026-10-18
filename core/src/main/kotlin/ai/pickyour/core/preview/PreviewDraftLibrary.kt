@@ -70,6 +70,11 @@ class PreviewDraftLibrary internal constructor(root: Path, private val checkpoin
     }
 
     private fun createFrom(source: PreviewStoredDraft?): PreviewLibraryCreate {
+        // On POSIX, closing a contending channel can release another operation's
+        // process-wide lock. Claim the canonical root before opening that channel.
+        // The set is deliberately non-reentrant, matching the canonical stores.
+        if (!synchronized(activeRoots) { activeRoots.add(root) })
+            return PreviewLibraryCreate.Failed(DraftStorageFailure.BUSY)
         var created: PreviewDraftId? = null
         return try {
             val lockPath = root.resolve(".preview-library.lock")
@@ -99,6 +104,9 @@ class PreviewDraftLibrary internal constructor(root: Path, private val checkpoin
         catch (_: Exception) {
             created?.let { PreviewLibraryCreate.Unconfirmed(it, DraftStorageFailure.IO_FAILURE) }
                 ?: PreviewLibraryCreate.Failed(DraftStorageFailure.IO_FAILURE)
+        } finally {
+            // Release only after the OS lock and channel close, including failure paths.
+            synchronized(activeRoots) { activeRoots.remove(root) }
         }
     }
 
@@ -116,7 +124,10 @@ class PreviewDraftLibrary internal constructor(root: Path, private val checkpoin
         return result.sortedBy { it.value }
     }
     private class LimitExceeded : Exception()
-    companion object { const val MAX_DRAFTS = 64 }
+    companion object {
+        const val MAX_DRAFTS = 64
+        private val activeRoots = HashSet<Path>()
+    }
 }
 
 internal enum class LibraryCheckpoint { AFTER_DIRECTORY_CREATE, AFTER_SAVE }
