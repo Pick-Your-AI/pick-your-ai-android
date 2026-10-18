@@ -113,6 +113,39 @@ REVIEWED_DESIGNS.update({
 })
 
 
+# Signed #322 delivers this applicability decision only. Account/service/runtime
+# implementation and every other literal criterion retain their own acceptance.
+DESIGN_25_REVISION = '68e52dd9c79cefe97af65e8fd1e86e4b72d2c42c'
+DESIGN_25_PATH = 'docs/delivery/android/work-packages/01.05.md'
+DESIGN_25_DECISION = f'{BASE}/blob/{DESIGN_25_REVISION}/docs/decisions/0003-android-25-acceptance-record.md'
+DESIGN_25_ACCEPTANCE = {
+    'scope': 'android_guest_accounts_revenue_and_optional_services_decision',
+    'evidence_ref': 'pr-322',
+    'decision_revision': DESIGN_25_REVISION,
+    'decision_url': DESIGN_25_DECISION,
+    'record_url': f'{BASE}/blob/{DESIGN_25_REVISION}/{DESIGN_25_PATH}',
+    'receiving_reviews': [
+        f'{BASE}/pull/313#pullrequestreview-5562991296',
+        f'{BASE}/pull/313#pullrequestreview-5562993559',
+        f'{BASE}/pull/322#pullrequestreview-5563048963',
+    ],
+    'source_review_revision': 'fb153a9a3be4b75e645fc231283632bb451ed171',
+    'historical_acceptance_record': {
+        'repository': 'Pick-Your-AI/pickyour.ai', 'path': DESIGN_25_PATH,
+    },
+}
+REVIEWED_DESIGNS[25] = {
+    'record': {'repository': REPOSITORY, 'path': DESIGN_25_PATH},
+    'acceptance': DESIGN_25_ACCEPTANCE,
+    'criteria': [
+        '53c649d8164864a7f4f58e65d3284a8578d4ac711bde3e0850d601694908b188',
+        'c8d1f07fa4680f4b3dfaedb5f4ad9256c7efafe56d7ac0ea724292e85410a54d',
+        '84bf23c76dd6c46f1ce3ddb371fd3aff625a46494c2825714738452cf78aa329',
+    ],
+    'artifact_url': DESIGN_25_DECISION,
+}
+
+
 def require(condition, message):
     if not condition:
         raise ValueError(message)
@@ -125,7 +158,7 @@ def source_criteria(body):
 
 
 def validate(ledger, source=None):
-    require(type(ledger['schema_version']) is int and ledger['schema_version'] == 3, 'unsupported schema version')
+    require(type(ledger['schema_version']) is int and ledger['schema_version'] == 4, 'unsupported schema version')
     require(ledger['repository'] == REPOSITORY, 'wrong repository')
     evidence = ledger['evidence']
     require(bool(evidence), 'missing evidence catalog')
@@ -217,7 +250,7 @@ def main():
     except (OSError, ValueError, KeyError, TypeError) as error:
         print(f'Delivery ledger check failed: {error}', file=sys.stderr)
         return 1
-    print('PASS: 129 unique issue URLs, 429 incomplete criteria, 12 reviewed design criteria, pinned evidence and canonical paths' +
+    print('PASS: 129 unique issue URLs, 426 incomplete criteria, 15 reviewed design criteria, pinned evidence and canonical paths' +
           ('; exact source criteria matched.' if source is not None else '; live source comparison NOT performed.'))
     return 0
 

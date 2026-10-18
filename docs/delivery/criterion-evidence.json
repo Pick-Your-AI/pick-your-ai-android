@@ -1,10 +1,10 @@
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "observed_on": "2026-10-18",
   "repository": "Pick-Your-AI/pick-your-ai-android",
   "implementation_baseline": "cc4869aa40316fe81b4e00a2e6b73a2df01a2329",
   "source": "Live GitHub issue-list read across all states; criterion order and exact text retained. Closed accepted issues remain in the source comparison.",
-  "purpose": "Living evidence index: 12 reviewed documentary/design criteria for Android #20/#23/#24/#34 are complete; 429 criteria remain incomplete. This does not replace acceptance receipts, GitHub issue status or native dependencies.",
+  "purpose": "Living evidence index: 15 reviewed documentary/design criteria for Android #20/#23/#24/#25/#34 are complete; 426 criteria remain incomplete. This does not replace acceptance receipts, GitHub issue status or native dependencies.",
   "evidence": {
     "pr-131": {
       "pr_url": "https://github.com/Pick-Your-AI/pick-your-ai-android/pull/131",
@@ -131,6 +131,13 @@
       "revision": "93bebf787a091fe4858c1c70fd07cabefe17170f",
       "artifact_url": "https://github.com/Pick-Your-AI/pick-your-ai-android/blob/93bebf787a091fe4858c1c70fd07cabefe17170f/docs/decisions/0002-android-foundation-records.md",
       "scope_limit": "Accepted Android #20/#24/#34 product, MVP and native-foundation decision records, exact criterion mappings and ADR 0002 placement, with independent delegated product/Android technical receiving review. Evidence and hypotheses remain distinct. This accepts nine literal design criteria; execution of the selected journeys, participant evidence, real-data/source-rights qualification, service activation, installed/physical-device behavior, store and release delivery retain their own requirements."
+    },
+    "pr-322": {
+      "pr_url": "https://github.com/Pick-Your-AI/pick-your-ai-android/pull/322",
+      "observed_state": "merged",
+      "revision": "68e52dd9c79cefe97af65e8fd1e86e4b72d2c42c",
+      "artifact_url": "https://github.com/Pick-Your-AI/pick-your-ai-android/blob/68e52dd9c79cefe97af65e8fd1e86e4b72d2c42c/docs/decisions/0003-android-25-acceptance-record.md",
+      "scope_limit": "Accepted Android #25 guest-local, accounts, revenue, analytics, diagnostic and notification applicability decision, exact three-criterion mapping and ADR 0003 placement, with independent delegated product/Android technical receiving review. This accepts the documented enable/defer/reject and canonical remote-authorization decisions. The source retains explicit demand/value hypotheses, counterfactual disabled-service walkthroughs and current policy applicability limits. Account/service implementation, support destination, telemetry, purchases, notification behavior, participant evidence, installed devices and store/release/operating acceptance retain their own requirements."
     }
   },
   "issues": [
@@ -1736,7 +1743,7 @@
       "url": "https://github.com/Pick-Your-AI/pick-your-ai-android/issues/25",
       "title": "Android 01.05: Account and revenue decisions",
       "canonical_acceptance_record": {
-        "repository": "Pick-Your-AI/pickyour.ai",
+        "repository": "Pick-Your-AI/pick-your-ai-android",
         "path": "docs/delivery/android/work-packages/01.05.md"
       },
       "criteria": [
@@ -1744,42 +1751,65 @@
           "id": "25.1",
           "text": "Decide guest-first behavior, optional accounts, monetization, analytics and notifications; enable only the dependent policy/implementation tasks that apply.",
           "text_sha256": "53c649d8164864a7f4f58e65d3284a8578d4ac711bde3e0850d601694908b188",
-          "status": "incomplete",
+          "status": "complete",
           "partial_evidence_refs": [
             "pr-131"
           ],
-          "evidence_relation": "issue_context_only; inspect artifact scope before attributing any criterion result",
-          "remaining_engineering": "Record guest-first capability dispositions; keep unselected services absent.",
+          "evidence_relation": "criterion_complete_reviewed_design_outcome",
+          "remaining_engineering": "",
           "external_prerequisites": [],
-          "completion_evidence": []
+          "completion_evidence": [
+            "pr-322"
+          ]
         },
         {
           "id": "25.2",
           "text": "Every account, revenue, analytics and notification capability has an explicit disposition and rationale.",
           "text_sha256": "c8d1f07fa4680f4b3dfaedb5f4ad9256c7efafe56d7ac0ea724292e85410a54d",
-          "status": "incomplete",
+          "status": "complete",
           "partial_evidence_refs": [
             "pr-131"
           ],
-          "evidence_relation": "issue_context_only; inspect artifact scope before attributing any criterion result",
-          "remaining_engineering": "Record guest-first capability dispositions; keep unselected services absent.",
+          "evidence_relation": "criterion_complete_reviewed_design_outcome",
+          "remaining_engineering": "",
           "external_prerequisites": [],
-          "completion_evidence": []
+          "completion_evidence": [
+            "pr-322"
+          ]
         },
         {
           "id": "25.3",
           "text": "Remote mutations/private reads retain an authorization model even when full accounts are deferred; unselected services are absent from launch scope.",
           "text_sha256": "84bf23c76dd6c46f1ce3ddb371fd3aff625a46494c2825714738452cf78aa329",
-          "status": "incomplete",
+          "status": "complete",
           "partial_evidence_refs": [
             "pr-131"
           ],
-          "evidence_relation": "issue_context_only; inspect artifact scope before attributing any criterion result",
-          "remaining_engineering": "Record guest-first capability dispositions; keep unselected services absent.",
+          "evidence_relation": "criterion_complete_reviewed_design_outcome",
+          "remaining_engineering": "",
           "external_prerequisites": [],
-          "completion_evidence": []
+          "completion_evidence": [
+            "pr-322"
+          ]
         }
-      ]
+      ],
+      "accepted_design_outcome": {
+        "scope": "android_guest_accounts_revenue_and_optional_services_decision",
+        "evidence_ref": "pr-322",
+        "decision_revision": "68e52dd9c79cefe97af65e8fd1e86e4b72d2c42c",
+        "decision_url": "https://github.com/Pick-Your-AI/pick-your-ai-android/blob/68e52dd9c79cefe97af65e8fd1e86e4b72d2c42c/docs/decisions/0003-android-25-acceptance-record.md",
+        "record_url": "https://github.com/Pick-Your-AI/pick-your-ai-android/blob/68e52dd9c79cefe97af65e8fd1e86e4b72d2c42c/docs/delivery/android/work-packages/01.05.md",
+        "receiving_reviews": [
+          "https://github.com/Pick-Your-AI/pick-your-ai-android/pull/313#pullrequestreview-5562991296",
+          "https://github.com/Pick-Your-AI/pick-your-ai-android/pull/313#pullrequestreview-5562993559",
+          "https://github.com/Pick-Your-AI/pick-your-ai-android/pull/322#pullrequestreview-5563048963"
+        ],
+        "source_review_revision": "fb153a9a3be4b75e645fc231283632bb451ed171",
+        "historical_acceptance_record": {
+          "repository": "Pick-Your-AI/pickyour.ai",
+          "path": "docs/delivery/android/work-packages/01.05.md"
+        }
+      }
     },
     {
       "number": 26,
