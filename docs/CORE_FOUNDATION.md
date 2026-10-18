@@ -207,3 +207,9 @@ measured-run wire fields as immutable Kotlin values, including exact numbers and
 optional absence. Shared Python/Kotlin mutation cases and malformed-input tests
 cover this structural boundary; decoding does not authenticate or execute an
 evaluation, bind it to the current build, or certify its reported result.
+
+The [resource-estimate decoder](RESOURCE_ESTIMATE_BOUNDARY.md) retains all frozen
+capacity-estimate wire fields, exact decimal strings, arbitrary-size revisions and
+declared confidence as immutable values. Shared Python/Kotlin fixtures and boundary
+tests cover its structural behavior; decoding adds no arithmetic, current-build or
+runtime/topology binding, calibrated capacity evidence or memory-fit verdict.
