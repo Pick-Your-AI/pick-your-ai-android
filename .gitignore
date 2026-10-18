@@ -13,3 +13,11 @@ local.properties
 .gradle/
 DerivedData/
 xcuserdata/
+
+# JVM core and local test environments
+.kotlin/
+**/build/
+.idea/
+*.iml
+__pycache__/
+.venv/

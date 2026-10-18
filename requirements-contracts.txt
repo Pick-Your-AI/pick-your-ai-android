@@ -1,4 +1,4 @@
-# Validation dependencies; runtime application dependencies are outside this repo.
+# Pinned Python reference-validation dependencies; JVM dependencies are in core/build.gradle.kts.
 jsonschema==4.25.1
 referencing==0.37.0
 jsonschema-specifications==2025.9.1

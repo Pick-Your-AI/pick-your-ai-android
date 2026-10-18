@@ -2,7 +2,9 @@
 
 The Android planning client for discovering, configuring, checking, costing, comparing and sharing AI stacks. The mobile device is not automatically the inference target.
 
-This repository currently contains contribution and scope guidance only. No application implementation, build toolchain, backend or release is included.
+This repository contains a testable Kotlin/JVM core and an immutable frozen-v1
+contract/reference bundle. See [core setup and acceptance evidence](docs/CORE_FOUNDATION.md).
+There is no installable Android application, production backend or release yet.
 
 The [foundation review package](docs/proposals/README.md) proposes a bounded scope,
 native architecture and service boundary against the existing delivery issues.
