@@ -46,6 +46,8 @@ class PreviewActivity : Activity() {
     private var domainContext = PreviewDraftContext()
     private var restoreContextFromDisk = false
     private lateinit var selection: TextView
+    private lateinit var componentSection: SelectionEditSection
+    private var componentCatalog: ai.pickyour.core.drafts.SelectionCatalogSnapshot? = null
     private lateinit var catalog: CatalogBrowseSection
     private lateinit var catalogComparison: CatalogComparisonSection
     private var catalogFixture: CatalogFixtureData? = null // UI-thread owned, replaced even when pricing is absent.
@@ -211,6 +213,8 @@ class PreviewActivity : Activity() {
                 setDraftActivation(expected, tier, activation)
         }
         content.addView(tierSection)
+        componentSection = SelectionEditSection(this, ::commitSelection)
+        content.addView(componentSection)
         title.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { formChanged() }
@@ -309,12 +313,20 @@ class PreviewActivity : Activity() {
         retry.isEnabled = false
         catalogStatus.setText(R.string.working)
         worker.execute {
-            val loaded = CatalogFixtureData.read(::readCatalogFixture) { assets.open("pricebook.json") }
+            var componentSnapshot: ai.pickyour.core.drafts.SelectionCatalogSnapshot? = null
+            val loaded = CatalogFixtureData.read({
+                readCatalogFixture().also {
+                    componentSnapshot = ai.pickyour.core.drafts.SelectionCatalogSnapshot.fromJson(it)
+                }
+            }) { assets.open("pricebook.json") }
+            val selectionSnapshot = componentSnapshot.takeIf { loaded.catalog != null }
             runOnUiThread {
                 if (!destroyed) {
                     catalogFixture = loaded
                     retry.isEnabled = true
                     catalogStatus.setText(if (loaded.catalog == null) R.string.catalog_unavailable else R.string.catalog_ready)
+                    componentCatalog = selectionSnapshot
+                    componentSection.catalog(loaded.catalog?.items.orEmpty(), loaded.catalog?.hash)
                     if (loaded.catalog == null) catalog.unavailable() else catalog.show(loaded.catalog)
                     catalogComparison.show(loaded.catalog, loaded.pricebook)
                     catalog.selectionEnabled(!storageBusy)
@@ -474,6 +486,7 @@ class PreviewActivity : Activity() {
         retryDeleteButton.isEnabled = pendingDeleteId != null && !storageBusy
         if (::tierSection.isInitialized) tierSection.update(savedRecord, storageReady && !storageBusy && matchesSaved())
         if (::catalog.isInitialized) catalog.selectionEnabled(!storageBusy)
+        if (::componentSection.isInitialized) componentSection.update(savedRecord, storageReady && !storageBusy && matchesSaved())
     }
 
     private fun showHistory() {
@@ -547,6 +560,52 @@ class PreviewActivity : Activity() {
                     }
                 }
             }.setNegativeButton(R.string.close, null).show()
+    }
+
+    private fun commitSelection(expected: PreviewStoredDraft, hash: String?, prepare: () -> PreviewSelectionPreparation,
+        completed: (Boolean, String) -> Unit) {
+        if (destroyed || !storageReady || storageBusy || savedRecord !== expected || !matchesSaved() ||
+            hash != null && componentCatalog?.hash?.hex != hash) { completed(false, getString(R.string.draft_reconcile)); return }
+        val id = currentDraftId
+        val snapshot = componentCatalog
+        storageBusy = true
+        saveStatus.setText(R.string.draft_saving)
+        updateEditingEnabled()
+        worker.execute {
+            val result = try {
+                when (val prepared = prepare()) {
+                    PreviewSelectionPreparation.Invalid -> null
+                    is PreviewSelectionPreparation.Ready -> openPersistence(id).applySelection(expected, prepared.command, snapshot)
+                }
+            } catch (_: Exception) { PreviewSelectionSave.Uncertain }
+            runOnUiThread {
+                if (!destroyed) {
+                    storageBusy = false
+                    var acknowledged = false
+                    when (result) {
+                        null -> saveStatus.setText(R.string.component_invalid)
+                        is PreviewSelectionSave.Saved -> {
+                            savedRecord = result.record
+                            acknowledged = true
+                            saveStatus.setText(if (result.change == null) R.string.component_noop else R.string.component_saved)
+                        }
+                        PreviewSelectionSave.Conflict -> {
+                            storageReady = false
+                            saveStatus.setText(R.string.draft_conflict)
+                        }
+                        PreviewSelectionSave.Uncertain -> {
+                            storageReady = false
+                            saveStatus.setText(R.string.draft_uncertain)
+                        }
+                        is PreviewSelectionSave.Rejected -> saveStatus.text = getString(R.string.component_rejected, result.reason.name)
+                        is PreviewSelectionSave.Failed -> saveStatus.setText(if (result.reason == DraftStorageFailure.LIMIT_EXCEEDED)
+                            R.string.draft_history_full else R.string.draft_save_failed)
+                    }
+                    updateEditingEnabled()
+                    completed(acknowledged, saveStatus.text.toString())
+                }
+            }
+        }
     }
 
     private fun setDraftActivation(expected: PreviewStoredDraft, tier: OptionalTier, activation: Activation) {
@@ -1062,6 +1121,7 @@ class PreviewActivity : Activity() {
         catalogPriceBrowser = null
         if (::catalog.isInitialized) catalog.close()
         if (::catalogComparison.isInitialized) catalogComparison.close()
+        if (::componentSection.isInitialized) componentSection.close()
         storageReady = false
         storageBusy = true
         if (::tierSection.isInitialized) tierSection.close()
