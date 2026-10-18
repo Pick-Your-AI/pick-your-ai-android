@@ -101,6 +101,27 @@ jobs:
               "confirmedCurrentDraftDeletionRetainsPendingFormAndRevokesSaveAuthority",
               "catalogQuerySurvivesDetailsAndRecreationWithoutChangingPinnedSelection",
               "emptyCatalogSearchCanRecoverAndReloadUsesTheCurrentQuery",
+              "interruptedFinalCleanupCanBeRetriedAfterRecreationWithoutLibraryRow",
+              "retiredCleanupRetryCannotOpenConfirmationAfterRecreation",
+              "retiredCleanupConfirmationCannotDispatchAfterRecreation",
+              "retainedConfirmationCannotReplaceAnotherPendingCleanup",
+              "retainedConfirmationUsesCurrentSameIdCleanupAuthority",
+              "canceledCleanupConfirmationCannotDeleteItsAcknowledgedDraft",
+              "canceledCatalogFacetChoicesCannotChangeBrowsingState",
+              "canceledCleanupRedirectCannotOpenRetryConfirmation",
+              "canceledDomainRestoreCannotAppendRevisionOrReplaceInputs",
+              "canceledDuplicateCannotCreateOrSwitch",
+              "canceledFindingsPickerCannotOpenDetails",
+              "canceledHistoryAndLibraryParentsCannotOpenFollowups",
+              "canceledHistoryCopyCannotReplacePendingForm",
+              "canceledLibrarySwitchCannotReplaceActiveIdentityOrForm",
+              "canceledNewDraftCannotCreateOrSwitch",
+              "canceledRecoveryCopyCannotCreateOrSwitch",
+              "canceledReopenCannotDiscardPendingFields",
+              "canceledTierChooserCannotOpenConfirmation",
+              "canceledTierConfirmationCannotCommitActivation",
+              "canceledWorkloadClassificationCannotChangePendingInput",
+              "consumedReopenCannotDiscardLaterPendingFields",
               "largeTextRtlButtonsRetainMeasuredTargetsAndUntruncatedLabels",
               "forwardFocusOrderKeepsEditorsAndClearActionReachable",
               "catalogQuerySortAndPageSurviveDetailsAndRecreationWithoutChangingDraft",
@@ -194,6 +215,37 @@ jobs:
           assert all(not case.findall("failure") and not case.findall("error") and not case.findall("skipped") for case in cases), "Catalog snapshot callback regression did not pass"
           assert int(suite.attrib["tests"]) >= len(expected)
           print(f"Verified {len(cases)} simulated catalog snapshot callback tests; no installed-device claim")
+          PYTEST
+      - name: Require local dialog authority regressions to execute
+        run: |
+          python - <<'PYTEST'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          report = pathlib.Path("preview/build/test-results/testDebugUnitTest/TEST-ai.pickyour.android.preview.LibraryDialogAuthorityTest.xml")
+          suite = ET.parse(report).getroot()
+          expected = {
+              "cancelledLibraryPickerCannotOpenEntry",
+              "cancelledLibraryEntryCannotReopenSavedDraft",
+              "cancelledLibraryEntryCannotOpenDeletionConfirmation",
+              "cancelledDeleteConfirmationCannotDeleteSavedDraft",
+              "cancelledNewDraftConfirmationCannotCreateOrSwitchDraft",
+              "cancelledDuplicateConfirmationCannotCreateOrSwitchDraft",
+              "cancelledRecoveryConfirmationCannotCreateOrSwitchDraft",
+              "cancelledReopenConfirmationCannotDiscardPendingInputs",
+              "confirmedCreateDuplicateOpenAndDeleteKeepTheirSelectedIdentities",
+              "reopenConfirmationCannotAdoptANewerSavedBaseline",
+              "reopenConfirmationKeepsConflictPendingFieldsUntilFreshConsent",
+              "olderReopenCannotDiscardLaterEditsAfterFreshMissingDraftReconciliation",
+          }
+          cases = suite.findall("testcase")
+          names = [case.attrib["name"] for case in cases]
+          if not expected <= set(names) or len(names) != len(set(names)):
+              raise SystemExit("Missing or repeated local dialog authority regression")
+          if any(case.findall("failure") or case.findall("error") or case.findall("skipped") for case in cases):
+              raise SystemExit("Local dialog authority regression did not pass")
+          if int(suite.attrib["tests"]) != len(cases):
+              raise SystemExit("Local dialog authority result count does not match executed cases")
+          print(f"Verified {len(cases)} simulated local dialog authority tests; no installed-device claim")
           PYTEST
       - name: Require complete recorded-price browser regressions to execute
         run: |
