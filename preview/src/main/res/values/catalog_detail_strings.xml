@@ -15,6 +15,6 @@
     <string name="catalog_detail_source_count">Provenance records displayed: %1$d / %2$d. Additional records are retained in the snapshot, not hidden by a combined verification grade.</string>
     <string name="catalog_detail_source">Provenance %1$d\nSource URI: %2$s\nChecked at: %3$s\nRaw status: %4$s\nDisplay label: %5$s\nNotes: %6$s</string>
     <string name="catalog_detail_price">No applicable pricebook rate is loaded here. Currency, region, meter and effective period remain unknown. A recorded free or included billing class is not an applicable zero-cost quote.</string>
-    <string name="catalog_detail_source_limits">Source URIs are plain text in this preview; no external navigation is performed. Source dates and declared status do not prove that a source was checked. Conflicting provenance is retained without choosing a winner. Missing pinned versions never fall back to the latest item.</string>
+    <string name="catalog_detail_source_limits">Source URIs remain plain text here. Review sources offers a separate confirmation for links permitted by the configured HTTPS host policy; no source hosts are enabled in this synthetic preview. Source dates and declared status do not prove that a source was checked. Conflicting provenance is retained without choosing a winner. Missing pinned versions never fall back to the latest item.</string>
     <string name="catalog_detail_unavailable">Details for this exact item version and snapshot are unavailable. Return to the catalog and retry; no newer version has been substituted.</string>
 </resources>
