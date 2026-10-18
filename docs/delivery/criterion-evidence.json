@@ -110,6 +110,13 @@
       "revision": "3afe693ff0310459c4cd34b8a0acda5b9b27d90b",
       "artifact_url": "https://github.com/Pick-Your-AI/pick-your-ai-android/blob/3afe693ff0310459c4cd34b8a0acda5b9b27d90b/docs/PENDING_RECOVERY.md",
       "scope_limit": "Explicit local new-identity copy of valid pending inputs and disclosed captured-baseline content, leaving newer original unchanged. Final 257 core tests and 27 simulated Activity cases passed; no remote merge/authorization, durable unresolved-conflict journal, process-death or account-transition acceptance."
+    },
+    "pr-234": {
+      "pr_url": "https://github.com/Pick-Your-AI/pick-your-ai-android/pull/234",
+      "observed_state": "merged",
+      "revision": "1a6b47ace8c4b88dafdf214e394f5fcf60cd8979",
+      "artifact_url": "https://github.com/Pick-Your-AI/pick-your-ai-android/blob/1a6b47ace8c4b88dafdf214e394f5fcf60cd8979/docs/CATALOG_DETAILS.md",
+      "scope_limit": "Bounded synthetic exact item/version/snapshot details, typed specs/license/provenance and conservative missing-rate presentation. The final reviewed tree passed frozen/core checks and strict unsigned assembly/lint with all 35 required simulated Activity cases. No real-source acceptance, specific offering/pricebook applicability join, external navigation, installed historical recovery or named receiving acceptance is established."
     }
   },
   "issues": [
@@ -5644,12 +5651,35 @@
           "text_sha256": "acd1e46ed4b36461ba38f7975987b52b55b65555a5583c994d775cb6646f882e",
           "status": "incomplete",
           "partial_evidence_refs": [
-            "pr-139"
+            "pr-139",
+            "pr-234"
           ],
-          "evidence_relation": "issue_context_only; inspect artifact scope before attributing any criterion result",
-          "remaining_engineering": "Implement and validate this exact criterion in the selected scope; record negative/recovery cases and receiving evidence.",
-          "external_prerequisites": [],
-          "completion_evidence": []
+          "evidence_relation": "criterion_partial_results_with_issue_context",
+          "remaining_engineering": "Complete accepted real-data labels and terms, specific offering/serving identity, usable rate metadata, validated source-navigation behavior and complete historical recovery presentation. The plain-text fixture dialog and its bounded source list do not establish the complete Android detail criterion.",
+          "external_prerequisites": [
+            {
+              "kind": "source_evidence",
+              "requirement": "Accepted versioned real catalog records and their offering/deployment/source metadata from the canonical catalog/evidence authorities."
+            },
+            {
+              "kind": "owner_acceptance",
+              "requirement": "The issue-required Android catalog/UX reviewer and data consumer must review the complete real-data presentation; actual receiving commitments remain unset."
+            }
+          ],
+          "completion_evidence": [],
+          "partial_results": [
+            {
+              "evidence_refs": [
+                "pr-234"
+              ],
+              "description": "The selected synthetic record displays exact snapshot/item identity and dates, all schema-typed specification fields with canonical units, provider reference, recorded billing class, license declarations and bounded source/provenance text. Missing, explicit unknown, false, zero and empty collections remain distinct. Every supplied provenance record is retained in the immutable projection; the dialog displays at most eight and discloses the displayed/retained count. Provider identity does not invent an offering or serving route.",
+              "reproduction_commands": [
+                "./gradlew --no-daemon --dependency-verification=strict :core:test --tests ai.pickyour.core.preview.PreviewCatalogDetailsTest",
+                "./gradlew --no-daemon --dependency-verification=strict -PandroidPreview=true :preview:assembleDebug :preview:lintDebug :preview:testDebugUnitTest"
+              ],
+              "observation_basis": "Independent complete source/correction review: https://github.com/Pick-Your-AI/pick-your-ai-android/pull/224#pullrequestreview-5561623783. Final source and retention/lifecycle integration review: https://github.com/Pick-Your-AI/pick-your-ai-android/pull/234#pullrequestreview-5561710571. Exact receiving run https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39103121305 passed frozen/core job 117603290068 and unsigned Android job 117603289938; the inspected native log verified all 35 required Activity simulations, including the three catalog detail cases, after strict assembly/lint success. Its checkout a4bf34180cf5a9240a82eba0d2d2fb73824b6be6 and actual signed main merge 1a6b47ace8c4b88dafdf214e394f5fcf60cd8979 have the same reviewed tree 169ca440769f5cb3a59517548525d35ddd60fba7. This records JVM/simulated evidence, not installed, real-data or whole-criterion acceptance."
+            }
+          ]
         },
         {
           "id": "97.2",
@@ -5657,12 +5687,35 @@
           "text_sha256": "8eb8eced94ecaf907fc368f9912ba2e015bcbe308d01b7e03359f540690190ff",
           "status": "incomplete",
           "partial_evidence_refs": [
-            "pr-139"
+            "pr-139",
+            "pr-234"
           ],
-          "evidence_relation": "issue_context_only; inspect artifact scope before attributing any criterion result",
-          "remaining_engineering": "Implement and validate this exact criterion in the selected scope; record negative/recovery cases and receiving evidence.",
-          "external_prerequisites": [],
-          "completion_evidence": []
+          "evidence_relation": "criterion_partial_results_with_issue_context",
+          "remaining_engineering": "Integrate exact-version resolution with accepted historical publications and recoverable withdrawn/unavailable states, then qualify installed historical recovery and receiving review. Local immutable lookup and Activity simulations do not establish cold-process, remote publication or installed-device acceptance.",
+          "external_prerequisites": [
+            {
+              "kind": "source_evidence",
+              "requirement": "Accepted historical/withdrawn publication artifacts and their version-retention semantics from the canonical catalog authority."
+            },
+            {
+              "kind": "device_evidence",
+              "requirement": "Installed observations of requested historical versions, missing/withdrawn recovery and retained draft authority on the accepted Android matrix."
+            }
+          ],
+          "completion_evidence": [],
+          "partial_results": [
+            {
+              "evidence_refs": [
+                "pr-234"
+              ],
+              "description": "Detail lookup requires the complete selected row, exact item ID/version and snapshot SHA-256. A row-only browser supplies no detail evidence; missing historical versions, foreign hashes and forged rows fail without substitution. Pinned capture/update/source date spellings are retained, including retired records. Core regressions cover these cases; the simulated detail dialog opens and cancels without changing the stored selection or pending form.",
+              "reproduction_commands": [
+                "./gradlew --no-daemon --dependency-verification=strict :core:test --tests ai.pickyour.core.preview.PreviewCatalogDetailsTest",
+                "./gradlew --no-daemon --dependency-verification=strict -PandroidPreview=true :preview:assembleDebug :preview:lintDebug :preview:testDebugUnitTest"
+              ],
+              "observation_basis": "Independent complete source/correction review: https://github.com/Pick-Your-AI/pick-your-ai-android/pull/224#pullrequestreview-5561623783. Final source and retention/lifecycle integration review: https://github.com/Pick-Your-AI/pick-your-ai-android/pull/234#pullrequestreview-5561710571. Exact receiving run https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39103121305 passed frozen/core job 117603290068 and unsigned Android job 117603289938; the inspected native log verified all 35 required Activity simulations, including the three catalog detail cases, after strict assembly/lint success. Its checkout a4bf34180cf5a9240a82eba0d2d2fb73824b6be6 and actual signed main merge 1a6b47ace8c4b88dafdf214e394f5fcf60cd8979 have the same reviewed tree 169ca440769f5cb3a59517548525d35ddd60fba7. This records JVM/simulated evidence, not installed, real-data or whole-criterion acceptance."
+            }
+          ]
         },
         {
           "id": "97.3",
@@ -5670,12 +5723,39 @@
           "text_sha256": "b1fceff1190ea25e64d2d26d49eb5abf26c068ec5a23d876597f1b0ab2c2d549",
           "status": "incomplete",
           "partial_evidence_refs": [
-            "pr-139"
+            "pr-139",
+            "pr-234"
           ],
-          "evidence_relation": "issue_context_only; inspect artifact scope before attributing any criterion result",
-          "remaining_engineering": "Implement and validate this exact criterion in the selected scope; record negative/recovery cases and receiving evidence.",
-          "external_prerequisites": [],
-          "completion_evidence": []
+          "evidence_relation": "criterion_partial_results_with_issue_context",
+          "remaining_engineering": "Integrate accepted real evidence and any authorized independent verification assessments, then validate the complete factual-field, unsupported/missing-value and label presentation with the required Android catalog/UX and data-consumer receiving roles.",
+          "external_prerequisites": [
+            {
+              "kind": "source_evidence",
+              "requirement": "Accepted field evidence and independently assessed provenance where a verified presentation is claimed."
+            },
+            {
+              "kind": "source_rights",
+              "requirement": "Accepted source-use and display rights for the real evidence presented to Android users."
+            },
+            {
+              "kind": "owner_acceptance",
+              "requirement": "Named Android catalog/UX and data-consumer receiving review of real evidence semantics; source and simulation reviews do not assign or replace these roles."
+            }
+          ],
+          "completion_evidence": [],
+          "partial_results": [
+            {
+              "evidence_refs": [
+                "pr-234"
+              ],
+              "description": "The preview identifies its data as synthetic. Schema field states distinguish absent, explicit unknown, empty, mixed-unknown and supplied values without promoting false or zero. Generic identity/description/notes strings retain the literal quoted word \"unknown\". Every raw provenance status uses the existing conservative unassessed label; a claimed verified record remains Verification unestablished without an accepted independent assessment. No detail view grants a source verification result.",
+              "reproduction_commands": [
+                "./gradlew --no-daemon --dependency-verification=strict :core:test --tests ai.pickyour.core.preview.PreviewCatalogDetailsTest",
+                "./gradlew --no-daemon --dependency-verification=strict -PandroidPreview=true :preview:assembleDebug :preview:lintDebug :preview:testDebugUnitTest"
+              ],
+              "observation_basis": "Independent complete source/correction review: https://github.com/Pick-Your-AI/pick-your-ai-android/pull/224#pullrequestreview-5561623783. Final source and retention/lifecycle integration review: https://github.com/Pick-Your-AI/pick-your-ai-android/pull/234#pullrequestreview-5561710571. Exact receiving run https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39103121305 passed frozen/core job 117603290068 and unsigned Android job 117603289938; the inspected native log verified all 35 required Activity simulations, including the three catalog detail cases, after strict assembly/lint success. Its checkout a4bf34180cf5a9240a82eba0d2d2fb73824b6be6 and actual signed main merge 1a6b47ace8c4b88dafdf214e394f5fcf60cd8979 have the same reviewed tree 169ca440769f5cb3a59517548525d35ddd60fba7. This records JVM/simulated evidence, not installed, real-data or whole-criterion acceptance."
+            }
+          ]
         },
         {
           "id": "97.4",
@@ -5683,12 +5763,31 @@
           "text_sha256": "92ff1ff07671d6c9ea47ab7a478e5534affef9c148dd6a95b84782f97aa3b018",
           "status": "incomplete",
           "partial_evidence_refs": [
-            "pr-139"
+            "pr-139",
+            "pr-234"
           ],
-          "evidence_relation": "issue_context_only; inspect artifact scope before attributing any criterion result",
-          "remaining_engineering": "Implement and validate this exact criterion in the selected scope; record negative/recovery cases and receiving evidence.",
-          "external_prerequisites": [],
-          "completion_evidence": []
+          "evidence_relation": "criterion_partial_results_with_issue_context",
+          "remaining_engineering": "Implement the accepted versioned pricebook applicability/freshness join, displaying supplied currency, region, meter and effective period while preserving no-match, stale, conflicting and incomplete-rate outcomes. Keep prices outside catalog records and validate the joined negative/recovery cases with receiving review.",
+          "external_prerequisites": [
+            {
+              "kind": "shared_handoff",
+              "requirement": "Accepted versioned pricebook metadata and applicability/freshness semantics from the canonical pricing/evidence authorities."
+            }
+          ],
+          "completion_evidence": [],
+          "partial_results": [
+            {
+              "evidence_refs": [
+                "pr-234"
+              ],
+              "description": "The missing-rate path loads no pricebook and explicitly displays currency, region, meter and effective period as unknown. A recorded free/included billing class is not presented as an applicable zero-cost quote. The selected synthetic detail regression asserts these limits; this is the negative missing-rate case only.",
+              "reproduction_commands": [
+                "./gradlew --no-daemon --dependency-verification=strict :core:test --tests ai.pickyour.core.preview.PreviewCatalogDetailsTest",
+                "./gradlew --no-daemon --dependency-verification=strict -PandroidPreview=true :preview:assembleDebug :preview:lintDebug :preview:testDebugUnitTest"
+              ],
+              "observation_basis": "Independent complete source/correction review: https://github.com/Pick-Your-AI/pick-your-ai-android/pull/224#pullrequestreview-5561623783. Final source and retention/lifecycle integration review: https://github.com/Pick-Your-AI/pick-your-ai-android/pull/234#pullrequestreview-5561710571. Exact receiving run https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39103121305 passed frozen/core job 117603290068 and unsigned Android job 117603289938; the inspected native log verified all 35 required Activity simulations, including the three catalog detail cases, after strict assembly/lint success. Its checkout a4bf34180cf5a9240a82eba0d2d2fb73824b6be6 and actual signed main merge 1a6b47ace8c4b88dafdf214e394f5fcf60cd8979 have the same reviewed tree 169ca440769f5cb3a59517548525d35ddd60fba7. This records JVM/simulated evidence, not installed, real-data or whole-criterion acceptance."
+            }
+          ]
         }
       ]
     },
