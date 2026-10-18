@@ -147,6 +147,33 @@ class LocalDraftStore internal constructor(
             DraftProjectionCreation.Created(DraftSnapshotCandidate(review))
         }
 
+    /**
+     * Retain the complete reviewed input bundle while the live source transaction remains locked.
+     * Exact source, acknowledgment and archive-head checks precede any bundle/index publication.
+     */
+    fun archiveSnapshotCandidate(review: DraftProjectionPreparation.Review, acknowledgment: DraftProjectionAcknowledgment?,
+        archive: LocalSnapshotArchive, expectedArchive: SnapshotArchiveVersion): DraftSnapshotArchival {
+        var attempted: SnapshotArchiveEntry? = null
+        return guarded({ reason -> attempted?.let { DraftSnapshotArchival.Uncertain(it) }
+            ?: DraftSnapshotArchival.SourceUnavailable(reason) }) {
+            val current = when (val loaded = decode(cache.active())) {
+                DraftLoad.Missing -> return@guarded DraftSnapshotArchival.SourceConflict
+                is DraftLoad.Failed -> return@guarded DraftSnapshotArchival.SourceUnavailable(loaded.reason)
+                is DraftLoad.Available -> loaded.draft
+            }
+            if (!matchesProjectionSource(review.source.version, current)) return@guarded DraftSnapshotArchival.SourceConflict
+            if (acknowledgment?.review !== review) return@guarded DraftSnapshotArchival.ReviewAcknowledgmentMismatch
+            if (!archive.isDisjointFrom(root)) return@guarded DraftSnapshotArchival.ArchiveUnavailable(SnapshotArchiveFailure.CORRUPT)
+            val result = archive.append(DraftSnapshotCandidate(review), expectedArchive) { attempted = it }
+            attempted = when (result) {
+                is DraftSnapshotArchival.Archived -> result.entry
+                is DraftSnapshotArchival.Uncertain -> result.entry
+                else -> null
+            }
+            result
+        }
+    }
+
     private fun matchesProjectionSource(expected: DraftVersion, current: StoredDraft): Boolean =
         expected.store == root && expected.hash == current.version.hash && expected.number == current.version.number
 
@@ -274,11 +301,11 @@ class LocalDraftStore internal constructor(
     }
 }
 
-private class EnvelopeFailure(val reason: DraftStorageFailure) : RuntimeException()
-private data class DecodedEnvelope(val format: Int, val history: List<StoredRevision>, val legacySourceHash: ArtifactHash?)
+internal class EnvelopeFailure(val reason: DraftStorageFailure) : RuntimeException()
+internal data class DecodedEnvelope(val format: Int, val history: List<StoredRevision>, val legacySourceHash: ArtifactHash?)
 
 /** Private local formats, never frozen contracts or BuildSnapshots. Reads never rewrite bytes. */
-private object DraftEnvelope {
+internal object DraftEnvelope {
     private val mapper = ObjectMapper()
     private fun bad(): Nothing = throw EnvelopeFailure(DraftStorageFailure.CORRUPT)
     fun decode(bytes: ByteArray): DecodedEnvelope {
