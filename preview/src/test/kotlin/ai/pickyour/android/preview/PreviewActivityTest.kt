@@ -1231,7 +1231,7 @@ class PreviewActivityTest {
         detail.onBackPressed()
         await { !detail.isShowing }
         recreate()
-        await { button(R.string.catalog_compare_open).isEnabled }
+        await { button(R.string.catalog_compare_open).isEnabled && button(R.string.library_open).isEnabled }
         val restored = Bundle().also { comparisonSection().save(it) }
         assertEquals(captured.getStringArrayList("comparisonIds"), restored.getStringArrayList("comparisonIds"))
         assertEquals(captured.getStringArrayList("comparisonVersions"), restored.getStringArrayList("comparisonVersions"))

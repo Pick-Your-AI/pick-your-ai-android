@@ -29,10 +29,23 @@ receiving records; it does not accept implementation or release.
 [ADR 0002](decisions/0002-android-foundation-records.md) adds only #20/#24/#34's
 `01.01.md`, `01.02.md` and `01.03.md` records under that same directory after its
 independently reviewed merge. Their original intended website paths are preserved
-as history; the pinned website tree contained none of these records. Every other
-issue path retains its current authority. A versioned current acceptance record
-must bind exact delivered artifacts and reviews before issue completion; the v1
-partial-evidence ledger is not silently rewritten to assert acceptance.
+as history; the pinned website tree contained none of these records.
+[ADR 0003](decisions/0003-android-25-acceptance-record.md) separately places only
+#25's `01.05.md` record here after its independent receiving review and normal
+merge. The [account and revenue decision](delivery/android/work-packages/01.05.md)
+selects free guest-local planning, excludes optional services from the first slice,
+and retains canonical authority for any later remote branch. Every other issue
+path retains its current authority. The canonical current acceptance schema must
+bind exact delivered artifacts and reviews before issue completion, preserving
+all original criteria, prior evidence and immutable ledger-version history.
+This document delivery changes no ledger, validator or test.
+
+[ADR 0004](decisions/0004-android-47-acceptance-record.md) separately adds only
+#47's [01.06](delivery/android/work-packages/01.06.md) acceptance-baseline record
+after its independent review and normal merge. Its
+[selected device/quality requirements](ACCEPTANCE_BASELINE.md) are qualification
+targets, not observed device or release results. The original intended website
+path remains history.
 
 The existing website remains static. Shared-service placement requires [Pick-Your-AI/pick-your-ai-android#35](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/35) and Apple integration requires [Pick-Your-AI/pick-your-ai-apple#23](https://github.com/Pick-Your-AI/pick-your-ai-apple/issues/23). Canonical website inputs remain [Pick-Your-AI/pickyour.ai#15](https://github.com/Pick-Your-AI/pickyour.ai/issues/15), [Pick-Your-AI/pickyour.ai#16](https://github.com/Pick-Your-AI/pickyour.ai/issues/16), [Pick-Your-AI/pickyour.ai#17](https://github.com/Pick-Your-AI/pickyour.ai/issues/17) and [Pick-Your-AI/pickyour.ai#18](https://github.com/Pick-Your-AI/pickyour.ai/issues/18). Reuse those outputs and Android/shared-service work; do not independently assign the same backend work twice. No runtime code belongs in the research repository.
 

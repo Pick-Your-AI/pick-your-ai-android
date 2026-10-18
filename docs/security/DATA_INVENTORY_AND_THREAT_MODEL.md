@@ -78,6 +78,15 @@ Configured-path tests use an explicit synthetic policy, and installed external
 handler behavior remains unverified. The earlier no-dispatch observation above
 describes its pinned source baseline, not this later adapter code.
 
+Subsequent partial F10/T08 source adds the [local diagnostic preview](../LOCAL_DIAGNOSTICS.md).
+Only compiled app metadata, the OS API integer and finite UI states enter its
+immutable allowlisted report; draft fields, URLs, paths, files and raw logs do not.
+An explicit action opens the system text Sharesheet with exactly the reviewed
+payload. Support delivery remains unavailable, and opening a chooser establishes
+no receiving-app transfer or monitored support receipt. Earlier observations of
+absent diagnostic transfer describe their pinned source baseline; installed
+sharing, privacy and receiving acceptance remain unverified.
+
 ## Abuse cases, controls and verification requirements
 
 IDs below form the full handoff checklist. The receipt above records executed checks for specific local components; the broader negative/recovery journeys remain outstanding where no exact result is recorded. Document validation does not execute those journeys. Preview input/history/catalog/cleanup bounds are now recorded in source; future import transport limits, total storage quotas, service rate limits and remote retention periods still require decisions and boundary tests before enablement.

@@ -92,8 +92,15 @@ class CostEstimateAdapter {
             return reject(CostRejection.INCONSISTENT_COVERAGE)
         val currency = e["currency"].textValue()
         val totals = listOf("subtotal", "tax", "total").map { e[it] }
-        if ((totals + lines.flatMap { listOf(it["unit_price"], it["amount"]) }).any { it["currency"].textValue() != currency })
+        val moneyNodes = totals + lines.flatMap { listOf(it["unit_price"], it["amount"]) }
+        if (moneyNodes.any { it["currency"].textValue() != currency })
             return reject(CostRejection.MIXED_CURRENCY)
+        // Typed money uses whole-string lexemes; a schema-permitted terminal LF is not coerced.
+        try {
+            moneyNodes.forEach { ContractMoney.fromJson(it) }
+        } catch (_: ContractRejected) {
+            return reject(CostRejection.INVALID_ESTIMATE)
+        }
         fun amount(money: JsonNode): BigDecimal = ContractMoney.fromJson(money).amount.exactValue()
         val sum = lines.fold(BigDecimal.ZERO) { acc, line -> acc + amount(line["amount"]) }
         if (sum.compareTo(amount(e["subtotal"])) != 0 ||

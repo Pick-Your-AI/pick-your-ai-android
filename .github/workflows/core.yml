@@ -375,6 +375,62 @@ jobs:
               raise SystemExit("Local revision comparison result count does not match executed cases")
           print(f"Verified {len(cases)} simulated local revision comparison tests; no installed-device claim")
           PYTEST
+      - name: Require private diagnostic preview and consent regressions to execute
+        run: |
+          python - <<'PYTEST'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          report = pathlib.Path("preview/build/test-results/testDebugUnitTest/TEST-ai.pickyour.android.preview.LocalDiagnosticsActivityTest.xml")
+          suite = ET.parse(report).getroot()
+          expected = {
+              "everyFiniteReportStateKeepsOnlyAllowlistedNonidentifyingFields",
+              "actualReviewExcludesSeededPrivateDataAndSharesOnlyTheExactPreviewAfterConsent",
+              "cancelledDismissedAndReplacedReportsCannotDispatchRetainedControls",
+              "reportSnapshotStaysImmutableAndEveryNewShareRequiresFreshConsent",
+              "unavailableChooserKeepsSafeFailureAndRequiresAnotherReviewedAttempt",
+              "recreationAndClosedOwnersRetireReviewAndShareCallbacks",
+              "pausedActivityRetiresReportAndCannotReviewUntilResumed",
+              "narrowRtlLargeTextReportKeepsCompleteTextAndReachableShareControl",
+          }
+          cases = suite.findall("testcase")
+          names = [case.attrib["name"] for case in cases]
+          if not expected <= set(names) or len(names) != len(set(names)):
+              raise SystemExit("Missing or repeated diagnostic preview regression")
+          if any(case.findall("failure") or case.findall("error") or case.findall("skipped") for case in cases):
+              raise SystemExit("Diagnostic preview regression did not pass")
+          if int(suite.attrib["tests"]) != len(cases):
+              raise SystemExit("Diagnostic preview result count does not match executed cases")
+          print(f"Verified {len(cases)} simulated diagnostic preview tests; no installed or delivery claim")
+          PYTEST
+      - name: Require explicit retained-revision pair regressions to execute
+        run: |
+          python - <<'PYTEST'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          report = pathlib.Path("preview/build/test-results/testDebugUnitTest/TEST-ai.pickyour.android.preview.RevisionPairComparisonActivityTest.xml")
+          suite = ET.parse(report).getroot()
+          expected = {
+              "twoOlderRevisionsExcludeSavedHeadAndPendingInputsWithoutWriting",
+              "reversedAndIdenticalPairsRetainTheChosenDirection",
+              "changingBeforeRevisionRetiresBothOldPickerControls",
+              "cancellationAtEitherPickerOrPreparationCannotResumeThePair",
+              "newHistoryRequestRetiresEitherRetainedRevisionPicker",
+              "storageReadRetiresAfterPickerWithoutChangingTheSavedBaseline",
+              "newerPairWinsWhenOlderWorkerReturnsAfterAnotherSelection",
+              "recreationCancelsTheSelectedBeforeRevisionAndPreservesPendingInputs",
+              "unavailableAfterMetadataIsNotFilledFromTheCurrentSavedHead",
+              "narrowRtlLargeTextRetainsBothPickerIdentitiesAndCompleteComparison",
+          }
+          cases = suite.findall("testcase")
+          names = [case.attrib["name"] for case in cases]
+          if not expected <= set(names) or len(names) != len(set(names)):
+              raise SystemExit("Missing or repeated retained-revision pair regression")
+          if any(case.findall("failure") or case.findall("error") or case.findall("skipped") for case in cases):
+              raise SystemExit("Retained-revision pair regression did not pass")
+          if int(suite.attrib["tests"]) != len(cases):
+              raise SystemExit("Retained-revision pair result count does not match executed cases")
+          print(f"Verified {len(cases)} simulated retained-revision pair tests; no installed-device claim")
+          PYTEST
       - name: Retain unsigned diagnostic and lint reports
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
