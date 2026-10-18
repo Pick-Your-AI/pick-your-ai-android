@@ -181,6 +181,41 @@ REVIEWED_DESIGNS[47] = {
 }
 
 
+# Signed #347 delivers the hosting and shared-service decision with its explicit
+# open operating gate. It does not accept a live operator, endpoint or restore.
+DESIGN_35_REVISION = '4c753bd69f3857d9b15051be86078948e61074ac'
+DESIGN_35_PATH = 'docs/delivery/android/work-packages/01.04.md'
+DESIGN_35_DECISION = f'{BASE}/blob/{DESIGN_35_REVISION}/docs/decisions/0005-android-35-acceptance-record.md'
+DESIGN_35_ACCEPTANCE = {
+    'scope': 'android_service_hosting_and_explicit_operating_gate_decision',
+    'evidence_ref': 'pr-347',
+    'decision_revision': DESIGN_35_REVISION,
+    'decision_url': DESIGN_35_DECISION,
+    'record_url': f'{BASE}/blob/{DESIGN_35_REVISION}/{DESIGN_35_PATH}',
+    'baseline_url': f'{BASE}/blob/{DESIGN_35_REVISION}/docs/SERVICE_BASELINE.md',
+    'receiving_reviews': [
+        f'{BASE}/pull/344#pullrequestreview-5563320716',
+        f'{BASE}/pull/344#pullrequestreview-5563316183',
+        f'{BASE}/pull/351#pullrequestreview-5563388193',
+        f'{BASE}/pull/347#pullrequestreview-5563464371',
+    ],
+    'source_review_revision': '0a04903a89203ac199617fe3051453e0c5a997a6',
+    'historical_acceptance_record': {
+        'repository': 'Pick-Your-AI/pickyour.ai', 'path': DESIGN_35_PATH,
+    },
+}
+REVIEWED_DESIGNS[35] = {
+    'record': {'repository': REPOSITORY, 'path': DESIGN_35_PATH},
+    'acceptance': DESIGN_35_ACCEPTANCE,
+    'criteria': [
+        '2c4f0e64a78baf55954f341e6dbdcf2d4719512f928bb3d808e542116a771475',
+        'aae1f0146dc5a4bfd7d9c2840990b7e9441b57f4a56efefa601fa085442e5a57',
+        '69ca9177c58548856a51c8e1fda18e251452a17f00613cfed158f9e0699bb8fe',
+    ],
+    'artifact_url': DESIGN_35_DECISION,
+}
+
+
 def require(condition, message):
     if not condition:
         raise ValueError(message)
@@ -193,7 +228,7 @@ def source_criteria(body):
 
 
 def validate(ledger, source=None):
-    require(type(ledger['schema_version']) is int and ledger['schema_version'] == 5, 'unsupported schema version')
+    require(type(ledger['schema_version']) is int and ledger['schema_version'] == 6, 'unsupported schema version')
     require(ledger['repository'] == REPOSITORY, 'wrong repository')
     evidence = ledger['evidence']
     require(bool(evidence), 'missing evidence catalog')
@@ -285,7 +320,7 @@ def main():
     except (OSError, ValueError, KeyError, TypeError) as error:
         print(f'Delivery ledger check failed: {error}', file=sys.stderr)
         return 1
-    print('PASS: 129 unique issue URLs, 423 incomplete criteria, 18 reviewed design criteria, pinned evidence and canonical paths' +
+    print('PASS: 129 unique issue URLs, 420 incomplete criteria, 21 reviewed design criteria, pinned evidence and canonical paths' +
           ('; exact source criteria matched.' if source is not None else '; live source comparison NOT performed.'))
     return 0
 

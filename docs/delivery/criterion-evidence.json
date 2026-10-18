@@ -1,10 +1,10 @@
 {
-  "schema_version": 5,
+  "schema_version": 6,
   "observed_on": "2026-10-18",
   "repository": "Pick-Your-AI/pick-your-ai-android",
   "implementation_baseline": "cc4869aa40316fe81b4e00a2e6b73a2df01a2329",
   "source": "Live GitHub issue-list read across all states; criterion order and exact text retained. Closed accepted issues remain in the source comparison.",
-  "purpose": "Living evidence index: 18 reviewed documentary/design criteria for Android #20/#23/#24/#25/#34/#47 are complete; 423 criteria remain incomplete. This does not replace acceptance receipts, GitHub issue status or native dependencies.",
+  "purpose": "Living evidence index: 21 reviewed documentary/design criteria for Android #20/#23/#24/#25/#34/#35/#47 are complete; 420 criteria remain incomplete. This does not replace acceptance receipts, GitHub issue status or native dependencies.",
   "evidence": {
     "pr-131": {
       "pr_url": "https://github.com/Pick-Your-AI/pick-your-ai-android/pull/131",
@@ -145,6 +145,13 @@
       "revision": "b6935a8ee7843831f90b0219c8794071557c71d4",
       "artifact_url": "https://github.com/Pick-Your-AI/pick-your-ai-android/blob/b6935a8ee7843831f90b0219c8794071557c71d4/docs/decisions/0004-android-47-acceptance-record.md",
       "scope_limit": "Accepted Android #47 qualification and ownership baseline decision, A01–A13 requirements and measurement/artifact methods, selected device/API/window targets, exact criterion mapping and narrowly scoped ADR 0004 placement, with actual independent source and delegated product/Android receiving reviews. This accepts three literal design outcomes. Physical equipment and installed-device results, measured performance/resource/capacity budgets, participant or source-rights/data qualification, future publisher/support/operating commitments, store and production release retain their separate prerequisites; no selected target is represented as an observed result."
+    },
+    "pr-347": {
+      "pr_url": "https://github.com/Pick-Your-AI/pick-your-ai-android/pull/347",
+      "observed_state": "merged",
+      "revision": "4c753bd69f3857d9b15051be86078948e61074ac",
+      "artifact_url": "https://github.com/Pick-Your-AI/pick-your-ai-android/blob/4c753bd69f3857d9b15051be86078948e61074ac/docs/decisions/0005-android-35-acceptance-record.md",
+      "scope_limit": "Accepted Android #35 service and hosting decision, one canonical Node API and managed PostgreSQL topology, explicit per-client stateful responsibility and activation mapping, source-qualified recovery/credential/isolation assumptions and narrowly scoped ADR 0005 placement. Actual independent product/Android and Apple affected-client reviews accept the three literal decision outcomes, including the explicitly open O1 operating-acceptance gate permitted by the issue. O1–O6 remain activation requirements: no person has accepted future operations, and no live endpoint, purchase, credential custody, deployment, restore, private-data handling, installed device or release is established. Canonical website and Research interfaces remain shared authority; Android receiving work is not a prerequisite for another accepted client. All prior execution receipts retain their actual checkout and limits."
     }
   },
   "issues": [
@@ -2362,7 +2369,7 @@
       "url": "https://github.com/Pick-Your-AI/pick-your-ai-android/issues/35",
       "title": "Android 01.04: Service and hosting decision",
       "canonical_acceptance_record": {
-        "repository": "Pick-Your-AI/pickyour.ai",
+        "repository": "Pick-Your-AI/pick-your-ai-android",
         "path": "docs/delivery/android/work-packages/01.04.md"
       },
       "criteria": [
@@ -2370,47 +2377,67 @@
           "id": "35.1",
           "text": "Choose the minimum production API/data-store deployment and operations owner; distinguish the existing static GoDaddy site from a stateful backend.",
           "text_sha256": "2c4f0e64a78baf55954f341e6dbdcf2d4719512f928bb3d808e542116a771475",
-          "status": "incomplete",
+          "status": "complete",
           "partial_evidence_refs": [
             "pr-131"
           ],
-          "evidence_relation": "issue_context_only; inspect artifact scope before attributing any criterion result",
-          "remaining_engineering": "Coordinate one canonical service placement with parent/website #17 owner; define transaction, rollback and restore interfaces.",
-          "external_prerequisites": [
-            {
-              "kind": "owner_acceptance",
-              "requirement": "Actual operating owner acceptance and authorized account/data-location inputs for final production hosting selection; local topology design remains feasible."
-            }
-          ],
-          "completion_evidence": []
+          "evidence_relation": "criterion_complete_reviewed_design_outcome",
+          "remaining_engineering": "",
+          "external_prerequisites": [],
+          "completion_evidence": [
+            "pr-347"
+          ]
         },
         {
           "id": "35.2",
           "text": "Every required stateful responsibility maps to a service or explicit deferred feature; static hosting is not treated as a write API.",
           "text_sha256": "aae1f0146dc5a4bfd7d9c2840990b7e9441b57f4a56efefa601fa085442e5a57",
-          "status": "incomplete",
+          "status": "complete",
           "partial_evidence_refs": [
             "pr-131"
           ],
-          "evidence_relation": "issue_context_only; inspect artifact scope before attributing any criterion result",
-          "remaining_engineering": "Coordinate one canonical service placement with parent/website #17 owner; define transaction, rollback and restore interfaces.",
+          "evidence_relation": "criterion_complete_reviewed_design_outcome",
+          "remaining_engineering": "",
           "external_prerequisites": [],
-          "completion_evidence": []
+          "completion_evidence": [
+            "pr-347"
+          ]
         },
         {
           "id": "35.3",
           "text": "Recovery, credential custody and isolation are covered; operational assumptions are sourced or labeled estimates.",
           "text_sha256": "69ca9177c58548856a51c8e1fda18e251452a17f00613cfed158f9e0699bb8fe",
-          "status": "incomplete",
+          "status": "complete",
           "partial_evidence_refs": [
             "pr-131"
           ],
-          "evidence_relation": "issue_context_only; inspect artifact scope before attributing any criterion result",
-          "remaining_engineering": "Coordinate one canonical service placement with parent/website #17 owner; define transaction, rollback and restore interfaces.",
+          "evidence_relation": "criterion_complete_reviewed_design_outcome",
+          "remaining_engineering": "",
           "external_prerequisites": [],
-          "completion_evidence": []
+          "completion_evidence": [
+            "pr-347"
+          ]
         }
-      ]
+      ],
+      "accepted_design_outcome": {
+        "scope": "android_service_hosting_and_explicit_operating_gate_decision",
+        "evidence_ref": "pr-347",
+        "decision_revision": "4c753bd69f3857d9b15051be86078948e61074ac",
+        "decision_url": "https://github.com/Pick-Your-AI/pick-your-ai-android/blob/4c753bd69f3857d9b15051be86078948e61074ac/docs/decisions/0005-android-35-acceptance-record.md",
+        "record_url": "https://github.com/Pick-Your-AI/pick-your-ai-android/blob/4c753bd69f3857d9b15051be86078948e61074ac/docs/delivery/android/work-packages/01.04.md",
+        "baseline_url": "https://github.com/Pick-Your-AI/pick-your-ai-android/blob/4c753bd69f3857d9b15051be86078948e61074ac/docs/SERVICE_BASELINE.md",
+        "receiving_reviews": [
+          "https://github.com/Pick-Your-AI/pick-your-ai-android/pull/344#pullrequestreview-5563320716",
+          "https://github.com/Pick-Your-AI/pick-your-ai-android/pull/344#pullrequestreview-5563316183",
+          "https://github.com/Pick-Your-AI/pick-your-ai-android/pull/351#pullrequestreview-5563388193",
+          "https://github.com/Pick-Your-AI/pick-your-ai-android/pull/347#pullrequestreview-5563464371"
+        ],
+        "source_review_revision": "0a04903a89203ac199617fe3051453e0c5a997a6",
+        "historical_acceptance_record": {
+          "repository": "Pick-Your-AI/pickyour.ai",
+          "path": "docs/delivery/android/work-packages/01.04.md"
+        }
+      }
     },
     {
       "number": 36,
