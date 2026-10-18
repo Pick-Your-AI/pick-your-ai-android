@@ -53,6 +53,8 @@ FRAMEWORK_BARRIER = ("shell", "am", "wait-for-broadcast-barrier", "--flush-appli
 HOME_FOCUS_QUERY = ("shell", "dumpsys", "-t", "3", "activity", "activities")
 HOME_ROOT_ATTEMPT_LIMIT = 3
 HOME_ROOT_UNAVAILABLE = "ERROR: null root node returned by UiTestAutomationBridge.\n"
+UI_SCROLL_WHEEL_UNITS = 2
+UI_SCROLL_MAX_STEPS = 64
 GUEST_READINESS_COMMANDS = (
     ("boot_completed", ("getprop", "sys.boot_completed"), ("1",)),
     ("boot_animation", ("getprop", "init.svc.bootanim"), ("", "stopped")),
@@ -313,6 +315,19 @@ def single_match(root: ET.Element, predicate) -> ET.Element | None:
     matches = [node for node in root.iter("node") if visible(node) and predicate(node)]
     require(len(matches) <= 1, "Ambiguous UI selector; refusing to guess a target")
     return matches[0] if matches else None
+
+
+def system_bar_bounds(root: ET.Element) -> list[tuple[int, int, int, int]]:
+    """Read only the two known app-decor bar identities from this fresh hierarchy."""
+    found, seen = [], set()
+    for node in root.iter("node"):
+        identity = node.get("resource-id")
+        if identity in ("android:id/navigationBarBackground", "android:id/statusBarBackground"):
+            require(identity not in seen and node.get("package") == PACKAGE,
+                    "Ambiguous or foreign system bar identity")
+            seen.add(identity)
+            found.append(bounds(node))
+    return found
 
 
 def labelled_editor(root: ET.Element, label: str) -> ET.Element | None:
@@ -1097,34 +1112,108 @@ class Ui:
         finally:
             attempt["seconds"] = round(time.monotonic() - started, 3)
 
-    def scroll(self, root: ET.Element, down: bool) -> bool:
+    def scroll(self, root: ET.Element, down: bool, *, observation: dict | None = None) -> bool:
         node = single_match(root, lambda item: item.get("class") == "android.widget.ScrollView")
         if node is None:
             return False
         left, top, right, bottom = bounds(node)
-        x = max(left + 1, right - 12)
-        high, low = top + (bottom - top) // 5, bottom - (bottom - top) // 5
-        start, end = (low, high) if down else (high, low)
-        self.device.shell("input", "swipe", str(x), str(start), str(x), str(end), "250")
+        original_bounds = [left, top, right, bottom]
+        for bar_left, bar_top, bar_right, bar_bottom in system_bar_bounds(root):
+            if bar_right <= left or bar_left >= right or bar_bottom <= top or bar_top >= bottom:
+                continue
+            if bar_left <= left and bar_right >= right and bar_top <= top:
+                top = min(bottom, bar_bottom)
+            elif bar_left <= left and bar_right >= right and bar_bottom >= bottom:
+                bottom = max(top, bar_top)
+            elif bar_top <= top and bar_bottom >= bottom and bar_left <= left:
+                left = min(right, bar_right)
+            elif bar_top <= top and bar_bottom >= bottom and bar_right >= right:
+                right = max(left, bar_left)
+            else:
+                raise SmokeFailure("System bar does not define an unambiguous scroll edge")
+        require(left < right and top < bottom, "System bars cover the entire scroll viewport")
+        x = max(left, right - 12)
+        y = (top + bottom) // 2
+        units = -UI_SCROLL_WHEEL_UNITS if down else UI_SCROLL_WHEEL_UNITS
+        observation = observation if observation is not None else {}
+        observation.update(scroll_view_bounds=original_bounds,
+                           unobscured_scroll_bounds=[left, top, right, bottom])
+        # Android 15 dispatches mouse VSCROLL as one synchronous ACTION_SCROLL.
+        # Touch swipe's moving ACTION_UP can instead fling past an unseen control.
+        result = observe_ui_command(
+            self.device, ("shell", "input", "mouse", "scroll", str(x), str(y),
+                          "--axis", "VSCROLL," + str(units)),
+            observation, timeout=30)
+        require(type(result.returncode) is int and result.returncode == 0
+                and isinstance(result.stdout, str) and not result.stdout.strip()
+                and isinstance(result.stderr, str) and not result.stderr.strip(),
+                "Owned UI wheel command did not complete cleanly")
         return True
 
     def seek(self, selector, description: str, scroll=True) -> ET.Element:
-        previous = None
-        for direction, limit in ((False, 8), (True, 14)) if scroll else ((False, 8),):
-            for _ in range(limit):
-                root = self.snapshot()
-                match = selector(root)
-                if match is not None:
-                    return match
-                if not scroll:
-                    time.sleep(0.25)
-                    continue
-                current = ET.tostring(root)
-                if current == previous or not self.scroll(root, direction):
-                    break
-                previous = current
-            previous = None
-        raise SmokeFailure("UI control not found: " + description)
+        navigation = self.observations.setdefault("navigation", {"attempted": 0, "recent_searches": []})
+        navigation["attempted"] += 1
+        attempt = {"sequence": navigation["attempted"], "description": bounded_text(description, 120),
+                   "scroll": scroll, "status": "searching", "snapshots": 0, "wheel_events": 0,
+                   "wheel_units": UI_SCROLL_WHEEL_UNITS,
+                   "wheel_step_limit_per_direction": UI_SCROLL_MAX_STEPS, "recent_frames": []}
+        navigation["last_search"] = attempt
+        navigation["recent_searches"].append(attempt)
+        del navigation["recent_searches"][:-8]
+        started = time.monotonic()
+        try:
+            directions = ((False, UI_SCROLL_MAX_STEPS), (True, UI_SCROLL_MAX_STEPS)) if scroll else ((False, 7),)
+            for direction, limit in directions:
+                previous = None
+                # Inspect the initial viewport and every resulting viewport,
+                # including the one after the final permitted wheel event.
+                for step in range(limit + 1):
+                    root = self.snapshot()
+                    current = ET.tostring(root)
+                    texts = [item.get("text") for item in root.iter("node") if visible(item) and item.get("text")]
+                    frame = {"direction": ("down" if direction else "up") if scroll else "wait",
+                             "step": step, "snapshot_sequence": self.observations["attempted"],
+                             "parsed_xml_sha256": hashlib.sha256(current).hexdigest(),
+                             "visible_label_count": len(texts), "visible_labels": [text[:120] for text in texts[:24]],
+                             "visible_labels_truncated": len(texts) > 24 or any(len(text) > 120 for text in texts[:24])}
+                    attempt["snapshots"] += 1
+                    attempt["recent_frames"].append(frame)
+                    del attempt["recent_frames"][:-16]
+                    bars = system_bar_bounds(root)
+                    frame["system_bars"] = [list(box) for box in bars]
+                    match = selector(root)
+                    if match is not None:
+                        left, top, right, bottom = bounds(match)
+                        x, y = (left + right) // 2, (top + bottom) // 2
+                        occluded = any(a <= x < c and b <= y < d for a, b, c, d in bars)
+                        frame.update(matched_center=[x, y], matched_center_in_system_bar=occluded)
+                        if not occluded:
+                            frame["result"] = "found"
+                            attempt["status"] = "found"
+                            return match
+                    if not scroll:
+                        frame["result"] = "waiting"
+                        time.sleep(0.25)
+                        continue
+                    if current == previous:
+                        frame["result"] = "unchanged"
+                        break
+                    if step == limit:
+                        frame["result"] = "step_limit"
+                        break
+                    if not self.scroll(root, direction, observation=frame.setdefault("wheel_command", {})):
+                        frame["result"] = "no_scroll_container"
+                        break
+                    attempt["wheel_events"] += 1
+                    frame["result"] = "scrolled"
+                    previous = current
+            raise SmokeFailure("UI control not found: " + description)
+        except Exception as error:
+            attempt.update(status="failed", error={"type": type(error).__name__, "message": bounded_text(str(error), 1200)})
+            navigation.setdefault("first_failed_search", attempt)
+            raise
+        finally:
+            attempt["seconds"] = round(time.monotonic() - started, 3)
 
     def text(self, text: str, *, kind=None, contains=False, scroll=True):
         def selector(root):

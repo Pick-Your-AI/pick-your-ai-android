@@ -12,7 +12,9 @@ retained and bound across the workflow, unprivileged child and final receipts.
 The first ACL/KVM attempt booted and verified that display, then failed its HOME
 root acquisition and exact cleanup check. The second acquired fresh HOME XML and
 focus but rejected its embedded search package; that attempt restored the exact
-original ACL. Both failed installed results are recorded below.
+original ACL. The third passed HOME readiness and the installed launch case,
+then failed to locate Save locally; rotation and deletion did not run. Its exact
+original ACL was also restored. These failed installed results are recorded below.
 The earlier RunAs-group denial and Intel macOS failures remain recorded below. The workflow
 definition and host-side harness tests are preparation; only an observed passing
 run and its exact receipt establish installed-emulator evidence.
@@ -788,6 +790,125 @@ at 2,859,217 bytes / SHA-256
 Lint reports 15 warnings and no errors; the pinned scanner inspects 173 reachable
 commits with no findings. These passing producer results are distinct from the
 failed installed job and every physical-device or release requirement.
+
+### Observed installed launch and bounded wheel navigation
+
+[Run 39153757625](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39153757625),
+attempt 1 / installed job `117753770213`, checked out signed prepared commit
+`0c1a0bcf1de1c0744f6a9c77131536f9185ad1f1`, exact tree
+`13a8434780a611b7912ddafe94bbbd4d1ec9e03a`, from preparation head
+`beff1a6e3e08fe142672a3135549d9bd9bd305df`. Original installed artifact
+`12146102587` is 343,956 bytes with verified ZIP SHA-256
+`43f0cfe50f220f320e1f40a23af9226b71b2bcf3ae92f2a5864215d48bc7c67d`.
+Its four-case receipt and JUnit remain failed:
+
+| Actual case | Observed result |
+| --- | --- |
+| `installed_synthetic_launch` | Passed in 27.995 seconds |
+| `acknowledged_save_survives_force_stop` | Failed in 38.271 seconds: `UI control not found: Save locally` |
+| `pending_fields_survive_rotation` | `not_run` |
+| `confirmed_deletion_does_not_resurrect` | `not_run` |
+
+The owned guest booted in 33.696 seconds, passed the nine readiness checks,
+framework barrier and fresh HOME/focus gate in 9.629 seconds, and verified the
+explicit 720×1280/280-dpi profile. The strict initial Activity launch returned
+integer zero, empty stderr and `Status: ok` / cold launch in 1.201 seconds. All
+27 installed hierarchy captures completed with exit zero; none used the 137
+exception. The unchanged case sequence entered and verified the three synthetic
+fields before attempting Save. It did not reach the Save acknowledgement or
+the save case's process restart.
+
+The retained launch XML/screenshot show the top of the form. The separate failed
+checkpoint shows its catalog, validation and diagnostic controls near the bottom;
+Save is absent from that viewport. The last two scan reads and the later failure
+checkpoint have the same decoded-text digest. The complete retained Activity
+state names the app as resumed and focused. These observations do not reconstruct
+the intervening XML omitted from the bounded stream summaries, prove that a
+particular gesture skipped Save, or establish a layout defect in the application.
+
+There is nevertheless a concrete navigation risk in the previous source. Its
+250-millisecond touch swipe covers 60% of the reported ScrollView height. Android
+15's release-tag
+[InputShellCommand](https://github.com/aosp-mirror/platform_frameworks_base/blob/android-15.0.0_r1/services/core/java/com/android/server/input/InputShellCommand.java)
+finishes that moving gesture with `ACTION_UP`; the same tag's
+[ScrollView](https://github.com/aosp-mirror/platform_frameworks_base/blob/android-15.0.0_r1/core/java/android/widget/ScrollView.java)
+can then fling above its minimum velocity. Consecutive hierarchy scans therefore
+have no source-level guarantee of overlapping viewports.
+
+The correction sends one `input mouse scroll X Y --axis VSCROLL,-2` event when
+scanning down and `VSCROLL,2` when scanning up. The cited input implementation
+injects one `ACTION_SCROLL` and waits for its dispatch. ScrollView applies the
+vertical factor, clips the resulting offset to its range and scrolls
+synchronously. Although it calls
+[DifferentialMotionFlingHelper](https://github.com/aosp-mirror/platform_frameworks_base/blob/android-15.0.0_r1/core/java/android/widget/DifferentialMotionFlingHelper.java),
+the same release's
+[VelocityTracker](https://github.com/aosp-mirror/platform_frameworks_base/blob/android-15.0.0_r1/core/java/android/view/VelocityTracker.java)
+and [native tracker](https://android.googlesource.com/platform/frameworks/native/+/refs/tags/android-15.0.0_r1/libs/input/VelocityTracker.cpp)
+track X, Y and SCROLL, without VSCROLL velocity. The
+[JNI bridge](https://github.com/aosp-mirror/platform_frameworks_base/blob/android-15.0.0_r1/core/jni/android_view_VelocityTracker.cpp)
+returns zero for that unsupported velocity. This supports the selected mouse
+wheel path without a touch-release fling in the inspected source. The source's
+[default vertical factor](https://github.com/aosp-mirror/platform_frameworks_base/blob/android-15.0.0_r1/core/res/res/values/config.xml)
+is 64dp, making two units 128dp before clipping. The actual image's factor,
+resource overlays and viewport are not measured by these source reads; an exact
+source/binary equivalence or successful installed navigation is not asserted.
+
+Each search inspects a fresh initial hierarchy and the result of every wheel
+event, including the final permitted event. It allows at most 64 events in each
+direction, resets its previous-viewport comparison before scanning down, and
+stops a direction when consecutive parsed hierarchies are identical. A missing
+control still fails after the bounded scan. Non-scrolling searches retain their
+eight fresh observations and 250-millisecond waits. There is no timeout, launch,
+HOME-readiness, case, selector, app, image, display-profile or ACL change. The
+wheel command itself must return an integer zero and complete empty stdout and
+stderr; command errors and failed fresh captures are not retried by navigation.
+
+The original XML also reports the full `[0,0][720,1280]` ScrollView and an
+app-decor `android:id/navigationBarBackground` at `[0,1196][720,1280]`. Thus a
+positive-bounds control can have its center beneath a reported bar. Each fresh
+search now checks the two exact navigation/status-bar resource IDs, requires
+unique app-owned positive bounds, and continues searching when the matched
+control's center lies in either reported bar. It does not rewrite the target
+node or weaken its exact selector. Wheel coordinates use the part of the
+ScrollView left after excluding unambiguous edge bars; this includes landscape
+side bars. Duplicate, foreign or malformed bar identities, a bar intersecting
+the interior without defining an edge, or a fully covered scroll viewport fail
+before wheel input. Unknown or unreported overlays remain an actual-device
+limitation; the source does not claim general hit-testing or accessibility
+acceptance. The existing tap continues to use the returned observed center.
+
+Navigation observations retain the first failed search and the most recent
+eight searches, each with at most 16 recent frames. Each frame records direction,
+step, existing snapshot sequence, at most 24 visible app labels of 120 characters,
+explicit truncation flags, reported bar bounds and the bounded wheel command
+result when attempted. `parsed_xml_sha256` hashes ElementTree's serialization;
+it is separate from the unchanged original decoded-read digest and does not
+reconstruct discarded XML. A later successful search cannot erase the retained
+first failure. These are retention limits, not a new subprocess stream-memory
+bound or a replacement for original artifact evidence.
+
+Sixteen focused host methods exercise the intervening-target model, the fresh
+post-64 viewport, both event caps, direction/end handling, no stale-match reuse,
+reported-bar clipping in both orientations, ambiguous/foreign/invalid bounds,
+command and capture failures, and bounded observation retention. In the same
+synthetic document the actual previous finder observes offsets 0, 1000 and 1800
+and misses a target between them; the new finder observes 128 then 256 and finds
+it. Separate clipped-button models expose the previous tap inside a reported bar
+and require a fresh unoccluded center before the new tap. These are host-only
+counterexamples with disclosed movement assumptions, not replayed emulator
+gestures or reconstruction of the original missing viewport.
+All 210 current host methods passed with no failures, errors or skips. The
+unchanged lifecycle tests include harmless private subprocess fixtures; no
+production ACL, SDK, emulator or Android input command ran in this verification.
+
+The original run's ACL cleanup remains independently verifiable: the one fixed
+BASE restoration command completed with clean zero status, proven permission
+subtree quiescence and final `ECHILD`; its entire after observation equals the
+original before observation. The actor that had removed the temporary named
+entry remains unidentified. The boundary records the original failed child,
+and the two unexecuted installed cases remain unexecuted. Passing producer
+artifacts for this tree contain 2,635 core and 222 simulated native cases with no
+failures/errors/skips; those results do not supply the missing installed cases.
 
 ### Observed pre-installation SystemUI ANR and retained global ANR records
 
