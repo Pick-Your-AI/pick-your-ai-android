@@ -241,6 +241,7 @@ class PreviewActivity : Activity() {
         }
         content.addView(tierSection)
         componentSection = SelectionEditSection(this, ::commitSelection)
+        componentSection.restore(savedInstanceState)
         content.addView(componentSection)
         title.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
@@ -545,7 +546,7 @@ class PreviewActivity : Activity() {
         retryDeleteButton.isEnabled = pendingDeleteId != null && !storageBusy
         if (::tierSection.isInitialized) tierSection.update(savedRecord, storageReady && !storageBusy && matchesSaved())
         if (::catalog.isInitialized) catalog.selectionEnabled(!storageBusy)
-        if (::componentSection.isInitialized) componentSection.update(savedRecord, storageReady && !storageBusy && matchesSaved())
+        if (::componentSection.isInitialized) componentSection.update(savedRecord, storageReady && !storageBusy && matchesSaved(), currentDraftId.value)
     }
 
     private fun showHistory() {
@@ -1192,6 +1193,7 @@ class PreviewActivity : Activity() {
         outState.putBoolean("unsupportedEntry", unsupportedEntry)
         catalog.saveState(outState)
         catalogComparison.save(outState)
+        componentSection.save(outState)
         outState.putString("pendingDeleteId", pendingDeleteId?.value)
         outState.putString("draftId", currentDraftId.value)
         outState.putBoolean("selectionResolved", selectionResolved)
