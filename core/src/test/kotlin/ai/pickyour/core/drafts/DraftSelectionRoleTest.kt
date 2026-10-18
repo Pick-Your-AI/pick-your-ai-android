@@ -103,10 +103,10 @@ class DraftSelectionRoleTest {
             DraftSelectionCommands.apply(before, SelectionCommand.Configure(selection.id, selection.settings.put("temperature", 9), "candidate")))
         assertEquals(SelectionEdit.Rejected(SelectionRejection.MISSING_SELECTION),
             DraftSelectionCommands.apply(before, SelectionCommand.Configure("missing_selection", selection.settings, "candidate")))
-        val tool = SelectionFixtures.selection("tool", "selection_tool")
+        val retained = SelectionFixtures.selection("deployment_target", "selection_deployment")
         assertEquals(SelectionEdit.Rejected(SelectionRejection.UNSUPPORTED_KIND),
-            DraftSelectionCommands.apply(DraftContent(components = DraftSelections(listOf(tool))),
-                SelectionCommand.Configure(tool.id, tool.settings, "candidate")))
+            DraftSelectionCommands.apply(DraftContent(components = DraftSelections(listOf(retained))),
+                SelectionCommand.Configure(retained.id, retained.settings, "candidate")))
         assertEquals(listOf(selection), before.components.selections)
     }
 

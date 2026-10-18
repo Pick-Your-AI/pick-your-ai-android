@@ -1,10 +1,22 @@
-# Explicit local T1/T2 selection controls
+# Explicit local T0/T1/T2/T3/T4 selection controls
 
 Partial [#112](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/112) and
 [#98](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/98), using the
 accepted native Views preview and canonical managed-library command adapter.
 Canonical receiving records remain the existing website paths `08.02.md` and
 `07.05.md`; this file does not relocate acceptance or close either issue.
+The [foundation selection continuation](FOUNDATION_SELECTIONS.md) separately
+references [#83](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/83).
+It makes frozen `workload` and `deployment_mode` choices editable through these
+same controls, with kind-specific settings guidance and explicit activation/roles.
+The [retrieval selection continuation](RETRIEVAL_SELECTIONS.md) separately adds
+the five frozen T3 kinds for partial
+[#127](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/127), with explicit
+settings and component state kept separate from optional-tier intent.
+The [agent selection continuation](AGENT_SELECTIONS.md) adds the five frozen T4
+kinds for partial [#128](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/128).
+Declared scopes, endpoints and memory inputs remain local planning values; saving
+does not connect an account, invoke a tool or grant external permissions.
 
 The saved-component section exposes a separate exact-fixture component chooser.
 It does not reinterpret the old guest sample-selection metadata as a typed domain
@@ -15,7 +27,7 @@ route or automatic draft edit when a catalog detail opens.
 
 Add requires an explicit role, visible enabled checkbox (initially unchecked) and
 an exact settings JSON object. The form starts with `{}` as visible empty input;
-required fields are never invented. Required accelerator/compute/context values
+required fields are never invented. Required accelerator/compute/context/vector values
 must be entered according to the frozen schema. The small technical settings
 editor accepts at most 16,384 source characters and parses a single bounded JSON
 object with duplicate-key rejection. Raw invalid or over-limit text is not prefix
@@ -23,6 +35,16 @@ truncated, is not saved and remains in the open form for correction. Existing
 settings exceeding this small editor limit remain saved and cannot be truncated
 through this editor. Raw credentials must not be entered; applicable settings
 accept only opaque secret references under the frozen schema.
+
+Role and settings editors keep multiline input literal and request
+[no dictionary suggestions](https://developer.android.com/reference/android/text/InputType#TYPE_TEXT_FLAG_NO_SUGGESTIONS)
+and [no personalized keyboard learning](https://developer.android.com/reference/android/view/inputmethod/EditorInfo#IME_FLAG_NO_PERSONALIZED_LEARNING).
+These are requests to the input method; they do not guarantee that an installed
+keyboard honors them or authorize raw credential entry. The same field factory
+applies them to add, settings and role forms, including explicitly reviewed
+checkpoint recovery. The existing bounded checkpoint remains the only View-state
+path for pending raw input; opening, typing or restoring a form supplies no save
+authority. Installed keyboard and accessibility qualification remain separate.
 
 Replace chooses an existing selection of the same kind and retains its identity,
 role, enabled state, settings, notes, extensions and links. **Edit settings** changes
@@ -34,7 +56,7 @@ selection. See [explicit selection roles](LOCAL_SELECTION_ROLES.md) for the loca
 history format and recovery boundaries. Disable/re-enable retains settings and links. Removal confirms the exact
 selection and lists its incident link IDs; only that selection and those links are
 removed. No secondary selection is promoted. All other frozen kinds remain stored
-and visible but outside this T1/T2 mutation UI.
+and visible but outside this T0/T1/T2/T3/T4 mutation UI.
 
 Controls require a clean acknowledged guest form. A dialog captures the exact
 record object, draft context and applicable catalog snapshot. Dispatch checks
@@ -72,6 +94,11 @@ replacement preservation. Seven mandatory paused-looper Activity simulations cov
 add/configure/toggle/remove, invalid input retention, concurrent-head conflict,
 repeated/retired and canceled callbacks, in-flight field freezing and exact
 replacement no-op with dirty-form blocking.
+Three additional actual input-connection simulations verify the literal-input and
+learning requests on add, settings and recreated role fields. They preserve exact
+opaque reference text and pending edits, require explicit commits, and retain
+acknowledged data when forms are canceled. The role case also checks that ordinary
+View-state saving stays disabled before and after explicit checkpoint review.
 The original source checkpoint's 43 existing Activity simulations and 50-case
 Activity total are historical counts. Current-main receiving retains every named
 Activity, cost-presentation, catalog-snapshot and complete recorded-price-browser

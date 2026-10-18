@@ -11,6 +11,8 @@ import os
 from pathlib import Path
 import platform
 import re
+import shlex
+import shutil
 import subprocess
 import sys
 import tarfile
@@ -27,12 +29,74 @@ ARCHIVE_SHA256 = "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470
 CHECKSUMS_SHA256 = "061476c21adaf5441516f96f185c1a4706a83cd6329b9b38762271b3d4a52fae"
 BINARY_SHA256 = "88f91962aa2f93ac6ab281d553b9e125f5197bbbce38f9f2437f7299c32e5509"
 MAX_REPORT_BYTES = 4 * 1024 * 1024
+MAX_TRACE_BYTES = 16 * 1024 * 1024
+MAX_TRACE_LINE_BYTES = 128 * 1024
+HISTORY_OPTIONS = ("--full-history", "--diff-merges=separate", "--text",
+                   "--no-ext-diff", "--no-textconv", "HEAD")
 SOURCE_IGNORE_ERROR = "Source .gitleaksignore is forbidden; no scanner exceptions are accepted"
 SCANNER_DIAGNOSTIC_ERROR = "Scanner emitted execution diagnostics; a complete scan was not established"
+HISTORY_COMPLETION_ERROR = "Git history completion was not verified; no complete scan was established"
 
 
 class ScanFailure(RuntimeError):
     pass
+
+
+class HistoryCompletionFailure(ScanFailure):
+    """The exact Git history child did not verifiably complete successfully."""
+
+
+def require_history_completion(trace: Path, repository: Path):
+    """Bind a bounded private Trace2 session to the unchanged history command."""
+    sessions = {}
+    total = 0
+
+    def malformed(_):
+        raise HistoryCompletionFailure(HISTORY_COMPLETION_ERROR)
+
+    def unique_fields(pairs):
+        row = {}
+        for key, value in pairs:
+            if key in row:
+                raise HistoryCompletionFailure(HISTORY_COMPLETION_ERROR)
+            row[key] = value
+        return row
+
+    try:
+        with trace.open("rb") as stream:
+            while line := stream.readline(MAX_TRACE_LINE_BYTES + 1):
+                total += len(line)
+                if (total > MAX_TRACE_BYTES or len(line) > MAX_TRACE_LINE_BYTES
+                        or not line.endswith(b"\n")):
+                    raise HistoryCompletionFailure(HISTORY_COMPLETION_ERROR)
+                row = json.loads(line, object_pairs_hook=unique_fields, parse_constant=malformed)
+                if (not isinstance(row, dict) or not isinstance(row.get("event"), str)
+                        or not isinstance(row.get("sid"), str) or not row["sid"]):
+                    raise HistoryCompletionFailure(HISTORY_COMPLETION_ERROR)
+                session = sessions.setdefault(row["sid"], {"control": [], "last": None})
+                if len(sessions) > 64:
+                    raise HistoryCompletionFailure(HISTORY_COMPLETION_ERROR)
+                session["last"] = row["event"]
+                if row["event"] in ("version", "start", "exit", "atexit", "signal"):
+                    session["control"].append(row)
+                    if len(session["control"]) > 8:
+                        raise HistoryCompletionFailure(HISTORY_COMPLETION_ERROR)
+    except (OSError, ValueError, RecursionError):
+        raise HistoryCompletionFailure(HISTORY_COMPLETION_ERROR) from None
+
+    expected = ["-C", os.path.normpath(str(repository)), "log", "-p", "-U0", *HISTORY_OPTIONS]
+    matches = [session for session in sessions.values() if any(
+        row["event"] == "start" and isinstance(row.get("argv"), list)
+        and row["argv"][1:] == expected for row in session["control"])]
+    if len(matches) != 1:
+        raise HistoryCompletionFailure(HISTORY_COMPLETION_ERROR)
+    session = matches[0]
+    control = session["control"]
+    if ([row["event"] for row in control] != ["version", "start", "exit", "atexit"]
+            or control[0].get("evt") != "4" or session["last"] != "atexit"
+            or any(row.get("thread") != "main" for row in control)
+            or any(type(row.get("code")) is not int or row["code"] != 0 for row in control[2:])):
+        raise HistoryCompletionFailure(HISTORY_COMPLETION_ERROR)
 
 
 def require(condition: bool, message: str):
@@ -114,16 +178,23 @@ def scan(binary: Path, target: Path, directory: Path, name: str, *, history: boo
     ignore.write_text("", encoding="utf-8")
     report = directory / (name + ".json")
     require(not report.exists(), "Refusing a pre-existing scanner report")
+    trace = directory / (name + "-git-trace.json")
+    if history:
+        require(not trace.exists() and not trace.is_symlink(),
+                "Refusing a pre-existing Git completion trace")
     args = [str(binary), "git" if history else "dir", "--no-banner", "--no-color", "--redact=100",
             "--log-level=error",
             "--exit-code=10", "--timeout=120", "--config", str(config),
             "--gitleaks-ignore-path", str(ignore), "--ignore-gitleaks-allow",
             "--report-format=json", "--report-path", str(report)]
     if history:
-        args.append("--log-opts=--full-history --diff-merges=separate --text --no-ext-diff --no-textconv HEAD")
+        args.append("--log-opts=" + " ".join(HISTORY_OPTIONS))
     args.append(str(target))
     env = {key: value for key, value in os.environ.items()
            if key not in ("GITLEAKS_CONFIG", "GITLEAKS_CONFIG_TOML")}
+    if history:
+        env.update(GIT_TRACE2_EVENT=str(trace.absolute()), GIT_TRACE2_EVENT_BRIEF="1",
+                   GIT_TRACE2_EVENT_NESTING="1")
     result = subprocess.run(args, env=env, capture_output=True, text=True, timeout=140)
     # Raw streams stay in memory; raw finding files stay in private temporary storage.
     require(result.returncode in (0, 10), f"Scanner execution failed with exit {result.returncode}")
@@ -136,7 +207,52 @@ def scan(binary: Path, target: Path, directory: Path, name: str, *, history: boo
     require(len(data) <= MAX_REPORT_BYTES, "Scanner report exceeded its byte limit")
     findings = finding_metadata(json.loads(data), history=history)
     require((result.returncode == 0) == (len(findings) == 0), "Scanner exit and finding evidence disagree")
+    if history:
+        require_history_completion(trace, target)
     return {"exit_code": result.returncode, "finding_count": len(findings), "findings": findings}
+
+
+def verify_silent_history_failure(binary: Path, repository: Path, directory: Path):
+    """Exercise the real CLI's silent-child failure between intact scan controls."""
+    def controls(prefix):
+        for history, label in ((True, "history"), (False, "directory")):
+            result = scan(binary, repository, directory, prefix + "-" + label, history=history)
+            require(result["exit_code"] == 0 and result["finding_count"] == 0,
+                    "Git completion control fixture did not scan cleanly")
+
+    controls("completion-before")
+    real_git = shutil.which("git")
+    require(real_git is not None, "Git completion fixture could not find Git")
+    with tempfile.TemporaryDirectory(prefix="pyai-secret-child-", dir=directory) as child_folder:
+        wrapper = Path(child_folder) / "git"
+        marker = Path(child_folder) / "history-invocations"
+        wrapper.write_text(
+            '#!/bin/sh\nif [ "$3" = "log" ]; then\n  printf "73\\n" >> '
+            + shlex.quote(str(marker)) + '\n  exit 73\nfi\nexec '
+            + shlex.quote(real_git) + ' "$@"\n', encoding="utf-8")
+        wrapper.chmod(0o700)
+        fault = subprocess.run([str(wrapper), "-C", str(repository), "log"],
+                               capture_output=True, text=True, timeout=10)
+        require(fault.returncode == 73 and not fault.stdout and not fault.stderr
+                and marker.read_text(encoding="utf-8") == "73\n",
+                "Silent Git completion fault was not established")
+        previous_path = os.environ.get("PATH")
+        os.environ["PATH"] = child_folder + os.pathsep + (previous_path or os.defpath)
+        try:
+            try:
+                scan(binary, repository, directory, "silent-child", history=True)
+            except HistoryCompletionFailure:
+                pass
+            else:
+                raise ScanFailure("Silent Git history failure was not rejected")
+        finally:
+            if previous_path is None:
+                os.environ.pop("PATH", None)
+            else:
+                os.environ["PATH"] = previous_path
+        require(marker.read_text(encoding="utf-8") == "73\n73\n",
+                "Scanner did not exercise the expected silent Git history child")
+    controls("completion-after")
 
 
 def verify_detection_and_removal(binary: Path, directory: Path) -> dict:
@@ -248,11 +364,27 @@ def verify_detection_and_removal(binary: Path, directory: Path) -> dict:
             require(str(error) == SCANNER_DIAGNOSTIC_ERROR, "Source-error fixture failed for an unexpected reason")
         else:
             raise ScanFailure("Incomplete Git-source fixture was not rejected")
+
+    # Use a new clean, remote-free repository for the silent-child counterexample.
+    complete = directory / "synthetic-completion"
+    complete.mkdir()
+    fixture_git("init", "--quiet", repository=complete)
+    (complete / "example.txt").write_text("Synthetic Git completion control.\n", encoding="utf-8")
+    clean_blob = fixture_git("hash-object", "-w", "example.txt", repository=complete)
+    clean_tree = fixture_git("mktree", input="100644 blob " + clean_blob + "\texample.txt\n",
+                             repository=complete)
+    clean_commit = fixture_git("commit-tree", clean_tree, "-m", "Synthetic completion control",
+                               repository=complete)
+    fixture_git("update-ref", "refs/heads/main", clean_commit, repository=complete)
+    fixture_git("symbolic-ref", "HEAD", "refs/heads/main", repository=complete)
+    verify_silent_history_failure(binary, complete, directory)
     return {"seeded_exit_code": 10, "seeded_rule": "github-pat", "seeded_findings": 1,
             "inline_ignore_rejected": True, "removed_exit_code": 0, "removed_findings": 0,
             "source_ignore_upstream_exit_code": 0, "source_ignore_upstream_findings": 0,
             "source_ignore_rejected": True, "nonrepository_rejected": True,
             "missing_history_object_rejected": True,
+            "silent_git_child_exit_code": 73, "silent_git_child_rejected": True,
+            "history_completion_controls_passed": True,
             "binary_history_exit_code": 10, "binary_history_findings": 2,
             "binary_fixture_commit": binary_commit,
             "merge_only_exit_code": 10, "merge_only_findings": 2, "merge_fixture_commit": merge}

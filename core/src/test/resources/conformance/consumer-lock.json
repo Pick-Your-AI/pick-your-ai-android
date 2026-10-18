@@ -1,0 +1,45 @@
+{
+  "version": "android-fixture-consumer-1",
+  "scope": "Fixture-only schema admission, typed round-trip and private storage history; no evaluator, device, service or product acceptance.",
+  "neutralProducer": {
+    "repository": "https://github.com/Pick-Your-AI/pick-your-ai-apple",
+    "status": "reviewed archival preparation; not default-branch or native acceptance",
+    "archiveCommit": "78cb2675356e7d00167b645cc7c993d2425fd2fa",
+    "archiveTree": "b37348542be960a426acf2e4ec9307954643be0f",
+    "archiveReadme": "preparation/apple-37-reviewed-08e/README.md",
+    "recoveredCommit": "6eec8878e1456d2e7cad78399702a33461093ce8",
+    "recoveredTree": "08e54247b998d005ed831bfaeabad7731f3e7a8a",
+    "recoveredParent": "7d9724b16136546b686d87f29acf9bd95ca9c2eb",
+    "originalPath": "Packages/PlannerConformance/Tests/PlannerConformanceTests/Fixtures/cross-client-v1.json",
+    "originalBlob": "69718936a83b83e91aca7a492e48720fd2fe6cce",
+    "bundleVersion": "apple-cross-client-1",
+    "bytes": 1273770,
+    "sha256": "499fd9a01780ac42fa9bf2ab8cf9e1195db27321fec36040451b553a8b9ea5f9",
+    "transport": {
+      "path": "core/src/test/resources/conformance/cross-client-v1.json.gz",
+      "format": "gzip; level 9; mtime 0; exact original uncompressed bytes",
+      "bytes": 43929,
+      "sha256": "c1e66aa954c20354ec607ceb8f90a90c599a8748ab10dcff17ce63fda8bf366c"
+    },
+    "cases": 223,
+    "accepted": 141,
+    "rejected": 82,
+    "contracts": {"BuildSnapshot": 85, "CatalogItem": 61, "Selection": 33, "EvaluationReport": 44},
+    "referenceRevision": "7acbefbf4e4e700231e88be272bc89e3a73dde15",
+    "websiteRevision": "dc66a9e269917ab7241c7d08fd0e7f2a2f039872",
+    "sharedContractVersion": "1.0.0"
+  },
+  "privateAndroidStorage": {
+    "bundleVersion": "android-local-migrations-1",
+    "path": "core/src/test/resources/conformance/local-migrations-v1.json",
+    "bytes": 183586,
+    "sha256": "f480f236e7f93e737095c7f53c3fa30ab38df1e86bc41059305b0ca11591206b",
+    "sourceBasis": "ac8307a4b36e64008c5758621634c105e0078e6c",
+    "inputs": 10,
+    "cases": 34,
+    "historicalFormats": [1, 2, 3, 4, 5],
+    "unsupportedFormats": [-1, 0, 99],
+    "observationFormatMeaning": "The verified head at the named action boundary; an interruption records its first reopened head before subsequent retry and restoration assertions. Original input bytes and historical meaning must still be retained after every assertion."
+  },
+  "updateRule": "Keep original producer identities and bytes. A changed shared profile requires a newly versioned canonical producer and affected-client review; a changed private bundle requires a new private version and explicit historical migration expectations. Do not regenerate old snapshots with the current writer or treat a hash update as semantic approval."
+}

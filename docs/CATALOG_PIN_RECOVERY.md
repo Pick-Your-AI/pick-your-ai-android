@@ -71,7 +71,10 @@ This inspection deliberately attaches no pricebook. The comparison pin contains
 no pricebook digest, so the current book cannot stand in for a historical one.
 The existing bounded detail formatter displays the recorded catalog facts and
 unknown price context. It keeps its visible literal truncation and provenance
-count disclosure; this change does not expand that renderer's existing limits.
+count disclosure. **Review all recorded details** opens every projected field and
+provenance entry in a [complete-value browser](CATALOG_DETAIL_BROWSER.md) belonging
+to this same exact historical request. It preserves every retained character
+through bounded escaped parts without acquiring a pricebook or activating bytes.
 
 ## Native lifetime and presentation
 
@@ -90,10 +93,13 @@ browse controls cannot revive a dismissed view. Activity destruction is terminal
 and cancels only this controller's own future before the existing worker shutdown.
 
 Inspection controls use a themed vertical header above the independently
-scrolling native message. Their labels wrap, and the two recovery actions have
+scrolling native message. Their labels wrap, and all three available actions have
 48 dp minimum dimensions. The comparison entry also has a bounded action label
 and 48 dp target, with its exact item identity immediately above it. Dialog text
 uses plain escaped literals, with no linkification, URI grant or outgoing Intent.
+Entering complete values retires the parent's Retry and Browse callbacks while
+preserving the exact request for its child. Closing or replacing that child is
+terminal for the request; retained field/value callbacks cannot reopen it.
 
 ## Validation and delivery
 

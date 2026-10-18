@@ -1,0 +1,1904 @@
+{
+  "profile": "android-frozen-cost-estimate-wire/v1",
+  "scope": "Synthetic structural cases only; no pricing, binding, coverage or measured evidence acceptance.",
+  "schema_sha256": "ef7cf8c0492022c1a8a1f971e49eb86dfad5b66ce6a4b2cf72a965fc9ba81259",
+  "common_sha256": "0342ce2f1114e7276fc7f6a08ff5b86e8727caadd83ae4f443de9a7e1431c43c",
+  "example_sha256": "4b7c3889881d3c424ed98cc47b146b25b05df21c5459c9558717f21b6198b7e4",
+  "cases": [
+    {
+      "name": "canonical_synthetic_estimate",
+      "expected": "decoded"
+    },
+    {
+      "name": "empty_required_arrays_retain_declared_totals",
+      "expected": "decoded",
+      "set": {
+        "line_items": [],
+        "warnings": [],
+        "unpriced_selection_ids": []
+      }
+    },
+    {
+      "name": "empty_assumptions",
+      "expected": "decoded",
+      "line_set": {
+        "assumptions": []
+      }
+    },
+    {
+      "name": "empty_and_repeated_assumptions_are_recorded",
+      "expected": "decoded",
+      "line_set": {
+        "assumptions": [
+          "",
+          "synthetic-private-cost",
+          ""
+        ]
+      }
+    },
+    {
+      "name": "empty_and_repeated_warnings_are_recorded",
+      "expected": "decoded",
+      "set": {
+        "warnings": [
+          "",
+          "synthetic-private-cost",
+          ""
+        ]
+      }
+    },
+    {
+      "name": "ordered_reversed_lines",
+      "expected": "decoded",
+      "set": {
+        "line_items": [
+          {
+            "id": "line.storage.fixture",
+            "selection_id": "sel_storage",
+            "price_rate_id": "rate.storage.fixture",
+            "meter": "storage_gb_month",
+            "quantity": "50",
+            "unit_price": {
+              "amount": "0.05",
+              "currency": "USD"
+            },
+            "amount": {
+              "amount": "2.50",
+              "currency": "USD"
+            },
+            "method": "workload_projection",
+            "confidence": "low",
+            "assumptions": [
+              "FIXTURE ONLY: usage and pricing are illustrative."
+            ]
+          },
+          {
+            "id": "line.compute_profile.fixture",
+            "selection_id": "sel_compute_profile",
+            "price_rate_id": "rate.compute_profile.fixture",
+            "meter": "gpu_hour",
+            "quantity": "720",
+            "unit_price": {
+              "amount": "0.80",
+              "currency": "USD"
+            },
+            "amount": {
+              "amount": "576.00",
+              "currency": "USD"
+            },
+            "method": "workload_projection",
+            "confidence": "low",
+            "assumptions": [
+              "FIXTURE ONLY: usage and pricing are illustrative."
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "identical_duplicate_line_ids_are_recorded",
+      "expected": "decoded",
+      "set": {
+        "line_items": [
+          {
+            "id": "line.compute_profile.fixture",
+            "selection_id": "sel_compute_profile",
+            "price_rate_id": "rate.compute_profile.fixture",
+            "meter": "gpu_hour",
+            "quantity": "720",
+            "unit_price": {
+              "amount": "0.80",
+              "currency": "USD"
+            },
+            "amount": {
+              "amount": "576.00",
+              "currency": "USD"
+            },
+            "method": "workload_projection",
+            "confidence": "low",
+            "assumptions": [
+              "FIXTURE ONLY: usage and pricing are illustrative."
+            ]
+          },
+          {
+            "id": "line.compute_profile.fixture",
+            "selection_id": "sel_compute_profile",
+            "price_rate_id": "rate.compute_profile.fixture",
+            "meter": "gpu_hour",
+            "quantity": "720",
+            "unit_price": {
+              "amount": "0.80",
+              "currency": "USD"
+            },
+            "amount": {
+              "amount": "576.00",
+              "currency": "USD"
+            },
+            "method": "workload_projection",
+            "confidence": "low",
+            "assumptions": [
+              "FIXTURE ONLY: usage and pricing are illustrative."
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "different_duplicate_line_ids_are_recorded",
+      "expected": "decoded",
+      "set": {
+        "line_items": [
+          {
+            "id": "line.compute_profile.fixture",
+            "selection_id": "sel_compute_profile",
+            "price_rate_id": "rate.compute_profile.fixture",
+            "meter": "gpu_hour",
+            "quantity": "720",
+            "unit_price": {
+              "amount": "0.80",
+              "currency": "USD"
+            },
+            "amount": {
+              "amount": "576.00",
+              "currency": "USD"
+            },
+            "method": "workload_projection",
+            "confidence": "low",
+            "assumptions": [
+              "FIXTURE ONLY: usage and pricing are illustrative."
+            ]
+          },
+          {
+            "id": "line.compute_profile.fixture",
+            "selection_id": "sel_compute_profile",
+            "price_rate_id": "rate.compute_profile.fixture",
+            "meter": "gpu_hour",
+            "quantity": "9.000",
+            "unit_price": {
+              "amount": "0.80",
+              "currency": "USD"
+            },
+            "amount": {
+              "amount": "77.0700",
+              "currency": "EUR"
+            },
+            "method": "workload_projection",
+            "confidence": "low",
+            "assumptions": [
+              "FIXTURE ONLY: usage and pricing are illustrative."
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "ordered_unpriced_selection_ids",
+      "expected": "decoded",
+      "set": {
+        "unpriced_selection_ids": [
+          "sel_storage",
+          "sel_compute_profile"
+        ]
+      }
+    },
+    {
+      "name": "complete_coverage_with_unpriced_ids_is_structural",
+      "expected": "decoded",
+      "set": {
+        "coverage": "complete",
+        "unpriced_selection_ids": [
+          "sel_missing"
+        ]
+      }
+    },
+    {
+      "name": "complete_with_no_line_items_is_structural",
+      "expected": "decoded",
+      "set": {
+        "coverage": "complete",
+        "line_items": []
+      }
+    },
+    {
+      "name": "unknown_selection_and_rate_remain_inert_references",
+      "expected": "decoded",
+      "line_set": {
+        "selection_id": "sel_missing",
+        "price_rate_id": "rate.not.loaded"
+      }
+    },
+    {
+      "name": "mixed_declared_currencies_are_structural",
+      "expected": "decoded",
+      "set": {
+        "currency": "ZZZ",
+        "subtotal": {
+          "amount": "1.00",
+          "currency": "USD"
+        },
+        "tax": {
+          "amount": "99.0000",
+          "currency": "EUR"
+        },
+        "total": {
+          "amount": "2.0",
+          "currency": "JPY"
+        }
+      }
+    },
+    {
+      "name": "quantity_product_mismatch_is_structural",
+      "expected": "decoded",
+      "line_set": {
+        "quantity": "2",
+        "unit_price": {
+          "amount": "3",
+          "currency": "USD"
+        },
+        "amount": {
+          "amount": "999",
+          "currency": "EUR"
+        }
+      }
+    },
+    {
+      "name": "sum_tax_total_mismatch_is_structural",
+      "expected": "decoded",
+      "set": {
+        "subtotal": {
+          "amount": "999",
+          "currency": "USD"
+        },
+        "tax": {
+          "amount": "1",
+          "currency": "USD"
+        },
+        "total": {
+          "amount": "0",
+          "currency": "USD"
+        }
+      }
+    },
+    {
+      "name": "recorded_non_utc_timestamp",
+      "expected": "decoded",
+      "set": {
+        "estimated_at": "2026-10-16T12:15:00+03:15"
+      }
+    },
+    {
+      "name": "recorded_lowercase_timestamp",
+      "expected": "decoded",
+      "set": {
+        "estimated_at": "2026-10-16t09:00:00z"
+      }
+    },
+    {
+      "name": "wide_exact_positive_integers",
+      "expected": "decoded",
+      "set": {
+        "build_revision": 9223372036854775808,
+        "period_days": 9007199254740993
+      }
+    },
+    {
+      "name": "128_digit_positive_integers",
+      "expected": "decoded",
+      "set": {
+        "build_revision": 99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999,
+        "period_days": 10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+      }
+    },
+    {
+      "name": "build_revision_zero",
+      "expected": "schema_mismatch",
+      "set": {
+        "build_revision": 0
+      }
+    },
+    {
+      "name": "build_revision_negative",
+      "expected": "schema_mismatch",
+      "set": {
+        "build_revision": -1
+      }
+    },
+    {
+      "name": "build_revision_negative_wide",
+      "expected": "schema_mismatch",
+      "set": {
+        "build_revision": -9223372036854775809
+      }
+    },
+    {
+      "name": "build_revision_fractional",
+      "expected": "schema_mismatch",
+      "set": {
+        "build_revision": 1.5
+      }
+    },
+    {
+      "name": "build_revision_boolean",
+      "expected": "schema_mismatch",
+      "set": {
+        "build_revision": true
+      }
+    },
+    {
+      "name": "build_revision_text",
+      "expected": "schema_mismatch",
+      "set": {
+        "build_revision": "1"
+      }
+    },
+    {
+      "name": "period_days_zero",
+      "expected": "schema_mismatch",
+      "set": {
+        "period_days": 0
+      }
+    },
+    {
+      "name": "period_days_negative",
+      "expected": "schema_mismatch",
+      "set": {
+        "period_days": -1
+      }
+    },
+    {
+      "name": "period_days_negative_wide",
+      "expected": "schema_mismatch",
+      "set": {
+        "period_days": -9223372036854775809
+      }
+    },
+    {
+      "name": "period_days_fractional",
+      "expected": "schema_mismatch",
+      "set": {
+        "period_days": 1.5
+      }
+    },
+    {
+      "name": "period_days_boolean",
+      "expected": "schema_mismatch",
+      "set": {
+        "period_days": true
+      }
+    },
+    {
+      "name": "period_days_text",
+      "expected": "schema_mismatch",
+      "set": {
+        "period_days": "1"
+      }
+    },
+    {
+      "name": "missing_schema_version",
+      "expected": "unsupported_version",
+      "remove": [
+        "schema_version"
+      ]
+    },
+    {
+      "name": "null_schema_version",
+      "expected": "unsupported_version",
+      "set": {
+        "schema_version": null
+      }
+    },
+    {
+      "name": "missing_id",
+      "expected": "schema_mismatch",
+      "remove": [
+        "id"
+      ]
+    },
+    {
+      "name": "null_id",
+      "expected": "schema_mismatch",
+      "set": {
+        "id": null
+      }
+    },
+    {
+      "name": "missing_build_id",
+      "expected": "schema_mismatch",
+      "remove": [
+        "build_id"
+      ]
+    },
+    {
+      "name": "null_build_id",
+      "expected": "schema_mismatch",
+      "set": {
+        "build_id": null
+      }
+    },
+    {
+      "name": "missing_build_revision",
+      "expected": "schema_mismatch",
+      "remove": [
+        "build_revision"
+      ]
+    },
+    {
+      "name": "null_build_revision",
+      "expected": "schema_mismatch",
+      "set": {
+        "build_revision": null
+      }
+    },
+    {
+      "name": "missing_pricebook_id",
+      "expected": "schema_mismatch",
+      "remove": [
+        "pricebook_id"
+      ]
+    },
+    {
+      "name": "null_pricebook_id",
+      "expected": "schema_mismatch",
+      "set": {
+        "pricebook_id": null
+      }
+    },
+    {
+      "name": "missing_estimated_at",
+      "expected": "schema_mismatch",
+      "remove": [
+        "estimated_at"
+      ]
+    },
+    {
+      "name": "null_estimated_at",
+      "expected": "schema_mismatch",
+      "set": {
+        "estimated_at": null
+      }
+    },
+    {
+      "name": "missing_period_days",
+      "expected": "schema_mismatch",
+      "remove": [
+        "period_days"
+      ]
+    },
+    {
+      "name": "null_period_days",
+      "expected": "schema_mismatch",
+      "set": {
+        "period_days": null
+      }
+    },
+    {
+      "name": "missing_currency",
+      "expected": "schema_mismatch",
+      "remove": [
+        "currency"
+      ]
+    },
+    {
+      "name": "null_currency",
+      "expected": "schema_mismatch",
+      "set": {
+        "currency": null
+      }
+    },
+    {
+      "name": "missing_line_items",
+      "expected": "schema_mismatch",
+      "remove": [
+        "line_items"
+      ]
+    },
+    {
+      "name": "null_line_items",
+      "expected": "schema_mismatch",
+      "set": {
+        "line_items": null
+      }
+    },
+    {
+      "name": "missing_subtotal",
+      "expected": "schema_mismatch",
+      "remove": [
+        "subtotal"
+      ]
+    },
+    {
+      "name": "null_subtotal",
+      "expected": "schema_mismatch",
+      "set": {
+        "subtotal": null
+      }
+    },
+    {
+      "name": "missing_tax",
+      "expected": "schema_mismatch",
+      "remove": [
+        "tax"
+      ]
+    },
+    {
+      "name": "null_tax",
+      "expected": "schema_mismatch",
+      "set": {
+        "tax": null
+      }
+    },
+    {
+      "name": "missing_total",
+      "expected": "schema_mismatch",
+      "remove": [
+        "total"
+      ]
+    },
+    {
+      "name": "null_total",
+      "expected": "schema_mismatch",
+      "set": {
+        "total": null
+      }
+    },
+    {
+      "name": "missing_coverage",
+      "expected": "schema_mismatch",
+      "remove": [
+        "coverage"
+      ]
+    },
+    {
+      "name": "null_coverage",
+      "expected": "schema_mismatch",
+      "set": {
+        "coverage": null
+      }
+    },
+    {
+      "name": "missing_unpriced_selection_ids",
+      "expected": "schema_mismatch",
+      "remove": [
+        "unpriced_selection_ids"
+      ]
+    },
+    {
+      "name": "null_unpriced_selection_ids",
+      "expected": "schema_mismatch",
+      "set": {
+        "unpriced_selection_ids": null
+      }
+    },
+    {
+      "name": "missing_warnings",
+      "expected": "schema_mismatch",
+      "remove": [
+        "warnings"
+      ]
+    },
+    {
+      "name": "null_warnings",
+      "expected": "schema_mismatch",
+      "set": {
+        "warnings": null
+      }
+    },
+    {
+      "name": "version_future",
+      "expected": "unsupported_version",
+      "set": {
+        "schema_version": "2.0.0"
+      }
+    },
+    {
+      "name": "version_numeric",
+      "expected": "unsupported_version",
+      "set": {
+        "schema_version": 1
+      }
+    },
+    {
+      "name": "version_boolean",
+      "expected": "unsupported_version",
+      "set": {
+        "schema_version": true
+      }
+    },
+    {
+      "name": "version_empty",
+      "expected": "unsupported_version",
+      "set": {
+        "schema_version": ""
+      }
+    },
+    {
+      "name": "unknown_top_field",
+      "expected": "schema_mismatch",
+      "set": {
+        "unexpected": "synthetic-private-cost"
+      }
+    },
+    {
+      "name": "line_missing_id",
+      "expected": "schema_mismatch",
+      "line_remove": [
+        "id"
+      ]
+    },
+    {
+      "name": "line_null_id",
+      "expected": "schema_mismatch",
+      "line_set": {
+        "id": null
+      }
+    },
+    {
+      "name": "line_missing_selection_id",
+      "expected": "schema_mismatch",
+      "line_remove": [
+        "selection_id"
+      ]
+    },
+    {
+      "name": "line_null_selection_id",
+      "expected": "schema_mismatch",
+      "line_set": {
+        "selection_id": null
+      }
+    },
+    {
+      "name": "line_missing_price_rate_id",
+      "expected": "schema_mismatch",
+      "line_remove": [
+        "price_rate_id"
+      ]
+    },
+    {
+      "name": "line_null_price_rate_id",
+      "expected": "schema_mismatch",
+      "line_set": {
+        "price_rate_id": null
+      }
+    },
+    {
+      "name": "line_missing_meter",
+      "expected": "schema_mismatch",
+      "line_remove": [
+        "meter"
+      ]
+    },
+    {
+      "name": "line_null_meter",
+      "expected": "schema_mismatch",
+      "line_set": {
+        "meter": null
+      }
+    },
+    {
+      "name": "line_missing_quantity",
+      "expected": "schema_mismatch",
+      "line_remove": [
+        "quantity"
+      ]
+    },
+    {
+      "name": "line_null_quantity",
+      "expected": "schema_mismatch",
+      "line_set": {
+        "quantity": null
+      }
+    },
+    {
+      "name": "line_missing_unit_price",
+      "expected": "schema_mismatch",
+      "line_remove": [
+        "unit_price"
+      ]
+    },
+    {
+      "name": "line_null_unit_price",
+      "expected": "schema_mismatch",
+      "line_set": {
+        "unit_price": null
+      }
+    },
+    {
+      "name": "line_missing_amount",
+      "expected": "schema_mismatch",
+      "line_remove": [
+        "amount"
+      ]
+    },
+    {
+      "name": "line_null_amount",
+      "expected": "schema_mismatch",
+      "line_set": {
+        "amount": null
+      }
+    },
+    {
+      "name": "line_missing_method",
+      "expected": "schema_mismatch",
+      "line_remove": [
+        "method"
+      ]
+    },
+    {
+      "name": "line_null_method",
+      "expected": "schema_mismatch",
+      "line_set": {
+        "method": null
+      }
+    },
+    {
+      "name": "line_missing_confidence",
+      "expected": "schema_mismatch",
+      "line_remove": [
+        "confidence"
+      ]
+    },
+    {
+      "name": "line_null_confidence",
+      "expected": "schema_mismatch",
+      "line_set": {
+        "confidence": null
+      }
+    },
+    {
+      "name": "line_missing_assumptions",
+      "expected": "schema_mismatch",
+      "line_remove": [
+        "assumptions"
+      ]
+    },
+    {
+      "name": "line_null_assumptions",
+      "expected": "schema_mismatch",
+      "line_set": {
+        "assumptions": null
+      }
+    },
+    {
+      "name": "line_unknown_field",
+      "expected": "schema_mismatch",
+      "line_set": {
+        "unexpected": "synthetic-private-cost"
+      }
+    },
+    {
+      "name": "meter_input_tokens_1m",
+      "expected": "decoded",
+      "line_set": {
+        "meter": "input_tokens_1m"
+      }
+    },
+    {
+      "name": "meter_output_tokens_1m",
+      "expected": "decoded",
+      "line_set": {
+        "meter": "output_tokens_1m"
+      }
+    },
+    {
+      "name": "meter_cached_input_tokens_1m",
+      "expected": "decoded",
+      "line_set": {
+        "meter": "cached_input_tokens_1m"
+      }
+    },
+    {
+      "name": "meter_embedding_tokens_1m",
+      "expected": "decoded",
+      "line_set": {
+        "meter": "embedding_tokens_1m"
+      }
+    },
+    {
+      "name": "meter_request",
+      "expected": "decoded",
+      "line_set": {
+        "meter": "request"
+      }
+    },
+    {
+      "name": "meter_gpu_hour",
+      "expected": "decoded",
+      "line_set": {
+        "meter": "gpu_hour"
+      }
+    },
+    {
+      "name": "meter_cpu_hour",
+      "expected": "decoded",
+      "line_set": {
+        "meter": "cpu_hour"
+      }
+    },
+    {
+      "name": "meter_storage_gb_month",
+      "expected": "decoded",
+      "line_set": {
+        "meter": "storage_gb_month"
+      }
+    },
+    {
+      "name": "meter_vector_gb_month",
+      "expected": "decoded",
+      "line_set": {
+        "meter": "vector_gb_month"
+      }
+    },
+    {
+      "name": "meter_agent_run",
+      "expected": "decoded",
+      "line_set": {
+        "meter": "agent_run"
+      }
+    },
+    {
+      "name": "meter_seat_month",
+      "expected": "decoded",
+      "line_set": {
+        "meter": "seat_month"
+      }
+    },
+    {
+      "name": "meter_license_month",
+      "expected": "decoded",
+      "line_set": {
+        "meter": "license_month"
+      }
+    },
+    {
+      "name": "meter_one_time",
+      "expected": "decoded",
+      "line_set": {
+        "meter": "one_time"
+      }
+    },
+    {
+      "name": "meter_unknown_member",
+      "expected": "schema_mismatch",
+      "line_set": {
+        "meter": "synthetic-private-cost"
+      }
+    },
+    {
+      "name": "meter_wrong_type",
+      "expected": "schema_mismatch",
+      "line_set": {
+        "meter": true
+      }
+    },
+    {
+      "name": "method_measured",
+      "expected": "decoded",
+      "line_set": {
+        "method": "measured"
+      }
+    },
+    {
+      "name": "method_workload_projection",
+      "expected": "decoded",
+      "line_set": {
+        "method": "workload_projection"
+      }
+    },
+    {
+      "name": "method_vendor_quote",
+      "expected": "decoded",
+      "line_set": {
+        "method": "vendor_quote"
+      }
+    },
+    {
+      "name": "method_manual_override",
+      "expected": "decoded",
+      "line_set": {
+        "method": "manual_override"
+      }
+    },
+    {
+      "name": "method_unknown_member",
+      "expected": "schema_mismatch",
+      "line_set": {
+        "method": "synthetic-private-cost"
+      }
+    },
+    {
+      "name": "method_wrong_type",
+      "expected": "schema_mismatch",
+      "line_set": {
+        "method": true
+      }
+    },
+    {
+      "name": "confidence_high",
+      "expected": "decoded",
+      "line_set": {
+        "confidence": "high"
+      }
+    },
+    {
+      "name": "confidence_medium",
+      "expected": "decoded",
+      "line_set": {
+        "confidence": "medium"
+      }
+    },
+    {
+      "name": "confidence_low",
+      "expected": "decoded",
+      "line_set": {
+        "confidence": "low"
+      }
+    },
+    {
+      "name": "confidence_unknown_member",
+      "expected": "schema_mismatch",
+      "line_set": {
+        "confidence": "synthetic-private-cost"
+      }
+    },
+    {
+      "name": "confidence_wrong_type",
+      "expected": "schema_mismatch",
+      "line_set": {
+        "confidence": true
+      }
+    },
+    {
+      "name": "coverage_complete",
+      "expected": "decoded",
+      "set": {
+        "coverage": "complete"
+      }
+    },
+    {
+      "name": "coverage_partial",
+      "expected": "decoded",
+      "set": {
+        "coverage": "partial"
+      }
+    },
+    {
+      "name": "coverage_unknown",
+      "expected": "decoded",
+      "set": {
+        "coverage": "unknown"
+      }
+    },
+    {
+      "name": "coverage_unrecognized",
+      "expected": "schema_mismatch",
+      "set": {
+        "coverage": "COMPLETE"
+      }
+    },
+    {
+      "name": "quantity_zero",
+      "expected": "decoded",
+      "line_set": {
+        "quantity": "0"
+      }
+    },
+    {
+      "name": "quantity_one_fraction",
+      "expected": "decoded",
+      "line_set": {
+        "quantity": "0.1"
+      }
+    },
+    {
+      "name": "quantity_trailing_zeroes",
+      "expected": "decoded",
+      "line_set": {
+        "quantity": "1.2300"
+      }
+    },
+    {
+      "name": "quantity_twelve_fractional_digits",
+      "expected": "decoded",
+      "line_set": {
+        "quantity": "123.123456789012"
+      }
+    },
+    {
+      "name": "quantity_large_plain_decimal",
+      "expected": "decoded",
+      "line_set": {
+        "quantity": "999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999.123456789012"
+      }
+    },
+    {
+      "name": "quantity_terminal_lf",
+      "expected": "decoded",
+      "line_set": {
+        "quantity": "123.4500\n"
+      }
+    },
+    {
+      "name": "quantity_negative",
+      "expected": "schema_mismatch",
+      "line_set": {
+        "quantity": "-1"
+      }
+    },
+    {
+      "name": "quantity_plus",
+      "expected": "schema_mismatch",
+      "line_set": {
+        "quantity": "+1"
+      }
+    },
+    {
+      "name": "quantity_exponent",
+      "expected": "schema_mismatch",
+      "line_set": {
+        "quantity": "1e2"
+      }
+    },
+    {
+      "name": "quantity_leading_zero",
+      "expected": "schema_mismatch",
+      "line_set": {
+        "quantity": "01"
+      }
+    },
+    {
+      "name": "quantity_empty",
+      "expected": "schema_mismatch",
+      "line_set": {
+        "quantity": ""
+      }
+    },
+    {
+      "name": "quantity_fraction_only",
+      "expected": "schema_mismatch",
+      "line_set": {
+        "quantity": ".5"
+      }
+    },
+    {
+      "name": "quantity_missing_fraction",
+      "expected": "schema_mismatch",
+      "line_set": {
+        "quantity": "1."
+      }
+    },
+    {
+      "name": "quantity_thirteen_fractional_digits",
+      "expected": "schema_mismatch",
+      "line_set": {
+        "quantity": "0.1234567890123"
+      }
+    },
+    {
+      "name": "quantity_unicode_digits",
+      "expected": "schema_mismatch",
+      "line_set": {
+        "quantity": "١"
+      }
+    },
+    {
+      "name": "quantity_whitespace",
+      "expected": "schema_mismatch",
+      "line_set": {
+        "quantity": " 1"
+      }
+    },
+    {
+      "name": "quantity_terminal_cr",
+      "expected": "schema_mismatch",
+      "line_set": {
+        "quantity": "1\r"
+      }
+    },
+    {
+      "name": "quantity_terminal_crlf",
+      "expected": "schema_mismatch",
+      "line_set": {
+        "quantity": "1\r\n"
+      }
+    },
+    {
+      "name": "quantity_two_terminal_lf",
+      "expected": "schema_mismatch",
+      "line_set": {
+        "quantity": "1\n\n"
+      }
+    },
+    {
+      "name": "quantity_number",
+      "expected": "schema_mismatch",
+      "line_set": {
+        "quantity": 1
+      }
+    },
+    {
+      "name": "subtotal_exact_decimal",
+      "expected": "decoded",
+      "set": {
+        "subtotal": {
+          "amount": "123.123456789012",
+          "currency": "ZZZ"
+        }
+      }
+    },
+    {
+      "name": "subtotal_terminal_lf",
+      "expected": "decoded",
+      "set": {
+        "subtotal": {
+          "amount": "0.0100\n",
+          "currency": "USD\n"
+        }
+      }
+    },
+    {
+      "name": "subtotal_missing_amount",
+      "expected": "schema_mismatch",
+      "set": {
+        "subtotal": {
+          "currency": "USD"
+        }
+      }
+    },
+    {
+      "name": "subtotal_missing_currency",
+      "expected": "schema_mismatch",
+      "set": {
+        "subtotal": {
+          "amount": "1.00"
+        }
+      }
+    },
+    {
+      "name": "subtotal_null_amount",
+      "expected": "schema_mismatch",
+      "set": {
+        "subtotal": {
+          "amount": null,
+          "currency": "USD"
+        }
+      }
+    },
+    {
+      "name": "subtotal_null_currency",
+      "expected": "schema_mismatch",
+      "set": {
+        "subtotal": {
+          "amount": "1.00",
+          "currency": null
+        }
+      }
+    },
+    {
+      "name": "subtotal_extra_field",
+      "expected": "schema_mismatch",
+      "set": {
+        "subtotal": {
+          "amount": "1.00",
+          "currency": "USD",
+          "extra": true
+        }
+      }
+    },
+    {
+      "name": "subtotal_negative_amount",
+      "expected": "schema_mismatch",
+      "set": {
+        "subtotal": {
+          "amount": "-1",
+          "currency": "USD"
+        }
+      }
+    },
+    {
+      "name": "subtotal_thirteen_fractional_digits",
+      "expected": "schema_mismatch",
+      "set": {
+        "subtotal": {
+          "amount": "0.1234567890123",
+          "currency": "USD"
+        }
+      }
+    },
+    {
+      "name": "subtotal_lowercase_currency",
+      "expected": "schema_mismatch",
+      "set": {
+        "subtotal": {
+          "amount": "1.00",
+          "currency": "usd"
+        }
+      }
+    },
+    {
+      "name": "tax_exact_decimal",
+      "expected": "decoded",
+      "set": {
+        "tax": {
+          "amount": "123.123456789012",
+          "currency": "ZZZ"
+        }
+      }
+    },
+    {
+      "name": "tax_terminal_lf",
+      "expected": "decoded",
+      "set": {
+        "tax": {
+          "amount": "0.0100\n",
+          "currency": "USD\n"
+        }
+      }
+    },
+    {
+      "name": "tax_missing_amount",
+      "expected": "schema_mismatch",
+      "set": {
+        "tax": {
+          "currency": "USD"
+        }
+      }
+    },
+    {
+      "name": "tax_missing_currency",
+      "expected": "schema_mismatch",
+      "set": {
+        "tax": {
+          "amount": "1.00"
+        }
+      }
+    },
+    {
+      "name": "tax_null_amount",
+      "expected": "schema_mismatch",
+      "set": {
+        "tax": {
+          "amount": null,
+          "currency": "USD"
+        }
+      }
+    },
+    {
+      "name": "tax_null_currency",
+      "expected": "schema_mismatch",
+      "set": {
+        "tax": {
+          "amount": "1.00",
+          "currency": null
+        }
+      }
+    },
+    {
+      "name": "tax_extra_field",
+      "expected": "schema_mismatch",
+      "set": {
+        "tax": {
+          "amount": "1.00",
+          "currency": "USD",
+          "extra": true
+        }
+      }
+    },
+    {
+      "name": "tax_negative_amount",
+      "expected": "schema_mismatch",
+      "set": {
+        "tax": {
+          "amount": "-1",
+          "currency": "USD"
+        }
+      }
+    },
+    {
+      "name": "tax_thirteen_fractional_digits",
+      "expected": "schema_mismatch",
+      "set": {
+        "tax": {
+          "amount": "0.1234567890123",
+          "currency": "USD"
+        }
+      }
+    },
+    {
+      "name": "tax_lowercase_currency",
+      "expected": "schema_mismatch",
+      "set": {
+        "tax": {
+          "amount": "1.00",
+          "currency": "usd"
+        }
+      }
+    },
+    {
+      "name": "total_exact_decimal",
+      "expected": "decoded",
+      "set": {
+        "total": {
+          "amount": "123.123456789012",
+          "currency": "ZZZ"
+        }
+      }
+    },
+    {
+      "name": "total_terminal_lf",
+      "expected": "decoded",
+      "set": {
+        "total": {
+          "amount": "0.0100\n",
+          "currency": "USD\n"
+        }
+      }
+    },
+    {
+      "name": "total_missing_amount",
+      "expected": "schema_mismatch",
+      "set": {
+        "total": {
+          "currency": "USD"
+        }
+      }
+    },
+    {
+      "name": "total_missing_currency",
+      "expected": "schema_mismatch",
+      "set": {
+        "total": {
+          "amount": "1.00"
+        }
+      }
+    },
+    {
+      "name": "total_null_amount",
+      "expected": "schema_mismatch",
+      "set": {
+        "total": {
+          "amount": null,
+          "currency": "USD"
+        }
+      }
+    },
+    {
+      "name": "total_null_currency",
+      "expected": "schema_mismatch",
+      "set": {
+        "total": {
+          "amount": "1.00",
+          "currency": null
+        }
+      }
+    },
+    {
+      "name": "total_extra_field",
+      "expected": "schema_mismatch",
+      "set": {
+        "total": {
+          "amount": "1.00",
+          "currency": "USD",
+          "extra": true
+        }
+      }
+    },
+    {
+      "name": "total_negative_amount",
+      "expected": "schema_mismatch",
+      "set": {
+        "total": {
+          "amount": "-1",
+          "currency": "USD"
+        }
+      }
+    },
+    {
+      "name": "total_thirteen_fractional_digits",
+      "expected": "schema_mismatch",
+      "set": {
+        "total": {
+          "amount": "0.1234567890123",
+          "currency": "USD"
+        }
+      }
+    },
+    {
+      "name": "total_lowercase_currency",
+      "expected": "schema_mismatch",
+      "set": {
+        "total": {
+          "amount": "1.00",
+          "currency": "usd"
+        }
+      }
+    },
+    {
+      "name": "line_unit_price_exact_decimal",
+      "expected": "decoded",
+      "line_set": {
+        "unit_price": {
+          "amount": "123.123456789012",
+          "currency": "ZZZ"
+        }
+      }
+    },
+    {
+      "name": "line_unit_price_terminal_lf",
+      "expected": "decoded",
+      "line_set": {
+        "unit_price": {
+          "amount": "0.0100\n",
+          "currency": "USD\n"
+        }
+      }
+    },
+    {
+      "name": "line_unit_price_missing_amount",
+      "expected": "schema_mismatch",
+      "line_set": {
+        "unit_price": {
+          "currency": "USD"
+        }
+      }
+    },
+    {
+      "name": "line_unit_price_missing_currency",
+      "expected": "schema_mismatch",
+      "line_set": {
+        "unit_price": {
+          "amount": "1.00"
+        }
+      }
+    },
+    {
+      "name": "line_unit_price_null_amount",
+      "expected": "schema_mismatch",
+      "line_set": {
+        "unit_price": {
+          "amount": null,
+          "currency": "USD"
+        }
+      }
+    },
+    {
+      "name": "line_unit_price_null_currency",
+      "expected": "schema_mismatch",
+      "line_set": {
+        "unit_price": {
+          "amount": "1.00",
+          "currency": null
+        }
+      }
+    },
+    {
+      "name": "line_unit_price_extra_field",
+      "expected": "schema_mismatch",
+      "line_set": {
+        "unit_price": {
+          "amount": "1.00",
+          "currency": "USD",
+          "extra": true
+        }
+      }
+    },
+    {
+      "name": "line_unit_price_negative_amount",
+      "expected": "schema_mismatch",
+      "line_set": {
+        "unit_price": {
+          "amount": "-1",
+          "currency": "USD"
+        }
+      }
+    },
+    {
+      "name": "line_unit_price_thirteen_fractional_digits",
+      "expected": "schema_mismatch",
+      "line_set": {
+        "unit_price": {
+          "amount": "0.1234567890123",
+          "currency": "USD"
+        }
+      }
+    },
+    {
+      "name": "line_unit_price_lowercase_currency",
+      "expected": "schema_mismatch",
+      "line_set": {
+        "unit_price": {
+          "amount": "1.00",
+          "currency": "usd"
+        }
+      }
+    },
+    {
+      "name": "line_amount_exact_decimal",
+      "expected": "decoded",
+      "line_set": {
+        "amount": {
+          "amount": "123.123456789012",
+          "currency": "ZZZ"
+        }
+      }
+    },
+    {
+      "name": "line_amount_terminal_lf",
+      "expected": "decoded",
+      "line_set": {
+        "amount": {
+          "amount": "0.0100\n",
+          "currency": "USD\n"
+        }
+      }
+    },
+    {
+      "name": "line_amount_missing_amount",
+      "expected": "schema_mismatch",
+      "line_set": {
+        "amount": {
+          "currency": "USD"
+        }
+      }
+    },
+    {
+      "name": "line_amount_missing_currency",
+      "expected": "schema_mismatch",
+      "line_set": {
+        "amount": {
+          "amount": "1.00"
+        }
+      }
+    },
+    {
+      "name": "line_amount_null_amount",
+      "expected": "schema_mismatch",
+      "line_set": {
+        "amount": {
+          "amount": null,
+          "currency": "USD"
+        }
+      }
+    },
+    {
+      "name": "line_amount_null_currency",
+      "expected": "schema_mismatch",
+      "line_set": {
+        "amount": {
+          "amount": "1.00",
+          "currency": null
+        }
+      }
+    },
+    {
+      "name": "line_amount_extra_field",
+      "expected": "schema_mismatch",
+      "line_set": {
+        "amount": {
+          "amount": "1.00",
+          "currency": "USD",
+          "extra": true
+        }
+      }
+    },
+    {
+      "name": "line_amount_negative_amount",
+      "expected": "schema_mismatch",
+      "line_set": {
+        "amount": {
+          "amount": "-1",
+          "currency": "USD"
+        }
+      }
+    },
+    {
+      "name": "line_amount_thirteen_fractional_digits",
+      "expected": "schema_mismatch",
+      "line_set": {
+        "amount": {
+          "amount": "0.1234567890123",
+          "currency": "USD"
+        }
+      }
+    },
+    {
+      "name": "line_amount_lowercase_currency",
+      "expected": "schema_mismatch",
+      "line_set": {
+        "amount": {
+          "amount": "1.00",
+          "currency": "usd"
+        }
+      }
+    },
+    {
+      "name": "top_currency_terminal_lf",
+      "expected": "decoded",
+      "set": {
+        "currency": "USD\n"
+      }
+    },
+    {
+      "name": "top_currency_lowercase",
+      "expected": "schema_mismatch",
+      "set": {
+        "currency": "usd"
+      }
+    },
+    {
+      "name": "top_currency_wrong_length",
+      "expected": "schema_mismatch",
+      "set": {
+        "currency": "US"
+      }
+    },
+    {
+      "name": "duplicate_unpriced_selection_id",
+      "expected": "schema_mismatch",
+      "set": {
+        "unpriced_selection_ids": [
+          "sel_missing",
+          "sel_missing"
+        ]
+      }
+    },
+    {
+      "name": "line_items_wrong_container",
+      "expected": "schema_mismatch",
+      "set": {
+        "line_items": {}
+      }
+    },
+    {
+      "name": "line_items_wrong_item",
+      "expected": "schema_mismatch",
+      "set": {
+        "line_items": [
+          null
+        ]
+      }
+    },
+    {
+      "name": "warnings_wrong_container",
+      "expected": "schema_mismatch",
+      "set": {
+        "warnings": {}
+      }
+    },
+    {
+      "name": "warnings_wrong_item",
+      "expected": "schema_mismatch",
+      "set": {
+        "warnings": [
+          null
+        ]
+      }
+    },
+    {
+      "name": "unpriced_selection_ids_wrong_container",
+      "expected": "schema_mismatch",
+      "set": {
+        "unpriced_selection_ids": {}
+      }
+    },
+    {
+      "name": "unpriced_selection_ids_wrong_item",
+      "expected": "schema_mismatch",
+      "set": {
+        "unpriced_selection_ids": [
+          null
+        ]
+      }
+    },
+    {
+      "name": "assumptions_wrong_container",
+      "expected": "schema_mismatch",
+      "line_set": {
+        "assumptions": {}
+      }
+    },
+    {
+      "name": "assumptions_wrong_item",
+      "expected": "schema_mismatch",
+      "line_set": {
+        "assumptions": [
+          1
+        ]
+      }
+    },
+    {
+      "name": "id_terminal_lf",
+      "expected": "decoded",
+      "set": {
+        "id": "abc\n"
+      }
+    },
+    {
+      "name": "id_minimum_length",
+      "expected": "decoded",
+      "set": {
+        "id": "abc"
+      }
+    },
+    {
+      "name": "id_maximum_length",
+      "expected": "decoded",
+      "set": {
+        "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    {
+      "name": "id_too_short",
+      "expected": "schema_mismatch",
+      "set": {
+        "id": "ab"
+      }
+    },
+    {
+      "name": "id_too_long",
+      "expected": "schema_mismatch",
+      "set": {
+        "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    {
+      "name": "build_id_terminal_lf",
+      "expected": "decoded",
+      "set": {
+        "build_id": "abc\n"
+      }
+    },
+    {
+      "name": "build_id_minimum_length",
+      "expected": "decoded",
+      "set": {
+        "build_id": "abc"
+      }
+    },
+    {
+      "name": "build_id_maximum_length",
+      "expected": "decoded",
+      "set": {
+        "build_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    {
+      "name": "build_id_too_short",
+      "expected": "schema_mismatch",
+      "set": {
+        "build_id": "ab"
+      }
+    },
+    {
+      "name": "build_id_too_long",
+      "expected": "schema_mismatch",
+      "set": {
+        "build_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    {
+      "name": "pricebook_id_terminal_lf",
+      "expected": "decoded",
+      "set": {
+        "pricebook_id": "abc\n"
+      }
+    },
+    {
+      "name": "pricebook_id_minimum_length",
+      "expected": "decoded",
+      "set": {
+        "pricebook_id": "abc"
+      }
+    },
+    {
+      "name": "pricebook_id_maximum_length",
+      "expected": "decoded",
+      "set": {
+        "pricebook_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    {
+      "name": "pricebook_id_too_short",
+      "expected": "schema_mismatch",
+      "set": {
+        "pricebook_id": "ab"
+      }
+    },
+    {
+      "name": "pricebook_id_too_long",
+      "expected": "schema_mismatch",
+      "set": {
+        "pricebook_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    {
+      "name": "line_id_terminal_lf",
+      "expected": "decoded",
+      "line_set": {
+        "id": "abc\n"
+      }
+    },
+    {
+      "name": "line_id_uppercase",
+      "expected": "schema_mismatch",
+      "line_set": {
+        "id": "Abc"
+      }
+    },
+    {
+      "name": "line_price_rate_id_terminal_lf",
+      "expected": "decoded",
+      "line_set": {
+        "price_rate_id": "abc\n"
+      }
+    },
+    {
+      "name": "line_price_rate_id_uppercase",
+      "expected": "schema_mismatch",
+      "line_set": {
+        "price_rate_id": "Abc"
+      }
+    },
+    {
+      "name": "selection_id_terminal_lf",
+      "expected": "decoded",
+      "line_set": {
+        "selection_id": "sel_any\n"
+      }
+    },
+    {
+      "name": "selection_id_maximum_length",
+      "expected": "decoded",
+      "line_set": {
+        "selection_id": "ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss"
+      }
+    },
+    {
+      "name": "selection_id_too_long",
+      "expected": "schema_mismatch",
+      "line_set": {
+        "selection_id": "sssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss"
+      }
+    },
+    {
+      "name": "selection_id_invalid_dot",
+      "expected": "schema_mismatch",
+      "line_set": {
+        "selection_id": "sel.any"
+      }
+    },
+    {
+      "name": "invalid_timestamp",
+      "expected": "schema_mismatch",
+      "set": {
+        "estimated_at": "not-a-date"
+      }
+    },
+    {
+      "name": "date_without_time",
+      "expected": "schema_mismatch",
+      "set": {
+        "estimated_at": "2026-10-16"
+      }
+    }
+  ]
+}
