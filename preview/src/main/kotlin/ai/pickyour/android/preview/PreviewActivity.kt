@@ -303,7 +303,8 @@ class PreviewActivity : Activity() {
         val draftId = currentDraftId
         AlertDialog.Builder(this)
             .setTitle(item.name)
-            .setMessage(getString(R.string.item_details, item.id, item.kind, item.version))
+            .setMessage(catalog.details(item, catalogHash)?.let { CatalogDetailText.describe(this, it) }
+                ?: getString(R.string.catalog_detail_unavailable))
             .setNegativeButton(R.string.close, null)
             .setPositiveButton(R.string.select_sample) { _, _ ->
                 if (!destroyed && !storageBusy && savedRecord === baseline && currentDraftId == draftId &&
