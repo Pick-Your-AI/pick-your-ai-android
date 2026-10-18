@@ -110,6 +110,9 @@ jobs:
               "retiredEditorButtonsCannotDispatchWorkOrOpenDialogs",
               "retiredComparisonPickerCannotSubmitToClosedWorker",
               "retiredTierConfirmationCannotCommitAfterRecreation",
+              "catalogDetailShowsPinnedSpecsEvidenceAndLicenseWithoutSaving",
+              "catalogDetailKeepsLiteralUnknownIdentitySeparateFromUnknownSpec",
+              "catalogDetailRenderingKeepsUnknownAndBoundedLiteralSourceValues",
           }
           cases = suite.findall("testcase")
           assert expected <= {case.attrib["name"] for case in cases}, "Missing UI regression"

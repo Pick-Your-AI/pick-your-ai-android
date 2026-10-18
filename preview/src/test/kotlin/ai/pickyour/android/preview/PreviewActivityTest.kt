@@ -454,6 +454,83 @@ class PreviewActivityTest {
         assertTrue(adapter().load() is PreviewDraftLoad.Missing)
     }
 
+    @Test fun catalogDetailShowsPinnedSpecsEvidenceAndLicenseWithoutSaving() {
+        field(R.string.draft_title).setText("pending detail review")
+        field(R.string.catalog_search).setText("cat.model.fixture")
+        await { samples().size == 1 }
+        samples().single().performClick()
+        val opened = dialog()
+        val message = shadowOf(opened).message.toString()
+        assertTrue(message.contains("cat.model.fixture"))
+        assertTrue(message.contains("2026.10-demo"))
+        assertTrue(message.contains("catalog.fixture.1"))
+        assertTrue(message.contains("2026-10-16T09:00:00Z"))
+        assertTrue(message.contains("provider_ref [string]: \"cat.model_provider.fixture\""))
+        assertTrue(message.contains("context_window_tokens [integer]: 8192"))
+        assertTrue(message.contains("min_weights_vram_gb [number]: 12"))
+        assertTrue(message.contains("spdx_id [string]: \"TEST-ONLY\""))
+        assertTrue(message.contains("commercial_use_allowed [boolean]: true"))
+        assertTrue(message.contains(activity.getString(R.string.label_user_supplied)))
+        assertTrue(message.contains(activity.getString(R.string.catalog_detail_price)))
+        assertTrue(message.contains(activity.getString(R.string.catalog_detail_source_limits)))
+        assertNull(shadowOf(activity).nextStartedActivity)
+        assertTrue(adapter().load() is PreviewDraftLoad.Missing)
+        opened.getButton(AlertDialog.BUTTON_NEGATIVE).performClick()
+        await { !opened.isShowing }
+        assertEquals("pending detail review", field(R.string.draft_title).text.toString())
+        assertEquals("cat.model.fixture", field(R.string.catalog_search).text.toString())
+        assertTrue(adapter().load() is PreviewDraftLoad.Missing)
+    }
+
+    @Test fun catalogDetailKeepsLiteralUnknownIdentitySeparateFromUnknownSpec() {
+        val root = activity.assets.open("catalog.json").bufferedReader(Charsets.UTF_8).use { org.json.JSONObject(it.readText()) }
+        root.put("id", "unknown")
+        val items = root.getJSONArray("items")
+        val model = (0 until items.length()).map { items.getJSONObject(it) }.single { it.getString("kind") == "model" }
+        model.put("id", "unknown").put("version", "unknown").put("description", "unknown")
+        model.getJSONObject("spec").put("license_ref", "unknown")
+        model.getJSONArray("provenance").getJSONObject(0).put("notes", "unknown")
+        val browser = requireNotNull(PreviewCatalogBrowser.read(root.toString().toByteArray(Charsets.UTF_8)))
+        val item = browser.items.single { it.kind == "model" }
+        val detail = requireNotNull(browser.details(item, browser.hash))
+        val message = CatalogDetailText.describe(activity, detail)
+        assertTrue(message.contains(activity.getString(R.string.item_details, "\"unknown\"", "model", "\"unknown\"")))
+        assertTrue(message.contains(activity.getString(R.string.catalog_detail_snapshot,
+            "\"unknown\"", detail.snapshotRevision.toString(), browser.hash)))
+        assertTrue(message.contains(activity.getString(R.string.catalog_detail_description, "\"unknown\"")))
+        assertTrue(message.contains("Notes: \"unknown\""))
+        assertTrue(message.contains("license_ref [string]: " + activity.getString(R.string.catalog_detail_explicit_unknown)))
+        assertNull(shadowOf(activity).nextStartedActivity)
+        assertTrue(adapter().load() is PreviewDraftLoad.Missing)
+    }
+
+    @Test fun catalogDetailRenderingKeepsUnknownAndBoundedLiteralSourceValues() {
+        val root = activity.assets.open("catalog.json").bufferedReader(Charsets.UTF_8).use { org.json.JSONObject(it.readText()) }
+        val items = root.getJSONArray("items")
+        val provider = (0 until items.length()).map { items.getJSONObject(it) }.single { it.getString("kind") == "model_provider" }
+        provider.getJSONObject("spec").put("supported_regions", org.json.JSONArray().put("region-fixture").put("unknown"))
+        val sources = org.json.JSONArray()
+        provider.put("provenance", sources)
+        repeat(10) { index ->
+            sources.put(org.json.JSONObject().put("checked_at", "2026-10-16T09:00:00Z").put("verification_status", "verified")
+                .put("source_uri", "https://example.invalid/fixture-$index").put("notes", "\u202e" + "x".repeat(200)))
+        }
+        val browser = requireNotNull(PreviewCatalogBrowser.read(root.toString().toByteArray(Charsets.UTF_8)))
+        val item = browser.items.single { it.kind == "model_provider" }
+        val message = CatalogDetailText.describe(activity, requireNotNull(browser.details(item, browser.hash)))
+        assertTrue(message.contains("contains explicit unknown entries"))
+        assertTrue(message.contains(activity.getString(R.string.catalog_detail_missing)))
+        assertTrue(message.contains("https://example.invalid/fixture-0"))
+        assertTrue(message.contains("Provenance records displayed: 8 / 10"))
+        assertTrue(message.contains("[display truncated]"))
+        assertTrue(message.contains("\\u202e"))
+        assertFalse(message.contains('\u202e'))
+        assertTrue(message.contains(activity.getString(R.string.label_verification_unestablished)))
+        assertFalse(message.contains(activity.getString(R.string.label_independently_verified)))
+        assertNull(shadowOf(activity).nextStartedActivity)
+        assertTrue(adapter().load() is PreviewDraftLoad.Missing)
+    }
+
     @Test fun destroyedCostIgnoresRetainedInspectControl() {
         val retiredInspect = button(R.string.cost_inspect)
         val retiredOutput = views().filterIsInstance<TextView>().single {
