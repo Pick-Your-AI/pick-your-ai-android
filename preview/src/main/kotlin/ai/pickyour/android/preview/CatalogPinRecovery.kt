@@ -19,6 +19,7 @@ internal class CatalogPinRecovery(
     private class Request(val pin: PreviewCatalogPin, val captured: PreviewCatalogBrowser?, val originIsCurrent: () -> Boolean) {
         var dialog: AlertDialog? = null
         var future: Future<*>? = null
+        var browser: CatalogDetailBrowser? = null
     }
     private var request: Request? = null
     private var closed = false
@@ -47,8 +48,11 @@ internal class CatalogPinRecovery(
         }
     }
 
-    private fun current(value: Request, dialog: AlertDialog?) = !closed && !activity.isDestroyed && !activity.isFinishing &&
-        request === value && value.originIsCurrent() && dialog != null && value.dialog === dialog && dialog.isShowing
+    private fun current(value: Request) = !closed && !activity.isDestroyed && !activity.isFinishing &&
+        request === value && value.originIsCurrent()
+
+    private fun current(value: Request, dialog: AlertDialog?) = current(value) &&
+        dialog != null && value.dialog === dialog && dialog.isShowing
 
     private fun show(value: Request, result: PreviewCatalogPinResolution?) {
         val builder = AlertDialog.Builder(activity)
@@ -76,6 +80,14 @@ internal class CatalogPinRecovery(
             }
             action(R.string.catalog_pin_retry, result != null) { open(value.pin, value.captured, value.originIsCurrent) }
             action(R.string.catalog_pin_browse) { dismiss(); browseCurrent() }
+            if (result is PreviewCatalogPinResolution.Available) action(R.string.catalog_detail_browser_open) {
+                // Intentional child navigation keeps this exact request while retiring its parent controls.
+                value.dialog = null
+                dialog.dismiss()
+                CatalogDetailBrowser(activity, result.detail, { current(value) }, {
+                    if (request === value) dismiss()
+                }).also { value.browser = it; it.show() }
+            }
         })
         val identity = activity.getString(R.string.catalog_pin_identity,
             CatalogDetailText.literal(activity, value.pin.id), CatalogDetailText.literal(activity, value.pin.version), value.pin.snapshotHash)
@@ -105,6 +117,7 @@ internal class CatalogPinRecovery(
         val retired = request
         request = null
         retired?.future?.cancel(true)
+        retired?.browser?.retire()
         retired?.dialog?.dismiss()
     }
 
