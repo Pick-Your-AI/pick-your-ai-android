@@ -814,3 +814,45 @@ errors or skips. Unsigned assembly and lint also passed in the combined 57-task,
 `PluralsCandidate`, `UnusedResources` and `ViewConstructor`. Frozen/reference and
 delivery-ledger checks passed. These local SDK/JVM observations preserve the
 separate hosted and installed-device gates; the unsigned APK was not installed.
+
+### Canceled and consumed editing dialogs
+
+The adjacent [modal-authority review 5561872573](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/250#pullrequestreview-5561872573)
+identified a reproduced canceled-reopen callback that discarded pending edits,
+plus the same missing cancellation check in other draft-editing and chooser
+paths. Those callbacks now require their actual dialog to still be showing before
+copying or restoring fields, switching or creating drafts, committing activation,
+changing workload classification or catalog facets, scheduling comparison work,
+or opening a follow-up window. Cleanup retry redirection also checks its parent
+dialog. Existing Activity lifetime, storage-busy, baseline identity, pending-ID,
+retry and durable CAS checks still apply; visibility supplies the separate
+confirmation-lifetime requirement.
+
+The pinned API 28 [AlertController source](https://github.com/aosp-mirror/platform_frameworks_base/blob/android-9.0.0_r1/core/java/com/android/internal/app/AlertController.java)
+dispatches standard button and item callbacks before its normal dialog dismissal.
+An ordinary current choice therefore remains actionable, while a canceled,
+explicitly dismissed or already-consumed dialog cannot authorize another callback.
+Accepted catalog source-navigation guards remain unchanged.
+
+The failing-before checkpoint
+`27f8915fd0835f13ac628dce528e5158ef3fc507`, tree
+`15407b5d7727bc32327adf4cdd3be8003bd3cd7e`, adds 15 actual-control regressions to
+unchanged `1dff52cc` production source. Its focused run executed 16 cases: all 15
+new cases failed their intended assertions, the prior deletion-cancellation case
+passed, and there were no errors or skips. Failures included replaced pending
+title/objective, a changed active pointer, unwanted new/duplicate/recovery rows,
+unconfirmed tier activation and follow-up windows after cancellation. The tests
+drain the real Activity worker and main loop before checking durable state or UI.
+The restore test compares retained revision/content and guest-field values;
+fresh history wrapper objects do not have value equality.
+
+After the visibility guards, the full local strict SDK/JVM verification passed
+all 321 core tests and all 64 required API 28 Activity simulations. No case failed,
+errored or skipped. Fresh positive history-copy, domain-restore and draft-switch
+paths also pass, alongside the existing positive flows and independent visible
+pending-cleanup race cases. Unsigned assembly and lint passed; the final 57-task
+invocation took 42 seconds with seven tasks executed and 50 current tasks reused.
+Lint retained zero errors and nine warning entries across the same three kinds.
+Frozen/reference and delivery-ledger checks passed. Hosted exact-head verification,
+reviewed signed delivery, installed-device evidence and complete work-package
+acceptance remain separate; these observations do not close a delivery criterion.

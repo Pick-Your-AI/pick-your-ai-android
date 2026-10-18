@@ -169,7 +169,9 @@ class PreviewActivity : Activity() {
                 AlertDialog.Builder(this@PreviewActivity).setTitle(R.string.reopen_draft)
                     .setMessage(R.string.reopen_warning)
                     .setNegativeButton(R.string.keep_edits, null)
-                    .setPositiveButton(R.string.reopen_confirm) { _, _ -> loadDraft(false) }.show()
+                    .setPositiveButton(R.string.reopen_confirm) { confirmation, _ ->
+                        if ((confirmation as? AlertDialog)?.isShowing == true && !storageBusy) loadDraft(false)
+                    }.show()
             }
         }
         content.addView(save)
@@ -414,8 +416,9 @@ class PreviewActivity : Activity() {
                 (revision.restoredFrom?.let { getString(R.string.domain_history_source, it.toString()) } ?: "")
         }.toTypedArray()
         AlertDialog.Builder(this).setTitle(R.string.draft_history)
-            .setItems(rows) { _, index ->
-                if (destroyed) return@setItems
+            .setItems(rows) { picker, index ->
+                if ((picker as? AlertDialog)?.isShowing != true || destroyed || !storageReady ||
+                    storageBusy || savedRecord !== baseline) return@setItems
                 val revision = revisions[index]
                 val oldFields = revision.fields
                 if (oldFields == null) {
@@ -426,10 +429,13 @@ class PreviewActivity : Activity() {
                         .setMessage(getString(R.string.history_copy_warning, oldFields.title,
                             if (baseline.earlierHistoryUnavailable) getString(R.string.history_earlier_unavailable) else ""))
                         .setNegativeButton(R.string.keep_edits, null)
-                        .setNeutralButton(R.string.domain_restore_preview) { _, _ -> confirmDomainRestore(baseline, revision) }
-                        .setPositiveButton(R.string.history_copy) { _, _ ->
+                        .setNeutralButton(R.string.domain_restore_preview) { detail, _ ->
+                            if ((detail as? AlertDialog)?.isShowing == true) confirmDomainRestore(baseline, revision)
+                        }
+                        .setPositiveButton(R.string.history_copy) { detail, _ ->
                             // A dialog opened before another save/load cannot adopt that operation's baseline.
-                            if (!destroyed && storageReady && !storageBusy && savedRecord === baseline) {
+                            if ((detail as? AlertDialog)?.isShowing == true && !destroyed && storageReady &&
+                                !storageBusy && savedRecord === baseline) {
                                 restoringFields = true
                                 title.setText(oldFields.title)
                                 selectedId = oldFields.selectedId
@@ -441,7 +447,9 @@ class PreviewActivity : Activity() {
                             }
                         }.show()
                 }
-            }.setPositiveButton(R.string.revision_compare_open) { _, _ -> showComparisonPicker(baseline) }
+            }.setPositiveButton(R.string.revision_compare_open) { picker, _ ->
+                if ((picker as? AlertDialog)?.isShowing == true) showComparisonPicker(baseline)
+            }
             .setNegativeButton(R.string.close, null).show()
     }
 
@@ -450,8 +458,9 @@ class PreviewActivity : Activity() {
         if (!storageReady || storageBusy || savedRecord !== baseline) return
         val revisions = baseline.history.reversed()
         AlertDialog.Builder(this).setTitle(R.string.revision_compare_open)
-            .setItems(revisions.map { getString(R.string.history_revision, it.revision.toString()) }.toTypedArray()) { _, index ->
-                if (destroyed) return@setItems
+            .setItems(revisions.map { getString(R.string.history_revision, it.revision.toString()) }.toTypedArray()) { picker, index ->
+                if ((picker as? AlertDialog)?.isShowing != true || destroyed || !storageReady ||
+                    storageBusy || savedRecord !== baseline) return@setItems
                 worker.execute {
                     val comparison = baseline.compareRevision(revisions[index].revision)
                     runOnUiThread {
@@ -550,8 +559,9 @@ class PreviewActivity : Activity() {
         AlertDialog.Builder(this).setTitle(getString(R.string.history_revision, revision.revision.toString()))
             .setMessage(getString(R.string.domain_restore_warning, summary))
             .setNegativeButton(R.string.keep_edits, null)
-            .setPositiveButton(R.string.domain_restore_commit) { _, _ ->
-                if (!destroyed && storageReady && !storageBusy && savedRecord === baseline) restoreDomain(baseline, revision.revision)
+            .setPositiveButton(R.string.domain_restore_commit) { confirmation, _ ->
+                if ((confirmation as? AlertDialog)?.isShowing == true && !destroyed && storageReady &&
+                    !storageBusy && savedRecord === baseline) restoreDomain(baseline, revision.revision)
             }.show()
     }
 
@@ -655,16 +665,18 @@ class PreviewActivity : Activity() {
                                 else record?.fields?.title?.ifEmpty { getString(R.string.library_untitled) }
                                 ?: getString(R.string.library_unavailable), entry.id.value)
                         }.toTypedArray()
-                        AlertDialog.Builder(this).setTitle(R.string.library_open).setItems(labels) { _, index ->
-                            if (destroyed) return@setItems
+                        AlertDialog.Builder(this).setTitle(R.string.library_open).setItems(labels) { picker, index ->
+                            if ((picker as? AlertDialog)?.isShowing != true || destroyed || storageBusy) return@setItems
                             val entry = entries[index]
                             if (entry.deletionPending) confirmDelete(entry)
                             else AlertDialog.Builder(this).setTitle(getString(R.string.library_local_id, entry.id.value))
                                 .setMessage(R.string.library_switch_warning)
                                 .setNegativeButton(R.string.keep_edits, null)
-                                .setNeutralButton(R.string.library_delete) { _, _ -> confirmDelete(entry) }
-                                .setPositiveButton(R.string.library_open_selected) { _, _ ->
-                                    if (!storageBusy) openDraftTarget(entry.id)
+                                .setNeutralButton(R.string.library_delete) { detail, _ ->
+                                    if ((detail as? AlertDialog)?.isShowing == true) confirmDelete(entry)
+                                }
+                                .setPositiveButton(R.string.library_open_selected) { detail, _ ->
+                                    if ((detail as? AlertDialog)?.isShowing == true && !storageBusy) openDraftTarget(entry.id)
                                 }.show()
                         }.setNegativeButton(R.string.close, null).show()
                     }
@@ -684,7 +696,9 @@ class PreviewActivity : Activity() {
         val pending = pendingDeleteId
         if (pending != null && pending != id) {
             AlertDialog.Builder(this).setMessage(getString(R.string.library_existing_cleanup, pending.value))
-                .setPositiveButton(R.string.library_retry_delete) { _, _ -> confirmDelete(pending, null, true) }
+                .setPositiveButton(R.string.library_retry_delete) { redirect, _ ->
+                    if ((redirect as? AlertDialog)?.isShowing == true) confirmDelete(pending, null, true)
+                }
                 .setNegativeButton(R.string.close, null).show()
             return
         }
@@ -787,8 +801,9 @@ class PreviewActivity : Activity() {
         AlertDialog.Builder(this).setTitle(if (duplicate) R.string.library_duplicate else R.string.library_new)
             .setMessage(if (duplicate) R.string.library_duplicate_warning else R.string.library_new_warning)
             .setNegativeButton(R.string.keep_edits, null)
-            .setPositiveButton(R.string.library_continue) { _, _ ->
-                if (!storageBusy && (!duplicate || savedRecord === source && storageReady)) createDraft(source)
+            .setPositiveButton(R.string.library_continue) { confirmation, _ ->
+                if ((confirmation as? AlertDialog)?.isShowing == true && !storageBusy &&
+                    (!duplicate || savedRecord === source && storageReady)) createDraft(source)
             }.show()
     }
 
@@ -802,8 +817,9 @@ class PreviewActivity : Activity() {
         AlertDialog.Builder(this).setTitle(R.string.recovery_copy)
             .setMessage(getString(R.string.recovery_warning, source.revision.toString()))
             .setNegativeButton(R.string.keep_edits, null)
-            .setPositiveButton(R.string.recovery_confirm) { _, _ ->
-                if (!destroyed && !storageBusy && savedRecord === source && fields() == pending.fields &&
+            .setPositiveButton(R.string.recovery_confirm) { confirmation, _ ->
+                if ((confirmation as? AlertDialog)?.isShowing == true && !destroyed && !storageBusy &&
+                    savedRecord === source && fields() == pending.fields &&
                     domainContext == pending.context && workloadSection.inputs === rawWorkload)
                     createDraft(source, pending)
             }.show()
