@@ -555,6 +555,68 @@ class LedgerImplementationAcceptanceTest(unittest.TestCase):
         self.assertEqual(4, len(accepted['implemented_subtasks']))
         self.assertTrue(all(c['partial_evidence_refs'] == ['pr-138'] for c in issues[25]['criteria']))
 
+    def test_save_policy_correction_requires_its_distinct_actual_source_and_review(self):
+        import hashlib
+        accepted = self.acceptance(self.ledger)
+        correction = accepted['save_policy_correction']
+        self.assertNotEqual(accepted['record_revision'], correction['source_revision'])
+        self.assertEqual('unsigned_review_preparation', correction['source_observed_state'])
+        self.assertEqual('db60ec73b41df4f4be8f12af1d52f4833c65293b', accepted['record_blob'])
+        raw = (ROOT / correction['record_path']).read_bytes()
+        self.assertEqual(correction['record_bytes'], len(raw))
+        self.assertEqual(correction['record_sha256'], hashlib.sha256(raw).hexdigest())
+        self.assertEqual(correction['record_blob'], hashlib.sha1(b'blob ' + str(len(raw)).encode() + b'\0' + raw).hexdigest())
+        fields = ('source_revision', 'source_tree', 'source_url', 'source_observed_state',
+                  'record_path', 'record_blob', 'record_bytes', 'record_sha256', 'finding_url',
+                  'receiving_reviews')
+        for field in fields:
+            for operation in ('remove', 'replace'):
+                with self.subTest(field=field, operation=operation):
+                    ledger = copy.deepcopy(self.ledger)
+                    value = self.acceptance(ledger)['save_policy_correction']
+                    if operation == 'remove':
+                        del value[field]
+                    else:
+                        value[field] = 'unreviewed correction or old observation'
+                    with self.assertRaisesRegex(ValueError, 'reviewed implementation acceptance: 26'):
+                        module.validate(ledger)
+        for index, review in enumerate(correction['receiving_reviews']):
+            for field in review:
+                with self.subTest(review=index, field=field):
+                    ledger = copy.deepcopy(self.ledger)
+                    self.acceptance(ledger)['save_policy_correction']['receiving_reviews'][index][field] = accepted['receiving_reviews'][0]['url']
+                    with self.assertRaisesRegex(ValueError, 'reviewed implementation acceptance: 26'):
+                        module.validate(ledger)
+
+    def test_save_policy_correction_cannot_claim_scheduler_or_wrong_followup_scope(self):
+        accepted = self.acceptance(self.ledger)
+        correction = accepted['save_policy_correction']
+        self.assertEqual('not_implemented_or_accepted', correction['scheduler_implementation'])
+        self.assertEqual(module.BASE + '/issues/122', correction['remaining_interaction_issue'])
+        self.assertIs(correction['historical_execution_relabelled'], False)
+        self.assertIs(correction['new_native_execution_claimed'], False)
+        mutations = (
+            ('disposition', 'all_scheduler_and_native_behavior_accepted'),
+            ('current_preview_policy', 'automatic_durable_save_on_field_or_lifecycle_change'),
+            ('automatic_caller_contract', 'adopt_latest_token_and_retry_without_reconciliation'),
+            ('scheduler_implementation', 'implemented'),
+            ('remaining_interaction_issue', module.BASE + '/issues/67'),
+            ('remaining_interaction_scope', 'all_autosave_and_storage_work_complete'),
+            ('historical_execution_relabelled', True), ('historical_execution_relabelled', 0),
+            ('new_native_execution_claimed', True), ('new_native_execution_claimed', 0),
+            ('source_observed_state', 'signed_main_delivery'),
+        )
+        for field, value in mutations:
+            with self.subTest(field=field, value=value):
+                ledger = copy.deepcopy(self.ledger)
+                self.acceptance(ledger)['save_policy_correction'][field] = value
+                with self.assertRaisesRegex(ValueError, 'reviewed implementation acceptance: 26'):
+                    module.validate(ledger)
+        ledger = copy.deepcopy(self.ledger)
+        del self.acceptance(ledger)['save_policy_correction']
+        with self.assertRaisesRegex(ValueError, 'reviewed implementation acceptance: 26'):
+            module.validate(ledger)
+
     def test_every_model_record_and_review_pin_is_required_and_exact(self):
         fields = ('implementation_revision', 'implementation_tree', 'record_revision',
                   'record_tree', 'record_url', 'record_blob', 'decision_url', 'decision_blob',
