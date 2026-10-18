@@ -228,6 +228,15 @@ class SelectionEditSection(private val activity: Activity,
     private fun feedback() = TextView(activity).apply {
         accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
     }
+    private fun foundationGuidance(layout: LinearLayout, kind: String, showRoleChoice: Boolean = false) {
+        val guidance = when (kind) {
+            "workload" -> R.string.component_workload_guidance
+            "deployment_mode" -> R.string.component_deployment_guidance
+            else -> return
+        }
+        layout.addView(TextView(activity).apply { setText(guidance) })
+        if (showRoleChoice) layout.addView(TextView(activity).apply { setText(R.string.component_foundation_role_guidance) })
+    }
     private fun field(layout: LinearLayout, title: Int, value: String): EditText {
         val label = TextView(activity).apply { setText(title) }
         val editor = EditText(activity).apply {
@@ -243,6 +252,7 @@ class SelectionEditSection(private val activity: Activity,
         val draftId = requireNotNull(currentDraftId)
         val layout = LinearLayout(activity).apply { orientation = VERTICAL }
         layout.addView(TextView(activity).apply { text = activity.getString(R.string.component_add_warning, item.id, item.version, hash) })
+        foundationGuidance(layout, item.kind, showRoleChoice = true)
         layout.addView(TextView(activity).apply { setText(R.string.component_recovery_limit) })
         val role = field(layout, R.string.component_role, restored?.role.orEmpty())
         val settings = field(layout, R.string.component_settings, restored?.settings ?: "{}")
@@ -275,6 +285,7 @@ class SelectionEditSection(private val activity: Activity,
         }
         val layout = LinearLayout(activity).apply { orientation = VERTICAL }
         layout.addView(TextView(activity).apply { setText(R.string.component_settings_warning) })
+        foundationGuidance(layout, selection.kind)
         layout.addView(TextView(activity).apply { setText(R.string.component_recovery_limit) })
         val settings = field(layout, R.string.component_settings, text)
         val feedback = feedback().also(layout::addView)

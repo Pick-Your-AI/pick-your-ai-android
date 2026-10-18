@@ -1,10 +1,14 @@
-# Explicit local T1/T2 selection controls
+# Explicit local T0/T1/T2 selection controls
 
 Partial [#112](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/112) and
 [#98](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/98), using the
 accepted native Views preview and canonical managed-library command adapter.
 Canonical receiving records remain the existing website paths `08.02.md` and
 `07.05.md`; this file does not relocate acceptance or close either issue.
+The [foundation selection continuation](FOUNDATION_SELECTIONS.md) separately
+references [#83](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/83).
+It makes frozen `workload` and `deployment_mode` choices editable through these
+same controls, with kind-specific settings guidance and explicit activation/roles.
 
 The saved-component section exposes a separate exact-fixture component chooser.
 It does not reinterpret the old guest sample-selection metadata as a typed domain
@@ -34,7 +38,7 @@ selection. See [explicit selection roles](LOCAL_SELECTION_ROLES.md) for the loca
 history format and recovery boundaries. Disable/re-enable retains settings and links. Removal confirms the exact
 selection and lists its incident link IDs; only that selection and those links are
 removed. No secondary selection is promoted. All other frozen kinds remain stored
-and visible but outside this T1/T2 mutation UI.
+and visible but outside this T0/T1/T2 mutation UI.
 
 Controls require a clean acknowledged guest form. A dialog captures the exact
 record object, draft context and applicable catalog snapshot. Dispatch checks
