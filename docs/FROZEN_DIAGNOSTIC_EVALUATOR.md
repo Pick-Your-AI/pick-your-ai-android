@@ -1,6 +1,11 @@
 # Bounded frozen diagnostic evaluator (Android #84, partial)
 
-This proposed, staging-bound slice starts at accepted Android `28fbcd88391d20b6c1e449e56725252a4f5d97cf`.
+This bounded diagnostic slice was prepared through [PR #376](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/376)
+at signed staging commit `82c6b49aa4cfc86fef98bbdc67d5a82c140b97f8` and received
+on main through [PR #380](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/380)
+at `e943a4dd959cc90a74acbc4a5a3d6b4736c5ca63`, tree
+`c2acf3f97fdb9eb75632c465074593d97b3dacb0`. Its original implementation
+baseline was `28fbcd88391d20b6c1e449e56725252a4f5d97cf`.
 It consumes the existing frozen v1 import and current `ReferenceReportAdapter`.
 It is an explicitly synthetic reference diagnostic, not an accepted production
 interpreter, service, compatibility badge or deployment gate. No UI is wired to it.
@@ -58,7 +63,7 @@ Callers must dispatch parsing/evaluation off the UI thread and use existing
 `AnalysisCoordinator` attempt tickets before applying results. This synchronous
 API does not cancel a blocking input provider or make a stale response current.
 
-## Reproduction and current verification
+## Source-preparation checks (historical)
 
 - `python scripts/check_diagnostic_fixtures.py`: 26 complete reports reproduced
   from the unchanged Python evaluator, including missing evidence, strict policy,
@@ -76,26 +81,42 @@ API does not cancel a blocking input provider or make a stale response current.
   (129 issues, 423 incomplete criteria, 18 design dispositions), all 29 ledger
   tests, wrapper checksum and staged whitespace checks passed. The ledger is a
   repository snapshot check, not a live issue or acceptance-state verification.
-- `./gradlew --offline --no-daemon :core:check :core:assemble`: required JVM gate,
-  **not executed** in this environment. JDK 21 exists, but no installed Gradle
-  distribution, Kotlin compiler or dependency cache was found. A previously denied
-  distribution download was not retried or bypassed.
+- During source preparation, the local offline JVM command was not executed
+  because the environment lacked an installed Gradle distribution, Kotlin compiler
+  and dependency cache. The denied distribution download was not retried or
+  bypassed. This historical local limitation is separate from the successful
+  hosted verification below.
 - Kotlin tests are authored for every golden plus identity/schema rejection,
   complete-attempt budget failure, long substring scans, nested containment,
   unsupported operands, independent repeated budgets, stream ownership, duplicate
   identities, kind/version mismatches, ambiguous selection, pointer boundaries
   and the 28/29-digit derived-arithmetic support boundary.
 
-The source-level independent review is conditional on compilation and actual JVM
-results. This proposal remains uncompiled pending its exact-source hosted gate.
-Before acceptance, bind this record to the published source commit, reviewed tree,
-independent review receipt and actual hosted run/artifacts; those identities are
-not yet asserted here. Follow [the signed preparation process](CI_BASELINE.md):
-source-to-owned-stage review/checks, normal verified-signature squash, then a
-separate current-main receiver with composition review and fresh checks.
+## Subsequent hosted verification
+
+Hosted verification compiled and tested the evaluator. Core artifact `12142281749`,
+SHA256 `9fad917f20b9eba9d5fa719a23a8376a5b67969c6b13a86e0a4639fc0aec49d2`,
+records **44 evaluator tests and 2,475 total tests** across 57 suites, with no
+failures, errors or skips, for hosted source
+`31df3026fcafeae6e11ffa0d156b0deb57edcdee` and tree
+`c2acf3f97fdb9eb75632c465074593d97b3dacb0`.
+The [Core job](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39142085524/job/117718397880)
+and [exact-source review](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/380#pullrequestreview-5563754383)
+retain the execution and artifact inspection. These counts belong to that artifact
+and are not inferred for another revision. Hosted artifacts have limited retention;
+the hash identifies the inspected bytes but does not guarantee future availability.
+
+After main integration at `e943a4dd959cc90a74acbc4a5a3d6b4736c5ca63`, all three
+configured checks passed. Core job `117719970351` and Preview job `117719970094`
+both recorded `BUILD SUCCESSFUL` on that exact main checkout, as recorded in the
+[post-main receipt](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/380#issuecomment-6252020363).
+The signed preparation and main merge retained the reviewed trees and expected
+parents through the [normal process](CI_BASELINE.md). These results establish
+hosted build/test evidence for this bounded diagnostic slice; they do not establish
+full Android #84 acceptance.
+
 Python golden
 reproduction does not establish Kotlin parity. No emulator, physical-device,
 service, production-data or release result is claimed. Android #49's broader
 cross-language/migration fixtures and #58's integrated asynchronous boundaries
-remain prerequisites to full #84 acceptance. Their live assignees remain unfilled;
-no owner or receiving approval is inferred from this preparation.
+remain prerequisites to full #84 acceptance. This record does not assign prerequisite owners or establish their acceptance.
