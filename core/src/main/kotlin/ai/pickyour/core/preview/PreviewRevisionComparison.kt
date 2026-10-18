@@ -1,6 +1,8 @@
 package ai.pickyour.core.preview
 
+import ai.pickyour.core.comparison.sameJsonValues
 import ai.pickyour.core.drafts.OptionalTier
+import com.fasterxml.jackson.databind.JsonNode
 import java.util.Collections
 
 /** Exact local editing values. Null is absent/unanswered, not an empty string or numeric zero. */
@@ -22,6 +24,10 @@ fun PreviewStoredDraft.compareRevision(number: Long): PreviewRevisionComparison?
     fun add(field: String, left: String?, right: String?, key: String? = null) {
         if (left != right) changes += PreviewRevisionChange(field, key, left, right)
     }
+    fun addJson(field: String, left: JsonNode?, right: JsonNode?, key: String) {
+        if (!sameJsonValues(left, right))
+            add(field, left?.let(::stableSelectionJson), right?.let(::stableSelectionJson), key)
+    }
     add("objective", before.objective, after.objective)
     add("context", before.context, after.context)
     add("primary_model", before.primaryModel, after.primaryModel)
@@ -40,12 +46,12 @@ fun PreviewStoredDraft.compareRevision(number: Long): PreviewRevisionComparison?
         val left = oldSelections[id]?.toJson()
         val right = newSelections[id]?.toJson()
         for (field in listOf("kind", "catalog_item_id", "catalog_item_version", "role", "enabled", "settings", "notes", "extensions"))
-            add("components.selection.$field", left?.get(field)?.let(::stableSelectionJson), right?.get(field)?.let(::stableSelectionJson), id)
+            addJson("components.selection.$field", left?.get(field), right?.get(field), id)
     }
     val oldLinks = before.components.links.associateBy { it.id }
     val newLinks = after.components.links.associateBy { it.id }
     for (id in (oldLinks.keys + newLinks.keys).sorted())
-        add("components.link", oldLinks[id]?.toJson()?.let(::stableSelectionJson), newLinks[id]?.toJson()?.let(::stableSelectionJson), id)
+        addJson("components.link", oldLinks[id]?.toJson(), newLinks[id]?.toJson(), id)
     for (tier in OptionalTier.entries) {
         val left = before.optional.getValue(tier)
         val right = after.optional.getValue(tier)
