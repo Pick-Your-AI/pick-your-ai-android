@@ -35,13 +35,14 @@ class DraftContent(
     val context: String? = null,
     val primaryModel: String? = null,
     optional: Map<OptionalTier, TierDraft> = emptyMap(),
+    val workload: DraftWorkload = DraftWorkload(),
 ) {
     val optional: Map<OptionalTier, TierDraft> = frozenMap(
         OptionalTier.entries.associateWith { optional[it] ?: TierDraft() },
     )
 
     fun withTier(tier: OptionalTier, value: TierDraft): DraftContent =
-        DraftContent(objective, context, primaryModel, optional + (tier to value))
+        DraftContent(objective, context, primaryModel, optional + (tier to value), workload)
 
     /** Disabled and unknown inputs never enter the active cost/rule input projection. */
     fun activeOptionalSelections(): Map<OptionalTier, Set<String>> = frozenMap(
@@ -54,9 +55,9 @@ class DraftContent(
     )
 
     override fun equals(other: Any?): Boolean = other is DraftContent && objective == other.objective &&
-        context == other.context && primaryModel == other.primaryModel && optional == other.optional
-    override fun hashCode(): Int = 31 * (31 * (31 * (objective?.hashCode() ?: 0) +
-        (context?.hashCode() ?: 0)) + (primaryModel?.hashCode() ?: 0)) + optional.hashCode()
+        context == other.context && primaryModel == other.primaryModel && optional == other.optional && workload == other.workload
+    override fun hashCode(): Int = 31 * (31 * (31 * (31 * (objective?.hashCode() ?: 0) +
+        (context?.hashCode() ?: 0)) + (primaryModel?.hashCode() ?: 0)) + optional.hashCode()) + workload.hashCode()
     override fun toString(): String = "DraftContent"
 }
 

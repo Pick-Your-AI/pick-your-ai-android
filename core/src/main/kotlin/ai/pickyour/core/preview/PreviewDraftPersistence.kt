@@ -81,7 +81,7 @@ class PreviewDraftPersistence internal constructor(private val store: LocalDraft
     fun save(expected: PreviewStoredDraft?, fields: PreviewDraftFields, contextInput: PreviewDraftContext? = null): PreviewDraftSave = write {
         val previous = expected?.draft?.content ?: DraftContent()
         val content = if (contextInput == null) previous else
-            DraftContent(contextInput.objective, contextInput.context, previous.primaryModel, previous.optional)
+            DraftContent(contextInput.objective, contextInput.context, previous.primaryModel, previous.optional, previous.workload)
         val metadata = (expected?.draft?.metadata ?: emptyMap()).toMutableMap()
         metadata[FORMAT] = "1"
         metadata[TITLE] = fields.title
