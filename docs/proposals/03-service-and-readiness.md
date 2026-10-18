@@ -42,9 +42,13 @@ shape is concrete enough to review but does not close the hosting decision.
 
 ## Responsibility, authority and recovery
 
+The local implementation below was reviewed at signed main
+[`b6935a8ee7843831f90b0219c8794071557c71d4`](https://github.com/Pick-Your-AI/pick-your-ai-android/commit/b6935a8ee7843831f90b0219c8794071557c71d4)
+on 2026-10-18. Source review does not qualify an installed device or service.
+
 | Responsibility | Preview behavior | Later service gate |
 | --- | --- | --- |
-| Draft/revision/head transaction | Canonical local filesystem revision/head store; explicit failed/conflict/uncertain outcomes | Server-side atomic commit plus expected-revision check and idempotency receipt |
+| Draft/revision/head transaction | `LocalDraftStore` filesystem protocol over `VerifiedArtifactCache`; expected-head checks and distinct `Saved`, `Failed`, `Conflict` and `Uncertain` outcomes | Server-side atomic commit plus expected-revision check and idempotency receipt |
 | Catalog publication | Bundled synthetic input; no production promotion | #15/#41 review, immutable manifest and hashes, atomic promotion and rollback pointer |
 | Resource/quality evidence | Missing data stays unavailable | #16 and accepted exact-version evidence; no generated fit claim |
 | Remote save and private reads | Not exposed | #17 ownership/capability authorization checked by server, not UI |
@@ -53,12 +57,21 @@ shape is concrete enough to review but does not close the hosting decision.
 | Credentials | No provider/account credentials in fixture preview | Server-side custody/rotation and least privilege; do not embed keys in APKs |
 | Monitoring/incidents | Local diagnostic preview only; no automatic upload | Named responder, sanitized signals and exercised runbook under #44/#92 |
 
-Desk failure review: a crash before a local transaction commits leaves the old
-head; after commit it reloads the new one. A future server commit followed by a
-lost response retries the same idempotency key and cannot create another revision.
-A bad catalog release changes the active pointer back without rewriting history.
-A database restore is tested in isolation and reconciles artifact identities before
-serving traffic. These are required invariants, not observed runtime results.
+The local [store protocol](../../core/src/main/kotlin/ai/pickyour/core/drafts/LocalDraftStore.kt)
+and its [fault tests](../../core/src/test/kotlin/ai/pickyour/core/drafts/LocalDraftStoreTest.kt)
+distinguish failure before pointer activation from uncertainty after activation was
+attempted. A pre-activation failure preserves the previously acknowledged head.
+`Uncertain` means the new head may already be durable: reopen and verify before
+retrying, without reporting a successful save or assuming the old head survived.
+The caller must provision a durable app-private root and ancestors; directory sync,
+atomic rename, process termination and power loss still need Android filesystem
+qualification. JVM fault injection does not supply that installed-device evidence.
+
+For the proposed service, a commit followed by a lost response must retry the same
+idempotency key without creating another revision. A bad catalog release must
+permit an active-pointer rollback without rewriting history. A database restore
+must be tested in isolation and reconcile artifact identities before serving
+traffic. These remain required service invariants awaiting operating evidence.
 
 ## Acceptance-baseline handoff
 
