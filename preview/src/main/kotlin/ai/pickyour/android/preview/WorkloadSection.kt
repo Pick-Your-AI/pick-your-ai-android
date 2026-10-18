@@ -14,6 +14,8 @@ import android.widget.TextView
 import ai.pickyour.core.drafts.DraftDataClassification
 import ai.pickyour.core.preview.PreviewWorkloadCheckpoint
 import ai.pickyour.core.preview.PreviewWorkloadInputs
+import ai.pickyour.core.preview.PreviewObjectiveGuidance
+import ai.pickyour.core.preview.RequiredObjectiveInput
 
 /** User-entered planning assumptions only; no catalog, placement, compatibility or cost verdict. */
 class WorkloadSection(context: Context, initial: PreviewWorkloadInputs,
@@ -25,6 +27,8 @@ class WorkloadSection(context: Context, initial: PreviewWorkloadInputs,
     private val editors = mutableListOf<EditText>()
     private val classification: Button
     private val state: TextView
+    private val objectiveGuidance: TextView
+    private val nextObjective: Button
 
     init {
         orientation = VERTICAL
@@ -92,6 +96,22 @@ class WorkloadSection(context: Context, initial: PreviewWorkloadInputs,
         addView(classification)
         state = TextView(context).apply { accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE }
         addView(state)
+        objectiveGuidance = TextView(context).apply { accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE }
+        addView(objectiveGuidance)
+        nextObjective = Button(context).apply {
+            setText(R.string.objective_next_input)
+            setOnClickListener {
+                if (!alive() || !editable) return@setOnClickListener
+                val next = (PreviewObjectiveGuidance.assess(inputs) as? PreviewObjectiveGuidance.Missing)?.inputs?.firstOrNull()
+                when (next) {
+                    RequiredObjectiveInput.REGION -> editors[0].requestFocus()
+                    RequiredObjectiveInput.CURRENCY -> editors[1].requestFocus()
+                    RequiredObjectiveInput.DATA_CLASSIFICATION -> classification.performClick()
+                    null -> Unit
+                }
+            }
+        }
+        addView(nextObjective)
         updateState()
     }
 
@@ -105,6 +125,7 @@ class WorkloadSection(context: Context, initial: PreviewWorkloadInputs,
     fun setEditable(value: Boolean) {
         editable = value
         editors.forEach { it.isEnabled = value }; classification.isEnabled = value
+        updateState()
     }
     private fun classificationLabel(value: DraftDataClassification?): String = value?.encoded
         ?: context.getString(R.string.workload_unanswered)
@@ -115,6 +136,18 @@ class WorkloadSection(context: Context, initial: PreviewWorkloadInputs,
             inputs.parsed() == null -> R.string.workload_invalid
             else -> R.string.workload_editable
         })
+        val guidance = PreviewObjectiveGuidance.assess(inputs)
+        objectiveGuidance.text = when (guidance) {
+            PreviewObjectiveGuidance.InvalidInputs -> context.getString(R.string.objective_inputs_invalid)
+            PreviewObjectiveGuidance.Answered -> context.getString(R.string.objective_inputs_answered)
+            is PreviewObjectiveGuidance.Missing -> context.getString(R.string.objective_inputs_missing,
+                guidance.inputs.joinToString(", ") { context.getString(when (it) {
+                    RequiredObjectiveInput.REGION -> R.string.workload_region
+                    RequiredObjectiveInput.CURRENCY -> R.string.workload_currency
+                    RequiredObjectiveInput.DATA_CLASSIFICATION -> R.string.workload_classification
+                }) })
+        }
+        nextObjective.isEnabled = editable && guidance is PreviewObjectiveGuidance.Missing
     }
     fun save(bundle: Bundle) {
         bundle.putBoolean("workloadInputsPresent", true)
