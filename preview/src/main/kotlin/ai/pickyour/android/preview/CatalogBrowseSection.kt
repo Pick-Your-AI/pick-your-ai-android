@@ -1,7 +1,6 @@
 package ai.pickyour.android.preview
 
 import android.app.Activity
-import android.app.AlertDialog
 import android.os.Bundle
 import android.view.View
 import android.widget.Button
@@ -109,36 +108,35 @@ class CatalogBrowseSection(
     private fun chooseTier() {
         if (!active()) return
         val values = listOf<String?>(null) + PreviewCatalogKinds.tiers
-        AlertDialog.Builder(activity).setTitle(R.string.catalog_tier_title)
-            .setItems(values.map { it ?: activity.getString(R.string.catalog_all_tiers) }.toTypedArray()) { picker, index ->
-                if ((picker as? AlertDialog)?.isShowing != true || !active()) return@setItems
-                state = state.copy(tier = values[index], page = 0)
-                render()
-            }.setNegativeButton(R.string.close, null).show()
+        showPreviewSingleChoiceDialog(activity, R.string.catalog_tier_title,
+            values.map { it ?: activity.getString(R.string.catalog_all_tiers) },
+            values.indexOf(state.tier), ::active) { index ->
+            state = state.copy(tier = values[index], page = 0)
+            render()
+        }
     }
 
     private fun chooseKind() {
         if (!active()) return
         // All frozen kinds remain reachable, including those with no row in this snapshot/tier.
         val values = listOf<PreviewCatalogKind?>(null) + PreviewCatalogKinds.all
-        AlertDialog.Builder(activity).setTitle(R.string.catalog_kind_title)
-            .setItems(values.map { it?.let { entry -> "${entry.tier} · ${entry.id}" }
-                ?: activity.getString(R.string.catalog_all_kinds) }.toTypedArray()) { picker, index ->
-                if ((picker as? AlertDialog)?.isShowing != true || !active()) return@setItems
-                state = state.copy(kind = values[index]?.id, page = 0)
-                render()
-            }.setNegativeButton(R.string.close, null).show()
+        showPreviewSingleChoiceDialog(activity, R.string.catalog_kind_title,
+            values.map { it?.let { entry -> "${entry.tier} · ${entry.id}" }
+                ?: activity.getString(R.string.catalog_all_kinds) },
+            values.indexOfFirst { it?.id == state.kind }, ::active) { index ->
+            state = state.copy(kind = values[index]?.id, page = 0)
+            render()
+        }
     }
 
     private fun chooseSort() {
         if (!active()) return
         val values = PreviewCatalogSort.entries
-        AlertDialog.Builder(activity).setTitle(R.string.catalog_sort_title)
-            .setItems(values.map(::sortName).toTypedArray()) { picker, index ->
-                if ((picker as? AlertDialog)?.isShowing != true || !active()) return@setItems
-                state = state.copy(sort = values[index], page = 0)
-                render()
-            }.setNegativeButton(R.string.close, null).show()
+        showPreviewSingleChoiceDialog(activity, R.string.catalog_sort_title,
+            values.map(::sortName), values.indexOf(state.sort), ::active) { index ->
+            state = state.copy(sort = values[index], page = 0)
+            render()
+        }
     }
 
     private fun sortName(value: PreviewCatalogSort) = activity.getString(when (value) {
