@@ -1,0 +1,8 @@
+<resources>
+    <string name="catalog_search">Search synthetic samples (up to 120 characters)</string>
+    <string name="catalog_search_hint">Name, ID, kind or version</string>
+    <string name="catalog_search_waiting">Search results will appear after the bundled catalog is validated.</string>
+    <string name="catalog_search_count">Showing %1$d of %2$d synthetic samples. Filtering does not change your draft or selection.</string>
+    <string name="catalog_search_empty">No synthetic samples match. Edit or clear the search to browse again. Your draft and selected sample are unchanged.</string>
+    <string name="catalog_search_changed">The bundled catalog snapshot changed. Search now uses the newly validated synthetic snapshot; saved selections keep their exact version and catalog pin.</string>
+</resources>
