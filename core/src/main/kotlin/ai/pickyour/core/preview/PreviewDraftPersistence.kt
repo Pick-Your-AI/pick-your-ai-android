@@ -17,8 +17,25 @@ data class PreviewDraftFields(val title: String = "", val selectedId: String? = 
 class PreviewStoredDraft internal constructor(internal val draft: StoredDraft, val fields: PreviewDraftFields) {
     val revision: Long get() = draft.version.number
     val baselineIdentity: String get() = "${draft.version.number}:${draft.version.hash.hex}"
+    /** Retained guest forms only; unavailable metadata is never reconstructed or replaced. */
+    val history: List<PreviewDraftRevision> get() = java.util.Collections.unmodifiableList(draft.history.map {
+        PreviewDraftRevision(it.number, decodePreviewFields(it.metadata))
+    })
+    val earlierHistoryUnavailable: Boolean get() = draft.earlierHistoryUnavailable
     override fun toString() = "PreviewStoredDraft"
 }
+/** This is guest form history, not a domain snapshot or an evaluation result. */
+class PreviewDraftRevision internal constructor(val revision: Long, val fields: PreviewDraftFields?) {
+    override fun toString() = "PreviewDraftRevision"
+}
+
+private fun decodePreviewFields(metadata: Map<String, String>): PreviewDraftFields? {
+    if (metadata["preview.format"] != "1") return null
+    val title = metadata["preview.title"] ?: return null
+    return try { PreviewDraftFields(title, metadata["preview.selectedId"], metadata["preview.selectedVersion"], metadata["preview.catalogHash"]) }
+    catch (_: IllegalArgumentException) { null }
+}
+
 sealed interface PreviewDraftLoad {
     data object Missing : PreviewDraftLoad
     class Available(val record: PreviewStoredDraft) : PreviewDraftLoad
