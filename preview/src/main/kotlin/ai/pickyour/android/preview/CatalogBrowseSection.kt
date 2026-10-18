@@ -82,6 +82,17 @@ class CatalogBrowseSection(
         render()
     }
 
+    /** An explicit planning action clears conflicting search/facets without selecting an item. */
+    fun browseKind(kindId: String): Boolean {
+        if (!active()) return false
+        val requested = PreviewCatalogKinds.all.singleOrNull { it.id == kindId } ?: return false
+        state = state.copy(query = "", tier = requested.tier, kind = requested.id, page = 0)
+        render()
+        kind.requestFocus()
+        kind.requestRectangleOnScreen(android.graphics.Rect(0, 0, kind.width, kind.height), true)
+        return true
+    }
+
     fun selectionEnabled(value: Boolean) {
         if (!active()) return
         selectable = value
