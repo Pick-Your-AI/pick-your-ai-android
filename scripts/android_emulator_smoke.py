@@ -190,6 +190,30 @@ def check_hvf_acceleration(emulator: Path, observed: dict | None = None) -> dict
         print("HVF acceleration preflight: " + json.dumps(observed, sort_keys=True), flush=True)
 
 
+def kvm_acceleration_passes(observed: dict) -> bool:
+    return (hvf_command_passes(observed) and len(observed["stdout"]) <= 2048
+            and re.fullmatch(r"accel:\r?\n0\r?\nKVM \(version [1-9][0-9]*\) is installed and usable\."
+                             r"(?:\r?\naccel)?\r?\n?", observed["stdout"]) is not None)
+
+
+def kvm_emulator_version_passes(version: str) -> bool:
+    return (isinstance(version, str) and bool(version.splitlines()) and
+            version.splitlines()[0].startswith("Android emulator version " + HVF_EMULATOR_VERSION +
+                                               " (build_id 15917651) "))
+
+
+def check_kvm_acceleration(emulator: Path, observed: dict) -> None:
+    try:
+        require(emulator.is_file() and not emulator.is_symlink(), "Expected the dedicated pinned Linux emulator")
+        observe_hvf_command([str(emulator), "-accel-check"], observed, timeout=30, output_limit=2048)
+        require(kvm_acceleration_passes(observed), "The selected non-root process did not confirm usable KVM")
+    except Exception as error:
+        observed["error"] = bounded_text(str(error), 1200)
+        raise
+    finally:
+        print("KVM acceleration preflight: " + json.dumps(observed, sort_keys=True), flush=True)
+
+
 def require_apk_handoff(actual_hash: str, expected_hash: str | None) -> None:
     require(isinstance(expected_hash, str) and re.fullmatch(r"[0-9a-f]{64}", expected_hash) is not None
             and expected_hash == actual_hash,
@@ -466,6 +490,11 @@ def complete_receipt(receipt: dict, source_sha: str, expected_mode: str | None =
                 and hvf_host_passes(emulation.get("host"))
                 and hvf_acceleration_passes(receipt.get("host_acceleration")),
                 "Complete hosted Intel Hypervisor.Framework evidence is missing")
+    if emulation["mode"] == "kvm":
+        require(kvm_acceleration_passes(receipt.get("host_acceleration")) and
+                kvm_emulator_version_passes(receipt.get("emulator_version")),
+                "Complete pinned Linux KVM acceleration evidence is missing")
+    if emulation["mode"] in ("hvf", "kvm"):
         require_apk_handoff(receipt.get("unsigned_apk_sha256"), receipt.get("expected_unsigned_apk_sha256"))
     readiness = receipt.get("guest_readiness", {})
     require(isinstance(readiness, dict) and readiness.get("ready") is True and
@@ -582,6 +611,35 @@ def observe_interactive_command(device: Device, arguments: tuple[str, ...], obse
     return result
 
 
+def ui_stream_matches_text(observed: dict, text: str) -> bool:
+    """Bind every retained field to a known complete command stream."""
+    return (isinstance(observed, dict) and isinstance(text, str)
+            and type(observed.get("text_characters")) is int
+            and observed.get("available") is True and observed.get("decoded_from_bytes") is False
+            and observed.get("edges_truncated") is (len(text) > 2400)
+            and observed == ui_stream_observation(text))
+
+
+def ui_read_observation_passes(observed: dict) -> bool:
+    """Validate retained read metadata; omitted XML cannot be reconstructed from its digest."""
+    if not (isinstance(observed, dict) and observed.get("available") is True
+            and observed.get("decoded_from_bytes") is False
+            and type(observed.get("text_characters")) is int and observed["text_characters"] > 0
+            and isinstance(observed.get("text_sha256"), str)
+            and re.fullmatch(r"[0-9a-f]{64}", observed["text_sha256"]) is not None
+            and isinstance(observed.get("prefix"), str) and isinstance(observed.get("suffix"), str)):
+        return False
+    count = observed["text_characters"]
+    edge_length = min(count, 1200)
+    if len(observed["prefix"]) != edge_length or len(observed["suffix"]) != edge_length:
+        return False
+    if count > 2400:
+        return (observed.get("edges_truncated") is True
+                and set(observed) == set(ui_stream_observation("")))
+    text = observed["prefix"] + observed["suffix"][2 * edge_length - count:]
+    return ui_stream_matches_text(observed, text)
+
+
 def interactive_command_passes(observed: dict, arguments: tuple[str, ...], retained_limit: int) -> bool:
     if not (isinstance(observed, dict) and observed.get("arguments") == list(arguments)
             and type(observed.get("exit_code")) is int and observed["exit_code"] == 0
@@ -592,12 +650,8 @@ def interactive_command_passes(observed: dict, arguments: tuple[str, ...], retai
             and isinstance(observed.get("stdout"), dict) and isinstance(observed.get("stderr"), dict)
             and "command_timeout_seconds" not in observed and "error" not in observed):
         return False
-    return (observed["stdout"].get("available") is True
-            and observed["stdout"].get("text_characters") == len(observed["stdout_tail"])
-            and observed["stdout"].get("text_sha256") ==
-            hashlib.sha256(observed["stdout_tail"].encode("utf-8")).hexdigest()
-            and observed["stderr"].get("available") is True
-            and observed["stderr"].get("text_characters") == 0)
+    return (ui_stream_matches_text(observed["stdout"], observed["stdout_tail"])
+            and ui_stream_matches_text(observed["stderr"], ""))
 
 
 def framework_barrier_passes(observed: dict) -> bool:
@@ -660,13 +714,9 @@ def interactive_readiness_passes(state: dict) -> bool:
                 and "command_timeout_seconds" not in command and "error" not in command
                 and isinstance(command.get("stdout"), dict) and isinstance(command.get("stderr"), dict)):
             return False
-        if name != "remove" and not (command["stderr"].get("available") is True
-                                      and command["stderr"].get("text_characters") == 0):
+        if name != "remove" and not ui_stream_matches_text(command["stderr"], ""):
             return False
-        if name == "dump" and not (command["stdout"].get("available") is True
-                                    and command["stdout"].get("edges_truncated") is False
-                                    and command["stdout"].get("prefix") == command["stdout"].get("suffix")
-                                    and isinstance(command["stdout"].get("prefix"), str)
+        if name == "dump" and not (ui_stream_matches_text(command["stdout"], command["stdout"].get("prefix"))
                                     and command["stdout"]["prefix"].strip() == "UI hierchary dumped to: " + UI_DUMP_PATH):
             return False
     return (isinstance(hierarchy, dict) and hierarchy.get("rotation") == "0"
@@ -676,9 +726,10 @@ def interactive_readiness_passes(state: dict) -> bool:
             and re.fullmatch(r"[0-9a-f]{64}", hierarchy["read_text_sha256"]) is not None
             and type(observations.get("attempted")) is int and observations["attempted"] == 1
             and "first_failed_attempt" not in observations
+            and type(attempt.get("sequence")) is int and attempt["sequence"] == 1 and "error" not in attempt
             and attempt.get("completed") is True and attempt.get("dump_completion_passed") is True
             and attempt.get("ui_dump_path") == UI_DUMP_PATH and attempt.get("stage") == "parse"
-            and isinstance(read.get("stdout"), dict)
+            and ui_read_observation_passes(read.get("stdout"))
             and hierarchy["read_text_sha256"] == read["stdout"].get("text_sha256"))
 
 
@@ -1068,7 +1119,7 @@ def main() -> int:
         original_hash = digest(apk)
         receipt["unsigned_apk_sha256"] = original_hash
         settings = emulation_settings(receipt)
-        if settings["mode"] == "hvf":
+        if settings["mode"] in ("hvf", "kvm"):
             expected_hash = os.environ.get("PYAI_EXPECTED_APK_SHA256")
             require_apk_handoff(original_hash, expected_hash)
             receipt["expected_unsigned_apk_sha256"] = expected_hash
@@ -1076,7 +1127,11 @@ def main() -> int:
             receipt["limitations"].append("software CPU emulation is a vendor-unsupported diagnostic mode")
         sdk = Path(os.environ["ANDROID_HOME"])
         adb = sdk / "platform-tools/adb"
-        emulator = sdk / "emulator/emulator"
+        emulator = (Path(os.environ["PYAI_EMULATOR_BINARY"]) if settings["mode"] == "kvm"
+                    else sdk / "emulator/emulator")
+        if settings["mode"] == "kvm":
+            require(emulator.is_absolute() and emulator.is_file() and not emulator.is_symlink(),
+                    "Expected the ordinary dedicated Linux emulator before running any tool query")
         avdmanager = sdk / "cmdline-tools/latest/bin/avdmanager"
         build_tools = sdk / "build-tools/35.0.0"
         image_dir = sdk / "system-images/android-35/default/x86_64"
@@ -1098,7 +1153,11 @@ def main() -> int:
         receipt["emulator_binary_sha256"] = digest(emulator)
         receipt["adb_version"] = command([str(adb), "version"]).stdout.strip()
         if settings["mode"] == "kvm":
-            command([str(emulator), "-accel-check"])
+            require(kvm_emulator_version_passes(receipt["emulator_version"]),
+                    "The dedicated Linux emulator differs from the pinned 37.1.11 build15917651")
+            acceleration = {}
+            receipt["host_acceleration"] = acceleration
+            check_kvm_acceleration(emulator, acceleration)
         elif settings["mode"] == "hvf":
             require(receipt["emulator_version"].splitlines()[0].startswith(
                     "Android emulator version " + HVF_EMULATOR_VERSION + " "),
@@ -1170,6 +1229,7 @@ def main() -> int:
                                           "persist.sys.locale", "ro.product.locale")}
                     require(receipt["device"]["ro.build.version.sdk"] == "35" and
                             receipt["device"]["ro.product.cpu.abi"] == "x86_64", "Unexpected installed platform")
+                    receipt["device"]["online_cpus"] = device.shell("cat", "/sys/devices/system/cpu/online")
                     receipt["display"] = device.shell("wm", "size") + "\n" + device.shell("wm", "density")
                     for setting in ("window_animation_scale", "transition_animation_scale", "animator_duration_scale"):
                         device.shell("settings", "put", "global", setting, "0")

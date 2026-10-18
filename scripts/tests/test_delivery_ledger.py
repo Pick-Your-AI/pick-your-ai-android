@@ -135,7 +135,7 @@ class LedgerValidationTest(unittest.TestCase):
             module.validate(self.ledger, [issue for issue in source if issue['state'] == 'open'])
 
     def test_completion_requires_reviewed_schema_version(self):
-        for version in (1, True, '2'):
+        for version in (1, 2, True, '2', '3', 3.0):
             ledger = copy.deepcopy(self.ledger)
             ledger['schema_version'] = version
             with self.assertRaisesRegex(ValueError, 'unsupported schema version'):
@@ -162,6 +162,90 @@ class LedgerValidationTest(unittest.TestCase):
                         changed_source[index]['number'] = alias
                     with self.assertRaisesRegex(ValueError, f'{location} issue numbers must be integers'):
                         module.validate(ledger, changed_source)
+
+
+    def test_foundation_criteria_cannot_change_with_a_recomputed_digest(self):
+        import hashlib
+        for number in (20, 24, 34):
+            for ordinal in range(3):
+                with self.subTest(number=number, ordinal=ordinal + 1):
+                    ledger = copy.deepcopy(self.ledger)
+                    criterion = ledger['issues'][number - 1]['criteria'][ordinal]
+                    criterion['text'] = 'Installed production behavior accepted.'
+                    criterion['text_sha256'] = hashlib.sha256(criterion['text'].encode()).hexdigest()
+                    with self.assertRaisesRegex(ValueError, f'reviewed design criterion set changed: {number}'):
+                        module.validate(ledger)
+
+    def test_foundation_decisions_require_their_own_receipts(self):
+        for target, source in ((20, 24), (24, 34), (34, 20), (20, 23)):
+            with self.subTest(target=target, source=source):
+                ledger = copy.deepcopy(self.ledger)
+                ledger['issues'][target - 1]['accepted_design_outcome'] = copy.deepcopy(
+                    ledger['issues'][source - 1]['accepted_design_outcome'])
+                with self.assertRaisesRegex(ValueError, f'missing or changed reviewed design acceptance: {target}'):
+                    module.validate(ledger)
+
+    def test_foundation_requires_exact_delivery_placement_scope_and_reviews(self):
+        for number in (20, 24, 34):
+            for changed in ('missing-review', 'wrong-review', 'source', 'scope', 'history',
+                            'placement', 'record', 'open', 'revision', 'artifact'):
+                with self.subTest(number=number, changed=changed):
+                    ledger = copy.deepcopy(self.ledger)
+                    issue = ledger['issues'][number - 1]
+                    accepted = issue['accepted_design_outcome']
+                    receipt = ledger['evidence']['pr-297']
+                    if changed == 'missing-review':
+                        accepted['receiving_reviews'].pop()
+                    elif changed == 'wrong-review':
+                        accepted['receiving_reviews'][-1] = module.DESIGN_23_ACCEPTANCE['receiving_reviews'][0]
+                    elif changed == 'source':
+                        accepted['source_review_revision'] = '0' * 40
+                    elif changed == 'scope':
+                        accepted['scope'] = 'installed_production_execution'
+                    elif changed == 'history':
+                        accepted['historical_acceptance_record']['repository'] = module.REPOSITORY
+                    elif changed == 'placement':
+                        issue['canonical_acceptance_record']['repository'] = 'Pick-Your-AI/pickyour.ai'
+                    elif changed == 'record':
+                        accepted['record_url'] = module.FOUNDATION_DECISION
+                    elif changed == 'open':
+                        receipt['observed_state'] = 'open'
+                    elif changed == 'revision':
+                        receipt['revision'] = '0' * 40
+                        receipt['artifact_url'] = receipt['artifact_url'].replace(module.FOUNDATION_REVISION, '0' * 40)
+                    else:
+                        receipt['artifact_url'] = accepted['record_url']
+                    with self.assertRaises(ValueError):
+                        module.validate(ledger)
+
+    def test_foundation_completion_preserves_unfinished_criterion_guards(self):
+        for number in (20, 24, 34):
+            for field, value in (
+                ('completion_evidence', []),
+                ('completion_evidence', ['pr-279']),
+                ('completion_evidence', ['pr-297', 'pr-279']),
+                ('remaining_engineering', 'Unreviewed decision remains.'),
+                ('external_prerequisites', [{'kind': 'owner_acceptance', 'requirement': 'Pending design review.'}]),
+                ('evidence_relation', 'issue_context_only; inspect artifact scope before attributing any criterion result'),
+            ):
+                with self.subTest(number=number, field=field, value=value):
+                    ledger = copy.deepcopy(self.ledger)
+                    ledger['issues'][number - 1]['criteria'][0][field] = value
+                    with self.assertRaises(ValueError):
+                        module.validate(ledger)
+
+    def test_foundation_does_not_authorize_parent_or_implementation_completion(self):
+        for number in (1, 48, 98):
+            with self.subTest(number=number):
+                ledger = copy.deepcopy(self.ledger)
+                target = ledger['issues'][number - 1]
+                target['accepted_design_outcome'] = copy.deepcopy(ledger['issues'][19]['accepted_design_outcome'])
+                target['canonical_acceptance_record']['repository'] = module.REPOSITORY
+                target['criteria'][0].update(status='complete', completion_evidence=['pr-297'],
+                                             remaining_engineering='', external_prerequisites=[],
+                                             evidence_relation=module.COMPLETE_DESIGN_RELATION)
+                with self.assertRaisesRegex(ValueError, f'unsupported design acceptance: {number}'):
+                    module.validate(ledger)
 
 
 if __name__ == '__main__':

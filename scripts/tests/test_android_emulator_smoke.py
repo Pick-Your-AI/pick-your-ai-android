@@ -455,7 +455,11 @@ class EmulatorSmokeGuardTest(unittest.TestCase):
 
     def test_receipts_require_consistent_mode_settings_without_an_expected_mode_argument(self):
         receipt = {"source_commit": "a" * 40, "scope": "owned-installed-aosp-emulator", "status": "passed",
-                   "unsigned_apk_unchanged": True,
+                   "unsigned_apk_unchanged": True, "unsigned_apk_sha256": "b" * 64,
+                   "expected_unsigned_apk_sha256": "b" * 64,
+                   "emulator_version": "Android emulator version 37.1.11.0 (build_id 15917651) (CL:N/A)",
+                   "host_acceleration": {"exit_code": 0, "stderr": "", "output_truncated": False,
+                                         "stdout": "accel:\n0\nKVM (version 12) is installed and usable.\naccel\n"},
                    "guest_readiness": {"ready": True, "ui_dump_path": smoke.UI_DUMP_PATH,
                                        "last_checks": ready_checks(), "interactive": ready_interactive()},
                    "cases": [{"id": name, "status": "passed"} for name in smoke.CASE_IDS]}
@@ -484,6 +488,56 @@ class EmulatorSmokeGuardTest(unittest.TestCase):
                 changed["emulation"][field] = value
                 with self.subTest(mode=mode, field=field), self.assertRaises(smoke.SmokeFailure):
                     smoke.complete_receipt(changed, "a" * 40)
+
+    def test_kvm_requires_complete_acceleration_and_the_same_hardware_version(self):
+        observed = {"exit_code": 0, "stdout": "accel:\n0\nKVM (version 12) is installed and usable.\naccel\n",
+                    "stderr": "", "output_truncated": False}
+        for output in (observed["stdout"], "accel:\n0\nKVM (version 12) is installed and usable.\n"):
+            self.assertTrue(smoke.kvm_acceleration_passes(dict(observed, stdout=output)))
+        for key, value in (("exit_code", False), ("exit_code", 1), ("stderr", "warning"),
+                           ("output_truncated", True), ("command_timeout_seconds", 30), ("error", "failed"),
+                           ("stdout", "accel:\n0\nKVM (version 12) is installed and usable.\nextra\n"),
+                           ("stdout", "accel:\n0\nHypervisor.Framework OS X Version 15.7\naccel\n"),
+                           ("stdout", "KVM is available")):
+            with self.subTest(key=key, value=value):
+                self.assertFalse(smoke.kvm_acceleration_passes(dict(observed, **{key: value})))
+        self.assertTrue(smoke.kvm_emulator_version_passes("Android emulator version 37.1.11.0 (build_id 15917651) (CL:N/A)"))
+        for version in (None, "", "Android emulator version 37.2.11.0 (build_id 15917651) (CL:N/A)",
+                        "Android emulator version 37.1.11.0 (build_id 15917650) (CL:N/A)"):
+            self.assertFalse(smoke.kvm_emulator_version_passes(version))
+
+    def test_kvm_acceleration_failure_retains_the_complete_original_observation(self):
+        for result in (subprocess.CompletedProcess([], 1, "accel:\n1\nKVM inaccessible\naccel\n", ""),
+                       subprocess.CompletedProcess([], 0, "accel:\n0\nKVM (version 12) is installed and usable.\n", "warning")):
+            observed = {}
+            with patch.object(Path, "is_file", return_value=True), patch.object(Path, "is_symlink", return_value=False), \
+                    patch.object(smoke, "command", return_value=result) as command:
+                with self.assertRaises(smoke.SmokeFailure):
+                    smoke.check_kvm_acceleration(Path("/owned/emulator"), observed)
+            self.assertEqual(result.returncode, observed["exit_code"])
+            self.assertEqual(result.stdout, observed["stdout"])
+            self.assertEqual(result.stderr, observed["stderr"])
+            command.assert_called_once_with(["/owned/emulator", "-accel-check"], timeout=30, check=False)
+
+    def test_kvm_receipt_cannot_replace_handoff_acceleration_or_installed_cases(self):
+        receipt = {"source_commit": "a" * 40, "scope": "owned-installed-aosp-emulator", "status": "passed",
+                   "unsigned_apk_unchanged": True, "unsigned_apk_sha256": "b" * 64,
+                   "expected_unsigned_apk_sha256": "b" * 64,
+                   "emulator_version": "Android emulator version 37.1.11.0 (build_id 15917651) (CL:N/A)",
+                   "emulation": {"mode": "kvm", "accel_argument": "on", "boot_timeout_seconds": 300,
+                                 "unsupported_software_opt_in": False},
+                   "host_acceleration": {"exit_code": 0, "stderr": "", "output_truncated": False,
+                                         "stdout": "accel:\n0\nKVM (version 12) is installed and usable.\naccel\n"},
+                   "guest_readiness": {"ready": True, "ui_dump_path": smoke.UI_DUMP_PATH,
+                                       "last_checks": ready_checks(), "interactive": ready_interactive()},
+                   "cases": [{"id": name, "status": "passed"} for name in smoke.CASE_IDS]}
+        smoke.complete_receipt(receipt, "a" * 40, expected_mode="kvm")
+        for missing in ("emulator_version", "host_acceleration", "expected_unsigned_apk_sha256", "guest_readiness", "cases"):
+            with self.subTest(missing=missing):
+                changed = copy.deepcopy(receipt)
+                changed.pop(missing)
+                with self.assertRaises(smoke.SmokeFailure):
+                    smoke.complete_receipt(changed, "a" * 40, expected_mode="kvm")
 
     def test_hvf_receipt_cannot_replace_host_handoff_or_installed_evidence(self):
         receipt = {"source_commit": "a" * 40, "scope": "owned-installed-aosp-emulator", "status": "passed",
@@ -887,6 +941,47 @@ class EmulatorSmokeGuardTest(unittest.TestCase):
         for state in invalid:
             with self.subTest(state=state):
                 self.assertFalse(smoke.interactive_readiness_passes(state))
+
+    def test_interactive_receipt_rejects_conflicting_stream_metadata(self):
+        valid = ready_interactive()
+        self.assertTrue(smoke.interactive_readiness_passes(valid))
+        for size in (1199, 1200, 1201, 2399, 2400, 2401, 4096):
+            answers = interactive_answers()
+            home = answers[3].stdout
+            answers[3].stdout = home.replace("</hierarchy>", " " * (size - len(home)) + "</hierarchy>")
+            device, readiness = Mock(spec=smoke.Device), {}
+            device.adb.side_effect = answers
+            with self.subTest(valid_xml_characters=size), patch.object(smoke.time, "monotonic", return_value=0):
+                smoke.establish_interactive_readiness(device, readiness, 180)
+                self.assertTrue(smoke.interactive_readiness_passes(readiness["interactive"]))
+        for path, value in (
+            (("barrier", "stderr", "prefix"), "service failure"),
+            (("focus", "stderr", "text_sha256"), "f" * 64),
+            (("ui_hierarchy_observations", "last_attempt", "commands", "dump", "stdout", "text_sha256"), "0" * 64),
+            (("ui_hierarchy_observations", "last_attempt", "commands", "dump", "stdout", "text_characters"), 0),
+            (("ui_hierarchy_observations", "last_attempt", "commands", "read", "stdout", "available"), False),
+            (("ui_hierarchy_observations", "last_attempt", "commands", "read", "stdout", "text_characters"), 0),
+            (("ui_hierarchy_observations", "last_attempt", "commands", "read", "stderr", "prefix"), "read failed"),
+        ):
+            changed = copy.deepcopy(valid)
+            target = changed
+            for key in path[:-1]:
+                target = target[key]
+            target[path[-1]] = value
+            with self.subTest(path=path):
+                self.assertFalse(smoke.interactive_readiness_passes(changed))
+
+    def test_interactive_receipt_rejects_misidentified_or_failed_only_probe(self):
+        valid = ready_interactive()
+        self.assertTrue(smoke.interactive_readiness_passes(valid))
+        for key, value in (
+            ("sequence", 2),
+            ("error", {"type": "ParseError", "message": "syntax error: line 1, column 0"}),
+        ):
+            changed = copy.deepcopy(valid)
+            changed["ui_hierarchy_observations"]["last_attempt"][key] = value
+            with self.subTest(key=key):
+                self.assertFalse(smoke.interactive_readiness_passes(changed))
 
     def test_readiness_failure_diagnostics_are_distinct_and_do_not_rescue_unrun_cases(self):
         device = Mock(spec=smoke.Device)

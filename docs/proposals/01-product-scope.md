@@ -146,30 +146,42 @@ managed-capacity or integrated hybrid validation. T3/T4/T5 stay later in every r
 #58/#66 inform this decision without closing research issues or certifying their
 protocol, demand, source rights or deployment feasibility.
 
-## Accounts/privacy handoff retained for #25
+## Accounts/privacy decision for #25
 
-Select guest-local operation for #24. The existing #25 recommendation remains:
-accounts, advertising, analytics, remote crash upload, push, paid plans and source
-collection are absent initially. A later account upgrade must explicitly choose
-what to upload. Guest identity is not server authorization; remote mutations and
-private reads need canonical ownership/capability scope, expiry/revocation,
-resource limits and conflict semantics.
+The separately reviewed [01.05 decision](../delivery/android/work-packages/01.05.md)
+develops the earlier #25 recommendation under the same delegated project authority.
+It selects free guest-local J1–J4 planning and gives every account, monetization,
+analytics and notification capability an enable/defer/reject disposition.
+Accounts/signup redirects, synchronization, payments, analytics, automatic remote
+crash upload and notifications remain absent initially. Conditional J5 and core T6
+retain their existing dispositions.
 
-Export is disclosure; deleting a local original cannot revoke recipient copies.
-Import must not execute, follow embedded network locators or replace a draft
-without an independent action. Exact projection, limits, permissions and future
-deletion/billing policy remain #25 and corresponding service/implementation work.
-This review intentionally accepts #20/#24, not all #25 criteria.
+The #25 record includes the guest, share, upgrade, logout, deletion, consent,
+notification and purchase desk cases; current official platform-policy inputs;
+H1–H5 demand/value unknowns; and each dependent task's activation boundary.
+It also consumes research #66's later accepted bounded result. E2/E3 above remain
+dated observations at their original revision; their earlier pending/open-#66
+statements do not override that later accepted receiving receipt.
 
-The existing #25 criterion baseline is retained as a proposal handoff. Its intended
-record remains `docs/delivery/android/work-packages/01.05.md` in
-`Pick-Your-AI/pickyour.ai`; ADR 0002 does not move or complete it.
+Guest mode grants no server authority. Later private reads and mutations require
+canonical principal/object scope, distinct creator/viewer powers, expiry/revocation,
+resource limits and conflict/reconciliation semantics. Account upgrade must
+explicitly choose records and prove both authorities where ownership changes.
+Export discloses a copy; deletion of the original cannot revoke recipient copies.
+An unavailable support destination remains unavailable even when local diagnostic
+review and deliberate sharing are implemented.
 
-| Exact #25 criterion | Retained input / remaining disposition |
+[ADR 0003](../decisions/0003-android-25-acceptance-record.md) explicitly places only
+the 01.05 record in Android after independent receiving review and normal merge,
+preserving its original website path as history. The earlier #20/#24/#34
+acceptance remains separate. #25's exact delivered record and receiving receipt
+must enter the strict current ledger before its own closure.
+
+| Exact #25 criterion | Concrete decision record |
 | --- | --- |
-| Decide guest-first behavior, optional accounts, monetization, analytics and notifications; enable only the dependent policy/implementation tasks that apply. | Conservative initial recommendation above; separate #25 receiving record/review |
-| Every account, revenue, analytics and notification capability has an explicit disposition and rationale. | Initial absence and expansion conditions above; retain #25's own complete policy/scope assessment |
-| Remote mutations/private reads retain an authorization model even when full accounts are deferred; unselected services are absent from launch scope. | Canonical authorization boundary above; no deployed service or #25 closure claimed |
+| Decide guest-first behavior, optional accounts, monetization, analytics and notifications; enable only the dependent policy/implementation tasks that apply. | 01.05 selected baseline, disposition table and D1–D10 |
+| Every account, revenue, analytics and notification capability has an explicit disposition and rationale. | 01.05 capability rationales, H1–H5, P1–P5 and re-entry conditions |
+| Remote mutations/private reads retain an authorization model even when full accounts are deferred; unselected services are absent from launch scope. | 01.05 six authority/lifecycle requirements and D3–D7; no deployed service claim |
 
 ## Receiving decision and handoffs
 

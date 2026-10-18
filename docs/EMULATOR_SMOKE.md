@@ -2,9 +2,11 @@
 
 The existing **Unsigned synthetic Android preview** CI job builds, lints and runs
 the named Robolectric regressions on Linux. After that job succeeds, **Installed
-synthetic Android preview (Intel HVF)** verifies the exact unsigned APK handoff and
-runs the same smoke harness on an explicitly selected Intel macOS runner. It uses
-one fresh AOSP API 35 x86_64 AVD. The workflow
+synthetic Android preview (hosted KVM)** verifies the exact unsigned APK handoff and
+runs the same smoke harness on an explicitly selected Ubuntu 24.04 runner. The
+new process boundary uses only its existing sudo policy to keep the same non-root
+UID while selecting the existing named KVM device group. It uses one fresh AOSP
+API 35 x86_64 AVD. The earlier Intel macOS failures remain recorded below. The workflow
 definition and host-side harness tests are preparation; only an observed passing
 run and its exact receipt establish installed-emulator evidence.
 
@@ -68,8 +70,9 @@ launch timeout or relax any installed assertion; another observed run is require
 ## Isolation and diagnostic signing
 
 Provisioning is restricted to a standard disposable GitHub-hosted runner; the
-current installed job explicitly selects `macos-15-intel` and requires observed
-Darwin/x86_64 with hosted macOS/X64 identity and existing Hypervisor.Framework support.
+current installed job explicitly selects `ubuntu-24.04` and requires observed
+Ubuntu 24.04/Linux/x86_64 with hosted Linux/X64 identity. The explicit credential
+boundary described below must pass before the unchanged read-only KVM access gate.
 The workflow retains `contents: read`, checkout credential persistence stays off,
 and no production, publisher, signing or deployment secret is supplied. This uses
 the existing standard runner, not a larger paid runner or external coding job.
@@ -97,11 +100,13 @@ camera, and disabled emulator metrics. Only this job's process group is terminat
 during normal completion or failure, and its AVD/key/copy are removed with the
 temporary directory. Hard job cancellation additionally relies on disposal of the
 hosted VM. Artifact retention never includes AVD userdata or the temporary signing
-directory. In hardware mode a read-only KVM preflight reports the current effective UID, groups and
-device ownership/mode, requires a real character device and checks existing
-read/write access. It runs before SDK provisioning and again before the emulator
-acceleration probe. Missing devices, symbolic links and unavailable access fail
-clearly; this lane changes no KVM ownership, permissions, groups or udev rules.
+directory. The outer KVM policy preflight records real/effective UID/GID,
+supplementary groups, the existing named `kvm` group and device identity/access
+before SDK provisioning. The selected same-user process repeats those observations
+and requires read/write access; the harness's unchanged read-only KVM access guard
+runs again before its acceleration probe. Missing devices, symbolic links, an
+unexpected device group, denied policy or unavailable access fail. No device
+ownership/mode, group membership, ACL, udev or sudoers configuration is changed.
 
 The preceding Linux workflow explicitly selected `PYAI_EMULATOR_MODE=software`.
 That remains an opt-in experimental diagnostic setting, not an automatic fallback or a vendor-supported
@@ -120,9 +125,11 @@ timeout or failure cannot become successful or skipped acceptance. The receipt
 records the selected mode, exact acceleration argument, boot budget and unsupported
 opt-in alongside the actual tool/platform versions and case results. Feasible
 execution has not been established by this configuration or its host guard tests.
-When `PYAI_EMULATOR_MODE` is absent, KVM mode remains the default: the strict
-read-only KVM preflight and emulator `-accel-check` must pass, with a 300-second
-boot deadline. Unknown mode names fail and hardware failure never switches modes.
+When `PYAI_EMULATOR_MODE` is absent, KVM mode remains the settings helper's default.
+The hosted KVM lane supplies its explicit mode, pinned binary path and exact APK
+digest through the boundary. Its read-only KVM preflight and complete emulator
+`-accel-check` must pass, with the unchanged 300-second boot deadline. Unknown mode
+names fail and hardware failure never switches modes.
 
 The Linux emulator host also needs Ubuntu's `libpulse0` runtime library even with emulator audio
 disabled. The previous preparation step installed that specific package and the receipt
@@ -132,7 +139,7 @@ passed compilation/lint and all 11 simulated cases, then failed loading
 marks all four installed cases unexecuted and the original APK unchanged. This
 failure is setup evidence; a later passing installed receipt is still required.
 
-### Observed Intel HVF capability and selected lane
+### Observed Intel HVF capability and preceding lane
 
 The read-only diagnostic [#244](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/244)
 ran on the existing `macos-15-intel` label in
@@ -143,8 +150,8 @@ the preinstalled emulator 37.1.11.0 returned exit 0 with
 without stderr or timeout. That diagnostic was closed without merging its temporary
 workflow. It establishes capability on that observed host only; it booted no AVD.
 
-The installed job now explicitly selects `PYAI_EMULATOR_MODE=hvf`, a 600-second boot
-deadline and a 25-minute job budget. Both its preparation and harness check the
+The preceding installed job explicitly selected `PYAI_EMULATOR_MODE=hvf`, a 600-second boot
+deadline and a 25-minute job budget. That mode's preparation and harness check the
 hosted Intel platform and read-only `/usr/sbin/sysctl -n kern.hv_support` result.
 The harness also requires a complete successful `emulator -accel-check` result
 identifying Hypervisor.Framework, uses `-accel on`, and records the actual host and
@@ -692,6 +699,146 @@ timeout partials, process errors, shared deadline and preservation of the
 original failure and unrun cases. No readiness predicate, case, launch, cleanup,
 image, renderer, CPU setting or budget changes; a new actual result is required.
 
+### Consistent command observations in the final receipt
+
+The framework/home receipt validator binds each fully retained command stream to
+its recorded length, SHA-256, prefix, suffix and truncation flags. Empty stderr
+must have the complete empty-stream observation. The hierarchy read must explicitly
+contain available, nonempty text with consistent retained edges. When those edges
+cover the whole text, the validator reconstructs it and verifies the digest. Longer
+hierarchies retain their declared full-text digest and checked edge metadata; their
+omitted middle cannot be reconstructed from that digest. The existing successful
+XML parse and hierarchy-summary binding remain required.
+
+The only hierarchy attempt must identify sequence 1 and contain no failure record.
+Two added host regression methods reproduced nine assertion failures against the
+unchanged `f180a53228b3206445328685c5011ccfd77f921d` driver, covering contradictory
+stream fields, unavailable read evidence and a failed or misidentified sole probe.
+After this validator correction, all 71 existing methods and both new methods pass
+locally under normal and optimized Python. Valid XML around both retained-edge
+boundaries also passes. These are mocked host checks; installed execution remains
+pending. The command sequence, shared readiness deadline, original nine checks,
+four app cases, launch predicate, host configuration and budgets are unchanged.
+
+### Observed global ANR trace and one explicit hosted KVM experiment
+
+The actual [run 39123226538](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39123226538)
+checked out `cf26f89c749373ccdb3976bcc7bfb48ddb976e72`, tree
+`77bcced552386e2c496ac7f12816194519eae4d6`, carrying source
+`f180a53228b3206445328685c5011ccfd77f921d`. Its installed artifact `12136125002`
+is 76,384 ZIP bytes with independently verified SHA-256
+`5f8853b84b7680385b1e85046424c6c6a74210b25f6153f36a5a6e8fec1f0079`.
+The [consolidated receiving observation](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/255#issuecomment-6249661795)
+also records 410 actual core and 128 simulated native tests. Those successful
+producer results do not replace the installed failure.
+
+The owned guest booted in 569.390 seconds. All nine original readiness checks
+passed together, but the single framework barrier took 91.882 seconds and ended
+with Android's application-barrier give-up after reaching 22/23 pings. It returned
+zero with empty stderr, yet lacked `Finished application barriers!`; the strict
+predicate correctly failed. The readiness phase took 100.643 seconds of its
+180-second budget. HOME capture, installation and every installed case remained
+unexecuted. The original unsigned APK stayed unchanged.
+
+All eight bounded failure observations completed in 8.269 seconds. The latest
+global trace belongs to **phone PID 2641**, with startup failure and a Runnable
+main thread in provider/APN insertion during application binding. Its schedstat
+fields report 2.081075 seconds of cumulative CPU time and 18.223912 seconds of
+cumulative runqueue wait; they are not the duration of the SQLite call. A separate
+critical-event entry identifies SystemUI PID 1333's startup ANR, and the later
+activity state focuses the SystemUI ANR window. No SystemUI thread stack was retained,
+and the one unfinished application ping was not identified. The saved-state cache's
+`<no ANR has occurred since boot>` output cannot erase those separately retained events.
+
+The two ANR samples report CPU pressure `some avg10=100.00`, I/O pressure
+`some avg10=34.98` and `25.36`, and lower nonzero memory pressure. CPU pressure
+measures stalled time, separately from the sampled 100% total CPU utilization.
+The emulator warning and kernel records again establish **one effective guest
+processor**, despite the existing request for two. LMK counters are zero. The
+package-process query itself contains two 3000 ms dump timeouts; its zero exit does
+not establish a complete process inventory. These observations support one bounded
+host-capacity experiment; they do not identify an app defect, OOM kill, renderer
+failure or a single proven cause of the SystemUI ANR.
+
+The new candidate therefore selects the ordinary `ubuntu-24.04` GitHub-hosted VM,
+retaining the same image, renderer, requested two cores, memory argument, guest
+readiness predicates, exact launch/XML/case assertions and cleanup. KVM keeps its
+existing 300-second boot limit and readiness keeps its shared 180-second deadline;
+the complete job remains limited to 25 minutes. No timer increase, ANR dismissal,
+software fallback or macOS core-clamp bypass is included. The receipt adds the
+guest's actual `/sys/devices/system/cpu/online` value after boot, alongside the
+existing kernel log; host CPU count is observed at the process boundary.
+
+This is a new explicit CI credential boundary requiring independent source and
+receiving review. The earlier [scoped review](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/206#pullrequestreview-5561485748)
+correctly rejected silently changing `/dev/kvm` ownership. The new wrapper makes
+the process selection explicit and retains that device/configuration restriction.
+It does not operate on a shared machine or select a larger paid host.
+
+1. Before SDK provisioning, record the nonzero real/effective runner UID/GID,
+   supplementary groups and existing `/dev/kvm` inode, device number, owner, mode
+   and access. Require a real character device owned by root whose positive GID
+   equals the existing group named `kvm`. A missing group or mismatch fails.
+2. Run one bounded `sudo --non-interactive --list --user=#UID --group=#GID --`
+   check for the exact absolute system Python 3.12 interpreter, `-I`, absolute
+   wrapper path and `--child` argument. A different command's permission is not
+   substituted. Nonzero, diagnostic stderr, timeout or truncated listing fails.
+3. Prepare the pinned Linux emulator and selected SDK image as the original
+   non-root runner. The emulator archive comes only from the official Android
+   repository, with SHA-256
+   `95771e0ae431897b2a4bd2d97fa095f29a8b0624a7b216baf529f9306161c266`
+   for `emulator-linux_x64-15917651.zip`. Verify the digest before extracting into
+   a newly created directory under `RUNNER_TEMP`; reject escaping archive paths
+   or links. No preceding or SDK emulator directory is replaced. The exact
+   archive identity, byte count and extracted executable hash are recorded;
+   only the verified temporary archive is removed after preparation.
+4. Invoke that exact sudo command once, now with an explicit environment-name
+   allowlist. Policy permission to list the command does not establish permission
+   to preserve those variables: an actual invocation denial remains terminal.
+   No `-E`, loader/Python controls, token, credential or alternate policy command
+   is forwarded. Fixed SDK/Java/temporary/workspace paths, source/run/APK identities,
+   hosted identity, mode and the derived tool path must arrive unchanged.
+5. Inside the selected process, verify the same non-root real/effective UID,
+   real/effective GID equal to the unchanged named device group, sudo's original
+   UID/GID, actual read/write access and the same source/APK/tool identity. Record
+   those observations before `execve` of the fixed absolute harness/interpreter.
+   Its original access, acceleration, owned-device and installed-case gates still run.
+6. After the child, record the original invoking identity, supplementary groups,
+   device and access again. Any change, child failure, missing inner observation
+   or final source/APK revalidation failure makes the persisted boundary receipt
+   fail. A later observation error does not replace an earlier invocation failure.
+
+The existing sudo policy decides whether this exact same-UID/named-group command
+is permitted. The source does not repair denial through root execution, another
+group, ACL, `chown`, `chmod`, `usermod`, udev or sudoers edits. Sudo may initialize
+the child's supplementary groups from that user's existing membership; the
+selected primary GID is checked separately. This is a credential selection, not
+a claim that every step is read-only. Only the original `libpulse0` package setup
+uses the runner's existing administrative package-install policy.
+
+The official Linux archive is a different OS-specific binary from the Mac build,
+even though both identify emulator 37.1.11.0/build15917651. The new lane pins that
+version/build and requires complete successful KVM acceleration output, empty
+stderr and no timeout/truncation. It accepts the exact Linux example in the
+Android documentation and the same form with the historical emulator-check
+`accel` footer; arbitrary extra output fails. Neither form is claimed as an
+observed result of this new candidate. The Linux host, hypervisor, runtime library,
+system Python patch version and emulator package differ, so even a future pass
+would evaluate this host profile rather than isolate CPU count as a causal variable.
+
+Primary references for this boundary: GitHub's [fresh standard runner and sudo
+policy documentation](https://docs.github.com/en/actions/reference/runners/github-hosted-runners),
+its [Linux Android acceleration announcement](https://github.blog/changelog/2024-04-02-github-actions-hardware-accelerated-android-virtualization-now-available/),
+Ubuntu 24.04's [`sudo` options](https://manpages.ubuntu.com/manpages/noble/man8/sudo.8.html)
+and [`sudoers` Runas rules](https://manpages.ubuntu.com/manpages/noble/man5/sudoers.5.html),
+the official [emulator archive](https://developer.android.com/studio/emulator_archive),
+the [runner image's actual SDK install inputs](https://github.com/actions/runner-images/blob/ubuntu24/20261012.334/images/ubuntu/toolsets/toolset-2404.json),
+Android's [acceleration output](https://developer.android.com/studio/run/emulator-acceleration),
+the historical [emulator-check formatter](https://android.googlesource.com/platform/external/qemu/+/ae9d18d2b6261179fbd57fffec720a04f7bfb053/android/emulator-check/main-emulator-check.cpp),
+and Linux's [schedstat field definitions](https://docs.kernel.org/scheduler/sched-stats.html)
+and [pressure definitions](https://docs.kernel.org/accounting/psi.html), plus the
+[online CPU sysfs definition](https://docs.kernel.org/admin-guide/cputopology.html).
+
 ## Inputs and provenance
 
 The application keeps its existing JDK 21, Gradle 8.11.1, Kotlin 2.1.20, AGP 8.9.2,
@@ -700,8 +847,9 @@ build-tools 35.0.0, compile/target 35 and minSdk 26 pins. This lane selects
 The upstream SDK manager resolves that package through the official SDK repository;
 the AOSP image needs no Google account or Google Play image.
 
-The runner's binaries can change independently of the image pin. The HVF lane
-rejects a preinstalled emulator version outside its separate pin; adb remains an
+The runner's binaries can change independently of the image pin. The preceding
+HVF mode rejects a preinstalled emulator outside its version pin; the selected
+KVM lane verifies the dedicated Linux archive and version/build. Adb remains an
 observed runner input. The receipt records the actual emulator and adb versions,
 emulator binary hash, image package metadata hash, `system.img` hash, runtime API,
 ABI, build fingerprint, persisted/default locale properties, display size and density. The runner image and
@@ -719,11 +867,14 @@ Setup failure is an explicit JUnit failure with the four cases unexecuted.
 
 The existing seven-day `android-preview-<workflow commit>` artifact retains the
 unsigned APK, lint reports and simulated-test reports from Linux. The separate
-`android-installed-hvf-<workflow commit>` artifact retains this JSON receipt, JUnit
-XML, bounded emulator log, synthetic UI XML/PNG checkpoints and bounded failure
-logcat when available. The final receipt requires the selected HVF mode, observed
-host/acceleration and producer APK digest in addition to guest readiness and all
-four actual cases. Link the exact
+`android-installed-kvm-<workflow commit>` artifact retains the `emulator-smoke/`
+JSON/JUnit, bounded emulator log, synthetic UI XML/PNG checkpoints and failure
+logcat when available, plus `kvm-boundary/receipt.json`. Both directories are
+relative to the common `preview/build/reports/` archive root. The final gate
+requires the complete same-user/group boundary and selected KVM mode, observed
+acceleration, exact emulator binary and producer APK digest in addition to guest
+readiness and all four actual cases. Earlier HVF artifact names and failed
+receipts remain historical evidence. Link the exact
 run, commit and artifact before treating it as receiving evidence; artifact expiry
 does not create a permanent acceptance record.
 
@@ -733,14 +884,16 @@ The core lane checks the harness guards. The dependent installed lane executes t
 same harness after the successful unsigned build/simulation and exact APK handoff:
 
 ```sh
-python -m unittest discover -s scripts/tests -p 'test_android_emulator_smoke.py' -v
-python scripts/android_emulator_smoke.py
+python -B -m unittest discover -s scripts/tests -p 'test_android*.py' -v
 ```
 
-The first command is safe host-side validation of target, selector and receipt
-rejection. It does not execute an emulator. The second intentionally refuses a
-local/self-hosted environment and expects the workflow's SDK inputs and explicit CPU mode.
-Use the ordinary PR workflow to obtain its actual installed run. Keep the required
+This command validates target, selector, policy-boundary and receipt rejection
+with local fixtures/mocks. It executes no sudo command, SDK provisioning or emulator.
+The hosted workflow separately runs the wrapper's `--check-policy`,
+`--prepare-emulator` and `--run` phases through the absolute Ubuntu Python 3.12
+interpreter. Those phases reject local/self-hosted identity and expect the exact
+workflow source, SDK paths and producer artifact. Use the ordinary independently
+reviewed PR workflow to obtain one actual installed run. Keep the required
 contract/domain failure gates in the independent core lane; do not turn a missing
 emulator, image download, install or case result into a skipped-success job.
 
