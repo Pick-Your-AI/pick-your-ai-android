@@ -602,12 +602,16 @@ class PreviewActivityTest {
         field(R.string.workload_region).setText("pending region")
         val retiredRegion = field(R.string.workload_region)
         val retiredBudget = field(R.string.workload_budget)
+        val retiredWatchers = shadowOf(retiredBudget).watchers.toList()
+        assertTrue(retiredWatchers.isNotEmpty())
         val retiredSection = views().filterIsInstance<WorkloadSection>().single()
         val retiredInputs = retiredSection.inputs
         recreate()
         await { hasText(R.string.draft_unsaved) && button(R.string.save_draft).isEnabled }
         retiredRegion.setText("retired region")
         retiredBudget.setText("invalid retired amount")
+        // Deliver an already-retained callback independently of input filtering.
+        retiredWatchers.forEach { it.onTextChanged("invalid retired amount", 0, 5, 22) }
         shadowOf(Looper.getMainLooper()).idle()
         assertEquals(retiredInputs, retiredSection.inputs)
         assertEquals("pending region", field(R.string.workload_region).text.toString())
@@ -688,5 +692,27 @@ class PreviewActivityTest {
         assertEquals(baseline, loaded().baselineIdentity)
         assertEquals(Activation.DISABLED, loaded().optionalTiers.getValue(OptionalTier.T3).activation)
     }
+
+    @Test fun retiredContextEditorsCannotChangeCapturedDomainState() {
+        field(R.string.context_objective).setText("saved objective")
+        field(R.string.context_context).setText("saved context")
+        save()
+        val baseline = loaded().baselineIdentity
+        val retiredActivity = activity
+        val retiredObjective = field(R.string.context_objective)
+        val retiredContext = field(R.string.context_context)
+        val domain = PreviewActivity::class.java.getDeclaredField("domainContext").apply { isAccessible = true }
+        val captured = domain.get(retiredActivity)
+        recreate()
+        await { hasText(R.string.draft_saved) }
+        retiredObjective.setText("late objective")
+        retiredContext.setText("late context")
+        shadowOf(Looper.getMainLooper()).idle()
+        assertSame(captured, domain.get(retiredActivity))
+        assertEquals("saved objective", field(R.string.context_objective).text.toString())
+        assertEquals("saved context", field(R.string.context_context).text.toString())
+        assertEquals(baseline, loaded().baselineIdentity)
+    }
+
 
 }
