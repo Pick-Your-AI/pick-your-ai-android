@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">Synthetic contract preview</string>
     <string name="notice">SYNTHETIC DATA — guest preview only. Frozen-v1 structural validation does not establish compatibility, capacity, quality, or price accuracy. No real-data mode.</string>
-    <string name="run">Validate bundled synthetic build</string>
+    <string name="run">Validate bundled synthetic build and evidence</string>
     <string name="ready">Bundled build diagnostic. This validates the original fixture, not your temporary draft.</string>
     <string name="working">Validating bundled synthetic fixture…</string>
     <string name="valid">Synthetic build matches the frozen-v1 schema. Compatibility verdict: unknown.</string>
@@ -25,4 +25,20 @@
     <string name="select_sample">Select sample</string>
     <string name="selection_unavailable">Incomplete: selected sample is unavailable in the currently loaded catalog. Reload or clear the temporary draft.</string>
     <string name="selected_sample">Incomplete draft · selected synthetic sample: %1$s</string>
+    <string name="evidence_ready">Pinned workload evidence appears after validation, independent of the temporary guest selection.</string>
+    <string name="evidence_unavailable">Synthetic evidence details unavailable. The exact bundled snapshot and item version could not be validated. No replacement version is selected.</string>
+    <string name="evidence_heading">Pinned workload diagnostic — synthetic evidence, independent of the temporary guest selection</string>
+    <string name="evidence_item">Fixture item: %1$s\nItem ID: %2$s\nPinned version: %3$s</string>
+    <string name="evidence_snapshot">Fixture snapshot: %1$s\nSnapshot revision: %2$s</string>
+    <string name="evidence_status">Raw contract status: %1$s\nDisplay label: %2$s</string>
+    <string name="evidence_support_unestablished">Source checked: not established.\nIndependent support: not established.\nNo receiving review assessment is supplied by this fixture diagnostic.</string>
+    <string name="evidence_dates">Provenance checked_at: %1$s\nSnapshot captured_at: %2$s\nThese are synthetic fixture metadata, not proof that a source was checked.</string>
+    <string name="evidence_pinned">Version-pinned fixture facts: the displayed version and snapshot remain fixed. Capture dates do not set an expiry or freshness threshold.</string>
+    <string name="evidence_note">Synthetic provenance note: %1$s</string>
+    <string name="evidence_limits">This view does not establish authenticity, reuse rights, current availability, price accuracy, or compatibility. License, source links, and usable rates are not supplied by this selected fixture item; they remain unknown.</string>
+    <string name="label_independently_verified">Independently verified</string>
+    <string name="label_verification_unestablished">Verification unestablished</string>
+    <string name="label_unverified">Unverified</string>
+    <string name="label_user_supplied">User supplied</string>
+    <string name="label_estimated">Estimated</string>
 </resources>
