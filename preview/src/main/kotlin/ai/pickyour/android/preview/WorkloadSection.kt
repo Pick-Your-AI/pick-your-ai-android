@@ -46,7 +46,8 @@ class WorkloadSection(context: Context, initial: PreviewWorkloadInputs,
                 setHint(R.string.workload_unanswered)
                 setText(values(inputs)[index])
                 filters = arrayOf(InputFilter { source, start, end, dest, dstart, dend ->
-                    if (dest.length - (dend - dstart) + (end - start) <= MAX_RAW_LENGTH) null
+                    if (!alive()) dest.subSequence(dstart, dend)
+                    else if (dest.length - (dend - dstart) + (end - start) <= MAX_RAW_LENGTH) null
                     else {
                         // Reject the whole replacement, never keep a valid-looking prefix.
                         inputs = inputs.copy(rejectedEdit = true)
@@ -58,7 +59,7 @@ class WorkloadSection(context: Context, initial: PreviewWorkloadInputs,
                     override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
                     override fun afterTextChanged(s: Editable?) {}
                     override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                        if (applying) return
+                        if (!alive() || applying) return
                         val value = s.toString()
                         if (value == values(inputs)[index]) return
                         inputs = inputs.copy(rejectedEdit = false)
