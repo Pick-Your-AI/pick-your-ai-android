@@ -22,6 +22,7 @@ internal class FindingsInspectionSection(
         val browse = Button(activity).apply { setText(R.string.findings_browse); isEnabled = false }
         var accepted: ReferenceReportView? = null
         inspect.setOnClickListener {
+            if (!alive()) return@setOnClickListener
             inspect.isEnabled = false; browse.isEnabled = false; accepted = null
             output.setText(R.string.findings_loading)
             worker.execute {
@@ -49,9 +50,11 @@ internal class FindingsInspectionSection(
             }
         }
         browse.setOnClickListener {
+            if (!alive()) return@setOnClickListener
             val report = accepted ?: return@setOnClickListener
             AlertDialog.Builder(activity).setTitle(R.string.findings_browse)
                 .setItems(report.findings.map { activity.getString(R.string.findings_row, it.ruleId, it.outcome, it.severity) }.toTypedArray()) { _, index ->
+                    if (!alive()) return@setItems
                     val finding = report.findings[index]
                     AlertDialog.Builder(activity).setTitle(finding.ruleId).setMessage(describe(finding))
                         .setPositiveButton(R.string.close, null).show()

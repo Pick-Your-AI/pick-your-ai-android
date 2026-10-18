@@ -96,7 +96,13 @@ jobs:
               "interruptedFinalCleanupCanBeRetriedAfterRecreationWithoutLibraryRow",
               "largeTextRtlButtonsRetainMeasuredTargetsAndUntruncatedLabels",
               "forwardFocusOrderKeepsEditorsAndClearActionReachable",
+              "catalogQuerySortAndPageSurviveDetailsAndRecreationWithoutChangingDraft",
+              "catalogFacetsExposeEveryKindAndEmptyMatchesWithoutReplacingSavedSelection",
+              "catalogDetailsCannotApplySelectionAfterEditorBaselineChanges",
               "findingsInspectionKeepsOutcomeSeveritySeparateAndNeverWritesDraft",
+              "destroyedCatalogIgnoresRetainedEditorsDialogsAndRows",
+              "destroyedFindingsIgnoreRetainedInspectBrowseAndPickerCallbacks",
+              "destroyedCostIgnoresRetainedInspectControl",
           }
           cases = suite.findall("testcase")
           assert expected <= {case.attrib["name"] for case in cases}, "Missing UI regression"
