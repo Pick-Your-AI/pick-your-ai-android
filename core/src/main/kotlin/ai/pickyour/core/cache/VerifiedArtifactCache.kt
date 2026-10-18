@@ -48,7 +48,8 @@ internal enum class CacheWritePoint { STAGED, ARTIFACT_PUBLISHED, POINTER_STAGED
  * Pinned hashes remain readable after activation of newer bytes. Total retained storage is NOT bounded;
  * the owner must impose a separately reviewed retention policy before continuous production refresh.
  *
- * All cooperating instances/processes take a nonblocking exclusive OS lock, including reads. BUSY
+ * All cooperating instances first claim a non-reentrant JVM guard for the canonical directory, then
+ * take a nonblocking exclusive OS lock, including reads. BUSY
  * requires caller retry; no unbounded waiting. The directory must not be modified by other writers.
  * Files and directory metadata are forced before acknowledgement. Atomic rename and directory fsync
  * support are required; there is no unsafe fallback. Actual Android filesystem/power-loss behavior is
@@ -169,13 +170,26 @@ class VerifiedArtifactCache internal constructor(
 
     private fun <T> locked(block: () -> T): T {
         cancelled()
-        val path = root.resolve("lock")
-        if (Files.exists(path, NOFOLLOW_LINKS) && !Files.isRegularFile(path, NOFOLLOW_LINKS)) fail(CacheFailure.CORRUPT)
-        FileChannel.open(path, CREATE, WRITE, NOFOLLOW_LINKS).use { channel ->
-            val lock = try { channel.tryLock() } catch (_: OverlappingFileLockException) { null }
-            if (lock == null) fail(CacheFailure.BUSY)
-            lock.use { return block() }
+        // On POSIX, closing ANY channel for a locked file can release this process's OS lock.
+        // Claim before even opening a second channel. A set also rejects same-thread reentrancy.
+        if (!synchronized(activeRoots) { activeRoots.add(root) }) fail(CacheFailure.BUSY)
+        try {
+            val path = root.resolve("lock")
+            if (Files.exists(path, NOFOLLOW_LINKS) && !Files.isRegularFile(path, NOFOLLOW_LINKS)) fail(CacheFailure.CORRUPT)
+            FileChannel.open(path, CREATE, WRITE, NOFOLLOW_LINKS).use { channel ->
+                val lock = try { channel.tryLock() } catch (_: OverlappingFileLockException) { null }
+                if (lock == null) fail(CacheFailure.BUSY)
+                lock.use { return block() }
+            }
+        } finally {
+            // Removal happens after the channel closes; no waiting caller retains a stale guard.
+            // Only in-flight roots are retained, avoiding an ever-growing per-directory registry.
+            synchronized(activeRoots) { activeRoots.remove(root) }
         }
+    }
+
+    private companion object {
+        val activeRoots = HashSet<Path>()
     }
 
     private fun cleanupStaging() {

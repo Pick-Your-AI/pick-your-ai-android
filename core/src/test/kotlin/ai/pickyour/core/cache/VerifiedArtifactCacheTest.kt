@@ -165,6 +165,38 @@ class VerifiedArtifactCacheTest {
         }
     }
 
+    @Test fun `rejected same process and reentrant attempts preserve external process exclusion`() {
+        install()
+        val otherInstance = store()
+        val cache = VerifiedArtifactCache(root, 128) {
+            if (it == CacheWritePoint.STAGED) {
+                // Same-thread reentrancy must be BUSY, not a reentrant JVM-lock acquisition.
+                assertEquals(CacheRead.Failed(CacheFailure.BUSY), otherInstance.active())
+                assertEquals(CacheInstall.Failed(CacheFailure.BUSY), otherInstance.install(hash(first), first.inputStream()))
+                assertEquals("BUSY", externalLockAttempt())
+            }
+        }
+        assertEquals(CacheInstall.Activated(hash(second)), cache.install(hash(second), second.inputStream()))
+        assertEquals("ACQUIRED", externalLockAttempt())
+    }
+
+    private fun externalLockAttempt(): String {
+        val executable = Path.of(System.getProperty("java.home"), "bin", "java").toString()
+        val classpath = listOf(CacheLockSubprocess::class.java, kotlin.Unit::class.java)
+            .map { Path.of(it.protectionDomain.codeSource.location.toURI()).toString() }
+            .distinct().joinToString(java.io.File.pathSeparator)
+        val process = ProcessBuilder(executable, "-cp", classpath, CacheLockSubprocess::class.java.name, root.resolve("lock").toString())
+            .redirectErrorStream(true).start()
+        try {
+            assertTrue(process.waitFor(10, TimeUnit.SECONDS), "Lock probe timed out")
+            val output = process.inputStream.bufferedReader().readText().trim()
+            assertEquals(0, process.exitValue(), output)
+            return output
+        } finally {
+            if (process.isAlive) process.destroyForcibly()
+        }
+    }
+
     @Test fun `held OS lock prevents access even without another cache instance`() {
         FileChannel.open(root.resolve("lock"), CREATE, WRITE).use { channel ->
             channel.lock().use {
@@ -183,5 +215,19 @@ class VerifiedArtifactCacheTest {
             assertTrue(Thread.currentThread().isInterrupted)
         } finally { Thread.interrupted() }
         assertArrayEquals(first, bytes(store().active()))
+    }
+}
+
+/** A genuinely separate JVM is essential: same-JVM overlap checks alone mask POSIX lock loss. */
+internal object CacheLockSubprocess {
+    @JvmStatic fun main(args: Array<String>) {
+        FileChannel.open(Path.of(args[0]), WRITE).use { channel ->
+            val lock = channel.tryLock()
+            if (lock == null) {
+                println("BUSY")
+            } else {
+                lock.use { println("ACQUIRED") }
+            }
+        }
     }
 }
