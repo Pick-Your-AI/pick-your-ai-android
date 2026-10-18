@@ -93,6 +93,8 @@ jobs:
               "confirmedCurrentDraftDeletionRetainsPendingFormAndRevokesSaveAuthority",
               "catalogQuerySurvivesDetailsAndRecreationWithoutChangingPinnedSelection",
               "emptyCatalogSearchCanRecoverAndReloadUsesTheCurrentQuery",
+              "largeTextRtlButtonsRetainMeasuredTargetsAndUntruncatedLabels",
+              "forwardFocusOrderKeepsEditorsAndClearActionReachable",
           }
           cases = suite.findall("testcase")
           assert expected <= {case.attrib["name"] for case in cases}, "Missing UI regression"

@@ -14,7 +14,7 @@ These proposals await receiving review and do not establish implementation or
 release acceptance.
 
 The [data inventory and threat model](docs/security/DATA_INVENTORY_AND_THREAT_MODEL.md)
-maps the proposed preview and future service flows to privacy/security controls
+maps the implemented local preview and planned service flows to privacy/security controls
 and verification work. It remains pending receiving review under Android #23.
 
 - [Delivery Project 4](https://github.com/orgs/Pick-Your-AI/projects/4) and program [Pick-Your-AI/pick-your-ai-android#1](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/1).

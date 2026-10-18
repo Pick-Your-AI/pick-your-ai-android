@@ -613,6 +613,16 @@ partial automated checks for #64/#106 and local recovery; they do not establish
 screen-reader traversal, keyboard usability, contrast, measured touch targets,
 large-text/RTL rendering or physical filesystem durability.
 
+A further simulated layout check uses explicit Robolectric native graphics (not
+legacy shadow text metrics) and recreates the preview at 200% font scale in an
+Arabic/RTL 320×640dp configuration, explicitly measures/layouts the root, and
+requires visible buttons to retain measured 48dp width/height, nonempty text layouts,
+no ellipsized labels and enough vertical space for those labels. A separate check
+uses Android's forward-focus search through the three editors to the Clear action.
+The report gate requires both cases. These are reproducible JVM layout/focus checks,
+not a screenshot review, full keyboard journey, TalkBack traversal, contrast test,
+complete localization, device render or acceptance of a support matrix.
+
 ### Local synthetic catalog search
 
 The catalog now offers a labelled search field with a 120-character limit. Matching
@@ -643,7 +653,7 @@ diagnostics and exact-ID reachability of all 29 frozen kinds. Two additional
 Robolectric Activity regressions exercise filtering around saved selections,
 detail cancellation/recreation, empty-result recovery and query changes during a
 catalog reload. The hosted unsigned lane requires those named cases alongside the
-existing six simulations; their observed result must be checked on the final head.
+existing eight simulations; their observed result must be checked on the final head.
 
 This is partial [#82](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/82)
 discovery for the existing synthetic preview. Shared real-data/label publication,
