@@ -1,134 +1,187 @@
-# Product and scope recommendation
+# Android users, journeys and first-slice decision
 
-Proposal for Android #20, #24 and #25. Receiving acceptance remains pending; see the
-[review package](README.md). This is a scope recommendation, not validated demand
-or an assertion that any journey works in an Android application.
+Decision date: 2026-10-18. This develops the existing Android #20/#24 proposal under
+the maintainer's explicit delegation of product and engineering decisions. The
+decision takes effect through independent receiving review and the normal reviewed
+merge. The original proposal remains in Git history; its path is retained to avoid
+a second competing brief. Criterion records: [01.01](../delivery/android/work-packages/01.01.md)
+and [01.02](../delivery/android/work-packages/01.02.md).
 
-## Evidence and intended users
+Select guest-local planning for one public text workload: describe the job, compare
+a bounded model/runtime or provider choice, inspect an honest summary, and return
+to an acknowledged local draft. The Android phone is the configuration client;
+inference hardware is a separately selected computer or service. This decision
+does not select on-phone execution, a production launch, or a market claim. `Core`
+below means selected release scope, not implemented or accepted app behavior. The
+existing synthetic diagnostic remains labelled as such.
 
-The research inputs are pinned to
-[`pick-your-ai-research@7acbefbf4e4e700231e88be272bc89e3a73dde15`](https://github.com/Pick-Your-AI/pick-your-ai-research/tree/7acbefbf4e4e700231e88be272bc89e3a73dde15):
+## Evidence, observations and assumptions
 
-- [Customers](https://github.com/Pick-Your-AI/pick-your-ai-research/blob/7acbefbf4e4e700231e88be272bc89e3a73dde15/research/market/customers.md) explicitly describes desk personas and hypotheses, with no customer interviews.
-- [MVP alternatives](https://github.com/Pick-Your-AI/pick-your-ai-research/blob/7acbefbf4e4e700231e88be272bc89e3a73dde15/research/market/mvp-analysis.md) recommends a bounded hybrid decision record for validation. It does not approve an MVP. Research #58 and its substitute prerequisite #66 remain open in the live read.
-- [Synthesis](https://github.com/Pick-Your-AI/pick-your-ai-research/blob/7acbefbf4e4e700231e88be272bc89e3a73dde15/research/market/synthesis.md) labels its recommendation provisional and identifies unresolved demand, rights, sizing and pricing evidence.
+Research was inspected at
+[`ce388d7d4d38539eeccc5a0a8e740e74a17d96d2`](https://github.com/Pick-Your-AI/pick-your-ai-research/tree/ce388d7d4d38539eeccc5a0a8e740e74a17d96d2).
+The older proposal's `7acbefbf4e4e700231e88be272bc89e3a73dde15` pin remains historical.
+These bounded readings do not establish Android customer validation.
 
-Use an individual comparing a workload's local and API options as the design
-hypothesis. A reviewer receiving that person's record is the secondary hypothesis.
-Neither is a validated customer segment. Do not infer Android demand, willingness
-to pay, frequency of use or an enterprise buying process from these inputs.
+| ID | Exact source | Input consumed | Limit retained |
+| --- | --- | --- | --- |
+| E1 | [Customers](https://github.com/Pick-Your-AI/pick-your-ai-research/blob/ce388d7d4d38539eeccc5a0a8e740e74a17d96d2/research/market/customers.md), [customer-validation status](https://github.com/Pick-Your-AI/pick-your-ai-research/blob/ce388d7d4d38539eeccc5a0a8e740e74a17d96d2/research/market/customer-validation.md) | Existing individual-developer/local-AI and reviewer roles are desk hypotheses; user, buyer and approver can differ | No interviews, Android demand, frequency or willingness to pay is established; #63's study remains separate |
+| E2 | [MVP alternatives](https://github.com/Pick-Your-AI/pick-your-ai-research/blob/ce388d7d4d38539eeccc5a0a8e740e74a17d96d2/research/market/mvp-analysis.md), [synthesis](https://github.com/Pick-Your-AI/pick-your-ai-research/blob/ce388d7d4d38539eeccc5a0a8e740e74a17d96d2/research/market/synthesis.md) | A bounded local/API decision record is a candidate research direction | Research #58 is not accepted by this Android choice; its #66 prerequisite and other literal criteria remain |
+| E3 | [Substitute observations and protocol](https://github.com/Pick-Your-AI/pick-your-ai-research/blob/ce388d7d4d38539eeccc5a0a8e740e74a17d96d2/research/market/substitute-validation.md) | The 2026-10-18 guest Flocci test detected contradictory constraints and suggested alternatives. Its tested bookmark retained a catalog tool rather than the whole decision; the tested flow did not expose decision export/share | This is one bounded observation, not a general absence claim. It supersedes older E2 statements that these guest checks were unavailable. No unique contradiction-detection or paid-demand claim follows; #66 remains open |
+| E4 | [PCPartPicker transfer](https://github.com/Pick-Your-AI/pick-your-ai-research/blob/ce388d7d4d38539eeccc5a0a8e740e74a17d96d2/research/market/pcpartpicker.md) | Component comparison, explanations and versioned revisit are product hypotheses | The note did not observe those flows directly; Android does not relabel them as observed behavior or require new access to write this brief |
+| E5 | [T0 workload scope/summary](https://github.com/Pick-Your-AI/pick-your-ai-research/blob/ce388d7d4d38539eeccc5a0a8e740e74a17d96d2/research/T0-configuration/workload-use-case.md), [deployment scope/definitions](https://github.com/Pick-Your-AI/pick-your-ai-research/blob/ce388d7d4d38539eeccc5a0a8e740e74a17d96d2/research/T0-configuration/deployment-mode.md) | Separate task requirements from methods, preserve unanswered inputs, and distinguish runtime operator/capacity from billing when discussing modes | These notes include proposals and open contract decisions. Per-component placement and new input axes do not become frozen-v1 fields here |
+| E6 | [Apple journey map at `fd58e522`](https://github.com/Pick-Your-AI/pick-your-ai-apple/blob/fd58e5223dd51a9b49e9c99123736d0af5248dcc/docs/proposals/issue-20-journey-map.md), [accepted decision receipt](https://github.com/Pick-Your-AI/pick-your-ai-apple/issues/20#issuecomment-6244060433) | Reuse confirmed-versus-pending work, explicit recovery identity, keyboard interruption and reviewed disclosure boundaries | Apple acceptance covers its decision artifact, not Android behavior, participants, service authorization or this receiving review |
 
-The phone is the planning client. Model execution targets belong to the proposed
-stack and may be a separate computer or service. No model inference, hardware
-benchmark or account credential is needed on the phone for this preview.
+No raw customer data or external site content is copied into the app. Proposed
+mobile roles and benefits remain assumptions even when technical failure modes
+are supported by source inspection.
+
+| ID | Design hypothesis | Decision and falsifying alternative |
+| --- | --- | --- |
+| A1 | An individual developer or local-AI enthusiast sometimes wants to frame/review a choice on an Android phone | Serve one guest decision at a time. A desktop tool, existing substitute or ordinary document may suffice; no mobile frequency is asserted |
+| A2 | A second person needs the reasoning without inheriting edit authority | Preserve a read-only review/export boundary. Demand for sharing is unknown; local planning works without a public service |
+| A3 | Versions, sources, uncertainty and consent to relax constraints improve a reusable decision | Show these in the summary. E3 already demonstrates contradiction handling elsewhere; versioned records remain a hypothesis |
+| A4 | Recovering confirmed work is the useful interruption promise | Distinguish pending/saving/saved/reconciliation states. Do not promise that unacknowledged input survives every termination |
+| A5 | Compact touch input, large text and occasional keyboard use are needed | Keep essential controls labelled and reachable. Usability, TalkBack, device coverage and completion times are unmeasured |
+
+A1 is the primary role; A2 is a conditional recipient role. Enterprise procurement,
+team workflows and automated recommendations remain later hypotheses. A
+maintainer's choice to build this slice does not accept research go/no-go or demand
+gates.
+
+## Mobile context and success measures
+
+Support short, interruptible editing, intermittent connectivity and a small window.
+A larger window or keyboard changes presentation, not the selected draft or
+inference target. Workload descriptions may be private: the local slice uses
+app-private storage without accounts, analytics, automatic upload or model-provider
+credentials. Input methods and an explicitly chosen export destination remain
+separate disclosure surfaces. Demonstrations use public synthetic text.
+
+Observable engineering completion measures are: identify the intended draft and
+last confirmed revision; retain each selected item's exact version/source context;
+show unanswered required inputs and unsupported checks; keep missing cost coverage
+distinct from zero; and preserve the original draft after canceled or failed
+actions. Future app checks must record actual state before/after, artifact and
+runtime. This desk review supplies no task-time, satisfaction, conversion or
+retention result.
 
 ## Primary journeys
 
-These are desk walkthroughs of the proposed behavior, not executed UI tests.
-
-| Journey | Goal and entry | Observable completion | Failure or recovery behavior | Evidence and unresolved assumption |
+| ID / disposition | Goal and entry point | Observable completion | Failure or recovery | Evidence / unresolved assumption |
 | --- | --- | --- | --- | --- |
-| Start a decision | Home → new local draft; describe workload and constraints | A named draft has workload, deployment choices and an acknowledged durable revision | Interrupted edit does not display a saved acknowledgement until committed; an empty draft remains editable | Research MVP hypothesis; whether mobile entry is useful remains untested |
-| Compare options | Open catalog from a draft; compare local and API candidates | Selected versions, sources, dates and differences are visible without inventing missing capabilities | Offline uses the last verified snapshot; no snapshot produces an unavailable state; unsupported fit is unknown | Website preview supplies interaction/reference logic, not real catalog acceptance |
-| Review a stack | Open draft summary | Show findings, cost units and uncovered meters, selected evidence versions, and core T6 prerequisites | Partial cost is labelled partial; stale analysis cannot replace a newer revision; no unsupported ready-to-deploy claim | Research #39/#40/#41 and website #15/#16 remain required handoffs |
-| Return to a decision | Local library → draft/revision | The selected draft and acknowledged edits survive relaunch; old revisions retain pins | Failed migration/corruption preserves recoverable data and explains the failure; no silent reset | Requires Android persistence and device tests, not browser storage reuse |
-| Exchange a decision | Explicit export → Android document/share destination; explicit import → read-only preview | User reviews the disclosure and can save a separate local copy after validation | Reject malformed/oversized/unsupported data before replacing anything; warn that exported copies cannot be revoked | Cross-client envelope/version and privacy review remain pending; no public upload is implied |
+| J1 Start — core | Home → new local draft; frame workload and constraints | Named draft distinguishes answered/unknown inputs; durable revision is acknowledged only after a completed write | Invalid input remains correctable; interrupted or failed write cannot become saved | E1/E5; A1/A4, usefulness of phone entry untested |
+| J2 Discover/assemble — core | Draft → catalog → versioned model/runtime or provider options | Selected versions, differences and permitted sources are visible; optional tiers have a disposition | No snapshot means unavailable; missing pinned item is not silently replaced; offline retains only usable permitted cached data | E2/E4/E5; A1/A3, value over substitutes untested |
+| J3 Review tradeoffs — core | Draft → honest summary | Workload, target, versions, outcomes, missing evidence, cost coverage and core T6 prerequisites are distinguishable | Another revision's result is not current; partial subtotal, unknown fit and unexecuted checks remain visible | E2/E3/E5; A3/A5, comprehension untested |
+| J4 Return — core | Local library → named draft or retained revision | Correct local identity and acknowledged content recover; historical pins stay historical | Corrupt entry remains visible with recovery limits; conflict/uncertain write requires reconciliation; no silent reset or stale overwrite | E6 and architecture source inspection; A4/A5, installed recovery unqualified |
+| J5 Exchange/revisit — conditional later | Explicit document import/export or independently authorized shared-record route | Recipient inspects supported pinned snapshot; a new editable local copy requires a separate action | Cancel/failure preserves active draft; reject malformed/oversized/newer input; disclose unavailable dependencies and irrevocable recipient copies | E3/E6; A2/A3, cross-client envelope and service receipts remain activation prerequisites |
 
-For a walkthrough, use a clearly labelled synthetic workload comparing one local
-inference runtime/model selection with an API alternative. Leave price, fit and
-quality unavailable unless supported by the selected fixture or accepted evidence.
-Change context or usage, return to the summary, reopen the draft, and export a
-copy. The expected observations above define future tests; this proposal has not
-performed them in an Android app.
+J5 remains a documented primary goal with an explicit release disposition. The
+first slice ends at J3/J4 and promises no public link or import/export action before
+its conditions are met.
 
-## Capability and mode boundary
+## Recorded desk walkthrough — 2026-10-18
 
-Recommend a local planning preview first. A production release remains gated on an
-accepted real-data slice, conformance, security, device results and store readiness.
-Do not rename synthetic preview acceptance as real-data or launch acceptance.
+The Android decision agent walked these state transitions against the tables,
+pinned inputs and native source at
+[`952eb015c391971ca4529ede2c1d99de320173c1`](https://github.com/Pick-Your-AI/pick-your-ai-android/tree/952eb015c391971ca4529ede2c1d99de320173c1).
+This is an executed desk review of a design, not participant validation, prototype
+execution or an installed-app test. Results are decisions and remaining inputs;
+no successful app action or screenshot is invented.
 
-| Capability | Preview disposition | Unsupported/unavailable behavior | Condition for later expansion |
+Common scenario: plan an assistant that summarizes short public paragraphs already
+provided in a prompt. Compare an open-weight model/runtime on the person's separate
+16-GB-RAM computer with a provider alternative. RAM is a synthetic scenario
+constraint, not fit evidence. No vendor/model is recommended; `cat.model.fixture`
+and `cat.inference_engine.fixture` in the [frozen catalog](../../contracts/v1/examples/catalog.json)
+are identity examples, not a qualified stack. Price, quality, latency and throughput
+remain unestablished. Retrieval, tool execution and training are unnecessary for
+this task.
+
+| Case | Steps walked | Recorded result / missing-decision disposition |
+| --- | --- | --- |
+| W1 Start/interrupt | J1: enter task, leave volume unknown, consider separate computer, interrupt before and after acknowledged save | Pending text is not guaranteed; confirmed work must reload by identity. Select A4. No Android-local inference is inferred; actual storage/device proof remains implementation work |
+| W2 Discover/assemble | J2: inspect fixture model/runtime and provider alternative; lose connectivity before/after snapshot load; encounter missing pinned version | Preserve selection and show unavailable data. Missing production catalog/source acceptance is a data gate, not an invented recommendation or replacement |
+| W3 Review/change | J3: inspect absent resource/quality evidence and uncovered meter; change workload and revisit summary | Show missing evidence, partial coverage and stale-result boundary. The diagnostic's separate recorded fixture reports are not analysis of the edited draft; current-draft integration remains implementation work |
+| W4 Return/recover | J4: reopen A after viewing B; contrast old revision, corrupt entry, failed save and uncertain acknowledgment | Require explicit identity and reconciliation; preserve recoverable data. Source inspection does not prove migration/recovery. Large-text and keyboard checks remain real-UI work |
+| W5 Exchange/revisit | J5: consider export, cancel, then consider newer/invalid import and unavailable historical dependency | Select conditional later. No initial public-upload promise. Accept format/projection/limits and remote authority before activation; cancellation/rejection cannot overwrite A |
+
+## Capability and release boundary
+
+Qualification of the selected core behavior and exact permitted data remains
+necessary for a production-capable slice. The diagnostic uses fixtures; its
+recorded reports remain separate from current-draft analysis. No implementation
+task is claimed complete by this scope decision.
+
+| Capability | Release disposition | Unsupported/unavailable behavior | Exit evidence |
 | --- | --- | --- | --- |
-| Workload, browse, select, compare and local revisions | Core, using labelled fixtures initially | Preserve incomplete inputs; show unavailable versions and evidence | Reviewed catalog/pricebook publication from website #15 and research owners |
-| Compatibility | Core display of pass/fail/unknown/skipped and their evidence | Unknown stays unknown; unresolved rules do not pass | Frozen-v1 conformance and approved successor semantics where required |
-| Cost | Core units, scenarios, coverage and uncertainty | Missing meters are uncovered, never zero; partial subtotal is not a complete bill | Research #39 acceptance and exact supported rate/meter coverage |
-| Capacity/quality | Display accepted versioned evidence only | No estimated benchmark score or fit verdict to fill a gap | Website #16 and research capacity/quality handoffs |
-| Save and exchange | Local durable save; explicit reviewed file exchange | No cloud backup, cross-device sync, permalink revocation or remote privacy guarantee | Canonical website #17 service and reviewed cross-client formats |
-| Core T6 | Retain guardrail, evaluation, deployment-prerequisite and monitoring-plan fields | Show missing readiness inputs; do not imply execution | Accepted evidence and applicable issue-specific tests |
-| T3 retrieval, T4 agents/tools and T5 training | Optional; defer their implementation in the first bounded preview | Existing unsupported configurations may be inspected without discarding their data; cannot claim complete analysis | Separate scope decision, contract support, rights and tests for each tier |
-| Accounts, payments and subscriptions | Defer | No sign-in, upsell, purchase or entitlement promise | Demonstrated need plus privacy, billing, deletion and service acceptance |
-| Alerts, community and recommendations | Defer | No notification permission or background alert promise; no publishing UI | Separate approved growth scope and corresponding policy/security work |
-| Execution or provisioning | Exclude from preview | Export is a plan, not an executable deployment or authorized purchase | Explicit execution scope and threat/credential/cost controls |
+| Workload, browse, T1/T2 selection/comparison | Core bounded local/API choice | Preserve incomplete/invalid input and unavailable pinned selections; label fixtures | Integrated workload-to-summary checks and accepted catalog tuple for any real-data release |
+| Compatibility explanations | Core outcomes, separate fixed severity and provenance | Unresolved/unexecuted checks cannot pass; disclose frozen applicability gaps without changing the outcome enum | Frozen-v1 conformance; research #40 acceptance for successor semantics |
+| Costs and assumptions | Core units, covered/uncovered meters and dated inputs | Missing rate/quantity is unavailable, never zero or a complete bill; no guessed currency conversion | Research #39 and exact supported rate/meter coverage for the selected source/use |
+| Capacity/quality | Conditional display of accepted, applicable versioned evidence | No estimated rank or fit verdict fills a gap; decoding a record is not empirical validation | Resource/quality handoffs and canonical website #16, with exact identity/applicability |
+| Local save/library/revisions | Core explicit acknowledged writes | Separate corruption, full/locked storage, conflict, cancellation and uncertainty; no cloud-backup/sync promise | Storage/migration/fault and installed lifecycle checks on supported devices |
+| File exchange/shared-record revisit | Conditional later, J5 | No actionable import/export/share promise before support; rejection preserves active draft | Reviewed cross-client format/projection/limits and document adapters; website #17 and canonical service authorization for remote routes |
+| Basic T6 guardrail, evaluation, deployment prerequisite, monitoring and cost-policy planning | Core visibility and honest readiness summary | Missing prerequisites stay missing; recorded evidence retains original identity; no execution/production-ready claim | Applicable T6 records and integrated summary checks; execution separately gated |
+| T3 retrieval, T4 agents/tools, T5 training | Optional, later breadth | Omission retains existing data and required-foundation checks. Unsupported imported tiers have no complete-analysis claim | Explicit tier scope, contract support, source rights and negative/recovery checks; consume actual #58/#66 evidence |
+| Accounts/payments/subscriptions | Later, absent initially | No sign-in, purchase, entitlement or silent upload | Separate #25 disposition and policy/service/billing/deletion implementation |
+| Analytics, remote crash upload, notifications, community/recommendations | Later, absent initially | No telemetry, alert, publishing or personalized recommendation promise | Separate product evidence, policy and implementation decisions |
+| Provisioning, inference, model downloads or purchases | Excluded initially | Plan/export cannot execute content, start a runtime or spend money | Explicit execution scope, credential/cost controls and implementation/release authority |
 
-| Deployment mode in a plan | Preview treatment | Production evidence gate |
-| --- | --- | --- |
-| API | Describe request/usage inputs and selected provider/model; no live provider calls | Supported provider versions, request economics and permitted data |
-| Managed | Preserve host/model/service selection; no inferred service capacity | Reviewed managed-service capability and regional pricing |
-| Self-hosted | Capture separate target hardware/runtime; phone is not the target by default | Matching resource evidence, licensing and deployment prerequisites |
-| Hybrid | Compare a bounded local/API decision; mark unsupported relationships unknown | Versioned per-component placement and relationship semantics accepted through #40 |
+## Four-mode review
 
-An interface choice does not resolve the frozen contract's representation gaps.
-Do not add a new mode, relationship or outcome enum to make these rows fit. Record
-unsupported combinations, retain their input and obtain a versioned contract change.
+Use E5's operator/capacity distinction as planning language; do not adopt its
+proposed wire fields. All four paths can reach an honest planning summary; only
+supported applicable evidence can produce technical results. Billing does not
+prove capacity or privacy.
 
-## Accounts, revenue, analytics and privacy
+| Mode / disposition | Representative desk traversal | Result and evidence readiness | Explicit limit |
+| --- | --- | --- | --- |
+| API — core bounded planning | M1: W1–W3 with provider-operated shared model; unknown volume; no credential | Preserve missing usage/rate/limit inputs and disclose provider execution | No live call, zero-cost or privacy guarantee; real data needs accepted provider/model/pricing inputs |
+| Managed — conditional detailed analysis, core descriptive comparison | M2: same task on provider-operated reserved/dedicated capacity; inspect host/model/region; leave capacity unknown | Summary describes alternative and gaps; hourly price does not prove dedicated capacity | No sizing/regional-cost verdict without matching evidence; unsupported combinations remain unavailable |
+| Self-hosted — core bounded planning | M3: W1–W4 with user-operated runtime on separate 16-GB computer; inspect context/concurrency and missing resource evidence | Fit, performance and full economics remain unknown; retain target separately from phone | RAM alone does not prove execution; self-hosting does not establish local-only data flows |
+| Hybrid — conditional integrated analysis, core side-by-side alternatives | M4: retain local/API alternatives, then consider mixed placement plus an all-offline constraint | Preserve contradiction for review and missing placement/evidence semantics; do not silently relax the constraint | Frozen self-hosting rules do not cover every hybrid placement. Preserve actual recorded outcomes and separately disclose unsupported coverage; no new enum or exhaustive-validation claim |
 
-Recommend guest-local operation without accounts, advertising, analytics SDKs,
-remote crash upload, push notifications, paid plans or background source collection
-in the preview. Research #63 contains no validated willingness-to-pay result. This
-is a conservative product choice, not proof that a business model cannot work.
+Desk result: every row reaches a summary of supported evidence or explicit gaps.
+M1/M3 bound the first detailed planning slice; M2/M4 do not silently expand it into
+managed-capacity or integrated hybrid validation. T3/T4/T5 stay later in every row.
+#58/#66 inform this decision without closing research issues or certifying their
+protocol, demand, source rights or deployment feasibility.
 
-Local save writes only to app-private storage. A document export is an explicit
-disclosure: preview fields, exclude credentials/private annotations by schema and
-policy, and explain that a recipient's copy cannot be revoked. Import never
-executes content, follows embedded network locators or modifies an existing draft
-without a separate confirmation. Android permission and storage details still need
-implementation/security review.
+## Accounts/privacy handoff retained for #25
 
-There is no remote write in this preview and therefore no unauthenticated write
-API. If accounts or guest remote saving are later selected, the server must enforce
-object ownership/capability scope, expiry/revocation, resource limits and conflict
-semantics independently of the client. A guest identifier is not authorization.
+Select guest-local operation for #24. The existing #25 recommendation remains:
+accounts, advertising, analytics, remote crash upload, push, paid plans and source
+collection are absent initially. A later account upgrade must explicitly choose
+what to upload. Guest identity is not server authorization; remote mutations and
+private reads need canonical ownership/capability scope, expiry/revocation,
+resource limits and conflict semantics.
 
-Account sign-out/deletion UI is absent while accounts are absent. Local deletion
-must remove the selected local data and explain the limit of deleting exported
-copies. A later account upgrade must explicitly select what to upload; signing in
-must not silently transfer local builds. Add the applicable store privacy,
-data-safety, deletion and billing evidence before enabling those capabilities.
+Export is disclosure; deleting a local original cannot revoke recipient copies.
+Import must not execute, follow embedded network locators or replace a draft
+without an independent action. Exact projection, limits, permissions and future
+deletion/billing policy remain #25 and corresponding service/implementation work.
+This review intentionally accepts #20/#24, not all #25 criteria.
 
-## Acceptance disposition
+The existing #25 criterion baseline is retained as a proposal handoff. Its intended
+record remains `docs/delivery/android/work-packages/01.05.md` in
+`Pick-Your-AI/pickyour.ai`; ADR 0002 does not move or complete it.
 
-The following tables retain the exact live criteria. Evidence is the proposal
-above; Android behavior, product validation and receiving review are not passed.
+| Exact #25 criterion | Retained input / remaining disposition |
+| --- | --- |
+| Decide guest-first behavior, optional accounts, monetization, analytics and notifications; enable only the dependent policy/implementation tasks that apply. | Conservative initial recommendation above; separate #25 receiving record/review |
+| Every account, revenue, analytics and notification capability has an explicit disposition and rationale. | Initial absence and expansion conditions above; retain #25's own complete policy/scope assessment |
+| Remote mutations/private reads retain an authorization model even when full accounts are deferred; unselected services are absent from launch scope. | Canonical authorization boundary above; no deployed service or #25 closure claimed |
 
-### Issue #20
+## Receiving decision and handoffs
 
-Canonical record: `docs/delivery/android/work-packages/01.01.md` in `Pick-Your-AI/pickyour.ai`.
+The Android decision agent prepared the synthesis, choices and desk review under
+delegated authority. An independent coordinating agent must review the actual
+content in the product-decision and Android technical-review capacities, including
+unsupported assumptions and all nine #20/#24/#34 criteria across this package.
+Record actual agent identity and exact published artifact/review links; no human
+assignment, date commitment or operating responsibility is invented.
 
-| Exact live criterion | Evidence in this proposal | Remaining acceptance |
-| --- | --- | --- |
-| Document target users, mobile context, first-release jobs and success measures; distinguish validated evidence from assumptions. The Android device is the configuration client, not automatically the selected inference target. | Proposed reasoning and requirements above; not executed application behavior | Receiving review, applicable upstream handoffs and observed implementation evidence remain pending |
-| Every primary journey names its goal, entry point, completion state, evidence and unresolved assumptions. | Proposed reasoning and requirements above; not executed application behavior | Receiving review, applicable upstream handoffs and observed implementation evidence remain pending |
-| A recorded decision distinguishes first-release jobs from hypotheses; Android-local inference is not implied by hardware comparison. | Proposed reasoning and requirements above; not executed application behavior | Receiving review, applicable upstream handoffs and observed implementation evidence remain pending |
-
-
-### Issue #24
-
-Canonical record: `docs/delivery/android/work-packages/01.02.md` in `Pick-Your-AI/pickyour.ai`.
-
-| Exact live criterion | Evidence in this proposal | Remaining acceptance |
-| --- | --- | --- |
-| Record core, later and conditional scope across API, managed, self-hosted and hybrid modes; consume Pick-Your-AI/pick-your-ai-research#58/Pick-Your-AI/pick-your-ai-research#66 without claiming their acceptance. | Proposed reasoning and requirements above; not executed application behavior | Receiving review, applicable upstream handoffs and observed implementation evidence remain pending |
-| Every capability has a release disposition and an explicit unsupported/unavailable behavior. | Proposed reasoning and requirements above; not executed application behavior | Receiving review, applicable upstream handoffs and observed implementation evidence remain pending |
-| The approved first slice runs from workload to an honest summary; planning/export and execution have separate scope gates. | Proposed reasoning and requirements above; not executed application behavior | Receiving review, applicable upstream handoffs and observed implementation evidence remain pending |
-
-
-### Issue #25
-
-Canonical record: `docs/delivery/android/work-packages/01.05.md` in `Pick-Your-AI/pickyour.ai`.
-
-| Exact live criterion | Evidence in this proposal | Remaining acceptance |
-| --- | --- | --- |
-| Decide guest-first behavior, optional accounts, monetization, analytics and notifications; enable only the dependent policy/implementation tasks that apply. | Proposed reasoning and requirements above; not executed application behavior | Receiving review, applicable upstream handoffs and observed implementation evidence remain pending |
-| Every account, revenue, analytics and notification capability has an explicit disposition and rationale. | Proposed reasoning and requirements above; not executed application behavior | Receiving review, applicable upstream handoffs and observed implementation evidence remain pending |
-| Remote mutations/private reads retain an authorization model even when full accounts are deferred; unselected services are absent from launch scope. | Proposed reasoning and requirements above; not executed application behavior | Receiving review, applicable upstream handoffs and observed implementation evidence remain pending |
+After that reviewed delivery, [01.01](../delivery/android/work-packages/01.01.md)
+supplies #24's exact #20 input and [01.02](../delivery/android/work-packages/01.02.md)
+supplies #34's scope matrix in the same versioned package. App qualification,
+participant research, production data, services and release retain their own
+criteria; they are not extra criteria for these two decision records.

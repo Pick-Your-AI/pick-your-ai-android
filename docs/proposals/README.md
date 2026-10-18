@@ -2,31 +2,38 @@
 
 This package began as proposals for the existing Android delivery issues. The
 maintainer has since authorized implementation and delegated engineering decisions.
-The architecture record now distinguishes adopted guest-preview choices from the
-earlier product recommendations. These documents remain inputs to receiving
-acceptance; implementation evidence lives in the linked core/preview artifacts and
-does not establish device, store or production completion.
+The first two existing documents now contain concrete #20/#24/#34 decisions,
+effective through independent decision-content receiving review and normal merge.
+Their exact criterion mappings are linked below. Implementation evidence remains
+separate from decision acceptance, device, store or production completion.
 
 | Proposal | Existing issues | Outcome |
 | --- | --- | --- |
-| [Product and scope](01-product-scope.md) | [#20](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/20), [#24](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/24), [#25](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/25) | A bounded, guest-first planning preview with explicit later capabilities |
-| [Native architecture](02-native-architecture.md) | [#34](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/34) | Adopted Kotlin/platform-Views diagnostic, current pins and boundaries; earlier Compose/Room product alternatives |
+| [Product and scope](01-product-scope.md) | [#20](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/20), [#24](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/24); retained #25 recommendation | Pinned evidence/hypotheses, five journeys and actual desk walkthrough, four-mode and capability decisions |
+| [Native architecture](02-native-architecture.md) | [#34](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/34) | Select retained Kotlin/Views/store boundary; compare Compose/shared clients; inspect native lifecycle/storage/lists and portable versus platform-specific reuse |
 | [Services and acceptance](03-service-and-readiness.md) | [#35](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/35), [#47](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/47) | Local-first preview; explicit production service, operations and device gates |
 | [Issue audit](issues-snapshot.md) | All open Android issues | Dated inventory of issue-body prerequisites and missing evidence |
 
-The live issues still name `docs/delivery/android/work-packages/01.01.md` through
-`01.06.md` in `Pick-Your-AI/pickyour.ai` as their acceptance records. These proposal
-files are inputs to those records; they do not move them or replace their reviews.
-No website files, issue fields, assignees, acceptance checkboxes or native
-relationships are changed by this package.
+The original intended acceptance locations for 01.01–01.06 were in
+`Pick-Your-AI/pickyour.ai`. [ADR 0002](../decisions/0002-android-foundation-records.md)
+explicitly places only [01.01](../delivery/android/work-packages/01.01.md),
+[01.02](../delivery/android/work-packages/01.02.md) and
+[01.03](../delivery/android/work-packages/01.03.md) in this Android repository after
+reviewed merge, preserving all nine literal criteria. 01.04–01.06 and every other
+unmoved path retain their existing authority. This source package changes no
+website files, issue fields, assignees, checkboxes or native relationships.
 
 The product decision authority and Android technical lead are the required receiving
 roles. The inspected issues name no people for those roles. The maintainer's
 execution authorization does not establish another person's review or commitment.
+Independent agent receiving review under the user's delegated authority must
+explicitly assess the actual decisions and limitations; it is not labelled as a
+human approval. Record its exact source/PR receipt before completion metadata.
 
 Read the records together. The bounded guest preview already has an engineering
 disposition: Kotlin core, platform Views, experimental preview namespace and pinned
-toolchain. These choices govern continued implementation within that scope. Product receiving acceptance under #34 remains incomplete. Server
+toolchain. The current decision adds the scoped product boundary and a concrete
+reuse/ownership disposition; acceptance follows its recorded reviewed delivery. Server
 implementation still follows coordinated #35 placement and canonical website
 service handoffs; the service recommendation establishes no production deployment.
 
@@ -36,6 +43,6 @@ issue bodies, and review of the pinned source files. The original documentation
 review had no application build; subsequent JVM and unsigned Android build/lint
 evidence is documented in [CORE_FOUNDATION.md](../CORE_FOUNDATION.md) and
 [ANDROID_PREVIEW.md](../ANDROID_PREVIEW.md). Those results do not supply installed-device
-acceptance. The [audit follow-up](issues-snapshot.md#access-and-completion-limits) records the
-authenticated refresh and its remaining limits. Engineering documentation review
-does not substitute for the named receiving roles or establish application acceptance.
+acceptance. The [audit follow-up](issues-snapshot.md#access-and-completion-limits)
+remains historical. Source preparation and syntax checks do not substitute for
+decision-content receiving review or establish application acceptance.
