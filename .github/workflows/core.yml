@@ -730,6 +730,25 @@ jobs:
           assert int(suite.attrib["tests"]) >= len(expected)
           print(f"Verified {len(cases)} simulated current-choice accessibility tests; no installed TalkBack claim")
           PYTEST
+      - name: Require optional-tier dialog authority regressions
+        run: |
+          python - <<'PYTEST'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          report = pathlib.Path("preview/build/test-results/testDebugUnitTest/TEST-ai.pickyour.android.preview.OptionalTierDialogTest.xml")
+          suite = ET.parse(report).getroot()
+          expected = {
+              "canceledTierConfirmationCannotCommitRetainedPositiveControl",
+              "dismissedTierConfirmationCannotCommitAfterEditabilityReturns",
+              "canceledTierPickerCannotOpenConfirmationFromRetainedItemCallback",
+              "supersededTierPickerCannotReplaceCurrentChoiceAndCurrentConfirmationCommitsOnce",
+          }
+          cases = suite.findall("testcase")
+          assert expected <= {case.attrib["name"] for case in cases}, "Missing optional-tier dialog regression"
+          assert all(not case.findall("failure") and not case.findall("error") and not case.findall("skipped") for case in cases), "Optional-tier dialog regression did not pass"
+          assert int(suite.attrib["tests"]) >= len(expected)
+          print(f"Verified {len(cases)} simulated optional-tier dialog tests; no installed-device claim")
+          PYTEST
       - name: Retain unsigned diagnostic and lint reports
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
