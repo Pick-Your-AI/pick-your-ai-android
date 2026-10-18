@@ -28,7 +28,22 @@ Format 2 validates contiguous retained numbering, head identity, change kinds, o
 
 ## Scope of retained history
 
-A new format-2 draft starts with `INITIAL` at zero. Each save appends `EDIT`, including identical content saves, preserving the established storage-counter behavior. `restore(expectedVersion, retainedNumber)` appends `RESTORE` with the selected content and current metadata. The source entry and all prior revisions remain unchanged. Only retained numbers can be restored; unknown targets return `UnknownRevision`, while stale/foreign tokens still conflict. Restore is serialized by the same outer transaction and cache activation as save, not a parallel persistence path.
+A new format-2 draft starts with `INITIAL` at zero. A changed save appends `EDIT`.
+An unchanged save with the exact current token returns the existing durable revision
+without writing another artifact or consuming bounded history. This applies after
+format-2 migration, including at the history limit. Metadata is part of the equality
+check: omitted metadata preserves the current map, while an explicit empty map is
+a change when metadata exists. Stale, foreign and missing tokens still conflict
+before equality is considered; matching content cannot acknowledge another writer's
+revision. The first format-1 save still performs its documented migration even
+when its content is unchanged.
+
+`restore(expectedVersion, retainedNumber)` always appends `RESTORE` with the selected
+content and current metadata, including when restoring the current content. The
+source entry and all prior revisions remain unchanged. Only retained numbers can
+be restored; unknown targets return `UnknownRevision`, while stale/foreign tokens
+still conflict. Restore is serialized by the same outer transaction and cache
+activation as save, not a parallel persistence path.
 
 Loaded history and metadata are defensively immutable and survive reopen. These storage tokens and revision numbers remain separate from `DraftHistory`'s in-memory identity tokens. No UI adapter or automatic synchronization between those models is supplied.
 

@@ -1,6 +1,7 @@
 package ai.pickyour.core.preview
 
 import ai.pickyour.core.drafts.*
+import ai.pickyour.core.cache.CacheLockSubprocess
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
@@ -9,6 +10,7 @@ import java.nio.file.Path
 import java.nio.channels.FileChannel
 import java.nio.file.StandardOpenOption.*
 import java.io.IOException
+import java.util.concurrent.TimeUnit
 
 class PreviewDraftLibraryTest {
     @TempDir lateinit var root: Path
@@ -101,6 +103,39 @@ class PreviewDraftLibraryTest {
             channel.lock().use { assertEquals(PreviewLibraryCreate.Failed(DraftStorageFailure.BUSY), library().create()) }
         }
         assertTrue(entries().isEmpty())
+    }
+    @Test fun `same JVM contenders cannot release another library creators process lock`() {
+        val other = PreviewDraftLibrary(root.resolve(".")) // Canonical aliases share the same guard.
+        val writer = PreviewDraftLibrary(root) { point ->
+            if (point == LibraryCheckpoint.AFTER_DIRECTORY_CREATE) {
+                assertEquals("BUSY", externalLockAttempt())
+                assertEquals(PreviewLibraryCreate.Failed(DraftStorageFailure.BUSY), other.create())
+                assertEquals("BUSY", externalLockAttempt())
+            }
+        }
+        assertTrue(writer.create() is PreviewLibraryCreate.Saved)
+        assertEquals("ACQUIRED", externalLockAttempt())
+        assertEquals(1, entries().size)
+    }
+
+    private fun externalLockAttempt(): String {
+        val classes = listOf(CacheLockSubprocess::class.java, kotlin.Unit::class.java)
+        val classpath = classes.map { Path.of(it.protectionDomain.codeSource.location.toURI()).toString() }
+            .distinct().joinToString(java.io.File.pathSeparator)
+        val errors = Files.createTempFile(root, "probe-", ".stderr")
+        val process = ProcessBuilder(Path.of(System.getProperty("java.home"), "bin", "java").toString(),
+            "-cp", classpath, CacheLockSubprocess::class.java.name, root.resolve(".preview-library.lock").toString())
+            .redirectError(errors.toFile()).start()
+        try {
+            assertTrue(process.waitFor(10, TimeUnit.SECONDS), "Lock probe timed out")
+            val result = process.inputStream.use { String(it.readNBytes(1024), Charsets.UTF_8) }.trim()
+            val diagnostic = Files.newInputStream(errors).use { String(it.readNBytes(4096), Charsets.UTF_8) }
+            assertEquals(0, process.exitValue(), diagnostic)
+            return result
+        } finally {
+            if (process.isAlive) process.destroyForcibly()
+            Files.deleteIfExists(errors)
+        }
     }
     @Test fun `bounded catalog rejects capacity and invalid path identities`() {
         repeat(PreviewDraftLibrary.MAX_DRAFTS) { index ->
