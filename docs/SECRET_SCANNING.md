@@ -38,6 +38,21 @@ and JSON report otherwise look successful. The pinned CLI can log a Git-source
 read failure yet return exit 0 with an empty report; that is not a complete scan.
 Raw diagnostic content remains private and is replaced by a fixed failure message.
 
+Empty diagnostics alone cannot establish that the Git history child succeeded.
+An actual private counterexample at source `4c753bd69f3857d9b15051be86078948e61074ac`
+made that child silently exit 73 while the pinned CLI returned exit 0, no findings
+and empty streams. The corrected driver also requires a new private
+[Git Trace2 event stream](https://git-scm.com/docs/api-trace2) for each history scan.
+Exactly one version-4 session must identify the exact repository and unchanged
+history command, with ordered `version`, `start`, `exit` and `atexit` control
+events, successful integer exit codes, and `atexit` as its final event. Separate
+remote-metadata lookups cannot substitute for the history process. Missing,
+truncated, ambiguous, failed or malformed completion evidence fails with a fixed
+message. The parser bounds total bytes, individual lines, sessions and control
+events; it never copies raw trace content into a diagnostic or retained receipt.
+This counterexample establishes a driver defect, not a historical failure of an
+earlier project scan.
+
 `fetch-depth: 0` supplies reachable history. The driver rejects shallow history,
 changed tracked source, a driver not present at the recorded commit, or a mismatch
 between the workflow SHA and checkout. It records the exact source commit/tree and
@@ -96,7 +111,7 @@ attribute or binary is changed. The primary [Git attributes documentation](https
 describes binary diff suppression and the textual override. This pattern check
 does not imply decryption, archive expansion or discovery of every encoded secret.
 
-The final real fixtures exercise execution failures. A nonrepository and a new
+Further real fixtures exercise execution failures. A nonrepository and a new
 two-commit bare repository whose clean tip has a missing reachable parent blob
 both cause this pinned CLI to emit an error but return exit 0 and an empty report.
 The normal driver must reject both through its empty-stream requirement. The
@@ -104,6 +119,16 @@ missing object is deleted only from this new private fixture, which has no remot
 its reachable commit count still succeeds and equals two. No project object is
 changed. These fixtures prevent a successful commit count or empty findings list
 from concealing unreadable historical source.
+
+A final clean, remote-free fixture exercises silent Git failure through the real
+CLI. Both history and directory scans must pass before a temporary private `git`
+wrapper is placed on that fixture's process path. A direct probe must establish
+exit 73 with no output; an invocation marker must prove the real scanner used the
+same failing history child. The driver must reject it specifically for missing
+successful Git completion. The original process path is then restored and both
+history and directory controls must pass again. No project Git executable or
+object is modified. Only the established fault exit and rejection/control flags
+enter the sanitized fixture results.
 
 The relevant pinned upstream implementations are
 [implicit source ignore loading](https://github.com/gitleaks/gitleaks/blob/v8.30.1/cmd/root.go)
@@ -118,10 +143,14 @@ sequence. A separate actual history scan at Android commit
 preparation observations do not replace the hosted run of this new driver at its
 published candidate and final main versions.
 
-Nine host guard tests reject modified/oversized scanner bytes, unsafe or malformed
+Host guard tests reject modified/oversized scanner bytes, unsafe or malformed
 report shapes, missing/stale/oversized or inconsistent reports, alternate ignore
 configuration, source-ignore entries and unreadable metadata, nonempty execution
-streams, shallow/dirty source and workflow mismatch. They also verify that
+streams, shallow/dirty source and workflow mismatch. Completion tests exercise
+missing, failed, signaled, reordered, duplicate and post-shutdown events; wrong
+repository, history scope, merge policy, session, format or thread; stale trace
+entries; malformed or unreadable JSON; and resource limits. Clean and detected
+reports both require successful history completion. The tests also verify that
 matched text and author/message fields are not copied to the retained report. These
 tests do not substitute for the real CLI fixture and history execution above.
 
@@ -132,7 +161,8 @@ fixture results, scan exit/count, elapsed time and explicit scope limitations. F
 a finding, only the rule ID, file, starting line and exact commit are retained.
 Matched source, secret values, complete lines, commit messages, author/email and
 arbitrary report fields are excluded. Raw CLI streams are captured in memory and
-not printed; raw JSON stays in the temporary directory and is removed on exit.
+not printed; raw finding JSON and Git traces stay in the temporary directory and
+are removed on exit.
 The CLI also receives `--redact=100` as a separate precaution.
 
 The seven-day `secret-scan-<workflow commit>` artifact contains only that sanitized

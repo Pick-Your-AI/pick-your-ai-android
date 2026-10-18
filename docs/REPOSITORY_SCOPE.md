@@ -58,6 +58,14 @@ decision. Android's guest-local first-slice scope and conditional remote feature
 remain; Apple and website activation follows their own accepted scope, without
 waiting for Android feature or product completion.
 
+[ADR 0006](decisions/0006-android-2-acceptance-record.md) proposes placement of only
+#2's [integrated epic 01 receiving record](delivery/android/epics/01.md) here after
+independent product/Android review and normal merge. The record connects all six
+accepted decision children and their exact handoffs through a concrete decision
+demonstration. It preserves all four parent criteria and the original website
+placement, and supplies no application, device, operator or service acceptance.
+Its later strict current-ledger reconciliation remains a separate reviewed step.
+
 [ADR 0007](decisions/0007-android-26-acceptance-record.md) proposes the separate
 placement of only #26's [03.02 local-model receiving record](delivery/android/work-packages/03.02.md)
 in Android, effective through its independent receiving review and normal merge.

@@ -1,0 +1,24 @@
+<resources>
+    <string name="catalog_detail_browser_open">Review all recorded details</string>
+    <string name="catalog_detail_browser_page">Recorded fields: page %1$d of %2$d (%3$s)</string>
+    <plurals name="catalog_detail_browser_field_count">
+        <item quantity="one">%1$d field</item>
+        <item quantity="other">%1$d fields</item>
+    </plurals>
+    <string name="catalog_detail_browser_row">%1$s\n%2$s\n%3$s</string>
+    <string name="catalog_detail_browser_next_fields">Next fields</string>
+    <string name="catalog_detail_browser_previous_fields">Previous fields</string>
+    <string name="catalog_detail_browser_back_fields">Back to fields</string>
+    <string name="catalog_detail_browser_next_part">Next part</string>
+    <string name="catalog_detail_browser_previous_part">Previous part</string>
+    <string name="catalog_detail_browser_text">Recorded text</string>
+    <string name="catalog_detail_browser_integer">Recorded integer representation</string>
+    <string name="catalog_detail_browser_json">Recorded JSON representation; schema type: %1$s</string>
+    <string name="catalog_detail_browser_presentation">Presentation meaning; no new source assessment</string>
+    <string name="catalog_detail_browser_derived">Derived from the recorded status, not supplied as an independent assessment</string>
+    <string name="catalog_detail_browser_supplied">Supplied in this recorded context</string>
+    <string name="catalog_detail_browser_contains_unknown">Recorded collection contains explicit unknown values</string>
+    <string name="catalog_detail_browser_assessment">Source %1$d: unassessed presentation label</string>
+    <string name="catalog_detail_browser_value">%1$s\n%2$s\nPart %3$d of %4$d\n\n%5$s\n\n%6$s</string>
+    <string name="catalog_detail_browser_limits">Read-only recorded snapshot values. Quoted parts preserve every character; escapes are visible text. Source references do not open from this view. Inspection supplies no new verification, source-use rights, current availability or price applicability.</string>
+</resources>
