@@ -138,7 +138,7 @@ class LedgerValidationTest(unittest.TestCase):
             module.validate(self.ledger, [issue for issue in source if issue['state'] == 'open'])
 
     def test_completion_requires_reviewed_schema_version(self):
-        for version in (1, 2, 3, 4, 5, True, '2', '3', '4', '5', '6', 4.0, 5.0, 6.0):
+        for version in (1, 2, 3, 4, 5, 6, True, '2', '3', '4', '5', '6', '7', 4.0, 5.0, 6.0, 7.0):
             ledger = copy.deepcopy(self.ledger)
             ledger['schema_version'] = version
             with self.assertRaisesRegex(ValueError, 'unsupported schema version'):
@@ -533,6 +533,252 @@ class LedgerValidationTest(unittest.TestCase):
                     module.validate(ledger)
 
 
+class LedgerImplementationAcceptanceTest(unittest.TestCase):
+    def setUp(self):
+        self.ledger = json.loads((ROOT / 'docs/delivery/criterion-evidence.json').read_text())
+
+    def acceptance(self, ledger):
+        return ledger['issues'][25]['accepted_implementation_outcome']
+
+    def test_only_three_local_model_criteria_have_implementation_acceptance(self):
+        module.validate(self.ledger)
+        issues = self.ledger['issues']
+        self.assertEqual([26], [x['number'] for x in issues if 'accepted_implementation_outcome' in x])
+        self.assertEqual([20, 23, 24, 25, 34, 35, 47], [x['number'] for x in issues if 'accepted_design_outcome' in x])
+        criteria = [c for issue in issues for c in issue['criteria']]
+        self.assertEqual(417, sum(c['status'] == 'incomplete' for c in criteria))
+        self.assertEqual(21, sum(c['evidence_relation'] == module.COMPLETE_DESIGN_RELATION for c in criteria))
+        self.assertEqual(3, sum(c['evidence_relation'] == module.COMPLETE_IMPLEMENTATION_RELATION for c in criteria))
+        accepted = self.acceptance(self.ledger)
+        self.assertNotEqual(accepted['implementation_revision'], accepted['record_revision'])
+        self.assertEqual(['pr-407', 'pr-418'], accepted['evidence_refs'])
+        self.assertEqual(4, len(accepted['implemented_subtasks']))
+        self.assertTrue(all(c['partial_evidence_refs'] == ['pr-138'] for c in issues[25]['criteria']))
+
+    def test_every_model_record_and_review_pin_is_required_and_exact(self):
+        fields = ('implementation_revision', 'implementation_tree', 'record_revision',
+                  'record_tree', 'record_url', 'record_blob', 'decision_url', 'decision_blob',
+                  'source_review_revision', 'source_reviews', 'preserved_prior_ledger')
+        for field in fields:
+            for mutation in ('remove', 'replace'):
+                with self.subTest(field=field, mutation=mutation):
+                    ledger = copy.deepcopy(self.ledger)
+                    accepted = self.acceptance(ledger)
+                    if mutation == 'remove':
+                        del accepted[field]
+                    else:
+                        accepted[field] = 'unreviewed replacement'
+                    with self.assertRaisesRegex(ValueError, 'reviewed implementation acceptance: 26'):
+                        module.validate(ledger)
+
+    def test_both_actual_merged_evidence_entries_require_their_own_identity(self):
+        for key in ('pr-407', 'pr-418'):
+            for mutation in ('remove', 'open', 'scope', 'revision', 'artifact', 'transplant'):
+                with self.subTest(key=key, mutation=mutation):
+                    ledger = copy.deepcopy(self.ledger)
+                    receipt = ledger['evidence'][key]
+                    if mutation == 'remove':
+                        del ledger['evidence'][key]
+                    elif mutation == 'open':
+                        receipt['observed_state'] = 'open'
+                    elif mutation == 'scope':
+                        receipt['scope_limit'] = 'All product and installed behavior accepted.'
+                    elif mutation == 'revision':
+                        old = receipt['revision']
+                        receipt['revision'] = '0' * 40
+                        receipt['artifact_url'] = receipt['artifact_url'].replace(old, '0' * 40)
+                    elif mutation == 'artifact':
+                        receipt['artifact_url'] = receipt['artifact_url'].rsplit('/', 1)[0] + '/OTHER.md'
+                    else:
+                        other = 'pr-418' if key == 'pr-407' else 'pr-407'
+                        ledger['evidence'][key] = copy.deepcopy(ledger['evidence'][other])
+                    with self.assertRaises(ValueError):
+                        module.validate(ledger)
+
+    def test_original_observations_cannot_be_relabelled_or_replace_missing_failure_evidence(self):
+        for observation in ('implementation_observation', 'record_observation'):
+            for mutation in ('revision', 'tree', 'runtime', 'receipt', 'run', 'cases', 'status',
+                             'missing-artifact', 'artifact-id', 'artifact-length', 'artifact-hash', 'apk'):
+                with self.subTest(observation=observation, mutation=mutation):
+                    ledger = copy.deepcopy(self.ledger)
+                    value = self.acceptance(ledger)[observation]
+                    replacements = {'revision': 'execution_revision', 'tree': 'execution_tree',
+                                    'runtime': 'runtime_scope', 'receipt': 'completed_receipt',
+                                    'run': 'main_run_url', 'cases': 'model_cases', 'status': 'outcome'}
+                    if mutation in replacements:
+                        value[replacements[mutation]] = 'unreviewed or unexecuted'
+                    elif mutation == 'missing-artifact':
+                        value['original_artifacts'].pop()
+                    elif mutation == 'artifact-id':
+                        value['original_artifacts'][0]['id'] = '999'
+                    elif mutation == 'artifact-length':
+                        value['original_artifacts'][0]['bytes'] += 1
+                    elif mutation == 'artifact-hash':
+                        value['original_artifacts'][0]['sha256'] = '0' * 64
+                    else:
+                        value['unsigned_apk']['sha256'] = '0' * 64
+                    with self.assertRaisesRegex(ValueError, 'reviewed implementation acceptance: 26'):
+                        module.validate(ledger)
+
+    def test_actual_receiving_roles_cannot_be_removed_invented_or_transplanted(self):
+        for index in range(3):
+            for mutation in ('remove', 'duplicate', 'role', 'url', 'revision', 'scope'):
+                with self.subTest(index=index, mutation=mutation):
+                    ledger = copy.deepcopy(self.ledger)
+                    reviews = self.acceptance(ledger)['receiving_reviews']
+                    if mutation == 'remove':
+                        reviews.pop(index)
+                    elif mutation == 'duplicate':
+                        reviews[index] = copy.deepcopy(reviews[(index + 1) % 3])
+                    else:
+                        field = {'role': 'role', 'url': 'url', 'revision': 'reviewed_revision', 'scope': 'disposition'}[mutation]
+                        reviews[index][field] = 'unrecorded approval or scope'
+                    with self.assertRaisesRegex(ValueError, 'reviewed implementation acceptance: 26'):
+                        module.validate(ledger)
+
+    def test_consumed_outputs_cannot_become_whole_prerequisite_completion(self):
+        accepted = self.acceptance(self.ledger)
+        self.assertEqual(module.BASE + '/issues/21', accepted['consumed_prerequisites'][0]['issue_url'])
+        self.assertEqual('open', accepted['consumed_prerequisites'][0]['issue_state_at_receiving'])
+        self.assertEqual('not_claimed', accepted['consumed_prerequisites'][0]['whole_issue_completion'])
+        for index in range(2):
+            for field in accepted['consumed_prerequisites'][index]:
+                with self.subTest(index=index, field=field):
+                    ledger = copy.deepcopy(self.ledger)
+                    self.acceptance(ledger)['consumed_prerequisites'][index][field] = 'unreviewed substitute'
+                    with self.assertRaisesRegex(ValueError, 'reviewed implementation acceptance: 26'):
+                        module.validate(ledger)
+
+    def test_all_four_subtasks_and_explicit_retention_failure_limits_remain_required(self):
+        accepted = self.acceptance(self.ledger)
+        for key in ('implemented_subtasks', 'outcome_boundaries'):
+            for index in range(len(accepted[key])):
+                with self.subTest(key=key, index=index):
+                    ledger = copy.deepcopy(self.ledger)
+                    self.acceptance(ledger)[key][index] = 'All deployment and every predecessor byte are guaranteed.'
+                    with self.assertRaisesRegex(ValueError, 'reviewed implementation acceptance: 26'):
+                        module.validate(ledger)
+
+    def test_all_three_criterion_texts_cannot_change_with_recomputed_hash(self):
+        import hashlib
+        for index in range(3):
+            with self.subTest(index=index):
+                ledger = copy.deepcopy(self.ledger)
+                criterion = ledger['issues'][25]['criteria'][index]
+                criterion['text'] = 'A proposed design alone completes durable installed product behavior.'
+                criterion['text_sha256'] = hashlib.sha256(criterion['text'].encode()).hexdigest()
+                with self.assertRaisesRegex(ValueError, 'reviewed implementation criterion set changed: 26'):
+                    module.validate(ledger)
+
+    def test_every_criterion_requires_both_receipts_and_no_unfinished_literal_requirement(self):
+        for index in range(3):
+            for field, value in (
+                ('completion_evidence', []), ('completion_evidence', ['pr-418']),
+                ('completion_evidence', ['pr-407']), ('completion_evidence', ['pr-418', 'pr-407']),
+                ('remaining_engineering', 'Model behavior is still unimplemented.'),
+                ('external_prerequisites', [{'kind': 'contract_acceptance', 'requirement': 'Required model input absent.'}]),
+                ('evidence_relation', module.COMPLETE_DESIGN_RELATION), ('status', 'incomplete'),
+            ):
+                with self.subTest(index=index, field=field):
+                    ledger = copy.deepcopy(self.ledger)
+                    ledger['issues'][25]['criteria'][index][field] = value
+                    with self.assertRaises(ValueError):
+                        module.validate(ledger)
+
+    def test_design_and_implementation_classifications_cannot_be_swapped(self):
+        for mutation in ('design-field', 'design-value', 'generic-approval', 'classification', 'relation'):
+            with self.subTest(mutation=mutation):
+                ledger = copy.deepcopy(self.ledger)
+                issue = ledger['issues'][25]
+                if mutation == 'design-field':
+                    issue['accepted_design_outcome'] = issue.pop('accepted_implementation_outcome')
+                elif mutation == 'design-value':
+                    issue['accepted_implementation_outcome'] = copy.deepcopy(ledger['issues'][24]['accepted_design_outcome'])
+                elif mutation == 'generic-approval':
+                    issue['accepted_implementation_outcome'] = {'approved': True}
+                elif mutation == 'classification':
+                    self.acceptance(ledger)['classification'] = 'reviewed_design_outcome'
+                else:
+                    issue['criteria'][0]['evidence_relation'] = module.COMPLETE_DESIGN_RELATION
+                with self.assertRaises(ValueError):
+                    module.validate(ledger)
+
+    def test_model_receipt_cannot_authorize_other_issues_or_existing_designs(self):
+        for number in (1, 21, 34, 84, 86, 98, 107):
+            with self.subTest(number=number):
+                ledger = copy.deepcopy(self.ledger)
+                issue = ledger['issues'][number - 1]
+                issue['accepted_implementation_outcome'] = copy.deepcopy(self.acceptance(ledger))
+                issue['canonical_acceptance_record']['repository'] = module.REPOSITORY
+                issue['criteria'][0].update(status='complete', completion_evidence=['pr-407', 'pr-418'],
+                    remaining_engineering='', external_prerequisites=[], evidence_relation=module.COMPLETE_IMPLEMENTATION_RELATION)
+                with self.assertRaisesRegex(ValueError, f'unsupported implementation acceptance: {number}'):
+                    module.validate(ledger)
+
+    def test_model_partial_context_and_historical_placement_cannot_be_rewritten(self):
+        for mutation in ('drop-partial', 'replace-partial', 'new-result', 'title', 'new-field', 'history', 'placement'):
+            with self.subTest(mutation=mutation):
+                ledger = copy.deepcopy(self.ledger)
+                issue = ledger['issues'][25]
+                if mutation == 'drop-partial':
+                    issue['criteria'][0]['partial_evidence_refs'] = []
+                elif mutation == 'replace-partial':
+                    issue['criteria'][0]['partial_evidence_refs'] = ['pr-407']
+                elif mutation == 'new-result':
+                    issue['criteria'][0]['partial_results'] = []
+                elif mutation == 'title':
+                    issue['title'] += ' (production accepted)'
+                elif mutation == 'new-field':
+                    issue['unrecorded_history_claim'] = 'earlier implementation passed'
+                elif mutation == 'history':
+                    self.acceptance(ledger)['historical_acceptance_record']['repository'] = module.REPOSITORY
+                else:
+                    issue['canonical_acceptance_record']['path'] = 'docs/delivery/android/work-packages/03.03.md'
+                with self.assertRaises(ValueError):
+                    module.validate(ledger)
+
+    def test_every_other_issue_and_earlier_evidence_object_is_preserved(self):
+        for number in range(1, 130):
+            if number == 26:
+                continue
+            with self.subTest(number=number):
+                ledger = copy.deepcopy(self.ledger)
+                ledger['issues'][number - 1]['title'] += ' Unreviewed replacement'
+                with self.assertRaisesRegex(ValueError, 'unreviewed change to another issue record'):
+                    module.validate(ledger)
+        for key in self.ledger['evidence']:
+            if key in ('pr-407', 'pr-418'):
+                continue
+            with self.subTest(evidence=key):
+                ledger = copy.deepcopy(self.ledger)
+                ledger['evidence'][key]['scope_limit'] += ' A later run is retrospectively accepted.'
+                with self.assertRaisesRegex(ValueError, 'unreviewed change to earlier evidence'):
+                    module.validate(ledger)
+
+    def test_historical_baseline_and_current_summary_cannot_claim_new_authority(self):
+        for field in ('implementation_baseline', 'observed_on', 'source', 'purpose'):
+            with self.subTest(field=field):
+                ledger = copy.deepcopy(self.ledger)
+                ledger[field] = 'All issues and observations are newly accepted.'
+                with self.assertRaises(ValueError):
+                    module.validate(ledger)
+
+    def test_receipt_numeric_aliases_are_not_identical_observations(self):
+        for observation in ('implementation_observation', 'record_observation'):
+            for mutation in ('case-float', 'artifact-float', 'boolean'):
+                with self.subTest(observation=observation, mutation=mutation):
+                    ledger = copy.deepcopy(self.ledger)
+                    value = self.acceptance(ledger)[observation]
+                    if mutation == 'case-float':
+                        value['core_cases'] = float(value['core_cases'])
+                    elif mutation == 'artifact-float':
+                        value['original_artifacts'][0]['bytes'] = float(value['original_artifacts'][0]['bytes'])
+                    else:
+                        value['model_cases'] = True
+                    with self.assertRaisesRegex(ValueError, 'reviewed implementation acceptance: 26'):
+                        module.validate(ledger)
+
+
 class LedgerInputIntegrityTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -541,7 +787,7 @@ class LedgerInputIntegrityTest(unittest.TestCase):
         # Controlled all-state source fixture; this is not a live GitHub capture.
         cls.source = [
             {'number': issue['number'], 'title': issue['title'],
-             'state': 'closed' if issue['number'] in module.REVIEWED_DESIGNS else 'open',
+             'state': 'closed' if issue['number'] in (set(module.REVIEWED_DESIGNS) | set(module.REVIEWED_IMPLEMENTATIONS)) else 'open',
              'body': '## Acceptance criteria\n' +
                      '\n'.join('- [x] ' + c['text'] for c in issue['criteria']) +
                      '\n## Delivery record\n`' + issue['canonical_acceptance_record']['path'] + '`'}
@@ -575,7 +821,7 @@ class LedgerInputIntegrityTest(unittest.TestCase):
 
     def test_duplicate_schema_and_source_identity_members_fail_at_cli(self):
         self.assert_rejected('duplicate JSON member', ledger_text=self.raw_ledger.replace(
-            '"schema_version": 6', '"schema_version": 5, "schema_version": 6', 1))
+            '"schema_version": 7', '"schema_version": 5, "schema_version": 7', 1))
         self.assert_rejected('duplicate JSON member', source_text=self.raw_source.replace(
             '"number": 1', '"number": 999, "number": 1', 1))
 
@@ -587,7 +833,7 @@ class LedgerInputIntegrityTest(unittest.TestCase):
 
     def test_escaped_duplicate_members_fail_at_both_cli_inputs(self):
         self.assert_rejected('duplicate JSON member', ledger_text=self.raw_ledger.replace(
-            '"schema_version": 6', r'"\u0073chema_version": 5, "schema_version": 6', 1))
+            '"schema_version": 7', r'"\u0073chema_version": 5, "schema_version": 7', 1))
         self.assert_rejected('duplicate JSON member', source_text=self.raw_source.replace(
             '"number": 1', r'"\u006eumber": 999, "number": 1', 1))
         for location, raw in (('ledger_text', self.raw_ledger), ('source_text', self.raw_source)):
@@ -618,7 +864,7 @@ class LedgerInputIntegrityTest(unittest.TestCase):
             with self.subTest(optimized=optimized):
                 result = self.run_cli(ledger_text, source_text, optimized)
                 self.assertEqual(result.returncode, 0, result.stderr)
-                self.assertIn('420 incomplete criteria, 21 reviewed design criteria', result.stdout)
+                self.assertIn('417 incomplete criteria, 21 reviewed design criteria, 3 reviewed implementation criteria', result.stdout)
                 self.assertIn('exact source criteria matched.', result.stdout)
                 self.assertEqual(result.stderr, '')
         changed = copy.deepcopy(self.source)
@@ -628,7 +874,7 @@ class LedgerInputIntegrityTest(unittest.TestCase):
 
     def test_each_ordinary_record_rejects_a_different_valid_website_path(self):
         for issue in self.ledger['issues']:
-            if issue['number'] in module.REVIEWED_DESIGNS:
+            if issue['number'] in module.REVIEWED_DESIGNS or issue['number'] in module.REVIEWED_IMPLEMENTATIONS:
                 continue
             with self.subTest(number=issue['number']):
                 ledger = copy.deepcopy(self.ledger)
