@@ -100,11 +100,18 @@ a separate repository setting; publishing this workflow does not make it require
 The implementation acceptance records listed below retain their canonical paths
 in `pickyour.ai`; the separately accepted decision-record placements are listed in
 [repository scope](REPOSITORY_SCOPE.md). Parent coordination can
-copy the criterion evidence above into `03.01.md`, `02.01.md`, `03.06.md`, `02.04.md`,
+copy the criterion evidence above into `03.01.md`, `03.06.md`, `02.04.md`,
 `11.03.md`, `14.05.md`, `02.05.md` and `09.06.md` under
 `docs/delivery/android/work-packages/`, linking the merged PR and exact test runs.
 These are partial entries, not issue-closing receipts. No website changes are made
 by this repository.
+
+[ADR 0008](decisions/0008-android-48-acceptance-record.md) separately proposes
+placing only #48's [02.01 foundation record](delivery/android/work-packages/02.01.md)
+in Android, effective after independent review and normal delivery into Android
+main. The record preserves the original website path and distinguishes the selected
+preview identity from future product qualification. Full #48 acceptance remains
+pending its literal criteria and current installed-delivery evidence.
 
 ## Observed local verification (2026-10-18)
 
