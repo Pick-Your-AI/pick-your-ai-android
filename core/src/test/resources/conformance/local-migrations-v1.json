@@ -1,0 +1,1808 @@
+{
+  "bundleVersion": "android-local-migrations-1",
+  "scope": "SYNTHETIC private Android formats; distinct from shared contract 1.0.0, Apple SQLite versions and the neutral wire bundle. No installed Android or evaluator claim.",
+  "source": "ac8307a4b36e64008c5758621634c105e0078e6c",
+  "inputs": [
+    {
+      "id": "private-format-1",
+      "payloadJSON": "{\n  \"local_format_version\": 1,\n  \"revision\": 7,\n  \"content\": {\n    \"objective\": \"\",\n    \"context\": null,\n    \"primaryModel\": \"entered-model\",\n    \"optional\": {\n      \"T3\": {\n        \"activation\": \"UNKNOWN\",\n        \"selections\": [\n          \"opaque\"\n        ],\n        \"settings\": {\n          \"amount\": \"0.00\"\n        }\n      },\n      \"T4\": {\n        \"activation\": \"DISABLED\",\n        \"selections\": [],\n        \"settings\": {}\n      },\n      \"T5\": {\n        \"activation\": \"ENABLED\",\n        \"selections\": [],\n        \"settings\": {}\n      }\n    }\n  },\n  \"metadata\": {\n    \"opaque\": \"SYNTHETIC legacy retained\",\n    \"empty\": \"\",\n    \"literal\": \"unknown\"\n  }\n}\n",
+      "bytes": 657,
+      "sha256": "62bb4fe20c0ad4d80198c9ddea64aad6b67b6bcde6b98d8c32a30395cdc83485",
+      "origin": {
+        "kind": "authored-synthetic",
+        "basis": "ac8307a4b36e64008c5758621634c105e0078e6c",
+        "description": "Historical v1 shape with an explicit earlier-history gap, unknown/disabled/enabled optional tiers, empty versus absent text and exact 0.00 string."
+      },
+      "expected": {
+        "format": 1,
+        "revision": 7,
+        "legacySourceHash": "62bb4fe20c0ad4d80198c9ddea64aad6b67b6bcde6b98d8c32a30395cdc83485",
+        "earlierHistoryUnavailable": true,
+        "history": [
+          {
+            "number": 7,
+            "change": "LEGACY_ANCHOR",
+            "restored_from": null,
+            "content": {
+              "objective": "",
+              "context": null,
+              "primaryModel": "entered-model",
+              "optional": {
+                "T3": {
+                  "activation": "UNKNOWN",
+                  "selections": [
+                    "opaque"
+                  ],
+                  "settings": {
+                    "amount": "0.00"
+                  }
+                },
+                "T4": {
+                  "activation": "DISABLED",
+                  "selections": [],
+                  "settings": {}
+                },
+                "T5": {
+                  "activation": "ENABLED",
+                  "selections": [],
+                  "settings": {}
+                }
+              },
+              "workload": {
+                "region": null,
+                "currency": null,
+                "monthly_budget_amount": null,
+                "requests_per_day": null,
+                "avg_input_tokens": null,
+                "avg_output_tokens": null,
+                "max_concurrency": null,
+                "max_latency_ms": null,
+                "data_classification": null
+              },
+              "components": {
+                "selections": [],
+                "links": []
+              }
+            },
+            "metadata": {
+              "opaque": "SYNTHETIC legacy retained",
+              "empty": "",
+              "literal": "unknown"
+            },
+            "selection_change": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "private-format-2",
+      "payloadJSON": "{\n  \"local_format_version\": 2,\n  \"revision\": 2,\n  \"legacy_source_hash\": null,\n  \"history\": [\n    {\n      \"number\": 0,\n      \"change\": \"INITIAL\",\n      \"restored_from\": null,\n      \"content\": {\n        \"objective\": \"\",\n        \"context\": null,\n        \"primaryModel\": \"entered-model\",\n        \"optional\": {\n          \"T3\": {\n            \"activation\": \"UNKNOWN\",\n            \"selections\": [\n              \"opaque\"\n            ],\n            \"settings\": {\n              \"amount\": \"0.00\"\n            }\n          },\n          \"T4\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          },\n          \"T5\": {\n            \"activation\": \"ENABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          }\n        }\n      },\n      \"metadata\": {\n        \"pin\": \"old\",\n        \"preview.format\": \"1\",\n        \"preview.title\": \"old\"\n      }\n    },\n    {\n      \"number\": 1,\n      \"change\": \"EDIT\",\n      \"restored_from\": null,\n      \"content\": {\n        \"objective\": \"\",\n        \"context\": \"\",\n        \"primaryModel\": \"entered-model\",\n        \"optional\": {\n          \"T3\": {\n            \"activation\": \"UNKNOWN\",\n            \"selections\": [\n              \"opaque\"\n            ],\n            \"settings\": {\n              \"amount\": \"0.00\"\n            }\n          },\n          \"T4\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          },\n          \"T5\": {\n            \"activation\": \"ENABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          }\n        }\n      },\n      \"metadata\": {\n        \"pin\": \"current\",\n        \"preview.format\": \"1\",\n        \"preview.title\": \"current\"\n      }\n    },\n    {\n      \"number\": 2,\n      \"change\": \"RESTORE\",\n      \"restored_from\": 0,\n      \"content\": {\n        \"objective\": \"\",\n        \"context\": null,\n        \"primaryModel\": \"entered-model\",\n        \"optional\": {\n          \"T3\": {\n            \"activation\": \"UNKNOWN\",\n            \"selections\": [\n              \"opaque\"\n            ],\n            \"settings\": {\n              \"amount\": \"0.00\"\n            }\n          },\n          \"T4\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          },\n          \"T5\": {\n            \"activation\": \"ENABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          }\n        }\n      },\n      \"metadata\": {\n        \"pin\": \"current\",\n        \"preview.format\": \"1\",\n        \"preview.title\": \"current\"\n      }\n    }\n  ]\n}\n",
+      "bytes": 2524,
+      "sha256": "2cabddcaaf2f8ff60d2d2f398dc737af7749d9cb97f0ec6ce7b11ee1781d3ef4",
+      "origin": {
+        "kind": "exact-existing-fixture",
+        "source": "ac8307a4b36e64008c5758621634c105e0078e6c",
+        "path": "core/src/test/resources/drafts/local-format-2.json",
+        "gitBlob": "fe84c57843d0be464af55334e9c8606b865052bb"
+      },
+      "expected": {
+        "format": 2,
+        "revision": 2,
+        "legacySourceHash": null,
+        "earlierHistoryUnavailable": false,
+        "history": [
+          {
+            "number": 0,
+            "change": "INITIAL",
+            "restored_from": null,
+            "content": {
+              "objective": "",
+              "context": null,
+              "primaryModel": "entered-model",
+              "optional": {
+                "T3": {
+                  "activation": "UNKNOWN",
+                  "selections": [
+                    "opaque"
+                  ],
+                  "settings": {
+                    "amount": "0.00"
+                  }
+                },
+                "T4": {
+                  "activation": "DISABLED",
+                  "selections": [],
+                  "settings": {}
+                },
+                "T5": {
+                  "activation": "ENABLED",
+                  "selections": [],
+                  "settings": {}
+                }
+              },
+              "workload": {
+                "region": null,
+                "currency": null,
+                "monthly_budget_amount": null,
+                "requests_per_day": null,
+                "avg_input_tokens": null,
+                "avg_output_tokens": null,
+                "max_concurrency": null,
+                "max_latency_ms": null,
+                "data_classification": null
+              },
+              "components": {
+                "selections": [],
+                "links": []
+              }
+            },
+            "metadata": {
+              "pin": "old",
+              "preview.format": "1",
+              "preview.title": "old"
+            },
+            "selection_change": null
+          },
+          {
+            "number": 1,
+            "change": "EDIT",
+            "restored_from": null,
+            "content": {
+              "objective": "",
+              "context": "",
+              "primaryModel": "entered-model",
+              "optional": {
+                "T3": {
+                  "activation": "UNKNOWN",
+                  "selections": [
+                    "opaque"
+                  ],
+                  "settings": {
+                    "amount": "0.00"
+                  }
+                },
+                "T4": {
+                  "activation": "DISABLED",
+                  "selections": [],
+                  "settings": {}
+                },
+                "T5": {
+                  "activation": "ENABLED",
+                  "selections": [],
+                  "settings": {}
+                }
+              },
+              "workload": {
+                "region": null,
+                "currency": null,
+                "monthly_budget_amount": null,
+                "requests_per_day": null,
+                "avg_input_tokens": null,
+                "avg_output_tokens": null,
+                "max_concurrency": null,
+                "max_latency_ms": null,
+                "data_classification": null
+              },
+              "components": {
+                "selections": [],
+                "links": []
+              }
+            },
+            "metadata": {
+              "pin": "current",
+              "preview.format": "1",
+              "preview.title": "current"
+            },
+            "selection_change": null
+          },
+          {
+            "number": 2,
+            "change": "RESTORE",
+            "restored_from": 0,
+            "content": {
+              "objective": "",
+              "context": null,
+              "primaryModel": "entered-model",
+              "optional": {
+                "T3": {
+                  "activation": "UNKNOWN",
+                  "selections": [
+                    "opaque"
+                  ],
+                  "settings": {
+                    "amount": "0.00"
+                  }
+                },
+                "T4": {
+                  "activation": "DISABLED",
+                  "selections": [],
+                  "settings": {}
+                },
+                "T5": {
+                  "activation": "ENABLED",
+                  "selections": [],
+                  "settings": {}
+                }
+              },
+              "workload": {
+                "region": null,
+                "currency": null,
+                "monthly_budget_amount": null,
+                "requests_per_day": null,
+                "avg_input_tokens": null,
+                "avg_output_tokens": null,
+                "max_concurrency": null,
+                "max_latency_ms": null,
+                "data_classification": null
+              },
+              "components": {
+                "selections": [],
+                "links": []
+              }
+            },
+            "metadata": {
+              "pin": "current",
+              "preview.format": "1",
+              "preview.title": "current"
+            },
+            "selection_change": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "private-format-3",
+      "payloadJSON": "{\n  \"local_format_version\": 3,\n  \"revision\": 2,\n  \"legacy_source_hash\": null,\n  \"history\": [\n    {\n      \"number\": 0,\n      \"change\": \"INITIAL\",\n      \"restored_from\": null,\n      \"content\": {\n        \"objective\": \"\",\n        \"context\": null,\n        \"primaryModel\": \"entered-model\",\n        \"optional\": {\n          \"T3\": {\n            \"activation\": \"UNKNOWN\",\n            \"selections\": [\n              \"opaque\"\n            ],\n            \"settings\": {\n              \"amount\": \"0.00\"\n            }\n          },\n          \"T4\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          },\n          \"T5\": {\n            \"activation\": \"ENABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          }\n        },\n        \"workload\": {\n          \"region\": \"entered-region\",\n          \"currency\": \"EUR\",\n          \"monthly_budget_amount\": \"25.0000\",\n          \"requests_per_day\": 0,\n          \"avg_input_tokens\": null,\n          \"avg_output_tokens\": null,\n          \"max_concurrency\": 7,\n          \"max_latency_ms\": null,\n          \"data_classification\": \"confidential\"\n        }\n      },\n      \"metadata\": {\n        \"pin\": \"old\",\n        \"preview.format\": \"1\",\n        \"preview.title\": \"old\"\n      }\n    },\n    {\n      \"number\": 1,\n      \"change\": \"EDIT\",\n      \"restored_from\": null,\n      \"content\": {\n        \"objective\": \"\",\n        \"context\": \"\",\n        \"primaryModel\": \"entered-model\",\n        \"optional\": {\n          \"T3\": {\n            \"activation\": \"UNKNOWN\",\n            \"selections\": [\n              \"opaque\"\n            ],\n            \"settings\": {\n              \"amount\": \"0.00\"\n            }\n          },\n          \"T4\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          },\n          \"T5\": {\n            \"activation\": \"ENABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          }\n        },\n        \"workload\": {\n          \"region\": \"entered-region\",\n          \"currency\": \"EUR\",\n          \"monthly_budget_amount\": \"25.0000\",\n          \"requests_per_day\": 0,\n          \"avg_input_tokens\": null,\n          \"avg_output_tokens\": null,\n          \"max_concurrency\": 7,\n          \"max_latency_ms\": null,\n          \"data_classification\": \"confidential\"\n        }\n      },\n      \"metadata\": {\n        \"pin\": \"current\",\n        \"preview.format\": \"1\",\n        \"preview.title\": \"current\"\n      }\n    },\n    {\n      \"number\": 2,\n      \"change\": \"RESTORE\",\n      \"restored_from\": 0,\n      \"content\": {\n        \"objective\": \"\",\n        \"context\": null,\n        \"primaryModel\": \"entered-model\",\n        \"optional\": {\n          \"T3\": {\n            \"activation\": \"UNKNOWN\",\n            \"selections\": [\n              \"opaque\"\n            ],\n            \"settings\": {\n              \"amount\": \"0.00\"\n            }\n          },\n          \"T4\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          },\n          \"T5\": {\n            \"activation\": \"ENABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          }\n        },\n        \"workload\": {\n          \"region\": \"entered-region\",\n          \"currency\": \"EUR\",\n          \"monthly_budget_amount\": \"25.0000\",\n          \"requests_per_day\": 0,\n          \"avg_input_tokens\": null,\n          \"avg_output_tokens\": null,\n          \"max_concurrency\": 7,\n          \"max_latency_ms\": null,\n          \"data_classification\": \"confidential\"\n        }\n      },\n      \"metadata\": {\n        \"pin\": \"current\",\n        \"preview.format\": \"1\",\n        \"preview.title\": \"current\"\n      }\n    }\n  ]\n}\n",
+      "bytes": 3622,
+      "sha256": "1934bd6b1886b6b555b59b0fd432d7f9ce5940fe923c9ae2a91103fc5e352fe4",
+      "origin": {
+        "kind": "exact-existing-fixture",
+        "source": "ac8307a4b36e64008c5758621634c105e0078e6c",
+        "path": "core/src/test/resources/drafts/local-format-3.json",
+        "gitBlob": "deb5a9df51a61d4fc0144e93a1dc6b42a1125ace"
+      },
+      "expected": {
+        "format": 3,
+        "revision": 2,
+        "legacySourceHash": null,
+        "earlierHistoryUnavailable": false,
+        "history": [
+          {
+            "number": 0,
+            "change": "INITIAL",
+            "restored_from": null,
+            "content": {
+              "objective": "",
+              "context": null,
+              "primaryModel": "entered-model",
+              "optional": {
+                "T3": {
+                  "activation": "UNKNOWN",
+                  "selections": [
+                    "opaque"
+                  ],
+                  "settings": {
+                    "amount": "0.00"
+                  }
+                },
+                "T4": {
+                  "activation": "DISABLED",
+                  "selections": [],
+                  "settings": {}
+                },
+                "T5": {
+                  "activation": "ENABLED",
+                  "selections": [],
+                  "settings": {}
+                }
+              },
+              "workload": {
+                "region": "entered-region",
+                "currency": "EUR",
+                "monthly_budget_amount": "25.0000",
+                "requests_per_day": 0,
+                "avg_input_tokens": null,
+                "avg_output_tokens": null,
+                "max_concurrency": 7,
+                "max_latency_ms": null,
+                "data_classification": "confidential"
+              },
+              "components": {
+                "selections": [],
+                "links": []
+              }
+            },
+            "metadata": {
+              "pin": "old",
+              "preview.format": "1",
+              "preview.title": "old"
+            },
+            "selection_change": null
+          },
+          {
+            "number": 1,
+            "change": "EDIT",
+            "restored_from": null,
+            "content": {
+              "objective": "",
+              "context": "",
+              "primaryModel": "entered-model",
+              "optional": {
+                "T3": {
+                  "activation": "UNKNOWN",
+                  "selections": [
+                    "opaque"
+                  ],
+                  "settings": {
+                    "amount": "0.00"
+                  }
+                },
+                "T4": {
+                  "activation": "DISABLED",
+                  "selections": [],
+                  "settings": {}
+                },
+                "T5": {
+                  "activation": "ENABLED",
+                  "selections": [],
+                  "settings": {}
+                }
+              },
+              "workload": {
+                "region": "entered-region",
+                "currency": "EUR",
+                "monthly_budget_amount": "25.0000",
+                "requests_per_day": 0,
+                "avg_input_tokens": null,
+                "avg_output_tokens": null,
+                "max_concurrency": 7,
+                "max_latency_ms": null,
+                "data_classification": "confidential"
+              },
+              "components": {
+                "selections": [],
+                "links": []
+              }
+            },
+            "metadata": {
+              "pin": "current",
+              "preview.format": "1",
+              "preview.title": "current"
+            },
+            "selection_change": null
+          },
+          {
+            "number": 2,
+            "change": "RESTORE",
+            "restored_from": 0,
+            "content": {
+              "objective": "",
+              "context": null,
+              "primaryModel": "entered-model",
+              "optional": {
+                "T3": {
+                  "activation": "UNKNOWN",
+                  "selections": [
+                    "opaque"
+                  ],
+                  "settings": {
+                    "amount": "0.00"
+                  }
+                },
+                "T4": {
+                  "activation": "DISABLED",
+                  "selections": [],
+                  "settings": {}
+                },
+                "T5": {
+                  "activation": "ENABLED",
+                  "selections": [],
+                  "settings": {}
+                }
+              },
+              "workload": {
+                "region": "entered-region",
+                "currency": "EUR",
+                "monthly_budget_amount": "25.0000",
+                "requests_per_day": 0,
+                "avg_input_tokens": null,
+                "avg_output_tokens": null,
+                "max_concurrency": 7,
+                "max_latency_ms": null,
+                "data_classification": "confidential"
+              },
+              "components": {
+                "selections": [],
+                "links": []
+              }
+            },
+            "metadata": {
+              "pin": "current",
+              "preview.format": "1",
+              "preview.title": "current"
+            },
+            "selection_change": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "private-format-4",
+      "payloadJSON": "{\n  \"local_format_version\": 4,\n  \"revision\": 2,\n  \"legacy_source_hash\": null,\n  \"history\": [\n    {\n      \"number\": 0,\n      \"change\": \"INITIAL\",\n      \"restored_from\": null,\n      \"content\": {\n        \"objective\": \"\",\n        \"context\": null,\n        \"primaryModel\": \"entered-model\",\n        \"optional\": {\n          \"T3\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [\n              \"opaque\"\n            ],\n            \"settings\": {\n              \"amount\": \"0.00\"\n            }\n          },\n          \"T4\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          },\n          \"T5\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          }\n        },\n        \"workload\": {\n          \"region\": \"us-east-fixture\",\n          \"currency\": \"USD\",\n          \"monthly_budget_amount\": \"1000.00\",\n          \"requests_per_day\": 200,\n          \"avg_input_tokens\": 700,\n          \"avg_output_tokens\": 400,\n          \"max_concurrency\": 2,\n          \"data_classification\": \"internal\",\n          \"max_latency_ms\": 6000\n        },\n        \"components\": {\n          \"selections\": [\n            {\n              \"id\": \"sel_workload\",\n              \"kind\": \"workload\",\n              \"catalog_item_id\": \"cat.workload.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"concurrency\": 2,\n                \"requests_per_day\": 200,\n                \"avg_input_tokens\": 700,\n                \"avg_output_tokens\": 400\n              }\n            },\n            {\n              \"id\": \"sel_deployment_mode\",\n              \"kind\": \"deployment_mode\",\n              \"catalog_item_id\": \"cat.deployment_mode.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {}\n            },\n            {\n              \"id\": \"sel_model_provider\",\n              \"kind\": \"model_provider\",\n              \"catalog_item_id\": \"cat.model_provider.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {}\n            },\n            {\n              \"id\": \"sel_model\",\n              \"kind\": \"model\",\n              \"catalog_item_id\": \"cat.model.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"serving_mode\": \"weights\",\n                \"precision\": \"fp16\",\n                \"max_output_tokens\": 512,\n                \"temperature\": 0.4\n              }\n            },\n            {\n              \"id\": \"sel_context_policy\",\n              \"kind\": \"context_policy\",\n              \"catalog_item_id\": \"cat.context_policy.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"requested_context_tokens\": 4096,\n                \"reserved_output_tokens\": 512,\n                \"truncation_strategy\": \"reject\"\n              }\n            }\n          ],\n          \"links\": [\n            {\n              \"id\": \"link.01\",\n              \"from_selection_id\": \"sel_model\",\n              \"to_selection_id\": \"sel_model_provider\",\n              \"relation\": \"provided_by\"\n            },\n            {\n              \"id\": \"link.02\",\n              \"from_selection_id\": \"sel_model\",\n              \"to_selection_id\": \"sel_context_policy\",\n              \"relation\": \"uses\"\n            }\n          ]\n        }\n      },\n      \"metadata\": {\n        \"pin\": \"old\",\n        \"preview.format\": \"1\",\n        \"preview.title\": \"old\",\n        \"conformance\": \"SYNTHETIC private-format fixture only\"\n      },\n      \"selection_change\": null\n    },\n    {\n      \"number\": 1,\n      \"change\": \"EDIT\",\n      \"restored_from\": null,\n      \"content\": {\n        \"objective\": \"\",\n        \"context\": \"\",\n        \"primaryModel\": \"entered-model\",\n        \"optional\": {\n          \"T3\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [\n              \"opaque\"\n            ],\n            \"settings\": {\n              \"amount\": \"0.00\"\n            }\n          },\n          \"T4\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          },\n          \"T5\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          }\n        },\n        \"workload\": {\n          \"region\": \"us-east-fixture\",\n          \"currency\": \"USD\",\n          \"monthly_budget_amount\": \"1000.00\",\n          \"requests_per_day\": 200,\n          \"avg_input_tokens\": 700,\n          \"avg_output_tokens\": 400,\n          \"max_concurrency\": 2,\n          \"data_classification\": \"internal\",\n          \"max_latency_ms\": 6000\n        },\n        \"components\": {\n          \"selections\": [\n            {\n              \"id\": \"sel_workload\",\n              \"kind\": \"workload\",\n              \"catalog_item_id\": \"cat.workload.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"concurrency\": 2,\n                \"requests_per_day\": 200,\n                \"avg_input_tokens\": 700,\n                \"avg_output_tokens\": 400\n              }\n            },\n            {\n              \"id\": \"sel_deployment_mode\",\n              \"kind\": \"deployment_mode\",\n              \"catalog_item_id\": \"cat.deployment_mode.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {}\n            },\n            {\n              \"id\": \"sel_model_provider\",\n              \"kind\": \"model_provider\",\n              \"catalog_item_id\": \"cat.model_provider.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {}\n            },\n            {\n              \"id\": \"sel_model\",\n              \"kind\": \"model\",\n              \"catalog_item_id\": \"cat.model.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"serving_mode\": \"weights\",\n                \"precision\": \"fp16\",\n                \"max_output_tokens\": 512,\n                \"temperature\": 0.4\n              }\n            },\n            {\n              \"id\": \"sel_context_policy\",\n              \"kind\": \"context_policy\",\n              \"catalog_item_id\": \"cat.context_policy.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"requested_context_tokens\": 4096,\n                \"reserved_output_tokens\": 512,\n                \"truncation_strategy\": \"reject\"\n              }\n            }\n          ],\n          \"links\": [\n            {\n              \"id\": \"link.01\",\n              \"from_selection_id\": \"sel_model\",\n              \"to_selection_id\": \"sel_model_provider\",\n              \"relation\": \"provided_by\"\n            },\n            {\n              \"id\": \"link.02\",\n              \"from_selection_id\": \"sel_model\",\n              \"to_selection_id\": \"sel_context_policy\",\n              \"relation\": \"uses\"\n            }\n          ]\n        }\n      },\n      \"metadata\": {\n        \"pin\": \"current\",\n        \"preview.format\": \"1\",\n        \"preview.title\": \"current\",\n        \"conformance\": \"SYNTHETIC private-format fixture only\"\n      },\n      \"selection_change\": null\n    },\n    {\n      \"number\": 2,\n      \"change\": \"RESTORE\",\n      \"restored_from\": 0,\n      \"content\": {\n        \"objective\": \"\",\n        \"context\": null,\n        \"primaryModel\": \"entered-model\",\n        \"optional\": {\n          \"T3\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [\n              \"opaque\"\n            ],\n            \"settings\": {\n              \"amount\": \"0.00\"\n            }\n          },\n          \"T4\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          },\n          \"T5\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          }\n        },\n        \"workload\": {\n          \"region\": \"us-east-fixture\",\n          \"currency\": \"USD\",\n          \"monthly_budget_amount\": \"1000.00\",\n          \"requests_per_day\": 200,\n          \"avg_input_tokens\": 700,\n          \"avg_output_tokens\": 400,\n          \"max_concurrency\": 2,\n          \"data_classification\": \"internal\",\n          \"max_latency_ms\": 6000\n        },\n        \"components\": {\n          \"selections\": [\n            {\n              \"id\": \"sel_workload\",\n              \"kind\": \"workload\",\n              \"catalog_item_id\": \"cat.workload.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"concurrency\": 2,\n                \"requests_per_day\": 200,\n                \"avg_input_tokens\": 700,\n                \"avg_output_tokens\": 400\n              }\n            },\n            {\n              \"id\": \"sel_deployment_mode\",\n              \"kind\": \"deployment_mode\",\n              \"catalog_item_id\": \"cat.deployment_mode.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {}\n            },\n            {\n              \"id\": \"sel_model_provider\",\n              \"kind\": \"model_provider\",\n              \"catalog_item_id\": \"cat.model_provider.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {}\n            },\n            {\n              \"id\": \"sel_model\",\n              \"kind\": \"model\",\n              \"catalog_item_id\": \"cat.model.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"serving_mode\": \"weights\",\n                \"precision\": \"fp16\",\n                \"max_output_tokens\": 512,\n                \"temperature\": 0.4\n              }\n            },\n            {\n              \"id\": \"sel_context_policy\",\n              \"kind\": \"context_policy\",\n              \"catalog_item_id\": \"cat.context_policy.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"requested_context_tokens\": 4096,\n                \"reserved_output_tokens\": 512,\n                \"truncation_strategy\": \"reject\"\n              }\n            }\n          ],\n          \"links\": [\n            {\n              \"id\": \"link.01\",\n              \"from_selection_id\": \"sel_model\",\n              \"to_selection_id\": \"sel_model_provider\",\n              \"relation\": \"provided_by\"\n            },\n            {\n              \"id\": \"link.02\",\n              \"from_selection_id\": \"sel_model\",\n              \"to_selection_id\": \"sel_context_policy\",\n              \"relation\": \"uses\"\n            }\n          ]\n        }\n      },\n      \"metadata\": {\n        \"pin\": \"current\",\n        \"preview.format\": \"1\",\n        \"preview.title\": \"current\",\n        \"conformance\": \"SYNTHETIC private-format fixture only\"\n      },\n      \"selection_change\": null\n    }\n  ]\n}\n",
+      "bytes": 11620,
+      "sha256": "5630c3f52cfa80bb3b769ddb64d9cd46eab9654bfb62dd394c57aa505445b040",
+      "origin": {
+        "kind": "authored-synthetic",
+        "basis": "ac8307a4b36e64008c5758621634c105e0078e6c",
+        "frozenBuildPath": "contracts/v1/examples/build.json",
+        "frozenBuildSha256": "26762208769a8cf1012b4f33b1c1608556d275187ce21117d0b9632cdf951864",
+        "description": "Fixed private-format history composed from the already frozen five foundation selections; not an evaluator or publisher claim."
+      },
+      "expected": {
+        "format": 4,
+        "revision": 2,
+        "legacySourceHash": null,
+        "earlierHistoryUnavailable": false,
+        "history": [
+          {
+            "number": 0,
+            "change": "INITIAL",
+            "restored_from": null,
+            "content": {
+              "objective": "",
+              "context": null,
+              "primaryModel": "entered-model",
+              "optional": {
+                "T3": {
+                  "activation": "DISABLED",
+                  "selections": [
+                    "opaque"
+                  ],
+                  "settings": {
+                    "amount": "0.00"
+                  }
+                },
+                "T4": {
+                  "activation": "DISABLED",
+                  "selections": [],
+                  "settings": {}
+                },
+                "T5": {
+                  "activation": "DISABLED",
+                  "selections": [],
+                  "settings": {}
+                }
+              },
+              "workload": {
+                "region": "us-east-fixture",
+                "currency": "USD",
+                "monthly_budget_amount": "1000.00",
+                "requests_per_day": 200,
+                "avg_input_tokens": 700,
+                "avg_output_tokens": 400,
+                "max_concurrency": 2,
+                "data_classification": "internal",
+                "max_latency_ms": 6000
+              },
+              "components": {
+                "selections": [
+                  {
+                    "id": "sel_workload",
+                    "kind": "workload",
+                    "catalog_item_id": "cat.workload.fixture",
+                    "catalog_item_version": "2026.10-demo",
+                    "role": "primary",
+                    "enabled": true,
+                    "settings": {
+                      "concurrency": 2,
+                      "requests_per_day": 200,
+                      "avg_input_tokens": 700,
+                      "avg_output_tokens": 400
+                    }
+                  },
+                  {
+                    "id": "sel_deployment_mode",
+                    "kind": "deployment_mode",
+                    "catalog_item_id": "cat.deployment_mode.fixture",
+                    "catalog_item_version": "2026.10-demo",
+                    "role": "primary",
+                    "enabled": true,
+                    "settings": {}
+                  },
+                  {
+                    "id": "sel_model_provider",
+                    "kind": "model_provider",
+                    "catalog_item_id": "cat.model_provider.fixture",
+                    "catalog_item_version": "2026.10-demo",
+                    "role": "primary",
+                    "enabled": true,
+                    "settings": {}
+                  },
+                  {
+                    "id": "sel_model",
+                    "kind": "model",
+                    "catalog_item_id": "cat.model.fixture",
+                    "catalog_item_version": "2026.10-demo",
+                    "role": "primary",
+                    "enabled": true,
+                    "settings": {
+                      "serving_mode": "weights",
+                      "precision": "fp16",
+                      "max_output_tokens": 512,
+                      "temperature": 0.4
+                    }
+                  },
+                  {
+                    "id": "sel_context_policy",
+                    "kind": "context_policy",
+                    "catalog_item_id": "cat.context_policy.fixture",
+                    "catalog_item_version": "2026.10-demo",
+                    "role": "primary",
+                    "enabled": true,
+                    "settings": {
+                      "requested_context_tokens": 4096,
+                      "reserved_output_tokens": 512,
+                      "truncation_strategy": "reject"
+                    }
+                  }
+                ],
+                "links": [
+                  {
+                    "id": "link.01",
+                    "from_selection_id": "sel_model",
+                    "to_selection_id": "sel_model_provider",
+                    "relation": "provided_by"
+                  },
+                  {
+                    "id": "link.02",
+                    "from_selection_id": "sel_model",
+                    "to_selection_id": "sel_context_policy",
+                    "relation": "uses"
+                  }
+                ]
+              }
+            },
+            "metadata": {
+              "pin": "old",
+              "preview.format": "1",
+              "preview.title": "old",
+              "conformance": "SYNTHETIC private-format fixture only"
+            },
+            "selection_change": null
+          },
+          {
+            "number": 1,
+            "change": "EDIT",
+            "restored_from": null,
+            "content": {
+              "objective": "",
+              "context": "",
+              "primaryModel": "entered-model",
+              "optional": {
+                "T3": {
+                  "activation": "DISABLED",
+                  "selections": [
+                    "opaque"
+                  ],
+                  "settings": {
+                    "amount": "0.00"
+                  }
+                },
+                "T4": {
+                  "activation": "DISABLED",
+                  "selections": [],
+                  "settings": {}
+                },
+                "T5": {
+                  "activation": "DISABLED",
+                  "selections": [],
+                  "settings": {}
+                }
+              },
+              "workload": {
+                "region": "us-east-fixture",
+                "currency": "USD",
+                "monthly_budget_amount": "1000.00",
+                "requests_per_day": 200,
+                "avg_input_tokens": 700,
+                "avg_output_tokens": 400,
+                "max_concurrency": 2,
+                "data_classification": "internal",
+                "max_latency_ms": 6000
+              },
+              "components": {
+                "selections": [
+                  {
+                    "id": "sel_workload",
+                    "kind": "workload",
+                    "catalog_item_id": "cat.workload.fixture",
+                    "catalog_item_version": "2026.10-demo",
+                    "role": "primary",
+                    "enabled": true,
+                    "settings": {
+                      "concurrency": 2,
+                      "requests_per_day": 200,
+                      "avg_input_tokens": 700,
+                      "avg_output_tokens": 400
+                    }
+                  },
+                  {
+                    "id": "sel_deployment_mode",
+                    "kind": "deployment_mode",
+                    "catalog_item_id": "cat.deployment_mode.fixture",
+                    "catalog_item_version": "2026.10-demo",
+                    "role": "primary",
+                    "enabled": true,
+                    "settings": {}
+                  },
+                  {
+                    "id": "sel_model_provider",
+                    "kind": "model_provider",
+                    "catalog_item_id": "cat.model_provider.fixture",
+                    "catalog_item_version": "2026.10-demo",
+                    "role": "primary",
+                    "enabled": true,
+                    "settings": {}
+                  },
+                  {
+                    "id": "sel_model",
+                    "kind": "model",
+                    "catalog_item_id": "cat.model.fixture",
+                    "catalog_item_version": "2026.10-demo",
+                    "role": "primary",
+                    "enabled": true,
+                    "settings": {
+                      "serving_mode": "weights",
+                      "precision": "fp16",
+                      "max_output_tokens": 512,
+                      "temperature": 0.4
+                    }
+                  },
+                  {
+                    "id": "sel_context_policy",
+                    "kind": "context_policy",
+                    "catalog_item_id": "cat.context_policy.fixture",
+                    "catalog_item_version": "2026.10-demo",
+                    "role": "primary",
+                    "enabled": true,
+                    "settings": {
+                      "requested_context_tokens": 4096,
+                      "reserved_output_tokens": 512,
+                      "truncation_strategy": "reject"
+                    }
+                  }
+                ],
+                "links": [
+                  {
+                    "id": "link.01",
+                    "from_selection_id": "sel_model",
+                    "to_selection_id": "sel_model_provider",
+                    "relation": "provided_by"
+                  },
+                  {
+                    "id": "link.02",
+                    "from_selection_id": "sel_model",
+                    "to_selection_id": "sel_context_policy",
+                    "relation": "uses"
+                  }
+                ]
+              }
+            },
+            "metadata": {
+              "pin": "current",
+              "preview.format": "1",
+              "preview.title": "current",
+              "conformance": "SYNTHETIC private-format fixture only"
+            },
+            "selection_change": null
+          },
+          {
+            "number": 2,
+            "change": "RESTORE",
+            "restored_from": 0,
+            "content": {
+              "objective": "",
+              "context": null,
+              "primaryModel": "entered-model",
+              "optional": {
+                "T3": {
+                  "activation": "DISABLED",
+                  "selections": [
+                    "opaque"
+                  ],
+                  "settings": {
+                    "amount": "0.00"
+                  }
+                },
+                "T4": {
+                  "activation": "DISABLED",
+                  "selections": [],
+                  "settings": {}
+                },
+                "T5": {
+                  "activation": "DISABLED",
+                  "selections": [],
+                  "settings": {}
+                }
+              },
+              "workload": {
+                "region": "us-east-fixture",
+                "currency": "USD",
+                "monthly_budget_amount": "1000.00",
+                "requests_per_day": 200,
+                "avg_input_tokens": 700,
+                "avg_output_tokens": 400,
+                "max_concurrency": 2,
+                "data_classification": "internal",
+                "max_latency_ms": 6000
+              },
+              "components": {
+                "selections": [
+                  {
+                    "id": "sel_workload",
+                    "kind": "workload",
+                    "catalog_item_id": "cat.workload.fixture",
+                    "catalog_item_version": "2026.10-demo",
+                    "role": "primary",
+                    "enabled": true,
+                    "settings": {
+                      "concurrency": 2,
+                      "requests_per_day": 200,
+                      "avg_input_tokens": 700,
+                      "avg_output_tokens": 400
+                    }
+                  },
+                  {
+                    "id": "sel_deployment_mode",
+                    "kind": "deployment_mode",
+                    "catalog_item_id": "cat.deployment_mode.fixture",
+                    "catalog_item_version": "2026.10-demo",
+                    "role": "primary",
+                    "enabled": true,
+                    "settings": {}
+                  },
+                  {
+                    "id": "sel_model_provider",
+                    "kind": "model_provider",
+                    "catalog_item_id": "cat.model_provider.fixture",
+                    "catalog_item_version": "2026.10-demo",
+                    "role": "primary",
+                    "enabled": true,
+                    "settings": {}
+                  },
+                  {
+                    "id": "sel_model",
+                    "kind": "model",
+                    "catalog_item_id": "cat.model.fixture",
+                    "catalog_item_version": "2026.10-demo",
+                    "role": "primary",
+                    "enabled": true,
+                    "settings": {
+                      "serving_mode": "weights",
+                      "precision": "fp16",
+                      "max_output_tokens": 512,
+                      "temperature": 0.4
+                    }
+                  },
+                  {
+                    "id": "sel_context_policy",
+                    "kind": "context_policy",
+                    "catalog_item_id": "cat.context_policy.fixture",
+                    "catalog_item_version": "2026.10-demo",
+                    "role": "primary",
+                    "enabled": true,
+                    "settings": {
+                      "requested_context_tokens": 4096,
+                      "reserved_output_tokens": 512,
+                      "truncation_strategy": "reject"
+                    }
+                  }
+                ],
+                "links": [
+                  {
+                    "id": "link.01",
+                    "from_selection_id": "sel_model",
+                    "to_selection_id": "sel_model_provider",
+                    "relation": "provided_by"
+                  },
+                  {
+                    "id": "link.02",
+                    "from_selection_id": "sel_model",
+                    "to_selection_id": "sel_context_policy",
+                    "relation": "uses"
+                  }
+                ]
+              }
+            },
+            "metadata": {
+              "pin": "current",
+              "preview.format": "1",
+              "preview.title": "current",
+              "conformance": "SYNTHETIC private-format fixture only"
+            },
+            "selection_change": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "private-format-5",
+      "payloadJSON": "{\n  \"local_format_version\": 5,\n  \"revision\": 3,\n  \"legacy_source_hash\": null,\n  \"history\": [\n    {\n      \"number\": 0,\n      \"change\": \"INITIAL\",\n      \"restored_from\": null,\n      \"content\": {\n        \"objective\": \"\",\n        \"context\": null,\n        \"primaryModel\": \"entered-model\",\n        \"optional\": {\n          \"T3\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [\n              \"opaque\"\n            ],\n            \"settings\": {\n              \"amount\": \"0.00\"\n            }\n          },\n          \"T4\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          },\n          \"T5\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          }\n        },\n        \"workload\": {\n          \"region\": \"us-east-fixture\",\n          \"currency\": \"USD\",\n          \"monthly_budget_amount\": \"1000.00\",\n          \"requests_per_day\": 200,\n          \"avg_input_tokens\": 700,\n          \"avg_output_tokens\": 400,\n          \"max_concurrency\": 2,\n          \"data_classification\": \"internal\",\n          \"max_latency_ms\": 6000\n        },\n        \"components\": {\n          \"selections\": [\n            {\n              \"id\": \"sel_workload\",\n              \"kind\": \"workload\",\n              \"catalog_item_id\": \"cat.workload.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"concurrency\": 2,\n                \"requests_per_day\": 200,\n                \"avg_input_tokens\": 700,\n                \"avg_output_tokens\": 400\n              }\n            },\n            {\n              \"id\": \"sel_deployment_mode\",\n              \"kind\": \"deployment_mode\",\n              \"catalog_item_id\": \"cat.deployment_mode.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {}\n            },\n            {\n              \"id\": \"sel_model_provider\",\n              \"kind\": \"model_provider\",\n              \"catalog_item_id\": \"cat.model_provider.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {}\n            },\n            {\n              \"id\": \"sel_model\",\n              \"kind\": \"model\",\n              \"catalog_item_id\": \"cat.model.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"serving_mode\": \"weights\",\n                \"precision\": \"fp16\",\n                \"max_output_tokens\": 512,\n                \"temperature\": 0.4\n              }\n            },\n            {\n              \"id\": \"sel_context_policy\",\n              \"kind\": \"context_policy\",\n              \"catalog_item_id\": \"cat.context_policy.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"requested_context_tokens\": 4096,\n                \"reserved_output_tokens\": 512,\n                \"truncation_strategy\": \"reject\"\n              }\n            }\n          ],\n          \"links\": [\n            {\n              \"id\": \"link.01\",\n              \"from_selection_id\": \"sel_model\",\n              \"to_selection_id\": \"sel_model_provider\",\n              \"relation\": \"provided_by\"\n            },\n            {\n              \"id\": \"link.02\",\n              \"from_selection_id\": \"sel_model\",\n              \"to_selection_id\": \"sel_context_policy\",\n              \"relation\": \"uses\"\n            }\n          ]\n        }\n      },\n      \"metadata\": {\n        \"pin\": \"old\",\n        \"preview.format\": \"1\",\n        \"preview.title\": \"old\",\n        \"conformance\": \"SYNTHETIC private-format fixture only\"\n      },\n      \"selection_change\": null\n    },\n    {\n      \"number\": 1,\n      \"change\": \"EDIT\",\n      \"restored_from\": null,\n      \"content\": {\n        \"objective\": \"\",\n        \"context\": \"\",\n        \"primaryModel\": \"entered-model\",\n        \"optional\": {\n          \"T3\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [\n              \"opaque\"\n            ],\n            \"settings\": {\n              \"amount\": \"0.00\"\n            }\n          },\n          \"T4\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          },\n          \"T5\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          }\n        },\n        \"workload\": {\n          \"region\": \"us-east-fixture\",\n          \"currency\": \"USD\",\n          \"monthly_budget_amount\": \"1000.00\",\n          \"requests_per_day\": 200,\n          \"avg_input_tokens\": 700,\n          \"avg_output_tokens\": 400,\n          \"max_concurrency\": 2,\n          \"data_classification\": \"internal\",\n          \"max_latency_ms\": 6000\n        },\n        \"components\": {\n          \"selections\": [\n            {\n              \"id\": \"sel_workload\",\n              \"kind\": \"workload\",\n              \"catalog_item_id\": \"cat.workload.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"concurrency\": 2,\n                \"requests_per_day\": 200,\n                \"avg_input_tokens\": 700,\n                \"avg_output_tokens\": 400\n              }\n            },\n            {\n              \"id\": \"sel_deployment_mode\",\n              \"kind\": \"deployment_mode\",\n              \"catalog_item_id\": \"cat.deployment_mode.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {}\n            },\n            {\n              \"id\": \"sel_model_provider\",\n              \"kind\": \"model_provider\",\n              \"catalog_item_id\": \"cat.model_provider.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {}\n            },\n            {\n              \"id\": \"sel_model\",\n              \"kind\": \"model\",\n              \"catalog_item_id\": \"cat.model.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"serving_mode\": \"weights\",\n                \"precision\": \"fp16\",\n                \"max_output_tokens\": 512,\n                \"temperature\": 0.4\n              }\n            },\n            {\n              \"id\": \"sel_context_policy\",\n              \"kind\": \"context_policy\",\n              \"catalog_item_id\": \"cat.context_policy.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"requested_context_tokens\": 4096,\n                \"reserved_output_tokens\": 512,\n                \"truncation_strategy\": \"reject\"\n              }\n            }\n          ],\n          \"links\": [\n            {\n              \"id\": \"link.01\",\n              \"from_selection_id\": \"sel_model\",\n              \"to_selection_id\": \"sel_model_provider\",\n              \"relation\": \"provided_by\"\n            },\n            {\n              \"id\": \"link.02\",\n              \"from_selection_id\": \"sel_model\",\n              \"to_selection_id\": \"sel_context_policy\",\n              \"relation\": \"uses\"\n            }\n          ]\n        }\n      },\n      \"metadata\": {\n        \"pin\": \"current\",\n        \"preview.format\": \"1\",\n        \"preview.title\": \"current\",\n        \"conformance\": \"SYNTHETIC private-format fixture only\"\n      },\n      \"selection_change\": null\n    },\n    {\n      \"number\": 2,\n      \"change\": \"RESTORE\",\n      \"restored_from\": 0,\n      \"content\": {\n        \"objective\": \"\",\n        \"context\": null,\n        \"primaryModel\": \"entered-model\",\n        \"optional\": {\n          \"T3\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [\n              \"opaque\"\n            ],\n            \"settings\": {\n              \"amount\": \"0.00\"\n            }\n          },\n          \"T4\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          },\n          \"T5\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          }\n        },\n        \"workload\": {\n          \"region\": \"us-east-fixture\",\n          \"currency\": \"USD\",\n          \"monthly_budget_amount\": \"1000.00\",\n          \"requests_per_day\": 200,\n          \"avg_input_tokens\": 700,\n          \"avg_output_tokens\": 400,\n          \"max_concurrency\": 2,\n          \"data_classification\": \"internal\",\n          \"max_latency_ms\": 6000\n        },\n        \"components\": {\n          \"selections\": [\n            {\n              \"id\": \"sel_workload\",\n              \"kind\": \"workload\",\n              \"catalog_item_id\": \"cat.workload.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"concurrency\": 2,\n                \"requests_per_day\": 200,\n                \"avg_input_tokens\": 700,\n                \"avg_output_tokens\": 400\n              }\n            },\n            {\n              \"id\": \"sel_deployment_mode\",\n              \"kind\": \"deployment_mode\",\n              \"catalog_item_id\": \"cat.deployment_mode.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {}\n            },\n            {\n              \"id\": \"sel_model_provider\",\n              \"kind\": \"model_provider\",\n              \"catalog_item_id\": \"cat.model_provider.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {}\n            },\n            {\n              \"id\": \"sel_model\",\n              \"kind\": \"model\",\n              \"catalog_item_id\": \"cat.model.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"serving_mode\": \"weights\",\n                \"precision\": \"fp16\",\n                \"max_output_tokens\": 512,\n                \"temperature\": 0.4\n              }\n            },\n            {\n              \"id\": \"sel_context_policy\",\n              \"kind\": \"context_policy\",\n              \"catalog_item_id\": \"cat.context_policy.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"requested_context_tokens\": 4096,\n                \"reserved_output_tokens\": 512,\n                \"truncation_strategy\": \"reject\"\n              }\n            }\n          ],\n          \"links\": [\n            {\n              \"id\": \"link.01\",\n              \"from_selection_id\": \"sel_model\",\n              \"to_selection_id\": \"sel_model_provider\",\n              \"relation\": \"provided_by\"\n            },\n            {\n              \"id\": \"link.02\",\n              \"from_selection_id\": \"sel_model\",\n              \"to_selection_id\": \"sel_context_policy\",\n              \"relation\": \"uses\"\n            }\n          ]\n        }\n      },\n      \"metadata\": {\n        \"pin\": \"current\",\n        \"preview.format\": \"1\",\n        \"preview.title\": \"current\",\n        \"conformance\": \"SYNTHETIC private-format fixture only\"\n      },\n      \"selection_change\": null\n    },\n    {\n      \"number\": 3,\n      \"change\": \"EDIT\",\n      \"restored_from\": null,\n      \"content\": {\n        \"objective\": \"\",\n        \"context\": null,\n        \"primaryModel\": \"entered-model\",\n        \"optional\": {\n          \"T3\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [\n              \"opaque\"\n            ],\n            \"settings\": {\n              \"amount\": \"0.00\"\n            }\n          },\n          \"T4\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          },\n          \"T5\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          }\n        },\n        \"workload\": {\n          \"region\": \"us-east-fixture\",\n          \"currency\": \"USD\",\n          \"monthly_budget_amount\": \"1000.00\",\n          \"requests_per_day\": 200,\n          \"avg_input_tokens\": 700,\n          \"avg_output_tokens\": 400,\n          \"max_concurrency\": 2,\n          \"data_classification\": \"internal\",\n          \"max_latency_ms\": 6000\n        },\n        \"components\": {\n          \"selections\": [\n            {\n              \"id\": \"sel_workload\",\n              \"kind\": \"workload\",\n              \"catalog_item_id\": \"cat.workload.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"concurrency\": 2,\n                \"requests_per_day\": 200,\n                \"avg_input_tokens\": 700,\n                \"avg_output_tokens\": 400\n              }\n            },\n            {\n              \"id\": \"sel_deployment_mode\",\n              \"kind\": \"deployment_mode\",\n              \"catalog_item_id\": \"cat.deployment_mode.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {}\n            },\n            {\n              \"id\": \"sel_model_provider\",\n              \"kind\": \"model_provider\",\n              \"catalog_item_id\": \"cat.model_provider.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {}\n            },\n            {\n              \"id\": \"sel_model\",\n              \"kind\": \"model\",\n              \"catalog_item_id\": \"cat.model.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"fixture_secondary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"serving_mode\": \"weights\",\n                \"precision\": \"fp16\",\n                \"max_output_tokens\": 512,\n                \"temperature\": 0.4\n              }\n            },\n            {\n              \"id\": \"sel_context_policy\",\n              \"kind\": \"context_policy\",\n              \"catalog_item_id\": \"cat.context_policy.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"requested_context_tokens\": 4096,\n                \"reserved_output_tokens\": 512,\n                \"truncation_strategy\": \"reject\"\n              }\n            }\n          ],\n          \"links\": [\n            {\n              \"id\": \"link.01\",\n              \"from_selection_id\": \"sel_model\",\n              \"to_selection_id\": \"sel_model_provider\",\n              \"relation\": \"provided_by\"\n            },\n            {\n              \"id\": \"link.02\",\n              \"from_selection_id\": \"sel_model\",\n              \"to_selection_id\": \"sel_context_policy\",\n              \"relation\": \"uses\"\n            }\n          ]\n        }\n      },\n      \"metadata\": {\n        \"pin\": \"current\",\n        \"preview.format\": \"1\",\n        \"preview.title\": \"current\",\n        \"conformance\": \"SYNTHETIC private-format fixture only\"\n      },\n      \"selection_change\": {\n        \"action\": \"CONFIGURE_ROLE\",\n        \"selection_id\": \"sel_model\",\n        \"removed_link_ids\": [],\n        \"affected_link_ids\": [\n          \"link.01\",\n          \"link.02\"\n        ]\n      }\n    }\n  ]\n}\n",
+      "bytes": 15665,
+      "sha256": "78dac96bb8847294f6d0dc11276b6a02bda41827fdd466294726267a8f7d957b",
+      "origin": {
+        "kind": "authored-synthetic",
+        "basis": "ac8307a4b36e64008c5758621634c105e0078e6c",
+        "frozenBuildPath": "contracts/v1/examples/build.json",
+        "frozenBuildSha256": "26762208769a8cf1012b4f33b1c1608556d275187ce21117d0b9632cdf951864",
+        "description": "Explicit fixed v5 CONFIGURE_ROLE history; original v4 entries remain semantically unchanged."
+      },
+      "expected": {
+        "format": 5,
+        "revision": 3,
+        "legacySourceHash": null,
+        "earlierHistoryUnavailable": false,
+        "history": [
+          {
+            "number": 0,
+            "change": "INITIAL",
+            "restored_from": null,
+            "content": {
+              "objective": "",
+              "context": null,
+              "primaryModel": "entered-model",
+              "optional": {
+                "T3": {
+                  "activation": "DISABLED",
+                  "selections": [
+                    "opaque"
+                  ],
+                  "settings": {
+                    "amount": "0.00"
+                  }
+                },
+                "T4": {
+                  "activation": "DISABLED",
+                  "selections": [],
+                  "settings": {}
+                },
+                "T5": {
+                  "activation": "DISABLED",
+                  "selections": [],
+                  "settings": {}
+                }
+              },
+              "workload": {
+                "region": "us-east-fixture",
+                "currency": "USD",
+                "monthly_budget_amount": "1000.00",
+                "requests_per_day": 200,
+                "avg_input_tokens": 700,
+                "avg_output_tokens": 400,
+                "max_concurrency": 2,
+                "data_classification": "internal",
+                "max_latency_ms": 6000
+              },
+              "components": {
+                "selections": [
+                  {
+                    "id": "sel_workload",
+                    "kind": "workload",
+                    "catalog_item_id": "cat.workload.fixture",
+                    "catalog_item_version": "2026.10-demo",
+                    "role": "primary",
+                    "enabled": true,
+                    "settings": {
+                      "concurrency": 2,
+                      "requests_per_day": 200,
+                      "avg_input_tokens": 700,
+                      "avg_output_tokens": 400
+                    }
+                  },
+                  {
+                    "id": "sel_deployment_mode",
+                    "kind": "deployment_mode",
+                    "catalog_item_id": "cat.deployment_mode.fixture",
+                    "catalog_item_version": "2026.10-demo",
+                    "role": "primary",
+                    "enabled": true,
+                    "settings": {}
+                  },
+                  {
+                    "id": "sel_model_provider",
+                    "kind": "model_provider",
+                    "catalog_item_id": "cat.model_provider.fixture",
+                    "catalog_item_version": "2026.10-demo",
+                    "role": "primary",
+                    "enabled": true,
+                    "settings": {}
+                  },
+                  {
+                    "id": "sel_model",
+                    "kind": "model",
+                    "catalog_item_id": "cat.model.fixture",
+                    "catalog_item_version": "2026.10-demo",
+                    "role": "primary",
+                    "enabled": true,
+                    "settings": {
+                      "serving_mode": "weights",
+                      "precision": "fp16",
+                      "max_output_tokens": 512,
+                      "temperature": 0.4
+                    }
+                  },
+                  {
+                    "id": "sel_context_policy",
+                    "kind": "context_policy",
+                    "catalog_item_id": "cat.context_policy.fixture",
+                    "catalog_item_version": "2026.10-demo",
+                    "role": "primary",
+                    "enabled": true,
+                    "settings": {
+                      "requested_context_tokens": 4096,
+                      "reserved_output_tokens": 512,
+                      "truncation_strategy": "reject"
+                    }
+                  }
+                ],
+                "links": [
+                  {
+                    "id": "link.01",
+                    "from_selection_id": "sel_model",
+                    "to_selection_id": "sel_model_provider",
+                    "relation": "provided_by"
+                  },
+                  {
+                    "id": "link.02",
+                    "from_selection_id": "sel_model",
+                    "to_selection_id": "sel_context_policy",
+                    "relation": "uses"
+                  }
+                ]
+              }
+            },
+            "metadata": {
+              "pin": "old",
+              "preview.format": "1",
+              "preview.title": "old",
+              "conformance": "SYNTHETIC private-format fixture only"
+            },
+            "selection_change": null
+          },
+          {
+            "number": 1,
+            "change": "EDIT",
+            "restored_from": null,
+            "content": {
+              "objective": "",
+              "context": "",
+              "primaryModel": "entered-model",
+              "optional": {
+                "T3": {
+                  "activation": "DISABLED",
+                  "selections": [
+                    "opaque"
+                  ],
+                  "settings": {
+                    "amount": "0.00"
+                  }
+                },
+                "T4": {
+                  "activation": "DISABLED",
+                  "selections": [],
+                  "settings": {}
+                },
+                "T5": {
+                  "activation": "DISABLED",
+                  "selections": [],
+                  "settings": {}
+                }
+              },
+              "workload": {
+                "region": "us-east-fixture",
+                "currency": "USD",
+                "monthly_budget_amount": "1000.00",
+                "requests_per_day": 200,
+                "avg_input_tokens": 700,
+                "avg_output_tokens": 400,
+                "max_concurrency": 2,
+                "data_classification": "internal",
+                "max_latency_ms": 6000
+              },
+              "components": {
+                "selections": [
+                  {
+                    "id": "sel_workload",
+                    "kind": "workload",
+                    "catalog_item_id": "cat.workload.fixture",
+                    "catalog_item_version": "2026.10-demo",
+                    "role": "primary",
+                    "enabled": true,
+                    "settings": {
+                      "concurrency": 2,
+                      "requests_per_day": 200,
+                      "avg_input_tokens": 700,
+                      "avg_output_tokens": 400
+                    }
+                  },
+                  {
+                    "id": "sel_deployment_mode",
+                    "kind": "deployment_mode",
+                    "catalog_item_id": "cat.deployment_mode.fixture",
+                    "catalog_item_version": "2026.10-demo",
+                    "role": "primary",
+                    "enabled": true,
+                    "settings": {}
+                  },
+                  {
+                    "id": "sel_model_provider",
+                    "kind": "model_provider",
+                    "catalog_item_id": "cat.model_provider.fixture",
+                    "catalog_item_version": "2026.10-demo",
+                    "role": "primary",
+                    "enabled": true,
+                    "settings": {}
+                  },
+                  {
+                    "id": "sel_model",
+                    "kind": "model",
+                    "catalog_item_id": "cat.model.fixture",
+                    "catalog_item_version": "2026.10-demo",
+                    "role": "primary",
+                    "enabled": true,
+                    "settings": {
+                      "serving_mode": "weights",
+                      "precision": "fp16",
+                      "max_output_tokens": 512,
+                      "temperature": 0.4
+                    }
+                  },
+                  {
+                    "id": "sel_context_policy",
+                    "kind": "context_policy",
+                    "catalog_item_id": "cat.context_policy.fixture",
+                    "catalog_item_version": "2026.10-demo",
+                    "role": "primary",
+                    "enabled": true,
+                    "settings": {
+                      "requested_context_tokens": 4096,
+                      "reserved_output_tokens": 512,
+                      "truncation_strategy": "reject"
+                    }
+                  }
+                ],
+                "links": [
+                  {
+                    "id": "link.01",
+                    "from_selection_id": "sel_model",
+                    "to_selection_id": "sel_model_provider",
+                    "relation": "provided_by"
+                  },
+                  {
+                    "id": "link.02",
+                    "from_selection_id": "sel_model",
+                    "to_selection_id": "sel_context_policy",
+                    "relation": "uses"
+                  }
+                ]
+              }
+            },
+            "metadata": {
+              "pin": "current",
+              "preview.format": "1",
+              "preview.title": "current",
+              "conformance": "SYNTHETIC private-format fixture only"
+            },
+            "selection_change": null
+          },
+          {
+            "number": 2,
+            "change": "RESTORE",
+            "restored_from": 0,
+            "content": {
+              "objective": "",
+              "context": null,
+              "primaryModel": "entered-model",
+              "optional": {
+                "T3": {
+                  "activation": "DISABLED",
+                  "selections": [
+                    "opaque"
+                  ],
+                  "settings": {
+                    "amount": "0.00"
+                  }
+                },
+                "T4": {
+                  "activation": "DISABLED",
+                  "selections": [],
+                  "settings": {}
+                },
+                "T5": {
+                  "activation": "DISABLED",
+                  "selections": [],
+                  "settings": {}
+                }
+              },
+              "workload": {
+                "region": "us-east-fixture",
+                "currency": "USD",
+                "monthly_budget_amount": "1000.00",
+                "requests_per_day": 200,
+                "avg_input_tokens": 700,
+                "avg_output_tokens": 400,
+                "max_concurrency": 2,
+                "data_classification": "internal",
+                "max_latency_ms": 6000
+              },
+              "components": {
+                "selections": [
+                  {
+                    "id": "sel_workload",
+                    "kind": "workload",
+                    "catalog_item_id": "cat.workload.fixture",
+                    "catalog_item_version": "2026.10-demo",
+                    "role": "primary",
+                    "enabled": true,
+                    "settings": {
+                      "concurrency": 2,
+                      "requests_per_day": 200,
+                      "avg_input_tokens": 700,
+                      "avg_output_tokens": 400
+                    }
+                  },
+                  {
+                    "id": "sel_deployment_mode",
+                    "kind": "deployment_mode",
+                    "catalog_item_id": "cat.deployment_mode.fixture",
+                    "catalog_item_version": "2026.10-demo",
+                    "role": "primary",
+                    "enabled": true,
+                    "settings": {}
+                  },
+                  {
+                    "id": "sel_model_provider",
+                    "kind": "model_provider",
+                    "catalog_item_id": "cat.model_provider.fixture",
+                    "catalog_item_version": "2026.10-demo",
+                    "role": "primary",
+                    "enabled": true,
+                    "settings": {}
+                  },
+                  {
+                    "id": "sel_model",
+                    "kind": "model",
+                    "catalog_item_id": "cat.model.fixture",
+                    "catalog_item_version": "2026.10-demo",
+                    "role": "primary",
+                    "enabled": true,
+                    "settings": {
+                      "serving_mode": "weights",
+                      "precision": "fp16",
+                      "max_output_tokens": 512,
+                      "temperature": 0.4
+                    }
+                  },
+                  {
+                    "id": "sel_context_policy",
+                    "kind": "context_policy",
+                    "catalog_item_id": "cat.context_policy.fixture",
+                    "catalog_item_version": "2026.10-demo",
+                    "role": "primary",
+                    "enabled": true,
+                    "settings": {
+                      "requested_context_tokens": 4096,
+                      "reserved_output_tokens": 512,
+                      "truncation_strategy": "reject"
+                    }
+                  }
+                ],
+                "links": [
+                  {
+                    "id": "link.01",
+                    "from_selection_id": "sel_model",
+                    "to_selection_id": "sel_model_provider",
+                    "relation": "provided_by"
+                  },
+                  {
+                    "id": "link.02",
+                    "from_selection_id": "sel_model",
+                    "to_selection_id": "sel_context_policy",
+                    "relation": "uses"
+                  }
+                ]
+              }
+            },
+            "metadata": {
+              "pin": "current",
+              "preview.format": "1",
+              "preview.title": "current",
+              "conformance": "SYNTHETIC private-format fixture only"
+            },
+            "selection_change": null
+          },
+          {
+            "number": 3,
+            "change": "EDIT",
+            "restored_from": null,
+            "content": {
+              "objective": "",
+              "context": null,
+              "primaryModel": "entered-model",
+              "optional": {
+                "T3": {
+                  "activation": "DISABLED",
+                  "selections": [
+                    "opaque"
+                  ],
+                  "settings": {
+                    "amount": "0.00"
+                  }
+                },
+                "T4": {
+                  "activation": "DISABLED",
+                  "selections": [],
+                  "settings": {}
+                },
+                "T5": {
+                  "activation": "DISABLED",
+                  "selections": [],
+                  "settings": {}
+                }
+              },
+              "workload": {
+                "region": "us-east-fixture",
+                "currency": "USD",
+                "monthly_budget_amount": "1000.00",
+                "requests_per_day": 200,
+                "avg_input_tokens": 700,
+                "avg_output_tokens": 400,
+                "max_concurrency": 2,
+                "data_classification": "internal",
+                "max_latency_ms": 6000
+              },
+              "components": {
+                "selections": [
+                  {
+                    "id": "sel_workload",
+                    "kind": "workload",
+                    "catalog_item_id": "cat.workload.fixture",
+                    "catalog_item_version": "2026.10-demo",
+                    "role": "primary",
+                    "enabled": true,
+                    "settings": {
+                      "concurrency": 2,
+                      "requests_per_day": 200,
+                      "avg_input_tokens": 700,
+                      "avg_output_tokens": 400
+                    }
+                  },
+                  {
+                    "id": "sel_deployment_mode",
+                    "kind": "deployment_mode",
+                    "catalog_item_id": "cat.deployment_mode.fixture",
+                    "catalog_item_version": "2026.10-demo",
+                    "role": "primary",
+                    "enabled": true,
+                    "settings": {}
+                  },
+                  {
+                    "id": "sel_model_provider",
+                    "kind": "model_provider",
+                    "catalog_item_id": "cat.model_provider.fixture",
+                    "catalog_item_version": "2026.10-demo",
+                    "role": "primary",
+                    "enabled": true,
+                    "settings": {}
+                  },
+                  {
+                    "id": "sel_model",
+                    "kind": "model",
+                    "catalog_item_id": "cat.model.fixture",
+                    "catalog_item_version": "2026.10-demo",
+                    "role": "fixture_secondary",
+                    "enabled": true,
+                    "settings": {
+                      "serving_mode": "weights",
+                      "precision": "fp16",
+                      "max_output_tokens": 512,
+                      "temperature": 0.4
+                    }
+                  },
+                  {
+                    "id": "sel_context_policy",
+                    "kind": "context_policy",
+                    "catalog_item_id": "cat.context_policy.fixture",
+                    "catalog_item_version": "2026.10-demo",
+                    "role": "primary",
+                    "enabled": true,
+                    "settings": {
+                      "requested_context_tokens": 4096,
+                      "reserved_output_tokens": 512,
+                      "truncation_strategy": "reject"
+                    }
+                  }
+                ],
+                "links": [
+                  {
+                    "id": "link.01",
+                    "from_selection_id": "sel_model",
+                    "to_selection_id": "sel_model_provider",
+                    "relation": "provided_by"
+                  },
+                  {
+                    "id": "link.02",
+                    "from_selection_id": "sel_model",
+                    "to_selection_id": "sel_context_policy",
+                    "relation": "uses"
+                  }
+                ]
+              }
+            },
+            "metadata": {
+              "pin": "current",
+              "preview.format": "1",
+              "preview.title": "current",
+              "conformance": "SYNTHETIC private-format fixture only"
+            },
+            "selection_change": {
+              "action": "CONFIGURE_ROLE",
+              "selection_id": "sel_model",
+              "removed_link_ids": [],
+              "affected_link_ids": [
+                "link.01",
+                "link.02"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "unsupported-format--1",
+      "payloadJSON": "{\n  \"local_format_version\": -1,\n  \"revision\": 3,\n  \"legacy_source_hash\": null,\n  \"history\": [\n    {\n      \"number\": 0,\n      \"change\": \"INITIAL\",\n      \"restored_from\": null,\n      \"content\": {\n        \"objective\": \"\",\n        \"context\": null,\n        \"primaryModel\": \"entered-model\",\n        \"optional\": {\n          \"T3\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [\n              \"opaque\"\n            ],\n            \"settings\": {\n              \"amount\": \"0.00\"\n            }\n          },\n          \"T4\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          },\n          \"T5\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          }\n        },\n        \"workload\": {\n          \"region\": \"us-east-fixture\",\n          \"currency\": \"USD\",\n          \"monthly_budget_amount\": \"1000.00\",\n          \"requests_per_day\": 200,\n          \"avg_input_tokens\": 700,\n          \"avg_output_tokens\": 400,\n          \"max_concurrency\": 2,\n          \"data_classification\": \"internal\",\n          \"max_latency_ms\": 6000\n        },\n        \"components\": {\n          \"selections\": [\n            {\n              \"id\": \"sel_workload\",\n              \"kind\": \"workload\",\n              \"catalog_item_id\": \"cat.workload.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"concurrency\": 2,\n                \"requests_per_day\": 200,\n                \"avg_input_tokens\": 700,\n                \"avg_output_tokens\": 400\n              }\n            },\n            {\n              \"id\": \"sel_deployment_mode\",\n              \"kind\": \"deployment_mode\",\n              \"catalog_item_id\": \"cat.deployment_mode.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {}\n            },\n            {\n              \"id\": \"sel_model_provider\",\n              \"kind\": \"model_provider\",\n              \"catalog_item_id\": \"cat.model_provider.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {}\n            },\n            {\n              \"id\": \"sel_model\",\n              \"kind\": \"model\",\n              \"catalog_item_id\": \"cat.model.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"serving_mode\": \"weights\",\n                \"precision\": \"fp16\",\n                \"max_output_tokens\": 512,\n                \"temperature\": 0.4\n              }\n            },\n            {\n              \"id\": \"sel_context_policy\",\n              \"kind\": \"context_policy\",\n              \"catalog_item_id\": \"cat.context_policy.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"requested_context_tokens\": 4096,\n                \"reserved_output_tokens\": 512,\n                \"truncation_strategy\": \"reject\"\n              }\n            }\n          ],\n          \"links\": [\n            {\n              \"id\": \"link.01\",\n              \"from_selection_id\": \"sel_model\",\n              \"to_selection_id\": \"sel_model_provider\",\n              \"relation\": \"provided_by\"\n            },\n            {\n              \"id\": \"link.02\",\n              \"from_selection_id\": \"sel_model\",\n              \"to_selection_id\": \"sel_context_policy\",\n              \"relation\": \"uses\"\n            }\n          ]\n        }\n      },\n      \"metadata\": {\n        \"pin\": \"old\",\n        \"preview.format\": \"1\",\n        \"preview.title\": \"old\",\n        \"conformance\": \"SYNTHETIC private-format fixture only\"\n      },\n      \"selection_change\": null\n    },\n    {\n      \"number\": 1,\n      \"change\": \"EDIT\",\n      \"restored_from\": null,\n      \"content\": {\n        \"objective\": \"\",\n        \"context\": \"\",\n        \"primaryModel\": \"entered-model\",\n        \"optional\": {\n          \"T3\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [\n              \"opaque\"\n            ],\n            \"settings\": {\n              \"amount\": \"0.00\"\n            }\n          },\n          \"T4\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          },\n          \"T5\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          }\n        },\n        \"workload\": {\n          \"region\": \"us-east-fixture\",\n          \"currency\": \"USD\",\n          \"monthly_budget_amount\": \"1000.00\",\n          \"requests_per_day\": 200,\n          \"avg_input_tokens\": 700,\n          \"avg_output_tokens\": 400,\n          \"max_concurrency\": 2,\n          \"data_classification\": \"internal\",\n          \"max_latency_ms\": 6000\n        },\n        \"components\": {\n          \"selections\": [\n            {\n              \"id\": \"sel_workload\",\n              \"kind\": \"workload\",\n              \"catalog_item_id\": \"cat.workload.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"concurrency\": 2,\n                \"requests_per_day\": 200,\n                \"avg_input_tokens\": 700,\n                \"avg_output_tokens\": 400\n              }\n            },\n            {\n              \"id\": \"sel_deployment_mode\",\n              \"kind\": \"deployment_mode\",\n              \"catalog_item_id\": \"cat.deployment_mode.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {}\n            },\n            {\n              \"id\": \"sel_model_provider\",\n              \"kind\": \"model_provider\",\n              \"catalog_item_id\": \"cat.model_provider.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {}\n            },\n            {\n              \"id\": \"sel_model\",\n              \"kind\": \"model\",\n              \"catalog_item_id\": \"cat.model.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"serving_mode\": \"weights\",\n                \"precision\": \"fp16\",\n                \"max_output_tokens\": 512,\n                \"temperature\": 0.4\n              }\n            },\n            {\n              \"id\": \"sel_context_policy\",\n              \"kind\": \"context_policy\",\n              \"catalog_item_id\": \"cat.context_policy.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"requested_context_tokens\": 4096,\n                \"reserved_output_tokens\": 512,\n                \"truncation_strategy\": \"reject\"\n              }\n            }\n          ],\n          \"links\": [\n            {\n              \"id\": \"link.01\",\n              \"from_selection_id\": \"sel_model\",\n              \"to_selection_id\": \"sel_model_provider\",\n              \"relation\": \"provided_by\"\n            },\n            {\n              \"id\": \"link.02\",\n              \"from_selection_id\": \"sel_model\",\n              \"to_selection_id\": \"sel_context_policy\",\n              \"relation\": \"uses\"\n            }\n          ]\n        }\n      },\n      \"metadata\": {\n        \"pin\": \"current\",\n        \"preview.format\": \"1\",\n        \"preview.title\": \"current\",\n        \"conformance\": \"SYNTHETIC private-format fixture only\"\n      },\n      \"selection_change\": null\n    },\n    {\n      \"number\": 2,\n      \"change\": \"RESTORE\",\n      \"restored_from\": 0,\n      \"content\": {\n        \"objective\": \"\",\n        \"context\": null,\n        \"primaryModel\": \"entered-model\",\n        \"optional\": {\n          \"T3\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [\n              \"opaque\"\n            ],\n            \"settings\": {\n              \"amount\": \"0.00\"\n            }\n          },\n          \"T4\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          },\n          \"T5\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          }\n        },\n        \"workload\": {\n          \"region\": \"us-east-fixture\",\n          \"currency\": \"USD\",\n          \"monthly_budget_amount\": \"1000.00\",\n          \"requests_per_day\": 200,\n          \"avg_input_tokens\": 700,\n          \"avg_output_tokens\": 400,\n          \"max_concurrency\": 2,\n          \"data_classification\": \"internal\",\n          \"max_latency_ms\": 6000\n        },\n        \"components\": {\n          \"selections\": [\n            {\n              \"id\": \"sel_workload\",\n              \"kind\": \"workload\",\n              \"catalog_item_id\": \"cat.workload.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"concurrency\": 2,\n                \"requests_per_day\": 200,\n                \"avg_input_tokens\": 700,\n                \"avg_output_tokens\": 400\n              }\n            },\n            {\n              \"id\": \"sel_deployment_mode\",\n              \"kind\": \"deployment_mode\",\n              \"catalog_item_id\": \"cat.deployment_mode.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {}\n            },\n            {\n              \"id\": \"sel_model_provider\",\n              \"kind\": \"model_provider\",\n              \"catalog_item_id\": \"cat.model_provider.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {}\n            },\n            {\n              \"id\": \"sel_model\",\n              \"kind\": \"model\",\n              \"catalog_item_id\": \"cat.model.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"serving_mode\": \"weights\",\n                \"precision\": \"fp16\",\n                \"max_output_tokens\": 512,\n                \"temperature\": 0.4\n              }\n            },\n            {\n              \"id\": \"sel_context_policy\",\n              \"kind\": \"context_policy\",\n              \"catalog_item_id\": \"cat.context_policy.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"requested_context_tokens\": 4096,\n                \"reserved_output_tokens\": 512,\n                \"truncation_strategy\": \"reject\"\n              }\n            }\n          ],\n          \"links\": [\n            {\n              \"id\": \"link.01\",\n              \"from_selection_id\": \"sel_model\",\n              \"to_selection_id\": \"sel_model_provider\",\n              \"relation\": \"provided_by\"\n            },\n            {\n              \"id\": \"link.02\",\n              \"from_selection_id\": \"sel_model\",\n              \"to_selection_id\": \"sel_context_policy\",\n              \"relation\": \"uses\"\n            }\n          ]\n        }\n      },\n      \"metadata\": {\n        \"pin\": \"current\",\n        \"preview.format\": \"1\",\n        \"preview.title\": \"current\",\n        \"conformance\": \"SYNTHETIC private-format fixture only\"\n      },\n      \"selection_change\": null\n    },\n    {\n      \"number\": 3,\n      \"change\": \"EDIT\",\n      \"restored_from\": null,\n      \"content\": {\n        \"objective\": \"\",\n        \"context\": null,\n        \"primaryModel\": \"entered-model\",\n        \"optional\": {\n          \"T3\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [\n              \"opaque\"\n            ],\n            \"settings\": {\n              \"amount\": \"0.00\"\n            }\n          },\n          \"T4\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          },\n          \"T5\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          }\n        },\n        \"workload\": {\n          \"region\": \"us-east-fixture\",\n          \"currency\": \"USD\",\n          \"monthly_budget_amount\": \"1000.00\",\n          \"requests_per_day\": 200,\n          \"avg_input_tokens\": 700,\n          \"avg_output_tokens\": 400,\n          \"max_concurrency\": 2,\n          \"data_classification\": \"internal\",\n          \"max_latency_ms\": 6000\n        },\n        \"components\": {\n          \"selections\": [\n            {\n              \"id\": \"sel_workload\",\n              \"kind\": \"workload\",\n              \"catalog_item_id\": \"cat.workload.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"concurrency\": 2,\n                \"requests_per_day\": 200,\n                \"avg_input_tokens\": 700,\n                \"avg_output_tokens\": 400\n              }\n            },\n            {\n              \"id\": \"sel_deployment_mode\",\n              \"kind\": \"deployment_mode\",\n              \"catalog_item_id\": \"cat.deployment_mode.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {}\n            },\n            {\n              \"id\": \"sel_model_provider\",\n              \"kind\": \"model_provider\",\n              \"catalog_item_id\": \"cat.model_provider.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {}\n            },\n            {\n              \"id\": \"sel_model\",\n              \"kind\": \"model\",\n              \"catalog_item_id\": \"cat.model.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"fixture_secondary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"serving_mode\": \"weights\",\n                \"precision\": \"fp16\",\n                \"max_output_tokens\": 512,\n                \"temperature\": 0.4\n              }\n            },\n            {\n              \"id\": \"sel_context_policy\",\n              \"kind\": \"context_policy\",\n              \"catalog_item_id\": \"cat.context_policy.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"requested_context_tokens\": 4096,\n                \"reserved_output_tokens\": 512,\n                \"truncation_strategy\": \"reject\"\n              }\n            }\n          ],\n          \"links\": [\n            {\n              \"id\": \"link.01\",\n              \"from_selection_id\": \"sel_model\",\n              \"to_selection_id\": \"sel_model_provider\",\n              \"relation\": \"provided_by\"\n            },\n            {\n              \"id\": \"link.02\",\n              \"from_selection_id\": \"sel_model\",\n              \"to_selection_id\": \"sel_context_policy\",\n              \"relation\": \"uses\"\n            }\n          ]\n        }\n      },\n      \"metadata\": {\n        \"pin\": \"current\",\n        \"preview.format\": \"1\",\n        \"preview.title\": \"current\",\n        \"conformance\": \"SYNTHETIC private-format fixture only\"\n      },\n      \"selection_change\": {\n        \"action\": \"CONFIGURE_ROLE\",\n        \"selection_id\": \"sel_model\",\n        \"removed_link_ids\": [],\n        \"affected_link_ids\": [\n          \"link.01\",\n          \"link.02\"\n        ]\n      }\n    }\n  ]\n}\n",
+      "bytes": 15666,
+      "sha256": "688197a6571808a82f2b8dda03f62ab3443912dff7e58bf8664c6f6fa7fbcfb1",
+      "origin": {
+        "kind": "authored-negative",
+        "basis": "private-format-5",
+        "change": "private version only"
+      },
+      "expected": {
+        "failure": "UNSUPPORTED_VERSION"
+      }
+    },
+    {
+      "id": "unsupported-format-0",
+      "payloadJSON": "{\n  \"local_format_version\": 0,\n  \"revision\": 3,\n  \"legacy_source_hash\": null,\n  \"history\": [\n    {\n      \"number\": 0,\n      \"change\": \"INITIAL\",\n      \"restored_from\": null,\n      \"content\": {\n        \"objective\": \"\",\n        \"context\": null,\n        \"primaryModel\": \"entered-model\",\n        \"optional\": {\n          \"T3\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [\n              \"opaque\"\n            ],\n            \"settings\": {\n              \"amount\": \"0.00\"\n            }\n          },\n          \"T4\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          },\n          \"T5\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          }\n        },\n        \"workload\": {\n          \"region\": \"us-east-fixture\",\n          \"currency\": \"USD\",\n          \"monthly_budget_amount\": \"1000.00\",\n          \"requests_per_day\": 200,\n          \"avg_input_tokens\": 700,\n          \"avg_output_tokens\": 400,\n          \"max_concurrency\": 2,\n          \"data_classification\": \"internal\",\n          \"max_latency_ms\": 6000\n        },\n        \"components\": {\n          \"selections\": [\n            {\n              \"id\": \"sel_workload\",\n              \"kind\": \"workload\",\n              \"catalog_item_id\": \"cat.workload.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"concurrency\": 2,\n                \"requests_per_day\": 200,\n                \"avg_input_tokens\": 700,\n                \"avg_output_tokens\": 400\n              }\n            },\n            {\n              \"id\": \"sel_deployment_mode\",\n              \"kind\": \"deployment_mode\",\n              \"catalog_item_id\": \"cat.deployment_mode.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {}\n            },\n            {\n              \"id\": \"sel_model_provider\",\n              \"kind\": \"model_provider\",\n              \"catalog_item_id\": \"cat.model_provider.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {}\n            },\n            {\n              \"id\": \"sel_model\",\n              \"kind\": \"model\",\n              \"catalog_item_id\": \"cat.model.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"serving_mode\": \"weights\",\n                \"precision\": \"fp16\",\n                \"max_output_tokens\": 512,\n                \"temperature\": 0.4\n              }\n            },\n            {\n              \"id\": \"sel_context_policy\",\n              \"kind\": \"context_policy\",\n              \"catalog_item_id\": \"cat.context_policy.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"requested_context_tokens\": 4096,\n                \"reserved_output_tokens\": 512,\n                \"truncation_strategy\": \"reject\"\n              }\n            }\n          ],\n          \"links\": [\n            {\n              \"id\": \"link.01\",\n              \"from_selection_id\": \"sel_model\",\n              \"to_selection_id\": \"sel_model_provider\",\n              \"relation\": \"provided_by\"\n            },\n            {\n              \"id\": \"link.02\",\n              \"from_selection_id\": \"sel_model\",\n              \"to_selection_id\": \"sel_context_policy\",\n              \"relation\": \"uses\"\n            }\n          ]\n        }\n      },\n      \"metadata\": {\n        \"pin\": \"old\",\n        \"preview.format\": \"1\",\n        \"preview.title\": \"old\",\n        \"conformance\": \"SYNTHETIC private-format fixture only\"\n      },\n      \"selection_change\": null\n    },\n    {\n      \"number\": 1,\n      \"change\": \"EDIT\",\n      \"restored_from\": null,\n      \"content\": {\n        \"objective\": \"\",\n        \"context\": \"\",\n        \"primaryModel\": \"entered-model\",\n        \"optional\": {\n          \"T3\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [\n              \"opaque\"\n            ],\n            \"settings\": {\n              \"amount\": \"0.00\"\n            }\n          },\n          \"T4\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          },\n          \"T5\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          }\n        },\n        \"workload\": {\n          \"region\": \"us-east-fixture\",\n          \"currency\": \"USD\",\n          \"monthly_budget_amount\": \"1000.00\",\n          \"requests_per_day\": 200,\n          \"avg_input_tokens\": 700,\n          \"avg_output_tokens\": 400,\n          \"max_concurrency\": 2,\n          \"data_classification\": \"internal\",\n          \"max_latency_ms\": 6000\n        },\n        \"components\": {\n          \"selections\": [\n            {\n              \"id\": \"sel_workload\",\n              \"kind\": \"workload\",\n              \"catalog_item_id\": \"cat.workload.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"concurrency\": 2,\n                \"requests_per_day\": 200,\n                \"avg_input_tokens\": 700,\n                \"avg_output_tokens\": 400\n              }\n            },\n            {\n              \"id\": \"sel_deployment_mode\",\n              \"kind\": \"deployment_mode\",\n              \"catalog_item_id\": \"cat.deployment_mode.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {}\n            },\n            {\n              \"id\": \"sel_model_provider\",\n              \"kind\": \"model_provider\",\n              \"catalog_item_id\": \"cat.model_provider.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {}\n            },\n            {\n              \"id\": \"sel_model\",\n              \"kind\": \"model\",\n              \"catalog_item_id\": \"cat.model.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"serving_mode\": \"weights\",\n                \"precision\": \"fp16\",\n                \"max_output_tokens\": 512,\n                \"temperature\": 0.4\n              }\n            },\n            {\n              \"id\": \"sel_context_policy\",\n              \"kind\": \"context_policy\",\n              \"catalog_item_id\": \"cat.context_policy.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"requested_context_tokens\": 4096,\n                \"reserved_output_tokens\": 512,\n                \"truncation_strategy\": \"reject\"\n              }\n            }\n          ],\n          \"links\": [\n            {\n              \"id\": \"link.01\",\n              \"from_selection_id\": \"sel_model\",\n              \"to_selection_id\": \"sel_model_provider\",\n              \"relation\": \"provided_by\"\n            },\n            {\n              \"id\": \"link.02\",\n              \"from_selection_id\": \"sel_model\",\n              \"to_selection_id\": \"sel_context_policy\",\n              \"relation\": \"uses\"\n            }\n          ]\n        }\n      },\n      \"metadata\": {\n        \"pin\": \"current\",\n        \"preview.format\": \"1\",\n        \"preview.title\": \"current\",\n        \"conformance\": \"SYNTHETIC private-format fixture only\"\n      },\n      \"selection_change\": null\n    },\n    {\n      \"number\": 2,\n      \"change\": \"RESTORE\",\n      \"restored_from\": 0,\n      \"content\": {\n        \"objective\": \"\",\n        \"context\": null,\n        \"primaryModel\": \"entered-model\",\n        \"optional\": {\n          \"T3\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [\n              \"opaque\"\n            ],\n            \"settings\": {\n              \"amount\": \"0.00\"\n            }\n          },\n          \"T4\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          },\n          \"T5\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          }\n        },\n        \"workload\": {\n          \"region\": \"us-east-fixture\",\n          \"currency\": \"USD\",\n          \"monthly_budget_amount\": \"1000.00\",\n          \"requests_per_day\": 200,\n          \"avg_input_tokens\": 700,\n          \"avg_output_tokens\": 400,\n          \"max_concurrency\": 2,\n          \"data_classification\": \"internal\",\n          \"max_latency_ms\": 6000\n        },\n        \"components\": {\n          \"selections\": [\n            {\n              \"id\": \"sel_workload\",\n              \"kind\": \"workload\",\n              \"catalog_item_id\": \"cat.workload.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"concurrency\": 2,\n                \"requests_per_day\": 200,\n                \"avg_input_tokens\": 700,\n                \"avg_output_tokens\": 400\n              }\n            },\n            {\n              \"id\": \"sel_deployment_mode\",\n              \"kind\": \"deployment_mode\",\n              \"catalog_item_id\": \"cat.deployment_mode.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {}\n            },\n            {\n              \"id\": \"sel_model_provider\",\n              \"kind\": \"model_provider\",\n              \"catalog_item_id\": \"cat.model_provider.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {}\n            },\n            {\n              \"id\": \"sel_model\",\n              \"kind\": \"model\",\n              \"catalog_item_id\": \"cat.model.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"serving_mode\": \"weights\",\n                \"precision\": \"fp16\",\n                \"max_output_tokens\": 512,\n                \"temperature\": 0.4\n              }\n            },\n            {\n              \"id\": \"sel_context_policy\",\n              \"kind\": \"context_policy\",\n              \"catalog_item_id\": \"cat.context_policy.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"requested_context_tokens\": 4096,\n                \"reserved_output_tokens\": 512,\n                \"truncation_strategy\": \"reject\"\n              }\n            }\n          ],\n          \"links\": [\n            {\n              \"id\": \"link.01\",\n              \"from_selection_id\": \"sel_model\",\n              \"to_selection_id\": \"sel_model_provider\",\n              \"relation\": \"provided_by\"\n            },\n            {\n              \"id\": \"link.02\",\n              \"from_selection_id\": \"sel_model\",\n              \"to_selection_id\": \"sel_context_policy\",\n              \"relation\": \"uses\"\n            }\n          ]\n        }\n      },\n      \"metadata\": {\n        \"pin\": \"current\",\n        \"preview.format\": \"1\",\n        \"preview.title\": \"current\",\n        \"conformance\": \"SYNTHETIC private-format fixture only\"\n      },\n      \"selection_change\": null\n    },\n    {\n      \"number\": 3,\n      \"change\": \"EDIT\",\n      \"restored_from\": null,\n      \"content\": {\n        \"objective\": \"\",\n        \"context\": null,\n        \"primaryModel\": \"entered-model\",\n        \"optional\": {\n          \"T3\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [\n              \"opaque\"\n            ],\n            \"settings\": {\n              \"amount\": \"0.00\"\n            }\n          },\n          \"T4\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          },\n          \"T5\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          }\n        },\n        \"workload\": {\n          \"region\": \"us-east-fixture\",\n          \"currency\": \"USD\",\n          \"monthly_budget_amount\": \"1000.00\",\n          \"requests_per_day\": 200,\n          \"avg_input_tokens\": 700,\n          \"avg_output_tokens\": 400,\n          \"max_concurrency\": 2,\n          \"data_classification\": \"internal\",\n          \"max_latency_ms\": 6000\n        },\n        \"components\": {\n          \"selections\": [\n            {\n              \"id\": \"sel_workload\",\n              \"kind\": \"workload\",\n              \"catalog_item_id\": \"cat.workload.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"concurrency\": 2,\n                \"requests_per_day\": 200,\n                \"avg_input_tokens\": 700,\n                \"avg_output_tokens\": 400\n              }\n            },\n            {\n              \"id\": \"sel_deployment_mode\",\n              \"kind\": \"deployment_mode\",\n              \"catalog_item_id\": \"cat.deployment_mode.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {}\n            },\n            {\n              \"id\": \"sel_model_provider\",\n              \"kind\": \"model_provider\",\n              \"catalog_item_id\": \"cat.model_provider.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {}\n            },\n            {\n              \"id\": \"sel_model\",\n              \"kind\": \"model\",\n              \"catalog_item_id\": \"cat.model.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"fixture_secondary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"serving_mode\": \"weights\",\n                \"precision\": \"fp16\",\n                \"max_output_tokens\": 512,\n                \"temperature\": 0.4\n              }\n            },\n            {\n              \"id\": \"sel_context_policy\",\n              \"kind\": \"context_policy\",\n              \"catalog_item_id\": \"cat.context_policy.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"requested_context_tokens\": 4096,\n                \"reserved_output_tokens\": 512,\n                \"truncation_strategy\": \"reject\"\n              }\n            }\n          ],\n          \"links\": [\n            {\n              \"id\": \"link.01\",\n              \"from_selection_id\": \"sel_model\",\n              \"to_selection_id\": \"sel_model_provider\",\n              \"relation\": \"provided_by\"\n            },\n            {\n              \"id\": \"link.02\",\n              \"from_selection_id\": \"sel_model\",\n              \"to_selection_id\": \"sel_context_policy\",\n              \"relation\": \"uses\"\n            }\n          ]\n        }\n      },\n      \"metadata\": {\n        \"pin\": \"current\",\n        \"preview.format\": \"1\",\n        \"preview.title\": \"current\",\n        \"conformance\": \"SYNTHETIC private-format fixture only\"\n      },\n      \"selection_change\": {\n        \"action\": \"CONFIGURE_ROLE\",\n        \"selection_id\": \"sel_model\",\n        \"removed_link_ids\": [],\n        \"affected_link_ids\": [\n          \"link.01\",\n          \"link.02\"\n        ]\n      }\n    }\n  ]\n}\n",
+      "bytes": 15665,
+      "sha256": "405c173cb55b5f5d95255eaf62d53372168e060a3e865be86169d8d7da67593f",
+      "origin": {
+        "kind": "authored-negative",
+        "basis": "private-format-5",
+        "change": "private version only"
+      },
+      "expected": {
+        "failure": "UNSUPPORTED_VERSION"
+      }
+    },
+    {
+      "id": "unsupported-format-99",
+      "payloadJSON": "{\n  \"local_format_version\": 99,\n  \"revision\": 3,\n  \"legacy_source_hash\": null,\n  \"history\": [\n    {\n      \"number\": 0,\n      \"change\": \"INITIAL\",\n      \"restored_from\": null,\n      \"content\": {\n        \"objective\": \"\",\n        \"context\": null,\n        \"primaryModel\": \"entered-model\",\n        \"optional\": {\n          \"T3\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [\n              \"opaque\"\n            ],\n            \"settings\": {\n              \"amount\": \"0.00\"\n            }\n          },\n          \"T4\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          },\n          \"T5\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          }\n        },\n        \"workload\": {\n          \"region\": \"us-east-fixture\",\n          \"currency\": \"USD\",\n          \"monthly_budget_amount\": \"1000.00\",\n          \"requests_per_day\": 200,\n          \"avg_input_tokens\": 700,\n          \"avg_output_tokens\": 400,\n          \"max_concurrency\": 2,\n          \"data_classification\": \"internal\",\n          \"max_latency_ms\": 6000\n        },\n        \"components\": {\n          \"selections\": [\n            {\n              \"id\": \"sel_workload\",\n              \"kind\": \"workload\",\n              \"catalog_item_id\": \"cat.workload.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"concurrency\": 2,\n                \"requests_per_day\": 200,\n                \"avg_input_tokens\": 700,\n                \"avg_output_tokens\": 400\n              }\n            },\n            {\n              \"id\": \"sel_deployment_mode\",\n              \"kind\": \"deployment_mode\",\n              \"catalog_item_id\": \"cat.deployment_mode.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {}\n            },\n            {\n              \"id\": \"sel_model_provider\",\n              \"kind\": \"model_provider\",\n              \"catalog_item_id\": \"cat.model_provider.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {}\n            },\n            {\n              \"id\": \"sel_model\",\n              \"kind\": \"model\",\n              \"catalog_item_id\": \"cat.model.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"serving_mode\": \"weights\",\n                \"precision\": \"fp16\",\n                \"max_output_tokens\": 512,\n                \"temperature\": 0.4\n              }\n            },\n            {\n              \"id\": \"sel_context_policy\",\n              \"kind\": \"context_policy\",\n              \"catalog_item_id\": \"cat.context_policy.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"requested_context_tokens\": 4096,\n                \"reserved_output_tokens\": 512,\n                \"truncation_strategy\": \"reject\"\n              }\n            }\n          ],\n          \"links\": [\n            {\n              \"id\": \"link.01\",\n              \"from_selection_id\": \"sel_model\",\n              \"to_selection_id\": \"sel_model_provider\",\n              \"relation\": \"provided_by\"\n            },\n            {\n              \"id\": \"link.02\",\n              \"from_selection_id\": \"sel_model\",\n              \"to_selection_id\": \"sel_context_policy\",\n              \"relation\": \"uses\"\n            }\n          ]\n        }\n      },\n      \"metadata\": {\n        \"pin\": \"old\",\n        \"preview.format\": \"1\",\n        \"preview.title\": \"old\",\n        \"conformance\": \"SYNTHETIC private-format fixture only\"\n      },\n      \"selection_change\": null\n    },\n    {\n      \"number\": 1,\n      \"change\": \"EDIT\",\n      \"restored_from\": null,\n      \"content\": {\n        \"objective\": \"\",\n        \"context\": \"\",\n        \"primaryModel\": \"entered-model\",\n        \"optional\": {\n          \"T3\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [\n              \"opaque\"\n            ],\n            \"settings\": {\n              \"amount\": \"0.00\"\n            }\n          },\n          \"T4\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          },\n          \"T5\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          }\n        },\n        \"workload\": {\n          \"region\": \"us-east-fixture\",\n          \"currency\": \"USD\",\n          \"monthly_budget_amount\": \"1000.00\",\n          \"requests_per_day\": 200,\n          \"avg_input_tokens\": 700,\n          \"avg_output_tokens\": 400,\n          \"max_concurrency\": 2,\n          \"data_classification\": \"internal\",\n          \"max_latency_ms\": 6000\n        },\n        \"components\": {\n          \"selections\": [\n            {\n              \"id\": \"sel_workload\",\n              \"kind\": \"workload\",\n              \"catalog_item_id\": \"cat.workload.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"concurrency\": 2,\n                \"requests_per_day\": 200,\n                \"avg_input_tokens\": 700,\n                \"avg_output_tokens\": 400\n              }\n            },\n            {\n              \"id\": \"sel_deployment_mode\",\n              \"kind\": \"deployment_mode\",\n              \"catalog_item_id\": \"cat.deployment_mode.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {}\n            },\n            {\n              \"id\": \"sel_model_provider\",\n              \"kind\": \"model_provider\",\n              \"catalog_item_id\": \"cat.model_provider.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {}\n            },\n            {\n              \"id\": \"sel_model\",\n              \"kind\": \"model\",\n              \"catalog_item_id\": \"cat.model.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"serving_mode\": \"weights\",\n                \"precision\": \"fp16\",\n                \"max_output_tokens\": 512,\n                \"temperature\": 0.4\n              }\n            },\n            {\n              \"id\": \"sel_context_policy\",\n              \"kind\": \"context_policy\",\n              \"catalog_item_id\": \"cat.context_policy.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"requested_context_tokens\": 4096,\n                \"reserved_output_tokens\": 512,\n                \"truncation_strategy\": \"reject\"\n              }\n            }\n          ],\n          \"links\": [\n            {\n              \"id\": \"link.01\",\n              \"from_selection_id\": \"sel_model\",\n              \"to_selection_id\": \"sel_model_provider\",\n              \"relation\": \"provided_by\"\n            },\n            {\n              \"id\": \"link.02\",\n              \"from_selection_id\": \"sel_model\",\n              \"to_selection_id\": \"sel_context_policy\",\n              \"relation\": \"uses\"\n            }\n          ]\n        }\n      },\n      \"metadata\": {\n        \"pin\": \"current\",\n        \"preview.format\": \"1\",\n        \"preview.title\": \"current\",\n        \"conformance\": \"SYNTHETIC private-format fixture only\"\n      },\n      \"selection_change\": null\n    },\n    {\n      \"number\": 2,\n      \"change\": \"RESTORE\",\n      \"restored_from\": 0,\n      \"content\": {\n        \"objective\": \"\",\n        \"context\": null,\n        \"primaryModel\": \"entered-model\",\n        \"optional\": {\n          \"T3\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [\n              \"opaque\"\n            ],\n            \"settings\": {\n              \"amount\": \"0.00\"\n            }\n          },\n          \"T4\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          },\n          \"T5\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          }\n        },\n        \"workload\": {\n          \"region\": \"us-east-fixture\",\n          \"currency\": \"USD\",\n          \"monthly_budget_amount\": \"1000.00\",\n          \"requests_per_day\": 200,\n          \"avg_input_tokens\": 700,\n          \"avg_output_tokens\": 400,\n          \"max_concurrency\": 2,\n          \"data_classification\": \"internal\",\n          \"max_latency_ms\": 6000\n        },\n        \"components\": {\n          \"selections\": [\n            {\n              \"id\": \"sel_workload\",\n              \"kind\": \"workload\",\n              \"catalog_item_id\": \"cat.workload.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"concurrency\": 2,\n                \"requests_per_day\": 200,\n                \"avg_input_tokens\": 700,\n                \"avg_output_tokens\": 400\n              }\n            },\n            {\n              \"id\": \"sel_deployment_mode\",\n              \"kind\": \"deployment_mode\",\n              \"catalog_item_id\": \"cat.deployment_mode.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {}\n            },\n            {\n              \"id\": \"sel_model_provider\",\n              \"kind\": \"model_provider\",\n              \"catalog_item_id\": \"cat.model_provider.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {}\n            },\n            {\n              \"id\": \"sel_model\",\n              \"kind\": \"model\",\n              \"catalog_item_id\": \"cat.model.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"serving_mode\": \"weights\",\n                \"precision\": \"fp16\",\n                \"max_output_tokens\": 512,\n                \"temperature\": 0.4\n              }\n            },\n            {\n              \"id\": \"sel_context_policy\",\n              \"kind\": \"context_policy\",\n              \"catalog_item_id\": \"cat.context_policy.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"requested_context_tokens\": 4096,\n                \"reserved_output_tokens\": 512,\n                \"truncation_strategy\": \"reject\"\n              }\n            }\n          ],\n          \"links\": [\n            {\n              \"id\": \"link.01\",\n              \"from_selection_id\": \"sel_model\",\n              \"to_selection_id\": \"sel_model_provider\",\n              \"relation\": \"provided_by\"\n            },\n            {\n              \"id\": \"link.02\",\n              \"from_selection_id\": \"sel_model\",\n              \"to_selection_id\": \"sel_context_policy\",\n              \"relation\": \"uses\"\n            }\n          ]\n        }\n      },\n      \"metadata\": {\n        \"pin\": \"current\",\n        \"preview.format\": \"1\",\n        \"preview.title\": \"current\",\n        \"conformance\": \"SYNTHETIC private-format fixture only\"\n      },\n      \"selection_change\": null\n    },\n    {\n      \"number\": 3,\n      \"change\": \"EDIT\",\n      \"restored_from\": null,\n      \"content\": {\n        \"objective\": \"\",\n        \"context\": null,\n        \"primaryModel\": \"entered-model\",\n        \"optional\": {\n          \"T3\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [\n              \"opaque\"\n            ],\n            \"settings\": {\n              \"amount\": \"0.00\"\n            }\n          },\n          \"T4\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          },\n          \"T5\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          }\n        },\n        \"workload\": {\n          \"region\": \"us-east-fixture\",\n          \"currency\": \"USD\",\n          \"monthly_budget_amount\": \"1000.00\",\n          \"requests_per_day\": 200,\n          \"avg_input_tokens\": 700,\n          \"avg_output_tokens\": 400,\n          \"max_concurrency\": 2,\n          \"data_classification\": \"internal\",\n          \"max_latency_ms\": 6000\n        },\n        \"components\": {\n          \"selections\": [\n            {\n              \"id\": \"sel_workload\",\n              \"kind\": \"workload\",\n              \"catalog_item_id\": \"cat.workload.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"concurrency\": 2,\n                \"requests_per_day\": 200,\n                \"avg_input_tokens\": 700,\n                \"avg_output_tokens\": 400\n              }\n            },\n            {\n              \"id\": \"sel_deployment_mode\",\n              \"kind\": \"deployment_mode\",\n              \"catalog_item_id\": \"cat.deployment_mode.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {}\n            },\n            {\n              \"id\": \"sel_model_provider\",\n              \"kind\": \"model_provider\",\n              \"catalog_item_id\": \"cat.model_provider.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {}\n            },\n            {\n              \"id\": \"sel_model\",\n              \"kind\": \"model\",\n              \"catalog_item_id\": \"cat.model.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"fixture_secondary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"serving_mode\": \"weights\",\n                \"precision\": \"fp16\",\n                \"max_output_tokens\": 512,\n                \"temperature\": 0.4\n              }\n            },\n            {\n              \"id\": \"sel_context_policy\",\n              \"kind\": \"context_policy\",\n              \"catalog_item_id\": \"cat.context_policy.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"requested_context_tokens\": 4096,\n                \"reserved_output_tokens\": 512,\n                \"truncation_strategy\": \"reject\"\n              }\n            }\n          ],\n          \"links\": [\n            {\n              \"id\": \"link.01\",\n              \"from_selection_id\": \"sel_model\",\n              \"to_selection_id\": \"sel_model_provider\",\n              \"relation\": \"provided_by\"\n            },\n            {\n              \"id\": \"link.02\",\n              \"from_selection_id\": \"sel_model\",\n              \"to_selection_id\": \"sel_context_policy\",\n              \"relation\": \"uses\"\n            }\n          ]\n        }\n      },\n      \"metadata\": {\n        \"pin\": \"current\",\n        \"preview.format\": \"1\",\n        \"preview.title\": \"current\",\n        \"conformance\": \"SYNTHETIC private-format fixture only\"\n      },\n      \"selection_change\": {\n        \"action\": \"CONFIGURE_ROLE\",\n        \"selection_id\": \"sel_model\",\n        \"removed_link_ids\": [],\n        \"affected_link_ids\": [\n          \"link.01\",\n          \"link.02\"\n        ]\n      }\n    }\n  ]\n}\n",
+      "bytes": 15666,
+      "sha256": "53400363a4d0b183f07b506a4c9a11fae5a6d645b0fb40cc0fb2fbdaf8eb3e56",
+      "origin": {
+        "kind": "authored-negative",
+        "basis": "private-format-5",
+        "change": "private version only"
+      },
+      "expected": {
+        "failure": "UNSUPPORTED_VERSION"
+      }
+    },
+    {
+      "id": "role-history-downgraded-to-4",
+      "payloadJSON": "{\n  \"local_format_version\": 4,\n  \"revision\": 3,\n  \"legacy_source_hash\": null,\n  \"history\": [\n    {\n      \"number\": 0,\n      \"change\": \"INITIAL\",\n      \"restored_from\": null,\n      \"content\": {\n        \"objective\": \"\",\n        \"context\": null,\n        \"primaryModel\": \"entered-model\",\n        \"optional\": {\n          \"T3\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [\n              \"opaque\"\n            ],\n            \"settings\": {\n              \"amount\": \"0.00\"\n            }\n          },\n          \"T4\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          },\n          \"T5\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          }\n        },\n        \"workload\": {\n          \"region\": \"us-east-fixture\",\n          \"currency\": \"USD\",\n          \"monthly_budget_amount\": \"1000.00\",\n          \"requests_per_day\": 200,\n          \"avg_input_tokens\": 700,\n          \"avg_output_tokens\": 400,\n          \"max_concurrency\": 2,\n          \"data_classification\": \"internal\",\n          \"max_latency_ms\": 6000\n        },\n        \"components\": {\n          \"selections\": [\n            {\n              \"id\": \"sel_workload\",\n              \"kind\": \"workload\",\n              \"catalog_item_id\": \"cat.workload.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"concurrency\": 2,\n                \"requests_per_day\": 200,\n                \"avg_input_tokens\": 700,\n                \"avg_output_tokens\": 400\n              }\n            },\n            {\n              \"id\": \"sel_deployment_mode\",\n              \"kind\": \"deployment_mode\",\n              \"catalog_item_id\": \"cat.deployment_mode.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {}\n            },\n            {\n              \"id\": \"sel_model_provider\",\n              \"kind\": \"model_provider\",\n              \"catalog_item_id\": \"cat.model_provider.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {}\n            },\n            {\n              \"id\": \"sel_model\",\n              \"kind\": \"model\",\n              \"catalog_item_id\": \"cat.model.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"serving_mode\": \"weights\",\n                \"precision\": \"fp16\",\n                \"max_output_tokens\": 512,\n                \"temperature\": 0.4\n              }\n            },\n            {\n              \"id\": \"sel_context_policy\",\n              \"kind\": \"context_policy\",\n              \"catalog_item_id\": \"cat.context_policy.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"requested_context_tokens\": 4096,\n                \"reserved_output_tokens\": 512,\n                \"truncation_strategy\": \"reject\"\n              }\n            }\n          ],\n          \"links\": [\n            {\n              \"id\": \"link.01\",\n              \"from_selection_id\": \"sel_model\",\n              \"to_selection_id\": \"sel_model_provider\",\n              \"relation\": \"provided_by\"\n            },\n            {\n              \"id\": \"link.02\",\n              \"from_selection_id\": \"sel_model\",\n              \"to_selection_id\": \"sel_context_policy\",\n              \"relation\": \"uses\"\n            }\n          ]\n        }\n      },\n      \"metadata\": {\n        \"pin\": \"old\",\n        \"preview.format\": \"1\",\n        \"preview.title\": \"old\",\n        \"conformance\": \"SYNTHETIC private-format fixture only\"\n      },\n      \"selection_change\": null\n    },\n    {\n      \"number\": 1,\n      \"change\": \"EDIT\",\n      \"restored_from\": null,\n      \"content\": {\n        \"objective\": \"\",\n        \"context\": \"\",\n        \"primaryModel\": \"entered-model\",\n        \"optional\": {\n          \"T3\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [\n              \"opaque\"\n            ],\n            \"settings\": {\n              \"amount\": \"0.00\"\n            }\n          },\n          \"T4\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          },\n          \"T5\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          }\n        },\n        \"workload\": {\n          \"region\": \"us-east-fixture\",\n          \"currency\": \"USD\",\n          \"monthly_budget_amount\": \"1000.00\",\n          \"requests_per_day\": 200,\n          \"avg_input_tokens\": 700,\n          \"avg_output_tokens\": 400,\n          \"max_concurrency\": 2,\n          \"data_classification\": \"internal\",\n          \"max_latency_ms\": 6000\n        },\n        \"components\": {\n          \"selections\": [\n            {\n              \"id\": \"sel_workload\",\n              \"kind\": \"workload\",\n              \"catalog_item_id\": \"cat.workload.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"concurrency\": 2,\n                \"requests_per_day\": 200,\n                \"avg_input_tokens\": 700,\n                \"avg_output_tokens\": 400\n              }\n            },\n            {\n              \"id\": \"sel_deployment_mode\",\n              \"kind\": \"deployment_mode\",\n              \"catalog_item_id\": \"cat.deployment_mode.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {}\n            },\n            {\n              \"id\": \"sel_model_provider\",\n              \"kind\": \"model_provider\",\n              \"catalog_item_id\": \"cat.model_provider.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {}\n            },\n            {\n              \"id\": \"sel_model\",\n              \"kind\": \"model\",\n              \"catalog_item_id\": \"cat.model.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"serving_mode\": \"weights\",\n                \"precision\": \"fp16\",\n                \"max_output_tokens\": 512,\n                \"temperature\": 0.4\n              }\n            },\n            {\n              \"id\": \"sel_context_policy\",\n              \"kind\": \"context_policy\",\n              \"catalog_item_id\": \"cat.context_policy.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"requested_context_tokens\": 4096,\n                \"reserved_output_tokens\": 512,\n                \"truncation_strategy\": \"reject\"\n              }\n            }\n          ],\n          \"links\": [\n            {\n              \"id\": \"link.01\",\n              \"from_selection_id\": \"sel_model\",\n              \"to_selection_id\": \"sel_model_provider\",\n              \"relation\": \"provided_by\"\n            },\n            {\n              \"id\": \"link.02\",\n              \"from_selection_id\": \"sel_model\",\n              \"to_selection_id\": \"sel_context_policy\",\n              \"relation\": \"uses\"\n            }\n          ]\n        }\n      },\n      \"metadata\": {\n        \"pin\": \"current\",\n        \"preview.format\": \"1\",\n        \"preview.title\": \"current\",\n        \"conformance\": \"SYNTHETIC private-format fixture only\"\n      },\n      \"selection_change\": null\n    },\n    {\n      \"number\": 2,\n      \"change\": \"RESTORE\",\n      \"restored_from\": 0,\n      \"content\": {\n        \"objective\": \"\",\n        \"context\": null,\n        \"primaryModel\": \"entered-model\",\n        \"optional\": {\n          \"T3\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [\n              \"opaque\"\n            ],\n            \"settings\": {\n              \"amount\": \"0.00\"\n            }\n          },\n          \"T4\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          },\n          \"T5\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          }\n        },\n        \"workload\": {\n          \"region\": \"us-east-fixture\",\n          \"currency\": \"USD\",\n          \"monthly_budget_amount\": \"1000.00\",\n          \"requests_per_day\": 200,\n          \"avg_input_tokens\": 700,\n          \"avg_output_tokens\": 400,\n          \"max_concurrency\": 2,\n          \"data_classification\": \"internal\",\n          \"max_latency_ms\": 6000\n        },\n        \"components\": {\n          \"selections\": [\n            {\n              \"id\": \"sel_workload\",\n              \"kind\": \"workload\",\n              \"catalog_item_id\": \"cat.workload.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"concurrency\": 2,\n                \"requests_per_day\": 200,\n                \"avg_input_tokens\": 700,\n                \"avg_output_tokens\": 400\n              }\n            },\n            {\n              \"id\": \"sel_deployment_mode\",\n              \"kind\": \"deployment_mode\",\n              \"catalog_item_id\": \"cat.deployment_mode.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {}\n            },\n            {\n              \"id\": \"sel_model_provider\",\n              \"kind\": \"model_provider\",\n              \"catalog_item_id\": \"cat.model_provider.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {}\n            },\n            {\n              \"id\": \"sel_model\",\n              \"kind\": \"model\",\n              \"catalog_item_id\": \"cat.model.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"serving_mode\": \"weights\",\n                \"precision\": \"fp16\",\n                \"max_output_tokens\": 512,\n                \"temperature\": 0.4\n              }\n            },\n            {\n              \"id\": \"sel_context_policy\",\n              \"kind\": \"context_policy\",\n              \"catalog_item_id\": \"cat.context_policy.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"requested_context_tokens\": 4096,\n                \"reserved_output_tokens\": 512,\n                \"truncation_strategy\": \"reject\"\n              }\n            }\n          ],\n          \"links\": [\n            {\n              \"id\": \"link.01\",\n              \"from_selection_id\": \"sel_model\",\n              \"to_selection_id\": \"sel_model_provider\",\n              \"relation\": \"provided_by\"\n            },\n            {\n              \"id\": \"link.02\",\n              \"from_selection_id\": \"sel_model\",\n              \"to_selection_id\": \"sel_context_policy\",\n              \"relation\": \"uses\"\n            }\n          ]\n        }\n      },\n      \"metadata\": {\n        \"pin\": \"current\",\n        \"preview.format\": \"1\",\n        \"preview.title\": \"current\",\n        \"conformance\": \"SYNTHETIC private-format fixture only\"\n      },\n      \"selection_change\": null\n    },\n    {\n      \"number\": 3,\n      \"change\": \"EDIT\",\n      \"restored_from\": null,\n      \"content\": {\n        \"objective\": \"\",\n        \"context\": null,\n        \"primaryModel\": \"entered-model\",\n        \"optional\": {\n          \"T3\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [\n              \"opaque\"\n            ],\n            \"settings\": {\n              \"amount\": \"0.00\"\n            }\n          },\n          \"T4\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          },\n          \"T5\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          }\n        },\n        \"workload\": {\n          \"region\": \"us-east-fixture\",\n          \"currency\": \"USD\",\n          \"monthly_budget_amount\": \"1000.00\",\n          \"requests_per_day\": 200,\n          \"avg_input_tokens\": 700,\n          \"avg_output_tokens\": 400,\n          \"max_concurrency\": 2,\n          \"data_classification\": \"internal\",\n          \"max_latency_ms\": 6000\n        },\n        \"components\": {\n          \"selections\": [\n            {\n              \"id\": \"sel_workload\",\n              \"kind\": \"workload\",\n              \"catalog_item_id\": \"cat.workload.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"concurrency\": 2,\n                \"requests_per_day\": 200,\n                \"avg_input_tokens\": 700,\n                \"avg_output_tokens\": 400\n              }\n            },\n            {\n              \"id\": \"sel_deployment_mode\",\n              \"kind\": \"deployment_mode\",\n              \"catalog_item_id\": \"cat.deployment_mode.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {}\n            },\n            {\n              \"id\": \"sel_model_provider\",\n              \"kind\": \"model_provider\",\n              \"catalog_item_id\": \"cat.model_provider.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {}\n            },\n            {\n              \"id\": \"sel_model\",\n              \"kind\": \"model\",\n              \"catalog_item_id\": \"cat.model.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"fixture_secondary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"serving_mode\": \"weights\",\n                \"precision\": \"fp16\",\n                \"max_output_tokens\": 512,\n                \"temperature\": 0.4\n              }\n            },\n            {\n              \"id\": \"sel_context_policy\",\n              \"kind\": \"context_policy\",\n              \"catalog_item_id\": \"cat.context_policy.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"requested_context_tokens\": 4096,\n                \"reserved_output_tokens\": 512,\n                \"truncation_strategy\": \"reject\"\n              }\n            }\n          ],\n          \"links\": [\n            {\n              \"id\": \"link.01\",\n              \"from_selection_id\": \"sel_model\",\n              \"to_selection_id\": \"sel_model_provider\",\n              \"relation\": \"provided_by\"\n            },\n            {\n              \"id\": \"link.02\",\n              \"from_selection_id\": \"sel_model\",\n              \"to_selection_id\": \"sel_context_policy\",\n              \"relation\": \"uses\"\n            }\n          ]\n        }\n      },\n      \"metadata\": {\n        \"pin\": \"current\",\n        \"preview.format\": \"1\",\n        \"preview.title\": \"current\",\n        \"conformance\": \"SYNTHETIC private-format fixture only\"\n      },\n      \"selection_change\": {\n        \"action\": \"CONFIGURE_ROLE\",\n        \"selection_id\": \"sel_model\",\n        \"removed_link_ids\": [],\n        \"affected_link_ids\": [\n          \"link.01\",\n          \"link.02\"\n        ]\n      }\n    }\n  ]\n}\n",
+      "bytes": 15665,
+      "sha256": "e92fe12ee0de901a5981452d3646a7639e2543ae112f94fdea1ef43538218d94",
+      "origin": {
+        "kind": "authored-negative",
+        "basis": "private-format-5",
+        "change": "v5 role history relabeled as v4"
+      },
+      "expected": {
+        "failure": "CORRUPT"
+      }
+    },
+    {
+      "id": "duplicate-private-version",
+      "payloadJSON": "{\n  \"local_format_version\": 5, \"local_format_version\": 5,\n  \"revision\": 3,\n  \"legacy_source_hash\": null,\n  \"history\": [\n    {\n      \"number\": 0,\n      \"change\": \"INITIAL\",\n      \"restored_from\": null,\n      \"content\": {\n        \"objective\": \"\",\n        \"context\": null,\n        \"primaryModel\": \"entered-model\",\n        \"optional\": {\n          \"T3\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [\n              \"opaque\"\n            ],\n            \"settings\": {\n              \"amount\": \"0.00\"\n            }\n          },\n          \"T4\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          },\n          \"T5\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          }\n        },\n        \"workload\": {\n          \"region\": \"us-east-fixture\",\n          \"currency\": \"USD\",\n          \"monthly_budget_amount\": \"1000.00\",\n          \"requests_per_day\": 200,\n          \"avg_input_tokens\": 700,\n          \"avg_output_tokens\": 400,\n          \"max_concurrency\": 2,\n          \"data_classification\": \"internal\",\n          \"max_latency_ms\": 6000\n        },\n        \"components\": {\n          \"selections\": [\n            {\n              \"id\": \"sel_workload\",\n              \"kind\": \"workload\",\n              \"catalog_item_id\": \"cat.workload.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"concurrency\": 2,\n                \"requests_per_day\": 200,\n                \"avg_input_tokens\": 700,\n                \"avg_output_tokens\": 400\n              }\n            },\n            {\n              \"id\": \"sel_deployment_mode\",\n              \"kind\": \"deployment_mode\",\n              \"catalog_item_id\": \"cat.deployment_mode.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {}\n            },\n            {\n              \"id\": \"sel_model_provider\",\n              \"kind\": \"model_provider\",\n              \"catalog_item_id\": \"cat.model_provider.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {}\n            },\n            {\n              \"id\": \"sel_model\",\n              \"kind\": \"model\",\n              \"catalog_item_id\": \"cat.model.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"serving_mode\": \"weights\",\n                \"precision\": \"fp16\",\n                \"max_output_tokens\": 512,\n                \"temperature\": 0.4\n              }\n            },\n            {\n              \"id\": \"sel_context_policy\",\n              \"kind\": \"context_policy\",\n              \"catalog_item_id\": \"cat.context_policy.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"requested_context_tokens\": 4096,\n                \"reserved_output_tokens\": 512,\n                \"truncation_strategy\": \"reject\"\n              }\n            }\n          ],\n          \"links\": [\n            {\n              \"id\": \"link.01\",\n              \"from_selection_id\": \"sel_model\",\n              \"to_selection_id\": \"sel_model_provider\",\n              \"relation\": \"provided_by\"\n            },\n            {\n              \"id\": \"link.02\",\n              \"from_selection_id\": \"sel_model\",\n              \"to_selection_id\": \"sel_context_policy\",\n              \"relation\": \"uses\"\n            }\n          ]\n        }\n      },\n      \"metadata\": {\n        \"pin\": \"old\",\n        \"preview.format\": \"1\",\n        \"preview.title\": \"old\",\n        \"conformance\": \"SYNTHETIC private-format fixture only\"\n      },\n      \"selection_change\": null\n    },\n    {\n      \"number\": 1,\n      \"change\": \"EDIT\",\n      \"restored_from\": null,\n      \"content\": {\n        \"objective\": \"\",\n        \"context\": \"\",\n        \"primaryModel\": \"entered-model\",\n        \"optional\": {\n          \"T3\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [\n              \"opaque\"\n            ],\n            \"settings\": {\n              \"amount\": \"0.00\"\n            }\n          },\n          \"T4\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          },\n          \"T5\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          }\n        },\n        \"workload\": {\n          \"region\": \"us-east-fixture\",\n          \"currency\": \"USD\",\n          \"monthly_budget_amount\": \"1000.00\",\n          \"requests_per_day\": 200,\n          \"avg_input_tokens\": 700,\n          \"avg_output_tokens\": 400,\n          \"max_concurrency\": 2,\n          \"data_classification\": \"internal\",\n          \"max_latency_ms\": 6000\n        },\n        \"components\": {\n          \"selections\": [\n            {\n              \"id\": \"sel_workload\",\n              \"kind\": \"workload\",\n              \"catalog_item_id\": \"cat.workload.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"concurrency\": 2,\n                \"requests_per_day\": 200,\n                \"avg_input_tokens\": 700,\n                \"avg_output_tokens\": 400\n              }\n            },\n            {\n              \"id\": \"sel_deployment_mode\",\n              \"kind\": \"deployment_mode\",\n              \"catalog_item_id\": \"cat.deployment_mode.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {}\n            },\n            {\n              \"id\": \"sel_model_provider\",\n              \"kind\": \"model_provider\",\n              \"catalog_item_id\": \"cat.model_provider.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {}\n            },\n            {\n              \"id\": \"sel_model\",\n              \"kind\": \"model\",\n              \"catalog_item_id\": \"cat.model.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"serving_mode\": \"weights\",\n                \"precision\": \"fp16\",\n                \"max_output_tokens\": 512,\n                \"temperature\": 0.4\n              }\n            },\n            {\n              \"id\": \"sel_context_policy\",\n              \"kind\": \"context_policy\",\n              \"catalog_item_id\": \"cat.context_policy.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"requested_context_tokens\": 4096,\n                \"reserved_output_tokens\": 512,\n                \"truncation_strategy\": \"reject\"\n              }\n            }\n          ],\n          \"links\": [\n            {\n              \"id\": \"link.01\",\n              \"from_selection_id\": \"sel_model\",\n              \"to_selection_id\": \"sel_model_provider\",\n              \"relation\": \"provided_by\"\n            },\n            {\n              \"id\": \"link.02\",\n              \"from_selection_id\": \"sel_model\",\n              \"to_selection_id\": \"sel_context_policy\",\n              \"relation\": \"uses\"\n            }\n          ]\n        }\n      },\n      \"metadata\": {\n        \"pin\": \"current\",\n        \"preview.format\": \"1\",\n        \"preview.title\": \"current\",\n        \"conformance\": \"SYNTHETIC private-format fixture only\"\n      },\n      \"selection_change\": null\n    },\n    {\n      \"number\": 2,\n      \"change\": \"RESTORE\",\n      \"restored_from\": 0,\n      \"content\": {\n        \"objective\": \"\",\n        \"context\": null,\n        \"primaryModel\": \"entered-model\",\n        \"optional\": {\n          \"T3\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [\n              \"opaque\"\n            ],\n            \"settings\": {\n              \"amount\": \"0.00\"\n            }\n          },\n          \"T4\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          },\n          \"T5\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          }\n        },\n        \"workload\": {\n          \"region\": \"us-east-fixture\",\n          \"currency\": \"USD\",\n          \"monthly_budget_amount\": \"1000.00\",\n          \"requests_per_day\": 200,\n          \"avg_input_tokens\": 700,\n          \"avg_output_tokens\": 400,\n          \"max_concurrency\": 2,\n          \"data_classification\": \"internal\",\n          \"max_latency_ms\": 6000\n        },\n        \"components\": {\n          \"selections\": [\n            {\n              \"id\": \"sel_workload\",\n              \"kind\": \"workload\",\n              \"catalog_item_id\": \"cat.workload.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"concurrency\": 2,\n                \"requests_per_day\": 200,\n                \"avg_input_tokens\": 700,\n                \"avg_output_tokens\": 400\n              }\n            },\n            {\n              \"id\": \"sel_deployment_mode\",\n              \"kind\": \"deployment_mode\",\n              \"catalog_item_id\": \"cat.deployment_mode.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {}\n            },\n            {\n              \"id\": \"sel_model_provider\",\n              \"kind\": \"model_provider\",\n              \"catalog_item_id\": \"cat.model_provider.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {}\n            },\n            {\n              \"id\": \"sel_model\",\n              \"kind\": \"model\",\n              \"catalog_item_id\": \"cat.model.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"serving_mode\": \"weights\",\n                \"precision\": \"fp16\",\n                \"max_output_tokens\": 512,\n                \"temperature\": 0.4\n              }\n            },\n            {\n              \"id\": \"sel_context_policy\",\n              \"kind\": \"context_policy\",\n              \"catalog_item_id\": \"cat.context_policy.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"requested_context_tokens\": 4096,\n                \"reserved_output_tokens\": 512,\n                \"truncation_strategy\": \"reject\"\n              }\n            }\n          ],\n          \"links\": [\n            {\n              \"id\": \"link.01\",\n              \"from_selection_id\": \"sel_model\",\n              \"to_selection_id\": \"sel_model_provider\",\n              \"relation\": \"provided_by\"\n            },\n            {\n              \"id\": \"link.02\",\n              \"from_selection_id\": \"sel_model\",\n              \"to_selection_id\": \"sel_context_policy\",\n              \"relation\": \"uses\"\n            }\n          ]\n        }\n      },\n      \"metadata\": {\n        \"pin\": \"current\",\n        \"preview.format\": \"1\",\n        \"preview.title\": \"current\",\n        \"conformance\": \"SYNTHETIC private-format fixture only\"\n      },\n      \"selection_change\": null\n    },\n    {\n      \"number\": 3,\n      \"change\": \"EDIT\",\n      \"restored_from\": null,\n      \"content\": {\n        \"objective\": \"\",\n        \"context\": null,\n        \"primaryModel\": \"entered-model\",\n        \"optional\": {\n          \"T3\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [\n              \"opaque\"\n            ],\n            \"settings\": {\n              \"amount\": \"0.00\"\n            }\n          },\n          \"T4\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          },\n          \"T5\": {\n            \"activation\": \"DISABLED\",\n            \"selections\": [],\n            \"settings\": {}\n          }\n        },\n        \"workload\": {\n          \"region\": \"us-east-fixture\",\n          \"currency\": \"USD\",\n          \"monthly_budget_amount\": \"1000.00\",\n          \"requests_per_day\": 200,\n          \"avg_input_tokens\": 700,\n          \"avg_output_tokens\": 400,\n          \"max_concurrency\": 2,\n          \"data_classification\": \"internal\",\n          \"max_latency_ms\": 6000\n        },\n        \"components\": {\n          \"selections\": [\n            {\n              \"id\": \"sel_workload\",\n              \"kind\": \"workload\",\n              \"catalog_item_id\": \"cat.workload.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"concurrency\": 2,\n                \"requests_per_day\": 200,\n                \"avg_input_tokens\": 700,\n                \"avg_output_tokens\": 400\n              }\n            },\n            {\n              \"id\": \"sel_deployment_mode\",\n              \"kind\": \"deployment_mode\",\n              \"catalog_item_id\": \"cat.deployment_mode.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {}\n            },\n            {\n              \"id\": \"sel_model_provider\",\n              \"kind\": \"model_provider\",\n              \"catalog_item_id\": \"cat.model_provider.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {}\n            },\n            {\n              \"id\": \"sel_model\",\n              \"kind\": \"model\",\n              \"catalog_item_id\": \"cat.model.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"fixture_secondary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"serving_mode\": \"weights\",\n                \"precision\": \"fp16\",\n                \"max_output_tokens\": 512,\n                \"temperature\": 0.4\n              }\n            },\n            {\n              \"id\": \"sel_context_policy\",\n              \"kind\": \"context_policy\",\n              \"catalog_item_id\": \"cat.context_policy.fixture\",\n              \"catalog_item_version\": \"2026.10-demo\",\n              \"role\": \"primary\",\n              \"enabled\": true,\n              \"settings\": {\n                \"requested_context_tokens\": 4096,\n                \"reserved_output_tokens\": 512,\n                \"truncation_strategy\": \"reject\"\n              }\n            }\n          ],\n          \"links\": [\n            {\n              \"id\": \"link.01\",\n              \"from_selection_id\": \"sel_model\",\n              \"to_selection_id\": \"sel_model_provider\",\n              \"relation\": \"provided_by\"\n            },\n            {\n              \"id\": \"link.02\",\n              \"from_selection_id\": \"sel_model\",\n              \"to_selection_id\": \"sel_context_policy\",\n              \"relation\": \"uses\"\n            }\n          ]\n        }\n      },\n      \"metadata\": {\n        \"pin\": \"current\",\n        \"preview.format\": \"1\",\n        \"preview.title\": \"current\",\n        \"conformance\": \"SYNTHETIC private-format fixture only\"\n      },\n      \"selection_change\": {\n        \"action\": \"CONFIGURE_ROLE\",\n        \"selection_id\": \"sel_model\",\n        \"removed_link_ids\": [],\n        \"affected_link_ids\": [\n          \"link.01\",\n          \"link.02\"\n        ]\n      }\n    }\n  ]\n}\n",
+      "bytes": 15692,
+      "sha256": "43cd873cd22c0535994b9561a989cc92fea7fbf412b0bc5a29a1e8c1e0d2d1b5",
+      "origin": {
+        "kind": "authored-negative",
+        "basis": "private-format-5",
+        "change": "duplicate decoded version key"
+      },
+      "expected": {
+        "failure": "CORRUPT"
+      }
+    }
+  ],
+  "cases": [
+    {
+      "id": "v1-historical-read",
+      "input": "private-format-1",
+      "action": "read",
+      "checkpoint": null,
+      "expected": {
+        "outcome": "READ_ONLY",
+        "currentFormat": 1,
+        "originalPreserved": true
+      }
+    },
+    {
+      "id": "v1-explicit-same-content",
+      "input": "private-format-1",
+      "action": "same-content",
+      "checkpoint": null,
+      "expected": {
+        "outcome": "MIGRATED",
+        "currentFormat": 4,
+        "originalPreserved": true
+      }
+    },
+    {
+      "id": "v1-edit-and-restore",
+      "input": "private-format-1",
+      "action": "edit-restore",
+      "checkpoint": null,
+      "expected": {
+        "outcome": "RESTORED",
+        "currentFormat": 4,
+        "originalPreserved": true
+      }
+    },
+    {
+      "id": "v1-edit-before-activation",
+      "input": "private-format-1",
+      "action": "edit-fault",
+      "checkpoint": "POINTER_STAGED",
+      "expected": {
+        "outcome": "FAILED_ROLLED_BACK",
+        "currentFormat": 1,
+        "originalPreserved": true
+      }
+    },
+    {
+      "id": "v1-edit-after-activation",
+      "input": "private-format-1",
+      "action": "edit-fault",
+      "checkpoint": "POINTER_ACTIVATED",
+      "expected": {
+        "outcome": "UNCERTAIN_REOPENED",
+        "currentFormat": 4,
+        "originalPreserved": true
+      }
+    },
+    {
+      "id": "v2-historical-read",
+      "input": "private-format-2",
+      "action": "read",
+      "checkpoint": null,
+      "expected": {
+        "outcome": "READ_ONLY",
+        "currentFormat": 2,
+        "originalPreserved": true
+      }
+    },
+    {
+      "id": "v2-explicit-same-content",
+      "input": "private-format-2",
+      "action": "same-content",
+      "checkpoint": null,
+      "expected": {
+        "outcome": "NO_CHANGE",
+        "currentFormat": 2,
+        "originalPreserved": true
+      }
+    },
+    {
+      "id": "v2-edit-and-restore",
+      "input": "private-format-2",
+      "action": "edit-restore",
+      "checkpoint": null,
+      "expected": {
+        "outcome": "RESTORED",
+        "currentFormat": 4,
+        "originalPreserved": true
+      }
+    },
+    {
+      "id": "v2-edit-before-activation",
+      "input": "private-format-2",
+      "action": "edit-fault",
+      "checkpoint": "POINTER_STAGED",
+      "expected": {
+        "outcome": "FAILED_ROLLED_BACK",
+        "currentFormat": 2,
+        "originalPreserved": true
+      }
+    },
+    {
+      "id": "v2-edit-after-activation",
+      "input": "private-format-2",
+      "action": "edit-fault",
+      "checkpoint": "POINTER_ACTIVATED",
+      "expected": {
+        "outcome": "UNCERTAIN_REOPENED",
+        "currentFormat": 4,
+        "originalPreserved": true
+      }
+    },
+    {
+      "id": "v3-historical-read",
+      "input": "private-format-3",
+      "action": "read",
+      "checkpoint": null,
+      "expected": {
+        "outcome": "READ_ONLY",
+        "currentFormat": 3,
+        "originalPreserved": true
+      }
+    },
+    {
+      "id": "v3-explicit-same-content",
+      "input": "private-format-3",
+      "action": "same-content",
+      "checkpoint": null,
+      "expected": {
+        "outcome": "NO_CHANGE",
+        "currentFormat": 3,
+        "originalPreserved": true
+      }
+    },
+    {
+      "id": "v3-edit-and-restore",
+      "input": "private-format-3",
+      "action": "edit-restore",
+      "checkpoint": null,
+      "expected": {
+        "outcome": "RESTORED",
+        "currentFormat": 4,
+        "originalPreserved": true
+      }
+    },
+    {
+      "id": "v3-edit-before-activation",
+      "input": "private-format-3",
+      "action": "edit-fault",
+      "checkpoint": "POINTER_STAGED",
+      "expected": {
+        "outcome": "FAILED_ROLLED_BACK",
+        "currentFormat": 3,
+        "originalPreserved": true
+      }
+    },
+    {
+      "id": "v3-edit-after-activation",
+      "input": "private-format-3",
+      "action": "edit-fault",
+      "checkpoint": "POINTER_ACTIVATED",
+      "expected": {
+        "outcome": "UNCERTAIN_REOPENED",
+        "currentFormat": 4,
+        "originalPreserved": true
+      }
+    },
+    {
+      "id": "v4-historical-read",
+      "input": "private-format-4",
+      "action": "read",
+      "checkpoint": null,
+      "expected": {
+        "outcome": "READ_ONLY",
+        "currentFormat": 4,
+        "originalPreserved": true
+      }
+    },
+    {
+      "id": "v4-explicit-same-content",
+      "input": "private-format-4",
+      "action": "same-content",
+      "checkpoint": null,
+      "expected": {
+        "outcome": "NO_CHANGE",
+        "currentFormat": 4,
+        "originalPreserved": true
+      }
+    },
+    {
+      "id": "v4-edit-and-restore",
+      "input": "private-format-4",
+      "action": "edit-restore",
+      "checkpoint": null,
+      "expected": {
+        "outcome": "RESTORED",
+        "currentFormat": 4,
+        "originalPreserved": true
+      }
+    },
+    {
+      "id": "v4-edit-before-activation",
+      "input": "private-format-4",
+      "action": "edit-fault",
+      "checkpoint": "POINTER_STAGED",
+      "expected": {
+        "outcome": "FAILED_ROLLED_BACK",
+        "currentFormat": 4,
+        "originalPreserved": true
+      }
+    },
+    {
+      "id": "v4-edit-after-activation",
+      "input": "private-format-4",
+      "action": "edit-fault",
+      "checkpoint": "POINTER_ACTIVATED",
+      "expected": {
+        "outcome": "UNCERTAIN_REOPENED",
+        "currentFormat": 4,
+        "originalPreserved": true
+      }
+    },
+    {
+      "id": "v5-historical-read",
+      "input": "private-format-5",
+      "action": "read",
+      "checkpoint": null,
+      "expected": {
+        "outcome": "READ_ONLY",
+        "currentFormat": 5,
+        "originalPreserved": true
+      }
+    },
+    {
+      "id": "v5-explicit-same-content",
+      "input": "private-format-5",
+      "action": "same-content",
+      "checkpoint": null,
+      "expected": {
+        "outcome": "NO_CHANGE",
+        "currentFormat": 5,
+        "originalPreserved": true
+      }
+    },
+    {
+      "id": "v5-edit-and-restore",
+      "input": "private-format-5",
+      "action": "edit-restore",
+      "checkpoint": null,
+      "expected": {
+        "outcome": "RESTORED",
+        "currentFormat": 5,
+        "originalPreserved": true
+      }
+    },
+    {
+      "id": "v5-edit-before-activation",
+      "input": "private-format-5",
+      "action": "edit-fault",
+      "checkpoint": "POINTER_STAGED",
+      "expected": {
+        "outcome": "FAILED_ROLLED_BACK",
+        "currentFormat": 5,
+        "originalPreserved": true
+      }
+    },
+    {
+      "id": "v5-edit-after-activation",
+      "input": "private-format-5",
+      "action": "edit-fault",
+      "checkpoint": "POINTER_ACTIVATED",
+      "expected": {
+        "outcome": "UNCERTAIN_REOPENED",
+        "currentFormat": 5,
+        "originalPreserved": true
+      }
+    },
+    {
+      "id": "v4-role-explicit-upgrade",
+      "input": "private-format-4",
+      "action": "role",
+      "checkpoint": null,
+      "expected": {
+        "outcome": "MIGRATED",
+        "currentFormat": 5,
+        "originalPreserved": true
+      }
+    },
+    {
+      "id": "v4-role-before-activation",
+      "input": "private-format-4",
+      "action": "role-fault",
+      "checkpoint": "POINTER_STAGED",
+      "expected": {
+        "outcome": "FAILED_ROLLED_BACK",
+        "currentFormat": 4,
+        "originalPreserved": true
+      }
+    },
+    {
+      "id": "v4-role-after-activation",
+      "input": "private-format-4",
+      "action": "role-fault",
+      "checkpoint": "POINTER_ACTIVATED",
+      "expected": {
+        "outcome": "UNCERTAIN_REOPENED",
+        "currentFormat": 5,
+        "originalPreserved": true
+      }
+    },
+    {
+      "id": "unsupported-format--1-reject",
+      "input": "unsupported-format--1",
+      "action": "reject",
+      "checkpoint": null,
+      "expected": {
+        "outcome": "REJECTED",
+        "currentFormat": null,
+        "originalPreserved": true
+      }
+    },
+    {
+      "id": "unsupported-format-0-reject",
+      "input": "unsupported-format-0",
+      "action": "reject",
+      "checkpoint": null,
+      "expected": {
+        "outcome": "REJECTED",
+        "currentFormat": null,
+        "originalPreserved": true
+      }
+    },
+    {
+      "id": "unsupported-format-99-reject",
+      "input": "unsupported-format-99",
+      "action": "reject",
+      "checkpoint": null,
+      "expected": {
+        "outcome": "REJECTED",
+        "currentFormat": null,
+        "originalPreserved": true
+      }
+    },
+    {
+      "id": "role-history-downgraded-to-4-reject",
+      "input": "role-history-downgraded-to-4",
+      "action": "reject",
+      "checkpoint": null,
+      "expected": {
+        "outcome": "REJECTED",
+        "currentFormat": null,
+        "originalPreserved": true
+      }
+    },
+    {
+      "id": "duplicate-private-version-reject",
+      "input": "duplicate-private-version",
+      "action": "reject",
+      "checkpoint": null,
+      "expected": {
+        "outcome": "REJECTED",
+        "currentFormat": null,
+        "originalPreserved": true
+      }
+    },
+    {
+      "id": "archived-v4-survives-v5-edit-and-restore",
+      "input": "private-format-4",
+      "action": "archive",
+      "checkpoint": null,
+      "expected": {
+        "outcome": "RETAINED_SNAPSHOT",
+        "currentFormat": 5,
+        "originalPreserved": true
+      }
+    }
+  ]
+}
