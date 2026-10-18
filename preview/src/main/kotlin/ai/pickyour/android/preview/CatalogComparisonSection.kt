@@ -47,7 +47,7 @@ class CatalogComparisonSection(
     init {
         orientation = VERTICAL
         caption(this, activity.getString(R.string.catalog_compare_heading), true)
-        caption(this, activity.getString(R.string.catalog_compare_limit, PreviewCatalogTray.LIMIT))
+        caption(this, activity.resources.getQuantityString(R.plurals.catalog_compare_limit, PreviewCatalogTray.LIMIT, PreviewCatalogTray.LIMIT))
         status = caption(this, "").apply { accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE }
         entries = LinearLayout(activity).apply { orientation = VERTICAL }.also(::addView)
         compare = Button(activity).apply {
@@ -213,7 +213,9 @@ class CatalogComparisonSection(
         out.putBoolean("comparisonDifferencesOnly", differencesOnly)
     }
 
-    fun close() { closed = true; dismissPinInspection(); comparisonDialog?.dismiss(); comparisonDialog = null }
+    fun dismissInspection() { comparisonDialog?.dismiss(); comparisonDialog = null }
+
+    fun close() { closed = true; dismissPinInspection(); dismissInspection() }
 
     companion object {
         // Frozen v1 condition/reference fields stay visible even when matching values are hidden.
