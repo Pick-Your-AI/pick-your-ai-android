@@ -185,15 +185,22 @@ class VerifiedArtifactCacheTest {
         val classpath = listOf(CacheLockSubprocess::class.java, kotlin.Unit::class.java)
             .map { Path.of(it.protectionDomain.codeSource.location.toURI()).toString() }
             .distinct().joinToString(java.io.File.pathSeparator)
+        // JVM environment banners belong to diagnostics, not the probe's BUSY/ACQUIRED protocol.
+        // A file drains stderr without risking a full pipe while waiting for the tiny probe to exit.
+        val stderr = Files.createTempFile(root, "lock-probe-", ".stderr")
         val process = ProcessBuilder(executable, "-cp", classpath, CacheLockSubprocess::class.java.name, root.resolve("lock").toString())
-            .redirectErrorStream(true).start()
+            .redirectError(stderr.toFile()).start()
         try {
             assertTrue(process.waitFor(10, TimeUnit.SECONDS), "Lock probe timed out")
-            val output = process.inputStream.bufferedReader().readText().trim()
-            assertEquals(0, process.exitValue(), output)
+            val output = process.inputStream.use { String(it.readNBytes(1024), Charsets.UTF_8) }.trim()
+            val diagnostic = if (process.exitValue() != 0) {
+                Files.newInputStream(stderr).use { String(it.readNBytes(4096), Charsets.UTF_8) }
+            } else ""
+            assertEquals(0, process.exitValue(), "Lock probe stdout: $output; stderr: $diagnostic")
             return output
         } finally {
             if (process.isAlive) process.destroyForcibly()
+            Files.deleteIfExists(stderr)
         }
     }
 
