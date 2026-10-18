@@ -29,6 +29,25 @@ def ready_checks():
             for name, _, expected in smoke.GUEST_READINESS_COMMANDS}
 
 
+def interactive_answers():
+    home = '<hierarchy rotation="0"><node package="com.android.launcher3" bounds="[0,0][100,100]" /></hierarchy>'
+    focus = ("  mCurrentFocus=Window{abc u0 com.android.launcher3/com.android.launcher3.uioverrides.QuickstepLauncher}\n"
+             "  mFocusedWindow=Window{abc u0 com.android.launcher3/com.android.launcher3.uioverrides.QuickstepLauncher}\n")
+    return [subprocess.CompletedProcess([], 0, "Test barrier passed\nFinished application barriers!\n", ""),
+            subprocess.CompletedProcess([], 0, "", ""),
+            subprocess.CompletedProcess([], 0, "UI hierchary dumped to: " + smoke.UI_DUMP_PATH + "\n", ""),
+            subprocess.CompletedProcess([], 0, home, ""),
+            subprocess.CompletedProcess([], 0, focus, "")]
+
+
+def ready_interactive():
+    device, readiness = Mock(spec=smoke.Device), {}
+    device.adb.side_effect = interactive_answers()
+    with patch.object(smoke.time, "monotonic", return_value=0):
+        smoke.establish_interactive_readiness(device, readiness, 180)
+    return readiness["interactive"]
+
+
 class ReadinessClock:
     def __init__(self):
         self.now = 0
@@ -437,7 +456,8 @@ class EmulatorSmokeGuardTest(unittest.TestCase):
     def test_receipts_require_consistent_mode_settings_without_an_expected_mode_argument(self):
         receipt = {"source_commit": "a" * 40, "scope": "owned-installed-aosp-emulator", "status": "passed",
                    "unsigned_apk_unchanged": True,
-                   "guest_readiness": {"ready": True, "ui_dump_path": smoke.UI_DUMP_PATH, "last_checks": ready_checks()},
+                   "guest_readiness": {"ready": True, "ui_dump_path": smoke.UI_DUMP_PATH,
+                                       "last_checks": ready_checks(), "interactive": ready_interactive()},
                    "cases": [{"id": name, "status": "passed"} for name in smoke.CASE_IDS]}
         for value in (None, {}, {"mode": "automatic"}):
             receipt["emulation"] = value
@@ -475,7 +495,8 @@ class EmulatorSmokeGuardTest(unittest.TestCase):
                                      "exit_code": 0, "stdout": "1\n", "stderr": "", "output_truncated": False})},
                    "host_acceleration": {"exit_code": 0, "stderr": "", "output_truncated": False,
                                          "stdout": "accel:\n0\nHypervisor.Framework OS X Version 15.7\naccel\n"},
-                   "guest_readiness": {"ready": True, "ui_dump_path": smoke.UI_DUMP_PATH, "last_checks": ready_checks()},
+                   "guest_readiness": {"ready": True, "ui_dump_path": smoke.UI_DUMP_PATH,
+                                       "last_checks": ready_checks(), "interactive": ready_interactive()},
                    "cases": [{"id": name, "status": "passed"} for name in smoke.CASE_IDS]}
         smoke.complete_receipt(receipt, "a" * 40, expected_mode="hvf")
         smoke.complete_receipt(receipt, "a" * 40)
@@ -516,21 +537,29 @@ class EmulatorSmokeGuardTest(unittest.TestCase):
             with self.subTest(default_mode_receipt=changed), self.assertRaises(smoke.SmokeFailure):
                 smoke.complete_receipt(changed, "a" * 40)
 
-    def test_guest_readiness_requires_all_read_only_observations_on_the_verified_target(self):
+    def test_guest_readiness_requires_all_nine_checks_then_framework_and_home_on_the_verified_target(self):
         receipt, clock = {}, ReadinessClock()
         device = Mock(spec=smoke.Device)
         device.adb.side_effect = [subprocess.CompletedProcess([], 0, expected[-1], "")
-                                  for _, _, expected in smoke.GUEST_READINESS_COMMANDS]
+                                  for _, _, expected in smoke.GUEST_READINESS_COMMANDS] + interactive_answers()
         with patch.object(smoke.time, "monotonic", clock.monotonic), patch.object(smoke.time, "sleep", clock.sleep):
             smoke.wait_for_guest_ready(device, receipt)
         device.verify_identity.assert_called_once_with()
         self.assertEqual([call("shell", *args, timeout=10, check=False)
-                          for _, args, _ in smoke.GUEST_READINESS_COMMANDS], device.adb.call_args_list)
+                          for _, args, _ in smoke.GUEST_READINESS_COMMANDS] + [
+                              call(*smoke.FRAMEWORK_BARRIER, timeout=120, check=False),
+                              call("shell", "rm", "-f", smoke.UI_DUMP_PATH, timeout=30, check=False),
+                              call("shell", "uiautomator", "dump", smoke.UI_DUMP_PATH, timeout=20, check=False),
+                              call("exec-out", "cat", smoke.UI_DUMP_PATH, timeout=30, check=False),
+                              call(*smoke.HOME_FOCUS_QUERY, timeout=5, check=False),
+                          ], device.adb.call_args_list)
         self.assertTrue(receipt["guest_readiness"]["ready"])
         self.assertEqual(1, receipt["guest_readiness"]["attempts"])
         self.assertEqual(smoke.UI_DUMP_PATH, receipt["guest_readiness"]["ui_dump_path"])
         self.assertEqual(ready_checks(), receipt["guest_readiness"]["last_checks"])
         self.assertNotIn("first_incomplete_checks", receipt["guest_readiness"])
+        self.assertTrue(smoke.interactive_readiness_passes(receipt["guest_readiness"]["interactive"]))
+        self.assertNotIn("ui_hierarchy_dumps", receipt)
         device.launch.assert_not_called()
         device.shell.assert_not_called()
 
@@ -569,7 +598,7 @@ class EmulatorSmokeGuardTest(unittest.TestCase):
         checks.pop("ui_dump_writable")
         self.assertFalse(smoke.guest_readiness_checks_pass(checks))
 
-    def test_guest_readiness_retries_incomplete_state_without_mutating_or_launching(self):
+    def test_guest_readiness_rechecks_user_state_before_its_single_framework_sequence_without_launching(self):
         receipt, clock = {}, ReadinessClock()
         device = Mock(spec=smoke.Device)
         first = [subprocess.CompletedProcess([], 0, expected[-1], "")
@@ -579,7 +608,7 @@ class EmulatorSmokeGuardTest(unittest.TestCase):
         first[state_index] = subprocess.CompletedProcess([], 0, "RUNNING_LOCKED", "")
         second = [subprocess.CompletedProcess([], 0, expected[-1], "")
                   for _, _, expected in smoke.GUEST_READINESS_COMMANDS]
-        device.adb.side_effect = first + second
+        device.adb.side_effect = first + second + interactive_answers()
         with patch.object(smoke.time, "monotonic", clock.monotonic), patch.object(smoke.time, "sleep", clock.sleep):
             smoke.wait_for_guest_ready(device, receipt)
         state = receipt["guest_readiness"]
@@ -654,6 +683,249 @@ class EmulatorSmokeGuardTest(unittest.TestCase):
                 smoke.wait_for_guest_ready(device, receipt, 1)
         self.assertTrue(smoke.guest_readiness_checks_pass(receipt["guest_readiness"]["last_checks"]))
         self.assertFalse(receipt["guest_readiness"]["ready"])
+
+    def test_interactive_barrier_rejects_zero_exit_without_exact_complete_success(self):
+        marker = "Test barrier passed\nFinished application barriers!\n"
+        for code, stdout, stderr in (
+            (0, "", ""), (0, "Finished application barriers!\n", ""),
+            (0, "Test barrier passed\n", ""),
+            (0, "Test barrier passed\nGave up waiting for application barriers!\n", ""),
+            (0, "Test idle passed\nFinished application barriers!\n", ""),
+            (0, "Test barrier passed\n" + marker, ""),
+            (0, marker + "Error: diagnostic\n", ""), (0, marker, "diagnostic"),
+            (0, marker, "\n"), (1, marker, ""), (False, marker, ""),
+            (0, "x" * 20000 + marker, ""),
+        ):
+            device, readiness = Mock(spec=smoke.Device), {}
+            device.adb.return_value = subprocess.CompletedProcess([], code, stdout, stderr)
+            with self.subTest(code=code, stdout=stdout[-100:], stderr=stderr), \
+                    patch.object(smoke.time, "monotonic", return_value=0), \
+                    self.assertRaisesRegex(smoke.SmokeFailure, "barriers did not complete"):
+                smoke.establish_interactive_readiness(device, readiness, 180)
+            device.adb.assert_called_once_with(*smoke.FRAMEWORK_BARRIER, timeout=120, check=False)
+            state = readiness["interactive"]
+            self.assertFalse(state["ready"])
+            self.assertEqual(stdout[-16384:], state["barrier"]["stdout_tail"])
+            self.assertEqual(len(stdout) > 16384, state["barrier"]["stdout_tail_truncated"])
+            self.assertNotIn("ui_hierarchy_observations", state)
+            device.launch.assert_not_called()
+
+    def test_interactive_barrier_accepts_ordered_pending_work_then_completed_home_evidence(self):
+        for newline in ("\n", "\r\n"):
+            device, readiness = Mock(spec=smoke.Device), {}
+            answers = interactive_answers()
+            answers[0].stdout = newline.join([
+                "Test barrier failed due to 1101:com.android.systemui/u0a122 1 active, 2 pending",
+                "Test barrier passed", "Waiting for application barriers, at 1 of 3...",
+                "Finished application barriers!", ""])
+            answers[2].returncode = 137  # The existing exact-marker/fresh-XML path remains required.
+            device.adb.side_effect = answers
+            with self.subTest(newline=newline), patch.object(smoke.time, "monotonic", return_value=0):
+                smoke.establish_interactive_readiness(device, readiness, 180)
+            state = readiness["interactive"]
+            self.assertTrue(smoke.interactive_readiness_passes(state))
+            self.assertEqual(5, device.adb.call_count)
+            self.assertEqual({"attempted": 1, "completed": 1, "exit_137": 1}, state["ui_hierarchy_dumps"])
+            self.assertEqual(["com.android.launcher3"], state["home_hierarchy"]["packages"])
+            self.assertEqual(1, state["home_hierarchy"]["visible_home_nodes"])
+            self.assertEqual(hashlib.sha256(answers[3].stdout.encode()).hexdigest(),
+                             state["home_hierarchy"]["read_text_sha256"])
+            device.launch.assert_not_called()
+
+    def test_interactive_sequence_and_recorded_command_budgets_share_one_readiness_deadline(self):
+        device, readiness, clock = Mock(spec=smoke.Device), {}, ReadinessClock()
+        answers = iter(zip(interactive_answers(), (120, 150, 170, 178, 179)))
+
+        def answer(*args, **kwargs):
+            result, clock.now = next(answers)
+            return result
+
+        device.adb.side_effect = answer
+        with patch.object(smoke.time, "monotonic", clock.monotonic):
+            smoke.establish_interactive_readiness(device, readiness, 180)
+        self.assertEqual([120, 30, 20, 10, 2], [c.kwargs["timeout"] for c in device.adb.call_args_list])
+        state = readiness["interactive"]
+        self.assertTrue(state["ready"])
+        self.assertEqual(179, state["seconds"])
+        commands = state["ui_hierarchy_observations"]["last_attempt"]["commands"]
+        self.assertEqual([30, 20, 10], [commands[name]["timeout_seconds"] for name in ("remove", "dump", "read")])
+        self.assertEqual(2, state["focus"]["timeout_seconds"])
+
+    def test_interactive_timeout_retains_partial_barrier_and_never_proceeds_or_retries(self):
+        device, readiness, clock = Mock(spec=smoke.Device), {}, ReadinessClock()
+        original = subprocess.TimeoutExpired(["adb"], 1.5,
+                                             output=b"x" * 20000 + b"Test barrier passed\n", stderr=b"partial")
+
+        def timeout(*args, **kwargs):
+            clock.now += kwargs["timeout"]
+            raise original
+
+        device.adb.side_effect = timeout
+        with patch.object(smoke.time, "monotonic", clock.monotonic), self.assertRaises(subprocess.TimeoutExpired) as raised:
+            smoke.establish_interactive_readiness(device, readiness, 1.5)
+        self.assertIs(original, raised.exception)
+        device.adb.assert_called_once_with(*smoke.FRAMEWORK_BARRIER, timeout=1.5, check=False)
+        state = readiness["interactive"]
+        self.assertFalse(state["ready"])
+        self.assertEqual(1.5, state["seconds"])
+        self.assertEqual(1.5, state["barrier"]["command_timeout_seconds"])
+        self.assertEqual(16384, len(state["barrier"]["stdout_tail"]))
+        self.assertTrue(state["barrier"]["stdout_tail_truncated"])
+        self.assertEqual("partial", state["barrier"]["stderr"]["prefix"])
+        self.assertNotIn("ui_hierarchy_observations", state)
+
+    def test_interactive_success_arriving_at_deadline_cannot_accept_or_start_another_command(self):
+        for stop_at in (0, 3, 4):
+            device, readiness, clock = Mock(spec=smoke.Device), {}, ReadinessClock()
+            answers = iter(enumerate(interactive_answers()))
+
+            def answer(*args, **kwargs):
+                index, result = next(answers)
+                if index == stop_at:
+                    clock.now = 1
+                return result
+
+            device.adb.side_effect = answer
+            with self.subTest(stop_at=stop_at), patch.object(smoke.time, "monotonic", clock.monotonic), \
+                    self.assertRaises(smoke.SmokeFailure):
+                smoke.establish_interactive_readiness(device, readiness, 1)
+            self.assertFalse(readiness["interactive"]["ready"])
+            self.assertEqual(stop_at + 1, device.adb.call_count)
+
+    def test_interactive_empty_dump_137_fails_before_read_focus_or_first_app_case(self):
+        device, receipt, clock = Mock(spec=smoke.Device), {"cases": [{"id": c, "status": "not_run"}
+                                                                  for c in smoke.CASE_IDS]}, ReadinessClock()
+        answers = interactive_answers()
+        answers[2] = subprocess.CompletedProcess([], 137, "", "")
+        device.adb.side_effect = [subprocess.CompletedProcess([], 0, expected[-1], "")
+                                  for _, _, expected in smoke.GUEST_READINESS_COMMANDS] + answers
+        with patch.object(smoke.time, "monotonic", clock.monotonic), self.assertRaisesRegex(smoke.SmokeFailure, "dump failed"):
+            smoke.wait_for_guest_ready(device, receipt)
+        self.assertEqual(12, device.adb.call_count)
+        self.assertFalse(receipt["guest_readiness"]["ready"])
+        state = receipt["guest_readiness"]["interactive"]
+        attempt = state["ui_hierarchy_observations"]["first_failed_attempt"]
+        self.assertEqual("dump", attempt["stage"])
+        self.assertFalse(attempt["dump_completion_passed"])
+        self.assertEqual({"remove", "dump"}, set(attempt["commands"]))
+        self.assertTrue(all(c["status"] == "not_run" for c in receipt["cases"]))
+        self.assertNotIn("ui_hierarchy_observations", receipt)
+        device.launch.assert_not_called()
+        device.shell.assert_not_called()
+
+    def test_interactive_home_xml_cannot_override_anr_wrong_user_or_ambiguous_focus(self):
+        clean = interactive_answers()[4].stdout
+        for result in (
+            subprocess.CompletedProcess([], 0, clean.replace(smoke.HOME_WINDOW, "Application Not Responding: com.android.systemui"), ""),
+            subprocess.CompletedProcess([], 0, clean.replace("u0 ", "u10 "), ""),
+            subprocess.CompletedProcess([], 0, clean + clean, ""),
+            subprocess.CompletedProcess([], 0, clean.splitlines()[0] + "\n", ""),
+            subprocess.CompletedProcess([], 0, clean + "*** SERVICE 'activity' DUMP TIMEOUT (3000ms) EXPIRED ***\n", ""),
+            subprocess.CompletedProcess([], 0, clean + "Error dumping service info: failed\n", ""),
+            subprocess.CompletedProcess([], 0, clean, "DUMP TIMEOUT"),
+            subprocess.CompletedProcess([], 1, clean, ""),
+            subprocess.CompletedProcess([], False, clean, ""),
+            subprocess.CompletedProcess([], 0, "x" * 70000 + clean, ""),
+        ):
+            device, readiness = Mock(spec=smoke.Device), {}
+            answers = interactive_answers()
+            answers[4] = result
+            device.adb.side_effect = answers
+            with self.subTest(stdout=result.stdout[-250:], stderr=result.stderr), \
+                    patch.object(smoke.time, "monotonic", return_value=0), self.assertRaises(smoke.SmokeFailure):
+                smoke.establish_interactive_readiness(device, readiness, 180)
+            self.assertFalse(readiness["interactive"]["ready"])
+            self.assertEqual(5, device.adb.call_count)
+            self.assertEqual(1, readiness["interactive"]["home_hierarchy"]["visible_home_nodes"])
+
+    def test_interactive_home_focus_cannot_override_missing_visible_home_or_unexpected_hierarchy(self):
+        clean = interactive_answers()[3].stdout
+        for raw in (clean.replace("com.android.launcher3", smoke.PACKAGE),
+                    clean.replace("com.android.launcher3", "android"),
+                    clean.replace('rotation="0"', 'rotation="1"'),
+                    clean.replace("[0,0][100,100]", "[0,0][0,0]"),
+                    clean.replace("</hierarchy>", '<node package="android" bounds="[0,0][100,100]" /></hierarchy>')):
+            device, readiness = Mock(spec=smoke.Device), {}
+            answers = interactive_answers()
+            answers[3].stdout = raw
+            device.adb.side_effect = answers
+            with self.subTest(raw=raw), patch.object(smoke.time, "monotonic", return_value=0), \
+                    self.assertRaises(smoke.SmokeFailure):
+                smoke.establish_interactive_readiness(device, readiness, 180)
+            self.assertFalse(readiness["interactive"]["ready"])
+
+    def test_interactive_receipt_requires_complete_bound_commands_and_home_evidence(self):
+        valid = ready_interactive()
+        invalid = [None, {}, {"ready": True}]
+        for key in ("barrier", "focus", "home_hierarchy", "ui_hierarchy_observations", "serial", "phase", "home_package"):
+            changed = copy.deepcopy(valid)
+            changed.pop(key)
+            invalid.append(changed)
+        for key, value in (("ready", False), ("serial", "emulator-5556"), ("phase", "after_installation"), ("error", "failed")):
+            changed = copy.deepcopy(valid)
+            changed[key] = value
+            invalid.append(changed)
+        for path, value in (
+            (("barrier", "command_timeout_seconds"), 120),
+            (("focus", "stdout_tail"), ""),
+            (("home_hierarchy", "read_text_sha256"), "0" * 64),
+            (("home_hierarchy", "visible_home_nodes"), True),
+            (("ui_hierarchy_observations", "attempted"), 2),
+            (("ui_hierarchy_observations", "first_failed_attempt"), {}),
+            (("ui_hierarchy_observations", "last_attempt", "commands"), None),
+            (("ui_hierarchy_observations", "last_attempt", "commands", "read"), None),
+            (("ui_hierarchy_observations", "last_attempt", "commands", "read", "exit_code"), 1),
+            (("ui_hierarchy_observations", "last_attempt", "commands", "dump", "exit_code"), False),
+            (("ui_hierarchy_observations", "last_attempt", "commands", "dump", "stdout", "prefix"), ""),
+        ):
+            changed = copy.deepcopy(valid)
+            target = changed
+            for key in path[:-1]:
+                target = target[key]
+            target[path[-1]] = value
+            invalid.append(changed)
+        for state in invalid:
+            with self.subTest(state=state):
+                self.assertFalse(smoke.interactive_readiness_passes(state))
+
+    def test_readiness_failure_diagnostics_are_distinct_and_do_not_rescue_unrun_cases(self):
+        device = Mock(spec=smoke.Device)
+        device.adb.return_value = subprocess.CompletedProcess([], 0, "observed", "")
+        receipt = {"guest_readiness": {"ready": False}, "error": "original readiness failure",
+                   "cases": [{"id": c, "status": "not_run"} for c in smoke.CASE_IDS]}
+        with patch.object(smoke.time, "monotonic", return_value=0):
+            smoke.retain_case_failure_state(device, receipt, phase="after_guest_readiness_failure")
+        self.assertNotIn("case_failure_observations", receipt)
+        self.assertEqual("after_guest_readiness_failure", receipt["guest_readiness_failure_observations"]["phase"])
+        self.assertEqual("original readiness failure", receipt["error"])
+        self.assertFalse(receipt["guest_readiness"]["ready"])
+        self.assertTrue(all(c["status"] == "not_run" for c in receipt["cases"]))
+        self.assertEqual(6, device.adb.call_count)
+        self.assertTrue(all(c.kwargs["timeout"] == 5 for c in device.adb.call_args_list))
+        device.launch.assert_not_called()
+
+    def test_actual_readiness_failure_handler_preserves_original_error_when_diagnostics_raise(self):
+        import ast
+        import inspect
+
+        tree = ast.parse(inspect.getsource(smoke.main))
+        handler = next(n for n in ast.walk(tree) if isinstance(n, ast.Try)
+                       and len(n.body) == 1 and isinstance(n.body[0], ast.Expr)
+                       and isinstance(n.body[0].value, ast.Call)
+                       and isinstance(n.body[0].value.func, ast.Name)
+                       and n.body[0].value.func.id == "wait_for_guest_ready")
+        program = compile(ast.fix_missing_locations(ast.Module(body=[handler], type_ignores=[])), "readiness-handler", "exec")
+        for diagnostic_error in (None, RuntimeError("diagnostic failure")):
+            original, receipt, device = smoke.SmokeFailure("original readiness failure"), {}, object()
+            readiness = Mock(side_effect=original)
+            diagnostic = Mock(side_effect=diagnostic_error)
+            namespace = {"wait_for_guest_ready": readiness, "retain_case_failure_state": diagnostic,
+                         "bounded_text": smoke.bounded_text, "device": device, "receipt": receipt}
+            with self.subTest(diagnostic_error=diagnostic_error), self.assertRaises(smoke.SmokeFailure) as raised:
+                exec(program, namespace)
+            self.assertIs(original, raised.exception)
+            diagnostic.assert_called_once_with(device, receipt, phase="after_guest_readiness_failure")
+            self.assertEqual(diagnostic_error is not None, "guest_readiness_diagnostics_error" in receipt)
 
     def test_software_mode_is_explicit_and_never_uses_kvm_or_changes_host_access(self):
         with patch.dict(os.environ, {"PYAI_EMULATOR_MODE": "software"}), \
@@ -1189,7 +1461,8 @@ class EmulatorSmokeGuardTest(unittest.TestCase):
                    "unsigned_apk_unchanged": True,
                    "emulation": {"mode": "software", "accel_argument": "off", "boot_timeout_seconds": 900,
                                  "unsupported_software_opt_in": True},
-                   "guest_readiness": {"ready": True, "ui_dump_path": smoke.UI_DUMP_PATH, "last_checks": ready_checks()},
+                   "guest_readiness": {"ready": True, "ui_dump_path": smoke.UI_DUMP_PATH,
+                                       "last_checks": ready_checks(), "interactive": ready_interactive()},
                    "cases": [{"id": name, "status": "passed"} for name in smoke.CASE_IDS]}
         smoke.complete_receipt(receipt, "a" * 40)
         invalid = []

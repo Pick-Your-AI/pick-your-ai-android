@@ -499,6 +499,127 @@ boot/readiness/image/renderer requirements. The installed job remains 25 minutes
 including this bounded failure-only collection and owned-process cleanup. A
 reviewed changed-source run must still pass all four actual installed cases.
 
+### Observed delayed draw, System UI ANR focus and automation connection timeout
+
+The [runtime-state run 39117620126](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39117620126)
+checked out `58ebfef09560330d8d5c14484b817bd05478fda7`, reviewed tree
+`c33c689d464607e0f691028ab159fd3addefbd46`, with parents `899e9178` and `83bb5c14`.
+This run includes the accepted main `35f5a602` application and test composition;
+later main changes are separate. Its actual reports contain 400 core cases,
+81 simulated native cases and 58 host guards, all passing without skipped cases.
+The independent runtime-inventory artifact also passed the ignored-input negative
+guard and binds its source pins and output hashes to that checkout and tree.
+The exact unsigned APK is
+`fac6a57d407c21643f5aaecd373aff42c2f3f7566f375d9bcfbef335639f9ec1`.
+Installed artifact `12133206782` has verified ZIP SHA-256
+`6ac9f691045a423df2d980bed6b6249dff06dacb140d841be0881354df0a81c4`.
+
+Boot completed after 279.746 seconds and 228 probes; all nine user/storage checks
+passed after 8.983 seconds. The first installed case then failed at the unchanged
+launch predicate: the command returned exit 0 and empty stderr after 17.388
+seconds, but reported `Status: timeout`, `LaunchState: UNKNOWN (-1)` and
+`WaitTime: 16774`. The later checkpoint's dump returned 137 after 6.818 seconds
+with both streams empty, so no read, XML parse or screenshot ran. The first case
+remains failed and the other three remain `not_run`.
+
+All six new post-checkpoint diagnostic commands completed successfully in a total
+1.225 seconds, with no retained stdout truncation. The complete filtered framework
+tail reports first draw for `ai.pickyour.android.preview/.PreviewActivity` at
+10:13:30.975 UTC, with Android's `Displayed` duration of 18.642 seconds. The later
+Activity state binds live PID 2088 to the exact preview package: it is resumed,
+reports its first window drawn and all windows drawn, and remains a foreground
+process. However, the actual current and focused window is
+`Application Not Responding: com.android.systemui`. A drawn app beneath that
+system dialog does not retroactively pass the failed launch or prove usable UI.
+
+The same tail now identifies the automation failure: at 10:13:36.357, PID 2207
+throws a fatal `TimeoutException` while `UiAutomation.connectWithTimeout` is
+called through `UiAutomationShellWrapper.connect` and `DumpCommand.run`. Crash
+reporting then fails with a bad file descriptor. The
+[Android 15 UiAutomation source](https://github.com/aosp-mirror/platform_frameworks_base/blob/android-15.0.0_r1/core/java/android/app/UiAutomation.java)
+uses an internal five-second connection wait. The
+[same-tag RuntimeInit handler](https://github.com/aosp-mirror/platform_frameworks_base/blob/android-15.0.0_r1/core/java/com/android/internal/os/RuntimeInit.java)
+finally kills its own process even if reporting the fatal exception fails. These
+source mechanisms are consistent with the captured dump exit; they do not prove
+an exact source-hash match for the installed system image. Increasing the outer
+20-second dump limit would not change that internal connection limit.
+
+The log also records a separate `com.android.phone` startup ANR and an explicit
+`bg anr` kill. Its diagnostic sample reports CPU pressure `some avg10=99.87`,
+I/O pressure `some avg10=41.91`, memory pressure `some avg10=0.03`, and a separate
+CPU-usage sample of 100% total, including 86% kernel time. Kernel
+[pressure-stall documentation](https://docs.kernel.org/accounting/psi.html)
+defines `some` as the share of time when some tasks stall on a resource; that
+metric is distinct from CPU utilization. The guest kernel confirms one activated
+processor. LMK statistics report zero kills, and the package exit-history query
+contains no exit record. These observations support delayed interactive-framework
+availability under severe CPU/I/O pressure; they do not establish an app crash,
+an OOM kill, a particular Binder defect, or a sufficient CPU/image/renderer change.
+
+### One bounded framework synchronization and functional home check
+
+After all nine user/storage observations pass, readiness now performs one
+pre-installation sequence within the **same 180-second total deadline**. It first
+invokes `am wait-for-broadcast-barrier --flush-application-threads`, with an outer
+limit of 120 seconds further clamped to the remaining shared deadline. There is
+no retry of this command. Its complete, bounded stdout must contain the ordered
+positive completion lines `Test barrier passed` and
+`Finished application barriers!`, with exit 0 and empty stderr. The explicitly
+recognized pending-queue and application-barrier progress lines may precede
+completion. Missing, duplicated, unexpected, truncated or timed-out output fails;
+in particular, a zero exit with `Gave up waiting for application barriers!` fails.
+
+The [Android 15 shell dispatch](https://github.com/aosp-mirror/platform_frameworks_base/blob/android-15.0.0_r1/services/core/java/com/android/server/am/ActivityManagerShellCommand.java),
+[ActivityManager implementation](https://github.com/aosp-mirror/platform_frameworks_base/blob/android-15.0.0_r1/services/core/java/com/android/server/am/ActivityManagerService.java)
+and [broadcast queue](https://github.com/aosp-mirror/platform_frameworks_base/blob/android-15.0.0_r1/services/core/java/com/android/server/am/BroadcastQueueModernImpl.java)
+define this synchronization. It prioritizes pending queues and temporarily
+unfreezes processes while pinging application threads, so it is not described as
+a read-only observation. The broadcast barrier covers its captured queue boundary;
+the application barrier covers a momentary process set and even counts a remote
+exception as a returned ping. These limits make independent functional UI
+observation necessary. The queue wait has no internal deadline, and ending a
+timed-out shell does not guarantee cancellation of server work; a failed setup
+still terminates only this job's owned emulator through its existing cleanup.
+
+After the barrier, exactly one fresh home hierarchy must pass the existing prior
+file removal, exact dump completion, clean read and XML requirements. The same
+30/20/30-second command maxima are clamped to the remaining readiness deadline.
+No application is launched to warm it up. The hierarchy must be in the configured
+portrait rotation, contain a launcher node with positive visible bounds, and
+contain only launcher or System UI packages. A final server-side Activity query
+must report both current focus and input focus on user 0's exact
+`com.android.launcher3.uioverrides.QuickstepLauncher` window. Missing, ambiguous,
+wrong-user or ANR/dialog focus fails even if a valid-looking hierarchy exists.
+The focus result also rejects an in-band `DUMP TIMEOUT` or service-error message;
+the [native dumpsys implementation](https://android.googlesource.com/platform/frameworks/native/+/77e84a09ead77fdf0dd4b08704ab00970a4d3da6/cmds/dumpsys/dumpsys.cpp)
+can write its timeout banner into stdout, so empty stderr is not enough.
+Nothing dismisses a system dialog, taps the home UI, changes an image or renderer,
+or accepts the preview's previous failed launch.
+
+The receipt keeps this sequence under `guest_readiness.interactive`, with its
+pre-installation phase, owned serial, exact command arguments, elapsed/budget
+values, decoded stream observations, complete-result truncation flags and the
+home hierarchy's package/bounds summary bound to the actual read-text SHA-256.
+It retains at most 16,384 characters of barrier stdout and 65,536 of focus stdout;
+partial results remain failed. The separate home snapshot counters cannot replace
+any installed-case snapshot. The final receipt validator requires the complete
+framework/home evidence in addition to every existing user/storage and case gate.
+On readiness failure the existing six bounded runtime observations are retained
+under `guest_readiness_failure_observations`, explicitly before any app case;
+diagnostic failure preserves the original setup exception and all four `not_run`
+rows. These are retained-text limits, not subprocess capture-memory limits.
+
+All 69 host guards pass locally, including deadline-boundary results, exact
+completion versus terminal failure, partial timeout output, the observed empty
+137 dump, ANR focus despite valid home XML, wrong or invisible home nodes,
+incomplete receipt evidence and original-error preservation. The ordinary
+installed snapshot calls retain their existing command maxima, acceptance checks
+and failure behavior. Boot limits, launch status, all four case bodies, selected
+image/emulator/graphics, APK handoff and owned-process cleanup are unchanged.
+This is one measurable startup-synchronization experiment, with no passing
+installed result yet. A new exact-source hosted run must still pass all four
+installed cases before the lane can be accepted.
+
 ## Inputs and provenance
 
 The application keeps its existing JDK 21, Gradle 8.11.1, Kotlin 2.1.20, AGP 8.9.2,
@@ -624,9 +745,10 @@ remove `/sdcard/pyai-smoke-window.xml` because access was denied. The other thre
 installed cases did not run. Artifact `12126642819` has ZIP SHA-256
 `088224b76255521ff996a9790f5f282c28f96ac52593632609589c5547ef4556`.
 
-The original setup observed only `sys.boot_completed` before continuing. Setup now
-also requires a complete read-only readiness snapshot after the existing wake and
-keyguard-dismissal commands, before installation or any application case:
+The original setup observed only `sys.boot_completed` before continuing. The
+user/storage portion of setup now also requires a complete read-only snapshot
+after the existing wake and keyguard-dismissal commands, before the framework/home
+sequence described above, installation or any application case:
 
 | Observation | Required result on this pinned AOSP API 35 guest |
 | --- | --- |
@@ -637,7 +759,8 @@ keyguard-dismissal commands, before installation or any application case:
 | `pm path android` | The pinned image's `package:/system/framework/framework-res.apk` |
 | `test -d/-r/-w/-x /data/local/tmp` | All four commands succeed with empty output/stderr |
 
-The full snapshot must complete within a single 180-second deadline. Each command
+This snapshot and the later framework/home sequence share a single 180-second
+deadline. Each of these nine read-only commands
 gets at most ten seconds and never more than the remaining deadline. Incomplete
 observations can be retried within that deadline; command timeouts, nonzero exits,
 unexpected output, stderr and truncated diagnostic output cannot establish
@@ -647,7 +770,7 @@ timeout metadata, and the exact `ui_dump_path`. Missing, false or differently
 scoped readiness is rejected by the final receipt validator even if its case
 rows were marked passed.
 
-These probes observe access; they do not create/delete a file, change guest
+These nine probes observe access; they do not create/delete a file, change guest
 permissions, claim usable UI, or measure app performance. The
 existing fresh XML write/read, successful `Status: ok` launch and all four
 behavioral cases remain mandatory. The observed software-mode system-service

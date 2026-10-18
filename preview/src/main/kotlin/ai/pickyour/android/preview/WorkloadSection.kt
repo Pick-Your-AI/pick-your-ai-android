@@ -87,8 +87,8 @@ class WorkloadSection(context: Context, initial: PreviewWorkloadInputs,
                 val choices = listOf<DraftDataClassification?>(null) + DraftDataClassification.entries
                 val labels = choices.map { classificationLabel(it) }.toTypedArray()
                 AlertDialog.Builder(context).setTitle(R.string.workload_classification)
-                    .setItems(labels) { _, index ->
-                        if (alive() && editable && inputs === expected) {
+                    .setItems(labels) { picker, index ->
+                        if ((picker as? AlertDialog)?.isShowing == true && alive() && editable && inputs === expected) {
                             inputs = inputs.copy(classification = choices[index]); updateState(); changed()
                         }
                     }.setNegativeButton(R.string.close, null).show()

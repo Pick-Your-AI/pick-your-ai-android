@@ -42,6 +42,10 @@ BUTTON = "android.widget.Button"
 EDITOR = "android.widget.EditText"
 UI_DUMP_DIRECTORY = "/data/local/tmp"
 UI_DUMP_PATH = UI_DUMP_DIRECTORY + "/pyai-smoke-window.xml"
+HOME_PACKAGE = "com.android.launcher3"
+HOME_WINDOW = HOME_PACKAGE + "/" + HOME_PACKAGE + ".uioverrides.QuickstepLauncher"
+FRAMEWORK_BARRIER = ("shell", "am", "wait-for-broadcast-barrier", "--flush-application-threads")
+HOME_FOCUS_QUERY = ("shell", "dumpsys", "-t", "3", "activity", "activities")
 GUEST_READINESS_COMMANDS = (
     ("boot_completed", ("getprop", "sys.boot_completed"), ("1",)),
     ("boot_animation", ("getprop", "init.svc.bootanim"), ("", "stopped")),
@@ -386,10 +390,10 @@ def guest_readiness_checks_pass(checks: dict) -> bool:
 
 
 def wait_for_guest_ready(device, receipt: dict, timeout_seconds=180):
-    """Read-only readiness observations of the already verified, owned API-35 guest.
+    """Bound user/storage checks and one framework/home readiness sequence together.
 
-    Boot completion alone does not demonstrate unlocked-user or UI-dump directory
-    access. These observations do not certify performance or successful app launch.
+    The framework barrier synchronizes existing queued work; the home observation
+    never starts the preview or dismisses a system dialog. App cases remain separate.
     """
     require(0 < timeout_seconds <= 180, "Invalid guest readiness deadline")
     state = {"ready": False, "timeout_seconds": timeout_seconds, "attempts": 0,
@@ -418,6 +422,7 @@ def wait_for_guest_ready(device, receipt: dict, timeout_seconds=180):
                                     "stdout_tail": bounded_text(error.stdout, 1200),
                                     "stderr_tail": bounded_text(error.stderr, 1200)}
             if guest_readiness_checks_pass(checks) and time.monotonic() < deadline:
+                establish_interactive_readiness(device, state, deadline)
                 state["ready"] = True
                 return
             state.setdefault("first_incomplete_checks", checks)
@@ -463,6 +468,8 @@ def complete_receipt(receipt: dict, source_sha: str, expected_mode: str | None =
             readiness.get("ui_dump_path") == UI_DUMP_PATH and
             guest_readiness_checks_pass(readiness.get("last_checks")),
             "Complete owned-guest readiness evidence is missing")
+    require(interactive_readiness_passes(readiness.get("interactive")),
+            "Complete pre-installation framework/home readiness evidence is missing")
 
 
 class Device:
@@ -548,13 +555,163 @@ def observe_ui_command(device: Device, arguments: tuple[str, ...], observed: dic
         observed["seconds"] = round(time.monotonic() - started, 3)
 
 
+def command_budget(deadline: float | None, maximum: int) -> float:
+    if deadline is None:
+        return maximum
+    remaining = deadline - time.monotonic()
+    require(remaining > 0, "Owned guest readiness deadline expired")
+    return min(maximum, remaining)
+
+
+def observe_interactive_command(device: Device, arguments: tuple[str, ...], observed: dict,
+                                *, timeout: float, retained_limit: int):
+    observed["stdout_retained_character_limit"] = retained_limit
+    try:
+        result = observe_ui_command(device, arguments, observed, timeout=timeout)
+        stdout = result.stdout
+    except subprocess.TimeoutExpired as error:
+        observed["stdout_tail"] = bounded_text(error.stdout, retained_limit)
+        observed["stdout_tail_truncated"] = observed["stdout"].get("text_characters", 0) > retained_limit
+        raise
+    observed["stdout_tail"] = bounded_text(stdout, retained_limit)
+    observed["stdout_tail_truncated"] = observed["stdout"].get("text_characters", 0) > retained_limit
+    return result
+
+
+def interactive_command_passes(observed: dict, arguments: tuple[str, ...], retained_limit: int) -> bool:
+    if not (isinstance(observed, dict) and observed.get("arguments") == list(arguments)
+            and type(observed.get("exit_code")) is int and observed["exit_code"] == 0
+            and observed.get("stdout_retained_character_limit") == retained_limit
+            and observed.get("stdout_tail_truncated") is False
+            and isinstance(observed.get("stdout_tail"), str)
+            and len(observed["stdout_tail"]) <= retained_limit
+            and isinstance(observed.get("stdout"), dict) and isinstance(observed.get("stderr"), dict)
+            and "command_timeout_seconds" not in observed and "error" not in observed):
+        return False
+    return (observed["stdout"].get("available") is True
+            and observed["stdout"].get("text_characters") == len(observed["stdout_tail"])
+            and observed["stdout"].get("text_sha256") ==
+            hashlib.sha256(observed["stdout_tail"].encode("utf-8")).hexdigest()
+            and observed["stderr"].get("available") is True
+            and observed["stderr"].get("text_characters") == 0)
+
+
+def framework_barrier_passes(observed: dict) -> bool:
+    # Android 15 returns zero even when its application barrier gives up. Its
+    # broadcast queue's interim "failed due to" lines mean pending work, not a pass.
+    return (interactive_command_passes(observed, FRAMEWORK_BARRIER, 16384)
+            and re.fullmatch(
+                r"(?:Test barrier failed due to [^\r\n]+\r?\n)*Test barrier passed\r?\n"
+                r"(?:Waiting for application barriers, at [0-9]+ of [0-9]+\.\.\.\r?\n)*"
+                r"Finished application barriers!(?:\r?\n)?", observed["stdout_tail"]) is not None)
+
+
+def home_focus_passes(observed: dict) -> bool:
+    if not (interactive_command_passes(observed, HOME_FOCUS_QUERY, 65536)
+            and "DUMP TIMEOUT" not in observed["stdout_tail"]
+            and "Error dumping service info:" not in observed["stdout_tail"]):
+        return False
+    expected = r"Window\{[0-9a-f]+ u0 " + re.escape(HOME_WINDOW) + r"\}"
+    return all(len(matches := re.findall(r"^\s*" + name + r"=(.*)$", observed["stdout_tail"], re.M)) == 1
+               and re.fullmatch(expected, matches[0].strip()) is not None
+               for name in ("mCurrentFocus", "mFocusedWindow"))
+
+
+def home_hierarchy_summary(root: ET.Element, read_observation: dict) -> dict:
+    nodes = list(root.iter("node"))
+    visible_home_nodes = 0
+    for node in nodes:
+        if node.get("package") == HOME_PACKAGE:
+            try:
+                bounds(node)
+                visible_home_nodes += 1
+            except SmokeFailure:
+                pass
+    return {"rotation": root.get("rotation"), "packages": sorted({node.get("package", "") for node in nodes}),
+            "visible_home_nodes": visible_home_nodes,
+            "read_text_sha256": read_observation["stdout"].get("text_sha256")}
+
+
+def interactive_readiness_passes(state: dict) -> bool:
+    if not (isinstance(state, dict) and state.get("ready") is True
+            and state.get("phase") == "before_installation" and state.get("serial") == SERIAL
+            and state.get("home_package") == HOME_PACKAGE and "error" not in state
+            and framework_barrier_passes(state.get("barrier")) and home_focus_passes(state.get("focus"))):
+        return False
+    hierarchy = state.get("home_hierarchy", {})
+    observations = state.get("ui_hierarchy_observations", {})
+    attempt = observations.get("last_attempt", {}) if isinstance(observations, dict) else {}
+    if not isinstance(attempt, dict) or not isinstance(attempt.get("commands"), dict):
+        return False
+    read = attempt["commands"].get("read", {})
+    if not isinstance(read, dict):
+        return False
+    for name, arguments in (("remove", ("shell", "rm", "-f", UI_DUMP_PATH)),
+                            ("dump", ("shell", "uiautomator", "dump", UI_DUMP_PATH)),
+                            ("read", ("exec-out", "cat", UI_DUMP_PATH))):
+        command = attempt["commands"].get(name)
+        if not (isinstance(command, dict) and command.get("arguments") == list(arguments)
+                and type(command.get("exit_code")) is int
+                and command["exit_code"] in ((0, 137) if name == "dump" else (0,))
+                and "command_timeout_seconds" not in command and "error" not in command
+                and isinstance(command.get("stdout"), dict) and isinstance(command.get("stderr"), dict)):
+            return False
+        if name != "remove" and not (command["stderr"].get("available") is True
+                                      and command["stderr"].get("text_characters") == 0):
+            return False
+        if name == "dump" and not (command["stdout"].get("available") is True
+                                    and command["stdout"].get("edges_truncated") is False
+                                    and command["stdout"].get("prefix") == command["stdout"].get("suffix")
+                                    and isinstance(command["stdout"].get("prefix"), str)
+                                    and command["stdout"]["prefix"].strip() == "UI hierchary dumped to: " + UI_DUMP_PATH):
+            return False
+    return (isinstance(hierarchy, dict) and hierarchy.get("rotation") == "0"
+            and hierarchy.get("packages") in ([HOME_PACKAGE], [HOME_PACKAGE, "com.android.systemui"])
+            and type(hierarchy.get("visible_home_nodes")) is int and hierarchy["visible_home_nodes"] > 0
+            and isinstance(hierarchy.get("read_text_sha256"), str)
+            and re.fullmatch(r"[0-9a-f]{64}", hierarchy["read_text_sha256"]) is not None
+            and type(observations.get("attempted")) is int and observations["attempted"] == 1
+            and "first_failed_attempt" not in observations
+            and attempt.get("completed") is True and attempt.get("dump_completion_passed") is True
+            and attempt.get("ui_dump_path") == UI_DUMP_PATH and attempt.get("stage") == "parse"
+            and isinstance(read.get("stdout"), dict)
+            and hierarchy["read_text_sha256"] == read["stdout"].get("text_sha256"))
+
+
+def establish_interactive_readiness(device: Device, readiness: dict, deadline: float):
+    """Synchronize once, then positively observe the owned home UI before installation."""
+    state = {"ready": False, "phase": "before_installation", "serial": SERIAL,
+             "home_package": HOME_PACKAGE, "barrier": {}, "focus": {}}
+    readiness["interactive"] = state
+    started = time.monotonic()
+    try:
+        observe_interactive_command(device, FRAMEWORK_BARRIER, state["barrier"],
+                                    timeout=command_budget(deadline, 120), retained_limit=16384)
+        require(framework_barrier_passes(state["barrier"]),
+                "Owned framework broadcast/application barriers did not complete")
+        root = Ui(device, Path("."), state).snapshot(deadline=deadline)
+        state["home_hierarchy"] = home_hierarchy_summary(
+            root, state["ui_hierarchy_observations"]["last_attempt"]["commands"]["read"])
+        observe_interactive_command(device, HOME_FOCUS_QUERY, state["focus"],
+                                    timeout=command_budget(deadline, 5), retained_limit=65536)
+        state["ready"] = True
+        require(interactive_readiness_passes(state) and time.monotonic() < deadline,
+                "Owned launcher hierarchy/focus readiness was not established before the deadline")
+    except Exception as error:
+        state["ready"] = False
+        state["error"] = bounded_text(str(error), 1200)
+        raise
+    finally:
+        state["seconds"] = round(time.monotonic() - started, 3)
+
+
 class Ui:
     def __init__(self, device: Device, output: Path, receipt: dict):
         self.device, self.output = device, output
         self.dumps = receipt.setdefault("ui_hierarchy_dumps", {"attempted": 0, "completed": 0, "exit_137": 0})
         self.observations = receipt.setdefault("ui_hierarchy_observations", {"attempted": 0, "recent_attempts": []})
 
-    def snapshot(self) -> ET.Element:
+    def snapshot(self, *, deadline: float | None = None) -> ET.Element:
         path = UI_DUMP_PATH
         self.observations["attempted"] += 1
         attempt = {"sequence": self.observations["attempted"], "ui_dump_path": path,
@@ -566,14 +723,16 @@ class Ui:
         try:
             attempt["stage"] = "remove"
             removed = observe_ui_command(self.device, ("shell", "rm", "-f", path),
-                                         attempt["commands"].setdefault("remove", {}), timeout=30)
+                                         attempt["commands"].setdefault("remove", {}),
+                                         timeout=command_budget(deadline, 30))
             require(removed.returncode == 0,
                     f"Prior UI hierarchy removal failed ({removed.returncode}): " +
                     (removed.stdout + removed.stderr)[-6000:])
             self.dumps["attempted"] += 1
             attempt["stage"] = "dump"
             result = observe_ui_command(self.device, ("shell", "uiautomator", "dump", path),
-                                        attempt["commands"].setdefault("dump", {}), timeout=20)
+                                        attempt["commands"].setdefault("dump", {}),
+                                        timeout=command_budget(deadline, 20))
             # The observed 137 path and ordinary zero path both require the full
             # completion message. Neither an exit nor that message replaces fresh XML.
             completion_passed = (result.returncode in (0, 137) and not result.stderr.strip() and
@@ -584,7 +743,8 @@ class Ui:
                     (result.stdout + result.stderr)[-6000:])
             attempt["stage"] = "read"
             read = observe_ui_command(self.device, ("exec-out", "cat", path),
-                                      attempt["commands"].setdefault("read", {}), timeout=30)
+                                      attempt["commands"].setdefault("read", {}),
+                                      timeout=command_budget(deadline, 30))
             require(read.returncode == 0 and not read.stderr.strip(),
                     f"Fresh UI hierarchy read failed ({read.returncode}): " +
                     (read.stdout + read.stderr)[-6000:])
@@ -592,6 +752,8 @@ class Ui:
             root = ET.fromstring(read.stdout)
             require(root.tag == "hierarchy" and root.get("rotation") in ("0", "1", "2", "3") and
                     any(True for _ in root.iter("node")), "Invalid or empty UI hierarchy")
+            require(deadline is None or time.monotonic() < deadline,
+                    "Owned guest readiness hierarchy completed after its deadline")
             self.dumps["completed"] += 1
             if result.returncode == 137:
                 self.dumps["exit_137"] += 1
@@ -729,11 +891,13 @@ def retain_failure_log(device: Device, output: Path, receipt: dict):
         receipt["failure_logcat"] = {"error": bounded_text(str(error))}
 
 
-def retain_case_failure_state(device: Device, receipt: dict):
-    """Read owned guest state after the checkpoint; it cannot rescue the failed case."""
-    state = {"phase": "after_failure_checkpoint", "serial": SERIAL, "package": PACKAGE,
+def retain_case_failure_state(device: Device, receipt: dict, *, phase="after_failure_checkpoint"):
+    """Read owned state after the named failure; observations cannot rescue it."""
+    require(phase in ("after_failure_checkpoint", "after_guest_readiness_failure"), "Unknown failure phase")
+    state = {"phase": phase, "serial": SERIAL, "package": PACKAGE,
              "timeout_seconds": 20, "checks": {}}
-    receipt["case_failure_observations"] = state
+    receipt["case_failure_observations" if phase == "after_failure_checkpoint"
+            else "guest_readiness_failure_observations"] = state
     started = time.monotonic()
     deadline = started + state["timeout_seconds"]
     try:
@@ -999,7 +1163,14 @@ def main() -> int:
                     device.shell("settings", "put", "system", "user_rotation", "0")
                     device.shell("input", "keyevent", "KEYCODE_WAKEUP")
                     device.shell("wm", "dismiss-keyguard")
-                    wait_for_guest_ready(device, receipt)
+                    try:
+                        wait_for_guest_ready(device, receipt)
+                    except Exception:
+                        try:
+                            retain_case_failure_state(device, receipt, phase="after_guest_readiness_failure")
+                        except Exception as diagnostic_error:
+                            receipt["guest_readiness_diagnostics_error"] = bounded_text(str(diagnostic_error), 1200)
+                        raise
                     require(not device.shell("pm", "list", "packages", PACKAGE),
                             "Fresh AVD unexpectedly already contains the preview")
                     require("Success" in device.adb("install", "--no-streaming", str(signed_apk), timeout=60).stdout,

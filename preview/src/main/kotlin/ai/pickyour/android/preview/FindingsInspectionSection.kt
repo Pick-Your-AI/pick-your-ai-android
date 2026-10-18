@@ -53,8 +53,8 @@ internal class FindingsInspectionSection(
             if (!alive()) return@setOnClickListener
             val report = accepted ?: return@setOnClickListener
             AlertDialog.Builder(activity).setTitle(R.string.findings_browse)
-                .setItems(report.findings.map { activity.getString(R.string.findings_row, it.ruleId, it.outcome, it.severity) }.toTypedArray()) { _, index ->
-                    if (!alive()) return@setItems
+                .setItems(report.findings.map { activity.getString(R.string.findings_row, it.ruleId, it.outcome, it.severity) }.toTypedArray()) { picker, index ->
+                    if ((picker as? AlertDialog)?.isShowing != true || !alive()) return@setItems
                     val finding = report.findings[index]
                     AlertDialog.Builder(activity).setTitle(finding.ruleId).setMessage(describe(finding))
                         .setPositiveButton(R.string.close, null).show()

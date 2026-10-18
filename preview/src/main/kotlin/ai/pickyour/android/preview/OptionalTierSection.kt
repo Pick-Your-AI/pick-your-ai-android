@@ -31,14 +31,16 @@ class OptionalTierSection(context: Context,
                     val expected = savedBaseline ?: return@setOnClickListener
                     val choices = Activation.entries
                     AlertDialog.Builder(context).setTitle(tier.name)
-                        .setItems(choices.map { label(it) }.toTypedArray()) { _, index ->
-                            if (closed || !editable || savedBaseline !== expected) return@setItems
+                        .setItems(choices.map { label(it) }.toTypedArray()) { picker, index ->
+                            if ((picker as? AlertDialog)?.isShowing != true || closed || !editable ||
+                                savedBaseline !== expected) return@setItems
                             val next = choices[index]
                             AlertDialog.Builder(context).setTitle(tier.name)
                                 .setMessage(context.getString(R.string.tier_confirm, label(next)))
                                 .setNegativeButton(R.string.keep_edits, null)
-                                .setPositiveButton(R.string.tier_commit) { _, _ ->
-                                    if (!closed && editable && savedBaseline === expected) commit(expected, tier, next)
+                                .setPositiveButton(R.string.tier_commit) { confirmation, _ ->
+                                    if ((confirmation as? AlertDialog)?.isShowing == true && !closed && editable &&
+                                        savedBaseline === expected) commit(expected, tier, next)
                                 }.show()
                         }.setNegativeButton(R.string.close, null).show()
                 }
