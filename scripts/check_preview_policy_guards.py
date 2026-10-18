@@ -6,14 +6,44 @@ import argparse
 import copy
 import json
 from pathlib import Path
+import struct
 import tempfile
 import xml.etree.ElementTree as ET
+import zipfile
 
-from check_preview_policy import ANDROID, PACKAGE, PolicyFailure, command, inspect_apk, sha256
+from check_preview_policy import ANDROID, PACKAGE, PolicyFailure, command, inspect_apk, require, sha256
 
 ROOT = Path(__file__).resolve().parents[1]
 NS = "{http://schemas.android.com/apk/res/android}"
 ET.register_namespace("android", NS[1:-1])
+
+
+def remap_allow_backup(apk: Path, replacement: int) -> None:
+    """Change only one framework ID in this disposable compiled fixture."""
+    with zipfile.ZipFile(apk) as archive:
+        entries = [(entry, archive.read(entry)) for entry in archive.infolist()]
+    manifest = bytearray(next(data for entry, data in entries if entry.filename == "AndroidManifest.xml"))
+    require(len(manifest) >= 8, "FIXTURE_XML_HEADER")
+    kind, header, size = struct.unpack_from("<HHI", manifest)
+    require(kind == 0x0003 and header == 8 and size == len(manifest), "FIXTURE_XML_HEADER")
+    offset, changed = header, 0
+    while offset < len(manifest):
+        require(offset + 8 <= len(manifest), "FIXTURE_XML_CHUNK")
+        kind, header, size = struct.unpack_from("<HHI", manifest, offset)
+        require(8 <= header <= size and offset + size <= len(manifest), "FIXTURE_XML_CHUNK")
+        if kind == 0x0180:  # RES_XML_RESOURCE_MAP_TYPE
+            require(header == 8 and (size - header) % 4 == 0, "FIXTURE_RESOURCE_MAP")
+            for index in range(offset + header, offset + size, 4):
+                if struct.unpack_from("<I", manifest, index)[0] == 0x01010280:
+                    struct.pack_into("<I", manifest, index, replacement)
+                    changed += 1
+        offset += size
+    require(changed == 1, "FIXTURE_ATTRIBUTE_IDENTITY")
+    rewritten = apk.with_suffix(".remapped.apk")
+    with zipfile.ZipFile(rewritten, "w") as archive:
+        for entry, data in entries:
+            archive.writestr(entry, manifest if entry.filename == "AndroidManifest.xml" else data)
+    rewritten.replace(apk)
 
 
 def check_guards(aapt2: Path, android_jar: Path) -> list[dict[str, object]]:
@@ -31,7 +61,9 @@ def check_guards(aapt2: Path, android_jar: Path) -> list[dict[str, object]]:
     cases = [("adopted-policy", None), ("added-network-permission", "MANIFEST_ENTRY_POINTS"),
              ("added-receiver", "APPLICATION_ENTRY_POINTS"), ("enabled-cleartext", "APPLICATION_POLICY"),
              ("incomplete-device-transfer", "BACKUP_EXCLUSIONS"),
-             ("redirected-backup-resource", "BACKUP_RESOURCE_IDENTITY")]
+             ("redirected-backup-resource", "BACKUP_RESOURCE_IDENTITY"),
+             ("unmapped-framework-attribute", "XML_ATTRIBUTE_RESOURCE_ID"),
+             ("mismatched-framework-attribute", "XML_ATTRIBUTE_RESOURCE_ID")]
     for name, rejection in cases:
         manifest, backup = copy.deepcopy(base), copy.deepcopy(rules)
         app = manifest.find("application")
@@ -59,6 +91,8 @@ def check_guards(aapt2: Path, android_jar: Path) -> list[dict[str, object]]:
             command([str(aapt2), "link", "-I", str(android_jar), "--manifest", str(folder / "AndroidManifest.xml"),
                      "--min-sdk-version", "26", "--target-sdk-version", "35", "--version-code", "1",
                      "--version-name", "0.0.1-synthetic", "-o", str(apk), str(folder / "resources.zip")])
+            if name in {"unmapped-framework-attribute", "mismatched-framework-attribute"}:
+                remap_allow_backup(apk, 0 if name == "unmapped-framework-attribute" else 0x01010281)
             observed = None
             try:
                 inspect_apk(apk, aapt2)
@@ -85,7 +119,7 @@ def main() -> int:
                "limitations": "Binary declaration fixtures only; no app execution, installed or release result."}
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n")
-    print("PASS: adopted policy and five real packaged negative cases reached their exact expected boundary.")
+    print("PASS: adopted policy and seven real packaged negative cases reached their exact expected boundary.")
     return 0
 
 
