@@ -86,9 +86,15 @@ check box with a minimum 48 dp target. The custom dialog carries the Activity's
 resolved layout direction. Text uses the existing bounded literal formatter;
 control/format characters are escaped and truncation is visible.
 
-The add action occupies the detail custom view and preserves the accepted Close,
-Select and Sources actions. Source navigation keeps its separate exact-URI
-confirmation flow. Opening or changing a comparison never launches a URI.
+The add action shares the themed vertical detail header with **Review all recorded
+prices**, above the independently scrolling native message. Both entries retain
+multiline labels and measured 48 dp targets in the narrow RTL/large-text case;
+the complete-label and ancestor-viewport checks are described in
+[CATALOG_PRICE_CONTEXT.md](CATALOG_PRICE_CONTEXT.md). The current parent origin and
+visible-dialog guard reject retained add actions after price navigation or a new
+detail. The accepted Close, Select and Sources actions remain available. Source
+navigation keeps its separate exact-URI confirmation flow. Opening or changing a
+comparison never launches a URI.
 
 Callbacks require their active owner. A dismissed detail cannot add a pin, a
 replaced tray remove control cannot remove a subsequently re-added pin, and a

@@ -27,7 +27,6 @@ import ai.pickyour.core.contracts.FrozenValidation
 import java.util.concurrent.Executors
 import ai.pickyour.core.preview.SyntheticCatalogEvidence
 import ai.pickyour.core.evidence.EvidenceLabel
-import ai.pickyour.core.pricing.RecordedPricebook
 
 /** Guest preview over synthetic fixtures with explicit local save through the canonical store. */
 class PreviewActivity : Activity() {
@@ -47,8 +46,11 @@ class PreviewActivity : Activity() {
     private var restoreContextFromDisk = false
     private lateinit var selection: TextView
     private lateinit var catalog: CatalogBrowseSection
-    private var catalogPricebook: RecordedPricebook? = null // UI-thread owned, replaced with each catalog load.
     private lateinit var catalogComparison: CatalogComparisonSection
+    private var catalogFixture: CatalogFixtureData? = null // UI-thread owned, replaced even when pricing is absent.
+    // The origin remains current while its child inspection is open after parent dismissal.
+    private var catalogDetailDialog: AlertDialog? = null
+    private var catalogPriceBrowser: CatalogPriceBrowser? = null
     private lateinit var catalogStatus: TextView
     private lateinit var catalogSearch: EditText
     private lateinit var retry: Button
@@ -290,7 +292,7 @@ class PreviewActivity : Activity() {
             val loaded = CatalogFixtureData.read(::readCatalogFixture) { assets.open("pricebook.json") }
             runOnUiThread {
                 if (!destroyed) {
-                    catalogPricebook = loaded.pricebook
+                    catalogFixture = loaded
                     retry.isEnabled = true
                     catalogStatus.setText(if (loaded.catalog == null) R.string.catalog_unavailable else R.string.catalog_ready)
                     if (loaded.catalog == null) catalog.unavailable() else catalog.show(loaded.catalog)
@@ -304,34 +306,75 @@ class PreviewActivity : Activity() {
 
     private fun showDetails(item: PreviewCatalogItem, catalogHash: String) {
         if (destroyed) return
+        catalogDetailDialog?.dismiss()
+        catalogDetailDialog = null
+        catalogPriceBrowser?.retire()
+        catalogPriceBrowser = null
         val baseline = savedRecord
         val draftId = currentDraftId
         val detail = catalog.details(item, catalogHash)
+        val priceContext = catalogFixture
+        val prices = priceContext?.pricebook
         lateinit var dialog: AlertDialog
-        dialog = AlertDialog.Builder(this)
-            .setTitle(item.name)
-            .setMessage(detail?.let { CatalogDetailText.describe(this, it, catalogPricebook) }
-                ?: getString(R.string.catalog_detail_unavailable))
-            .setView(Button(this).apply {
-                setText(R.string.catalog_compare_add)
-                minHeight = (48 * resources.displayMetrics.density).toInt()
-                minWidth = (48 * resources.displayMetrics.density).toInt()
+        val builder = AlertDialog.Builder(this)
+        // Keep actions above the independently scrolling message. A separate custom content panel
+        // can collapse to zero height when the native message also fills the dialog.
+        builder.setCustomTitle(LinearLayout(builder.context).apply {
+            orientation = LinearLayout.VERTICAL
+            val target = kotlin.math.ceil(48 * resources.displayMetrics.density.toDouble()).toInt()
+            val inset = kotlin.math.ceil(16 * resources.displayMetrics.density.toDouble()).toInt()
+            setPadding(inset, inset, inset, 0)
+            addView(TextView(builder.context).apply {
+                text = item.name
+                setTextAppearance(android.R.style.TextAppearance_Material_Title)
+                maxLines = 2
+                ellipsize = android.text.TextUtils.TruncateAt.END
+            }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
+            if (detail != null) addView(Button(builder.context).apply {
+                setText(R.string.catalog_price_browse)
+                setSingleLine(false)
+                minHeight = target
+                minWidth = target
                 setOnClickListener {
-                    if (dialog.isShowing && !destroyed) {
+                    val isCurrent = {
+                        catalogDetailDialog === dialog && !destroyed && !storageBusy && savedRecord === baseline && currentDraftId == draftId &&
+                            catalogFixture === priceContext && catalog.contains(item, catalogHash)
+                    }
+                    if (dialog.isShowing && isCurrent()) {
+                        dialog.dismiss()
+                        CatalogPriceBrowser(this@PreviewActivity, detail, prices, isCurrent).also {
+                            catalogPriceBrowser = it
+                            it.show()
+                        }
+                    }
+                }
+            }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
+            addView(Button(builder.context).apply {
+                setText(R.string.catalog_compare_add)
+                setSingleLine(false)
+                minHeight = target
+                minWidth = target
+                setOnClickListener {
+                    if (catalogDetailDialog === dialog && dialog.isShowing && !destroyed) {
                         catalogComparison.add(item, catalogHash)
                         dialog.dismiss()
                     }
                 }
-            })
+            }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
+        })
+        dialog = builder
+            .setTitle(item.name)
+            .setMessage(detail?.let { CatalogDetailText.describe(this, it, prices) }
+                ?: getString(R.string.catalog_detail_unavailable))
             .setNegativeButton(R.string.close, null)
             .setNeutralButton(R.string.catalog_sources) { _, _ ->
                 if (dialog.isShowing && detail != null) CatalogSourceNavigation(this, detail, isCurrent = {
-                    !destroyed && !storageBusy && savedRecord === baseline && currentDraftId == draftId &&
+                    catalogDetailDialog === dialog && !destroyed && !storageBusy && savedRecord === baseline && currentDraftId == draftId &&
                         catalog.contains(item, catalogHash)
                 }).show()
             }
             .setPositiveButton(R.string.select_sample) { _, _ ->
-                if (dialog.isShowing && !destroyed && !storageBusy && savedRecord === baseline && currentDraftId == draftId &&
+                if (catalogDetailDialog === dialog && dialog.isShowing && !destroyed && !storageBusy && savedRecord === baseline && currentDraftId == draftId &&
                     catalog.contains(item, catalogHash)) {
                     selectedId = item.id
                     selectedVersion = item.version
@@ -341,6 +384,8 @@ class PreviewActivity : Activity() {
                 }
             }
             .create()
+        catalogDetailDialog = dialog
+        dialog.window?.decorView?.layoutDirection = resources.configuration.layoutDirection
         dialog.show()
     }
 
@@ -949,6 +994,10 @@ class PreviewActivity : Activity() {
 
     override fun onDestroy() {
         destroyed = true
+        catalogDetailDialog?.dismiss()
+        catalogDetailDialog = null
+        catalogPriceBrowser?.retire()
+        catalogPriceBrowser = null
         if (::catalog.isInitialized) catalog.close()
         if (::catalogComparison.isInitialized) catalogComparison.close()
         storageReady = false
