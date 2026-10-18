@@ -126,8 +126,9 @@ exact arrays/URIs/references/numbers/booleans; rejected duplicate scopes and inv
 input; same-kind roles; exact catalog substitutions; source/history formats and
 old bytes; independent intent and optional memory omission in structural candidate
 preparation; and managed-library metadata/relationship preservation with stale,
-foreign and deleted authority. Existing unsupported-kind regressions now retain
-the remaining T5–T6 boundary without dropping their assertions or method names.
+foreign and deleted authority. Existing unsupported-kind regressions retain the
+remaining command boundary. The later [training editor](TRAINING_SELECTIONS.md)
+admits T5 and moves those negative inputs to the still-retained T6 kinds.
 
 Nine paused-looper Activity cases cover all-kind creation/reopen; rejected
 scopes/endpoints/references with retained input; literal URI fields without
