@@ -56,6 +56,7 @@ class PreviewActivity : Activity() {
     // The origin remains current while its child inspection is open after parent dismissal.
     private var catalogDetailDialog: AlertDialog? = null
     private var catalogPriceBrowser: CatalogPriceBrowser? = null
+    private var catalogDetailBrowser: CatalogDetailBrowser? = null
     private lateinit var catalogStatus: TextView
     private lateinit var catalogSearch: EditText
     private lateinit var retry: Button
@@ -91,6 +92,7 @@ class PreviewActivity : Activity() {
             }
             field = value
             if (value && ::catalogPinRecovery.isInitialized) catalogPinRecovery.dismiss()
+            if (value) catalogDetailBrowser?.retire()
         }
     private var restoringFields = false
     private var restoration: PreviewDraftRestoration? = null
@@ -282,7 +284,11 @@ class PreviewActivity : Activity() {
                 catalogSearch.requestRectangleOnScreen(android.graphics.Rect(0, 0, catalogSearch.width, catalogSearch.height), true)
             }
         }
-        catalogComparison = CatalogComparisonSection(this, savedInstanceState, ::showPinnedDetails, catalogPinRecovery::dismiss)
+        catalogComparison = CatalogComparisonSection(this, savedInstanceState, ::showPinnedDetails) {
+            retireRevisionInspection()
+            catalogPinRecovery.dismiss()
+            catalogDetailBrowser?.retire()
+        }
         content.addView(catalogComparison)
         catalog = CatalogBrowseSection(this, savedInstanceState, ::showDetails)
         content.addView(catalog)
@@ -385,6 +391,8 @@ class PreviewActivity : Activity() {
     private fun loadCatalog() {
         if (destroyed) return
         catalogPinRecovery.dismiss()
+        catalogDetailBrowser?.retire()
+        catalogDetailBrowser = null
         retry.isEnabled = false
         catalogStatus.setText(R.string.working)
         worker.execute {
@@ -413,13 +421,17 @@ class PreviewActivity : Activity() {
 
     private fun showDetails(item: PreviewCatalogItem, catalogHash: String) {
         if (destroyed) return
+        retireRevisionInspection()
         catalogPinRecovery.dismiss()
         catalogDetailDialog?.dismiss()
         catalogDetailDialog = null
         catalogPriceBrowser?.retire()
         catalogPriceBrowser = null
+        catalogDetailBrowser?.retire()
+        catalogDetailBrowser = null
         val baseline = savedRecord
         val draftId = currentDraftId
+        val detailAuthority = storageAuthority
         val detail = catalog.details(item, catalogHash)
         val priceContext = catalogFixture
         val prices = priceContext?.pricebook
@@ -437,6 +449,27 @@ class PreviewActivity : Activity() {
                 setTextAppearance(android.R.style.TextAppearance_Material_Title)
                 maxLines = 2
                 ellipsize = android.text.TextUtils.TruncateAt.END
+            }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
+            if (detail != null) addView(Button(builder.context).apply {
+                setText(R.string.catalog_detail_browser_open)
+                setSingleLine(false)
+                minHeight = target
+                minWidth = target
+                setOnClickListener {
+                    val isCurrent = {
+                        catalogDetailDialog === dialog && !destroyed && !storageBusy && storageAuthority === detailAuthority &&
+                            savedRecord === baseline && currentDraftId == draftId && catalogFixture === priceContext &&
+                            catalog.contains(item, catalogHash)
+                    }
+                    if (dialog.isShowing && isCurrent()) {
+                        catalogComparison.dismissInspection()
+                        dialog.dismiss()
+                        CatalogDetailBrowser(this@PreviewActivity, detail, isCurrent).also {
+                            catalogDetailBrowser = it
+                            it.show()
+                        }
+                    }
+                }
             }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
             if (detail != null) addView(Button(builder.context).apply {
                 setText(R.string.catalog_price_browse)
@@ -499,10 +532,13 @@ class PreviewActivity : Activity() {
 
     private fun showPinnedDetails(pin: PreviewCatalogPin, captured: PreviewCatalogBrowser?, originIsCurrent: () -> Boolean) {
         if (destroyed || storageBusy || !originIsCurrent()) return
+        retireRevisionInspection()
         catalogDetailDialog?.dismiss()
         catalogDetailDialog = null
         catalogPriceBrowser?.retire()
         catalogPriceBrowser = null
+        catalogDetailBrowser?.retire()
+        catalogDetailBrowser = null
         val baseline = savedRecord
         val draftId = currentDraftId
         catalogPinRecovery.open(pin, captured) {
@@ -727,6 +763,14 @@ class PreviewActivity : Activity() {
     private fun showLibraryComparison() {
         if (destroyed || isFinishing || storageBusy || entryBlocked || !selectionResolved) return
         retireRevisionInspection()
+        catalogComparison.dismissInspection()
+        catalogPinRecovery.dismiss()
+        catalogDetailDialog?.dismiss()
+        catalogDetailDialog = null
+        catalogPriceBrowser?.retire()
+        catalogPriceBrowser = null
+        catalogDetailBrowser?.retire()
+        catalogDetailBrowser = null
         val request = Any()
         revisionRequest = request
         val authority = storageAuthority
@@ -1299,6 +1343,8 @@ class PreviewActivity : Activity() {
         catalogDetailDialog = null
         catalogPriceBrowser?.retire()
         catalogPriceBrowser = null
+        catalogDetailBrowser?.retire()
+        catalogDetailBrowser = null
         if (::catalog.isInitialized) catalog.close()
         if (::catalogComparison.isInitialized) catalogComparison.close()
         if (::componentSection.isInitialized) componentSection.close()
