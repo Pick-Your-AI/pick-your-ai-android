@@ -156,7 +156,7 @@ class PreviewActivityTest {
 
     @Test fun editorsExposeLabelsAndSavedStatusUsesTextAndLiveRegion() {
         val editors = views().filterIsInstance<EditText>()
-        assertEquals(4, editors.size)
+        assertEquals(12, editors.size)
         editors.forEach { editor ->
             val labels = views().filterIsInstance<TextView>().filter { it.labelFor == editor.id }
             assertEquals("Each editor needs one explicit visible label", 1, labels.size)
@@ -316,6 +316,127 @@ class PreviewActivityTest {
         assertTrue(details.contains(activity.getString(R.string.findings_no_evidence)))
         assertTrue(details.contains(activity.getString(R.string.findings_limits)))
         assertTrue(adapter().load() is PreviewDraftLoad.Missing)
+    }
+
+    @Test fun workloadInputsRetainExactValuesAndInvalidPendingTextAcrossRecreation() {
+        field(R.string.workload_budget).setText("12.3400")
+        field(R.string.workload_requests).setText("0")
+        field(R.string.workload_input_tokens).setText("123456789012345678901234567890")
+        save()
+        val baseline = loaded().baselineIdentity
+        assertEquals("12.3400", loaded().workloadInput.monthlyBudgetAmount!!.encoded)
+        assertNull(loaded().workloadInput.currency)
+        recreate()
+        await { hasText(R.string.draft_saved) }
+        assertEquals("12.3400", field(R.string.workload_budget).text.toString())
+        assertEquals("0", field(R.string.workload_requests).text.toString())
+        assertEquals("", field(R.string.workload_region).text.toString())
+        field(R.string.workload_budget).setText("invalid amount")
+        assertFalse(button(R.string.save_draft).isEnabled)
+        assertTrue(hasText(R.string.workload_invalid))
+        recreate()
+        await { hasText(R.string.draft_unsaved) && button(R.string.reopen_draft).isEnabled }
+        assertEquals("invalid amount", field(R.string.workload_budget).text.toString())
+        assertFalse(button(R.string.save_draft).isEnabled)
+        assertEquals(baseline, loaded().baselineIdentity)
+        button(R.string.reopen_draft).performClick()
+        dialog().getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+        await { hasText(R.string.draft_saved) }
+        assertEquals("12.3400", field(R.string.workload_budget).text.toString())
+    }
+
+    @Test fun workloadRecreationRetainsStalePendingInputUntilExplicitReopen() {
+        field(R.string.workload_region).setText("entered baseline")
+        save()
+        val baseline = loaded()
+        field(R.string.workload_region).setText("pending region")
+        assertTrue(adapter().save(baseline, baseline.fields,
+            workloadInput = baseline.workloadInput.copy(region = "other writer")) is PreviewDraftSave.Saved)
+        recreate()
+        await { hasText(R.string.draft_reconcile) }
+        assertEquals("pending region", field(R.string.workload_region).text.toString())
+        assertFalse(button(R.string.save_draft).isEnabled)
+        assertEquals("other writer", loaded().workloadInput.region)
+        button(R.string.reopen_draft).performClick()
+        dialog().getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+        await { hasText(R.string.draft_saved) }
+        assertEquals("other writer", field(R.string.workload_region).text.toString())
+        field(R.string.workload_region).setText("")
+        save()
+        assertNull(loaded().workloadInput.region)
+    }
+
+    @Test fun classificationIsExplicitAndClearRemainsAnUnsavedWorkloadEdit() {
+        save()
+        fun classification() = views().filterIsInstance<Button>().single {
+            it.text.toString().startsWith(activity.getString(R.string.workload_classification) + ":")
+        }
+        classification().performClick()
+        shadowOf(dialog()).clickOnItem(3) // unanswered, public, internal, confidential
+        await { button(R.string.save_draft).isEnabled }
+        assertNull(loaded().workloadInput.dataClassification)
+        assertFalse(views().filterIsInstance<Button>().single { it.text.toString().startsWith("T3:") }.isEnabled)
+        save()
+        assertEquals(ai.pickyour.core.drafts.DraftDataClassification.CONFIDENTIAL, loaded().workloadInput.dataClassification)
+        recreate()
+        await { hasText(R.string.draft_saved) }
+        assertTrue(classification().text.toString().endsWith("confidential"))
+        button(R.string.clear_draft).performClick()
+        assertTrue(button(R.string.save_draft).isEnabled)
+        assertTrue(classification().text.toString().endsWith(activity.getString(R.string.workload_unanswered)))
+        assertEquals(ai.pickyour.core.drafts.DraftDataClassification.CONFIDENTIAL, loaded().workloadInput.dataClassification)
+        save()
+        assertNull(loaded().workloadInput.dataClassification)
+    }
+
+    @Test fun oversizedWorkloadPastesNeverSaveAValidPrefix() {
+        save()
+        val baseline = loaded().baselineIdentity
+        fun paste(label: Int, text: String) {
+            val editable = field(label).text
+            editable.replace(0, editable.length, text)
+        }
+        paste(R.string.workload_currency, "USDD")
+        assertEquals("USDD", field(R.string.workload_currency).text.toString())
+        assertFalse(button(R.string.save_draft).isEnabled)
+        paste(R.string.workload_currency, "")
+        val count = "9".repeat(129)
+        paste(R.string.workload_requests, count)
+        assertEquals(count, field(R.string.workload_requests).text.toString())
+        assertFalse(button(R.string.save_draft).isEnabled)
+        paste(R.string.workload_requests, "")
+        val budget = "9".repeat(16_385)
+        paste(R.string.workload_budget, budget)
+        assertEquals(budget, field(R.string.workload_budget).text.toString())
+        assertFalse(button(R.string.save_draft).isEnabled)
+        paste(R.string.workload_budget, "12.00")
+        paste(R.string.workload_budget, "9".repeat(16_386))
+        await { hasText(R.string.workload_rejected) }
+        assertEquals("12.00", field(R.string.workload_budget).text.toString())
+        assertFalse(button(R.string.save_draft).isEnabled)
+        recreate()
+        await { hasText(R.string.workload_rejected) && button(R.string.reopen_draft).isEnabled }
+        assertEquals("12.00", field(R.string.workload_budget).text.toString())
+        assertFalse(button(R.string.save_draft).isEnabled)
+        assertEquals(baseline, loaded().baselineIdentity)
+        paste(R.string.workload_budget, "13.00")
+        save()
+        assertEquals("13.00", loaded().workloadInput.monthlyBudgetAmount!!.encoded)
+    }
+
+    @Test fun retiredWorkloadClassificationCallbackCannotOpenAnotherDialog() {
+        save()
+        val original = loaded().baselineIdentity
+        val retired = views().filterIsInstance<Button>().single {
+            it.text.toString().startsWith(activity.getString(R.string.workload_classification) + ":")
+        }
+        recreate()
+        await { hasText(R.string.draft_saved) }
+        val previousDialog = ShadowAlertDialog.getLatestAlertDialog()
+        retired.performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+        assertSame(previousDialog, ShadowAlertDialog.getLatestAlertDialog())
+        assertEquals(original, loaded().baselineIdentity)
     }
 
 }

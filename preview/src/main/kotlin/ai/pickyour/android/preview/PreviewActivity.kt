@@ -7,6 +7,7 @@ import android.text.InputFilter
 import android.text.Editable
 import android.text.TextWatcher
 import ai.pickyour.core.preview.*
+import ai.pickyour.core.drafts.DraftWorkload
 import ai.pickyour.core.drafts.Activation
 import ai.pickyour.core.drafts.OptionalTier
 import ai.pickyour.core.drafts.DraftStorageFailure
@@ -32,6 +33,8 @@ import ai.pickyour.core.evidence.EvidenceLabel
 class PreviewActivity : Activity() {
     private val worker = Executors.newSingleThreadExecutor()
     private var destroyed = false
+    private lateinit var workloadSection: WorkloadSection
+    private var restoreWorkloadFromDisk = false
     private lateinit var tierSection: OptionalTierSection
     private var selectedId: String? = null
     private var selectedVersion: String? = null
@@ -80,6 +83,8 @@ class PreviewActivity : Activity() {
         restoration = savedInstanceState?.let {
             PreviewDraftRestoration(it.getString("draftBaseline"), it.getBoolean("draftRequiresReopen", true))
         }
+        val workloadCheckpoint = WorkloadSection.restore(savedInstanceState)
+        restoreWorkloadFromDisk = !workloadCheckpoint.hasInputs
         restoreContextFromDisk = savedInstanceState != null && !savedInstanceState.getBoolean("contextInputsPresent", false)
         domainContext = PreviewDraftContext(savedInstanceState?.getString("objective"), savedInstanceState?.getString("contextInput"))
         selectedId = savedInstanceState?.getString("selectedId")
@@ -151,11 +156,14 @@ class PreviewActivity : Activity() {
                 selectedVersion = null
                 selectedCatalogHash = null
                 applyContext(PreviewDraftContext())
+                workloadSection.apply(PreviewWorkloadInputs())
                 showSelection()
                 formChanged()
             }
         }
         content.addView(clear)
+        workloadSection = WorkloadSection(this, workloadCheckpoint.inputs, { !destroyed }) { formChanged() }
+        content.addView(workloadSection)
         saveStatus = text(R.string.draft_loading).apply { accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE }
         save = Button(this).apply { setText(R.string.save_draft); setOnClickListener { saveDraft() } }
         reopen = Button(this).apply {
@@ -373,7 +381,8 @@ class PreviewActivity : Activity() {
         contextState.text = getString(R.string.context_state, label(domainContext.objective), label(domainContext.context))
     }
 
-    private fun matchesSaved() = savedRecord?.let { it.fields == fields() && it.contextInput == domainContext } == true
+    private fun matchesSaved() = savedRecord?.let { it.fields == fields() && it.contextInput == domainContext &&
+        it.workloadInput == workloadSection.inputs.parsed() } == true
 
     private fun fields() = PreviewDraftFields(title.text.toString(), selectedId, selectedVersion, selectedCatalogHash)
 
@@ -391,7 +400,8 @@ class PreviewActivity : Activity() {
         objective.isEnabled = !storageBusy
         contextInput.isEnabled = !storageBusy
         clear.isEnabled = !storageBusy
-        save.isEnabled = storageReady && !storageBusy && !matchesSaved()
+        workloadSection.setEditable(!storageBusy)
+        save.isEnabled = storageReady && !storageBusy && workloadSection.inputs.parsed() != null && !matchesSaved()
         reopen.isEnabled = !storageBusy && selectionResolved
         history.isEnabled = storageReady && !storageBusy && savedRecord != null
         libraryButton.isEnabled = !storageBusy
@@ -527,7 +537,17 @@ class PreviewActivity : Activity() {
             value(content.primaryModel), content.optional.entries.joinToString("\n") { (tier, input) ->
                 getString(R.string.domain_restore_tier, tier.name, input.activation.name,
                     input.selections.size.toString(), input.settings.size.toString())
-            })
+            }) + "\n\n" + content.workload.let { w ->
+                listOf(R.string.workload_region to w.region, R.string.workload_currency to w.currency,
+                    R.string.workload_budget to w.monthlyBudgetAmount?.encoded,
+                    R.string.workload_requests to w.requestsPerDay?.toString(),
+                    R.string.workload_input_tokens to w.avgInputTokens?.toString(),
+                    R.string.workload_output_tokens to w.avgOutputTokens?.toString(),
+                    R.string.workload_concurrency to w.maxConcurrency?.toString(),
+                    R.string.workload_latency to w.maxLatencyMs?.toString(),
+                    R.string.workload_classification to w.dataClassification?.encoded)
+                    .joinToString("\n") { (label, input) -> "${getString(label)}: ${value(input)}" }
+            }
         AlertDialog.Builder(this).setTitle(getString(R.string.history_revision, revision.revision.toString()))
             .setMessage(getString(R.string.domain_restore_warning, summary))
             .setNegativeButton(R.string.keep_edits, null)
@@ -550,6 +570,7 @@ class PreviewActivity : Activity() {
                         is PreviewDraftSave.Saved -> {
                             savedRecord = result.record
                             applyContext(result.record.contextInput)
+                            workloadSection.apply(PreviewWorkloadInputs.from(result.record.workloadInput))
                             saveStatus.setText(if (matchesSaved()) R.string.draft_saved else R.string.draft_unsaved)
                         }
                         PreviewDraftSave.Conflict -> {
@@ -721,6 +742,7 @@ class PreviewActivity : Activity() {
                         selectedVersion = next.fields.selectedVersion
                         selectedCatalogHash = next.fields.catalogHash
                         applyContext(next.record?.contextInput ?: PreviewDraftContext())
+                        workloadSection.apply(PreviewWorkloadInputs.from(next.record?.workloadInput ?: DraftWorkload()))
                         restoringFields = false
                         activeDraft.text = getString(R.string.library_active, currentDraftId.value)
                         showSelection()
@@ -785,6 +807,9 @@ class PreviewActivity : Activity() {
                         val checkpoint = PreviewContextCheckpoint(!restoreContextFromDisk, domainContext)
                         applyContext(checkpoint.forLoad(preserveRestoredFields, savedRecord?.contextInput ?: PreviewDraftContext()))
                         restoreContextFromDisk = false
+                        val workloadCheckpoint = PreviewWorkloadCheckpoint(!restoreWorkloadFromDisk, workloadSection.inputs)
+                        workloadSection.apply(workloadCheckpoint.forLoad(preserveRestoredFields, savedRecord?.workloadInput ?: DraftWorkload()))
+                        restoreWorkloadFromDisk = false
                     }
                     if (storageReady && !preserveRestoredFields) {
                         val values = savedRecord?.fields ?: PreviewDraftFields()
@@ -812,13 +837,14 @@ class PreviewActivity : Activity() {
         if (!storageReady || storageBusy) return
         val id = currentDraftId
         val pendingContext = domainContext
+        val pendingWorkload = workloadSection.inputs.parsed() ?: return
         val pending = fields()
         val expected = savedRecord
         storageBusy = true
         saveStatus.setText(R.string.draft_saving)
         updateEditingEnabled()
         worker.execute {
-            val result = try { openPersistence(id).save(expected, pending, pendingContext) } catch (_: Exception) { null }
+            val result = try { openPersistence(id).save(expected, pending, pendingContext, pendingWorkload) } catch (_: Exception) { null }
             runOnUiThread {
                 if (!destroyed) {
                     storageBusy = false
@@ -850,6 +876,7 @@ class PreviewActivity : Activity() {
         val checkpoint = PreviewDraftRestoration.capture(savedRecord, storageReady, storageBusy)
         outState.putString("draftBaseline", checkpoint.baselineIdentity)
         outState.putBoolean("draftRequiresReopen", checkpoint.requiresReopen)
+        workloadSection.save(outState)
         outState.putBoolean("contextInputsPresent", true)
         outState.putString("objective", domainContext.objective)
         outState.putString("contextInput", domainContext.context)
