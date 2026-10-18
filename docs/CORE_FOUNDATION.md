@@ -207,3 +207,9 @@ measured-run wire fields as immutable Kotlin values, including exact numbers and
 optional absence. Shared Python/Kotlin mutation cases and malformed-input tests
 cover this structural boundary; decoding does not authenticate or execute an
 evaluation, bind it to the current build, or certify its reported result.
+
+The [dependency graph decoder](DEPENDENCY_GRAPH_BOUNDARY.md) retains all frozen
+edge fields, order, duplicate/cyclic relationships and exact revisions as immutable
+values. Shared Python/Kotlin cases cover the structural boundary. An explicit
+overload projects those values into the existing direct-adjacency invalidation
+algorithm without changing its activation truth table or authorizing graph policy.
