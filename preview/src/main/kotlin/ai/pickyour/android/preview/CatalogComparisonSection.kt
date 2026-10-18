@@ -16,15 +16,17 @@ import ai.pickyour.core.pricing.RecordedPricebook
 class CatalogComparisonSection(private val activity: Activity, saved: Bundle?) : LinearLayout(activity) {
     private var resetState = false
     private var tray = try {
-        val ids = saved?.getStringArrayList("comparisonIds")
-        val versions = saved?.getStringArrayList("comparisonVersions")
-        val hashes = saved?.getStringArrayList("comparisonHashes")
-        if (ids == null && versions == null && hashes == null) PreviewCatalogTray()
+        // The Bundle getter validates the outer ArrayList only; elements remain untrusted.
+        val ids: List<*>? = saved?.getStringArrayList("comparisonIds")
+        val versions: List<*>? = saved?.getStringArrayList("comparisonVersions")
+        val hashes: List<*>? = saved?.getStringArrayList("comparisonHashes")
+        val hasPins = saved != null && listOf("comparisonIds", "comparisonVersions", "comparisonHashes").any(saved::containsKey)
+        if (!hasPins) PreviewCatalogTray()
         else {
             require(ids != null && versions != null && hashes != null)
             require(ids.size <= PreviewCatalogTray.LIMIT && versions.size == ids.size && hashes.size == ids.size)
-            PreviewCatalogTray(ids.indices.map { PreviewCatalogPin(requireNotNull(ids.getOrNull(it)),
-                requireNotNull(versions.getOrNull(it)), requireNotNull(hashes.getOrNull(it))) })
+            PreviewCatalogTray(ids.indices.map { PreviewCatalogPin(requireNotNull(ids.getOrNull(it) as? String),
+                requireNotNull(versions.getOrNull(it) as? String), requireNotNull(hashes.getOrNull(it) as? String)) })
         }
     } catch (_: IllegalArgumentException) { resetState = true; PreviewCatalogTray() }
     private var differencesOnly = saved?.getBoolean("comparisonDifferencesOnly", false) ?: false

@@ -152,6 +152,8 @@ jobs:
               "catalogComparisonKeepsUnavailablePinsAndRejectsAnOldDetailAfterSnapshotReplacement",
               "retiredCatalogComparisonControlsCannotMutateStateOrOpenDialogs",
               "invalidCatalogComparisonRestorationIsExplicitAndPreservesPendingEditorInputs",
+              "nonStringCatalogComparisonPinsResetWithoutLosingPendingDraftInputs",
+              "catalogDetailsAndComparisonEscapeUnicodeSeparatorsWithoutChangingRecordedValues",
               "catalogComparisonStackedHeadingsAndToggleRemainMeasuredAtNarrowRtlLargeText",
               "catalogDetailKeepsLiteralUnknownIdentitySeparateFromUnknownSpec",
               "catalogDetailRenderingKeepsUnknownAndBoundedLiteralSourceValues",
@@ -225,6 +227,8 @@ jobs:
               "cancelledReopenConfirmationCannotDiscardPendingInputs",
               "confirmedCreateDuplicateOpenAndDeleteKeepTheirSelectedIdentities",
               "reopenConfirmationCannotAdoptANewerSavedBaseline",
+              "reopenConfirmationKeepsConflictPendingFieldsUntilFreshConsent",
+              "olderReopenCannotDiscardLaterEditsAfterFreshMissingDraftReconciliation",
           }
           cases = suite.findall("testcase")
           names = [case.attrib["name"] for case in cases]
@@ -235,6 +239,33 @@ jobs:
           if int(suite.attrib["tests"]) != len(cases):
               raise SystemExit("Local dialog authority result count does not match executed cases")
           print(f"Verified {len(cases)} simulated local dialog authority tests; no installed-device claim")
+          PYTEST
+      - name: Require complete recorded-price browser regressions to execute
+        run: |
+          python - <<'PYTEST'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          report = pathlib.Path("preview/build/test-results/testDebugUnitTest/TEST-ai.pickyour.android.preview.CatalogPriceBrowserActivityTest.xml")
+          suite = ET.parse(report).getroot()
+          expected = {
+              "actualPriceBrowserRetiresParentActionsAndPreservesPendingDomainAndSavedBaseline",
+              "everyExactRateAndSnapshotFieldIsReachableWithoutSelectingAnAlternative",
+              "numericRevisionLimitsBoundEveryAcceptedCatalogAndPricebookDigit",
+              "allConditionsRetainStoredOrderAndRemainReachableAcrossBoundedFieldPages",
+              "completeLongLiteralPartsPreserveDecimalsEscapesAndPlainSourceUris",
+              "missingPricebookAndExactRateUseDistinctUnknownRecoveryWithoutFreeFallback",
+              "absentEmptyUnknownAndZeroStayDistinctFromEligibilityAndVerification",
+              "cancelledAndReplacedRateFieldAndValueCallbacksCannotReopenOrReplaceCurrentDialog",
+              "actualReloadSnapshotReplacementAndRecreationRetireTheCapturedBrowser",
+              "actualSavedBaselineChangeRetiresBrowserWithoutDiscardingPendingInputs",
+              "actualNewDetailRetiresOldBrowserEvenWhenItsCapturedDataIsUnchanged",
+              "narrowRtlLargeTextPriceControlsRetainVisibleTargetsAndCompleteLabels",
+          }
+          cases = suite.findall("testcase")
+          assert expected <= {case.attrib["name"] for case in cases}, "Missing recorded-price browser regression"
+          assert all(not case.findall("failure") and not case.findall("error") and not case.findall("skipped") for case in cases), "Recorded-price browser regression did not pass"
+          assert int(suite.attrib["tests"]) >= len(expected)
+          print(f"Verified {len(cases)} simulated recorded-price browser tests; no installed-device claim")
           PYTEST
       - name: Retain unsigned diagnostic and lint reports
         if: always()

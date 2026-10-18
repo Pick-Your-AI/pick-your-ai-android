@@ -33,10 +33,14 @@ class LibraryDialogAuthorityTest {
     private lateinit var baseline: String
     private lateinit var active: PreviewActiveRead
 
-    @Before fun launchWithPendingEdits() {
+    @Before fun launchMissingDraft() {
         controller = Robolectric.buildActivity(PreviewActivity::class.java).setup()
         await { button(R.string.save_draft).isEnabled }
         assertTrue(library.openLegacy().load() is PreviewDraftLoad.Missing)
+        active = PreviewActiveDraftStore(activity.noBackupFilesDir.toPath()).read()
+    }
+
+    private fun preparePendingEdits() {
         field(R.string.draft_title).setText("saved title")
         button(R.string.save_draft).performClick()
         await { hasText(R.string.draft_saved) }
@@ -126,6 +130,7 @@ class LibraryDialogAuthorityTest {
     }
 
     @Test fun cancelledLibraryPickerCannotOpenEntry() {
+        preparePendingEdits()
         val picker = openLibrary()
         cancel(picker)
         shadowOf(picker).clickOnItem(0)
@@ -133,6 +138,7 @@ class LibraryDialogAuthorityTest {
     }
 
     @Test fun cancelledLibraryEntryCannotReopenSavedDraft() {
+        preparePendingEdits()
         val entry = openEntry()
         val open = entry.getButton(AlertDialog.BUTTON_POSITIVE)
         cancel(entry)
@@ -141,6 +147,7 @@ class LibraryDialogAuthorityTest {
     }
 
     @Test fun cancelledLibraryEntryCannotOpenDeletionConfirmation() {
+        preparePendingEdits()
         val entry = openEntry()
         val delete = entry.getButton(AlertDialog.BUTTON_NEUTRAL)
         cancel(entry)
@@ -149,6 +156,7 @@ class LibraryDialogAuthorityTest {
     }
 
     @Test fun cancelledDeleteConfirmationCannotDeleteSavedDraft() {
+        preparePendingEdits()
         val entry = openEntry()
         entry.getButton(AlertDialog.BUTTON_NEUTRAL).performClick()
         await { dialog() !== entry && dialog().isShowing }
@@ -160,6 +168,7 @@ class LibraryDialogAuthorityTest {
     }
 
     @Test fun cancelledNewDraftConfirmationCannotCreateOrSwitchDraft() {
+        preparePendingEdits()
         button(R.string.library_new).performClick()
         val confirmation = dialog()
         val create = confirmation.getButton(AlertDialog.BUTTON_POSITIVE)
@@ -169,6 +178,7 @@ class LibraryDialogAuthorityTest {
     }
 
     @Test fun cancelledDuplicateConfirmationCannotCreateOrSwitchDraft() {
+        preparePendingEdits()
         button(R.string.library_duplicate).performClick()
         val confirmation = dialog()
         val duplicate = confirmation.getButton(AlertDialog.BUTTON_POSITIVE)
@@ -178,6 +188,7 @@ class LibraryDialogAuthorityTest {
     }
 
     @Test fun cancelledRecoveryConfirmationCannotCreateOrSwitchDraft() {
+        preparePendingEdits()
         button(R.string.recovery_copy).performClick()
         val confirmation = dialog()
         val recover = confirmation.getButton(AlertDialog.BUTTON_POSITIVE)
@@ -187,6 +198,7 @@ class LibraryDialogAuthorityTest {
     }
 
     @Test fun cancelledReopenConfirmationCannotDiscardPendingInputs() {
+        preparePendingEdits()
         button(R.string.reopen_draft).performClick()
         val confirmation = dialog()
         val reopen = confirmation.getButton(AlertDialog.BUTTON_POSITIVE)
@@ -196,6 +208,7 @@ class LibraryDialogAuthorityTest {
     }
 
     @Test fun confirmedCreateDuplicateOpenAndDeleteKeepTheirSelectedIdentities() {
+        preparePendingEdits()
         fun selected() = (PreviewActiveDraftStore(activity.noBackupFilesDir.toPath()).read() as? PreviewActiveRead.Selected)?.id
         fun entry(id: PreviewDraftId): AlertDialog {
             val picker = openLibrary()
@@ -248,6 +261,7 @@ class LibraryDialogAuthorityTest {
     }
 
     @Test fun reopenConfirmationCannotAdoptANewerSavedBaseline() {
+        preparePendingEdits()
         button(R.string.reopen_draft).performClick()
         val stale = dialog()
         button(R.string.save_draft).performClick()
@@ -263,6 +277,67 @@ class LibraryDialogAuthorityTest {
         assertEquals("later pending title", field(R.string.draft_title).text.toString())
         assertEquals("later pending objective", field(R.string.context_objective).text.toString())
         assertTrue(hasText(R.string.draft_unsaved))
+        assertTrue(button(R.string.save_draft).isEnabled)
+    }
+
+    @Test fun reopenConfirmationKeepsConflictPendingFieldsUntilFreshConsent() {
+        preparePendingEdits()
+        button(R.string.reopen_draft).performClick()
+        val stale = dialog()
+        val competing = library.openLegacy().save(loaded(), PreviewDraftFields("competing acknowledged title"),
+            PreviewDraftContext("competing acknowledged objective")) as PreviewDraftSave.Saved
+        button(R.string.save_draft).performClick()
+        await { hasText(R.string.draft_conflict) && button(R.string.reopen_draft).isEnabled }
+        assertFalse(button(R.string.save_draft).isEnabled)
+        field(R.string.draft_title).setText("pending title after conflict")
+        field(R.string.context_objective).setText("pending objective after conflict")
+
+        stale.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+        finishWork()
+        assertEquals(competing.record.baselineIdentity, loaded().baselineIdentity)
+        assertEquals("pending title after conflict", field(R.string.draft_title).text.toString())
+        assertEquals("pending objective after conflict", field(R.string.context_objective).text.toString())
+        assertEquals("12.3400", field(R.string.workload_budget).text.toString())
+        assertFalse(button(R.string.save_draft).isEnabled)
+
+        button(R.string.reopen_draft).performClick()
+        val fresh = dialog()
+        assertNotSame(stale, fresh)
+        fresh.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+        await { hasText(R.string.draft_saved) && button(R.string.library_open).isEnabled }
+        assertEquals("competing acknowledged title", field(R.string.draft_title).text.toString())
+        assertEquals("competing acknowledged objective", field(R.string.context_objective).text.toString())
+        assertEquals(competing.record.baselineIdentity, loaded().baselineIdentity)
+        assertEquals(active, PreviewActiveDraftStore(activity.noBackupFilesDir.toPath()).read())
+        assertFalse(button(R.string.save_draft).isEnabled)
+    }
+
+    // Preserves the independent Missing→Missing reproduction and fresh control from review5562329803.
+    @Test fun olderReopenCannotDiscardLaterEditsAfterFreshMissingDraftReconciliation() {
+        assertEquals(PreviewDraftLoad.Missing, library.openLegacy().load())
+        field(R.string.draft_title).setText("original unsaved title")
+        field(R.string.context_objective).setText("original unsaved objective")
+        button(R.string.reopen_draft).performClick()
+        val older = dialog()
+        assertTrue(older.isShowing)
+        button(R.string.reopen_draft).performClick()
+        val fresh = dialog()
+        assertNotSame(older, fresh)
+        assertTrue(fresh.isShowing)
+        fresh.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+        finishWork()
+        assertFalse(fresh.isShowing)
+        assertEquals("", field(R.string.draft_title).text.toString())
+        assertEquals(PreviewDraftLoad.Missing, library.openLegacy().load())
+        assertTrue(button(R.string.save_draft).isEnabled)
+        field(R.string.draft_title).setText("later unsaved title")
+        field(R.string.context_objective).setText("later unsaved objective")
+        older.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+        finishWork()
+        assertEquals("later unsaved title", field(R.string.draft_title).text.toString())
+        assertEquals("later unsaved objective", field(R.string.context_objective).text.toString())
+        assertEquals(PreviewDraftLoad.Missing, library.openLegacy().load())
+        assertEquals(active, PreviewActiveDraftStore(activity.noBackupFilesDir.toPath()).read())
         assertTrue(button(R.string.save_draft).isEnabled)
     }
 }

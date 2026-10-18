@@ -2,7 +2,7 @@
     <string name="catalog_price_unavailable">Recorded price context is unavailable. Currency, region, meter and effective period are unknown; retry loading the catalog. Missing pricing is not free.</string>
     <string name="catalog_price_notice">Recorded price context\nThis preview uses fictional price records from a dated snapshot. These are historical metadata, not a current quote.</string>
     <string name="catalog_price_snapshot">Pricebook: %1$s\nRevision: %2$s\nCaptured at: %3$s\nSHA-256: %4$s</string>
-    <string name="catalog_price_count">Exact item/version price records displayed: %1$d / %2$d. Every alternative is retained in the pricebook; none is selected or added together.</string>
+    <string name="catalog_price_count">Exact item/version price records displayed: %1$d / %2$d. Every alternative is retained in the pricebook; none is selected or added together. Review all recorded prices opens every record, field and complete literal value.</string>
     <string name="catalog_price_no_record">No recorded rate matches this exact item ID and version. No other item or newer version is substituted. Pricing remains unknown, not free.</string>
     <string name="catalog_price_rate">Recorded rate %1$d\nRate ID: %2$s\nCatalog item ID: %3$s\nCatalog item version: %4$s</string>
     <string name="catalog_price_units">Meter: %1$s\nRecorded unit_price.amount: %2$s\nCurrency: %3$s\nRegion: %4$s\nRecorded price_type: %5$s</string>

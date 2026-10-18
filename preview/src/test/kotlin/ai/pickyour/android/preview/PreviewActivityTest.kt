@@ -1449,6 +1449,96 @@ class PreviewActivityTest {
         assertTrue(adapter().load() is PreviewDraftLoad.Missing)
     }
 
+    @Test fun nonStringCatalogComparisonPinsResetWithoutLosingPendingDraftInputs() {
+        save()
+        val baseline = loaded().baselineIdentity
+        field(R.string.draft_title).setText("pending typed tray recovery")
+        field(R.string.context_objective).setText("pending objective")
+        field(R.string.workload_budget).setText("12.00")
+        val bytes = activity.assets.open("catalog.json").use { it.readBytes() }
+        val hash = requireNotNull(PreviewCatalogBrowser.read(bytes)).hash
+        for (malformedKey in listOf("comparisonIds", "comparisonVersions", "comparisonHashes")) {
+            val state = Bundle()
+            controller.pause().saveInstanceState(state).stop().destroy()
+            state.putStringArrayList("comparisonIds", arrayListOf("cat.model.fixture"))
+            state.putStringArrayList("comparisonVersions", arrayListOf("2026.10-demo"))
+            state.putStringArrayList("comparisonHashes", arrayListOf(hash))
+            // Bundle's generic getter checks the outer ArrayList, not its elements.
+            state.putIntegerArrayList(malformedKey, arrayListOf(1))
+            controller = Robolectric.buildActivity(PreviewActivity::class.java)
+            controller.create(state).start().resume().visible()
+            await { button(R.string.save_draft).isEnabled }
+            assertTrue(views().filterIsInstance<TextView>().any {
+                it.text.toString().contains(activity.getString(R.string.catalog_compare_reset))
+            })
+            assertTrue(comparisonRemovals().isEmpty())
+            assertFalse(button(R.string.catalog_compare_open).isEnabled)
+            assertEquals("pending typed tray recovery", field(R.string.draft_title).text.toString())
+            assertEquals("pending objective", field(R.string.context_objective).text.toString())
+            assertEquals("12.00", field(R.string.workload_budget).text.toString())
+            assertEquals(baseline, loaded().baselineIdentity)
+            val restored = Bundle().also { comparisonSection().save(it) }
+            for (key in listOf("comparisonIds", "comparisonVersions", "comparisonHashes")) {
+                assertTrue(requireNotNull(restored.getStringArrayList(key)).isEmpty())
+            }
+            assertNull(shadowOf(activity).nextStartedActivity)
+        }
+    }
+
+    @Test fun catalogDetailsAndComparisonEscapeUnicodeSeparatorsWithoutChangingRecordedValues() {
+        save()
+        val baseline = loaded().baselineIdentity
+        field(R.string.draft_title).setText("pending literal comparison")
+        val root = activity.assets.open("catalog.json").bufferedReader(Charsets.UTF_8).use { org.json.JSONObject(it.readText()) }
+        val items = root.getJSONArray("items")
+        val provider = (0 until items.length()).map { items.getJSONObject(it) }.single { it.getString("kind") == "model_provider" }
+        provider.getJSONObject("spec").put("supported_regions", org.json.JSONArray()
+            .put("region\u2028line").put("region\u2029paragraph").put("unknown"))
+        provider.put("license", org.json.JSONObject().put("spdx_id", "TEST\u2028ONLY\u2029LITERAL"))
+        val newer = org.json.JSONObject(provider.toString()).put("version", "literal-successor")
+        newer.getJSONObject("spec").put("supported_regions", org.json.JSONArray()
+            .put("region\u2028line").put("region\u2029paragraph"))
+        items.put(newer)
+        val browser = requireNotNull(PreviewCatalogBrowser.read(root.toString().toByteArray(Charsets.UTF_8)))
+        val details = browser.items.filter { it.kind == "model_provider" }.map {
+            requireNotNull(browser.details(it, browser.hash))
+        }
+        val recorded = details.map { detail -> (detail.specs + detail.license).map { it.valueJson } }
+        assertEquals(2, recorded.size)
+        assertTrue(recorded.flatten().filterNotNull().any { it.contains('\u2028') && it.contains('\u2029') })
+        fun assertEscaped(text: String) {
+            assertTrue(text.contains("\\u2028"))
+            assertTrue(text.contains("\\u2029"))
+            assertFalse(text.contains('\u2028'))
+            assertFalse(text.contains('\u2029'))
+        }
+        views().filterIsInstance<CatalogBrowseSection>().single().show(browser)
+        comparisonSection().show(browser)
+        field(R.string.catalog_search).setText("cat.model_provider.fixture")
+        assertEquals(2, samples().size)
+        samples().toList().forEach { sample ->
+            sample.performClick()
+            val detail = dialog()
+            assertEscaped(shadowOf(detail).message.toString())
+            comparisonAdd(detail).performClick()
+            await { !detail.isShowing }
+        }
+        assertTrue(button(R.string.catalog_compare_open).isEnabled)
+        button(R.string.catalog_compare_open).performClick()
+        val comparison = dialog()
+        fun text() = views(comparison.window!!.decorView).filterIsInstance<TextView>()
+            .joinToString("\n") { it.text.toString() }
+        assertEscaped(text())
+        views(comparison.window!!.decorView).filterIsInstance<android.widget.CheckBox>().single().performClick()
+        assertEscaped(text())
+        assertEquals(recorded, details.map { detail -> (detail.specs + detail.license).map { it.valueJson } })
+        val pins = Bundle().also { comparisonSection().save(it) }
+        assertEquals(listOf(browser.hash, browser.hash), pins.getStringArrayList("comparisonHashes"))
+        assertEquals("pending literal comparison", field(R.string.draft_title).text.toString())
+        assertEquals(baseline, loaded().baselineIdentity)
+        assertNull(shadowOf(activity).nextStartedActivity)
+    }
+
     @Test
     @Config(qualifiers = "ar-rEG-ldrtl-w320dp-h640dp")
     @GraphicsMode(GraphicsMode.Mode.NATIVE)

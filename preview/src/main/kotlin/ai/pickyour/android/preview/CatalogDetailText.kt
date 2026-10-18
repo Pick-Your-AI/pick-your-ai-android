@@ -24,7 +24,7 @@ internal object CatalogDetailText {
         val safe = buildString {
             for (char in raw.take(MAX_VALUE)) {
                 if (Character.isISOControl(char) || Character.isSurrogate(char) ||
-                    Character.getType(char) == Character.FORMAT.toInt())
+                    Character.getType(char) == Character.FORMAT.toInt() || char == '\u2028' || char == '\u2029')
                     append("\\u" + char.code.toString(16).padStart(4, '0')) else append(char)
             }
         }
