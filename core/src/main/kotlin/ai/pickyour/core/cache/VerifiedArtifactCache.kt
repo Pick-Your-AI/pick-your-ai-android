@@ -46,14 +46,17 @@ sealed interface CacheInstall {
     data class ActivationUncertain(val hash: ArtifactHash) : CacheInstall
 }
 
-internal enum class CacheWritePoint { STAGED, ARTIFACT_PUBLISHED, POINTER_STAGED, POINTER_ACTIVATED }
+internal enum class CacheWritePoint {
+    STAGED, ARTIFACT_PUBLISHED, POINTER_STAGED, POINTER_ACTIVATED,
+    CURRENT_POINTER_VERIFIED, CURRENT_PAYLOAD_REMOVED,
+}
 
 /**
  * Single-artifact (or caller-validated complete bundle) cache in an existing app-private directory.
  * Caller must durably provision the root and all ancestor directory entries before construction.
  * The caller supplies a trusted expected hash and is responsible for schema/rights/freshness checks.
- * No networking, archive unpacking, scheduling, automatic eviction or multi-file catalog assembly.
- * Pinned hashes remain readable after activation of newer bytes. Optional explicit retention limits
+ * No networking, archive unpacking, scheduling or multi-file catalog assembly. Ordinary install never
+ * evicts: pinned hashes remain readable after activation of newer bytes. Optional explicit retention limits
  * reject new artifacts without eviction. Without those limits, retained storage remains unbounded.
  * The owner must choose and integrate a reviewed retention policy before production refresh.
  *
@@ -84,19 +87,25 @@ class VerifiedArtifactCache internal constructor(
     }
 
     fun active(): CacheRead = readSafely {
-        val pointer = root.resolve("active")
-        if (!Files.exists(pointer, NOFOLLOW_LINKS)) return@readSafely CacheRead.Missing
-        val text = readFile(pointer, 64)
-        if (text.size != 64) fail(CacheFailure.CORRUPT)
-        val hash = try { ArtifactHash(String(text, Charsets.US_ASCII)) } catch (_: IllegalArgumentException) {
-            fail(CacheFailure.CORRUPT)
-        }
+        val hash = activeHash() ?: return@readSafely CacheRead.Missing
         readVerified(hash, missingIsCorrupt = true)
     }
 
     fun pinned(hash: ArtifactHash): CacheRead = readSafely { readVerified(hash, missingIsCorrupt = false) }
 
-    fun install(expected: ArtifactHash, input: InputStream): CacheInstall {
+    fun install(expected: ArtifactHash, input: InputStream): CacheInstall = install(expected, input, currentOnly = false)
+
+    /**
+     * Explicit private current-value storage: inactive hashes must have no retained/pending consumers.
+     * Only the last-opened selection store opts in. Ordinary install/pinned never reclaim old pins.
+     * One bounded scan before publication protects the verified current and incoming hashes. After a
+     * distinct switch, the former current remains through all post-activation uncertainty; a later
+     * installation can reclaim it. Reads never reclaim. Legacy cleanup makes incremental progress.
+     */
+    internal fun installCurrent(expected: ArtifactHash, input: InputStream): CacheInstall =
+        install(expected, input, currentOnly = true)
+
+    private fun install(expected: ArtifactHash, input: InputStream, currentOnly: Boolean): CacheInstall {
         var activationAttempted = false
         return try {
             locked {
@@ -117,11 +126,35 @@ class VerifiedArtifactCache internal constructor(
                     checkpoint(CacheWritePoint.STAGED)
                     cancelled()
                     val destination = artifact(expected)
-                    if (Files.exists(destination, NOFOLLOW_LINKS)) {
+                    val retained = Files.exists(destination, NOFOLLOW_LINKS)
+                    if (retained) {
                         // Never rewrite an immutable pin, even if its existing contents are damaged.
                         readVerified(expected, missingIsCorrupt = true)
                         Files.delete(stage)
-                    } else {
+                    }
+                    if (currentOnly) {
+                        // An unreadable pointer must not grant authority to discard its payload.
+                        // Explicit selection can still repair it by publishing a new verified value.
+                        val previous = try {
+                            CurrentPointer(activeHash()?.also { readVerified(it, missingIsCorrupt = true) })
+                        } catch (failure: Failure) {
+                            if (failure.reason == CacheFailure.CANCELLED) throw failure
+                            null
+                        } catch (_: IOException) { null }
+                        if (previous != null) {
+                            checkpoint(CacheWritePoint.CURRENT_POINTER_VERIFIED)
+                            // A prior uncertain activation may be visible but not durable yet.
+                            // Confirm its pointer before discarding any possible predecessor.
+                            syncDirectory()
+                            val progress = reclaimCurrent(setOfNotNull(previous.hash, expected))
+                            if (progress.removed > 0) syncDirectory()
+                            // Do not grow a damaged/foreign-filled directory when bounded cleanup
+                            // cannot make progress. Ordinary legacy payloads are reclaimed in batches.
+                            if (!retained && !progress.complete && progress.removed == 0)
+                                fail(CacheFailure.RETENTION_LIMIT)
+                        }
+                    }
+                    if (!retained) {
                         enforceRetention(Files.size(stage))
                         Files.move(stage, destination, ATOMIC_MOVE)
                     }
@@ -158,6 +191,48 @@ class VerifiedArtifactCache internal constructor(
         CacheRead.Failed(error.reason)
     } catch (_: IOException) {
         CacheRead.Failed(CacheFailure.IO_FAILURE)
+    }
+
+    private fun activeHash(): ArtifactHash? {
+        val pointer = root.resolve("active")
+        if (!Files.exists(pointer, NOFOLLOW_LINKS)) return null
+        val text = readFile(pointer, 64)
+        if (text.size != 64) fail(CacheFailure.CORRUPT)
+        return try { ArtifactHash(String(text, Charsets.US_ASCII)) } catch (_: IllegalArgumentException) {
+            fail(CacheFailure.CORRUPT)
+        }
+    }
+
+    private data class CurrentPointer(val hash: ArtifactHash?)
+    private data class CleanupProgress(val complete: Boolean, val removed: Int)
+
+    /** The existing exclusive cache lock protects pointer authority through scan, removal and sync. */
+    private fun reclaimCurrent(keep: Set<ArtifactHash>): CleanupProgress {
+        val names = keep.map { "${it.hex}.bin" }.toSet()
+        try {
+            Files.newDirectoryStream(root).use { entries ->
+                val iterator = entries.iterator()
+                val obsolete = ArrayList<Path>()
+                var scanned = 0
+                while (scanned < CURRENT_CLEANUP_ENTRIES && iterator.hasNext()) {
+                    cancelled()
+                    val entry = iterator.next()
+                    scanned++ // Foreign and wrong-type entries consume the same bounded work budget.
+                    val name = entry.fileName.toString()
+                    if (name in names || !artifactName.matches(name)) continue
+                    if (!Files.isRegularFile(entry, NOFOLLOW_LINKS)) fail(CacheFailure.CORRUPT)
+                    obsolete.add(entry)
+                }
+                val complete = !iterator.hasNext()
+                for (entry in obsolete) {
+                    cancelled()
+                    Files.delete(entry)
+                    checkpoint(CacheWritePoint.CURRENT_PAYLOAD_REMOVED)
+                }
+                cancelled()
+                return CleanupProgress(complete, obsolete.size)
+            }
+        } catch (_: DirectoryIteratorException) { fail(CacheFailure.IO_FAILURE) }
     }
 
     private fun readVerified(hash: ArtifactHash, missingIsCorrupt: Boolean): CacheRead {
@@ -204,6 +279,7 @@ class VerifiedArtifactCache internal constructor(
     private companion object {
         val activeRoots = HashSet<Path>()
         val artifactName = Regex("[0-9a-f]{64}\\.bin")
+        const val CURRENT_CLEANUP_ENTRIES = 256
     }
 
     /** Under the same exclusive lock as publication; failed-publication payloads also consume quota. */
