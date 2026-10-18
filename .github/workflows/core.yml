@@ -131,6 +131,8 @@ jobs:
               "catalogComparisonKeepsUnavailablePinsAndRejectsAnOldDetailAfterSnapshotReplacement",
               "retiredCatalogComparisonControlsCannotMutateStateOrOpenDialogs",
               "invalidCatalogComparisonRestorationIsExplicitAndPreservesPendingEditorInputs",
+              "nonStringCatalogComparisonPinsResetWithoutLosingPendingDraftInputs",
+              "catalogDetailsAndComparisonEscapeUnicodeSeparatorsWithoutChangingRecordedValues",
               "catalogComparisonStackedHeadingsAndToggleRemainMeasuredAtNarrowRtlLargeText",
               "catalogDetailKeepsLiteralUnknownIdentitySeparateFromUnknownSpec",
               "catalogDetailRenderingKeepsUnknownAndBoundedLiteralSourceValues",
