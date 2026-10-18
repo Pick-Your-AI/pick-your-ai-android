@@ -18,6 +18,8 @@ import java.util.concurrent.atomic.AtomicReference
 
 class LocalSnapshotArchiveTest {
     @TempDir lateinit var root: Path
+    private val ordinaryWritePoints = listOf(CacheWritePoint.STAGED, CacheWritePoint.ARTIFACT_PUBLISHED,
+        CacheWritePoint.POINTER_STAGED, CacheWritePoint.POINTER_ACTIVATED)
     private val sourcePath get() = directory("source")
     private val archivePath get() = directory("archive")
     private fun directory(name: String) = root.resolve(name).also { Files.createDirectories(it) }
@@ -160,7 +162,7 @@ class LocalSnapshotArchiveTest {
     }
 
     @Test fun `all bundle and index write interruptions preserve earlier entries and reconcile exact complete orphans`() {
-        for (target in listOf("bundles", "indices")) for (point in CacheWritePoint.entries) {
+        for (target in listOf("bundles", "indices")) for (point in ordinaryWritePoints) {
             val name = "$target-${point.name.lowercase()}"
             val path = directory(name)
             var armed = false
@@ -196,6 +198,40 @@ class LocalSnapshotArchiveTest {
         }
     }
 
+    @Test fun `ordinary archive publication never uses current cleanup and preserves every earlier bundle and index pin`() {
+        complete()
+        val sourceBefore = sourceRaw()
+        val reached = mutableMapOf<String, MutableSet<CacheWritePoint>>()
+        val currentOnly = setOf(CacheWritePoint.CURRENT_POINTER_VERIFIED, CacheWritePoint.CURRENT_PAYLOAD_REMOVED)
+        val archive = LocalSnapshotArchive(archivePath, SnapshotArchiveLimits(), { path, max, retention ->
+            VerifiedArtifactCache(path, max, retention) { point ->
+                assertFalse(point in currentOnly, "Immutable archive must not invoke current-value cleanup: $point")
+                reached.getOrPut(path.fileName.toString()) { mutableSetOf() }.add(point)
+            }
+        })
+        val empty = current(archive)
+        var priorPins = retainedFiles(archivePath).filterKeys { it.endsWith(".bin") }
+        assertTrue(priorPins.isNotEmpty())
+        val publications = listOf("first", "second", "third").map { name ->
+            val review = review(id = "build.ordinary.$name")
+            val saved = archived(save(review, current(archive).version, archive))
+            val after = retainedFiles(archivePath)
+            priorPins.forEach { (path, hash) -> assertEquals(hash, after[path], "Previously retained pin: $path") }
+            priorPins = after.filterKeys { it.endsWith(".bin") }
+            review to saved
+        }
+        assertEquals(3, current(archive).entries.size)
+        assertEquals(SnapshotArchiveRead.Missing, archive.readAt(empty.version, publications.first().second.entry.key))
+        for ((review, saved) in publications) {
+            val retained = archive.readAt(saved.version, saved.entry.key) as SnapshotArchiveRead.Available
+            assertArrayEquals(review.candidateBytes, retained.snapshot.bytes())
+            assertArrayEquals(review.sourceBytes, retained.snapshot.sourceBytes())
+        }
+        assertEquals(setOf("bundles", "indices"), reached.keys)
+        reached.forEach { (target, points) -> assertEquals(ordinaryWritePoints.toSet(), points, target) }
+        assertArrayEquals(sourceBefore, sourceRaw())
+    }
+
     @Test fun `loss of current index never resets sealed namespace and captured history stays read only`() {
         complete()
         val first = archived(save(review()))
@@ -229,7 +265,7 @@ class LocalSnapshotArchiveTest {
     }
 
     @Test fun `initial empty index interruption can resume only that exact never published baseline`() {
-        for (point in CacheWritePoint.entries) {
+        for (point in ordinaryWritePoints) {
             val path = directory("initial-${point.name}")
             var armed = true
             val failing = LocalSnapshotArchive(path, SnapshotArchiveLimits(), { cachePath, max, retention ->
