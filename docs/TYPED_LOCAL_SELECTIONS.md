@@ -15,11 +15,14 @@ does not resolve them. Canonical receiving records remain `07.05.md` and `08.02.
 under `docs/delivery/android/work-packages/` in `Pick-Your-AI/pickyour.ai`; this file
 is implementation evidence, not a relocated acceptance record or closure receipt.
 
-The exact command subset is the frozen registry's T1/T2 kinds: `model_provider`,
+The exact command subset is the frozen registry's T0/T1/T2 kinds: `workload`,
+`deployment_mode`, `model_provider`,
 `model`, `context_policy`, `hosting_platform`, `accelerator`, `compute_profile`,
 `inference_engine` and `storage`. All other valid frozen kinds can be retained,
 compared, duplicated and restored; their mutation commands return
 `UNSUPPORTED_KIND`. Optional legacy tier controls retain their existing meaning.
+The [explicit foundation editor](FOUNDATION_SELECTIONS.md) adds only the two T0
+kinds to the same commands; it does not adapt placement or decide applicability.
 
 ## Payload and aggregate
 
@@ -41,8 +44,9 @@ It enforces unique selection IDs, unique `(kind, role)` pairs across both enable
 and disabled entries, unique link IDs, and existing endpoints. The role-scope
 invariant also appears in the frozen reference conformance tests; roles such as
 `primary` and `fallback` are examples, not a new enum. Only enabled selections count
-against registry cardinality. `context_policy` is cardinality-one; the other T1/T2
-kinds are many. Disabled entries cannot reuse an existing role.
+against registry cardinality. `workload`, `deployment_mode` and `context_policy`
+are cardinality-one; the other editable kinds are many. Disabled entries cannot
+reuse an existing role.
 
 Local bounds are 256 selections and 1,024 links, plus the existing 1 MiB envelope,
 128-history-entry and JSON depth/token/string/name/number budgets. These limits do
