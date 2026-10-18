@@ -106,7 +106,7 @@ class LocalDraftStoreTest {
         saved(store().save(null, DraftContent()))
         val original = raw()
         val mapper = ObjectMapper()
-        val unsupported = (mapper.readTree(original) as ObjectNode).put("local_format_version", 2)
+        val unsupported = (mapper.readTree(original) as ObjectNode).put("local_format_version", 3)
         val extra = (mapper.readTree(original) as ObjectNode).put("future-field", "retain-me")
         val cases = listOf(
             mapper.writeValueAsBytes(unsupported) to DraftStorageFailure.UNSUPPORTED_VERSION,
