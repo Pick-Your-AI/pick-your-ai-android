@@ -143,7 +143,7 @@ class FrozenEvaluationReportTest {
         val row = evidence(input)
         row.putNull("observed")
         row.set<ObjectNode>("expected", input.objectNode().put("amount", "9007199254740993.123456789012")
-            .put("count", BigInteger("123456789012345678901234567890123456789"))
+            .put("count", BigInteger("123456789012345678901234567890123456789")))
         row.put("source_version", "")
         val extra = input.objectNode().put("path", "file:///synthetic/inert")
         extra.set<ArrayNode>("observed", input.arrayNode().addNull().add(false).add(0).add("")
