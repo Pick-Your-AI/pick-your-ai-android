@@ -218,6 +218,7 @@ class PreviewActivity : Activity() {
         }
         content.addView(run)
         CostInspectionSection(this, worker) { !destroyed }.attach(content)
+        FindingsInspectionSection(this, worker) { !destroyed }.attach(content)
         setContentView(ScrollView(this).apply { addView(content) })
         content.setOnApplyWindowInsetsListener { view, insets ->
             val padding = (24 * resources.displayMetrics.density).toInt()

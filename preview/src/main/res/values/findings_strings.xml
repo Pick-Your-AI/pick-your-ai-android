@@ -1,0 +1,18 @@
+<resources>
+    <string name="findings_notice">Fixed synthetic report inspection. This is separate from your guest draft and does not evaluate your edits.</string>
+    <string name="findings_inspect">Inspect synthetic findings</string>
+    <string name="findings_browse">Browse synthetic findings</string>
+    <string name="findings_loading">Checking fixed report structure, bindings and consistency…</string>
+    <string name="findings_rejected">Report unavailable or rejected: %1$s. No result is accepted for your draft.</string>
+    <string name="findings_identity">Report: %1$s\nFixture build: %2$s, revision %3$s\nReported evaluation time: %4$s</string>
+    <string name="findings_locks">Catalog: %1$s\nRuleset: %2$s at %3$s\nDependency graph: %4$s, revision %5$s</string>
+    <string name="findings_status">Reported result: %1$s\nReported readiness: %2$s</string>
+    <string name="findings_row">%1$s\nOutcome: %2$s · Severity: %3$s</string>
+    <string name="findings_reason">Code: %1$s\nReported explanation: %2$s</string>
+    <string name="findings_remediation">Reported remediation (not executed): %1$s</string>
+    <string name="findings_selections">Affected fixture selection IDs: %1$s\nSelection navigation is unavailable in this diagnostic.</string>
+    <string name="findings_no_evidence">No evidence entries were supplied. Evidence correctness, freshness and provenance are unestablished.</string>
+    <string name="findings_not_supplied">Not supplied</string>
+    <string name="findings_evidence">Reported evidence path: %1$s\nObserved JSON: %2$s\nExpected JSON: %3$s\nReported source version: %4$s</string>
+    <string name="findings_limits">Acceptance checks structure, exact bindings and internal consistency only. It does not execute rules or verify reported outcomes/evidence. Unknown and skipped are not passes. No compatibility, production readiness or deployment authority is established.</string>
+</resources>
