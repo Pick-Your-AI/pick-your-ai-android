@@ -13,6 +13,8 @@ import ai.pickyour.core.preview.PreviewStoredDraft
 class OptionalTierSection(context: Context,
     private val commit: (PreviewStoredDraft, OptionalTier, Activation) -> Unit,
 ) : LinearLayout(context) {
+    private var closed = false
+    private var editable = false
     private var savedBaseline: PreviewStoredDraft? = null
     private val buttons = linkedMapOf<OptionalTier, Button>()
     init {
@@ -25,21 +27,27 @@ class OptionalTierSection(context: Context,
         OptionalTier.entries.forEach { tier ->
             buttons[tier] = Button(context).apply {
                 setOnClickListener {
+                    if (closed || !editable) return@setOnClickListener
                     val expected = savedBaseline ?: return@setOnClickListener
                     val choices = Activation.entries
                     AlertDialog.Builder(context).setTitle(tier.name)
                         .setItems(choices.map { label(it) }.toTypedArray()) { _, index ->
+                            if (closed || !editable || savedBaseline !== expected) return@setItems
                             val next = choices[index]
                             AlertDialog.Builder(context).setTitle(tier.name)
                                 .setMessage(context.getString(R.string.tier_confirm, label(next)))
                                 .setNegativeButton(R.string.keep_edits, null)
-                                .setPositiveButton(R.string.tier_commit) { _, _ -> commit(expected, tier, next) }.show()
+                                .setPositiveButton(R.string.tier_commit) { _, _ ->
+                                    if (!closed && editable && savedBaseline === expected) commit(expected, tier, next)
+                                }.show()
                         }.setNegativeButton(R.string.close, null).show()
                 }
             }.also(::addView)
         }
     }
     fun update(record: PreviewStoredDraft?, editable: Boolean) {
+        if (closed) return
+        this.editable = editable
         savedBaseline = record
         buttons.forEach { (tier, button) ->
             val input = record?.optionalTiers?.getValue(tier)
@@ -49,6 +57,13 @@ class OptionalTierSection(context: Context,
             button.isEnabled = editable && record != null
         }
     }
+    fun close() {
+        closed = true
+        editable = false
+        savedBaseline = null
+        buttons.values.forEach { it.isEnabled = false }
+    }
+
     private fun label(value: Activation) = context.getString(when (value) {
         Activation.ENABLED -> R.string.tier_enabled
         Activation.DISABLED -> R.string.tier_disabled
