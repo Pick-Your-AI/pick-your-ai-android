@@ -85,7 +85,8 @@ class CatalogPriceBrowserActivityTest {
         val state = Bundle()
         controller.pause().saveInstanceState(state).stop().destroy()
         controller = Robolectric.buildActivity(PreviewActivity::class.java).create(state).start().resume().visible()
-        await { button(R.string.retry_catalog).isEnabled && samples().isNotEmpty() }
+        await { button(R.string.retry_catalog).isEnabled && samples().isNotEmpty() &&
+            button(R.string.library_open).isEnabled }
     }
     private fun state() = Bundle().also { controller.saveInstanceState(it) }
     private fun assertDraftState(before: Bundle) {
