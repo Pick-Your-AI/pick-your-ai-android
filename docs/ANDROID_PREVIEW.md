@@ -584,3 +584,29 @@ metadata, read-only head identity and immutable output. Typed display separates 
 sentinels from quoted literals (also reused by domain-restore confirmation), escapes controls/format characters and bounds
 truncated text explicitly. Hosted Android compile/lint
 and installed dialog/accessibility/lifecycle behavior remain separate gates.
+
+### Simulated Activity regression tests
+
+The opt-in preview test task `./gradlew --no-daemon -PandroidPreview=true
+:preview:testDebugUnitTest` runs JUnit 4 and Robolectric 4.17 against simulated
+API 28 Android resources and Views. The existing unsigned CI lane retains its
+JUnit XML and HTML reports and fails if that task fails. AndroidX is enabled for
+the test infrastructure; the preview UI still uses platform Views.
+
+The bounded tests cover acknowledged objective/context restoration, stale pending
+forms after another writer advances the saved head, explicit tier confirmation,
+and typed read-only revision comparison. They drive visible controls, wait for
+explicit UI states with a fixed failure deadline, and assert an empty per-test
+sandbox before using local draft storage. These JVM simulations do not establish
+installed app, emulator, physical-device, accessibility, filesystem power-loss,
+Play submission, or release qualification. The native SDK build and all those
+receiving acceptance gates remain separate.
+
+The simulated regression suite also inspects explicit editor label associations,
+focusability, textual tier state and polite saved-status announcements, and drives
+confirmed deletion of the current draft while unsaved title/objective inputs are
+visible. The deletion case requires retained pending fields, revoked save/history
+authority and an empty local library after acknowledged removal. These are bounded
+partial automated checks for #64/#106 and local recovery; they do not establish
+screen-reader traversal, keyboard usability, contrast, measured touch targets,
+large-text/RTL rendering or physical filesystem durability.
