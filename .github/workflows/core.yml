@@ -134,6 +134,7 @@ jobs:
               "catalogRecordedPriceBoundsLiteralAlternativesWithoutSelectingOrCombining",
               "catalogRecordedPriceReadFailureKeepsUnknownContextAndRetryUsesFreshSnapshot",
               "catalogRecordedPriceReloadAndRetiredDialogCannotChangePendingDraft",
+              "catalogDetailDialogsPreserveLiteralCatalogReferenceIds",
           }
           cases = suite.findall("testcase")
           assert expected <= {case.attrib["name"] for case in cases}, "Missing UI regression"

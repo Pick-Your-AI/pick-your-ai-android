@@ -941,6 +941,40 @@ class PreviewActivityTest {
         assertNull(shadowOf(activity).nextStartedActivity)
     }
 
+    @Test fun catalogDetailDialogsPreserveLiteralCatalogReferenceIds() {
+        await { hasText(R.string.catalog_ready) }
+        field(R.string.draft_title).setText("pending reference review")
+        data class ReferenceCase(val kind: String, val target: String, val field: String, val array: Boolean)
+        for (case in listOf(ReferenceCase("model", "model_provider", "provider_ref", false),
+                            ReferenceCase("mcp_server", "tool", "tool_refs", true))) {
+            val root = activity.assets.open("catalog.json").bufferedReader(Charsets.UTF_8).use { org.json.JSONObject(it.readText()) }
+            val items = root.getJSONArray("items")
+            fun item(kind: String) = (0 until items.length()).map { items.getJSONObject(it) }.single { it.getString("kind") == kind }
+            item(case.target).put("id", "unknown")
+            val selected = item(case.kind)
+            selected.getJSONObject("spec").put(case.field,
+                if (case.array) org.json.JSONArray().put("unknown") else "unknown")
+            selected.put("billing_class", "unknown")
+            val browser = requireNotNull(PreviewCatalogBrowser.read(root.toString().toByteArray(Charsets.UTF_8)))
+            views().filterIsInstance<CatalogBrowseSection>().single().show(browser)
+            field(R.string.catalog_search).setText(selected.getString("id"))
+            await { samples().size == 1 }
+            samples().single().performClick()
+            val opened = dialog()
+            val message = shadowOf(opened).message.toString()
+            val expected = if (case.array) "${case.field} [array]: [\"unknown\"]" else "${case.field} [string]: \"unknown\""
+            assertEquals(expected, message.lineSequence().single { it.startsWith("${case.field} [") })
+            assertTrue(message.contains("Recorded billing class: unknown"))
+            assertTrue(message.contains(activity.getString(R.string.catalog_detail_price)))
+            assertNull(shadowOf(activity).nextStartedActivity)
+            assertTrue(adapter().load() is PreviewDraftLoad.Missing)
+            opened.getButton(AlertDialog.BUTTON_NEGATIVE).performClick()
+            await { !opened.isShowing }
+            assertEquals("pending reference review", field(R.string.draft_title).text.toString())
+            assertTrue(adapter().load() is PreviewDraftLoad.Missing)
+        }
+    }
+
     @Test fun catalogDetailRenderingKeepsUnknownAndBoundedLiteralSourceValues() {
         val root = activity.assets.open("catalog.json").bufferedReader(Charsets.UTF_8).use { org.json.JSONObject(it.readText()) }
         val items = root.getJSONArray("items")
