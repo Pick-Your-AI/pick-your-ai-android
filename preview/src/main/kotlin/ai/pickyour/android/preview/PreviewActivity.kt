@@ -4,6 +4,15 @@ import android.app.Activity
 import android.app.AlertDialog
 import android.os.Bundle
 import android.text.InputFilter
+import android.text.Editable
+import android.text.TextWatcher
+import ai.pickyour.core.preview.*
+import ai.pickyour.core.drafts.LocalDraftStore
+import ai.pickyour.core.drafts.DraftStorageFailure
+import java.nio.file.Files
+import java.nio.file.LinkOption.NOFOLLOW_LINKS
+import java.nio.channels.FileChannel
+import java.nio.file.StandardOpenOption.READ
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
@@ -18,23 +27,43 @@ import java.util.concurrent.Executors
 import ai.pickyour.core.preview.SyntheticCatalogEvidence
 import ai.pickyour.core.evidence.EvidenceLabel
 
-/** Guest UI scaffolding over bundled synthetic fixtures, not a durable draft repository. */
+/** Guest preview over synthetic fixtures with explicit local save through the canonical store. */
 class PreviewActivity : Activity() {
     private val worker = Executors.newSingleThreadExecutor()
     private var destroyed = false
     private var selectedId: String? = null
+    private var selectedVersion: String? = null
+    private var selectedCatalogHash: String? = null
+    private var loadedCatalogHash: String? = null
     private lateinit var title: EditText
     private lateinit var selection: TextView
     private lateinit var catalog: LinearLayout
     private lateinit var catalogStatus: TextView
     private lateinit var retry: Button
     private var items: List<SampleItem> = emptyList()
+    private lateinit var save: Button
+    private lateinit var reopen: Button
+    private lateinit var clear: Button
+    private lateinit var saveStatus: TextView
+    private var persistence: PreviewDraftPersistence? = null // Accessed only on the single worker.
+    private var savedRecord: PreviewStoredDraft? = null // UI-thread owned.
+    private var storageReady = false
+    private var storageBusy = true
+    private var restoringFields = false
+    private var restoration: PreviewDraftRestoration? = null
 
+
+    private data class LoadedCatalog(val items: List<SampleItem>, val hash: String)
     private data class SampleItem(val id: String, val name: String, val kind: String, val version: String)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        restoration = savedInstanceState?.let {
+            PreviewDraftRestoration(it.getString("draftBaseline"), it.getBoolean("draftRequiresReopen", true))
+        }
         selectedId = savedInstanceState?.getString("selectedId")
+        selectedVersion = savedInstanceState?.getString("selectedVersion")
+        selectedCatalogHash = savedInstanceState?.getString("selectedCatalogHash")
         val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         fun text(resource: Int, size: Float = 18f) = TextView(this).apply {
             setText(resource)
@@ -46,7 +75,7 @@ class PreviewActivity : Activity() {
         val titleLabel = text(R.string.draft_title)
         title = EditText(this).apply {
             id = View.generateViewId()
-            isSaveEnabled = false // Explicit small restoration state below; never durable-save acknowledgement.
+            isSaveEnabled = false // Explicit restoration state never acknowledges a durable save.
             setSingleLine(true)
             filters = arrayOf(InputFilter.LengthFilter(120))
             inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
@@ -58,13 +87,35 @@ class PreviewActivity : Activity() {
         content.addView(title)
         selection = text(R.string.no_selection).apply { accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE }
         text(R.string.unknown)
-        content.addView(Button(this).apply {
+        clear = Button(this).apply {
             setText(R.string.clear_draft)
             setOnClickListener {
                 title.setText("")
                 selectedId = null
+                selectedVersion = null
+                selectedCatalogHash = null
                 showSelection()
+                formChanged()
             }
+        }
+        content.addView(clear)
+        saveStatus = text(R.string.draft_loading).apply { accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE }
+        save = Button(this).apply { setText(R.string.save_draft); setOnClickListener { saveDraft() } }
+        reopen = Button(this).apply {
+            setText(R.string.reopen_draft)
+            setOnClickListener {
+                AlertDialog.Builder(this@PreviewActivity).setTitle(R.string.reopen_draft)
+                    .setMessage(R.string.reopen_warning)
+                    .setNegativeButton(R.string.keep_edits, null)
+                    .setPositiveButton(R.string.reopen_confirm) { _, _ -> loadDraft(false) }.show()
+            }
+        }
+        content.addView(save)
+        content.addView(reopen)
+        title.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { formChanged() }
+            override fun afterTextChanged(s: Editable?) {}
         })
         text(R.string.catalog_heading, 22f).apply { if (android.os.Build.VERSION.SDK_INT >= 28) isAccessibilityHeading = true }
         text(R.string.catalog_explanation)
@@ -110,7 +161,9 @@ class PreviewActivity : Activity() {
         // Also provide padding before the first insets dispatch.
         val padding = (24 * resources.displayMetrics.density).toInt()
         content.setPadding(padding, padding, padding, padding)
+        updateEditingEnabled()
         loadCatalog()
+        loadDraft(savedInstanceState != null)
     }
 
     private fun readCatalogFixture(): ByteArray = assets.open("catalog.json").use { stream ->
@@ -133,20 +186,24 @@ class PreviewActivity : Activity() {
                 val bytes = readCatalogFixture()
                 check(FrozenSchemaValidator().validate(FrozenDocument.CATALOG, bytes.inputStream()) == FrozenValidation.Valid)
                 val rows = JSONObject(String(bytes, Charsets.UTF_8)).getJSONArray("items")
-                List(rows.length()) { index ->
+                val rowsList = List(rows.length()) { index ->
                     val row = rows.getJSONObject(index)
                     SampleItem(row.getString("id"), row.getString("name"), row.getString("kind"), row.getString("version"))
                 }
+                LoadedCatalog(rowsList, java.security.MessageDigest.getInstance("SHA-256").digest(bytes)
+                    .joinToString("") { "%02x".format(it.toInt() and 255) })
             } catch (_: Exception) { null }
             runOnUiThread {
                 if (!destroyed) {
                     retry.isEnabled = true
                     catalog.removeAllViews()
-                    items = loaded.orEmpty()
+                    items = loaded?.items.orEmpty()
+                    loadedCatalogHash = loaded?.hash
                     catalogStatus.setText(if (loaded == null) R.string.catalog_unavailable else R.string.catalog_ready)
                     items.forEach { item ->
                         catalog.addView(Button(this).apply {
                             text = getString(R.string.item_button, item.name, item.kind)
+                            isEnabled = !storageBusy
                             setOnClickListener { showDetails(item) }
                         })
                     }
@@ -161,12 +218,20 @@ class PreviewActivity : Activity() {
             .setTitle(item.name)
             .setMessage(getString(R.string.item_details, item.id, item.kind, item.version))
             .setNegativeButton(R.string.close, null)
-            .setPositiveButton(R.string.select_sample) { _, _ -> selectedId = item.id; showSelection() }
+            .setPositiveButton(R.string.select_sample) { _, _ ->
+                if (!storageBusy && loadedCatalogHash != null) {
+                    selectedId = item.id
+                    selectedVersion = item.version
+                    selectedCatalogHash = loadedCatalogHash
+                    showSelection()
+                    formChanged()
+                }
+            }
             .show()
     }
 
     private fun showSelection() {
-        val item = items.firstOrNull { it.id == selectedId }
+        val item = items.firstOrNull { it.id == selectedId && it.version == selectedVersion && selectedCatalogHash == loadedCatalogHash }
         selection.text = when {
             selectedId == null -> getString(R.string.no_selection)
             item == null -> getString(R.string.selection_unavailable)
@@ -174,9 +239,117 @@ class PreviewActivity : Activity() {
         }
     }
 
+    private fun fields() = PreviewDraftFields(title.text.toString(), selectedId, selectedVersion, selectedCatalogHash)
+
+    private fun formChanged() {
+        if (restoringFields || !::saveStatus.isInitialized) return
+        if (!storageBusy && storageReady) {
+            saveStatus.setText(if (savedRecord?.fields == fields()) R.string.draft_saved else R.string.draft_unsaved)
+        }
+        updateEditingEnabled()
+    }
+
+    private fun updateEditingEnabled() {
+        title.isEnabled = !storageBusy
+        clear.isEnabled = !storageBusy
+        save.isEnabled = storageReady && !storageBusy && savedRecord?.fields != fields()
+        reopen.isEnabled = !storageBusy
+        if (::catalog.isInitialized) for (index in 0 until catalog.childCount) catalog.getChildAt(index).isEnabled = !storageBusy
+    }
+
+    private fun openPersistence(): PreviewDraftPersistence {
+        persistence?.let { return it }
+        // Android owns the established app data directory. Repeat both parent syncs after mkdir,
+        // including a retry after failed initialization; never acknowledge an unsynced root.
+        val parent = noBackupFilesDir.toPath()
+        require(Files.isDirectory(parent, NOFOLLOW_LINKS))
+        FileChannel.open(parent.parent, READ).use { it.force(true) }
+        val root = parent.resolve("guest-draft")
+        require(!Files.isSymbolicLink(root))
+        Files.createDirectories(root)
+        FileChannel.open(parent, READ).use { it.force(true) }
+        return PreviewDraftPersistence(LocalDraftStore(root)).also { persistence = it }
+    }
+
+    private fun loadDraft(preserveRestoredFields: Boolean) {
+        storageBusy = true
+        storageReady = false
+        saveStatus.setText(R.string.draft_loading)
+        updateEditingEnabled()
+        worker.execute {
+            val result = try { openPersistence().load() } catch (_: Exception) { null }
+            runOnUiThread {
+                if (!destroyed) {
+                    storageBusy = false
+                    savedRecord = (result as? PreviewDraftLoad.Available)?.record
+                    val loadSucceeded = result is PreviewDraftLoad.Available || result == PreviewDraftLoad.Missing
+                    val needsReopen = preserveRestoredFields && restoration?.canResume(savedRecord) != true
+                    storageReady = loadSucceeded && !needsReopen
+                    if (!preserveRestoredFields && loadSucceeded) restoration = null
+                    if (storageReady && !preserveRestoredFields) {
+                        val values = savedRecord?.fields ?: PreviewDraftFields()
+                        restoringFields = true
+                        title.setText(values.title)
+                        selectedId = values.selectedId
+                        selectedVersion = values.selectedVersion
+                        selectedCatalogHash = values.catalogHash
+                        restoringFields = false
+                        showSelection()
+                    }
+                    saveStatus.setText(when {
+                        !loadSucceeded -> R.string.draft_load_failed
+                        needsReopen -> R.string.draft_reconcile
+                        savedRecord?.fields == fields() -> R.string.draft_saved
+                        else -> R.string.draft_unsaved
+                    })
+                    updateEditingEnabled()
+                }
+            }
+        }
+    }
+
+    private fun saveDraft() {
+        if (!storageReady || storageBusy) return
+        val pending = fields()
+        val expected = savedRecord
+        storageBusy = true
+        saveStatus.setText(R.string.draft_saving)
+        updateEditingEnabled()
+        worker.execute {
+            val result = try { openPersistence().save(expected, pending) } catch (_: Exception) { null }
+            runOnUiThread {
+                if (!destroyed) {
+                    storageBusy = false
+                    when (result) {
+                        is PreviewDraftSave.Saved -> {
+                            savedRecord = result.record
+                            saveStatus.setText(if (fields() == result.record.fields) R.string.draft_saved else R.string.draft_unsaved)
+                        }
+                        PreviewDraftSave.Conflict -> {
+                            storageReady = false
+                            saveStatus.setText(R.string.draft_conflict)
+                        }
+                        PreviewDraftSave.Uncertain, null -> {
+                            storageReady = false
+                            saveStatus.setText(R.string.draft_uncertain)
+                        }
+                        is PreviewDraftSave.Failed -> saveStatus.setText(if (result.reason == DraftStorageFailure.LIMIT_EXCEEDED)
+                            R.string.draft_history_full else R.string.draft_save_failed)
+                    }
+                    updateEditingEnabled()
+                }
+            }
+        }
+    }
+
     override fun onSaveInstanceState(outState: Bundle) {
+        val checkpoint = PreviewDraftRestoration.capture(savedRecord, storageReady, storageBusy)
+        outState.putString("draftBaseline", checkpoint.baselineIdentity)
+        outState.putBoolean("draftRequiresReopen", checkpoint.requiresReopen)
         outState.putString("title", title.text.toString().take(120))
         outState.putString("selectedId", selectedId)
+        outState.putString("selectedVersion", selectedVersion)
+        outState.putString("selectedCatalogHash", selectedCatalogHash)
         super.onSaveInstanceState(outState)
     }
 
