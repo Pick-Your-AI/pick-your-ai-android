@@ -659,7 +659,7 @@ only changes pending fields; the existing guarded save still owns disk changes.
 Nine new core regressions cover all canonical facets, preserved literal query semantics,
 Turkish-locale independence, stable paging with duplicate labels, missing categories,
 exact membership including distinct versions of one ID, immutable collections,
-bounds and invalid input. The complete integrated core suite passed 227 tests, with
+bounds and invalid input. The complete integrated core suite passed 231 tests, with
 zero failures, errors or skips. Frozen reference,
 fixture, tampering and ledger checks also passed. Three additional Activity tests
 exercise browse restoration, empty facet combinations and selection baseline guards.

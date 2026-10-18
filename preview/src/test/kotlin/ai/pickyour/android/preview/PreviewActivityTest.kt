@@ -371,4 +371,28 @@ class PreviewActivityTest {
         assertEquals(baseline, loaded().baselineIdentity)
         assertNull(loaded().fields.selectedId)
     }
+
+    @Test fun findingsInspectionKeepsOutcomeSeveritySeparateAndNeverWritesDraft() {
+        field(R.string.draft_title).setText("pending only")
+        button(R.string.findings_inspect).performClick()
+        await { button(R.string.findings_browse).isEnabled }
+        assertEquals("pending only", field(R.string.draft_title).text.toString())
+        assertTrue(adapter().load() is PreviewDraftLoad.Missing)
+        assertTrue(views().filterIsInstance<TextView>().any {
+            it.text.toString().contains(activity.getString(R.string.findings_notice)) &&
+                it.text.toString().contains("Reported result: valid") && it.text.toString().contains("skipped:")
+        })
+        button(R.string.findings_browse).performClick()
+        val picker = dialog()
+        shadowOf(picker).clickOnItem(0)
+        await { dialog() !== picker && dialog().isShowing }
+        val details = shadowOf(dialog()).message.toString()
+        assertTrue(details.contains("Outcome: pass · Severity: error"))
+        assertTrue(details.contains("rule.required.foundation"))
+        assertTrue(details.contains("sel_model"))
+        assertTrue(details.contains(activity.getString(R.string.findings_no_evidence)))
+        assertTrue(details.contains(activity.getString(R.string.findings_limits)))
+        assertTrue(adapter().load() is PreviewDraftLoad.Missing)
+    }
+
 }
