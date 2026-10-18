@@ -689,20 +689,24 @@ class PreviewActivity : Activity() {
     }
 
     private fun deleteDraft(id: PreviewDraftId, expected: PreviewStoredDraft?, retryOnly: Boolean) {
-        if (destroyed) return
+        if (destroyed || storageBusy) return
+        val pending = pendingDeleteId
+        if (pending != null && pending != id) return
+        // A retained confirmation must use the operation that is current at dispatch.
+        val retry = retryOnly || pending == id
         val previous = PreviewDraftSession(currentDraftId, savedRecord, fields(), storageReady)
         // Capture the named operation before dispatch so recreation can reconcile even if its row disappears.
         pendingDeleteId = id
         storageBusy = true
         updateEditingEnabled()
         worker.execute {
-            val result = try { if (retryOnly) library().retryDeletion(id) else library().delete(id, expected) }
+            val result = try { if (retry) library().retryDeletion(id) else library().delete(id, expected) }
                 catch (_: Exception) { PreviewLibraryDelete.Unconfirmed(DraftStorageFailure.IO_FAILURE) }
             runOnUiThread {
                 if (!destroyed) {
                     storageBusy = false
                     if (result == PreviewLibraryDelete.Deleted || result == PreviewLibraryDelete.Conflict ||
-                        !retryOnly && result is PreviewLibraryDelete.Failed) pendingDeleteId = null
+                        !retry && result is PreviewLibraryDelete.Failed) pendingDeleteId = null
                     val next = previous.afterDeletion(id, result)
                     savedRecord = next.record
                     storageReady = next.ready
@@ -714,7 +718,7 @@ class PreviewActivity : Activity() {
                     AlertDialog.Builder(this).setMessage(when (result) {
                         PreviewLibraryDelete.Deleted -> R.string.library_deleted
                         PreviewLibraryDelete.Conflict -> R.string.library_delete_conflict
-                        is PreviewLibraryDelete.Failed -> if (retryOnly) R.string.library_retry_failed else R.string.library_delete_failed
+                        is PreviewLibraryDelete.Failed -> if (retry) R.string.library_retry_failed else R.string.library_delete_failed
                         is PreviewLibraryDelete.Unconfirmed -> R.string.library_delete_unconfirmed
                     }).setPositiveButton(R.string.close, null).show()
                 }

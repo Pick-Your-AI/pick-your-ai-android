@@ -762,3 +762,27 @@ and acknowledged baseline to remain unchanged. The existing interruption test
 above continues to exercise how the pending cleanup receipt is produced. The
 combined native gate requires all three cleanup regressions; this source addition
 does not itself supply an installed-device result.
+
+The pending identity is also checked again immediately before deletion dispatch
+in the same live Activity. A retained positive confirmation for another ID cannot
+replace the current cleanup receipt. If that same ID has since become pending,
+dispatch uses retry-only semantics, including retaining the receipt when storage
+is busy. The confirmation's earlier view of the operation is not sufficient
+authority for a later submission.
+
+Two further simulated regressions retain actual positive controls across these
+state changes. One creates two distinct drafts, leaves the second absent after an
+injected final-acknowledgement failure, and requires its saved retry receipt and
+the first draft's acknowledged contents to survive the older confirmation. The
+other requires the same-ID callback to preserve its new retry receipt after a
+busy result. Both recreate and explicitly reconcile the pending operation; the
+native workflow requires both cases alongside all accepted Activity regressions.
+
+The failing-before source `284881bf1c7d2037ef9da5e78551e66c1b97b210` (tree
+`0f5702715795770184fd38675fc75609441291ff`) ran all 40 simulated Activity cases in
+[hosted run 39104121579](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39104121579).
+Exactly these two new cases failed, with no errors or skips: the first observed
+the pending UUID replaced by `guest-draft`, and the second observed the new-delete
+failure result instead of a receipt-preserving retry failure. All 38 earlier
+cases passed. This establishes the regression targets; passing verification of
+the corrected source is recorded separately, with no installed-device inference.
