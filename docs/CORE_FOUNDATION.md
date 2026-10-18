@@ -96,3 +96,43 @@ The full JDK21 build ran 33 JVM tests with zero failures/errors and produced the
 core JAR. The hash-first Python runner passed all 21 unmodified reference tests.
 Wrapper JAR and distribution matched official SHA-256 checksums. This does not
 prove Android install, lifecycle, emulator, device or release behavior.
+
+## Offline artifact primitive (#87 / #104, partial)
+
+`VerifiedArtifactCache` stores a single immutable artifact or a complete bundle
+already validated by its caller. It bounds actual input bytes, checks a trusted
+expected SHA-256, forces staged bytes, and atomically changes an active pointer.
+Failed pre-activation installs leave the previous pointer unchanged. A filesystem
+failure after activation was attempted returns `ActivationUncertain`: callers must
+reopen and verify, rather than falsely acknowledge failure or success. Verified
+reads report missing/corrupt data explicitly. Previously installed hashes remain
+readable; the cache does not evict pins.
+
+All cooperating instances first claim a shared non-reentrant JVM guard, then use a
+nonblocking OS lock. A separate-JVM regression proves an unsuccessful same-JVM
+contender cannot release the active holder's process lock. Caller streams
+remain open. Cancellation cannot unblock a blocking provider; the adapter must
+provide timeouts/cancellation. The root must be a dedicated app-private directory;
+this class is not protection against a compromised app/OS or unrelated writers.
+There is deliberately no unsafe fallback when atomic rename or directory sync is
+unsupported. Storage errors are sanitized typed outcomes.
+
+Fourteen cache tests exercise reopen, exact byte limits, bad hashes, corruption,
+short reads, repeated installs, staging recovery, cross-instance locks,
+interruption and injected failures around activation. Together with the prior core,
+47 JVM tests pass. These are actual local filesystem results and injected failures,
+not Android device, power-loss or forced-process-termination evidence.
+
+Remaining #87 criteria: OS background scheduling/battery/network constraints,
+complete manifest authentication and atomic multi-artifact snapshot policy,
+rights/freshness acceptance, configured total retention and UI degraded states.
+Remaining #104 criteria: integrated browse/edit/save behavior, reconciliation and
+current-versus-cached display. This primitive does not supply network transport,
+authenticity, rights, catalog semantics or a production retention policy. Retained
+total bytes can grow; continuous refresh is not ready until retention and pinned
+reference handling are implemented/reviewed. A checksum alone proves no publisher
+identity or vendor compatibility.
+
+Parent handoff records: `12.03.md` (#87) and `12.02.md` (#104) under the canonical
+website `docs/delivery/android/work-packages/` directory. Record this as partial
+implementation with exact merged PR/test artifacts, not acceptance or closure.
