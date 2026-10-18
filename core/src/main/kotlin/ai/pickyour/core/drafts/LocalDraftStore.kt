@@ -116,6 +116,40 @@ class LocalDraftStore internal constructor(
     /** Read immutable history without activating it; restoring is an explicit new save with current token. */
     fun revision(hash: ArtifactHash): DraftLoad = guarded({ DraftLoad.Failed(it) }) { decode(cache.pinned(hash)) }
 
+    /** Read-only review of one current durable draft. No migration, save, ID allocation or publication. */
+    fun prepareSnapshotCandidate(expected: DraftVersion, inputs: DraftSnapshotInputs): DraftProjectionPreparation =
+        guarded({ DraftProjectionPreparation.Failed(it) }) {
+            val read = cache.active()
+            val current = when (val loaded = decode(read)) {
+                DraftLoad.Missing -> return@guarded DraftProjectionPreparation.Conflict
+                is DraftLoad.Failed -> return@guarded DraftProjectionPreparation.Failed(loaded.reason)
+                is DraftLoad.Available -> loaded.draft
+            }
+            if (!matchesProjectionSource(expected, current)) return@guarded DraftProjectionPreparation.Conflict
+            DraftSnapshotProjection.prepare(current, inputs, (read as CacheRead.Available).bytes)
+        }
+
+    /**
+     * Materialize only the reviewed candidate and complete retained-only acknowledgment. Recheck the
+     * source under the same canonical transaction, including no-op and foreign-store attempts.
+     * Created means independent bytes in memory; it is never a saved immutable revision receipt.
+     */
+    fun createSnapshotCandidate(review: DraftProjectionPreparation.Review, acknowledgment: DraftProjectionAcknowledgment?): DraftProjectionCreation =
+        guarded({ DraftProjectionCreation.Failed(it) }) {
+            val current = when (val loaded = decode(cache.active())) {
+                DraftLoad.Missing -> return@guarded DraftProjectionCreation.Conflict
+                is DraftLoad.Failed -> return@guarded DraftProjectionCreation.Failed(loaded.reason)
+                is DraftLoad.Available -> loaded.draft
+            }
+            if (!matchesProjectionSource(review.source.version, current)) return@guarded DraftProjectionCreation.Conflict
+            if (acknowledgment?.review !== review)
+                return@guarded DraftProjectionCreation.ReviewAcknowledgmentMismatch
+            DraftProjectionCreation.Created(DraftSnapshotCandidate(review))
+        }
+
+    private fun matchesProjectionSource(expected: DraftVersion, current: StoredDraft): Boolean =
+        expected.store == root && expected.hash == current.version.hash && expected.number == current.version.number
+
     /**
      * Omitted metadata preserves the current map; an explicit empty map clears it.
      * A current format-2/3/4 token with unchanged content/metadata reuses its durable revision.
