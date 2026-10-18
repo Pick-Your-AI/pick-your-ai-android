@@ -582,6 +582,35 @@ def observe_interactive_command(device: Device, arguments: tuple[str, ...], obse
     return result
 
 
+def ui_stream_matches_text(observed: dict, text: str) -> bool:
+    """Bind every retained field to a known complete command stream."""
+    return (isinstance(observed, dict) and isinstance(text, str)
+            and type(observed.get("text_characters")) is int
+            and observed.get("available") is True and observed.get("decoded_from_bytes") is False
+            and observed.get("edges_truncated") is (len(text) > 2400)
+            and observed == ui_stream_observation(text))
+
+
+def ui_read_observation_passes(observed: dict) -> bool:
+    """Validate retained read metadata; omitted XML cannot be reconstructed from its digest."""
+    if not (isinstance(observed, dict) and observed.get("available") is True
+            and observed.get("decoded_from_bytes") is False
+            and type(observed.get("text_characters")) is int and observed["text_characters"] > 0
+            and isinstance(observed.get("text_sha256"), str)
+            and re.fullmatch(r"[0-9a-f]{64}", observed["text_sha256"]) is not None
+            and isinstance(observed.get("prefix"), str) and isinstance(observed.get("suffix"), str)):
+        return False
+    count = observed["text_characters"]
+    edge_length = min(count, 1200)
+    if len(observed["prefix"]) != edge_length or len(observed["suffix"]) != edge_length:
+        return False
+    if count > 2400:
+        return (observed.get("edges_truncated") is True
+                and set(observed) == set(ui_stream_observation("")))
+    text = observed["prefix"] + observed["suffix"][2 * edge_length - count:]
+    return ui_stream_matches_text(observed, text)
+
+
 def interactive_command_passes(observed: dict, arguments: tuple[str, ...], retained_limit: int) -> bool:
     if not (isinstance(observed, dict) and observed.get("arguments") == list(arguments)
             and type(observed.get("exit_code")) is int and observed["exit_code"] == 0
@@ -592,12 +621,8 @@ def interactive_command_passes(observed: dict, arguments: tuple[str, ...], retai
             and isinstance(observed.get("stdout"), dict) and isinstance(observed.get("stderr"), dict)
             and "command_timeout_seconds" not in observed and "error" not in observed):
         return False
-    return (observed["stdout"].get("available") is True
-            and observed["stdout"].get("text_characters") == len(observed["stdout_tail"])
-            and observed["stdout"].get("text_sha256") ==
-            hashlib.sha256(observed["stdout_tail"].encode("utf-8")).hexdigest()
-            and observed["stderr"].get("available") is True
-            and observed["stderr"].get("text_characters") == 0)
+    return (ui_stream_matches_text(observed["stdout"], observed["stdout_tail"])
+            and ui_stream_matches_text(observed["stderr"], ""))
 
 
 def framework_barrier_passes(observed: dict) -> bool:
@@ -660,13 +685,9 @@ def interactive_readiness_passes(state: dict) -> bool:
                 and "command_timeout_seconds" not in command and "error" not in command
                 and isinstance(command.get("stdout"), dict) and isinstance(command.get("stderr"), dict)):
             return False
-        if name != "remove" and not (command["stderr"].get("available") is True
-                                      and command["stderr"].get("text_characters") == 0):
+        if name != "remove" and not ui_stream_matches_text(command["stderr"], ""):
             return False
-        if name == "dump" and not (command["stdout"].get("available") is True
-                                    and command["stdout"].get("edges_truncated") is False
-                                    and command["stdout"].get("prefix") == command["stdout"].get("suffix")
-                                    and isinstance(command["stdout"].get("prefix"), str)
+        if name == "dump" and not (ui_stream_matches_text(command["stdout"], command["stdout"].get("prefix"))
                                     and command["stdout"]["prefix"].strip() == "UI hierchary dumped to: " + UI_DUMP_PATH):
             return False
     return (isinstance(hierarchy, dict) and hierarchy.get("rotation") == "0"
@@ -676,9 +697,10 @@ def interactive_readiness_passes(state: dict) -> bool:
             and re.fullmatch(r"[0-9a-f]{64}", hierarchy["read_text_sha256"]) is not None
             and type(observations.get("attempted")) is int and observations["attempted"] == 1
             and "first_failed_attempt" not in observations
+            and type(attempt.get("sequence")) is int and attempt["sequence"] == 1 and "error" not in attempt
             and attempt.get("completed") is True and attempt.get("dump_completion_passed") is True
             and attempt.get("ui_dump_path") == UI_DUMP_PATH and attempt.get("stage") == "parse"
-            and isinstance(read.get("stdout"), dict)
+            and ui_read_observation_passes(read.get("stdout"))
             and hierarchy["read_text_sha256"] == read["stdout"].get("text_sha256"))
 
 

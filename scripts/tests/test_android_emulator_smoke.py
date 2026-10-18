@@ -888,6 +888,47 @@ class EmulatorSmokeGuardTest(unittest.TestCase):
             with self.subTest(state=state):
                 self.assertFalse(smoke.interactive_readiness_passes(state))
 
+    def test_interactive_receipt_rejects_conflicting_stream_metadata(self):
+        valid = ready_interactive()
+        self.assertTrue(smoke.interactive_readiness_passes(valid))
+        for size in (1199, 1200, 1201, 2399, 2400, 2401, 4096):
+            answers = interactive_answers()
+            home = answers[3].stdout
+            answers[3].stdout = home.replace("</hierarchy>", " " * (size - len(home)) + "</hierarchy>")
+            device, readiness = Mock(spec=smoke.Device), {}
+            device.adb.side_effect = answers
+            with self.subTest(valid_xml_characters=size), patch.object(smoke.time, "monotonic", return_value=0):
+                smoke.establish_interactive_readiness(device, readiness, 180)
+                self.assertTrue(smoke.interactive_readiness_passes(readiness["interactive"]))
+        for path, value in (
+            (("barrier", "stderr", "prefix"), "service failure"),
+            (("focus", "stderr", "text_sha256"), "f" * 64),
+            (("ui_hierarchy_observations", "last_attempt", "commands", "dump", "stdout", "text_sha256"), "0" * 64),
+            (("ui_hierarchy_observations", "last_attempt", "commands", "dump", "stdout", "text_characters"), 0),
+            (("ui_hierarchy_observations", "last_attempt", "commands", "read", "stdout", "available"), False),
+            (("ui_hierarchy_observations", "last_attempt", "commands", "read", "stdout", "text_characters"), 0),
+            (("ui_hierarchy_observations", "last_attempt", "commands", "read", "stderr", "prefix"), "read failed"),
+        ):
+            changed = copy.deepcopy(valid)
+            target = changed
+            for key in path[:-1]:
+                target = target[key]
+            target[path[-1]] = value
+            with self.subTest(path=path):
+                self.assertFalse(smoke.interactive_readiness_passes(changed))
+
+    def test_interactive_receipt_rejects_misidentified_or_failed_only_probe(self):
+        valid = ready_interactive()
+        self.assertTrue(smoke.interactive_readiness_passes(valid))
+        for key, value in (
+            ("sequence", 2),
+            ("error", {"type": "ParseError", "message": "syntax error: line 1, column 0"}),
+        ):
+            changed = copy.deepcopy(valid)
+            changed["ui_hierarchy_observations"]["last_attempt"][key] = value
+            with self.subTest(key=key):
+                self.assertFalse(smoke.interactive_readiness_passes(changed))
+
     def test_readiness_failure_diagnostics_are_distinct_and_do_not_rescue_unrun_cases(self):
         device = Mock(spec=smoke.Device)
         device.adb.return_value = subprocess.CompletedProcess([], 0, "observed", "")

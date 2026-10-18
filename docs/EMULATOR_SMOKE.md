@@ -692,6 +692,27 @@ timeout partials, process errors, shared deadline and preservation of the
 original failure and unrun cases. No readiness predicate, case, launch, cleanup,
 image, renderer, CPU setting or budget changes; a new actual result is required.
 
+### Consistent command observations in the final receipt
+
+The framework/home receipt validator binds each fully retained command stream to
+its recorded length, SHA-256, prefix, suffix and truncation flags. Empty stderr
+must have the complete empty-stream observation. The hierarchy read must explicitly
+contain available, nonempty text with consistent retained edges. When those edges
+cover the whole text, the validator reconstructs it and verifies the digest. Longer
+hierarchies retain their declared full-text digest and checked edge metadata; their
+omitted middle cannot be reconstructed from that digest. The existing successful
+XML parse and hierarchy-summary binding remain required.
+
+The only hierarchy attempt must identify sequence 1 and contain no failure record.
+Two added host regression methods reproduced nine assertion failures against the
+unchanged `f180a53228b3206445328685c5011ccfd77f921d` driver, covering contradictory
+stream fields, unavailable read evidence and a failed or misidentified sole probe.
+After this validator correction, all 71 existing methods and both new methods pass
+locally under normal and optimized Python. Valid XML around both retained-edge
+boundaries also passes. These are mocked host checks; installed execution remains
+pending. The command sequence, shared readiness deadline, original nine checks,
+four app cases, launch predicate, host configuration and budgets are unchanged.
+
 ## Inputs and provenance
 
 The application keeps its existing JDK 21, Gradle 8.11.1, Kotlin 2.1.20, AGP 8.9.2,
