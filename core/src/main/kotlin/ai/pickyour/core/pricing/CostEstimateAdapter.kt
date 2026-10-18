@@ -18,6 +18,21 @@ sealed interface CostReception {
     class Inspected(val estimate: InspectedCostEstimate) : CostReception
 }
 
+/** Immutable declared line evidence; a zero amount does not establish free or included treatment. */
+class InspectedCostLine internal constructor(node: JsonNode) {
+    val id: String = node["id"].textValue()
+    val selectionId: String = node["selection_id"].textValue()
+    val rateId: String = node["price_rate_id"].textValue()
+    val meter: String = node["meter"].textValue()
+    val quantity: String = node["quantity"].textValue()
+    val unitPrice: ContractMoney = ContractMoney.fromJson(node["unit_price"])
+    val amount: ContractMoney = ContractMoney.fromJson(node["amount"])
+    val method: String = node["method"].textValue()
+    val confidence: String = node["confidence"].textValue()
+    val assumptions: List<String> = Collections.unmodifiableList(node["assumptions"].map { it.textValue() })
+    override fun toString() = "InspectedCostLine"
+}
+
 /** Recorded amounts only. Inspection is not accepted pricing, freshness, free/included proof or a budget pass. */
 class InspectedCostEstimate internal constructor(node: JsonNode, unclassified: Set<String>) {
     val estimateId: String = node["id"].textValue()
@@ -34,6 +49,7 @@ class InspectedCostEstimate internal constructor(node: JsonNode, unclassified: S
     val reportedUnpricedSelectionIds: Set<String> = immutableSet(node["unpriced_selection_ids"].map { it.textValue() }.toSet())
     /** A missing line is not proof that a component is free, included, or even priced. */
     val unclassifiedActiveSelectionIds: Set<String> = immutableSet(unclassified)
+    val lines: List<InspectedCostLine> = Collections.unmodifiableList(node["line_items"].map(::InspectedCostLine))
     val warnings: List<String> = Collections.unmodifiableList(node["warnings"].map { it.textValue() })
     /** Full immutable input preserves every line's quantity, rate ID, assumptions and original decimal strings. */
     val recordedJson: String = node.toString()
