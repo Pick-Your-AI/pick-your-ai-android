@@ -46,6 +46,9 @@ class PreviewActivity : Activity() {
     private lateinit var selection: TextView
     private lateinit var catalog: LinearLayout
     private lateinit var catalogStatus: TextView
+    private lateinit var catalogSearch: EditText
+    private lateinit var catalogResults: TextView
+    private var searchCatalogHash: String? = null
     private lateinit var retry: Button
     private var items: List<SampleItem> = emptyList()
     private lateinit var save: Button
@@ -82,6 +85,7 @@ class PreviewActivity : Activity() {
         selectedId = savedInstanceState?.getString("selectedId")
         selectedVersion = savedInstanceState?.getString("selectedVersion")
         selectedCatalogHash = savedInstanceState?.getString("selectedCatalogHash")
+        searchCatalogHash = savedInstanceState?.getString("searchCatalogHash")
         val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         fun text(resource: Int, size: Float = 18f) = TextView(this).apply {
             setText(resource)
@@ -186,10 +190,32 @@ class PreviewActivity : Activity() {
         text(R.string.catalog_heading, 22f).apply { if (android.os.Build.VERSION.SDK_INT >= 28) isAccessibilityHeading = true }
         text(R.string.catalog_explanation)
         catalogStatus = text(R.string.working).apply { accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE }
+        val searchLabel = text(R.string.catalog_search)
+        catalogSearch = EditText(this).apply {
+            id = View.generateViewId()
+            isSaveEnabled = false
+            setSingleLine(true)
+            filters = arrayOf(InputFilter.LengthFilter(PreviewCatalogQuery.MAX_LENGTH))
+            inputType = android.text.InputType.TYPE_CLASS_TEXT
+            imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH or
+                android.view.inputmethod.EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING
+            setHint(R.string.catalog_search_hint)
+            setText(savedInstanceState?.getString("catalogQuery").orEmpty().take(PreviewCatalogQuery.MAX_LENGTH))
+        }
+        searchLabel.labelFor = catalogSearch.id
+        content.addView(catalogSearch)
+        catalogResults = text(R.string.catalog_search_waiting).apply {
+            accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
+        }
         retry = Button(this).apply { setText(R.string.retry_catalog); setOnClickListener { loadCatalog() } }
         content.addView(retry)
         catalog = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         content.addView(catalog)
+        catalogSearch.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { renderCatalog() }
+            override fun afterTextChanged(s: Editable?) {}
+        })
         val status = text(R.string.ready).apply { accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE }
         val evidenceDetails = text(R.string.evidence_ready)
         val run = Button(this).apply { setText(R.string.run) }
@@ -253,6 +279,7 @@ class PreviewActivity : Activity() {
                 val bytes = readCatalogFixture()
                 check(FrozenSchemaValidator().validate(FrozenDocument.CATALOG, bytes.inputStream()) == FrozenValidation.Valid)
                 val rows = JSONObject(String(bytes, Charsets.UTF_8)).getJSONArray("items")
+                check(rows.length() <= 256) // A bounded fixture view, not production paging.
                 val rowsList = List(rows.length()) { index ->
                     val row = rows.getJSONObject(index)
                     SampleItem(row.getString("id"), row.getString("name"), row.getString("kind"), row.getString("version"))
@@ -263,20 +290,39 @@ class PreviewActivity : Activity() {
             runOnUiThread {
                 if (!destroyed) {
                     retry.isEnabled = true
-                    catalog.removeAllViews()
                     items = loaded?.items.orEmpty()
                     loadedCatalogHash = loaded?.hash
-                    catalogStatus.setText(if (loaded == null) R.string.catalog_unavailable else R.string.catalog_ready)
-                    items.forEach { item ->
-                        catalog.addView(Button(this).apply {
-                            text = getString(R.string.item_button, item.name, item.kind)
-                            isEnabled = !storageBusy
-                            setOnClickListener { showDetails(item) }
-                        })
-                    }
+                    val changed = loaded != null && searchCatalogHash != null && searchCatalogHash != loaded.hash
+                    catalogStatus.setText(when {
+                        loaded == null -> R.string.catalog_unavailable
+                        changed -> R.string.catalog_search_changed
+                        else -> R.string.catalog_ready
+                    })
+                    if (loaded != null) searchCatalogHash = loaded.hash
+                    renderCatalog()
                     showSelection()
                 }
             }
+        }
+    }
+
+    /** Always uses the current query and complete loaded snapshot, including after an async reload. */
+    private fun renderCatalog() {
+        catalog.removeAllViews()
+        if (loadedCatalogHash == null) {
+            catalogResults.setText(R.string.catalog_search_waiting)
+            return
+        }
+        val query = PreviewCatalogQuery(catalogSearch.text.toString())
+        val visible = items.filter { query.matches(it.id, it.name, it.kind, it.version) }
+        catalogResults.text = if (visible.isEmpty()) getString(R.string.catalog_search_empty)
+            else getString(R.string.catalog_search_count, visible.size, items.size)
+        visible.forEach { item ->
+            catalog.addView(Button(this).apply {
+                text = getString(R.string.item_button, item.name, item.kind)
+                isEnabled = !storageBusy
+                setOnClickListener { showDetails(item) }
+            })
         }
     }
 
@@ -810,6 +856,8 @@ class PreviewActivity : Activity() {
         outState.putString("selectedId", selectedId)
         outState.putString("selectedVersion", selectedVersion)
         outState.putString("selectedCatalogHash", selectedCatalogHash)
+        outState.putString("catalogQuery", catalogSearch.text.toString().take(PreviewCatalogQuery.MAX_LENGTH))
+        outState.putString("searchCatalogHash", searchCatalogHash)
         super.onSaveInstanceState(outState)
     }
 

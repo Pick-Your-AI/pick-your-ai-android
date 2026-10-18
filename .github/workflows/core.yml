@@ -91,6 +91,8 @@ jobs:
               "comparisonDistinguishesLiteralSentinelWithoutWriting",
               "editorsExposeLabelsAndSavedStatusUsesTextAndLiveRegion",
               "confirmedCurrentDraftDeletionRetainsPendingFormAndRevokesSaveAuthority",
+              "catalogQuerySurvivesDetailsAndRecreationWithoutChangingPinnedSelection",
+              "emptyCatalogSearchCanRecoverAndReloadUsesTheCurrentQuery",
           }
           cases = suite.findall("testcase")
           assert expected <= {case.attrib["name"] for case in cases}, "Missing UI regression"
