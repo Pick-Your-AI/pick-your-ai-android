@@ -37,6 +37,16 @@ remaining placement, remote reconciliation and installed-device work. The 129
 live issue criteria and canonical paths were rechecked on 2026-10-18 for this
 reconciliation; all 441 statuses and their original text remain unchanged.
 
+The catalog-detail receipt additionally links merged PR #234 to partial results
+for all four exact #97 criteria. It records exact item/version/snapshot lookup,
+typed specification/license/provenance distinctions and the explicit missing-rate
+path, with the reviewed merge tree and final 35-case simulated Activity run. Real
+catalog and offering data, source navigation, accepted evidence/source rights,
+pricebook applicability, installed historical recovery and the required receiving
+reviews remain incomplete. The separately coordinated source-navigation work is
+not attributed to this plain-text detail receipt. The fresh live reconciliation
+preserves every criterion, status and canonical acceptance path.
+
 Each criterion retains its original text, stable issue/ordinal ID, digest,
 remaining engineering work and any concrete external prerequisites. An empty
 external-prerequisite list means no external gate was identified for that exact

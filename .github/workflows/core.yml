@@ -119,6 +119,7 @@ jobs:
               "catalogDetailShowsPinnedSpecsEvidenceAndLicenseWithoutSaving",
               "catalogComparisonTrayRetainsExactPinsAcrossDetailsBackAndRecreationWithoutSaving",
               "catalogComparisonDifferencesKeepVersionsConditionsAndUnknownFieldsVisible",
+              "catalogComparisonPreservesRecordedPriceSnapshotsAndUnknownRecoveryWithoutSaving",
               "catalogComparisonKeepsUnavailablePinsAndRejectsAnOldDetailAfterSnapshotReplacement",
               "retiredCatalogComparisonControlsCannotMutateStateOrOpenDialogs",
               "invalidCatalogComparisonRestorationIsExplicitAndPreservesPendingEditorInputs",
@@ -134,12 +135,32 @@ jobs:
               "unavailableSourceHandlerPreservesDraftAndRequiresNewConfirmation",
               "catalogSourceCallbackCannotDispatchAfterAuthorityChangeOrRecreation",
               "catalogSourceConfirmationShowsCompleteBoundedUri",
+              "catalogRecordedPriceShowsExactSnapshotUnitsAndDatesWithoutSaving",
+              "catalogRecordedPriceNeverSubstitutesMissingItemOrVersionWithFreePricing",
+              "catalogRecordedPriceKeepsZeroConditionsAndUnknownLiteralsUnassessed",
+              "catalogRecordedPriceBoundsLiteralAlternativesWithoutSelectingOrCombining",
+              "catalogRecordedPriceReadFailureKeepsUnknownContextAndRetryUsesFreshSnapshot",
+              "catalogRecordedPriceReloadAndRetiredDialogCannotChangePendingDraft",
           }
           cases = suite.findall("testcase")
           assert expected <= {case.attrib["name"] for case in cases}, "Missing UI regression"
           assert all(not case.findall("failure") and not case.findall("error") and not case.findall("skipped") for case in cases), "UI regression did not pass"
           assert int(suite.attrib["tests"]) >= len(expected)
           print(f"Verified {len(cases)} simulated Activity tests; no installed-device claim")
+          PYTEST
+      - name: Require catalog snapshot callback regression to execute
+        run: |
+          python - <<'PYTEST'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          report = pathlib.Path("preview/build/test-results/testDebugUnitTest/TEST-ai.pickyour.android.preview.CatalogSnapshotActivityTest.xml")
+          suite = ET.parse(report).getroot()
+          expected = {"snapshotReplacementRetiresRowsAndDetailConfirmationWithoutChangingSavedDraft"}
+          cases = suite.findall("testcase")
+          assert expected <= {case.attrib["name"] for case in cases}, "Missing catalog snapshot callback regression"
+          assert all(not case.findall("failure") and not case.findall("error") and not case.findall("skipped") for case in cases), "Catalog snapshot callback regression did not pass"
+          assert int(suite.attrib["tests"]) >= len(expected)
+          print(f"Verified {len(cases)} simulated catalog snapshot callback tests; no installed-device claim")
           PYTEST
       - name: Retain unsigned diagnostic and lint reports
         if: always()
