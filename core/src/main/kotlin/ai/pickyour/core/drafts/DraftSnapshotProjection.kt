@@ -105,7 +105,7 @@ sealed interface DraftProjectionPreparation {
         internal val candidateBytes: ByteArray,
         internal val artifacts: List<CheckedProjectionArtifact>,
     ) : DraftProjectionPreparation {
-        val retainedOnlyPaths: List<String> = retainedOnlyPaths(source)
+        val retainedOnlyPaths: List<String> = retainedOnlyPaths(source.metadata)
         val pins: List<ProjectionArtifactPin> = immutableList(artifacts.map { it.pin })
         /** Exact typed inputs that will be represented. Every other local value remains in source. */
         val projectedWorkload: DraftWorkload get() = source.content.workload
@@ -155,6 +155,13 @@ class DraftSnapshotCandidate internal constructor(review: DraftProjectionPrepara
 
 internal class CheckedProjectionArtifact(val pin: ProjectionArtifactPin, val bytes: ByteArray, val value: ObjectNode)
 
+/** Shared pure projection result, also used to verify an archived retained source without a token. */
+internal sealed interface ProjectionInspection {
+    class Withheld(val findings: List<DraftProjectionFinding>) : ProjectionInspection
+    class Ready(val identity: DraftSnapshotIdentity, val candidateBytes: ByteArray,
+        val artifacts: List<CheckedProjectionArtifact>) : ProjectionInspection
+}
+
 /** Pure preparation after the canonical store has checked the current captured revision. */
 internal object DraftSnapshotProjection {
     private val mapper = ObjectMapper()
@@ -168,7 +175,15 @@ internal object DraftSnapshotProjection {
     // Frozen AGENT_PROTOCOL activation requirements and rule.required.foundation's explicit roles.
     private val foundationKinds = listOf("workload", "deployment_mode", "model", "context_policy")
 
-    fun prepare(source: StoredDraft, inputs: DraftSnapshotInputs, sourceBytes: ByteArray): DraftProjectionPreparation {
+    fun prepare(source: StoredDraft, inputs: DraftSnapshotInputs, sourceBytes: ByteArray): DraftProjectionPreparation =
+        when (val result = inspect(source.content, inputs)) {
+            is ProjectionInspection.Withheld -> DraftProjectionPreparation.Withheld(source, result.findings)
+            is ProjectionInspection.Ready -> DraftProjectionPreparation.Review(source, result.identity,
+                sourceBytes.copyOf(), result.candidateBytes, result.artifacts)
+        }
+
+    /** Reuse the same admission on retained content; this grants no live draft/store authority. */
+    fun inspect(content: DraftContent, inputs: DraftSnapshotInputs): ProjectionInspection {
         val findings = mutableListOf<DraftProjectionFinding>()
         var limited = false
         fun finding(problem: DraftProjectionProblem, path: String, values: List<String> = emptyList()) {
@@ -183,7 +198,7 @@ internal object DraftSnapshotProjection {
         }
         if (inputs.profileVersion != 1) {
             finding(DraftProjectionProblem.UNSUPPORTED_PROFILE, "/profile_version")
-            return DraftProjectionPreparation.Withheld(source, findings)
+            return ProjectionInspection.Withheld(immutableList(findings))
         }
         val identity = inputs.identity
         if (identity == null) finding(DraftProjectionProblem.MISSING_IDENTITY, "/identity")
@@ -200,7 +215,6 @@ internal object DraftSnapshotProjection {
             readArtifact(kind, input, ::finding)?.let(checked::add)
         }
 
-        val content = source.content
         val workload = content.workload
         if (workload.region == null) finding(DraftProjectionProblem.MISSING_OBJECTIVE, "/objectives/region")
         if (workload.currency == null) finding(DraftProjectionProblem.MISSING_OBJECTIVE, "/objectives/currency")
@@ -236,7 +250,7 @@ internal object DraftSnapshotProjection {
 
         val catalog = checked.find { it.pin.kind == ProjectionArtifactKind.CATALOG }
         if (catalog != null) inspectReferences(content.components, catalog, checked.find { it.pin.kind == ProjectionArtifactKind.PRICEBOOK }, ::finding)
-        if (findings.isNotEmpty() || identity == null) return DraftProjectionPreparation.Withheld(source, findings)
+        if (findings.isNotEmpty() || identity == null) return ProjectionInspection.Withheld(immutableList(findings))
 
         val byKind = checked.associateBy { it.pin.kind }
         val bytes = try {
@@ -263,13 +277,13 @@ internal object DraftSnapshotProjection {
             SelectionJson.encode(build)
         } catch (_: IllegalArgumentException) {
             finding(DraftProjectionProblem.INPUT_LIMIT, "/build")
-            return DraftProjectionPreparation.Withheld(source, findings)
+            return ProjectionInspection.Withheld(immutableList(findings))
         }
         if (SelectionJson.validator.validate(FrozenDocument.BUILD, bytes.inputStream()) != FrozenValidation.Valid) {
             finding(DraftProjectionProblem.BUILD_SCHEMA_MISMATCH, "/build")
-            return DraftProjectionPreparation.Withheld(source, findings)
+            return ProjectionInspection.Withheld(immutableList(findings))
         }
-        return DraftProjectionPreparation.Review(source, identity, sourceBytes.copyOf(), bytes, immutableList(checked))
+        return ProjectionInspection.Ready(identity, bytes, immutableList(checked))
     }
 
     private fun readArtifact(kind: ProjectionArtifactKind, input: DraftProjectionArtifact,
@@ -386,13 +400,13 @@ internal object DraftSnapshotProjection {
 }
 
 /** Exact local field groups omitted from the Build, even when a value is null, empty or a matching label. */
-private fun retainedOnlyPaths(source: StoredDraft): List<String> = immutableList(buildList {
+internal fun retainedOnlyPaths(metadata: Map<String, String>): List<String> = immutableList(buildList {
     addAll(listOf("/content/objective", "/content/context", "/content/primaryModel"))
     OptionalTier.entries.forEach { tier ->
         listOf("activation", "selections", "settings").forEach { field -> add("/content/optional/${tier.name}/$field") }
     }
     addAll(listOf("/local_format_version", "/revision", "/legacy_source_hash", "/metadata"))
-    source.metadata.keys.sorted().forEach { key -> add("/metadata/" + key.replace("~", "~0").replace("/", "~1")) }
+    metadata.keys.sorted().forEach { key -> add("/metadata/" + key.replace("~", "~0").replace("/", "~1")) }
     add("/history")
 })
 
