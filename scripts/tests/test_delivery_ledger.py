@@ -135,7 +135,7 @@ class LedgerValidationTest(unittest.TestCase):
             module.validate(self.ledger, [issue for issue in source if issue['state'] == 'open'])
 
     def test_completion_requires_reviewed_schema_version(self):
-        for version in (1, 2, 3, 4, True, '2', '3', '4', '5', 4.0, 5.0):
+        for version in (1, 2, 3, 4, 5, True, '2', '3', '4', '5', '6', 4.0, 5.0, 6.0):
             ledger = copy.deepcopy(self.ledger)
             ledger['schema_version'] = version
             with self.assertRaisesRegex(ValueError, 'unsupported schema version'):
@@ -336,7 +336,9 @@ class LedgerValidationTest(unittest.TestCase):
                 target['criteria'][0].update(status='complete', completion_evidence=['pr-322'],
                                              remaining_engineering='', external_prerequisites=[],
                                              evidence_relation=module.COMPLETE_DESIGN_RELATION)
-                with self.assertRaisesRegex(ValueError, f'unsupported design acceptance: {number}'):
+                message = (f'missing or changed reviewed design acceptance: {number}' if number == 35
+                           else f'unsupported design acceptance: {number}')
+                with self.assertRaisesRegex(ValueError, message):
                     module.validate(ledger)
 
 
@@ -428,6 +430,100 @@ class LedgerValidationTest(unittest.TestCase):
                 target['accepted_design_outcome'] = copy.deepcopy(ledger['issues'][46]['accepted_design_outcome'])
                 target['canonical_acceptance_record']['repository'] = module.REPOSITORY
                 target['criteria'][0].update(status='complete', completion_evidence=['pr-318'],
+                                             remaining_engineering='', external_prerequisites=[],
+                                             evidence_relation=module.COMPLETE_DESIGN_RELATION)
+                with self.assertRaisesRegex(ValueError, f'unsupported design acceptance: {number}'):
+                    module.validate(ledger)
+
+
+    def test_service_criteria_cannot_change_with_a_recomputed_digest(self):
+        import hashlib
+        for ordinal in range(3):
+            with self.subTest(ordinal=ordinal + 1):
+                ledger = copy.deepcopy(self.ledger)
+                criterion = ledger['issues'][34]['criteria'][ordinal]
+                criterion['text'] = 'A production endpoint, accepted operator and executed restore are verified.'
+                criterion['text_sha256'] = hashlib.sha256(criterion['text'].encode()).hexdigest()
+                with self.assertRaisesRegex(ValueError, 'reviewed design criterion set changed: 35'):
+                    module.validate(ledger)
+
+    def test_service_requires_exact_delivery_artifacts_scope_history_and_reviews(self):
+        for changed in ('missing', 'missing-review', 'wrong-review', 'source', 'scope',
+                        'history-repository', 'history-path', 'placement', 'path',
+                        'record', 'baseline', 'decision', 'open', 'revision', 'artifact'):
+            with self.subTest(changed=changed):
+                ledger = copy.deepcopy(self.ledger)
+                issue = ledger['issues'][34]
+                accepted = issue['accepted_design_outcome']
+                receipt = ledger['evidence']['pr-347']
+                if changed == 'missing':
+                    del issue['accepted_design_outcome']
+                elif changed == 'missing-review':
+                    accepted['receiving_reviews'].pop()
+                elif changed == 'wrong-review':
+                    accepted['receiving_reviews'][1] = module.DESIGN_25_ACCEPTANCE['receiving_reviews'][0]
+                elif changed == 'source':
+                    accepted['source_review_revision'] = '0' * 40
+                elif changed == 'scope':
+                    accepted['scope'] = 'deployed_shared_service_and_accepted_operator'
+                elif changed == 'history-repository':
+                    accepted['historical_acceptance_record']['repository'] = module.REPOSITORY
+                elif changed == 'history-path':
+                    accepted['historical_acceptance_record']['path'] = module.DESIGN_25_PATH
+                elif changed == 'placement':
+                    issue['canonical_acceptance_record']['repository'] = 'Pick-Your-AI/pickyour.ai'
+                elif changed == 'path':
+                    issue['canonical_acceptance_record']['path'] = module.DESIGN_25_PATH
+                elif changed == 'record':
+                    accepted['record_url'] = accepted['baseline_url']
+                elif changed == 'baseline':
+                    accepted['baseline_url'] = accepted['record_url']
+                elif changed == 'decision':
+                    accepted['decision_url'] = accepted['record_url']
+                elif changed == 'open':
+                    receipt['observed_state'] = 'open'
+                elif changed == 'revision':
+                    receipt['revision'] = '0' * 40
+                    receipt['artifact_url'] = receipt['artifact_url'].replace(module.DESIGN_35_REVISION, '0' * 40)
+                else:
+                    receipt['artifact_url'] = accepted['baseline_url']
+                with self.assertRaises(ValueError):
+                    module.validate(ledger)
+
+    def test_service_receipt_cannot_substitute_any_other_accepted_decision(self):
+        for other in (20, 23, 24, 25, 34, 47):
+            for target, source in ((35, other), (other, 35)):
+                with self.subTest(target=target, source=source):
+                    ledger = copy.deepcopy(self.ledger)
+                    ledger['issues'][target - 1]['accepted_design_outcome'] = copy.deepcopy(
+                        ledger['issues'][source - 1]['accepted_design_outcome'])
+                    with self.assertRaisesRegex(ValueError, f'missing or changed reviewed design acceptance: {target}'):
+                        module.validate(ledger)
+
+    def test_service_completion_requires_exact_proof_and_no_unfinished_decision(self):
+        for ordinal in range(3):
+            for field, value in (
+                ('completion_evidence', []),
+                ('completion_evidence', ['pr-322']),
+                ('completion_evidence', ['pr-347', 'pr-322']),
+                ('remaining_engineering', 'Hosting or explicit operating gate remains undecided.'),
+                ('external_prerequisites', [{'kind': 'owner_acceptance', 'requirement': 'Pending decision review.'}]),
+                ('evidence_relation', 'issue_context_only; inspect artifact scope before attributing any criterion result'),
+            ):
+                with self.subTest(ordinal=ordinal + 1, field=field, value=value):
+                    ledger = copy.deepcopy(self.ledger)
+                    ledger['issues'][34]['criteria'][ordinal][field] = value
+                    with self.assertRaises(ValueError):
+                        module.validate(ledger)
+
+    def test_service_decision_does_not_authorize_parent_client_operations_or_release(self):
+        for number in (1, 2, 36, 44, 51, 62, 89, 92, 98, 107):
+            with self.subTest(number=number):
+                ledger = copy.deepcopy(self.ledger)
+                target = ledger['issues'][number - 1]
+                target['accepted_design_outcome'] = copy.deepcopy(ledger['issues'][34]['accepted_design_outcome'])
+                target['canonical_acceptance_record']['repository'] = module.REPOSITORY
+                target['criteria'][0].update(status='complete', completion_evidence=['pr-347'],
                                              remaining_engineering='', external_prerequisites=[],
                                              evidence_relation=module.COMPLETE_DESIGN_RELATION)
                 with self.assertRaisesRegex(ValueError, f'unsupported design acceptance: {number}'):
