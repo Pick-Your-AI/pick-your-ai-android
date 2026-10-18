@@ -95,6 +95,90 @@ class PreviewActivityTest {
         return requireNotNull(browser.details(browser.items.single { it.kind == "model" }, browser.hash))
     }
 
+    @Test @Config(qualifiers = "de")
+    fun costInspectorUsesResourceLocaleWithoutChangingSavedOrPendingInputs() {
+        field(R.string.draft_title).setText("saved locale draft")
+        field(R.string.context_objective).setText("saved objective")
+        save()
+        val baseline = loaded().baselineIdentity
+        field(R.string.draft_title).setText("pending locale draft")
+        field(R.string.context_context).setText("pending context")
+        val defaultLocale = java.util.Locale.getDefault()
+        try {
+            java.util.Locale.setDefault(java.util.Locale.US)
+            assertEquals("de", activity.resources.configuration.locales[0].language)
+            button(R.string.cost_inspect).performClick()
+            await { button(R.string.cost_inspect).isEnabled }
+            val text = views().filterIsInstance<TextView>().single {
+                it.text.toString().contains("Fixture build:")
+            }.text.toString()
+            for (amount in listOf("578,50 USD", "0,00 USD", "0,80 USD", "576,00 USD", "0,05 USD", "2,50 USD")) {
+                assertTrue(amount, text.contains(amount))
+            }
+            assertTrue(text.contains(activity.getString(R.string.cost_evidence_limits)))
+            assertEquals("pending locale draft", field(R.string.draft_title).text.toString())
+            assertEquals("pending context", field(R.string.context_context).text.toString())
+            assertEquals(baseline, loaded().baselineIdentity)
+            assertEquals("saved locale draft", loaded().fields.title)
+            assertEquals("saved objective", loaded().contextInput.objective)
+            assertTrue(button(R.string.save_draft).isEnabled)
+        } finally { java.util.Locale.setDefault(defaultLocale) }
+    }
+
+    @Test @Config(qualifiers = "ar")
+    fun costInspectorUsesLocaleDigitsAfterRecreationWithoutSaving() {
+        field(R.string.draft_title).setText("pending Arabic locale")
+        recreate()
+        await { button(R.string.save_draft).isEnabled }
+        assertEquals("ar", activity.resources.configuration.locales[0].language)
+        button(R.string.cost_inspect).performClick()
+        await { button(R.string.cost_inspect).isEnabled }
+        val text = views().filterIsInstance<TextView>().single {
+            it.text.toString().contains("Fixture build:")
+        }.text.toString()
+        assertTrue(text.contains("٥٧٨٫٥٠ USD"))
+        assertTrue(text.contains("٠٫٠٠ USD"))
+        assertTrue(text.contains("٧٢٠"))
+        assertTrue(text.contains("٣٠"))
+        assertTrue(text.contains("Currency: USD"))
+        assertTrue(text.contains(activity.getString(R.string.cost_evidence_limits)))
+        assertEquals("pending Arabic locale", field(R.string.draft_title).text.toString())
+        assertTrue(adapter().load() is PreviewDraftLoad.Missing)
+        assertTrue(button(R.string.save_draft).isEnabled)
+    }
+
+    @Test @Config(qualifiers = "de")
+    fun costPresentationPreservesExactPrecisionCurrencyAndPluralCounts() {
+        val build = activity.assets.open("build.json").bufferedReader(Charsets.UTF_8).use { org.json.JSONObject(it.readText()) }
+        build.getJSONObject("objectives").put("currency", "JPY")
+        val cost = activity.assets.open("cost-estimate.json").bufferedReader(Charsets.UTF_8).use { org.json.JSONObject(it.readText()) }
+        val exact = "9".repeat(512) + ".123456789012"
+        val quantity = "9007199254740993.000000000001"
+        fun money(amount: String) = org.json.JSONObject().put("amount", amount).put("currency", "JPY")
+        val line = cost.getJSONArray("line_items").getJSONObject(0)
+            .put("quantity", quantity).put("unit_price", money(exact)).put("amount", money(exact))
+        cost.put("currency", "JPY").put("line_items", org.json.JSONArray().put(line))
+            .put("subtotal", money(exact)).put("tax", money("0.000000000000")).put("total", money(exact))
+        for ((count, expected) in listOf("1" to "Declared period: 1 day\n", "2" to "Declared period: 2 days\n",
+            "4294967297" to "Declared period in days: 4294967297\n")) {
+            cost.put("period_days", java.math.BigInteger(count))
+            val result = ai.pickyour.core.pricing.CostEstimateAdapter().inspect(
+                build.toString().byteInputStream(), cost.toString().byteInputStream()) as ai.pickyour.core.pricing.CostReception.Inspected
+            val recorded = result.estimate.recordedJson
+            val text = CostInspectionText.describe(activity, result.estimate)
+            assertTrue(expected, text.contains(expected))
+            assertTrue(text.contains(exact.replace('.', ',') + " JPY"))
+            assertTrue(text.contains("0,000000000000 JPY"))
+            assertTrue(text.contains(quantity.replace('.', ',')))
+            assertTrue(text.contains("Currency: JPY"))
+            assertTrue(text.contains(result.estimate.estimatedAt))
+            assertEquals(exact, result.estimate.reportedTotal.amount.encoded)
+            assertEquals(quantity, result.estimate.lines.single().quantity)
+            assertEquals(recorded, result.estimate.recordedJson)
+        }
+        assertTrue(adapter().load() is PreviewDraftLoad.Missing)
+    }
+
     @Test fun acknowledgedFieldsAndExplicitEmptySurviveRecreation() {
         field(R.string.draft_title).setText("saved title")
         field(R.string.context_objective).setText("objective")
@@ -738,6 +822,40 @@ class PreviewActivityTest {
         assertTrue(message.contains("license_ref [string]: " + activity.getString(R.string.catalog_detail_explicit_unknown)))
         assertNull(shadowOf(activity).nextStartedActivity)
         assertTrue(adapter().load() is PreviewDraftLoad.Missing)
+    }
+
+    @Test fun catalogDetailDialogsPreserveLiteralCatalogReferenceIds() {
+        await { hasText(R.string.catalog_ready) }
+        field(R.string.draft_title).setText("pending reference review")
+        data class ReferenceCase(val kind: String, val target: String, val field: String, val array: Boolean)
+        for (case in listOf(ReferenceCase("model", "model_provider", "provider_ref", false),
+                            ReferenceCase("mcp_server", "tool", "tool_refs", true))) {
+            val root = activity.assets.open("catalog.json").bufferedReader(Charsets.UTF_8).use { org.json.JSONObject(it.readText()) }
+            val items = root.getJSONArray("items")
+            fun item(kind: String) = (0 until items.length()).map { items.getJSONObject(it) }.single { it.getString("kind") == kind }
+            item(case.target).put("id", "unknown")
+            val selected = item(case.kind)
+            selected.getJSONObject("spec").put(case.field,
+                if (case.array) org.json.JSONArray().put("unknown") else "unknown")
+            selected.put("billing_class", "unknown")
+            val browser = requireNotNull(PreviewCatalogBrowser.read(root.toString().toByteArray(Charsets.UTF_8)))
+            views().filterIsInstance<CatalogBrowseSection>().single().show(browser)
+            field(R.string.catalog_search).setText(selected.getString("id"))
+            await { samples().size == 1 }
+            samples().single().performClick()
+            val opened = dialog()
+            val message = shadowOf(opened).message.toString()
+            val expected = if (case.array) "${case.field} [array]: [\"unknown\"]" else "${case.field} [string]: \"unknown\""
+            assertEquals(expected, message.lineSequence().single { it.startsWith("${case.field} [") })
+            assertTrue(message.contains("Recorded billing class: unknown"))
+            assertTrue(message.contains(activity.getString(R.string.catalog_detail_price)))
+            assertNull(shadowOf(activity).nextStartedActivity)
+            assertTrue(adapter().load() is PreviewDraftLoad.Missing)
+            opened.getButton(AlertDialog.BUTTON_NEGATIVE).performClick()
+            await { !opened.isShowing }
+            assertEquals("pending reference review", field(R.string.draft_title).text.toString())
+            assertTrue(adapter().load() is PreviewDraftLoad.Missing)
+        }
     }
 
     @Test fun catalogDetailRenderingKeepsUnknownAndBoundedLiteralSourceValues() {

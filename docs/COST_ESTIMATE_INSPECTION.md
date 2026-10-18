@@ -20,6 +20,12 @@ Freshness, free/included treatment and budget pass are always `NOT_ESTABLISHED`,
 
 This synchronous check binds the supplied records only. Async/UI consumers must use current `AnalysisCoordinator` tickets and invalidate results on any input change; calling the inspector does not establish that the supplied build is still the user's current draft.
 
+The synthetic Android inspector uses [exact locale presentation](EXACT_COST_PRESENTATION.md)
+for recorded amounts, quantities and period counts. The app's resource locale changes
+digits and separators while keeping every supplied decimal place, the ISO currency,
+canonical JSON and all evidence limitations. This fixed fixture remains separate from
+the editable guest draft and is never labeled as its current estimate.
+
 ## Criterion coverage and remaining acceptance
 
 | Exact #103 criterion | Evidence | Remaining gap |
