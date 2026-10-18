@@ -27,6 +27,7 @@ import ai.pickyour.core.contracts.FrozenValidation
 import java.util.concurrent.Executors
 import ai.pickyour.core.preview.SyntheticCatalogEvidence
 import ai.pickyour.core.evidence.EvidenceLabel
+import ai.pickyour.core.pricing.RecordedPricebook
 
 /** Guest preview over synthetic fixtures with explicit local save through the canonical store. */
 class PreviewActivity : Activity() {
@@ -46,6 +47,7 @@ class PreviewActivity : Activity() {
     private var restoreContextFromDisk = false
     private lateinit var selection: TextView
     private lateinit var catalog: CatalogBrowseSection
+    private var catalogPricebook: RecordedPricebook? = null // UI-thread owned, replaced with each catalog load.
     private lateinit var catalogStatus: TextView
     private lateinit var catalogSearch: EditText
     private lateinit var retry: Button
@@ -292,14 +294,13 @@ class PreviewActivity : Activity() {
         retry.isEnabled = false
         catalogStatus.setText(R.string.working)
         worker.execute {
-            val loaded = try {
-                PreviewCatalogBrowser.read(readCatalogFixture())
-            } catch (_: Exception) { null }
+            val loaded = CatalogFixtureData.read(::readCatalogFixture) { assets.open("pricebook.json") }
             runOnUiThread {
                 if (!destroyed) {
+                    catalogPricebook = loaded.pricebook
                     retry.isEnabled = true
-                    catalogStatus.setText(if (loaded == null) R.string.catalog_unavailable else R.string.catalog_ready)
-                    if (loaded == null) catalog.unavailable() else catalog.show(loaded)
+                    catalogStatus.setText(if (loaded.catalog == null) R.string.catalog_unavailable else R.string.catalog_ready)
+                    if (loaded.catalog == null) catalog.unavailable() else catalog.show(loaded.catalog)
                     catalog.selectionEnabled(!storageBusy)
                     showSelection()
                 }
@@ -315,7 +316,7 @@ class PreviewActivity : Activity() {
         lateinit var dialog: AlertDialog
         dialog = AlertDialog.Builder(this)
             .setTitle(item.name)
-            .setMessage(detail?.let { CatalogDetailText.describe(this, it) }
+            .setMessage(detail?.let { CatalogDetailText.describe(this, it, catalogPricebook) }
                 ?: getString(R.string.catalog_detail_unavailable))
             .setNegativeButton(R.string.close, null)
             .setNeutralButton(R.string.catalog_sources) { _, _ ->

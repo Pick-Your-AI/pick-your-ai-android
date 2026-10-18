@@ -3,13 +3,14 @@ package ai.pickyour.android.preview
 import android.content.Context
 import ai.pickyour.core.evidence.EvidenceLabel
 import ai.pickyour.core.preview.*
+import ai.pickyour.core.pricing.RecordedPricebook
 
 /** Plain bounded text only. Source strings are never linkified, resolved or launched. */
 internal object CatalogDetailText {
     private const val MAX_VALUE = 320
     private const val MAX_PROVENANCE = 8
 
-    fun describe(context: Context, detail: PreviewCatalogDetails): String {
+    fun describe(context: Context, detail: PreviewCatalogDetails, pricebook: RecordedPricebook? = null): String {
         fun text(raw: String?): String {
             val value = PreviewComparedValue.from(raw)
             val literal = when (value.kind) {
@@ -66,6 +67,7 @@ internal object CatalogDetailText {
             context.getString(R.string.evidence_support_unestablished),
             context.getString(R.string.evidence_pinned),
             context.getString(R.string.catalog_detail_price),
+            CatalogPriceText.describe(context, item, pricebook),
             context.getString(R.string.catalog_detail_source_limits),
         ).joinToString("\n\n")
     }

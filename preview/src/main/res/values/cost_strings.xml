@@ -5,7 +5,7 @@
     <string name="cost_rejected">Cost record rejected: %1$s. No amount or passing budget is established.</string>
     <string name="cost_unavailable">Cost record unavailable. No amount or passing budget is established.</string>
     <string name="cost_identity">Fixture build: %1$s, revision %2$s\nEstimate: %3$s\nPricebook ID: %4$s</string>
-    <string name="cost_period">Declared period: %1$s days\nCurrency: %2$s\nRecorded estimate time: %3$s (freshness not established)</string>
+    <string name="cost_period">Declared period (days): %1$s\nCurrency: %2$s\nRecorded estimate time: %3$s (freshness not established)</string>
     <string name="cost_coverage">Producer-declared coverage: %1$s. Actual complete meter coverage is not established.</string>
     <string name="cost_amounts">Known declared line subtotal: %1$s\nDeclared tax: %2$s\nProducer-declared sum: %3$s\nThis is not a complete stack price or a proven lower bound.</string>
     <string name="cost_unpriced">Explicitly unpriced selections: %1$s</string>

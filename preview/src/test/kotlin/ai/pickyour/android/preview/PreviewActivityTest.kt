@@ -14,6 +14,8 @@ import ai.pickyour.core.drafts.Activation
 import ai.pickyour.core.drafts.OptionalTier
 import ai.pickyour.core.preview.*
 import ai.pickyour.core.navigation.ExternalLinkPolicy
+import ai.pickyour.core.pricing.RecordedPricebook
+import ai.pickyour.core.pricing.RecordedPricebookResult
 import org.junit.After
 import org.junit.Assert.*
 import org.junit.Before
@@ -177,6 +179,10 @@ class PreviewActivityTest {
         await { dialog() !== picker && dialog().isShowing }
         return dialog()
     }
+
+    private fun priceJson() = activity.assets.open("pricebook.json").bufferedReader(Charsets.UTF_8).use { org.json.JSONObject(it.readText()) }
+    private fun recordedPrices(json: org.json.JSONObject) =
+        (RecordedPricebook.read(json.toString().byteInputStream()) as RecordedPricebookResult.Parsed).pricebook
 
     @Test fun acknowledgedFieldsAndExplicitEmptySurviveRecreation() {
         field(R.string.draft_title).setText("saved title")
@@ -1263,6 +1269,201 @@ class PreviewActivityTest {
         assertTrue(message.contains("license_ref [string]: " + activity.getString(R.string.catalog_detail_explicit_unknown)))
         assertNull(shadowOf(activity).nextStartedActivity)
         assertTrue(adapter().load() is PreviewDraftLoad.Missing)
+    }
+
+    @Test fun catalogRecordedPriceShowsExactSnapshotUnitsAndDatesWithoutSaving() {
+        field(R.string.draft_title).setText("saved price review")
+        save()
+        val baseline = loaded().baselineIdentity
+        field(R.string.context_objective).setText("pending price objective")
+        field(R.string.context_context).setText("pending price context")
+        field(R.string.catalog_search).setText("cat.compute_profile.fixture")
+        await { samples().size == 1 }
+        val before = Bundle().also { controller.saveInstanceState(it) }
+        samples().single().performClick()
+        val opened = dialog()
+        val message = shadowOf(opened).message.toString()
+        val book = activity.assets.open("pricebook.json").use { (RecordedPricebook.read(it) as RecordedPricebookResult.Parsed).pricebook }
+        assertTrue(message.contains("Pricebook: \"prices.fixture.1\""))
+        assertTrue(message.contains("SHA-256: ${book.hash}"))
+        assertTrue(message.contains("Exact item/version price records displayed: 1 / 1"))
+        assertTrue(message.contains("Catalog item ID: \"cat.compute_profile.fixture\""))
+        assertTrue(message.contains("Catalog item version: \"2026.10-demo\""))
+        assertTrue(message.contains("Meter: gpu_hour"))
+        assertTrue(message.contains("Recorded unit_price.amount: \"0.80\""))
+        assertTrue(message.contains("Currency: USD"))
+        assertTrue(message.contains("Region: \"us-east-fixture\""))
+        assertTrue(message.contains("Recorded valid_from: \"2026-10-16T09:00:00Z\""))
+        assertTrue(message.contains("Recorded valid_until: " + activity.getString(R.string.catalog_detail_missing)))
+        assertTrue(message.contains("Recorded price_type: estimate"))
+        assertTrue(message.contains(activity.getString(R.string.catalog_price_conditions_missing)))
+        assertTrue(message.contains(activity.getString(R.string.catalog_price_notice)))
+        assertTrue(message.contains(activity.getString(R.string.catalog_price_limits)))
+        assertFalse(message.contains("rate.storage.fixture"))
+        opened.getButton(AlertDialog.BUTTON_NEGATIVE).performClick()
+        await { !opened.isShowing }
+        val after = Bundle().also { controller.saveInstanceState(it) }
+        for (key in listOf("title", "objective", "contextInput", "selectedId", "selectedVersion",
+            "selectedCatalogHash", "draftId", "draftBaseline", "catalogSnapshot")) {
+            assertEquals(key, before.getString(key), after.getString(key))
+        }
+        assertEquals(baseline, loaded().baselineIdentity)
+        assertNull(shadowOf(activity).nextStartedActivity)
+    }
+
+    @Test fun catalogRecordedPriceNeverSubstitutesMissingItemOrVersionWithFreePricing() {
+        field(R.string.catalog_search).setText("cat.model.fixture")
+        await { samples().size == 1 }
+        samples().single().performClick()
+        val message = shadowOf(dialog()).message.toString()
+        assertTrue(message.contains("Pricebook: \"prices.fixture.1\""))
+        assertTrue(message.contains("Exact item/version price records displayed: 0 / 0"))
+        assertTrue(message.contains(activity.getString(R.string.catalog_price_no_record)))
+        assertFalse(message.contains("Recorded unit_price.amount:"))
+        assertFalse(message.contains("rate.compute_profile.fixture"))
+        val detail = sourceDetails(null)
+        val input = priceJson()
+        input.getJSONArray("rates").getJSONObject(0).put("catalog_item_id", detail.item.id)
+            .put("catalog_item_version", "different-version")
+        val wrongVersion = CatalogPriceText.describe(activity, detail.item, recordedPrices(input))
+        assertTrue(wrongVersion.contains(activity.getString(R.string.catalog_price_no_record)))
+        assertFalse(wrongVersion.contains("Recorded unit_price.amount:"))
+        assertTrue(adapter().load() is PreviewDraftLoad.Missing)
+        assertNull(shadowOf(activity).nextStartedActivity)
+    }
+
+    @Test fun catalogRecordedPriceKeepsZeroConditionsAndUnknownLiteralsUnassessed() {
+        val detail = sourceDetails(null)
+        val input = priceJson()
+        val rate = input.getJSONArray("rates").getJSONObject(0)
+        rate.put("catalog_item_id", detail.item.id).put("catalog_item_version", detail.item.version)
+            .put("price_type", "list").put("region", "unknown")
+            .put("valid_from", "2026-10-16T10:00:00+01:00").put("valid_until", "2026-10-17T10:00:00+01:00")
+        rate.getJSONObject("unit_price").put("amount", "0.0000").put("currency", "JPY")
+        rate.getJSONObject("provenance").put("verification_status", "verified")
+            .put("source_uri", "https://example.invalid/rate").put("notes", "unknown")
+        rate.put("conditions", org.json.JSONArray().put("unknown").put(""))
+        val book = recordedPrices(input)
+        val message = CatalogPriceText.describe(activity, detail.item, book)
+        assertTrue(message.contains("Recorded unit_price.amount: \"0.0000\""))
+        assertTrue(message.contains("Currency: JPY"))
+        assertTrue(message.contains("Region: \"unknown\""))
+        assertTrue(message.contains("Recorded valid_from: \"2026-10-16T10:00:00+01:00\""))
+        assertTrue(message.contains("Recorded valid_until: \"2026-10-17T10:00:00+01:00\""))
+        assertTrue(message.contains("1: \"unknown\"\n2: \"\""))
+        assertTrue(message.contains("Rate notes: \"unknown\""))
+        assertTrue(message.contains("Rate source URI: \"https://example.invalid/rate\""))
+        assertTrue(message.contains(activity.getString(R.string.label_verification_unestablished)))
+        assertFalse(message.contains(activity.getString(R.string.label_independently_verified)))
+        assertTrue(message.contains(activity.getString(R.string.catalog_price_limits)))
+        rate.put("conditions", org.json.JSONArray()).put("region", "")
+        val empty = CatalogPriceText.describe(activity, detail.item, recordedPrices(input))
+        assertTrue(empty.contains(activity.getString(R.string.catalog_price_conditions_empty)))
+        assertTrue(empty.contains("Region: \"\""))
+        rate.remove("conditions"); rate.remove("region")
+        val missing = CatalogPriceText.describe(activity, detail.item, recordedPrices(input))
+        assertTrue(missing.contains(activity.getString(R.string.catalog_price_conditions_missing)))
+        assertTrue(missing.contains("Region: " + activity.getString(R.string.catalog_detail_missing)))
+        assertEquals(listOf("unknown", ""), book.ratesFor(detail.item.id, detail.item.version).single().conditions)
+        assertTrue(adapter().load() is PreviewDraftLoad.Missing)
+        assertNull(shadowOf(activity).nextStartedActivity)
+    }
+
+    @Test fun catalogRecordedPriceBoundsLiteralAlternativesWithoutSelectingOrCombining() {
+        val detail = sourceDetails(null)
+        val input = priceJson()
+        val prototype = input.getJSONArray("rates").getJSONObject(0)
+            .put("catalog_item_id", detail.item.id).put("catalog_item_version", detail.item.version)
+        val rates = org.json.JSONArray()
+        repeat(10) { index ->
+            val rate = org.json.JSONObject(prototype.toString()).put("id", "rate.alternative.$index")
+            val conditions = org.json.JSONArray()
+            repeat(10) { conditions.put("\u202e" + "x".repeat(200)) }
+            rate.put("conditions", conditions)
+            rate.getJSONObject("provenance").put("notes", "\n\u202e" + "x".repeat(200))
+            rates.put(rate)
+        }
+        input.put("rates", rates)
+        val book = recordedPrices(input)
+        val message = CatalogPriceText.describe(activity, detail.item, book)
+        assertTrue(message.contains("Exact item/version price records displayed: 8 / 10"))
+        assertTrue(message.contains("Conditions displayed: 8 / 10"))
+        assertTrue(message.contains("rate.alternative.7"))
+        assertFalse(message.contains("rate.alternative.8"))
+        assertTrue(message.contains("[display truncated]"))
+        assertTrue(message.contains("\\u202e"))
+        assertFalse(message.contains('\u202e'))
+        assertTrue(message.length < 100_000)
+        assertEquals(10, book.ratesFor(detail.item.id, detail.item.version).size)
+        assertEquals(10, book.rates.last().conditions!!.size)
+        assertTrue(message.contains(activity.getString(R.string.catalog_price_limits)))
+        assertTrue(adapter().load() is PreviewDraftLoad.Missing)
+        assertNull(shadowOf(activity).nextStartedActivity)
+    }
+
+    @Test fun catalogRecordedPriceReadFailureKeepsUnknownContextAndRetryUsesFreshSnapshot() {
+        val catalogBytes = activity.assets.open("catalog.json").use { it.readBytes() }
+        val first = CatalogFixtureData.read({ catalogBytes }) { activity.assets.open("pricebook.json") }
+        assertNotNull(first.catalog)
+        assertNotNull(first.pricebook)
+        for (priceInput in listOf<() -> java.io.InputStream>(
+            { throw java.io.IOException("private asset path") },
+            { "{\"invalid\":true}".byteInputStream() },
+        )) {
+            val failed = CatalogFixtureData.read({ catalogBytes }, priceInput)
+            val browser = requireNotNull(failed.catalog)
+            assertEquals(first.catalog!!.hash, browser.hash)
+            assertNull(failed.pricebook)
+            val item = browser.items.single { it.kind == "compute_profile" }
+            val message = CatalogDetailText.describe(activity, requireNotNull(browser.details(item, browser.hash)), failed.pricebook)
+            assertTrue(message.contains(activity.getString(R.string.catalog_price_unavailable)))
+            assertFalse(message.contains("rate.compute_profile.fixture"))
+        }
+        var attemptedPriceRead = false
+        val invalidCatalog = CatalogFixtureData.read({ "{}".toByteArray() }) {
+            attemptedPriceRead = true; activity.assets.open("pricebook.json")
+        }
+        assertNull(invalidCatalog.catalog)
+        assertNull(invalidCatalog.pricebook)
+        assertFalse(attemptedPriceRead)
+        val retry = CatalogFixtureData.read({ catalogBytes }) { activity.assets.open("pricebook.json") }
+        assertNotSame(first.pricebook, retry.pricebook)
+        assertEquals(first.pricebook!!.hash, retry.pricebook!!.hash)
+        assertTrue(adapter().load() is PreviewDraftLoad.Missing)
+    }
+
+    @Test fun catalogRecordedPriceReloadAndRetiredDialogCannotChangePendingDraft() {
+        field(R.string.draft_title).setText("pending price reload")
+        field(R.string.catalog_search).setText("cat.storage.fixture")
+        await { samples().size == 1 }
+        samples().single().performClick()
+        val retired = dialog()
+        val original = shadowOf(retired).message.toString()
+        assertTrue(original.contains("Meter: storage_gb_month"))
+        assertTrue(original.contains("Recorded unit_price.amount: \"0.05\""))
+        retired.getButton(AlertDialog.BUTTON_NEGATIVE).performClick()
+        await { !retired.isShowing }
+        button(R.string.retry_catalog).performClick()
+        await { button(R.string.retry_catalog).isEnabled && samples().size == 1 }
+        samples().single().performClick()
+        assertEquals(original, shadowOf(dialog()).message.toString())
+        recreate()
+        await { button(R.string.save_draft).isEnabled && samples().size == 1 }
+        val before = Bundle().also { controller.saveInstanceState(it) }
+        retired.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+        retired.getButton(AlertDialog.BUTTON_NEUTRAL).performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+        val after = Bundle().also { controller.saveInstanceState(it) }
+        for (key in listOf("title", "objective", "contextInput", "selectedId", "selectedVersion",
+            "selectedCatalogHash", "draftId", "draftBaseline", "catalogSnapshot")) {
+            assertEquals(key, before.getString(key), after.getString(key))
+        }
+        samples().single().performClick()
+        assertEquals(original, shadowOf(dialog()).message.toString())
+        assertEquals("pending price reload", field(R.string.draft_title).text.toString())
+        assertTrue(hasText(R.string.no_selection))
+        assertTrue(adapter().load() is PreviewDraftLoad.Missing)
+        assertNull(shadowOf(activity).nextStartedActivity)
     }
 
     @Test fun catalogDetailRenderingKeepsUnknownAndBoundedLiteralSourceValues() {

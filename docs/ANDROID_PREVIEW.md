@@ -697,6 +697,15 @@ Android's [saved UI state guidance](https://developer.android.com/topic/librarie
 user-initiated dismissal. This preview uses that distinction; Bundle recreation
 tests do not establish force-stop or physical-device recovery.
 
+The required `CatalogSnapshotActivityTest` also replaces the accepted, validated
+snapshot while a row callback and selection dialog are retained. The replacement
+keeps the same item IDs and versions but changes the snapshot revision and hash.
+The regression checks the page reset and visible notice, retained query, rejected
+old row and detail callbacks, unchanged saved baseline, and a successful explicit
+selection/save pinned to the replacement. It exercises the Activity at the local
+snapshot acceptance boundary; it supplies no remote cancellation, transport
+ordering, installed-device or whole-issue acceptance evidence.
+
 ### Retry after the final deletion acknowledgement is lost
 
 The final deletion marker can already be absent when directory synchronization or
