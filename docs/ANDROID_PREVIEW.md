@@ -676,6 +676,13 @@ screen and delivers callbacks from its destroyed predecessor, checking that the
 current screen and draft remain unchanged. This is a simulated lifecycle check,
 not installed-device or process-death evidence.
 
+The read-only findings and cost inspectors also check their Activity lifetime
+before accepting callbacks that change views or submit worker tasks. Findings
+browse and pending picker callbacks reject a destroyed owner before opening a
+dialog. Two required recreation regressions first inspect a fixture normally,
+then invoke controls retained from the destroyed screen and verify that its output
+and the current draft remain unchanged.
+
 These are bounded in-memory fixture pages, not a remote pagination protocol. API
 cursor contracts, cancellable remote search, next-page network failure/retry,
 reverse-order transport responses, real catalog publication/labels, exact pixel
