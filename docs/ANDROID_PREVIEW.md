@@ -369,3 +369,32 @@ on pointer failure/uncertainty. These verify native storage and pure transition
 behavior, not installed Android process termination or power loss. Hosted unsigned
 Android build/lint is still required at final head. Full #86/#76 acceptance retains
 its device, recovery, deletion/retention and receiving-review requirements.
+
+
+## Objective and context editing
+
+The local editor exposes the existing DraftContent objective/context fields without
+converting an incomplete form into BuildSnapshot. Null (unanswered), explicit empty
+text, and entered content stay distinct and have visible state labels. Both fields
+use the canonical 16,384-character bound; accepted stored text is never silently
+truncated. Clear draft explicitly resets these inputs to unanswered.
+
+Save locally commits these two fields together with title/sample metadata using
+the same exact expected token. Primary model, all optional-tier activations,
+selections/settings and unrelated metadata remain unchanged. The adapter's older
+save call without a context edit still preserves all existing domain content.
+Pending objective/context values survive Bundle restoration under the same
+baseline/reconciliation guards; older restoration bundles without these new keys
+hydrate them from the loaded baseline rather than silently clearing saved inputs.
+A failed library switch leaves them unchanged; a successful switch loads the target
+values. Guest-history copy still copies title/sample fields only, preserving any
+objective/context inputs currently in the editor.
+
+Five JVM regressions cover unanswered/empty/entered round trips, preservation of
+primary model/tiers/settings/metadata and history, stale rejection, old-call/history
+copy preservation, canonical bounds, redacted diagnostics, and a pure restoration
+checkpoint test distinguishing missing older keys from explicit pending null/empty
+values. This is not an Android Bundle/device lifecycle execution. Hosted Android build/
+lint and actual installed keyboard/accessibility/rotation tests remain separate.
+This is partial #26/#122 editing, not rule evaluation, recommendations or shared
+snapshot validation. No issue acceptance or device qualification is claimed.

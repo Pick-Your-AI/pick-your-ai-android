@@ -36,6 +36,11 @@ class PreviewActivity : Activity() {
     private var selectedCatalogHash: String? = null
     private var loadedCatalogHash: String? = null
     private lateinit var title: EditText
+    private lateinit var objective: EditText
+    private lateinit var contextInput: EditText
+    private lateinit var contextState: TextView
+    private var domainContext = PreviewDraftContext()
+    private var restoreContextFromDisk = false
     private lateinit var selection: TextView
     private lateinit var catalog: LinearLayout
     private lateinit var catalogStatus: TextView
@@ -70,6 +75,8 @@ class PreviewActivity : Activity() {
         restoration = savedInstanceState?.let {
             PreviewDraftRestoration(it.getString("draftBaseline"), it.getBoolean("draftRequiresReopen", true))
         }
+        restoreContextFromDisk = savedInstanceState != null && !savedInstanceState.getBoolean("contextInputsPresent", false)
+        domainContext = PreviewDraftContext(savedInstanceState?.getString("objective"), savedInstanceState?.getString("contextInput"))
         selectedId = savedInstanceState?.getString("selectedId")
         selectedVersion = savedInstanceState?.getString("selectedVersion")
         selectedCatalogHash = savedInstanceState?.getString("selectedCatalogHash")
@@ -97,6 +104,37 @@ class PreviewActivity : Activity() {
         }
         titleLabel.labelFor = title.id
         content.addView(title)
+        fun contextEditor(label: Int, hint: Int, initial: String?, changed: (String) -> Unit): EditText {
+            val fieldLabel = text(label)
+            return EditText(this).apply {
+                id = View.generateViewId()
+                isSaveEnabled = false
+                minLines = 2; maxLines = 4
+                filters = arrayOf(InputFilter.LengthFilter(16_384))
+                inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE or
+                    android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
+                imeOptions = android.view.inputmethod.EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING
+                setHint(hint)
+                setText(initial.orEmpty())
+                addTextChangedListener(object : TextWatcher {
+                    override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+                    override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                        if (!restoringFields) { changed(s.toString()); formChanged() }
+                    }
+                    override fun afterTextChanged(s: Editable?) {}
+                })
+                fieldLabel.labelFor = id
+            }.also(content::addView)
+        }
+        objective = contextEditor(R.string.context_objective, R.string.context_optional, domainContext.objective) {
+            domainContext = domainContext.copy(objective = it)
+        }
+        contextInput = contextEditor(R.string.context_context, R.string.context_optional, domainContext.context) {
+            domainContext = domainContext.copy(context = it)
+        }
+        text(R.string.context_limits)
+        contextState = text(R.string.context_state)
+        updateContextState()
         selection = text(R.string.no_selection).apply { accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE }
         text(R.string.unknown)
         clear = Button(this).apply {
@@ -106,6 +144,7 @@ class PreviewActivity : Activity() {
                 selectedId = null
                 selectedVersion = null
                 selectedCatalogHash = null
+                applyContext(PreviewDraftContext())
                 showSelection()
                 formChanged()
             }
@@ -260,20 +299,45 @@ class PreviewActivity : Activity() {
         }
     }
 
+    private fun applyContext(value: PreviewDraftContext) {
+        domainContext = value
+        val wasRestoring = restoringFields
+        restoringFields = true
+        objective.setText(value.objective.orEmpty())
+        contextInput.setText(value.context.orEmpty())
+        restoringFields = wasRestoring
+        updateContextState()
+    }
+
+    private fun updateContextState() {
+        if (!::contextState.isInitialized) return
+        fun label(value: String?) = getString(when {
+            value == null -> R.string.context_unanswered
+            value.isEmpty() -> R.string.context_empty
+            else -> R.string.context_entered
+        })
+        contextState.text = getString(R.string.context_state, label(domainContext.objective), label(domainContext.context))
+    }
+
+    private fun matchesSaved() = savedRecord?.let { it.fields == fields() && it.contextInput == domainContext } == true
+
     private fun fields() = PreviewDraftFields(title.text.toString(), selectedId, selectedVersion, selectedCatalogHash)
 
     private fun formChanged() {
+        updateContextState()
         if (restoringFields || !::saveStatus.isInitialized) return
         if (!storageBusy && storageReady) {
-            saveStatus.setText(if (savedRecord?.fields == fields()) R.string.draft_saved else R.string.draft_unsaved)
+            saveStatus.setText(if (matchesSaved()) R.string.draft_saved else R.string.draft_unsaved)
         }
         updateEditingEnabled()
     }
 
     private fun updateEditingEnabled() {
         title.isEnabled = !storageBusy
+        objective.isEnabled = !storageBusy
+        contextInput.isEnabled = !storageBusy
         clear.isEnabled = !storageBusy
-        save.isEnabled = storageReady && !storageBusy && savedRecord?.fields != fields()
+        save.isEnabled = storageReady && !storageBusy && !matchesSaved()
         reopen.isEnabled = !storageBusy && selectionResolved
         history.isEnabled = storageReady && !storageBusy && savedRecord != null
         libraryButton.isEnabled = !storageBusy
@@ -432,6 +496,7 @@ class PreviewActivity : Activity() {
                         selectedId = next.fields.selectedId
                         selectedVersion = next.fields.selectedVersion
                         selectedCatalogHash = next.fields.catalogHash
+                        applyContext(next.record?.contextInput ?: PreviewDraftContext())
                         restoringFields = false
                         activeDraft.text = getString(R.string.library_active, currentDraftId.value)
                         showSelection()
@@ -492,6 +557,11 @@ class PreviewActivity : Activity() {
                     val needsReopen = preserveRestoredFields && restoration?.canResume(savedRecord) != true
                     storageReady = loadSucceeded && !needsReopen
                     if (!preserveRestoredFields && loadSucceeded) restoration = null
+                    if (loadSucceeded) {
+                        val checkpoint = PreviewContextCheckpoint(!restoreContextFromDisk, domainContext)
+                        applyContext(checkpoint.forLoad(preserveRestoredFields, savedRecord?.contextInput ?: PreviewDraftContext()))
+                        restoreContextFromDisk = false
+                    }
                     if (storageReady && !preserveRestoredFields) {
                         val values = savedRecord?.fields ?: PreviewDraftFields()
                         restoringFields = true
@@ -505,7 +575,7 @@ class PreviewActivity : Activity() {
                     saveStatus.setText(when {
                         !loadSucceeded -> R.string.draft_load_failed
                         needsReopen -> R.string.draft_reconcile
-                        savedRecord?.fields == fields() -> R.string.draft_saved
+                        matchesSaved() -> R.string.draft_saved
                         else -> R.string.draft_unsaved
                     })
                     updateEditingEnabled()
@@ -517,20 +587,21 @@ class PreviewActivity : Activity() {
     private fun saveDraft() {
         if (!storageReady || storageBusy) return
         val id = currentDraftId
+        val pendingContext = domainContext
         val pending = fields()
         val expected = savedRecord
         storageBusy = true
         saveStatus.setText(R.string.draft_saving)
         updateEditingEnabled()
         worker.execute {
-            val result = try { openPersistence(id).save(expected, pending) } catch (_: Exception) { null }
+            val result = try { openPersistence(id).save(expected, pending, pendingContext) } catch (_: Exception) { null }
             runOnUiThread {
                 if (!destroyed) {
                     storageBusy = false
                     when (result) {
                         is PreviewDraftSave.Saved -> {
                             savedRecord = result.record
-                            saveStatus.setText(if (fields() == result.record.fields) R.string.draft_saved else R.string.draft_unsaved)
+                            saveStatus.setText(if (matchesSaved()) R.string.draft_saved else R.string.draft_unsaved)
                         }
                         PreviewDraftSave.Conflict -> {
                             storageReady = false
@@ -555,6 +626,9 @@ class PreviewActivity : Activity() {
         val checkpoint = PreviewDraftRestoration.capture(savedRecord, storageReady, storageBusy)
         outState.putString("draftBaseline", checkpoint.baselineIdentity)
         outState.putBoolean("draftRequiresReopen", checkpoint.requiresReopen)
+        outState.putBoolean("contextInputsPresent", true)
+        outState.putString("objective", domainContext.objective)
+        outState.putString("contextInput", domainContext.context)
         outState.putString("title", title.text.toString().take(120))
         outState.putString("selectedId", selectedId)
         outState.putString("selectedVersion", selectedVersion)
