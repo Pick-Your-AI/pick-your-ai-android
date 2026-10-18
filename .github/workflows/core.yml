@@ -112,6 +112,8 @@ jobs:
               "retiredTierConfirmationCannotCommitAfterRecreation",
               "conflictingPendingInputsCanBeCopiedWithoutChangingNewerOriginal",
               "invalidOrChangedPendingInputsAndRetiredConfirmationCannotCreateRecovery",
+              "requiredObjectiveGuidanceNavigatesMissingInputsWithoutClaimingReadiness",
+              "retiredObjectiveGuidanceCannotOpenClassificationOrChangeCurrentInputs",
           }
           cases = suite.findall("testcase")
           assert expected <= {case.attrib["name"] for case in cases}, "Missing UI regression"

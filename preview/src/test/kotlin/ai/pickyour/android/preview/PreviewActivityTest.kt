@@ -706,4 +706,47 @@ class PreviewActivityTest {
         assertEquals("", loaded().fields.title)
     }
 
+    @Test fun requiredObjectiveGuidanceNavigatesMissingInputsWithoutClaimingReadiness() {
+        field(R.string.draft_title).setText("pending title")
+        val next = button(R.string.objective_next_input)
+        assertTrue(next.isEnabled)
+        next.performClick()
+        assertTrue(field(R.string.workload_region).hasFocus())
+        field(R.string.workload_region).setText("entered region")
+        next.performClick()
+        assertTrue(field(R.string.workload_currency).hasFocus())
+        field(R.string.workload_currency).setText("USD")
+        next.performClick()
+        shadowOf(dialog()).clickOnItem(1) // explicit public classification
+        await { hasText(R.string.objective_inputs_answered) }
+        assertFalse(next.isEnabled)
+        assertEquals("pending title", field(R.string.draft_title).text.toString())
+        assertTrue(adapter().load() is PreviewDraftLoad.Missing)
+        field(R.string.workload_budget).setText("invalid")
+        assertTrue(hasText(R.string.objective_inputs_invalid))
+        assertFalse(next.isEnabled)
+        field(R.string.workload_budget).setText("0")
+        assertTrue(hasText(R.string.objective_inputs_answered))
+        save()
+        recreate()
+        await { hasText(R.string.draft_saved) && hasText(R.string.objective_inputs_answered) }
+        assertFalse(button(R.string.objective_next_input).isEnabled)
+    }
+
+    @Test fun retiredObjectiveGuidanceCannotOpenClassificationOrChangeCurrentInputs() {
+        field(R.string.workload_region).setText("entered region")
+        field(R.string.workload_currency).setText("USD")
+        val retired = button(R.string.objective_next_input)
+        recreate()
+        await { button(R.string.save_draft).isEnabled }
+        val before = ShadowAlertDialog.getLatestAlertDialog()
+        retired.performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+        assertSame(before, ShadowAlertDialog.getLatestAlertDialog())
+        assertEquals("entered region", field(R.string.workload_region).text.toString())
+        assertEquals("USD", field(R.string.workload_currency).text.toString())
+        assertTrue(button(R.string.objective_next_input).isEnabled)
+        assertTrue(adapter().load() is PreviewDraftLoad.Missing)
+    }
+
 }
