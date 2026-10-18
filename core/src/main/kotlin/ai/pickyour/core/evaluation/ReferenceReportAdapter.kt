@@ -13,7 +13,13 @@ enum class ReportRejection { INVALID_BUILD, INVALID_RULESET, INVALID_REPORT, BIN
 sealed interface ReportReception {
     data class Rejected(val reason: ReportRejection) : ReportReception
     /** Immutable JSON snapshot; acceptance proves structural/binding consistency, not correct evaluation. */
-    class Accepted internal constructor(val json: String) : ReportReception
+    class Accepted internal constructor(
+        val json: String,
+        private val selectionContexts: Map<String, ReferenceSelectionContext>,
+    ) : ReportReception {
+        internal fun selectionContext(id: String): ReferenceSelectionContext = selectionContexts[id]
+            ?: ReferenceSelectionContext.Unavailable(id, ReferenceSelectionUnavailable.MISSING)
+    }
 }
 
 /**
@@ -67,7 +73,7 @@ class ReferenceReportAdapter {
             "blocked" else "needs_review"
         if (r["result"].asText() != result || r["deployment_readiness"].asText() != readiness)
             return reject(ReportRejection.INCONSISTENT_FINDINGS)
-        return ReportReception.Accepted(r.toString())
+        return ReportReception.Accepted(r.toString(), recordedSelectionContexts(b))
     }
 
     private fun parse(type: FrozenDocument, stream: InputStream): JsonNode? {
