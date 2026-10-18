@@ -398,3 +398,32 @@ values. This is not an Android Bundle/device lifecycle execution. Hosted Android
 lint and actual installed keyboard/accessibility/rotation tests remain separate.
 This is partial #26/#122 editing, not rule evaluation, recommendations or shared
 snapshot validation. No issue acceptance or device qualification is claimed.
+
+## Explicit domain revision restore
+
+Partial #122 integration now exposes a separate **Review domain restore** action
+from a supported retained history entry. The existing **Copy form to editor**
+operation still copies title/sample only and requires a later explicit save.
+Domain restore instead previews retained objective/context, opaque primary-model
+input and optional-tier activation/selection/setting counts. Its second explicit
+confirmation commits `LocalDraftStore.restore` with the original loaded token.
+It restores all domain content as a new `RESTORE` head and keeps current metadata,
+including saved title/sample pins and lock metadata, exactly as the canonical
+store specifies. Historical entries remain unchanged. The history list exposes
+change codes and restore-source revision numbers.
+
+On acknowledged success, restored objective/context replace those pending inputs;
+unsaved title/sample changes remain visible and unsaved. On failure every pending
+input remains visible. Conflict and uncertain activation require explicit reopen;
+no retry adopts a newer disk token. A dialog tied to a superseded in-Activity
+baseline cannot commit. Restoring while the Activity is recreated uses the existing
+in-flight/changed-baseline reconciliation guard, and destroyed views ignore late
+completion. No evaluation, price or report is replayed. A historical guest format
+that cannot be displayed remains unavailable in this bounded UI.
+
+Three new JVM adapter tests cover edit/restore/edit with opaque optional content,
+metadata/history preservation, same-content restore, stale/foreign/unknown targets,
+and pre/post-activation failures plus restoration-checkpoint rejection. These are
+core/adapter tests, not installed dialog, rotation, accessibility or power-loss
+acceptance. Verify those flows on the selected Android device matrix before claiming
+full #122 completion. Existing 128-entry and record-size bounds remain fail-closed.

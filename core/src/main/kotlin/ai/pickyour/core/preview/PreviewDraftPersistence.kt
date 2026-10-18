@@ -30,13 +30,14 @@ class PreviewStoredDraft internal constructor(internal val draft: StoredDraft, v
     val baselineIdentity: String get() = "${draft.version.number}:${draft.version.hash.hex}"
     /** Retained guest forms only; unavailable metadata is never reconstructed or replaced. */
     val history: List<PreviewDraftRevision> get() = java.util.Collections.unmodifiableList(draft.history.map {
-        PreviewDraftRevision(it.number, decodePreviewFields(it.metadata))
+        PreviewDraftRevision(it.number, decodePreviewFields(it.metadata), it.content, it.change, it.restoredFrom)
     })
     val earlierHistoryUnavailable: Boolean get() = draft.earlierHistoryUnavailable
     override fun toString() = "PreviewStoredDraft"
 }
-/** This is guest form history, not a domain snapshot or an evaluation result. */
-class PreviewDraftRevision internal constructor(val revision: Long, val fields: PreviewDraftFields?) {
+/** Retained local content and guest metadata, never an evaluation or price result. */
+class PreviewDraftRevision internal constructor(val revision: Long, val fields: PreviewDraftFields?,
+    val content: DraftContent, val change: StoredRevisionChange, val restoredFrom: Long?) {
     override fun toString() = "PreviewDraftRevision"
 }
 
@@ -91,6 +92,20 @@ class PreviewDraftPersistence(private val store: LocalDraftStore) {
             DraftSave.UnknownRevision -> PreviewDraftSave.Failed(DraftStorageFailure.CORRUPT)
         }
     }
+
+    /** Explicit domain restore; current guest metadata is retained by the canonical store. */
+    fun restore(expected: PreviewStoredDraft, revision: Long): PreviewDraftSave =
+        when (val result = store.restore(expected.draft.version, revision)) {
+            is DraftSave.Saved -> when (val decoded = decode(result.draft)) {
+                is PreviewDraftLoad.Available -> PreviewDraftSave.Saved(decoded.record)
+                is PreviewDraftLoad.Failed -> PreviewDraftSave.Failed(decoded.reason)
+                PreviewDraftLoad.Missing -> PreviewDraftSave.Failed(DraftStorageFailure.CORRUPT)
+            }
+            DraftSave.Conflict -> PreviewDraftSave.Conflict
+            is DraftSave.Failed -> PreviewDraftSave.Failed(result.reason)
+            is DraftSave.Uncertain -> PreviewDraftSave.Uncertain
+            DraftSave.UnknownRevision -> PreviewDraftSave.Failed(DraftStorageFailure.CORRUPT)
+        }
 
     /** New library identity; copy content/metadata, never source history or its save authority. */
     internal fun copySavedSnapshot(source: PreviewStoredDraft): PreviewDraftSave =

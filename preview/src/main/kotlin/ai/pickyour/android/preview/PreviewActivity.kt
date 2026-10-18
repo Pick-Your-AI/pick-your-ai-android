@@ -352,7 +352,8 @@ class PreviewActivity : Activity() {
         val revisions = baseline.history.reversed()
         val rows = revisions.map { revision ->
             getString(if (revision.fields == null) R.string.history_unavailable else R.string.history_revision,
-                revision.revision.toString())
+                revision.revision.toString()) + " · " + revision.change.name +
+                (revision.restoredFrom?.let { getString(R.string.domain_history_source, it.toString()) } ?: "")
         }.toTypedArray()
         AlertDialog.Builder(this).setTitle(R.string.draft_history)
             .setItems(rows) { _, index ->
@@ -366,6 +367,7 @@ class PreviewActivity : Activity() {
                         .setMessage(getString(R.string.history_copy_warning, oldFields.title,
                             if (baseline.earlierHistoryUnavailable) getString(R.string.history_earlier_unavailable) else ""))
                         .setNegativeButton(R.string.keep_edits, null)
+                        .setNeutralButton(R.string.domain_restore_preview) { _, _ -> confirmDomainRestore(baseline, revision) }
                         .setPositiveButton(R.string.history_copy) { _, _ ->
                             // A dialog opened before another save/load cannot adopt that operation's baseline.
                             if (storageReady && !storageBusy && savedRecord === baseline) {
@@ -381,6 +383,60 @@ class PreviewActivity : Activity() {
                         }.show()
                 }
             }.setNegativeButton(R.string.close, null).show()
+    }
+
+    private fun confirmDomainRestore(baseline: PreviewStoredDraft, revision: PreviewDraftRevision) {
+        if (!storageReady || storageBusy || savedRecord !== baseline) return
+        fun value(text: String?) = when {
+            text == null -> getString(R.string.context_unanswered)
+            text.isEmpty() -> getString(R.string.context_empty)
+            else -> text
+        }
+        val content = revision.content
+        val summary = getString(R.string.domain_restore_values, value(content.objective), value(content.context),
+            value(content.primaryModel), content.optional.entries.joinToString("\n") { (tier, input) ->
+                getString(R.string.domain_restore_tier, tier.name, input.activation.name,
+                    input.selections.size.toString(), input.settings.size.toString())
+            })
+        AlertDialog.Builder(this).setTitle(getString(R.string.history_revision, revision.revision.toString()))
+            .setMessage(getString(R.string.domain_restore_warning, summary))
+            .setNegativeButton(R.string.keep_edits, null)
+            .setPositiveButton(R.string.domain_restore_commit) { _, _ ->
+                if (storageReady && !storageBusy && savedRecord === baseline) restoreDomain(baseline, revision.revision)
+            }.show()
+    }
+
+    private fun restoreDomain(expected: PreviewStoredDraft, revision: Long) {
+        val id = currentDraftId
+        storageBusy = true
+        saveStatus.setText(R.string.draft_saving)
+        updateEditingEnabled()
+        worker.execute {
+            val result = try { openPersistence(id).restore(expected, revision) } catch (_: Exception) { null }
+            runOnUiThread {
+                if (!destroyed) {
+                    storageBusy = false
+                    when (result) {
+                        is PreviewDraftSave.Saved -> {
+                            savedRecord = result.record
+                            applyContext(result.record.contextInput)
+                            saveStatus.setText(if (matchesSaved()) R.string.draft_saved else R.string.draft_unsaved)
+                        }
+                        PreviewDraftSave.Conflict -> {
+                            storageReady = false
+                            saveStatus.setText(R.string.draft_conflict)
+                        }
+                        PreviewDraftSave.Uncertain, null -> {
+                            storageReady = false
+                            saveStatus.setText(R.string.draft_uncertain)
+                        }
+                        is PreviewDraftSave.Failed -> saveStatus.setText(if (result.reason == DraftStorageFailure.LIMIT_EXCEEDED)
+                            R.string.draft_history_full else R.string.draft_save_failed)
+                    }
+                    updateEditingEnabled()
+                }
+            }
+        }
     }
 
     private fun library(): PreviewDraftLibrary {
