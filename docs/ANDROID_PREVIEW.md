@@ -665,6 +665,13 @@ fixture, tampering and ledger checks also passed. Three additional Activity test
 exercise browse restoration, empty facet combinations and selection baseline guards.
 Their exact-head hosted compile/lint/Robolectric results are required before merge.
 
+The Activity closes its catalog browser during destruction. Retained editor,
+facet-dialog, paging and row callbacks cannot change the retired browse state or
+open another dialog. An additional required Activity regression recreates the
+screen and delivers callbacks from its destroyed predecessor, checking that the
+current screen and draft remain unchanged. This is a simulated lifecycle check,
+not installed-device or process-death evidence.
+
 These are bounded in-memory fixture pages, not a remote pagination protocol. API
 cursor contracts, cancellable remote search, next-page network failure/retry,
 reverse-order transport responses, real catalog publication/labels, exact pixel

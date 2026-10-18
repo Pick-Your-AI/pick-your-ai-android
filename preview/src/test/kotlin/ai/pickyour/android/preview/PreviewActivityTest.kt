@@ -371,4 +371,33 @@ class PreviewActivityTest {
         assertEquals(baseline, loaded().baselineIdentity)
         assertNull(loaded().fields.selectedId)
     }
+
+    @Test fun destroyedCatalogIgnoresRetainedEditorsDialogsAndRows() {
+        val retiredCatalog = views().filterIsInstance<CatalogBrowseSection>().single()
+        val retiredSearch = field(R.string.catalog_search)
+        val retiredRow = samples().first()
+        val retiredTier = views().filterIsInstance<Button>().single { it.text.toString().startsWith("Tier:") }
+        retiredTier.performClick()
+        val pendingDialog = dialog()
+        val before = Bundle().also(retiredCatalog::saveState)
+        recreate()
+        await { button(R.string.save_draft).isEnabled && samples().isNotEmpty() }
+
+        // Deliver callbacks retained from the destroyed Activity, including a pending dialog choice.
+        retiredSearch.setText("model")
+        shadowOf(pendingDialog).clickOnItem(1)
+        pendingDialog.dismiss()
+        retiredTier.performClick()
+        retiredRow.performClick()
+
+        assertSame("A retired catalog cannot open a new dialog", pendingDialog, dialog())
+        assertFalse(pendingDialog.isShowing)
+        val after = Bundle().also(retiredCatalog::saveState)
+        for (key in listOf("catalogQuery", "catalogTier", "catalogKind", "catalogSort", "catalogSnapshot")) {
+            assertEquals(key, before.getString(key), after.getString(key))
+        }
+        assertEquals(before.getInt("catalogPage"), after.getInt("catalogPage"))
+        assertEquals("", field(R.string.catalog_search).text.toString())
+        assertTrue(adapter().load() is PreviewDraftLoad.Missing)
+    }
 }
