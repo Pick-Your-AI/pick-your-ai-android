@@ -37,12 +37,76 @@ The [post-main receipt](https://github.com/Pick-Your-AI/pick-your-ai-android/pul
 records the signed delivery and actual default-branch checks. No absent human
 reviewer, operating commitment or participant result is inferred.
 
-The index therefore records **12 reviewed design criteria complete and 429
-criteria incomplete**. Executing the selected journeys, real-data qualification,
-participant studies, service activation, device behavior and release each retain
-their own requirements. The current change preserves every literal criterion,
-ordinal and text digest, all earlier artifact entries and partial observations,
-and all 126 other issue records, including #23.
+The version-3 expansion recorded **12 reviewed design criteria complete and 429
+criteria incomplete**. It preserved every literal criterion, ordinal and text
+digest, all earlier artifact entries and partial observations, and all 126 other
+issue records, including #23.
+
+Three further criteria for **Android #25, account and revenue decisions**, have
+complete reviewed decision outcomes. [PR #322](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/322)
+delivered the [01.05 record](android/work-packages/01.05.md) and scoped
+[ADR 0003](../decisions/0003-android-25-acceptance-record.md) at signed
+`68e52dd9c79cefe97af65e8fd1e86e4b72d2c42c`. This selects guest-local J1–J4 and
+fourteen explicit capability dispositions, keeps conditional J5 and core T6,
+and preserves canonical authority for any later remote mutation or private read.
+Demand/value hypotheses, disabled-service desk walkthroughs and actual platform
+policy applicability remain bounded as documented; no account, billing, telemetry
+or notification implementation is inferred.
+
+Independent product/Android receiving reviews
+[5562991296](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/313#pullrequestreview-5562991296)
+and [5562993559](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/313#pullrequestreview-5562993559)
+accept corrected source `fb153a9a3be4b75e645fc231283632bb451ed171`.
+[5563048963](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/322#pullrequestreview-5563048963)
+independently verifies its exact current-main composition. The
+[receiving execution receipt](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/322#pullrequestreview-5563048962)
+pins the actual 580-core/151-simulated-Android run and downloaded original
+artifacts, separate from the earlier signing-stage source and any device claim.
+These are delegated in-session decision reviews, with no invented human
+commitment or operational acceptance.
+
+The version-4 expansion recorded **15 reviewed design criteria complete and 426
+criteria incomplete**. It changed only #25's three exact decision outcomes and
+added its one delivered evidence entry, preserving all 128 other issue objects,
+18 prior evidence entries, 441 literal criteria/digests and all partial references
+and observations.
+
+Three further criteria for **Android #47, acceptance and ownership baseline**,
+have complete reviewed decision outcomes. [PR #318](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/318)
+delivered the [01.06 record](android/work-packages/01.06.md),
+[A01–A13 baseline](../ACCEPTANCE_BASELINE.md) and scoped
+[ADR 0004](../decisions/0004-android-47-acceptance-record.md) at signed
+`b6935a8ee7843831f90b0219c8794071557c71d4`. The decision selects qualification
+targets, methods, artifacts and review gates across every core journey and
+supported planning mode, with J5 conditional. It records actual in-session
+preparation/review responsibility separately from still-unaccepted future device,
+publisher, support and operating commitments. Selected device/API/window coverage
+and performance thresholds are requirements; actual physical qualification and
+the measured resource/capacity budgets in #71 remain separate work.
+
+Independent source review
+[5563013669](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/318#pullrequestreview-5563013669)
+and actual delegated product/Android receiving acceptance
+[5563018910](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/318#pullrequestreview-5563018910)
+cover corrected source `8800b02a8068902773652b553d52749ce8a8e167` and all three
+literal criteria. Independent reviews
+[5563074154](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/318#pullrequestreview-5563074154)
+and [5563081505](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/318#pullrequestreview-5563081505)
+cover the two shared-document reconciliations and final preservation on current
+main. The [receiving execution audit](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/318#pullrequestreview-5563108377)
+records the actual 589-core/161-simulated-Android run, original artifact hashes,
+source/output binding and strict gates at the exact delivered tree. The
+[signed delivery readback](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/47#issuecomment-6250283710)
+records the verified default-branch commit. These source/simulation receipts
+remain distinct from the decision acceptance and future qualification results.
+
+The current index records **18 reviewed design criteria complete and 423 criteria
+incomplete**. This version-5 expansion changes only #47's three exact decision
+outcomes and adds its one delivered evidence entry. All 128 other issue objects,
+19 prior evidence entries, 441 literal criteria/digests and all partial references
+and observations are preserved. Executing selected journeys, real-data
+qualification, participant studies, service activation, support, devices and
+release retain their own requirements.
 Merged PR references for incomplete criteria identify partial issue context.
 Exact artifact revisions and limitations are in the top-level `evidence` catalog.
 No JVM, unsigned APK, lint or fixture result proves installed-device, production,
@@ -98,7 +162,8 @@ prerequisite graph has been resolved.
 
 The `canonical_acceptance_record` fields preserve every original relative path.
 #23 uses the reviewed ADR 0001 placement; #20/#24/#34 use the reviewed ADR 0002
-placement in `Pick-Your-AI/pick-your-ai-android`. Each
+placement; #25 uses ADR 0003 and #47 uses ADR 0004, in
+`Pick-Your-AI/pick-your-ai-android`. Each
 `accepted_design_outcome` retains its historical website repository/path, exact
 decision and individual record URLs, receiving review URLs and source-review
 revision. All other records remain intended paths in
@@ -137,23 +202,38 @@ reconcile their old ordinal references before recording new ones.
 Refresh PR state and revision explicitly when evidence advances. Do not replace a
 pinned artifact with a mutable branch link or turn a proposed test into a reported
 pass. Add exact test commands/results, recovery cases and receiving dispositions
-before narrowing a criterion's remaining work. Ledger schema version 3 permits
-only the twelve exact reviewed design criteria for #20/#23/#24/#34 to be complete.
+before narrowing a criterion's remaining work. Ledger schema version 5 permits
+only the eighteen exact reviewed design criteria for #20/#23/#24/#25/#34/#47 to be complete.
 The validator's source-defined receipt for each issue requires its own literal
 criterion hashes, accepted scope, canonical placement and historical path,
 immutable delivered artifact, source revision and actual receiving reviews.
 #23 retains its exact merged #279 record and both reviews. The three foundation
 outcomes require the exact merged #297 ADR receipt and all three reviews above;
-each still binds its own record URL, scope and criterion set.
+each still binds its own record URL, scope and criterion set. #25 separately
+requires its exact signed #322 delivery, ADR 0003 and individual record URLs,
+corrected source revision, three independent reviews and literal criterion hashes.
+#47 separately requires the exact signed #318 delivery, ADR 0004, individual
+record and full baseline URLs, corrected source revision, four actual independent
+source/decision/composition review URLs and all three literal criterion hashes.
 
 Changing another status, transplanting proof between decisions, removing a review,
 substituting a revision/path or leaving unfinished requirements fails. Partial
 results retain their independent evidence/command guards. Issue-number aliases,
 missing or repeated issues, text/hash drift and incomplete source inventories
-remain rejected. The version-3 expansion adds no generic completion permission.
+remain rejected. The version-4 adversarial methods exercise all #25 hashes, changed
+receipt/placement/history/review fields, proof substitution in both directions,
+unfinished requirements and attempted service/implementation acceptance. The
+version-5 expansion adds five methods covering all #47 hashes, all three pinned
+artifact URLs, actual decision-review substitution, receipt/scope/history changes,
+proof transplantation in both directions and every criterion's unfinished-work
+guard. Attempts to reuse that decision for parent, implementation, platform,
+performance, device or release completion are rejected. The original 24 methods
+remain, with the expected schema-version gate advanced. No generic completion
+permission is added.
 
 The immutable [v1 baseline at `8162a557`](https://github.com/Pick-Your-AI/pick-your-ai-android/blob/8162a5571147874635d3139e73a171a1077a6d2b/docs/delivery/criterion-evidence.json)
-and [v2 delivery at `0b1875db`](https://github.com/Pick-Your-AI/pick-your-ai-android/blob/0b1875db66016e5187b181534e2fefcd268beddd/docs/delivery/criterion-evidence.json)
+[v2 delivery at `0b1875db`](https://github.com/Pick-Your-AI/pick-your-ai-android/blob/0b1875db66016e5187b181534e2fefcd268beddd/docs/delivery/criterion-evidence.json)
+and [v3 delivery at `f4d1487c`](https://github.com/Pick-Your-AI/pick-your-ai-android/blob/f4d1487cb82921e8418d4474cc373c2b817e0a59/docs/delivery/criterion-evidence.json)
 remain in Git history with their original validators and observations. Current
 acceptance evolves through explicit schema review and delivered receipts.
 Future completion or placement support needs independent review and its own
