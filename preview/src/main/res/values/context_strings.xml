@@ -1,0 +1,10 @@
+<resources>
+    <string name="context_objective">Draft objective (optional)</string>
+    <string name="context_context">Draft context (optional)</string>
+    <string name="context_optional">Unanswered is allowed</string>
+    <string name="context_limits">Objective and context are local editing inputs, up to 16,384 characters each. They are not a validated BuildSnapshot, evaluation, recommendation or budget result. Clear draft resets them to unanswered; entered empty text remains an explicit empty edit.</string>
+    <string name="context_state">Objective: %1$s; context: %2$s.</string>
+    <string name="context_unanswered">unanswered</string>
+    <string name="context_empty">explicitly empty</string>
+    <string name="context_entered">entered</string>
+</resources>
