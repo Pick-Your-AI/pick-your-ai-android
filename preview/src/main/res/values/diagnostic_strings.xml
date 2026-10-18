@@ -1,0 +1,10 @@
+<resources>
+    <item name="diagnostic_report" type="id" />
+    <item name="diagnostic_share" type="id" />
+    <string name="diagnostics_review">Review diagnostics</string>
+    <string name="diagnostics_support_unavailable">Support delivery is unavailable in this preview. You can review a small diagnostic report and choose where to share it yourself.</string>
+    <string name="diagnostics_disclosure">This is the complete report that will be shared. It includes the app version, Android API level and the local status captured when you opened it. Draft text, component identities, URLs, files, logs and credentials are excluded. Close and reopen to capture a newer status.\n\nSharing opens the Android app chooser. You choose the destination; delivery and a support response are not verified.</string>
+    <string name="diagnostics_share">Choose an app to share this report</string>
+    <string name="diagnostics_chooser">Share reviewed diagnostics</string>
+    <string name="diagnostics_share_unavailable">The app chooser could not be opened. No delivery is confirmed. Close this report and review it again before retrying.</string>
+</resources>

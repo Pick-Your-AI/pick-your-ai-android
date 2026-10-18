@@ -300,6 +300,67 @@ jobs:
           assert int(suite.attrib["tests"]) >= len(expected)
           print(f"Verified {len(cases)} simulated recorded-price browser tests; no installed-device claim")
           PYTEST
+      - name: Require complete local revision comparison regressions to execute
+        run: |
+          python - <<'PYTEST'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          report = pathlib.Path("preview/build/test-results/testDebugUnitTest/TEST-ai.pickyour.android.preview.RevisionComparisonBrowserActivityTest.xml")
+          suite = ET.parse(report).getroot()
+          expected = {
+              "actualSavedComparisonPreservesPendingInputsAndDurableBaseline",
+              "everyChangedFieldAfterTheOldHundredRowLimitIsReachable",
+              "fullKeysAndLiteralPartsPreserveUnicodeControlsAndDecimalSpelling",
+              "absentEmptyAndLiteralSentinelsStayDistinctDuringInspection",
+              "unavailableHistoricalMetadataIsDisclosedWithoutReconstruction",
+              "unchangedRevisionHasExplicitEmptyResultWithRetainedContext",
+              "changedComponentRoleAndSettingsKeepTheirExactStableKey",
+              "cancelledAndReplacedComparisonControlsCannotReopenDialogs",
+              "revokedComparisonAuthorityCannotBecomeCurrentAgain",
+              "actualStorageStartRetiresInspectionEvenWhenSavedBaselineIsUnchanged",
+              "cancelledPreparationCannotDisplayLateWorkerResult",
+              "aNewHistoryRequestRetiresAnOlderQueuedComparison",
+              "queuedStorageOperationRejectsComparisonResultWithTheSameSavedBaseline",
+              "recreatedActivityRetiresComparisonAndPreservesPendingInputs",
+              "narrowRtlLargeTextComparisonControlsRemainReachableAndComplete",
+          }
+          cases = suite.findall("testcase")
+          names = [case.attrib["name"] for case in cases]
+          if not expected <= set(names) or len(names) != len(set(names)):
+              raise SystemExit("Missing or repeated local revision comparison regression")
+          if any(case.findall("failure") or case.findall("error") or case.findall("skipped") for case in cases):
+              raise SystemExit("Local revision comparison regression did not pass")
+          if int(suite.attrib["tests"]) != len(cases):
+              raise SystemExit("Local revision comparison result count does not match executed cases")
+          print(f"Verified {len(cases)} simulated local revision comparison tests; no installed-device claim")
+          PYTEST
+      - name: Require private diagnostic preview and consent regressions to execute
+        run: |
+          python - <<'PYTEST'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          report = pathlib.Path("preview/build/test-results/testDebugUnitTest/TEST-ai.pickyour.android.preview.LocalDiagnosticsActivityTest.xml")
+          suite = ET.parse(report).getroot()
+          expected = {
+              "everyFiniteReportStateKeepsOnlyAllowlistedNonidentifyingFields",
+              "actualReviewExcludesSeededPrivateDataAndSharesOnlyTheExactPreviewAfterConsent",
+              "cancelledDismissedAndReplacedReportsCannotDispatchRetainedControls",
+              "reportSnapshotStaysImmutableAndEveryNewShareRequiresFreshConsent",
+              "unavailableChooserKeepsSafeFailureAndRequiresAnotherReviewedAttempt",
+              "recreationAndClosedOwnersRetireReviewAndShareCallbacks",
+              "pausedActivityRetiresReportAndCannotReviewUntilResumed",
+              "narrowRtlLargeTextReportKeepsCompleteTextAndReachableShareControl",
+          }
+          cases = suite.findall("testcase")
+          names = [case.attrib["name"] for case in cases]
+          if not expected <= set(names) or len(names) != len(set(names)):
+              raise SystemExit("Missing or repeated diagnostic preview regression")
+          if any(case.findall("failure") or case.findall("error") or case.findall("skipped") for case in cases):
+              raise SystemExit("Diagnostic preview regression did not pass")
+          if int(suite.attrib["tests"]) != len(cases):
+              raise SystemExit("Diagnostic preview result count does not match executed cases")
+          print(f"Verified {len(cases)} simulated diagnostic preview tests; no installed or delivery claim")
+          PYTEST
       - name: Require current-choice accessibility regressions
         run: |
           python - <<'PYTEST'
