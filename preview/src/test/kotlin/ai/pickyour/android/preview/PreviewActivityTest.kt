@@ -1133,4 +1133,229 @@ class PreviewActivityTest {
     }
 
 
+    private fun dialogField(dialog: AlertDialog, label: Int): EditText {
+        val caption = views(dialog.window!!.decorView).filterIsInstance<TextView>()
+            .single { it.text.toString() == activity.getString(label) }
+        assertNotEquals(View.NO_ID, caption.labelFor)
+        return dialog.findViewById(caption.labelFor)
+    }
+    private fun componentChoice(): AlertDialog {
+        await { button(R.string.component_choose_catalog).isEnabled }
+        button(R.string.component_choose_catalog).performClick()
+        val picker = dialog()
+        val index = (0 until picker.listView.adapter.count).single {
+            picker.listView.adapter.getItem(it).toString().startsWith("model ·")
+        }
+        shadowOf(picker).clickOnItem(index)
+        await { dialog() !== picker && dialog().isShowing }
+        return dialog()
+    }
+    private fun componentAddForm(): AlertDialog {
+        val choices = componentChoice()
+        shadowOf(choices).clickOnItem(0)
+        await { dialog() !== choices && dialog().isShowing }
+        return dialog()
+    }
+    private fun addModel(): PreviewStoredDraft {
+        val form = componentAddForm()
+        dialogField(form, R.string.component_role).setText("primary")
+        dialogField(form, R.string.component_settings).setText("{}")
+        form.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+        await { !form.isShowing && hasText(R.string.component_saved) }
+        return loaded()
+    }
+    private fun componentAction(index: Int): AlertDialog {
+        button(R.string.component_manage).performClick()
+        val picker = dialog()
+        shadowOf(picker).clickOnItem(0)
+        await { dialog() !== picker && dialog().isShowing }
+        val actions = dialog()
+        shadowOf(actions).clickOnItem(index)
+        await { dialog() !== actions && dialog().isShowing }
+        return dialog()
+    }
+
+    @Test fun explicitComponentsAddConfigureToggleAndRemovePreserveGuestInputs() {
+        field(R.string.draft_title).setText("saved form")
+        field(R.string.context_objective).setText("objective")
+        save()
+        val before = loaded()
+        var current = addModel()
+        val selection = current.components.selections.single()
+        assertEquals("primary", selection.role)
+        assertFalse(selection.enabled)
+        assertEquals(before.revision + 1, current.revision)
+        val settings = componentAction(0)
+        dialogField(settings, R.string.component_settings).setText("{\"temperature\":0.25}")
+        settings.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+        await { !settings.isShowing && loaded().revision == current.revision + 1 }
+        current = loaded()
+        assertTrue(PreviewSelectionForms.settingsText(current.components.selections.single()).contains("0.25"))
+        val toggle = componentAction(1)
+        toggle.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+        await { !toggle.isShowing && loaded().components.selections.single().enabled }
+        val remove = componentAction(2)
+        remove.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+        await { !remove.isShowing && loaded().components.selections.isEmpty() }
+        assertEquals(before.fields, loaded().fields)
+        assertEquals(before.contextInput, loaded().contextInput)
+        assertEquals(before.workloadInput, loaded().workloadInput)
+        assertEquals(before.revision + 4, loaded().revision)
+        assertFalse(button(R.string.component_manage).isEnabled)
+    }
+
+    @Test fun invalidComponentInputRemainsVisibleAndCannotCommitTruncatedPrefix() {
+        save()
+        val before = loaded().baselineIdentity
+        val form = componentAddForm()
+        val role = dialogField(form, R.string.component_role)
+        val settings = dialogField(form, R.string.component_settings)
+        role.setText("primary")
+        val invalid = "{}" + " ".repeat(PreviewSelectionForms.MAX_SETTINGS_TEXT)
+        settings.setText(invalid)
+        form.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+        await { hasText(R.string.component_invalid) && form.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled }
+        assertTrue(form.isShowing)
+        assertEquals(invalid, settings.text.toString())
+        assertEquals(before, loaded().baselineIdentity)
+        role.setText("Primary")
+        settings.setText("{}")
+        form.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+        await { hasText(R.string.component_invalid) && form.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled }
+        assertEquals("Primary", role.text.toString())
+        assertEquals(before, loaded().baselineIdentity)
+        form.getButton(AlertDialog.BUTTON_NEGATIVE).performClick()
+        await { !form.isShowing && button(R.string.component_choose_catalog).isEnabled }
+        assertEquals(before, loaded().baselineIdentity)
+    }
+
+    @Test fun staleComponentFormCannotOverwriteConcurrentSavedHead() {
+        save()
+        val before = loaded()
+        val form = componentAddForm()
+        dialogField(form, R.string.component_role).setText("primary")
+        val newer = (adapter().save(before, PreviewDraftFields("other writer")) as PreviewDraftSave.Saved).record
+        form.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+        await { hasText(R.string.draft_conflict) && !form.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled }
+        assertTrue(form.isShowing)
+        assertEquals("primary", dialogField(form, R.string.component_role).text.toString())
+        assertEquals(newer.baselineIdentity, loaded().baselineIdentity)
+        assertTrue(loaded().components.selections.isEmpty())
+        assertFalse(button(R.string.component_choose_catalog).isEnabled)
+    }
+
+    @Test fun repeatedAndRetiredComponentConfirmationsCannotCreateAnotherRevision() {
+        save()
+        val form = componentAddForm()
+        dialogField(form, R.string.component_role).setText("primary")
+        val positive = form.getButton(AlertDialog.BUTTON_POSITIVE)
+        positive.performClick()
+        positive.performClick()
+        await { !form.isShowing && hasText(R.string.component_saved) }
+        val baseline = loaded().baselineIdentity
+        positive.performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+        assertEquals(baseline, loaded().baselineIdentity)
+        val configure = componentAction(0)
+        val retired = configure.getButton(AlertDialog.BUTTON_POSITIVE)
+        dialogField(configure, R.string.component_settings).setText("{\"temperature\":0.75}")
+        recreate()
+        await { hasText(R.string.draft_saved) }
+        retired.performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+        assertFalse(configure.isShowing)
+        assertEquals(baseline, loaded().baselineIdentity)
+    }
+
+    @Test fun exactComponentReplacementNoopRetainsIdentityAndDirtyFormBlocksEntry() {
+        save()
+        val current = addModel()
+        val choices = componentChoice()
+        shadowOf(choices).clickOnItem(1)
+        await { dialog() !== choices && dialog().isShowing }
+        val replace = dialog()
+        replace.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+        await { !replace.isShowing && hasText(R.string.component_noop) }
+        assertEquals(current.baselineIdentity, loaded().baselineIdentity)
+        assertEquals(current.components, loaded().components)
+        field(R.string.draft_title).setText("pending")
+        assertFalse(button(R.string.component_manage).isEnabled)
+        assertFalse(button(R.string.component_choose_catalog).isEnabled)
+        val last = dialog()
+        button(R.string.component_choose_catalog).performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+        assertSame(last, dialog())
+        assertEquals(current.baselineIdentity, loaded().baselineIdentity)
+    }
+
+    @Test fun canceledComponentDialogsAndPickersRevokeTheirRetainedCallbacks() {
+        save()
+        val initial = loaded().baselineIdentity
+        val add = componentAddForm()
+        dialogField(add, R.string.component_role).setText("primary")
+        val retainedAdd = add.getButton(AlertDialog.BUTTON_POSITIVE)
+        add.getButton(AlertDialog.BUTTON_NEGATIVE).performClick()
+        await { !add.isShowing && button(R.string.component_choose_catalog).isEnabled }
+        retainedAdd.performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+        assertEquals(initial, loaded().baselineIdentity)
+        addModel()
+        val baseline = loaded().baselineIdentity
+        for (index in listOf(0, 1, 2)) {
+            val canceled = componentAction(index)
+            val positive = canceled.getButton(AlertDialog.BUTTON_POSITIVE)
+            canceled.getButton(AlertDialog.BUTTON_NEGATIVE).performClick()
+            await { !canceled.isShowing && button(R.string.component_manage).isEnabled }
+            positive.performClick()
+            shadowOf(Looper.getMainLooper()).idle()
+            assertEquals(baseline, loaded().baselineIdentity)
+        }
+        val choices = componentChoice()
+        choices.getButton(AlertDialog.BUTTON_NEGATIVE).performClick()
+        await { !choices.isShowing }
+        val latest = dialog()
+        shadowOf(choices).clickOnItem(0)
+        shadowOf(Looper.getMainLooper()).idle()
+        assertSame(latest, dialog())
+        button(R.string.component_manage).performClick()
+        val selectionPicker = dialog()
+        selectionPicker.getButton(AlertDialog.BUTTON_NEGATIVE).performClick()
+        await { !selectionPicker.isShowing }
+        shadowOf(selectionPicker).clickOnItem(0)
+        shadowOf(Looper.getMainLooper()).idle()
+        assertSame(selectionPicker, dialog())
+        assertEquals(baseline, loaded().baselineIdentity)
+    }
+
+    @Test fun inFlightComponentCommitFreezesFormUntilInvalidOutcomeRestoresInputs() {
+        save()
+        val form = componentAddForm()
+        val role = dialogField(form, R.string.component_role)
+        val settings = dialogField(form, R.string.component_settings)
+        val enabled = views(form.window!!.decorView).filterIsInstance<android.widget.CheckBox>().single()
+        role.setText("primary")
+        settings.setText("invalid")
+        val workerField = PreviewActivity::class.java.getDeclaredField("worker").apply { isAccessible = true }
+        val worker = workerField.get(activity) as java.util.concurrent.ExecutorService
+        val entered = java.util.concurrent.CountDownLatch(1)
+        val release = java.util.concurrent.CountDownLatch(1)
+        worker.execute { entered.countDown(); check(release.await(10, java.util.concurrent.TimeUnit.SECONDS)) }
+        try {
+            assertTrue(entered.await(5, java.util.concurrent.TimeUnit.SECONDS))
+            form.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+            assertFalse(role.isEnabled)
+            assertFalse(settings.isEnabled)
+            assertFalse(enabled.isEnabled)
+            assertFalse(form.getButton(AlertDialog.BUTTON_NEGATIVE).isEnabled)
+            assertFalse(form.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled)
+        } finally { release.countDown() }
+        await { hasText(R.string.component_invalid) && form.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled }
+        assertTrue(role.isEnabled)
+        assertTrue(settings.isEnabled)
+        assertTrue(enabled.isEnabled)
+        assertTrue(form.getButton(AlertDialog.BUTTON_NEGATIVE).isEnabled)
+        assertEquals("invalid", settings.text.toString())
+        assertTrue(loaded().components.selections.isEmpty())
+    }
+
 }
