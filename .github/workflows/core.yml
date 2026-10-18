@@ -82,6 +82,11 @@ jobs:
         run: ./gradlew --no-daemon --dependency-verification=strict --init-script scripts/runtime_inventory.init.gradle.kts -PandroidPreview=true :preview:assembleDebug :preview:lintDebug :preview:testDebugUnitTest runtimeInventory
       - name: Reject ignored packaged preview assets
         run: python scripts/check_runtime_inventory_guards.py --preview
+      - name: Inspect the packaged synthetic preview policy
+        run: |
+          python -m unittest discover -s scripts/tests -p 'test_preview_policy.py'
+          python scripts/check_preview_policy.py --aapt2 "$ANDROID_HOME/build-tools/35.0.0/aapt2"
+          python scripts/check_preview_policy_guards.py --aapt2 "$ANDROID_HOME/build-tools/35.0.0/aapt2" --android-jar "$ANDROID_HOME/platforms/android-35/android.jar"
       - name: Require all simulated UI regressions to execute
         run: |
           python - <<'PYTEST'
