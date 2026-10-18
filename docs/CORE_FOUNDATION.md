@@ -218,3 +218,17 @@ The [frozen Event decoder](FROZEN_EVENT_BOUNDARY.md) retains every event and pay
 field as immutable typed values, with exact subject revisions and explicit optional
 presence. Shared Python/Kotlin cases exercise the unchanged schema. Decoding adds
 no event execution, actor authority, idempotency, synchronization or telemetry.
+
+The [resource-estimate decoder](RESOURCE_ESTIMATE_BOUNDARY.md) retains all frozen
+capacity-estimate wire fields, exact decimal strings, arbitrary-size revisions and
+declared confidence as immutable values. Shared Python/Kotlin fixtures and boundary
+tests cover its structural behavior; decoding adds no arithmetic, current-build or
+runtime/topology binding, calibrated capacity evidence or memory-fit verdict.
+
+## Frozen deployment-manifest value boundary
+
+The [immutable deployment-manifest reader](FROZEN_DEPLOYMENT_MANIFEST_BOUNDARY.md)
+retains every frozen manifest/approval field, exact build revision, ordered arrays
+and optional absence. Recorded statuses and approval decisions are unverified
+input; decoding grants no approval, URI access, deployment or release authority.
+Shared Python/Kotlin cases preserve frozen schema outcomes and sanitized failures.
