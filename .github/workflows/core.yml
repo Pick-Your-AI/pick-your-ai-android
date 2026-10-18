@@ -114,6 +114,8 @@ jobs:
               "retiredTierConfirmationCannotCommitAfterRecreation",
               "conflictingPendingInputsCanBeCopiedWithoutChangingNewerOriginal",
               "invalidOrChangedPendingInputsAndRetiredConfirmationCannotCreateRecovery",
+              "requiredObjectiveGuidanceNavigatesMissingInputsWithoutClaimingReadiness",
+              "retiredObjectiveGuidanceCannotOpenClassificationOrChangeCurrentInputs",
               "retiredContextEditorsCannotChangeCapturedDomainState",
           }
           cases = suite.findall("testcase")
