@@ -359,6 +359,99 @@ jobs:
                   raise SystemExit("Component role regression did not pass")
               print(f"Verified {len(cases)} simulated {name} cases; no installed-device claim")
           PYTEST
+      - name: Require explicit foundation selection regressions to execute
+        run: |
+          python - <<'PYTEST'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          qualified = "ai.pickyour.android.preview.FoundationSelectionActivityTest"
+          report = pathlib.Path("preview/build/test-results/testDebugUnitTest/TEST-" + qualified + ".xml")
+          suite = ET.parse(report).getroot()
+          required = {
+              "newEmptyDraftKeepsOneExplicitWorkloadAcrossRecreationWithoutInventedInputs",
+              "workloadValidationRetainsRawInvalidInputAndExactOverridesWithoutCopyingOverallAssumptions",
+              "deploymentChoiceUsesExactCatalogItemAndEmptySettingsWithOneExplicitAcknowledgment",
+              "explicitFoundationEnableDisableRoleAndRemovalNeverPromoteAnotherSelection",
+              "pendingFoundationFormsRetainKindAndInputAcrossParcelRecreationWithoutOldConsent",
+              "canceledAndCatalogStaleFoundationButtonsCannotSaveOrChooseAnotherSnapshot",
+              "newerSavedHeadKeepsRecoveredFoundationInputReadOnlyInsteadOfRebasingIt",
+              "savingFoundationCheckpointCannotReplayAfterTheOriginalWriteIsAcknowledged",
+              "narrowRtlLargeTextKeepsFoundationGuidanceFieldsAndConfirmationReachable",
+          }
+          cases = suite.findall("testcase")
+          names = [case.attrib["name"] for case in cases]
+          if suite.attrib.get("name") != qualified or any(case.attrib.get("classname") != qualified for case in cases):
+              raise SystemExit("Wrong foundation selection test suite")
+          if not required <= set(names) or len(names) != len(set(names)):
+              raise SystemExit("Missing or repeated foundation selection regression")
+          if int(suite.attrib["tests"]) != len(cases) or any(int(suite.attrib[key]) != 0 for key in ("failures", "errors", "skipped")):
+              raise SystemExit("Foundation selection report totals do not match passing execution")
+          if any(case.findall("failure") or case.findall("error") or case.findall("skipped") for case in cases):
+              raise SystemExit("Foundation selection regression did not pass")
+          print(f"Verified {len(cases)} simulated foundation selection cases; no installed-device claim")
+          PYTEST
+      - name: Require explicit retrieval selection regressions to execute
+        run: |
+          python - <<'PYTEST'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          qualified = "ai.pickyour.android.preview.RetrievalSelectionActivityTest"
+          report = pathlib.Path("preview/build/test-results/testDebugUnitTest/TEST-" + qualified + ".xml")
+          suite = ET.parse(report).getroot()
+          required = {
+              "allRetrievalKindsExposeExplicitInputAndReopenWithoutCreatingAnotherComponent",
+              "requiredVectorSettingsRejectInvalidInputWithoutSavingOrTruncatingAnEnteredValue",
+              "retrievalSettingsAndComponentStatesSurviveExplicitTierDisableReopenAndReenable",
+              "severalEnabledRetrievalRolesCoexistWhileDuplicateRolesAndRemovalPreserveOtherSelections",
+              "pendingRetrievalFormsKeepAllFiveKindsAndExactInputAcrossParcelRecreationWithoutOldConsent",
+              "canceledAndCatalogStaleRetrievalControlsCannotSaveOrSubstituteAnotherSnapshot",
+              "aNewerSavedHeadKeepsRecoveredRetrievalInputReadOnlyWithoutRebasingIt",
+              "aSavingRetrievalCheckpointCannotReplayAfterItsOriginalWriteIsAcknowledged",
+              "narrowRtlLargeTextKeepsRetrievalGuidanceRequiredFieldsAndConfirmationReachable",
+          }
+          cases = suite.findall("testcase")
+          names = [case.attrib["name"] for case in cases]
+          if suite.attrib.get("name") != qualified or any(case.attrib.get("classname") != qualified for case in cases):
+              raise SystemExit("Wrong retrieval selection test suite")
+          if not required <= set(names) or len(names) != len(set(names)):
+              raise SystemExit("Missing or repeated retrieval selection regression")
+          if int(suite.attrib["tests"]) != len(cases) or any(int(suite.attrib[key]) != 0 for key in ("failures", "errors", "skipped")):
+              raise SystemExit("Retrieval selection report totals do not match passing execution")
+          if any(case.findall("failure") or case.findall("error") or case.findall("skipped") for case in cases):
+              raise SystemExit("Retrieval selection regression did not pass")
+          print(f"Verified {len(cases)} simulated retrieval selection cases; no installed-device claim")
+          PYTEST
+      - name: Require explicit agent selection regressions to execute
+        run: |
+          python - <<'PYTEST'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          qualified = "ai.pickyour.android.preview.AgentSelectionActivityTest"
+          report = pathlib.Path("preview/build/test-results/testDebugUnitTest/TEST-" + qualified + ".xml")
+          suite = ET.parse(report).getroot()
+          required = {
+              "allAgentKindsExposeExplicitInputAndReopenWithoutCreatingAnotherComponent",
+              "invalidScopesEndpointsAndReferencesKeepTheEntireFormWithoutSavingOrOpeningAConnection",
+              "agentSettingsAndComponentStatesSurviveExplicitTierDisableReopenAndReenable",
+              "severalEnabledAgentRolesCoexistWhileDuplicateRolesAndRemovalPreserveOtherSelections",
+              "pendingAgentFormsKeepAllFiveKindsAndExactInputAcrossParcelRecreationWithoutOldConsent",
+              "canceledAndCatalogStaleAgentControlsCannotSaveOrSubstituteAnotherSnapshot",
+              "aNewerSavedHeadKeepsRecoveredAgentInputReadOnlyWithoutRebasingIt",
+              "aSavingAgentCheckpointCannotReplayAfterItsOriginalWriteIsAcknowledged",
+              "narrowRtlLargeTextKeepsAgentGuidanceFieldsAndConfirmationReachable",
+          }
+          cases = suite.findall("testcase")
+          names = [case.attrib["name"] for case in cases]
+          if suite.attrib.get("name") != qualified or any(case.attrib.get("classname") != qualified for case in cases):
+              raise SystemExit("Wrong agent selection test suite")
+          if not required <= set(names) or len(names) != len(set(names)):
+              raise SystemExit("Missing or repeated agent selection regression")
+          if int(suite.attrib["tests"]) != len(cases) or any(int(suite.attrib[key]) != 0 for key in ("failures", "errors", "skipped")):
+              raise SystemExit("Agent selection report totals do not match passing execution")
+          if any(case.findall("failure") or case.findall("error") or case.findall("skipped") for case in cases):
+              raise SystemExit("Agent selection regression did not pass")
+          print(f"Verified {len(cases)} simulated agent selection cases; no installed-device claim")
+          PYTEST
       - name: Require complete recorded-price browser regressions to execute
         run: |
           python - <<'PYTEST'

@@ -237,8 +237,8 @@ class DraftSelectionsTest {
         val foreign = LocalDraftStore(Files.createDirectory(root.resolve("foreign")))
         val foreignVersion = (foreign.save(null, changed.content) as DraftSave.Saved).draft.version
         assertEquals(DraftSelectionSave.Conflict, store.applySelection(DraftSelectionIntent(foreignVersion, SelectionCommand.Remove("context"))))
-        val retained = DraftContent(components = DraftSelections(listOf(selection("deployment_mode", "deployment"), selection("tool", "tool"))))
-        for (id in listOf("deployment", "tool")) assertEquals(SelectionEdit.Rejected(SelectionRejection.UNSUPPORTED_KIND), DraftSelectionCommands.apply(retained, SelectionCommand.Remove(id)))
+        val retained = DraftContent(components = DraftSelections(listOf(selection("training_dataset", "training"), selection("deployment_target", "deployment"))))
+        for (id in listOf("training", "deployment")) assertEquals(SelectionEdit.Rejected(SelectionRejection.UNSUPPORTED_KIND), DraftSelectionCommands.apply(retained, SelectionCommand.Remove(id)))
         assertEquals(2, retained.components.selections.size)
     }
 }
