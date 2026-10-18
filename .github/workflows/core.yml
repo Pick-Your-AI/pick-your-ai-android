@@ -247,6 +247,47 @@ jobs:
               raise SystemExit("Local dialog authority result count does not match executed cases")
           print(f"Verified {len(cases)} simulated local dialog authority tests; no installed-device claim")
           PYTEST
+      - name: Require bounded component form recovery regressions to execute
+        run: |
+          python - <<'PYTEST'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          expected = {
+              "ComponentFormRecoveryActivityTest": {
+                  "recreatedAddFormRetainsInvalidRawInputWithoutWritingOrRevivingOldConsent",
+                  "recoveredAddRequiresFreshConfirmationAndCommitsCapturedSelectionOnlyOnce",
+                  "recreatedConfigurationKeepsItsSelectionAcrossRepeatedReviewBeforeOneExplicitSave",
+                  "changedSavedHeadKeepsPendingComponentInputReadOnlyAfterExplicitReopen",
+                  "mismatchedLocalDraftIdentityCannotAcquireCurrentBaselineAuthorityFromRestoredState",
+                  "changedCatalogHashKeepsRecoveredAddReadOnlyWithoutUsingMatchingItemFallback",
+                  "savedInFlightCheckpointNeverReplaysAfterTheOriginalComponentWriteCompletes",
+                  "canceledAndDiscardedRecoveryCannotBeRevivedOrClearLaterInputThroughRetiredButtons",
+                  "oversizedComponentCheckpointShowsUnavailableWithoutSavingOrRetainingAValidPrefix",
+                  "openComponentFormCannotBeReplacedByRetainedEntryControlsBeforeCheckpointing",
+              },
+              "ComponentFormCheckpointTest": {
+                  "maximumPrimitiveCheckpointPreservesExactUnicodeAndRemainsBoundedWhenParcelled",
+                  "malformedPrimitiveTypesVersionsAndModesNeverSupplyRecoveryAuthority",
+                  "oversizedCombinedInputBecomesAnExplicitMarkerWithoutAnyTruncatedRawPrefix",
+                  "configureCheckpointRequiresItsOwnShapeAndKeepsInFlightState",
+              },
+          }
+          for name, required in expected.items():
+              qualified = "ai.pickyour.android.preview." + name
+              report = pathlib.Path("preview/build/test-results/testDebugUnitTest/TEST-" + qualified + ".xml")
+              suite = ET.parse(report).getroot()
+              cases = suite.findall("testcase")
+              names = [case.attrib["name"] for case in cases]
+              if suite.attrib.get("name") != qualified or any(case.attrib.get("classname") != qualified for case in cases):
+                  raise SystemExit("Wrong component recovery test suite")
+              if not required <= set(names) or len(names) != len(set(names)):
+                  raise SystemExit("Missing or repeated component recovery regression")
+              if int(suite.attrib["tests"]) != len(cases) or any(int(suite.attrib[key]) != 0 for key in ("failures", "errors", "skipped")):
+                  raise SystemExit("Component recovery report totals do not match passing execution")
+              if any(case.findall("failure") or case.findall("error") or case.findall("skipped") for case in cases):
+                  raise SystemExit("Component recovery regression did not pass")
+              print(f"Verified {len(cases)} simulated {name} cases; no installed-device claim")
+          PYTEST
       - name: Require complete recorded-price browser regressions to execute
         run: |
           python - <<'PYTEST'
