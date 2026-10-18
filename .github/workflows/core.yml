@@ -35,6 +35,8 @@ jobs:
         run: |
           python scripts/check_delivery_ledger.py
           python -m unittest discover -s scripts/tests -p 'test_delivery_ledger.py'
+      - name: Verify emulator harness target and evidence guards
+        run: python -m unittest discover -s scripts/tests -p 'test_android_emulator_smoke.py' -v
       - name: Check wrapper integrity
         run: sha256sum --check gradle/wrapper/wrapper.sha256
       - name: Compile and test JVM core
@@ -53,7 +55,7 @@ jobs:
   android-preview:
     name: Unsigned synthetic Android preview
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -103,6 +105,29 @@ jobs:
           assert int(suite.attrib["tests"]) >= len(expected)
           print(f"Verified {len(cases)} simulated Activity tests; no installed-device claim")
           PYTEST
+      - name: Prepare the disposable installed-emulator lane
+        shell: bash
+        run: |
+          test "$RUNNER_ENVIRONMENT" = 'github-hosted'
+          test -c /dev/kvm
+          if [ ! -r /dev/kvm ] || [ ! -w /dev/kvm ]; then
+            sudo chown "$(id -u):$(id -g)" /dev/kvm
+          fi
+          test -r /dev/kvm && test -w /dev/kvm
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platform-tools' 'emulator' 'system-images;android-35;default;x86_64'
+      - name: Exercise installed synthetic preview on its owned AVD
+        run: python scripts/android_emulator_smoke.py
+      - name: Require the exact installed-emulator receipt
+        run: |
+          python - <<'PYSMOKE'
+          import json
+          import os
+          from pathlib import Path
+          from scripts.android_emulator_smoke import complete_receipt
+          receipt = json.loads(Path("preview/build/reports/emulator-smoke/receipt.json").read_text())
+          complete_receipt(receipt, os.environ["GITHUB_SHA"])
+          print("All four installed AOSP-emulator cases passed; physical-device acceptance remains separate")
+          PYSMOKE
       - name: Retain unsigned diagnostic and lint reports
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -113,5 +138,6 @@ jobs:
             preview/build/reports/lint-results-debug.*
             preview/build/reports/tests/testDebugUnitTest/
             preview/build/test-results/testDebugUnitTest/
+            preview/build/reports/emulator-smoke/
           retention-days: 7
           if-no-files-found: ignore
