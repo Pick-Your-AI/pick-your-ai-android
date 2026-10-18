@@ -15,6 +15,8 @@ import ai.pickyour.core.contracts.FrozenSchemaValidator
 import ai.pickyour.core.contracts.FrozenValidation
 import org.json.JSONObject
 import java.util.concurrent.Executors
+import ai.pickyour.core.preview.SyntheticCatalogEvidence
+import ai.pickyour.core.evidence.EvidenceLabel
 
 /** Guest UI scaffolding over bundled synthetic fixtures, not a durable draft repository. */
 class PreviewActivity : Activity() {
@@ -72,19 +74,28 @@ class PreviewActivity : Activity() {
         catalog = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         content.addView(catalog)
         val status = text(R.string.ready).apply { accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE }
+        val evidenceDetails = text(R.string.evidence_ready)
         val run = Button(this).apply { setText(R.string.run) }
         run.setOnClickListener {
             run.isEnabled = false
             status.setText(R.string.working)
+            evidenceDetails.setText(R.string.evidence_ready)
             worker.execute {
+                var evidence: SyntheticCatalogEvidence? = null
                 val message = try {
                     assets.open("build.json").use {
-                        if (FrozenSchemaValidator().validate(FrozenDocument.BUILD, it) == FrozenValidation.Valid)
-                            R.string.valid else R.string.invalid
+                        if (FrozenSchemaValidator().validate(FrozenDocument.BUILD, it) == FrozenValidation.Valid) {
+                            evidence = SyntheticCatalogEvidence.read(readCatalogFixture())
+                            R.string.valid
+                        } else R.string.invalid
                     }
                 } catch (_: Exception) { R.string.unavailable }
                 runOnUiThread {
-                    if (!destroyed) { status.setText(message); run.isEnabled = true }
+                    if (!destroyed) {
+                        status.setText(message)
+                        evidenceDetails.text = evidence?.let { evidenceText(it) } ?: getString(R.string.evidence_unavailable)
+                        run.isEnabled = true
+                    }
                 }
             }
         }
@@ -102,22 +113,24 @@ class PreviewActivity : Activity() {
         loadCatalog()
     }
 
+    private fun readCatalogFixture(): ByteArray = assets.open("catalog.json").use { stream ->
+        val output = java.io.ByteArrayOutputStream()
+        val buffer = ByteArray(8192)
+        while (true) {
+            val count = stream.read(buffer)
+            if (count == -1) break
+            check(output.size() + count <= 1_048_576)
+            output.write(buffer, 0, count)
+        }
+        output.toByteArray()
+    }
+
     private fun loadCatalog() {
         retry.isEnabled = false
         catalogStatus.setText(R.string.working)
         worker.execute {
             val loaded = try {
-                val bytes = assets.open("catalog.json").use { stream ->
-                    val output = java.io.ByteArrayOutputStream()
-                    val buffer = ByteArray(8192)
-                    while (true) {
-                        val count = stream.read(buffer)
-                        if (count == -1) break
-                        check(output.size() + count <= 1_048_576)
-                        output.write(buffer, 0, count)
-                    }
-                    output.toByteArray()
-                }
+                val bytes = readCatalogFixture()
                 check(FrozenSchemaValidator().validate(FrozenDocument.CATALOG, bytes.inputStream()) == FrozenValidation.Valid)
                 val rows = JSONObject(String(bytes, Charsets.UTF_8)).getJSONArray("items")
                 List(rows.length()) { index ->
@@ -165,6 +178,27 @@ class PreviewActivity : Activity() {
         outState.putString("title", title.text.toString().take(120))
         outState.putString("selectedId", selectedId)
         super.onSaveInstanceState(outState)
+    }
+
+    private fun evidenceText(value: SyntheticCatalogEvidence): String {
+        val label = when (value.presentation.label) {
+            EvidenceLabel.INDEPENDENTLY_VERIFIED -> R.string.label_independently_verified
+            EvidenceLabel.VERIFICATION_UNESTABLISHED -> R.string.label_verification_unestablished
+            EvidenceLabel.UNVERIFIED -> R.string.label_unverified
+            EvidenceLabel.USER_SUPPLIED -> R.string.label_user_supplied
+            EvidenceLabel.ESTIMATED -> R.string.label_estimated
+        }
+        return listOf(
+            getString(R.string.evidence_heading),
+            getString(R.string.evidence_item, value.name, value.identity.claimId, value.identity.version),
+            getString(R.string.evidence_snapshot, value.identity.snapshotId, value.identity.snapshotRevision.toString()),
+            getString(R.string.evidence_status, value.presentation.rawStatus.encoded, getString(label)),
+            getString(R.string.evidence_support_unestablished),
+            getString(R.string.evidence_dates, value.presentation.capturedAt.toString(), value.snapshotCapturedAt.toString()),
+            getString(R.string.evidence_pinned),
+            getString(R.string.evidence_note, value.provenanceNote),
+            getString(R.string.evidence_limits),
+        ).joinToString("\n\n")
     }
 
     override fun onDestroy() {

@@ -1,13 +1,35 @@
-# Native architecture recommendation
+# Native architecture: implemented preview and product recommendation
 
-Proposal for [Android #34](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/34).
-Receiving acceptance is pending. The existing repository remains documentation
-only; this recommendation does not silently approve scaffolding or change the
-canonical acceptance-record path. Read the [scope proposal](01-product-scope.md).
+Engineering-state reconciliation for
+[Android #34](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/34),
+observed at main `4080b04` on 2026-10-18. The maintainer has authorized implementation
+and delegated engineering choices. The bounded choices below are adopted for the
+guest preview; they do not require another technical-preference approval. Product
+receiving acceptance, actual ownership commitments and release qualification remain
+separate. The canonical acceptance-record path is unchanged. Read the
+[scope proposal](01-product-scope.md) for the preview's synthetic-data limits.
 
-## Decision and alternatives
+## Current engineering decisions
 
-Recommend Kotlin with Jetpack Compose for the Android client, a small pure Kotlin
+| Decision | Implemented choice and rationale | Evidence and limit |
+| --- | --- | --- |
+| Repository and language | Existing Android repository; native Kotlin core keeps contract/domain behavior testable without Android APIs | [Core foundation](../CORE_FOUNDATION.md); JVM tests are not installed-app tests |
+| Preview UI | Platform Android Views in opt-in `:preview`; a small synthetic diagnostic exercises native layout and worker/lifecycle boundaries without introducing a new UI dependency | [Preview](../ANDROID_PREVIEW.md); no claim of complete builder, accessibility or device acceptance |
+| Local namespace | `ai.pickyour.android.preview` for the diagnostic only | [Preview build](../../preview/build.gradle.kts); unsigned debug, disabled release variants, no registration or production ownership assertion |
+| Module boundary | `:core` remains SDK-independent; `:preview` depends on core and is included only with `-PandroidPreview=true` | [Settings](../../settings.gradle.kts); production `:data`/`:app` modules are not implemented |
+| Toolchain | JDK 21 build, Java 17 bytecode, Gradle 8.11.1, Kotlin 2.1.20, AGP 8.9.2 | [Root build](../../build.gradle.kts), [core build](../../core/build.gradle.kts), pinned wrapper and dependency verification; current reproducible experiment |
+| SDK bounds | compile/target 35, minSdk 26, build-tools 35.0.0 | [Preview reproduction](../ANDROID_PREVIEW.md); these are compile/runtime bounds, not evidence that devices or current Play submission requirements are satisfied |
+| Storage boundary | Pure-core local filesystem/revision primitives; preview edits remain temporary until the Android storage adapter is integrated | [Draft history](../DRAFT_HISTORY.md); no Room adoption or preview process-death durability is implied |
+
+The implementation choice of platform Views is bounded to this diagnostic. It does
+not claim to implement the earlier Compose/Room recommendation. Retain native Kotlin
+and the tested contract/domain boundary while extending the guest preview; evaluate
+any later UI/storage change against actual requirements and migration costs.
+No backend, account service or new shared contract is selected here.
+
+## Earlier product recommendation and alternatives
+
+The earlier product proposal recommends Kotlin with Jetpack Compose, a small pure Kotlin
 domain module, and Room-backed transactional local storage. Use the existing
 `Pick-Your-AI/pick-your-ai-android` repository. Propose `ai.pickyour.android` as the
 application ID and namespace; its Play availability and publisher authorization
@@ -54,8 +76,10 @@ inspections, not executed sample tests or a measured framework comparison.
 
 ## Module and reuse map
 
-Propose three modules initially, with new modules only when a demonstrated boundary
-needs them. Feature packages need not become Gradle modules immediately.
+The earlier product proposal describes three modules below. Only `:core` currently
+exists under those names; the implemented diagnostic is `:preview`, described above.
+Add modules when a demonstrated boundary needs them. Feature packages need not
+become Gradle modules immediately.
 
 | Location | Responsibility | Dependency direction |
 | --- | --- | --- |
@@ -67,8 +91,10 @@ The authoritative contract remains research `contracts/v1`, adopted verbatim at 
 pinned revision with checksums; #40 owns extensions. The existing website
 [`dc66a9e269917ab7241c7d08fd0e7f2a2f039872`](https://github.com/Pick-Your-AI/pickyour.ai/tree/dc66a9e269917ab7241c7d08fd0e7f2a2f039872)
 pins contract source `d4bdca479f78439b3b98e7418b37acbaccbaa63c` in
-`contracts/PROVENANCE.json`. Android must explicitly record its own adoption pin;
-do not assume the website's pin is the newest approved contract.
+`contracts/PROVENANCE.json`. Android now records its own adoption in the
+[import manifest](../../contracts/v1/IMPORT_MANIFEST.json) and
+[contract adoption guide](../CONTRACT_ADOPTION.md); the older website pin above is
+historical reuse context, not a claim that it is the newest approved contract.
 
 | Existing website artifact | Android reuse decision |
 | --- | --- |
@@ -102,11 +128,14 @@ consume shared fixtures/contracts independently; this does not select its UI sta
 
 ## Toolchain and remaining acceptance
 
-Pin JDK, Gradle wrapper/checksum, Android Gradle Plugin, Kotlin/Compose and SDK versions
-together only after checking their current compatibility documentation. Min/target
-SDK and device support belong to #47/#54; no timeless target-SDK number is asserted.
-The review machine has Java 21 runtime but no Android SDK, Gradle wrapper, emulator
-or application source. No build, instrumented test or process-death test ran.
+The current toolchain and experimental SDK decisions are recorded above and in
+[ANDROID_PREVIEW.md](../ANDROID_PREVIEW.md), including the inspected upstream
+compatibility sources and build/lint evidence. The original documentation-only
+review predates the executable JVM core and unsigned Android build; its environment
+limitations are no longer the repository's current state. Instrumented, physical
+device and process-death evidence remain separate and are not supplied by build or
+lint success. Product min/target SDK and supported-device qualification remain under
+#47/#54; refresh official requirements before a release candidate is assessed.
 
 Before #34 closes, obtain product/Android receiving review of the scope and reuse
 map, record package identity disposition, and reconcile the #24 handoff. Before a
@@ -121,6 +150,6 @@ Canonical record: `docs/delivery/android/work-packages/01.03.md` in `Pick-Your-A
 
 | Exact live criterion | Evidence in this proposal | Remaining acceptance |
 | --- | --- | --- |
-| Compare Kotlin/Compose with a shared-client approach against offline, accessibility, reuse and maintenance; select package/repository/module boundaries with rationale. | Proposed reasoning and requirements above; not executed application behavior | Receiving review, applicable upstream handoffs and observed implementation evidence remain pending |
-| Each major technology choice maps to an accepted requirement and documented tradeoff. | Proposed reasoning and requirements above; not executed application behavior | Receiving review, applicable upstream handoffs and observed implementation evidence remain pending |
-| The decision identifies repository/package ownership and one authority for shared contracts and compatibility semantics. | Proposed reasoning and requirements above; not executed application behavior | Receiving review, applicable upstream handoffs and observed implementation evidence remain pending |
+| Compare Kotlin/Compose with a shared-client approach against offline, accessibility, reuse and maintenance; select package/repository/module boundaries with rationale. | Current guest-preview decisions above plus retained product alternatives; partial JVM/build/lint evidence linked | Product receiving review, applicable handoffs and installed-device/release evidence remain pending |
+| Each major technology choice maps to an accepted requirement and documented tradeoff. | Current guest-preview decisions above plus retained product alternatives; partial JVM/build/lint evidence linked | Product receiving review, applicable handoffs and installed-device/release evidence remain pending |
+| The decision identifies repository/package ownership and one authority for shared contracts and compatibility semantics. | Existing repository and experimental namespace; frozen contract authority and import pins identified | Actual production package ownership and receiving owner commitments remain unestablished |

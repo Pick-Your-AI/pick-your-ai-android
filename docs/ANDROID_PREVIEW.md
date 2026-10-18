@@ -136,3 +136,54 @@ entries; resource XML and `git diff --check` passed. Android metrics initializat
 and absent platform-tools produced environment warnings, not build failures. The
 local Android user directory was isolated outside source; no signing key was created.
 These checks did not install or run the UI. The manual cases above remain unexecuted.
+
+## Synthetic evidence detail integration
+
+The original-fixture diagnostic remains separate from the guest selection and
+now also validates the bundled frozen-v1 catalog, selecting only
+`catalog.fixture.1`, revision `1`, item `cat.workload.fixture`, version
+`2026.10-demo`. It never selects a replacement version when that pin is absent.
+The fixture's real stored provenance value is `user_supplied`; its display label
+comes from `EvidencePresentationPolicy`. No `ReviewedEvidenceAssessment` is
+created. Source checking and independent support therefore remain unestablished.
+The displayed `checked_at` and `captured_at` timestamps come from the fixture,
+not the device clock, and are explicitly described as synthetic metadata.
+Version-pinned facts receive no time-to-live or invented freshness threshold.
+All user-facing descriptions are Android string resources; identifiers and raw
+contract status retain their exact encoding. This supplies localization-ready
+English strings, not completed translations or manual accessibility evidence.
+
+| Exact issue criterion | Implemented partial evidence | Remaining output required for acceptance |
+| --- | --- | --- |
+| #77: Each preview visibly identifies synthetic data and validates against its version or is marked as a negative test | Build and evidence details retain the synthetic banner; catalog schema and exact fixture pin are validated before displaying provenance | All required product preview states, latency/error/stale-response scenarios and rendered-device evidence remain separate |
+| #97: Versioned specs, provider/offering identity, license conditions, source links, dates, price conditions and limitations visible | Selected fictional item identity, version, snapshot, provenance dates and limitations are displayed; missing license/link/rate information stays explicitly unknown | Actual component-detail UI, accepted real catalog and complete provider/spec/license/price projections are not supplied by this fixture diagnostic |
+| #97: The displayed item version and source dates match the requested snapshot; a missing pinned version never silently resolves to the latest component | Exact pin lookup with tests rejecting replacement versions and wrong snapshot/revision; dates extracted from selected provenance/snapshot | Production repository integration, actual snapshot requests and receiving review remain required |
+| #97: Every presented factual field uses accepted evidence or is visibly unknown, and source verification labels follow the accepted evidence semantics | All fields visibly synthetic; raw status preserved alongside policy label; source/support remain unestablished without an assessment | Actual reviewed evidence handoff and real-data receiving acceptance cannot be manufactured by an adapter |
+| #97: Price context identifies currency, region, meter and effective period where supplied; absence of a usable rate is not shown as free | No price is displayed; missing usable rate is explicitly unknown | Accepted pricebook/rate projection and its full context are outside this item-provenance slice |
+| #39: Differentiate pinned facts from current prices/availability; apply approved freshness rules, retractions, supersession and change notification | Explicit pinned-identity display; dates are metadata only with no invented expiry/current-state claim | Reviewed correction/retraction/supersession inputs and production notifications are still required |
+| #39: A new component release does not silently rewrite facts about pinned historical versions | Exact-version adapter rejects replacement fixture version instead of falling forward | Actual historical catalog persistence and production request flow remain separate |
+| #39: Current-state facts expose dates and approved freshness handling; corrections retain original and replacement dispositions | This diagnostic shows pinned fixture facts only and disclaims current availability and price accuracy | Current-state and correction receipt integration require their accepted inputs; this view makes no such evidence claim |
+
+Five JVM adapter tests cover the actual bundled provenance, missing pinned
+version, wrong snapshot/revision, malformed/oversized fixtures, and a negative
+fixture with raw `verified` status that still cannot establish source checking or
+independent support. These are automated projection checks, not UI/device results.
+Canonical acceptance records stay in the website repository; this evidence is a
+partial handoff for #77/#97/#39, not issue closure or a relocated receiving record.
+
+Consumer handoff receipt: this slice consumes the research handoff at commit
+[`74b8e6801e9b60a4c476b9ac64ae4114270ab2fd`](https://github.com/Pick-Your-AI/pick-your-ai-research/blob/74b8e6801e9b60a4c476b9ac64ae4114270ab2fd/docs/CONSUMER_HANDOFF.md),
+which identifies immutable baseline
+`4addb4d45d3eadb4598262532823634980b8a1b5`. Its frozen-v1 import manifest was
+retrieved and compared byte-for-byte with this repository's existing manifest;
+all 43 frozen files remain unchanged. This receipt consumes synthetic schemas,
+fixtures and presentation boundaries only: no invented TTL, compatibility verdict,
+source authenticity or reuse rights. Research #145's migration test adapter is
+not a released v1.1 reader; #142's calculator is a proposal, not a main-branch
+service implementation. Neither is consumed by this view. Receiving acceptance
+and real-data integration remain separate.
+
+Evidence-detail validation: strict unsigned assembly, lint and the JVM suite
+passed locally (49 tasks; 66 JVM tests including the five new projection tests).
+Lint reported no issues. The frozen hash verifier and 21 Python reference tests
+also passed. No rendered-device, TalkBack or installation result is claimed.
