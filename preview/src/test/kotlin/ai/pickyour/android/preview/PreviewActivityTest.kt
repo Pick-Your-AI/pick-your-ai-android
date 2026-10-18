@@ -232,13 +232,15 @@ class PreviewActivityTest {
     }
 
     @Test fun emptyCatalogSearchCanRecoverAndReloadUsesTheCurrentQuery() {
-        assertEquals(29, samples().size)
+        assertEquals(PreviewCatalogBrowser.PAGE_SIZE, samples().size)
+        assertTrue(button(R.string.catalog_next).isEnabled)
         val search = field(R.string.catalog_search)
         search.setText(".* definitely absent")
         assertTrue(samples().isEmpty())
         assertTrue(hasText(R.string.catalog_search_empty))
         search.setText("")
-        assertEquals(29, samples().size)
+        assertEquals(PreviewCatalogBrowser.PAGE_SIZE, samples().size)
+        assertTrue(button(R.string.catalog_next).isEnabled)
 
         button(R.string.retry_catalog).performClick()
         search.setText("cat.accelerator.fixture")
@@ -295,6 +297,81 @@ class PreviewActivityTest {
         assertTrue(context.requestFocus())
         assertSame(button(R.string.clear_draft), context.focusSearch(View.FOCUS_FORWARD))
     }
+    @Test fun catalogQuerySortAndPageSurviveDetailsAndRecreationWithoutChangingDraft() {
+        save()
+        val baseline = loaded().baselineIdentity
+        field(R.string.context_objective).setText("pending objective stays separate")
+        await { button(R.string.catalog_next).isEnabled }
+        field(R.string.catalog_search).setText("FICTIONAL")
+        fun sort() = views().filterIsInstance<Button>().single { it.text.toString().startsWith("Sort:") }
+        sort().performClick()
+        shadowOf(dialog()).clickOnItem(PreviewCatalogSort.KIND.ordinal)
+        button(R.string.catalog_next).performClick()
+        fun itemButtons() = views().filterIsInstance<Button>().filter { it.text.toString().startsWith("Open FICTIONAL ") }
+        val secondPage = itemButtons().map { it.text.toString() }
+        assertEquals(10, secondPage.size)
+        itemButtons().first().performClick()
+        val details = dialog()
+        details.getButton(AlertDialog.BUTTON_NEGATIVE).performClick()
+        await { !details.isShowing }
+        assertEquals(baseline, loaded().baselineIdentity)
+        recreate()
+        await { button(R.string.catalog_previous).isEnabled && !hasText(R.string.draft_loading) }
+        assertEquals("FICTIONAL", field(R.string.catalog_search).text.toString())
+        assertTrue(sort().text.toString().endsWith(activity.getString(R.string.catalog_sort_kind)))
+        assertEquals(secondPage, itemButtons().map { it.text.toString() })
+        assertEquals("pending objective stays separate", field(R.string.context_objective).text.toString())
+        assertTrue(button(R.string.save_draft).isEnabled)
+        assertEquals(baseline, loaded().baselineIdentity)
+    }
+
+    @Test fun catalogFacetsExposeEveryKindAndEmptyMatchesWithoutReplacingSavedSelection() {
+        save()
+        await { button(R.string.catalog_next).isEnabled }
+        fun facet(prefix: String) = views().filterIsInstance<Button>().single { it.text.toString().startsWith(prefix) }
+        facet("Kind:").performClick()
+        assertEquals(30, dialog().listView.adapter.count)
+        val model = PreviewCatalogKinds.all.indexOfFirst { it.id == "model" } + 1
+        shadowOf(dialog()).clickOnItem(model)
+        facet("Tier:").performClick()
+        assertEquals(8, dialog().listView.adapter.count)
+        shadowOf(dialog()).clickOnItem(1) // T0 and model are intentionally disjoint.
+        assertTrue(hasText(R.string.catalog_no_matches))
+        assertFalse(button(R.string.catalog_next).isEnabled)
+        facet("Tier:").performClick()
+        shadowOf(dialog()).clickOnItem(2) // T1
+        views().filterIsInstance<Button>().single { it.text.toString() == activity.getString(R.string.item_button, "FICTIONAL Model", "model") }.performClick()
+        dialog().getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+        await { views().filterIsInstance<TextView>().any { it.text.toString() == activity.getString(R.string.selected_sample, "FICTIONAL Model") } }
+        assertNull(loaded().fields.selectedId) // Selecting a sample edits the form, not disk.
+        save()
+        val selected = loaded()
+        assertEquals("cat.model.fixture", selected.fields.selectedId)
+        facet("Tier:").performClick()
+        shadowOf(dialog()).clickOnItem(7) // T6
+        assertTrue(hasText(R.string.catalog_no_matches))
+        assertEquals(selected.baselineIdentity, loaded().baselineIdentity)
+        assertTrue(views().filterIsInstance<TextView>().any { it.text.toString() == activity.getString(R.string.selected_sample, "FICTIONAL Model") })
+        assertFalse(button(R.string.save_draft).isEnabled)
+    }
+
+    @Test fun catalogDetailsCannotApplySelectionAfterEditorBaselineChanges() {
+        save()
+        await { button(R.string.catalog_next).isEnabled }
+        views().filterIsInstance<Button>().first { it.text.toString().startsWith("Open FICTIONAL ") }.performClick()
+        val detail = dialog()
+        // Exercise a superseded callback directly; ordinary modal navigation does not permit these taps.
+        field(R.string.draft_title).setText("new acknowledged baseline")
+        save()
+        val baseline = loaded().baselineIdentity
+        detail.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+        await { !detail.isShowing }
+        assertTrue(hasText(R.string.no_selection))
+        assertFalse(button(R.string.save_draft).isEnabled)
+        assertEquals(baseline, loaded().baselineIdentity)
+        assertNull(loaded().fields.selectedId)
+    }
+
     @Test fun findingsInspectionKeepsOutcomeSeveritySeparateAndNeverWritesDraft() {
         field(R.string.draft_title).setText("pending only")
         button(R.string.findings_inspect).performClick()
@@ -318,4 +395,82 @@ class PreviewActivityTest {
         assertTrue(adapter().load() is PreviewDraftLoad.Missing)
     }
 
+    @Test fun destroyedCatalogIgnoresRetainedEditorsDialogsAndRows() {
+        val retiredCatalog = views().filterIsInstance<CatalogBrowseSection>().single()
+        val retiredSearch = field(R.string.catalog_search)
+        val retiredRow = samples().first()
+        val retiredTier = views().filterIsInstance<Button>().single { it.text.toString().startsWith("Tier:") }
+        retiredTier.performClick()
+        val pendingDialog = dialog()
+        val before = Bundle().also(retiredCatalog::saveState)
+        recreate()
+        await { button(R.string.save_draft).isEnabled && samples().isNotEmpty() }
+
+        // Deliver callbacks retained from the destroyed Activity, including a pending dialog choice.
+        retiredSearch.setText("model")
+        shadowOf(pendingDialog).clickOnItem(1)
+        pendingDialog.dismiss()
+        retiredTier.performClick()
+        retiredRow.performClick()
+
+        assertSame("A retired catalog cannot open a new dialog", pendingDialog, dialog())
+        assertFalse(pendingDialog.isShowing)
+        val after = Bundle().also(retiredCatalog::saveState)
+        for (key in listOf("catalogQuery", "catalogTier", "catalogKind", "catalogSort", "catalogSnapshot")) {
+            assertEquals(key, before.getString(key), after.getString(key))
+        }
+        assertEquals(before.getInt("catalogPage"), after.getInt("catalogPage"))
+        assertEquals("", field(R.string.catalog_search).text.toString())
+        assertTrue(adapter().load() is PreviewDraftLoad.Missing)
+    }
+
+    @Test fun destroyedFindingsIgnoreRetainedInspectBrowseAndPickerCallbacks() {
+        val retiredInspect = button(R.string.findings_inspect)
+        retiredInspect.performClick()
+        await { button(R.string.findings_browse).isEnabled }
+        val retiredBrowse = button(R.string.findings_browse)
+        val retiredOutput = views().filterIsInstance<TextView>().single {
+            it.text.toString().startsWith(activity.getString(R.string.findings_notice))
+        }
+        val before = retiredOutput.text.toString()
+        retiredBrowse.performClick()
+        val pendingPicker = dialog()
+        recreate()
+        await { button(R.string.save_draft).isEnabled }
+
+        // None of these callbacks may submit work or open a window for the destroyed owner.
+        retiredInspect.performClick()
+        shadowOf(pendingPicker).clickOnItem(0)
+        pendingPicker.dismiss()
+        retiredBrowse.performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertSame(pendingPicker, dialog())
+        assertFalse(pendingPicker.isShowing)
+        assertTrue(retiredInspect.isEnabled)
+        assertEquals(before, retiredOutput.text.toString())
+        assertFalse(button(R.string.findings_browse).isEnabled)
+        assertTrue(hasText(R.string.findings_notice))
+        assertTrue(adapter().load() is PreviewDraftLoad.Missing)
+    }
+
+    @Test fun destroyedCostIgnoresRetainedInspectControl() {
+        val retiredInspect = button(R.string.cost_inspect)
+        val retiredOutput = views().filterIsInstance<TextView>().single {
+            it.text.toString() == activity.getString(R.string.cost_fixture_notice)
+        }
+        retiredInspect.performClick()
+        await { retiredInspect.isEnabled && retiredOutput.text.toString() != activity.getString(R.string.cost_fixture_notice) }
+        val before = retiredOutput.text.toString()
+        recreate()
+        await { button(R.string.save_draft).isEnabled }
+
+        retiredInspect.performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertTrue(retiredInspect.isEnabled)
+        assertEquals(before, retiredOutput.text.toString())
+        assertTrue(hasText(R.string.cost_fixture_notice))
+        assertTrue(adapter().load() is PreviewDraftLoad.Missing)
+    }
 }

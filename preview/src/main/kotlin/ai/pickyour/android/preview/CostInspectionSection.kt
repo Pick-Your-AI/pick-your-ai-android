@@ -24,6 +24,7 @@ internal class CostInspectionSection(
         }
         val button = Button(activity).apply { setText(R.string.cost_inspect) }
         button.setOnClickListener {
+            if (!alive()) return@setOnClickListener
             button.isEnabled = false
             output.setText(R.string.cost_loading)
             worker.execute {
