@@ -79,11 +79,12 @@ class T6PlanningActivityTest {
     private fun save() {
         button(R.string.save_draft).performClick()
         await {
-            val result = adapter().load()
-            result is PreviewDraftLoad.Available && !button(R.string.save_draft).isEnabled &&
-                texts().contains(activity.getString(R.string.planning_saved, result.record.revision.toString()))
+            !button(R.string.save_draft).isEnabled && views().filterIsInstance<TextView>().any {
+                it.text.toString() == activity.getString(R.string.draft_saved)
+            }
         }
         finishWork()
+        assertTrue(texts().contains(activity.getString(R.string.planning_saved, loaded().revision.toString())))
     }
     private fun reopen() {
         button(R.string.reopen_draft).performClick()
