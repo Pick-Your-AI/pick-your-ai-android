@@ -1,0 +1,490 @@
+{
+  "profile": "android-resource-estimate-wire/v1",
+  "schema_sha256": "39ab5d061f9021ce14e1f987717441cff04d1a40f76db5582d343d599a5d876c",
+  "example_sha256": "41469a377c0b428e779c269eb052fa8f455b4768e2add3c137b5e465a79a362f",
+  "cases": [
+    {
+      "name": "canonical synthetic estimate",
+      "expected": "decoded"
+    },
+    {
+      "name": "missing schema_version",
+      "expected": "unsupported_version",
+      "remove": [
+        "schema_version"
+      ]
+    },
+    {
+      "name": "missing id",
+      "expected": "schema_mismatch",
+      "remove": [
+        "id"
+      ]
+    },
+    {
+      "name": "missing build_id",
+      "expected": "schema_mismatch",
+      "remove": [
+        "build_id"
+      ]
+    },
+    {
+      "name": "missing build_revision",
+      "expected": "schema_mismatch",
+      "remove": [
+        "build_revision"
+      ]
+    },
+    {
+      "name": "missing generated_at",
+      "expected": "schema_mismatch",
+      "remove": [
+        "generated_at"
+      ]
+    },
+    {
+      "name": "missing estimates",
+      "expected": "schema_mismatch",
+      "remove": [
+        "estimates"
+      ]
+    },
+    {
+      "name": "future version",
+      "expected": "unsupported_version",
+      "set": {
+        "schema_version": "2.0.0"
+      }
+    },
+    {
+      "name": "numeric version",
+      "expected": "unsupported_version",
+      "set": {
+        "schema_version": 1
+      }
+    },
+    {
+      "name": "null version",
+      "expected": "unsupported_version",
+      "set": {
+        "schema_version": null
+      }
+    },
+    {
+      "name": "invalid id",
+      "expected": "schema_mismatch",
+      "set": {
+        "id": "bad id"
+      }
+    },
+    {
+      "name": "invalid build id",
+      "expected": "schema_mismatch",
+      "set": {
+        "build_id": "bad build"
+      }
+    },
+    {
+      "name": "zero revision",
+      "expected": "schema_mismatch",
+      "set": {
+        "build_revision": 0
+      }
+    },
+    {
+      "name": "negative revision",
+      "expected": "schema_mismatch",
+      "set": {
+        "build_revision": -1
+      }
+    },
+    {
+      "name": "fractional revision",
+      "expected": "schema_mismatch",
+      "set": {
+        "build_revision": 1.5
+      }
+    },
+    {
+      "name": "text revision",
+      "expected": "schema_mismatch",
+      "set": {
+        "build_revision": "1"
+      }
+    },
+    {
+      "name": "invalid timestamp",
+      "expected": "schema_mismatch",
+      "set": {
+        "generated_at": "yesterday"
+      }
+    },
+    {
+      "name": "empty estimates",
+      "expected": "schema_mismatch",
+      "set": {
+        "estimates": []
+      }
+    },
+    {
+      "name": "unknown top field",
+      "expected": "schema_mismatch",
+      "set": {
+        "extra": "synthetic-rejected-secret"
+      }
+    },
+    {
+      "name": "missing entry metric",
+      "expected": "schema_mismatch",
+      "estimate_remove": [
+        "metric"
+      ]
+    },
+    {
+      "name": "missing entry value",
+      "expected": "schema_mismatch",
+      "estimate_remove": [
+        "value"
+      ]
+    },
+    {
+      "name": "missing entry unit",
+      "expected": "schema_mismatch",
+      "estimate_remove": [
+        "unit"
+      ]
+    },
+    {
+      "name": "missing entry estimator_id",
+      "expected": "schema_mismatch",
+      "estimate_remove": [
+        "estimator_id"
+      ]
+    },
+    {
+      "name": "missing entry estimator_version",
+      "expected": "schema_mismatch",
+      "estimate_remove": [
+        "estimator_version"
+      ]
+    },
+    {
+      "name": "missing entry confidence",
+      "expected": "schema_mismatch",
+      "estimate_remove": [
+        "confidence"
+      ]
+    },
+    {
+      "name": "missing entry assumptions",
+      "expected": "schema_mismatch",
+      "estimate_remove": [
+        "assumptions"
+      ]
+    },
+    {
+      "name": "missing entry selection_ids",
+      "expected": "schema_mismatch",
+      "estimate_remove": [
+        "selection_ids"
+      ]
+    },
+    {
+      "name": "metric inference.estimated_required_vram_gb",
+      "expected": "decoded",
+      "estimate_set": {
+        "metric": "inference.estimated_required_vram_gb"
+      }
+    },
+    {
+      "name": "metric inference.estimated_peak_per_device_vram_gb",
+      "expected": "decoded",
+      "estimate_set": {
+        "metric": "inference.estimated_peak_per_device_vram_gb"
+      }
+    },
+    {
+      "name": "metric inference.estimated_tokens_per_second",
+      "expected": "decoded",
+      "estimate_set": {
+        "metric": "inference.estimated_tokens_per_second"
+      }
+    },
+    {
+      "name": "metric compute.estimated_gpu_power_w",
+      "expected": "decoded",
+      "estimate_set": {
+        "metric": "compute.estimated_gpu_power_w"
+      }
+    },
+    {
+      "name": "metric training.estimated_gpu_hours",
+      "expected": "decoded",
+      "estimate_set": {
+        "metric": "training.estimated_gpu_hours"
+      }
+    },
+    {
+      "name": "unit gb",
+      "expected": "decoded",
+      "estimate_set": {
+        "unit": "gb"
+      }
+    },
+    {
+      "name": "unit tokens_per_second",
+      "expected": "decoded",
+      "estimate_set": {
+        "unit": "tokens_per_second"
+      }
+    },
+    {
+      "name": "unit watt",
+      "expected": "decoded",
+      "estimate_set": {
+        "unit": "watt"
+      }
+    },
+    {
+      "name": "unit gpu_hour",
+      "expected": "decoded",
+      "estimate_set": {
+        "unit": "gpu_hour"
+      }
+    },
+    {
+      "name": "reported confidence verified",
+      "expected": "decoded",
+      "estimate_set": {
+        "confidence": "verified"
+      }
+    },
+    {
+      "name": "reported confidence calibrated",
+      "expected": "decoded",
+      "estimate_set": {
+        "confidence": "calibrated"
+      }
+    },
+    {
+      "name": "reported confidence estimated",
+      "expected": "decoded",
+      "estimate_set": {
+        "confidence": "estimated"
+      }
+    },
+    {
+      "name": "reported confidence unverified",
+      "expected": "decoded",
+      "estimate_set": {
+        "confidence": "unverified"
+      }
+    },
+    {
+      "name": "unknown metric",
+      "expected": "schema_mismatch",
+      "estimate_set": {
+        "metric": "synthetic-rejected-secret"
+      }
+    },
+    {
+      "name": "unknown unit",
+      "expected": "schema_mismatch",
+      "estimate_set": {
+        "unit": "bytes"
+      }
+    },
+    {
+      "name": "unknown confidence",
+      "expected": "schema_mismatch",
+      "estimate_set": {
+        "confidence": "measured"
+      }
+    },
+    {
+      "name": "empty estimator id",
+      "expected": "schema_mismatch",
+      "estimate_set": {
+        "estimator_id": ""
+      }
+    },
+    {
+      "name": "empty estimator version",
+      "expected": "schema_mismatch",
+      "estimate_set": {
+        "estimator_version": ""
+      }
+    },
+    {
+      "name": "numeric decimal",
+      "expected": "schema_mismatch",
+      "estimate_set": {
+        "value": 20.0
+      }
+    },
+    {
+      "name": "negative decimal",
+      "expected": "schema_mismatch",
+      "estimate_set": {
+        "value": "-1"
+      }
+    },
+    {
+      "name": "leading zero decimal",
+      "expected": "schema_mismatch",
+      "estimate_set": {
+        "value": "01"
+      }
+    },
+    {
+      "name": "exponent decimal",
+      "expected": "schema_mismatch",
+      "estimate_set": {
+        "value": "1e2"
+      }
+    },
+    {
+      "name": "excess decimal places",
+      "expected": "schema_mismatch",
+      "estimate_set": {
+        "value": "1.0000000000001"
+      }
+    },
+    {
+      "name": "missing decimal fraction",
+      "expected": "schema_mismatch",
+      "estimate_set": {
+        "value": "1."
+      }
+    },
+    {
+      "name": "null decimal",
+      "expected": "schema_mismatch",
+      "estimate_set": {
+        "value": null
+      }
+    },
+    {
+      "name": "empty selections",
+      "expected": "schema_mismatch",
+      "estimate_set": {
+        "selection_ids": []
+      }
+    },
+    {
+      "name": "duplicate selections",
+      "expected": "schema_mismatch",
+      "estimate_set": {
+        "selection_ids": [
+          "sel_model",
+          "sel_model"
+        ]
+      }
+    },
+    {
+      "name": "invalid selection id",
+      "expected": "schema_mismatch",
+      "estimate_set": {
+        "selection_ids": [
+          "invalid selection"
+        ]
+      }
+    },
+    {
+      "name": "nontext assumption",
+      "expected": "schema_mismatch",
+      "estimate_set": {
+        "assumptions": [
+          null
+        ]
+      }
+    },
+    {
+      "name": "null source uri",
+      "expected": "schema_mismatch",
+      "estimate_set": {
+        "source_uri": null
+      }
+    },
+    {
+      "name": "invalid source uri",
+      "expected": "schema_mismatch",
+      "estimate_set": {
+        "source_uri": "not a uri"
+      }
+    },
+    {
+      "name": "unknown entry field",
+      "expected": "schema_mismatch",
+      "estimate_set": {
+        "extra": "synthetic-rejected-secret"
+      }
+    },
+    {
+      "name": "zero decimal string",
+      "expected": "decoded",
+      "estimate_set": {
+        "value": "0"
+      }
+    },
+    {
+      "name": "exact large decimal string",
+      "expected": "decoded",
+      "estimate_set": {
+        "value": "9007199254740993.123456789012"
+      }
+    },
+    {
+      "name": "trailing zeroes decimal string",
+      "expected": "decoded",
+      "estimate_set": {
+        "value": "20.000000000000"
+      }
+    },
+    {
+      "name": "frozen terminal LF decimal string",
+      "expected": "decoded",
+      "estimate_set": {
+        "value": "20.0\n"
+      }
+    },
+    {
+      "name": "empty assumptions retained",
+      "expected": "decoded",
+      "estimate_set": {
+        "assumptions": []
+      }
+    },
+    {
+      "name": "inert file source",
+      "expected": "decoded",
+      "estimate_set": {
+        "source_uri": "file:///synthetic/resource"
+      }
+    },
+    {
+      "name": "inert HTTPS source",
+      "expected": "decoded",
+      "estimate_set": {
+        "source_uri": "https://example.invalid/resource"
+      }
+    },
+    {
+      "name": "schema does not bind metric and unit",
+      "expected": "decoded",
+      "estimate_set": {
+        "metric": "training.estimated_gpu_hours",
+        "unit": "tokens_per_second"
+      }
+    },
+    {
+      "name": "frozen selection terminal LF",
+      "expected": "decoded",
+      "estimate_set": {
+        "selection_ids": [
+          "sel_model\n"
+        ]
+      }
+    }
+  ]
+}

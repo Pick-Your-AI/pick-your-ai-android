@@ -54,7 +54,8 @@ class PreviewActiveDraftStore internal constructor(root: Path, cacheFactory: (Pa
         return library.select(id) {
             val bytes = "v1\n${id.value}\n".toByteArray(Charsets.US_ASCII)
             val hash = ArtifactHash(MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it.toInt() and 255) })
-            when (val value = cache.install(hash, bytes.inputStream())) {
+            // These hashes identify only superseded last-opened IDs, never retained draft inputs.
+            when (val value = cache.installCurrent(hash, bytes.inputStream())) {
                 is CacheInstall.Activated -> PreviewActiveWrite.Saved
                 is CacheInstall.Failed -> PreviewActiveWrite.Failed(value.reason)
                 is CacheInstall.ActivationUncertain -> PreviewActiveWrite.Uncertain
