@@ -120,6 +120,7 @@ jobs:
               "catalogDetailKeepsLiteralUnknownIdentitySeparateFromUnknownSpec",
               "catalogDetailRenderingKeepsUnknownAndBoundedLiteralSourceValues",
               "retiredContextEditorsCannotChangeCapturedDomainState",
+              "catalogDetailDialogsPreserveLiteralCatalogReferenceIds",
           }
           cases = suite.findall("testcase")
           assert expected <= {case.attrib["name"] for case in cases}, "Missing UI regression"
