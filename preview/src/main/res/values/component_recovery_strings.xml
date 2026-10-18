@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="component_recovery_limit">When Android restores this screen, unfinished input can be retained for review up to 20,000 characters across these fields. Larger input cannot be recovered.</string>
+    <string name="component_recovery_review">Review pending component input</string>
+    <string name="component_recovery_discard">Discard pending component input</string>
+    <string name="component_recovery_pending">Pending component input was retained. Review it before continuing, or discard it to start another component edit.</string>
+    <string name="component_recovery_unavailable">Pending component input could not be restored because it was unsupported, invalid or too large. No saved draft was changed by restoration.</string>
+    <string name="component_recovery_changed">This input is available for review only because the original draft, revision, component or catalog cannot currently be verified for editing. It has not been applied to the current draft.</string>
+    <string name="component_recovery_saving">A component edit was in progress when this input was retained. Reopen the original draft to check its saved result. This retained input is available for review only and will not be submitted again.</string>
+    <string name="component_recovery_identity">Original local draft: %1$s\nSelection: %2$s</string>
+    <string name="component_recovery_catalog">Original catalog item: %1$s @ %2$s\nCatalog snapshot: %3$s</string>
+</resources>
