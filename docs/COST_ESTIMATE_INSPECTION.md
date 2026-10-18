@@ -20,6 +20,12 @@ Freshness, free/included treatment and budget pass are always `NOT_ESTABLISHED`,
 
 This synchronous check binds the supplied records only. Async/UI consumers must use current `AnalysisCoordinator` tickets and invalidate results on any input change; calling the inspector does not establish that the supplied build is still the user's current draft.
 
+The fixed synthetic Android inspector now uses the bounded, locale-aware
+[cost presentation adapter](COST_PRESENTATION.md). It keeps canonical decimals,
+explicit currencies, declared coverage and missing classifications while escaping
+literal text and disclosing display counts. Its simulated checks remain separate
+from current-draft pricing, accepted real rates and installed-device evidence.
+
 ## Criterion coverage and remaining acceptance
 
 | Exact #103 criterion | Evidence | Remaining gap |
