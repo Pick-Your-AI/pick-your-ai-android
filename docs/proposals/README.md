@@ -2,14 +2,16 @@
 
 This package began as proposals for the existing Android delivery issues. The
 maintainer has since authorized implementation and delegated engineering decisions.
-The first two existing documents now contain concrete #20/#24/#34 decisions,
-effective through independent decision-content receiving review and normal merge.
+The existing product/native documents contain concrete #20/#24/#34 decisions.
+The #25 record adds its guest/account/revenue applicability decision. Each takes
+effect through independent decision-content receiving review and normal merge.
 Their exact criterion mappings are linked below. Implementation evidence remains
 separate from decision acceptance, device, store or production completion.
 
 | Proposal | Existing issues | Outcome |
 | --- | --- | --- |
-| [Product and scope](01-product-scope.md) | [#20](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/20), [#24](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/24); retained #25 recommendation | Pinned evidence/hypotheses, five journeys and actual desk walkthrough, four-mode and capability decisions |
+| [Product and scope](01-product-scope.md) | [#20](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/20), [#24](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/24) | Pinned evidence/hypotheses, five journeys and actual desk walkthrough, four-mode and capability decisions |
+| [Accounts and revenue](../delivery/android/work-packages/01.05.md) | [#25](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/25) | Free guest-local baseline; explicit account/payment/analytics/notification dispositions, canonical remote authority, current policy and recovery cases |
 | [Native architecture](02-native-architecture.md) | [#34](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/34) | Select retained Kotlin/Views/store boundary; compare Compose/shared clients; inspect native lifecycle/storage/lists and portable versus platform-specific reuse |
 | [Services and acceptance](03-service-and-readiness.md) | [#35](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/35), [#47](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/47) | Local-first preview; explicit production service, operations and device gates |
 | [Issue audit](issues-snapshot.md) | All open Android issues | Dated inventory of issue-body prerequisites and missing evidence |
@@ -19,8 +21,12 @@ The original intended acceptance locations for 01.01–01.06 were in
 explicitly places only [01.01](../delivery/android/work-packages/01.01.md),
 [01.02](../delivery/android/work-packages/01.02.md) and
 [01.03](../delivery/android/work-packages/01.03.md) in this Android repository after
-reviewed merge, preserving all nine literal criteria. 01.04–01.06 and every other
-unmoved path retain their existing authority. This source package changes no
+reviewed merge, preserving all nine literal criteria.
+[ADR 0003](../decisions/0003-android-25-acceptance-record.md) additionally places
+only [01.05](../delivery/android/work-packages/01.05.md) here after its reviewed
+merge, preserving its three literal criteria and original placement history.
+01.04, 01.06 and every other unmoved path retain their existing authority.
+This source package changes no
 website files, issue fields, assignees, checkboxes or native relationships.
 
 The product decision authority and Android technical lead are the required receiving
