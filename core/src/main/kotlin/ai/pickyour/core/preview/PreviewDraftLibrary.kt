@@ -1,6 +1,7 @@
 package ai.pickyour.core.preview
 
 import ai.pickyour.core.drafts.*
+import ai.pickyour.core.cache.CacheFailure
 import java.nio.channels.FileChannel
 import java.nio.channels.OverlappingFileLockException
 import java.io.IOException
@@ -76,8 +77,28 @@ class PreviewDraftLibrary internal constructor(root: Path, private val checkpoin
         val id = PreviewDraftId("guest-draft")
         require(!hasTombstone(id))
         val path = root.resolve(id.value)
-        if (!Files.exists(path, NOFOLLOW_LINKS)) Files.createDirectory(path)
+        if (!Files.exists(path, NOFOLLOW_LINKS)) {
+            if (ids().size >= MAX_DRAFTS) throw LimitExceeded()
+            require(PreviewActiveDraftStore(root).read() == PreviewActiveRead.None)
+            Files.createDirectory(path)
+        }
         bound(id)
+    }
+
+    /** Pointer writes participate in the same liveness boundary as draft deletion and saves. */
+    internal fun select(id: PreviewDraftId, write: () -> PreviewActiveWrite): PreviewActiveWrite {
+        var started = false
+        return locked({ reason -> if (started) PreviewActiveWrite.Uncertain else PreviewActiveWrite.Failed(when (reason) {
+            DraftStorageFailure.BUSY -> CacheFailure.BUSY
+            DraftStorageFailure.CANCELLED -> CacheFailure.CANCELLED
+            DraftStorageFailure.CORRUPT -> CacheFailure.CORRUPT
+            else -> CacheFailure.IO_FAILURE
+        }) }) {
+            if (hasTombstone(id) || !Files.isDirectory(root.resolve(id.value), NOFOLLOW_LINKS))
+                return@locked PreviewActiveWrite.Failed(CacheFailure.CORRUPT)
+            started = true
+            write()
+        }
     }
 
     private fun bound(id: PreviewDraftId): PreviewDraftPersistence = persistence(id, object : PreviewDraftAccess {
