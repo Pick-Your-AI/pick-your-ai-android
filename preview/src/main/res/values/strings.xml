@@ -67,4 +67,20 @@ Copy this revision’s title and sample selection into the editor? This replaces
 %2$s</string>
     <string name="history_copy">Copy form to editor</string>
     <string name="history_earlier_unavailable">Earlier history was not retained in the migrated source and is unavailable.</string>
+    <string name="workload_heading">Workload assumptions</string>
+    <string name="workload_limits">Optional user inputs, not catalog facts or measured capacity. Blank means unanswered. Currency uses three uppercase letters. Budget uses a nonnegative decimal with up to 12 fractional digits. Counts use whole digits without leading zeroes; concurrency and latency must be positive. These inputs do not establish placement, compatibility, pricing completeness or T0/T1 readiness.</string>
+    <string name="workload_region">Region</string>
+    <string name="workload_currency">Currency</string>
+    <string name="workload_budget">Monthly budget amount</string>
+    <string name="workload_requests">Requests per day</string>
+    <string name="workload_input_tokens">Average input tokens</string>
+    <string name="workload_output_tokens">Average output tokens</string>
+    <string name="workload_concurrency">Maximum concurrency</string>
+    <string name="workload_latency">Maximum latency in milliseconds</string>
+    <string name="workload_unanswered">Unanswered</string>
+    <string name="workload_classification">Data classification</string>
+    <string name="workload_classification_value">Data classification: %1$s</string>
+    <string name="workload_invalid">Some entered workload values are invalid. Your text is retained; correct it before saving.</string>
+    <string name="workload_editable">Unanswered inputs stay unanswered. Save commits these assumptions; no evaluation or quote is generated.</string>
+    <string name="workload_rejected">That entire edit was rejected because it exceeds the local text buffer. Previous text is unchanged. Edit the text again or reopen before saving.</string>
 </resources>
