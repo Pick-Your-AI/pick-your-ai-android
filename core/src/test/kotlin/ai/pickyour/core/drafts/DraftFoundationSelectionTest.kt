@@ -272,10 +272,10 @@ class DraftFoundationSelectionTest {
         assertEquals(DraftProjectionCreation.Conflict, store.createSnapshotCandidate(review, review.acknowledgeRetainedOnly(review.retainedOnlyPaths.toSet())))
     }
 
-    @Test fun `retained core tier six kinds stay outside this command subset`() {
+    @Test fun `retained deployment monitoring and cost policy kinds stay outside this command subset`() {
         val retained = mapper.readTree(SelectionFixtures.resource("/contracts/v1/examples/build.json"))["selections"]
-            .map { LocalSelection.fromJson(it as ObjectNode) }.filter { ProjectionFixtures.tier(it.kind) == "T6" }
-        assertEquals(5, retained.size)
+            .map { LocalSelection.fromJson(it as ObjectNode) }.filter { it.kind in setOf("deployment_target", "monitoring_stack", "cost_policy") }
+        assertEquals(3, retained.size)
         val content = DraftContent(components = DraftSelections(retained))
         for (value in retained) {
             assertFalse(PreviewSelectionForms.supported(value.kind))

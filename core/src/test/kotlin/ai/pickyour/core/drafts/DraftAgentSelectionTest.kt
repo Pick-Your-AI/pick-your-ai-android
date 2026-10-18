@@ -56,7 +56,7 @@ class DraftAgentSelectionTest {
             assertEquals(original, result.content.withComponents(DraftSelections()))
             assertTrue(original.components.selections.isEmpty())
         }
-        assertFalse(PreviewSelectionForms.supported("guardrail"))
+        assertFalse(PreviewSelectionForms.supported("cost_policy"))
         assertFalse(PreviewSelectionForms.supported("monitoring_stack"))
         assertFalse(PreviewSelectionForms.supported("deployment_target"))
     }

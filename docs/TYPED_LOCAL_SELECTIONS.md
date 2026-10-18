@@ -15,13 +15,15 @@ does not resolve them. Canonical receiving records remain `07.05.md` and `08.02.
 under `docs/delivery/android/work-packages/` in `Pick-Your-AI/pickyour.ai`; this file
 is implementation evidence, not a relocated acceptance record or closure receipt.
 
-The exact command subset is the frozen registry's T0/T1/T2/T3/T4/T5 kinds: `workload`,
+The exact command subset is the frozen registry's T0/T1/T2/T3/T4/T5 kinds plus
+T6 `guardrail` and `evaluation_suite`: `workload`,
 `deployment_mode`, `model_provider`,
 `model`, `context_policy`, `hosting_platform`, `accelerator`, `compute_profile`,
 `inference_engine`, `storage`, `data_source`, `knowledge_base`, `embedding_model`,
 `vector_database`, `rag_pipeline`, `agent_framework`, `tool`, `mcp_server`,
 `memory_store`, `integration`, `training_framework`, `training_compute`,
-`training_dataset` and `fine_tuned_model`. All other valid frozen kinds can be retained,
+`training_dataset`, `fine_tuned_model`, `guardrail` and `evaluation_suite`.
+The remaining `deployment_target`, `monitoring_stack` and `cost_policy` kinds can be retained,
 compared, duplicated and restored; their mutation commands return
 `UNSUPPORTED_KIND`. Optional legacy tier controls retain their existing meaning.
 The [explicit foundation editor](FOUNDATION_SELECTIONS.md) adds only the two T0
@@ -36,6 +38,10 @@ The [training editor](TRAINING_SELECTIONS.md) adds the four frozen T5 kinds with
 the same catalog, role, optional-intent and persistence boundaries. Its settings
 record entered assumptions; selected catalog lineage and recorded evidence remain
 separate from rights, measured training fit, pricing, export or serving authority.
+The [guardrail and evaluation editor](GUARDRAIL_EVALUATION_SELECTIONS.md) admits
+exactly those two core T6 kinds. Their settings never become measured results or
+policy authority. T6 has no optional-tier switch; its unavailable-coverage guidance
+remains present when the three existing optional tiers are disabled.
 
 ## Payload and aggregate
 

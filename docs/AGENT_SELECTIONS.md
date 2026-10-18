@@ -128,7 +128,10 @@ old bytes; independent intent and optional memory omission in structural candida
 preparation; and managed-library metadata/relationship preservation with stale,
 foreign and deleted authority. Existing unsupported-kind regressions retain the
 remaining command boundary. The later [training editor](TRAINING_SELECTIONS.md)
-admits T5 and moves those negative inputs to the still-retained T6 kinds.
+admits T5 and moves those negative inputs to the then-retained T6 kinds. The later
+[guardrail/evaluation editor](GUARDRAIL_EVALUATION_SELECTIONS.md) admits two T6
+kinds while retaining the complete negative boundary for deployment, monitoring
+and cost-policy mutations.
 
 Nine paused-looper Activity cases cover all-kind creation/reopen; rejected
 scopes/endpoints/references with retained input; literal URI fields without

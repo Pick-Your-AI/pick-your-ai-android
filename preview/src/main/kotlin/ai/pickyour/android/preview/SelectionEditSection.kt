@@ -275,11 +275,23 @@ class SelectionEditSection(private val activity: Activity,
         layout.addView(TextView(activity).apply { setText(guidance) })
         layout.addView(TextView(activity).apply { setText(R.string.component_training_intent_guidance) })
     }
+    private fun guardrailGuidanceResource(kind: String): Int? = when (kind) {
+        "guardrail" -> R.string.component_guardrail_guidance
+        "evaluation_suite" -> R.string.component_evaluation_guidance
+        else -> null
+    }
+    private fun guardrailGuidance(layout: LinearLayout, kind: String) {
+        val guidance = guardrailGuidanceResource(kind) ?: return
+        layout.addView(TextView(activity).apply { setText(guidance) })
+        layout.addView(TextView(activity).apply { setText(R.string.component_core_input_guidance) })
+        layout.addView(TextView(activity).apply { setText(R.string.component_core_guidance_unavailable) })
+    }
     private fun toggleWarning(kind: String): String = activity.getString(R.string.component_toggle_warning) +
         when {
             retrievalGuidanceResource(kind) != null -> "\n\n" + activity.getString(R.string.component_retrieval_intent_guidance)
             agentGuidanceResource(kind) != null -> "\n\n" + activity.getString(R.string.component_agent_intent_guidance)
             trainingGuidanceResource(kind) != null -> "\n\n" + activity.getString(R.string.component_training_intent_guidance)
+            guardrailGuidanceResource(kind) != null -> "\n\n" + activity.getString(R.string.component_core_input_guidance)
             else -> ""
         }
     private fun field(layout: LinearLayout, title: Int, value: String): EditText {
@@ -301,6 +313,7 @@ class SelectionEditSection(private val activity: Activity,
         retrievalGuidance(layout, item.kind)
         agentGuidance(layout, item.kind)
         trainingGuidance(layout, item.kind)
+        guardrailGuidance(layout, item.kind)
         layout.addView(TextView(activity).apply { setText(R.string.component_recovery_limit) })
         val role = field(layout, R.string.component_role, restored?.role.orEmpty())
         val settings = field(layout, R.string.component_settings, restored?.settings ?: "{}")
@@ -337,6 +350,7 @@ class SelectionEditSection(private val activity: Activity,
         retrievalGuidance(layout, selection.kind)
         agentGuidance(layout, selection.kind)
         trainingGuidance(layout, selection.kind)
+        guardrailGuidance(layout, selection.kind)
         layout.addView(TextView(activity).apply { setText(R.string.component_recovery_limit) })
         val settings = field(layout, R.string.component_settings, text)
         val feedback = feedback().also(layout::addView)

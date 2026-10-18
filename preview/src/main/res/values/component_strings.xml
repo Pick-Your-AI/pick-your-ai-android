@@ -1,6 +1,10 @@
 <resources>
     <string name="component_heading">Saved local components</string>
-    <string name="component_limits">Explicit T0/T1/T2/T3/T4/T5 draft edits, including foundation, retrieval, agent and training selections. Catalog choices below are synthetic fixtures. These controls do not evaluate compatibility, cost, deployment requirements or readiness. Save or explicitly reopen pending form edits before changing components.</string>
+    <string name="component_limits">Explicit foundation, model, infrastructure, retrieval, agent, training, guardrail and evaluation inputs. Catalog choices below are synthetic fixtures. These controls do not evaluate compatibility, cost, deployment requirements or readiness. Save or explicitly reopen pending form edits before changing components.</string>
+    <string name="component_core_guidance_unavailable">Guardrail and evaluation review stays part of every core build, including builds without retrieval, agents or training. These are planning inputs. Applicable requirements and measured coverage are unavailable here; there is no safety, quality or readiness verdict. A comparable result needs the selected model, runtime, task or dataset, harness and measurement conditions.</string>
+    <string name="component_core_input_guidance">The enabled flag applies to this selection only. It does not switch off core review or prove coverage, enforcement or a passed gate. Omitted settings remain unanswered.</string>
+    <string name="component_guardrail_guidance">guardrail settings: enforcement is audit, block, redact or escalate; failure_action is fail_closed or fail_open. These are requested settings. Saving them does not call a service or apply a policy.</string>
+    <string name="component_evaluation_guidance">evaluation_suite settings: minimum_score is a number with no imposed score range; gate_required is true or false; dataset_size is an integer of 1 or greater. The threshold is your input, with no default or recommendation. A requested gate and dataset size are not a measured result or evidence of a completed evaluation.</string>
     <string name="component_count">Saved selections: %1$s</string>
     <string name="component_manage">Manage saved components</string>
     <string name="component_choose_catalog">Choose exact fixture component</string>

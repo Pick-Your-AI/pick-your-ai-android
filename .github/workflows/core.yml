@@ -390,6 +390,33 @@ jobs:
               raise SystemExit("Foundation selection regression did not pass")
           print(f"Verified {len(cases)} simulated foundation selection cases; no installed-device claim")
           PYTEST
+      - name: Require core planning guidance regressions to execute
+        run: |
+          python - <<'PYTEST'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          qualified = "ai.pickyour.android.preview.T6PlanningActivityTest"
+          report = pathlib.Path("preview/build/test-results/testDebugUnitTest/TEST-" + qualified + ".xml")
+          suite = ET.parse(report).getroot()
+          required = {
+              "coreOnlyPlanningStaysVisibleBeforeSaveAfterSaveAndAfterRecreation",
+              "savedChoicesRemainConfigurationAndPendingEditsNeverReplaceTheirRevision",
+              "openingDraftWithholdsOldCountsUntilTheReadCompletes",
+              "eachPlanningActionReachesItsExactKindWithoutChangingPendingOrSavedDrafts",
+              "narrowRtlLargeTextKeepsPlanningActionsAndTheirCatalogDestinationsReachable",
+          }
+          cases = suite.findall("testcase")
+          names = [case.attrib["name"] for case in cases]
+          if suite.attrib.get("name") != qualified or any(case.attrib.get("classname") != qualified for case in cases):
+              raise SystemExit("Wrong core planning guidance test suite")
+          if not required <= set(names) or len(names) != len(set(names)):
+              raise SystemExit("Missing or repeated core planning guidance regression")
+          if int(suite.attrib["tests"]) != len(cases) or any(int(suite.attrib[key]) != 0 for key in ("failures", "errors", "skipped")):
+              raise SystemExit("Core planning guidance report totals do not match passing execution")
+          if any(case.findall("failure") or case.findall("error") or case.findall("skipped") for case in cases):
+              raise SystemExit("Core planning guidance regression did not pass")
+          print(f"Verified {len(cases)} simulated core planning guidance cases; no installed-device claim")
+          PYTEST
       - name: Require explicit retrieval selection regressions to execute
         run: |
           python - <<'PYTEST'
@@ -483,6 +510,39 @@ jobs:
           if any(case.findall("failure") or case.findall("error") or case.findall("skipped") for case in cases):
               raise SystemExit("Training selection regression did not pass")
           print(f"Verified {len(cases)} simulated training selection cases; no installed-device claim")
+          PYTEST
+      - name: Require core guardrail and evaluation selection regressions to execute
+        run: |
+          python - <<'PYTEST'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          qualified = "ai.pickyour.android.preview.GuardrailSelectionActivityTest"
+          report = pathlib.Path("preview/build/test-results/testDebugUnitTest/TEST-" + qualified + ".xml")
+          suite = ET.parse(report).getroot()
+          required = {
+              "coreGuidanceRemainsPresentBeforeSavingAndWhenCatalogChoicesAreUnavailable",
+              "bothCoreKindsRequireExplicitInputsAndReopenWithoutAnotherSelectionOrGate",
+              "invalidEnumsUnknownsAndProposedEvidenceKeepExactInputWithoutSaving",
+              "exactCoreInputsAndGuidanceSurviveEveryOptionalTierStateAndRecreation",
+              "severalEnabledGuardrailRolesCoexistAndDuplicateRolesCannotDisplaceAnotherControl",
+              "unchangedCoreSettingsRoleAndCatalogReplacementKeepTheExistingRevision",
+              "pendingCoreFormsKeepBothKindsAndExactInputAcrossParcelRecreationWithoutOldConsent",
+              "canceledOrCatalogStaleCoreControlsCannotSaveOrSubstituteAnotherSnapshot",
+              "aNewerSavedHeadKeepsRecoveredEvaluationInputReadOnlyWithoutRebasingIt",
+              "aSavingGuardrailCheckpointCannotReplayAfterItsOriginalWriteIsAcknowledged",
+              "narrowRtlLargeTextKeepsCoreGuidanceAndBothFormsReachable",
+          }
+          cases = suite.findall("testcase")
+          names = [case.attrib["name"] for case in cases]
+          if suite.attrib.get("name") != qualified or any(case.attrib.get("classname") != qualified for case in cases):
+              raise SystemExit("Wrong guardrail and evaluation selection test suite")
+          if not required <= set(names) or len(names) != len(set(names)):
+              raise SystemExit("Missing or repeated guardrail and evaluation selection regression")
+          if int(suite.attrib["tests"]) != len(cases) or any(int(suite.attrib[key]) != 0 for key in ("failures", "errors", "skipped")):
+              raise SystemExit("Guardrail and evaluation selection report totals do not match passing execution")
+          if any(case.findall("failure") or case.findall("error") or case.findall("skipped") for case in cases):
+              raise SystemExit("Guardrail and evaluation selection regression did not pass")
+          print(f"Verified {len(cases)} simulated guardrail and evaluation selection cases; no installed-device claim")
           PYTEST
       - name: Require complete recorded-price browser regressions to execute
         run: |

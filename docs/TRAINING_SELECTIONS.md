@@ -153,14 +153,22 @@ all ten actual method names, including the separately annotated RTL case, and
 rejects missing, wrong, duplicate, failed, errored or skipped reports without
 freezing the total against future additions.
 
-Existing unsupported-kind tests keep their complete rejection assertions on the
-five remaining T6 kinds. The foundation method is retitled from
+At this T5 source checkpoint, existing unsupported-kind tests kept their complete
+rejection assertions on the five remaining T6 kinds. The foundation method was
+retitled from
 `retained optional and core tier six kinds stay outside this command subset` to
 `retained core tier six kinds stay outside this command subset`, reflecting the
 now-supported four T5 kinds. No existing Activity case or report requirement is
 removed. Source, hosted/locally executed counts, artifact hashes and any failed
 attempts belong to their exact delivery receipts; authored tests alone are not
 passing execution or installed-device evidence.
+
+The subsequent [guardrail/evaluation continuation](GUARDRAIL_EVALUATION_SELECTIONS.md)
+admits those two T6 kinds. It retains every command rejection assertion for
+`deployment_target`, `monitoring_stack` and `cost_policy`, and retitles the
+foundation method to `retained deployment monitoring and cost policy kinds stay
+outside this command subset`. That later admission and its new dedicated tests
+do not change the historical T5 source or execution attribution above.
 
 | Original #129 criterion | Delivered local scope and remaining acceptance |
 | --- | --- |

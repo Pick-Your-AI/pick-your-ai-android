@@ -59,7 +59,7 @@ class DraftRetrievalSelectionTest {
         }
         assertEquals(PreviewSelectionPreparation.Invalid, PreviewSelectionForms.add("vector", item("vector_database"),
             catalog.hash.hex, PreviewSelectionForm("entered", false, "{}")))
-        assertFalse(PreviewSelectionForms.supported("guardrail"))
+        assertFalse(PreviewSelectionForms.supported("cost_policy"))
         assertFalse(PreviewSelectionForms.supported("monitoring_stack"))
         assertFalse(PreviewSelectionForms.supported("deployment_target"))
     }
