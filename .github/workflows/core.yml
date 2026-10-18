@@ -35,10 +35,18 @@ jobs:
         run: |
           python scripts/check_delivery_ledger.py
           python -m unittest discover -s scripts/tests -p 'test_delivery_ledger.py'
+      - name: Verify pinned conformance inputs and adversarial receipt guards
+        run: |
+          python scripts/check_conformance_fixtures.py
+          python -m unittest discover -s scripts/tests -p 'test_conformance_fixtures.py' -v
       - name: Check wrapper integrity
         run: sha256sum --check gradle/wrapper/wrapper.sha256
       - name: Compile and test JVM core
         run: ./gradlew --no-daemon --dependency-verification=strict --init-script scripts/runtime_inventory.init.gradle.kts :core:check :core:assemble runtimeInventory
+      - name: Require every conformance fixture and private migration observation
+        run: |
+          mkdir -p build/conformance
+          python scripts/check_conformance_fixtures.py --reports core/build/test-results/test --exit-code 0 --output build/conformance/qualified.json
       - name: Reject ignored packaged contract schemas
         run: python scripts/check_runtime_inventory_guards.py
       - name: Retain test and library artifacts
@@ -51,6 +59,7 @@ jobs:
             core/build/test-results/
             core/build/libs/
             build/inventory/
+            build/conformance/
           retention-days: 7
           if-no-files-found: ignore
   android-preview:
