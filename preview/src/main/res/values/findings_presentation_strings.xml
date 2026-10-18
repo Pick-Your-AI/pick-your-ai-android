@@ -1,0 +1,18 @@
+<resources>
+    <!-- Outcome words below are canonical report values; keep all four separate, with independent severity. -->
+    <string name="findings_outcome_counts">pass: %1$d · fail: %2$d · unknown: %3$d · skipped: %4$d</string>
+    <!-- Quoting marks recorded text, including serialized JSON. Empty quotes are a present empty value. -->
+    <string name="findings_display_policy">Quoted values are recorded text; empty quotes mean a recorded empty value. Escapes keep source controls from changing labels. JSON values keep their recorded types and are not evaluated. Display limits retain the full report and do not establish complete evidence or feasible remediation.</string>
+    <string name="findings_display_truncated">%1$s … [display truncated; full recorded value retained]</string>
+    <string name="findings_no_selections">No affected selection IDs were supplied.</string>
+    <!-- %1$d is displayed count, %2$d is complete retained count, %3$s contains bounded quoted IDs. -->
+    <plurals name="findings_display_selections">
+        <item quantity="one">Selection IDs displayed: %1$d / %2$d retained ID\n%3$s</item>
+        <item quantity="other">Selection IDs displayed: %1$d / %2$d retained IDs\n%3$s</item>
+    </plurals>
+    <!-- %1$d is displayed count and %2$d is complete retained count; evidence quality is not inferred. -->
+    <plurals name="findings_display_evidence">
+        <item quantity="one">Evidence entries displayed: %1$d / %2$d retained entry</item>
+        <item quantity="other">Evidence entries displayed: %1$d / %2$d retained entries</item>
+    </plurals>
+</resources>

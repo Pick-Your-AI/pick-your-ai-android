@@ -43,7 +43,7 @@ internal class FindingsInspectionSection(
                     if (alive()) {
                         accepted = value
                         output.text = if (value == null) activity.getString(R.string.findings_rejected, rejection ?: "UNAVAILABLE")
-                            else describe(value)
+                            else FindingsInspectionText.describe(activity, value)
                         inspect.isEnabled = true; browse.isEnabled = value != null
                     }
                 }
@@ -53,35 +53,14 @@ internal class FindingsInspectionSection(
             if (!alive()) return@setOnClickListener
             val report = accepted ?: return@setOnClickListener
             AlertDialog.Builder(activity).setTitle(R.string.findings_browse)
-                .setItems(report.findings.map { activity.getString(R.string.findings_row, it.ruleId, it.outcome, it.severity) }.toTypedArray()) { _, index ->
+                .setItems(report.findings.map { FindingsInspectionText.row(activity, it) }.toTypedArray()) { _, index ->
                     if (!alive()) return@setItems
                     val finding = report.findings[index]
-                    AlertDialog.Builder(activity).setTitle(finding.ruleId).setMessage(describe(finding))
+                    AlertDialog.Builder(activity).setTitle(FindingsInspectionText.title(activity, finding))
+                        .setMessage(FindingsInspectionText.describe(activity, finding))
                         .setPositiveButton(R.string.close, null).show()
                 }.setNegativeButton(R.string.close, null).show()
         }
         container.addView(inspect); container.addView(browse); container.addView(output)
-    }
-    private fun describe(report: ReferenceReportView): String = listOf(
-        activity.getString(R.string.findings_notice),
-        activity.getString(R.string.findings_identity, report.id, report.buildId, report.buildRevision.toString(), report.evaluatedAt),
-        activity.getString(R.string.findings_locks, report.catalogSnapshotId, report.rulesetId, report.rulesetVersion,
-            report.dependencyGraphId, report.dependencyGraphRevision.toString()),
-        activity.getString(R.string.findings_status, report.result, report.deploymentReadiness),
-        listOf("pass", "fail", "unknown", "skipped").joinToString(" · ") { outcome -> "$outcome: ${report.findings.count { it.outcome == outcome }}" },
-        activity.getString(R.string.findings_limits),
-    ).joinToString("\n\n")
-
-    private fun describe(finding: ReferenceFindingView): String {
-        fun supplied(value: String?) = value ?: activity.getString(R.string.findings_not_supplied)
-        val evidence = if (finding.evidence.isEmpty()) activity.getString(R.string.findings_no_evidence) else
-            finding.evidence.joinToString("\n\n") { activity.getString(R.string.findings_evidence,
-                it.path, supplied(it.observedJson), supplied(it.expectedJson), supplied(it.sourceVersion)) }
-        return listOf(activity.getString(R.string.findings_row, finding.ruleId, finding.outcome, finding.severity),
-            activity.getString(R.string.findings_reason, finding.code, finding.message),
-            activity.getString(R.string.findings_remediation, finding.remediation?.takeIf { it.isNotEmpty() }
-                ?: activity.getString(R.string.findings_not_supplied)),
-            activity.getString(R.string.findings_selections, finding.selectionIds.joinToString(", ").ifEmpty { activity.getString(R.string.findings_not_supplied) }),
-            evidence, activity.getString(R.string.findings_limits)).joinToString("\n\n")
     }
 }
