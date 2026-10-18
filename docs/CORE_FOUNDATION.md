@@ -1,5 +1,11 @@
 # JVM core implementation and acceptance limits
 
+The [frozen Ruleset boundary](FROZEN_RULESET_BOUNDARY.md) adds an immutable typed
+representation of every recorded rule, expression and operand. Shared reference
+cases retain closed shapes, exact opaque literal JSON and ordered duplicate rules.
+This structural reader performs no evaluation, reference resolution, metric
+calculation or baseline activation; broader #21/#32 acceptance remains separate.
+
 This is an executable, platform-independent Kotlin foundation for the Android
 client. It does not select a publisher identity, commit a production hosting
 architecture, or claim an installed Android application. The maintainer's current

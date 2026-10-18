@@ -1,0 +1,1803 @@
+{
+  "profile": "android-frozen-ruleset-wire/v1",
+  "schema_sha256": "b251e49774d7e6a34522555adefd40f56f5e647a8a2b4a69a0be0a4618b1a8d3",
+  "common_sha256": "0342ce2f1114e7276fc7f6a08ff5b86e8727caadd83ae4f443de9a7e1431c43c",
+  "example_sha256": "05474568204fdbfd407cb4e4cfc9334e22fdf24e75111bed8990868926fab418",
+  "baseline_sha256": "e60e43c0abc3c5d927e10c578a39fdedfa76e00fce6242e2db3a46e4b1da907e",
+  "base_document": {
+    "schema_version": "1.0.0",
+    "id": "rules.synthetic.1",
+    "version": "1.0.0",
+    "published_at": "2026-10-16T09:00:00Z",
+    "rules": [
+      {
+        "id": "rule.synthetic.1",
+        "severity": "info",
+        "applies_when": {
+          "op": "eq",
+          "left": {
+            "literal": true
+          },
+          "right": {
+            "literal": true
+          }
+        },
+        "assert": {
+          "op": "exists",
+          "value": {
+            "literal": null
+          }
+        },
+        "on_unknown": "defer",
+        "message": "synthetic-private-ruleset",
+        "remediation": "Inspect the recorded input.",
+        "affected_kinds": [
+          "model"
+        ]
+      }
+    ]
+  },
+  "cases": [
+    {
+      "name": "minimal present-null literal",
+      "expected": "decoded"
+    },
+    {
+      "name": "unchanged canonical example",
+      "expected": "decoded",
+      "source": "example"
+    },
+    {
+      "name": "unchanged frozen baseline",
+      "expected": "decoded",
+      "source": "baseline"
+    },
+    {
+      "name": "future schema version",
+      "expected": "unsupported_version",
+      "set": {
+        "schema_version": "2.0.0"
+      }
+    },
+    {
+      "name": "null schema version",
+      "expected": "unsupported_version",
+      "set": {
+        "schema_version": null
+      }
+    },
+    {
+      "name": "numeric schema version",
+      "expected": "unsupported_version",
+      "set": {
+        "schema_version": 1
+      }
+    },
+    {
+      "name": "terminal LF schema version",
+      "expected": "unsupported_version",
+      "set": {
+        "schema_version": "1.0.0\n"
+      }
+    },
+    {
+      "name": "missing schema version",
+      "expected": "unsupported_version",
+      "remove": [
+        "schema_version"
+      ]
+    },
+    {
+      "name": "missing root id",
+      "expected": "schema_mismatch",
+      "remove": [
+        "id"
+      ]
+    },
+    {
+      "name": "missing root version",
+      "expected": "schema_mismatch",
+      "remove": [
+        "version"
+      ]
+    },
+    {
+      "name": "missing root published_at",
+      "expected": "schema_mismatch",
+      "remove": [
+        "published_at"
+      ]
+    },
+    {
+      "name": "missing root rules",
+      "expected": "schema_mismatch",
+      "remove": [
+        "rules"
+      ]
+    },
+    {
+      "name": "invalid root id null",
+      "expected": "schema_mismatch",
+      "set": {
+        "id": null
+      }
+    },
+    {
+      "name": "invalid root id \"ab\"",
+      "expected": "schema_mismatch",
+      "set": {
+        "id": "ab"
+      }
+    },
+    {
+      "name": "invalid root version \"1.0.0+build\"",
+      "expected": "schema_mismatch",
+      "set": {
+        "version": "1.0.0+build"
+      }
+    },
+    {
+      "name": "invalid root version \"1.0\"",
+      "expected": "schema_mismatch",
+      "set": {
+        "version": "1.0"
+      }
+    },
+    {
+      "name": "invalid root published_at \"2026-10-16\"",
+      "expected": "schema_mismatch",
+      "set": {
+        "published_at": "2026-10-16"
+      }
+    },
+    {
+      "name": "invalid root published_at \"2026-02-30T09:00:00Z\"",
+      "expected": "schema_mismatch",
+      "set": {
+        "published_at": "2026-02-30T09:00:00Z"
+      }
+    },
+    {
+      "name": "invalid root rules []",
+      "expected": "schema_mismatch",
+      "set": {
+        "rules": []
+      }
+    },
+    {
+      "name": "invalid root rules {}",
+      "expected": "schema_mismatch",
+      "set": {
+        "rules": {}
+      }
+    },
+    {
+      "name": "invalid root rules null",
+      "expected": "schema_mismatch",
+      "set": {
+        "rules": null
+      }
+    },
+    {
+      "name": "closed root object",
+      "expected": "schema_mismatch",
+      "set": {
+        "extra": "synthetic-private-ruleset"
+      }
+    },
+    {
+      "name": "frozen version permits leading zeros and prerelease",
+      "expected": "decoded",
+      "set": {
+        "version": "01.02.003-alpha..1"
+      }
+    },
+    {
+      "name": "original timestamp offset",
+      "expected": "decoded",
+      "set": {
+        "published_at": "2026-10-16T10:30:00+01:30"
+      }
+    },
+    {
+      "name": "root identifier and version terminal LF",
+      "expected": "decoded",
+      "set": {
+        "id": "rules.synthetic.1\n",
+        "version": "1.0.0\n"
+      }
+    },
+    {
+      "name": "duplicate rule identifiers and objects retained",
+      "expected": "decoded",
+      "set": {
+        "rules": [
+          {
+            "id": "rule.synthetic.1",
+            "severity": "info",
+            "applies_when": {
+              "op": "eq",
+              "left": {
+                "literal": true
+              },
+              "right": {
+                "literal": true
+              }
+            },
+            "assert": {
+              "op": "exists",
+              "value": {
+                "literal": null
+              }
+            },
+            "on_unknown": "defer",
+            "message": "synthetic-private-ruleset",
+            "remediation": "Inspect the recorded input.",
+            "affected_kinds": [
+              "model"
+            ]
+          },
+          {
+            "id": "rule.synthetic.1",
+            "severity": "info",
+            "applies_when": {
+              "op": "eq",
+              "left": {
+                "literal": true
+              },
+              "right": {
+                "literal": true
+              }
+            },
+            "assert": {
+              "op": "exists",
+              "value": {
+                "literal": null
+              }
+            },
+            "on_unknown": "defer",
+            "message": "synthetic-private-ruleset",
+            "remediation": "Inspect the recorded input.",
+            "affected_kinds": [
+              "model"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "missing rule id",
+      "expected": "schema_mismatch",
+      "rule_remove": [
+        "id"
+      ]
+    },
+    {
+      "name": "missing rule severity",
+      "expected": "schema_mismatch",
+      "rule_remove": [
+        "severity"
+      ]
+    },
+    {
+      "name": "missing rule applies_when",
+      "expected": "schema_mismatch",
+      "rule_remove": [
+        "applies_when"
+      ]
+    },
+    {
+      "name": "missing rule assert",
+      "expected": "schema_mismatch",
+      "rule_remove": [
+        "assert"
+      ]
+    },
+    {
+      "name": "missing rule on_unknown",
+      "expected": "schema_mismatch",
+      "rule_remove": [
+        "on_unknown"
+      ]
+    },
+    {
+      "name": "missing rule message",
+      "expected": "schema_mismatch",
+      "rule_remove": [
+        "message"
+      ]
+    },
+    {
+      "name": "missing rule remediation",
+      "expected": "schema_mismatch",
+      "rule_remove": [
+        "remediation"
+      ]
+    },
+    {
+      "name": "missing rule affected_kinds",
+      "expected": "schema_mismatch",
+      "rule_remove": [
+        "affected_kinds"
+      ]
+    },
+    {
+      "name": "invalid rule id \"bad id\"",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "id": "bad id"
+      }
+    },
+    {
+      "name": "invalid rule severity \"fatal\"",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "severity": "fatal"
+      }
+    },
+    {
+      "name": "invalid rule severity null",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "severity": null
+      }
+    },
+    {
+      "name": "invalid rule on_unknown \"pass\"",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "on_unknown": "pass"
+      }
+    },
+    {
+      "name": "invalid rule on_unknown null",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "on_unknown": null
+      }
+    },
+    {
+      "name": "invalid rule message \"\"",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "message": ""
+      }
+    },
+    {
+      "name": "invalid rule message null",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "message": null
+      }
+    },
+    {
+      "name": "invalid rule remediation \"\"",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "remediation": ""
+      }
+    },
+    {
+      "name": "invalid rule owner \"\"",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "owner": ""
+      }
+    },
+    {
+      "name": "invalid rule owner null",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "owner": null
+      }
+    },
+    {
+      "name": "invalid rule affected_kinds []",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "affected_kinds": []
+      }
+    },
+    {
+      "name": "invalid rule affected_kinds [\"model\", \"model\"]",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "affected_kinds": [
+          "model",
+          "model"
+        ]
+      }
+    },
+    {
+      "name": "invalid rule affected_kinds [\"unknown\"]",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "affected_kinds": [
+          "unknown"
+        ]
+      }
+    },
+    {
+      "name": "invalid rule affected_kinds null",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "affected_kinds": null
+      }
+    },
+    {
+      "name": "invalid rule assert null",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "assert": null
+      }
+    },
+    {
+      "name": "invalid rule applies_when true",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "applies_when": true
+      }
+    },
+    {
+      "name": "closed rule object",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "extra": 1
+      }
+    },
+    {
+      "name": "nonempty whitespace is not trimmed",
+      "expected": "decoded",
+      "rule_set": {
+        "message": " ",
+        "remediation": "\t",
+        "owner": "\n"
+      }
+    },
+    {
+      "name": "severity error",
+      "expected": "decoded",
+      "rule_set": {
+        "severity": "error"
+      }
+    },
+    {
+      "name": "severity warning",
+      "expected": "decoded",
+      "rule_set": {
+        "severity": "warning"
+      }
+    },
+    {
+      "name": "severity info",
+      "expected": "decoded",
+      "rule_set": {
+        "severity": "info"
+      }
+    },
+    {
+      "name": "recorded unknown policy block",
+      "expected": "decoded",
+      "rule_set": {
+        "on_unknown": "block"
+      }
+    },
+    {
+      "name": "recorded unknown policy review",
+      "expected": "decoded",
+      "rule_set": {
+        "on_unknown": "review"
+      }
+    },
+    {
+      "name": "recorded unknown policy defer",
+      "expected": "decoded",
+      "rule_set": {
+        "on_unknown": "defer"
+      }
+    },
+    {
+      "name": "comparison eq retains untyped operands",
+      "expected": "decoded",
+      "rule_set": {
+        "assert": {
+          "op": "eq",
+          "left": {
+            "literal": null
+          },
+          "right": {
+            "literal": {
+              "arbitrary": [
+                false,
+                "unknown"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "comparison ne retains untyped operands",
+      "expected": "decoded",
+      "rule_set": {
+        "assert": {
+          "op": "ne",
+          "left": {
+            "literal": null
+          },
+          "right": {
+            "literal": {
+              "arbitrary": [
+                false,
+                "unknown"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "comparison lt retains untyped operands",
+      "expected": "decoded",
+      "rule_set": {
+        "assert": {
+          "op": "lt",
+          "left": {
+            "literal": null
+          },
+          "right": {
+            "literal": {
+              "arbitrary": [
+                false,
+                "unknown"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "comparison lte retains untyped operands",
+      "expected": "decoded",
+      "rule_set": {
+        "assert": {
+          "op": "lte",
+          "left": {
+            "literal": null
+          },
+          "right": {
+            "literal": {
+              "arbitrary": [
+                false,
+                "unknown"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "comparison gt retains untyped operands",
+      "expected": "decoded",
+      "rule_set": {
+        "assert": {
+          "op": "gt",
+          "left": {
+            "literal": null
+          },
+          "right": {
+            "literal": {
+              "arbitrary": [
+                false,
+                "unknown"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "comparison gte retains untyped operands",
+      "expected": "decoded",
+      "rule_set": {
+        "assert": {
+          "op": "gte",
+          "left": {
+            "literal": null
+          },
+          "right": {
+            "literal": {
+              "arbitrary": [
+                false,
+                "unknown"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "comparison in retains untyped operands",
+      "expected": "decoded",
+      "rule_set": {
+        "assert": {
+          "op": "in",
+          "left": {
+            "literal": null
+          },
+          "right": {
+            "literal": {
+              "arbitrary": [
+                false,
+                "unknown"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "comparison contains retains untyped operands",
+      "expected": "decoded",
+      "rule_set": {
+        "assert": {
+          "op": "contains",
+          "left": {
+            "literal": null
+          },
+          "right": {
+            "literal": {
+              "arbitrary": [
+                false,
+                "unknown"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "comparison subset_of retains untyped operands",
+      "expected": "decoded",
+      "rule_set": {
+        "assert": {
+          "op": "subset_of",
+          "left": {
+            "literal": null
+          },
+          "right": {
+            "literal": {
+              "arbitrary": [
+                false,
+                "unknown"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "comparison intersects retains untyped operands",
+      "expected": "decoded",
+      "rule_set": {
+        "assert": {
+          "op": "intersects",
+          "left": {
+            "literal": null
+          },
+          "right": {
+            "literal": {
+              "arbitrary": [
+                false,
+                "unknown"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "opaque literal null",
+      "expected": "decoded",
+      "rule_set": {
+        "assert": {
+          "op": "exists",
+          "value": {
+            "literal": null
+          }
+        }
+      }
+    },
+    {
+      "name": "opaque literal false",
+      "expected": "decoded",
+      "rule_set": {
+        "assert": {
+          "op": "exists",
+          "value": {
+            "literal": false
+          }
+        }
+      }
+    },
+    {
+      "name": "opaque literal empty string",
+      "expected": "decoded",
+      "rule_set": {
+        "assert": {
+          "op": "exists",
+          "value": {
+            "literal": ""
+          }
+        }
+      }
+    },
+    {
+      "name": "opaque literal unknown string",
+      "expected": "decoded",
+      "rule_set": {
+        "assert": {
+          "op": "exists",
+          "value": {
+            "literal": "unknown"
+          }
+        }
+      }
+    },
+    {
+      "name": "opaque literal wide negative integer",
+      "expected": "decoded",
+      "rule_set": {
+        "assert": {
+          "op": "exists",
+          "value": {
+            "literal": -123456789012345678901234567890
+          }
+        }
+      }
+    },
+    {
+      "name": "opaque literal empty array",
+      "expected": "decoded",
+      "rule_set": {
+        "assert": {
+          "op": "exists",
+          "value": {
+            "literal": []
+          }
+        }
+      }
+    },
+    {
+      "name": "opaque literal empty object",
+      "expected": "decoded",
+      "rule_set": {
+        "assert": {
+          "op": "exists",
+          "value": {
+            "literal": {}
+          }
+        }
+      }
+    },
+    {
+      "name": "opaque literal expression-shaped object",
+      "expected": "decoded",
+      "rule_set": {
+        "assert": {
+          "op": "exists",
+          "value": {
+            "literal": {
+              "op": "not",
+              "arg": {
+                "ref": "https://example.invalid/inert"
+              },
+              "$ref": "https://example.invalid/schema",
+              "nested": [
+                null,
+                false,
+                {},
+                []
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "recorded metric context.total_requested_tokens",
+      "expected": "decoded",
+      "rule_set": {
+        "assert": {
+          "op": "exists",
+          "value": {
+            "metric": "context.total_requested_tokens"
+          }
+        }
+      }
+    },
+    {
+      "name": "recorded metric compute.total_selected_vram_gb",
+      "expected": "decoded",
+      "rule_set": {
+        "assert": {
+          "op": "exists",
+          "value": {
+            "metric": "compute.total_selected_vram_gb"
+          }
+        }
+      }
+    },
+    {
+      "name": "recorded metric compute.min_selected_device_vram_gb",
+      "expected": "decoded",
+      "rule_set": {
+        "assert": {
+          "op": "exists",
+          "value": {
+            "metric": "compute.min_selected_device_vram_gb"
+          }
+        }
+      }
+    },
+    {
+      "name": "recorded metric inference.estimated_required_vram_gb",
+      "expected": "decoded",
+      "rule_set": {
+        "assert": {
+          "op": "exists",
+          "value": {
+            "metric": "inference.estimated_required_vram_gb"
+          }
+        }
+      }
+    },
+    {
+      "name": "recorded metric inference.estimated_peak_per_device_vram_gb",
+      "expected": "decoded",
+      "rule_set": {
+        "assert": {
+          "op": "exists",
+          "value": {
+            "metric": "inference.estimated_peak_per_device_vram_gb"
+          }
+        }
+      }
+    },
+    {
+      "name": "recorded metric tools.mutating_count",
+      "expected": "decoded",
+      "rule_set": {
+        "assert": {
+          "op": "exists",
+          "value": {
+            "metric": "tools.mutating_count"
+          }
+        }
+      }
+    },
+    {
+      "name": "recorded metric cost.monthly_total_amount",
+      "expected": "decoded",
+      "rule_set": {
+        "assert": {
+          "op": "exists",
+          "value": {
+            "metric": "cost.monthly_total_amount"
+          }
+        }
+      }
+    },
+    {
+      "name": "uncoupled ref scope build",
+      "expected": "decoded",
+      "rule_set": {
+        "assert": {
+          "op": "exists",
+          "value": {
+            "ref": {
+              "scope": "build",
+              "pointer": "/id",
+              "kind": "model",
+              "role": "primary",
+              "selection_id": "sel_fixture"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "uncoupled ref scope catalog",
+      "expected": "decoded",
+      "rule_set": {
+        "assert": {
+          "op": "exists",
+          "value": {
+            "ref": {
+              "scope": "catalog",
+              "pointer": "/id",
+              "kind": "model",
+              "role": "primary",
+              "selection_id": "sel_fixture"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "uncoupled ref scope selection",
+      "expected": "decoded",
+      "rule_set": {
+        "assert": {
+          "op": "exists",
+          "value": {
+            "ref": {
+              "scope": "selection",
+              "pointer": "/id",
+              "kind": "model",
+              "role": "primary",
+              "selection_id": "sel_fixture"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "reference optional fields absent",
+      "expected": "decoded",
+      "rule_set": {
+        "assert": {
+          "op": "exists",
+          "value": {
+            "ref": {
+              "scope": "selection",
+              "pointer": "/id"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "prefix-only pointer \"/\"",
+      "expected": "decoded",
+      "rule_set": {
+        "assert": {
+          "op": "exists",
+          "value": {
+            "ref": {
+              "scope": "selection",
+              "pointer": "/"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "prefix-only pointer \"//\"",
+      "expected": "decoded",
+      "rule_set": {
+        "assert": {
+          "op": "exists",
+          "value": {
+            "ref": {
+              "scope": "selection",
+              "pointer": "//"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "prefix-only pointer \"/~2\"",
+      "expected": "decoded",
+      "rule_set": {
+        "assert": {
+          "op": "exists",
+          "value": {
+            "ref": {
+              "scope": "selection",
+              "pointer": "/~2"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "prefix-only pointer \"/\\nopaque\"",
+      "expected": "decoded",
+      "rule_set": {
+        "assert": {
+          "op": "exists",
+          "value": {
+            "ref": {
+              "scope": "selection",
+              "pointer": "/\nopaque"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "prefix-only pointer \"/a~1b\"",
+      "expected": "decoded",
+      "rule_set": {
+        "assert": {
+          "op": "exists",
+          "value": {
+            "ref": {
+              "scope": "selection",
+              "pointer": "/a~1b"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "reference role and selection terminal LF",
+      "expected": "decoded",
+      "rule_set": {
+        "assert": {
+          "op": "exists",
+          "value": {
+            "ref": {
+              "scope": "selection",
+              "pointer": "/id",
+              "role": "primary\n",
+              "selection_id": "sel_fixture\n"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "reference minimum role and selection lengths",
+      "expected": "decoded",
+      "rule_set": {
+        "assert": {
+          "op": "exists",
+          "value": {
+            "ref": {
+              "scope": "selection",
+              "pointer": "/id",
+              "role": "x",
+              "selection_id": "sel"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "invalid reference scope \"remote\"",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "assert": {
+          "op": "exists",
+          "value": {
+            "ref": {
+              "scope": "remote",
+              "pointer": "/id"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "invalid reference scope null",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "assert": {
+          "op": "exists",
+          "value": {
+            "ref": {
+              "scope": null,
+              "pointer": "/id"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "invalid reference pointer \"\"",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "assert": {
+          "op": "exists",
+          "value": {
+            "ref": {
+              "scope": "selection",
+              "pointer": ""
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "invalid reference pointer \"https://example.invalid\"",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "assert": {
+          "op": "exists",
+          "value": {
+            "ref": {
+              "scope": "selection",
+              "pointer": "https://example.invalid"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "invalid reference pointer null",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "assert": {
+          "op": "exists",
+          "value": {
+            "ref": {
+              "scope": "selection",
+              "pointer": null
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "invalid reference kind \"unknown\"",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "assert": {
+          "op": "exists",
+          "value": {
+            "ref": {
+              "scope": "selection",
+              "pointer": "/id",
+              "kind": "unknown"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "invalid reference kind null",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "assert": {
+          "op": "exists",
+          "value": {
+            "ref": {
+              "scope": "selection",
+              "pointer": "/id",
+              "kind": null
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "invalid reference role \"\"",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "assert": {
+          "op": "exists",
+          "value": {
+            "ref": {
+              "scope": "selection",
+              "pointer": "/id",
+              "role": ""
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "invalid reference role \"A\"",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "assert": {
+          "op": "exists",
+          "value": {
+            "ref": {
+              "scope": "selection",
+              "pointer": "/id",
+              "role": "A"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "invalid reference role \"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "assert": {
+          "op": "exists",
+          "value": {
+            "ref": {
+              "scope": "selection",
+              "pointer": "/id",
+              "role": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "invalid reference role null",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "assert": {
+          "op": "exists",
+          "value": {
+            "ref": {
+              "scope": "selection",
+              "pointer": "/id",
+              "role": null
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "invalid reference selection_id \"ab\"",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "assert": {
+          "op": "exists",
+          "value": {
+            "ref": {
+              "scope": "selection",
+              "pointer": "/id",
+              "selection_id": "ab"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "invalid reference selection_id \"sel.fixture\"",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "assert": {
+          "op": "exists",
+          "value": {
+            "ref": {
+              "scope": "selection",
+              "pointer": "/id",
+              "selection_id": "sel.fixture"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "invalid reference selection_id null",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "assert": {
+          "op": "exists",
+          "value": {
+            "ref": {
+              "scope": "selection",
+              "pointer": "/id",
+              "selection_id": null
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "invalid reference extra \"synthetic-private-ruleset\"",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "assert": {
+          "op": "exists",
+          "value": {
+            "ref": {
+              "scope": "selection",
+              "pointer": "/id",
+              "extra": "synthetic-private-ruleset"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "missing reference scope",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "assert": {
+          "op": "exists",
+          "value": {
+            "ref": {
+              "pointer": "/id"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "missing reference pointer",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "assert": {
+          "op": "exists",
+          "value": {
+            "ref": {
+              "scope": "selection"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "invalid operand {}",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "assert": {
+          "op": "exists",
+          "value": {}
+        }
+      }
+    },
+    {
+      "name": "invalid operand {\"literal\": null, \"metric\": \"context.total_requested_tokens\"}",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "assert": {
+          "op": "exists",
+          "value": {
+            "literal": null,
+            "metric": "context.total_requested_tokens"
+          }
+        }
+      }
+    },
+    {
+      "name": "invalid operand {\"literal\": null, \"extra\": 0}",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "assert": {
+          "op": "exists",
+          "value": {
+            "literal": null,
+            "extra": 0
+          }
+        }
+      }
+    },
+    {
+      "name": "invalid operand {\"metric\": \"unknown\"}",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "assert": {
+          "op": "exists",
+          "value": {
+            "metric": "unknown"
+          }
+        }
+      }
+    },
+    {
+      "name": "invalid operand {\"metric\": null}",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "assert": {
+          "op": "exists",
+          "value": {
+            "metric": null
+          }
+        }
+      }
+    },
+    {
+      "name": "invalid operand {\"ref\": null}",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "assert": {
+          "op": "exists",
+          "value": {
+            "ref": null
+          }
+        }
+      }
+    },
+    {
+      "name": "invalid operand null",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "assert": {
+          "op": "exists",
+          "value": null
+        }
+      }
+    },
+    {
+      "name": "invalid operand \"literal\"",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "assert": {
+          "op": "exists",
+          "value": "literal"
+        }
+      }
+    },
+    {
+      "name": "all single argument",
+      "expected": "decoded",
+      "rule_set": {
+        "assert": {
+          "op": "all",
+          "args": [
+            {
+              "op": "exists",
+              "value": {
+                "literal": null
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "all duplicate arguments",
+      "expected": "decoded",
+      "rule_set": {
+        "assert": {
+          "op": "all",
+          "args": [
+            {
+              "op": "exists",
+              "value": {
+                "literal": false
+              }
+            },
+            {
+              "op": "exists",
+              "value": {
+                "literal": false
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "all empty args",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "assert": {
+          "op": "all",
+          "args": []
+        }
+      }
+    },
+    {
+      "name": "all null args",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "assert": {
+          "op": "all",
+          "args": null
+        }
+      }
+    },
+    {
+      "name": "all missing args",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "assert": {
+          "op": "all"
+        }
+      }
+    },
+    {
+      "name": "any single argument",
+      "expected": "decoded",
+      "rule_set": {
+        "assert": {
+          "op": "any",
+          "args": [
+            {
+              "op": "exists",
+              "value": {
+                "literal": null
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "any duplicate arguments",
+      "expected": "decoded",
+      "rule_set": {
+        "assert": {
+          "op": "any",
+          "args": [
+            {
+              "op": "exists",
+              "value": {
+                "literal": false
+              }
+            },
+            {
+              "op": "exists",
+              "value": {
+                "literal": false
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "any empty args",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "assert": {
+          "op": "any",
+          "args": []
+        }
+      }
+    },
+    {
+      "name": "any null args",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "assert": {
+          "op": "any",
+          "args": null
+        }
+      }
+    },
+    {
+      "name": "any missing args",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "assert": {
+          "op": "any"
+        }
+      }
+    },
+    {
+      "name": "not literal existence",
+      "expected": "decoded",
+      "rule_set": {
+        "assert": {
+          "op": "not",
+          "arg": {
+            "op": "exists",
+            "value": {
+              "literal": false
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "nested implies preserves condition consequence and order",
+      "expected": "decoded",
+      "rule_set": {
+        "assert": {
+          "op": "implies",
+          "if": {
+            "op": "not",
+            "arg": {
+              "op": "exists",
+              "value": {
+                "ref": {
+                  "scope": "selection",
+                  "pointer": "/id"
+                }
+              }
+            }
+          },
+          "then": {
+            "op": "all",
+            "args": [
+              {
+                "op": "eq",
+                "left": {
+                  "literal": true
+                },
+                "right": {
+                  "metric": "context.total_requested_tokens"
+                }
+              },
+              {
+                "op": "any",
+                "args": [
+                  {
+                    "op": "exists",
+                    "value": {
+                      "literal": null
+                    }
+                  },
+                  {
+                    "op": "exists",
+                    "value": {
+                      "literal": false
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "invalid expression {}",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "assert": {}
+      }
+    },
+    {
+      "name": "invalid expression {\"op\":\"unknown\"}",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "assert": {
+          "op": "unknown"
+        }
+      }
+    },
+    {
+      "name": "invalid expression {\"op\":\"eq\",\"left\":{\"literal\":null}}",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "assert": {
+          "op": "eq",
+          "left": {
+            "literal": null
+          }
+        }
+      }
+    },
+    {
+      "name": "invalid expression {\"op\":\"eq\",\"right\":{\"literal\":null}}",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "assert": {
+          "op": "eq",
+          "right": {
+            "literal": null
+          }
+        }
+      }
+    },
+    {
+      "name": "invalid expression {\"op\":\"eq\",\"left\":{\"literal\":null},\"right\":{\"literal\":null},\"value\":{\"literal\":null}}",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "assert": {
+          "op": "eq",
+          "left": {
+            "literal": null
+          },
+          "right": {
+            "literal": null
+          },
+          "value": {
+            "literal": null
+          }
+        }
+      }
+    },
+    {
+      "name": "invalid expression {\"op\":\"exists\"}",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "assert": {
+          "op": "exists"
+        }
+      }
+    },
+    {
+      "name": "invalid expression {\"op\":\"exists\",\"value\":{\"literal\":null},\"left\":{\"literal\":null}}",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "assert": {
+          "op": "exists",
+          "value": {
+            "literal": null
+          },
+          "left": {
+            "literal": null
+          }
+        }
+      }
+    },
+    {
+      "name": "invalid expression {\"op\":\"not\"}",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "assert": {
+          "op": "not"
+        }
+      }
+    },
+    {
+      "name": "invalid expression {\"op\":\"not\",\"arg\":{\"op\":\"exists\",\"value\":{\"literal\":null}},\"args\":[]}",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "assert": {
+          "op": "not",
+          "arg": {
+            "op": "exists",
+            "value": {
+              "literal": null
+            }
+          },
+          "args": []
+        }
+      }
+    },
+    {
+      "name": "invalid expression {\"op\":\"implies\",\"if\":{\"op\":\"exists\",\"value\":{\"literal\":null}}}",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "assert": {
+          "op": "implies",
+          "if": {
+            "op": "exists",
+            "value": {
+              "literal": null
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "invalid expression {\"op\":\"implies\",\"then\":{\"op\":\"exists\",\"value\":{\"literal\":null}}}",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "assert": {
+          "op": "implies",
+          "then": {
+            "op": "exists",
+            "value": {
+              "literal": null
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "invalid expression {\"op\":\"implies\",\"if\":{\"op\":\"exists\",\"value\":{\"literal\":null}},\"then\":{\"op\":\"exists\",\"value\":{\"literal\":null}},\"arg\":{}}",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "assert": {
+          "op": "implies",
+          "if": {
+            "op": "exists",
+            "value": {
+              "literal": null
+            }
+          },
+          "then": {
+            "op": "exists",
+            "value": {
+              "literal": null
+            }
+          },
+          "arg": {}
+        }
+      }
+    },
+    {
+      "name": "invalid expression []",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "assert": []
+      }
+    },
+    {
+      "name": "invalid expression true",
+      "expected": "schema_mismatch",
+      "rule_set": {
+        "assert": true
+      }
+    }
+  ]
+}
