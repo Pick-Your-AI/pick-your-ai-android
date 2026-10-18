@@ -1,0 +1,55 @@
+# Frozen pricebook candidate screening
+
+Partial implementation for [Android #66](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/66).
+`RateScreen` accepts one bounded frozen-v1 Pricebook and an explicit component ID,
+version, meter, region, currency and as-of instant. It validates the unmodified
+schema, rejects duplicate rate IDs and reversed intervals, and returns exact
+candidate IDs with the pricebook ID/revision. No implicit system clock, exchange
+rate, region default, alternative summation or fixture fallback is used.
+
+This is discovery, not accepted rate resolution. Every result contains
+`EVIDENCE_REVIEW_REQUIRED`; even a singleton requires policy and provenance review.
+No amount, free/included classification, estimate, subtotal or budget verdict is
+produced. A zero-length candidate list means no match, never free. Results and
+queries redact their values in diagnostic `toString` output.
+
+## Conservative boundaries
+
+- Exact component version, meter, currency and region matching; missing/blank
+  rate regions remain unresolved rather than being interpreted as global.
+- Start time is included and the end time is conservatively excluded. This local
+  screening convention does not decide the shared billing interval policy.
+- Free-text conditions remain unresolved. Contract and estimated prices remain
+  unresolved. Their conditions cannot establish eligibility, discounts or meters.
+- Several matching list rates remain ambiguous; no rate is selected automatically.
+- Unsupported timestamp precision/range fails closed. Input streams are caller-owned.
+- `asOf` filters rate applicability, not historical knowledge: later capture or
+  provenance timestamps still require evidence review and do not certify freshness.
+- Candidate IDs refer back to the original pinned artifact. The caller must retain
+  its hash and provenance; ID/revision alone does not authenticate the publisher.
+
+On 2026-10-18, [research #39](https://github.com/Pick-Your-AI/pick-your-ai-research/issues/39)
+was open, and [research PR #113](https://github.com/Pick-Your-AI/pick-your-ai-research/pull/113)
+was an unmerged partial proposal. Its rounding, quantities, GB/GiB, default currency
+and meter extensions are not adopted here. Frozen schemas remain unchanged. The
+pricebook fixture used in tests is synthetic, with test-local list-price changes;
+it is not a market quote or source-use receipt.
+
+## Criterion evidence and remaining work
+
+| #66 criterion | Executable evidence | Remaining acceptance |
+| --- | --- | --- |
+| Exact versions, meter, region, currency, effective dates and eligibility determine rates | Exact-field and boundary tests; unresolved free-text eligibility is excluded | Governed structured eligibility, approved real pricebook and provenance policy |
+| Expired, future, wrong-region/currency and ineligible rates cannot be accepted | Candidate filtering and unresolved-condition tests | Actual estimate integration; no accepted estimate is produced here |
+| Reproducible pinned inputs/as-of, no accidental addition of alternatives | Query has explicit time, output retains revision; alternatives marked ambiguous | Authenticated publication and complete estimate pinning |
+| Missing rate means unknown rather than zero | Empty candidates carry `NO_MATCH`; no amount exists in this API | Integrated cost presentation and receiving review |
+
+Tests also cover malformed JSON, schema/version rejection, duplicate identities,
+reversed intervals, defensive output immutability and redacted diagnostics.
+Run `./gradlew --no-daemon :core:check :core:assemble`, the frozen reference runner
+and tamper tests from [CORE_FOUNDATION.md](CORE_FOUNDATION.md).
+
+The canonical acceptance path remains
+`docs/delivery/android/work-packages/10.01.md` in `Pick-Your-AI/pickyour.ai`.
+This Android-local evidence does not move it or close #66, #85 or #103.
+Android UI, real-data, installed-device and receiving-policy acceptance are unexecuted.
