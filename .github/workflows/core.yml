@@ -631,6 +631,44 @@ jobs:
               raise SystemExit("Saved-library comparison regression did not pass")
           print(f"Verified {len(cases)} simulated saved-library comparison cases; no installed-device claim")
           PYTEST
+      - name: Require complete recorded catalog detail regressions to execute
+        run: |
+          python - <<'PYTEST'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          class_name = "ai.pickyour.android.preview.CatalogDetailBrowserActivityTest"
+          report = pathlib.Path(f"preview/build/test-results/testDebugUnitTest/TEST-{class_name}.xml")
+          suite = ET.parse(report).getroot()
+          expected = {
+              "actualDetailExposesCompleteRecordedValuesWithoutChangingDraft",
+              "everyRecordedFieldAndProvenanceIndexRemainsReachableInStoredOrder",
+              "completeLiteralPartsPreserveUnicodeJsonCollectionsAndRestrictiveLicenseText",
+              "missingEmptyUnknownFalseAndZeroKeepTheirRecordedStateAndRepresentation",
+              "cancelledAndReplacedFieldAndValueControlsCannotReopenTheirRetiredOwner",
+              "actualNewDetailAndSiblingInspectionRetireAllEarlierDetailControls",
+              "actualReloadSnapshotReplacementAndRecreationRetireCapturedFullValues",
+              "storageReconciliationPermanentlyRetiresFullValuesWithAnUnchangedMissingBaseline",
+              "exactRetainedDetailOpensEveryOldValueWithoutActivatingOrSubstitutingCurrentData",
+              "retiredPinFullValueCallbacksCannotReplaceNewPinsOrSurviveRemovalAndStorage",
+              "unavailablePinAndRowOnlyCatalogNeverOfferBorrowedCompleteValues",
+              "comparisonTransitionsRetireFullDetailControlsAndOldDifferenceToggles",
+              "savedLibraryComparisonRetiresCurrentAndPinnedCompleteDetailCallbacks",
+              "newCatalogDetailsAndPinsRetireQueuedAndVisibleLibraryComparisons",
+              "savedLibraryAndCatalogComparisonsRetireOpposingCallbacksWithoutChangingTheTray",
+              "narrowRtlLargeTextKeepsCompleteDetailAndRetainedEntryActionsReachable",
+          }
+          cases = suite.findall("testcase")
+          identities = [(case.attrib.get("classname"), case.attrib["name"]) for case in cases]
+          if suite.attrib.get("name") != class_name or any(owner != class_name for owner, _ in identities):
+              raise SystemExit("Unexpected complete catalog detail regression owner")
+          if not {(class_name, name) for name in expected} <= set(identities) or len(identities) != len(set(identities)):
+              raise SystemExit("Missing or repeated complete catalog detail regression")
+          if any(case.findall("failure") or case.findall("error") or case.findall("skipped") for case in cases):
+              raise SystemExit("Complete catalog detail regression did not pass")
+          if int(suite.attrib["tests"]) != len(cases) or any(int(suite.attrib[key]) != 0 for key in ("failures", "errors", "skipped")):
+              raise SystemExit("Complete catalog detail result count does not match passing executed cases")
+          print(f"Verified {len(cases)} simulated complete catalog detail tests; no installed-device claim")
+          PYTEST
       - name: Require recorded findings selection context regressions to execute
         run: |
           python - <<'PYTEST'
