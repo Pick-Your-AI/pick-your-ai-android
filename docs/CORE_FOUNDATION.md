@@ -48,7 +48,9 @@ paths. Dependency download requires network on the first run; subsequent cached
   references from bundled resources. Unknown schema locations fail closed; client
   data cannot select a dialect or cause a network lookup. Format assertions and
   extra-field/kind/enum checks use the unmodified contract. Structural validity is
-  not a cross-document compatibility verdict.
+  not a cross-document compatibility verdict. The finite frozen pattern set uses
+  [LF-only anchor handling](FROZEN_PATTERN_PARITY.md) to preserve the pinned Python
+  reference outcomes without trimming input or changing prefix-only matching.
 - Contract money values retain decimal strings exactly and use `BigDecimal` only
   for exact numeric access. Missing or malformed values never become zero. This
   does not implement rate selection, aggregation, billing rounding or a full quote.
