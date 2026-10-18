@@ -612,3 +612,13 @@ authority and an empty local library after acknowledged removal. These are bound
 partial automated checks for #64/#106 and local recovery; they do not establish
 screen-reader traversal, keyboard usability, contrast, measured touch targets,
 large-text/RTL rendering or physical filesystem durability.
+
+A further simulated layout check uses explicit Robolectric native graphics (not
+legacy shadow text metrics) and recreates the preview at 200% font scale in an
+Arabic/RTL 320×640dp configuration, explicitly measures/layouts the root, and
+requires visible buttons to retain measured 48dp width/height, nonempty text layouts,
+no ellipsized labels and enough vertical space for those labels. A separate check
+uses Android's forward-focus search through the three editors to the Clear action.
+The report gate requires both cases. These are reproducible JVM layout/focus checks,
+not a screenshot review, full keyboard journey, TalkBack traversal, contrast test,
+complete localization, device render or acceptance of a support matrix.
