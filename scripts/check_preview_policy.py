@@ -91,7 +91,7 @@ class Element:
 def xmltree(text: str) -> Element:
     """Parse the pinned AAPT2 tree grammar; unknown/truncated lines fail closed."""
     roots: list[Element] = []
-    stack: list[tuple[int, Element]] = []
+    stack: list[tuple[int, Element, int]] = []
     for line in text.splitlines():
         if not line.strip():
             continue
@@ -107,7 +107,7 @@ def xmltree(text: str) -> Element:
                 stack.pop()
             node = Element(match[1])
             (stack[-1][1].children if stack else roots).append(node)
-            stack.append((level, node))
+            stack.append((level, node, 0))
             continue
         match = re.fullmatch(r"A: ([^=() ]+)(?:\((0x[0-9a-f]{8})\))?=(.+)", body)
         require(match is not None and bool(stack) and level > stack[-1][0], "XML_TREE_FORMAT")
@@ -120,6 +120,13 @@ def xmltree(text: str) -> Element:
         else:
             require(":" not in name and resource_id is None, "XML_ATTRIBUTE_RESOURCE_ID")
         require(name not in stack[-1][1].attributes, "XML_ATTRIBUTE_DUPLICATE")
+        if resource_id is not None:
+            node_level, node, previous_id = stack[-1]
+            framework_id = int(resource_id, 16)
+            require(framework_id > previous_id, "XML_ATTRIBUTE_RESOURCE_ORDER")
+            # Android's framework attribute lookup walks these IDs forwards.
+            # Keep each element's order even across unqualified attributes.
+            stack[-1] = (node_level, node, framework_id)
         if value.startswith('"'):
             # AAPT2 includes the raw spelling for these strings. Both copies
             # must agree; newline or ambiguous display output is not accepted.

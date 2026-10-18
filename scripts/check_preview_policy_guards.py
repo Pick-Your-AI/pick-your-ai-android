@@ -18,8 +18,10 @@ NS = "{http://schemas.android.com/apk/res/android}"
 ET.register_namespace("android", NS[1:-1])
 
 
-def remap_allow_backup(apk: Path, replacement: int) -> None:
-    """Change only one framework ID in this disposable compiled fixture."""
+def change_framework_attributes(apk: Path, *, replacement: int | None = None,
+                                swap_backup_attributes: bool = False) -> None:
+    """Change only an ID or record order in this disposable compiled fixture."""
+    require((replacement is not None) != swap_backup_attributes, "FIXTURE_ATTRIBUTE_OPERATION")
     with zipfile.ZipFile(apk) as archive:
         entries = [(entry, archive.read(entry)) for entry in archive.infolist()]
     manifest = bytearray(next(data for entry, data in entries if entry.filename == "AndroidManifest.xml"))
@@ -27,16 +29,38 @@ def remap_allow_backup(apk: Path, replacement: int) -> None:
     kind, header, size = struct.unpack_from("<HHI", manifest)
     require(kind == 0x0003 and header == 8 and size == len(manifest), "FIXTURE_XML_HEADER")
     offset, changed = header, 0
+    resource_ids: list[int] = []
     while offset < len(manifest):
         require(offset + 8 <= len(manifest), "FIXTURE_XML_CHUNK")
         kind, header, size = struct.unpack_from("<HHI", manifest, offset)
         require(8 <= header <= size and offset + size <= len(manifest), "FIXTURE_XML_CHUNK")
         if kind == 0x0180:  # RES_XML_RESOURCE_MAP_TYPE
             require(header == 8 and (size - header) % 4 == 0, "FIXTURE_RESOURCE_MAP")
+            resource_ids = list(struct.unpack_from(f"<{(size - header) // 4}I", manifest, offset + header))
             for index in range(offset + header, offset + size, 4):
-                if struct.unpack_from("<I", manifest, index)[0] == 0x01010280:
+                if replacement is not None and struct.unpack_from("<I", manifest, index)[0] == 0x01010280:
                     struct.pack_into("<I", manifest, index, replacement)
                     changed += 1
+        elif kind == 0x0102 and swap_backup_attributes:  # RES_XML_START_ELEMENT_TYPE
+            require(header == 16 and size >= header + 20, "FIXTURE_ELEMENT_HEADER")
+            start, width, count = struct.unpack_from("<HHH", manifest, offset + header + 8)
+            require(start >= 20 and width == 20 and header + start + count * width <= size,
+                    "FIXTURE_ATTRIBUTE_RECORDS")
+            positions: dict[int, int] = {}
+            for index in range(count):
+                position = offset + header + start + index * width
+                name_index = struct.unpack_from("<I", manifest, position + 4)[0]
+                resource_id = resource_ids[name_index] if name_index < len(resource_ids) else 0
+                if resource_id in {0x01010280, 0x010104eb}:
+                    require(resource_id not in positions, "FIXTURE_ATTRIBUTE_IDENTITY")
+                    positions[resource_id] = position
+            if len(positions) == 2:
+                first, second = positions[0x01010280], positions[0x010104eb]
+                require(first < second, "FIXTURE_ATTRIBUTE_ORDER")
+                saved = manifest[first:first + width]
+                manifest[first:first + width] = manifest[second:second + width]
+                manifest[second:second + width] = saved
+                changed += 1
         offset += size
     require(changed == 1, "FIXTURE_ATTRIBUTE_IDENTITY")
     rewritten = apk.with_suffix(".remapped.apk")
@@ -63,7 +87,8 @@ def check_guards(aapt2: Path, android_jar: Path) -> list[dict[str, object]]:
              ("incomplete-device-transfer", "BACKUP_EXCLUSIONS"),
              ("redirected-backup-resource", "BACKUP_RESOURCE_IDENTITY"),
              ("unmapped-framework-attribute", "XML_ATTRIBUTE_RESOURCE_ID"),
-             ("mismatched-framework-attribute", "XML_ATTRIBUTE_RESOURCE_ID")]
+             ("mismatched-framework-attribute", "XML_ATTRIBUTE_RESOURCE_ID"),
+             ("reordered-framework-attributes", "XML_ATTRIBUTE_RESOURCE_ORDER")]
     for name, rejection in cases:
         manifest, backup = copy.deepcopy(base), copy.deepcopy(rules)
         app = manifest.find("application")
@@ -92,7 +117,9 @@ def check_guards(aapt2: Path, android_jar: Path) -> list[dict[str, object]]:
                      "--min-sdk-version", "26", "--target-sdk-version", "35", "--version-code", "1",
                      "--version-name", "0.0.1-synthetic", "-o", str(apk), str(folder / "resources.zip")])
             if name in {"unmapped-framework-attribute", "mismatched-framework-attribute"}:
-                remap_allow_backup(apk, 0 if name == "unmapped-framework-attribute" else 0x01010281)
+                change_framework_attributes(apk, replacement=0 if name == "unmapped-framework-attribute" else 0x01010281)
+            elif name == "reordered-framework-attributes":
+                change_framework_attributes(apk, swap_backup_attributes=True)
             observed = None
             try:
                 inspect_apk(apk, aapt2)
@@ -119,7 +146,7 @@ def main() -> int:
                "limitations": "Binary declaration fixtures only; no app execution, installed or release result."}
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n")
-    print("PASS: adopted policy and seven real packaged negative cases reached their exact expected boundary.")
+    print("PASS: adopted policy and eight real packaged negative cases reached their exact expected boundary.")
     return 0
 
 

@@ -184,6 +184,18 @@ class PreviewPolicyTest(unittest.TestCase):
                  self.assertRaisesRegex(policy.PolicyFailure, "^XML_ATTRIBUTE_RESOURCE_ID$"):
                 policy.xmltree(prefix + attribute)
 
+    def test_framework_attribute_ids_keep_lookup_order_within_each_element(self):
+        first = "  A: " + policy.ANDROID + "allowBackup(0x01010280)=false\n"
+        second = "  A: " + policy.ANDROID + "fullBackupContent(0x010104eb)=false\n"
+        plain = '  A: label="synthetic" (Raw: "synthetic")\n'
+        child = "  E: activity (line=2)\n    A: " + policy.ANDROID + 'name(0x01010003)="x" (Raw: "x")\n'
+        # Unqualified zero-ID attributes and a child's separate lower IDs
+        # must not reset or contaminate the parent's framework lookup order.
+        valid = "E: application (line=1)\n" + first + plain + second + child
+        self.assertEqual("false", policy.xmltree(valid).attributes["android:allowBackup"])
+        with self.assertRaisesRegex(policy.PolicyFailure, "^XML_ATTRIBUTE_RESOURCE_ORDER$"):
+            policy.xmltree("E: application (line=1)\n" + second + plain + first)
+
     def test_inventory_must_identify_the_current_commit_tree_and_exact_apk(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

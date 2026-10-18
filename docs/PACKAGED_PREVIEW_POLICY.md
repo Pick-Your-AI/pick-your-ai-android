@@ -32,6 +32,9 @@ framework IDs, and unexpected namespaces fail. Android's compiled attribute
 lookup uses the resource ID; the package parser defaults `allowBackup` to true
 when that framework attribute is absent. This binding prevents an unrecognized
 compiled attribute from being reported as the explicit backup prohibition.
+Framework IDs must also appear in strictly increasing order within each element,
+because Android's attribute lookup advances through that ordered sequence. The
+separate unqualified backup attributes remain valid and do not reset this order.
 
 This is intentionally a fixed preview policy. A new feature, permission, component,
 SDK pin or resource configuration needs its own source/design review and an explicit
@@ -88,12 +91,14 @@ Real temporary Git repositories also demonstrate that a tracked edit or a new HE
 during inspection cannot receive a passing receipt while APK/inventory bytes remain
 unchanged; the unchanged-source positive control still passes.
 These assertions are supplemented by actual binary packaging: the AAPT2 guard driver
-builds eight disposable resource APKs with a positive control and seven single-condition
+builds nine disposable resource APKs with a positive control and eight single-condition
 changes. They add INTERNET, add an exported receiver, enable cleartext traffic, remove
 one device-transfer exclusion, or redirect `dataExtractionRules` to a different
 resource. Two additional controls change only the compiled `allowBackup` resource-map
 entry: one removes its framework ID and one substitutes a different ID while retaining
 the displayed name and false value. Both must fail at the attribute-ID boundary.
+A third changes only the order of the compiled `allowBackup` and `fullBackupContent`
+attribute records. Their valid names, IDs and values cannot conceal broken lookup order.
 Each negative package must reach its exact policy rejection. Those fixtures
 contain no application DEX and never install or execute; their result establishes
 the exercised binary declaration boundary only.
