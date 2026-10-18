@@ -6,6 +6,7 @@ Read-only: never calls GitHub, changes issue state, or interprets checks as acce
 import argparse
 import hashlib
 import json
+import math
 from pathlib import Path
 import re
 import sys
@@ -216,6 +217,38 @@ REVIEWED_DESIGNS[35] = {
 }
 
 
+# The 122 other number/repository/path coordinates are unchanged from the
+# original 8162a557 ledger through accepted v6 ae61cfcb16eefe96e058b044deba833dac27d3ae:
+# https://github.com/Pick-Your-AI/pick-your-ai-android/blob/ae61cfcb16eefe96e058b044deba833dac27d3ae/docs/delivery/criterion-evidence.json
+# Hash the ordered ordinary-coordinate list with sorted JSON keys and compact
+# separators. The seven separately reviewed amendments above keep their exact
+# source-defined receipts; another placement requires deliberate source review.
+ORDINARY_RECORD_COORDINATES_SHA256 = '5ec59e66e2d0727bda908441725f25bda6cc2ece3f3a4fc27f7082e75e262bc4'
+
+
+def read_json(path):
+    """Read one unambiguous JSON value without accepting non-finite numbers."""
+    def unique_members(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError('duplicate JSON member')
+            result[key] = value
+        return result
+
+    def reject_constant(_value):
+        raise ValueError('non-finite JSON number')
+
+    def finite_float(value):
+        parsed = float(value)
+        if not math.isfinite(parsed):
+            raise ValueError('non-finite JSON number')
+        return parsed
+
+    return json.loads(path.read_text(encoding='utf-8'), object_pairs_hook=unique_members,
+                      parse_constant=reject_constant, parse_float=finite_float)
+
+
 def require(condition, message):
     if not condition:
         raise ValueError(message)
@@ -308,6 +341,17 @@ def validate(ledger, source=None):
             paths = re.findall(r'`(docs/delivery/android/[^`\n]+\.md)`', original['body'])
             require(record['path'] in paths, f'live acceptance path differs: {number}')
 
+    ordinary_coordinates = [
+        {'number': issue['number'],
+         'repository': issue['canonical_acceptance_record']['repository'],
+         'path': issue['canonical_acceptance_record']['path']}
+        for issue in issues if issue['number'] not in REVIEWED_DESIGNS
+    ]
+    coordinate_bytes = json.dumps(ordinary_coordinates, sort_keys=True,
+                                  separators=(',', ':')).encode('utf-8')
+    require(hashlib.sha256(coordinate_bytes).hexdigest() == ORDINARY_RECORD_COORDINATES_SHA256,
+            'unreviewed acceptance coordinates; reconcile placement explicitly')
+
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
@@ -315,8 +359,8 @@ def main():
     parser.add_argument('--issues', type=Path, help='fresh gh issue list --state all JSON for authoritative text/path comparison')
     args = parser.parse_args()
     try:
-        source = json.loads(args.issues.read_text()) if args.issues else None
-        validate(json.loads(args.ledger.read_text()), source)
+        source = read_json(args.issues) if args.issues else None
+        validate(read_json(args.ledger), source)
     except (OSError, ValueError, KeyError, TypeError) as error:
         print(f'Delivery ledger check failed: {error}', file=sys.stderr)
         return 1
