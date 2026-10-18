@@ -137,3 +137,8 @@ identity or vendor compatibility.
 Parent handoff records: `12.03.md` (#87) and `12.02.md` (#104) under the canonical
 website `docs/delivery/android/work-packages/` directory. Record this as partial
 implementation with exact merged PR/test artifacts, not acceptance or closure.
+
+The [reference report receiving boundary](REFERENCE_REPORT_BOUNDARY.md) adds
+structural and cross-document checks before accepting frozen reference reports.
+Its Python-generated cases and Kotlin negative tests are partial #32/#49/#84
+evidence, not a local evaluator or deployment approval.

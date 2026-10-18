@@ -43,8 +43,11 @@ def main():
     except (OSError, ValueError, KeyError) as error:
         print(f'Contract integrity failure: {error}', file=sys.stderr)
         return 1
-    return subprocess.call([sys.executable, '-m', 'unittest', 'discover',
-                            '-s', str(BASE / 'tests'), '-v'], cwd=ROOT)
+    result = subprocess.call([sys.executable, '-m', 'unittest', 'discover',
+                              '-s', str(BASE / 'tests'), '-v'], cwd=ROOT)
+    if result:
+        return result
+    return subprocess.call([sys.executable, str(ROOT / 'scripts/check_report_fixtures.py')], cwd=ROOT)
 
 
 if __name__ == '__main__':
