@@ -66,8 +66,9 @@ paths. Dependency download requires network on the first run; subsequent cached
 `Core verification` runs on pull requests and main, with read-only repository
 permissions, no persisted checkout credentials, no signing or production secrets,
 and pinned action revisions. JUnit reports and the core JAR are retained for seven
-days under the exact commit. This is a JVM/reference lane; Android lint, APK/AAB,
-emulator and physical-device lanes are not yet present. Branch protection remains
+days under the exact commit. This is a JVM/reference lane. A separate unsigned synthetic preview lane now
+builds an APK and runs Android lint; it does not produce a release AAB. Emulator
+and physical-device lanes are not yet present. Branch protection remains
 a separate repository setting; publishing this workflow does not make it required.
 
 ## Criterion-level handoff
@@ -76,11 +77,11 @@ a separate repository setting; publishing this workflow does not make it require
 | --- | --- | --- |
 | #21 exact upstream revision/hash, import integrity | 43 original files + two pinned manifests, hash-first reference runner | The schema adapter covers all 13 document kinds; actual API/storage consumers and receiving acceptance remain separate |
 | #21 invalid fields/enums/versions and decimal round trip | Strict parsing, bundled JVM schema validation, immutable reference suite and typed decimal/version tests | Validate every actual network/storage consumer when those adapters exist |
-| #48 pinned toolchain / clean checkout | JDK21, Gradle wrapper, Kotlin module, dependency locks and verification, JVM build | Approved application package and actual Android module, APK install/launch; this JAR is not an APK |
+| #48 pinned toolchain / clean checkout | JDK21, Gradle wrapper, Kotlin module, dependency locks and verification, JVM build | Approved product package, installed-app launch and full module boundaries; the separate unsigned fixture preview is only a diagnostic |
 | #49 versioned fixtures and reference expectations | Exact upstream examples and 21 reference tests | Cross-language comparison, successor migration cases and accepted new semantics; frozen reference tests cannot approve queued changes |
 | #58 cancelled/superseded work and typed failures | Synchronized identity/ticket coordinator and race tests | UI observation, dispatchers, storage/network adapters and cancellation propagation |
 | #30/#31 untrusted import boundary | Bounded parser and adversarial tests | Disclosure projection, explicit user acceptance, Android document-provider lifecycle, actual draft import/export and receiving security review |
-| #59 reproducible checks and untrusted execution | Reference/JVM workflow with restricted token and retained artifacts | Android lint/build/emulator lanes, required-status setting and observed controlled hosted failure |
+| #59 reproducible checks and untrusted execution | Reference/JVM workflow with restricted token and retained artifacts | Product Android/emulator coverage, required-status setting and observed controlled hosted failure; the unsigned fixture preview has a separate build/lint lane |
 | #115 late/out-of-order analysis | Unique attempt identity, all input pins, cancellation and duplicate tests | Automatic reevaluation, durable-save sequencing, historical report persistence and integrated UI behavior |
 
 The canonical acceptance records remain in `pickyour.ai`. Parent coordination can
