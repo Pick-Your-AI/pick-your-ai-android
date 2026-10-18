@@ -16,10 +16,18 @@ class PreviewRevisionComparison internal constructor(val from: Long, val to: Lon
 }
 
 /** Pure comparison within one loaded durable history; never adopts another revision's save token. */
-fun PreviewStoredDraft.compareRevision(number: Long): PreviewRevisionComparison? {
-    val old = draft.history.find { it.number == number } ?: return null
+fun PreviewStoredDraft.compareRevision(number: Long): PreviewRevisionComparison? = compareRevisions(number, revision)
+
+/**
+ * Compare exactly two retained revision numbers in the caller's captured immutable history.
+ * Either side may precede the saved head. No latest lookup, storage read or save token is created.
+ * A missing side is unavailable, never replaced with the head or another retained revision.
+ */
+fun PreviewStoredDraft.compareRevisions(from: Long, to: Long): PreviewRevisionComparison? {
+    val old = draft.history.find { it.number == from } ?: return null
+    val selected = draft.history.find { it.number == to } ?: return null
     val before = old.content
-    val after = draft.content
+    val after = selected.content
     val changes = mutableListOf<PreviewRevisionChange>()
     fun add(field: String, left: String?, right: String?, key: String? = null) {
         if (left != right) changes += PreviewRevisionChange(field, key, left, right)
@@ -63,14 +71,17 @@ fun PreviewStoredDraft.compareRevision(number: Long): PreviewRevisionComparison?
             add("${tier.name}.setting", left.settings[key], right.settings[key], key)
     }
     // Guest form metadata can be unavailable in older formats. Never synthesize it from content.
-    val oldFields = history.find { it.revision == number }?.fields
-    if (oldFields != null) {
-        add("guest.title", oldFields.title, fields.title)
-        add("guest.sample_id", oldFields.selectedId, fields.selectedId)
-        add("guest.sample_version", oldFields.selectedVersion, fields.selectedVersion)
-        add("guest.catalog_hash", oldFields.catalogHash, fields.catalogHash)
+    val retainedForms = history
+    val oldFields = retainedForms.find { it.revision == from }?.fields
+    val selectedFields = retainedForms.find { it.revision == to }?.fields
+    if (oldFields != null && selectedFields != null) {
+        add("guest.title", oldFields.title, selectedFields.title)
+        add("guest.sample_id", oldFields.selectedId, selectedFields.selectedId)
+        add("guest.sample_version", oldFields.selectedVersion, selectedFields.selectedVersion)
+        add("guest.catalog_hash", oldFields.catalogHash, selectedFields.catalogHash)
     }
-    return PreviewRevisionComparison(number, revision, changes, old.metadata != draft.metadata, oldFields != null)
+    return PreviewRevisionComparison(from, to, changes, old.metadata != selected.metadata,
+        oldFields != null && selectedFields != null)
 }
 
 /** Typed bounded display: a user literal can never impersonate an absent/empty sentinel. */
