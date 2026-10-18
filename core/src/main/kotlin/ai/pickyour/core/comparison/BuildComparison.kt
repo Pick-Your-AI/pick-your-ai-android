@@ -151,8 +151,8 @@ object BuildComparator {
     private fun escape(value: String): String = value.replace("~", "~0").replace("/", "~1")
 }
 
-/** JSON numeric values compare exactly across integer/decimal spellings; strings stay literal. */
-private fun sameJsonValues(a: JsonNode?, b: JsonNode?): Boolean = when {
+/** Exact value comparison for already bounded retained JSON; numeric spellings may differ, strings stay literal. */
+internal fun sameJsonValues(a: JsonNode?, b: JsonNode?): Boolean = when {
     a === b -> true
     a == null || b == null -> false
     a.isNumber && b.isNumber -> a.decimalValue().compareTo(b.decimalValue()) == 0

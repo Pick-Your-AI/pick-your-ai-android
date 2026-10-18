@@ -10,6 +10,7 @@ import ai.pickyour.core.evidence.EvidencePresentationPolicy
 import ai.pickyour.core.evidence.FrozenVerificationStatus
 import ai.pickyour.core.importing.BoundedJsonReader
 import ai.pickyour.core.importing.JsonInputResult
+import ai.pickyour.core.importing.localSnapshotRevision
 import java.io.InputStream
 import java.math.BigInteger
 import java.security.DigestInputStream
@@ -89,6 +90,7 @@ class RecordedPricebook private constructor(
             if (FrozenSchemaValidator().validate(FrozenDocument.PRICEBOOK, book.toString().byteInputStream()) != FrozenValidation.Valid) {
                 return RecordedPricebookResult.InvalidDocument
             }
+            val revision = localSnapshotRevision(book["revision"]) ?: return RecordedPricebookResult.InvalidDocument
             val seen = HashSet<String>()
             val rates = ArrayList<RecordedPriceRate>()
             try {
@@ -120,7 +122,7 @@ class RecordedPricebook private constructor(
             }
             val hash = digest.digest().joinToString("") { it.toUByte().toString(16).padStart(2, '0') }
             return RecordedPricebookResult.Parsed(RecordedPricebook(
-                book["id"].textValue(), book["revision"].bigIntegerValue(), book["captured_at"].textValue(), hash, rates,
+                book["id"].textValue(), revision, book["captured_at"].textValue(), hash, rates,
             ))
         }
 
