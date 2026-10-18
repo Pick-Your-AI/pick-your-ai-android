@@ -43,12 +43,22 @@ object PreviewSelectionForms {
             SelectionCommand.Add(LocalSelection.fromJson(node), CatalogSelectionChoice(ArtifactHash(hash), item.kind, item.id, item.version))
         }
 
-    fun configure(selection: LocalSelection, settingsJson: String): PreviewSelectionPreparation = prepare {
-        require(supported(selection.kind))
+    fun configure(selection: LocalSelection, settingsJson: String, role: String? = null): PreviewSelectionPreparation = prepare {
+        require(supported(selection.kind) && (role == null || role.length <= MAX_ROLE_TEXT))
         val value = requireNotNull(settings(settingsJson))
         // Validate the exact prospective payload before dispatch; the canonical command still checks live CAS.
-        LocalSelection.fromJson(selection.toJson().also { it.set<JsonNode>("settings", value) })
-        SelectionCommand.Configure(selection.id, value)
+        LocalSelection.fromJson(selection.toJson().also {
+            it.set<JsonNode>("settings", value)
+            if (role != null) it.put("role", role)
+        })
+        SelectionCommand.Configure(selection.id, value, role)
+    }
+
+    /** Role input is bounded separately; retained settings never pass through the small JSON editor. */
+    fun configureRole(selection: LocalSelection, role: String): PreviewSelectionPreparation = prepare {
+        require(supported(selection.kind) && role.length <= MAX_ROLE_TEXT)
+        LocalSelection.fromJson(selection.toJson().put("role", role))
+        SelectionCommand.Configure(selection.id, selection.settings, role)
     }
 
     fun replace(selection: LocalSelection, item: PreviewCatalogItem, hash: String): PreviewSelectionPreparation = prepare {

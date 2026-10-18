@@ -47,7 +47,8 @@ def main():
                               '-s', str(BASE / 'tests'), '-v'], cwd=ROOT)
     if result:
         return result
-    for name in ('check_report_fixtures.py', 'check_quality_run_fixtures.py', 'check_frozen_pattern_fixtures.py', 'check_resource_estimate_fixtures.py'):
+    for name in ('check_report_fixtures.py', 'check_quality_run_fixtures.py', 'check_frozen_pattern_fixtures.py',
+                 'check_event_fixtures.py', 'check_resource_estimate_fixtures.py'):
         result = subprocess.call([sys.executable, str(ROOT / 'scripts' / name)], cwd=ROOT)
         if result:
             return result

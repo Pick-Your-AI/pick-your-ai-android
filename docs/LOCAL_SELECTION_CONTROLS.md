@@ -25,8 +25,13 @@ through this editor. Raw credentials must not be entered; applicable settings
 accept only opaque secret references under the frozen schema.
 
 Replace chooses an existing selection of the same kind and retains its identity,
-role, enabled state, settings, notes, extensions and links. Configure changes only
-settings. Disable/re-enable retains settings and links. Removal confirms the exact
+role, enabled state, settings, notes, extensions and links. **Edit settings** changes
+only settings. **Edit role** changes the explicitly entered role while retaining
+the complete saved settings, including values beyond the small settings editor's
+limit. It keeps the selection identity and all other content. Duplicate roles for
+the same kind reject the whole edit, including a collision with a disabled
+selection. See [explicit selection roles](LOCAL_SELECTION_ROLES.md) for the local
+history format and recovery boundaries. Disable/re-enable retains settings and links. Removal confirms the exact
 selection and lists its incident link IDs; only that selection and those links are
 removed. No secondary selection is promoted. All other frozen kinds remain stored
 and visible but outside this T1/T2 mutation UI.
@@ -45,9 +50,12 @@ The latter never claims that no revision was committed.
 Dismissing or canceling a dialog revokes its callbacks. While a command is in
 flight, form fields, checkbox and cancellation are disabled so later user edits
 cannot be silently discarded by completion. Invalid/rejected outcomes restore
-the same form controls and raw input. Destroying the Activity terminally closes this section and its dialogs; retained
-buttons cannot dispatch to a closed worker. Transient uncommitted dialogs are
-canceled on recreation, not represented as durable pending settings.
+the same form controls and raw input. Destroying the Activity terminally closes
+this section and its dialogs; retained buttons cannot dispatch to a closed worker.
+The [bounded component checkpoint](COMPONENT_FORM_RECOVERY.md) retains unfinished
+add/settings/role input for explicit review after recreation. It supplies no command
+or save authority. Completed cancellation and explicit discard clear that pending
+input; destructive confirmations are never restored.
 
 Successful status means only local persistence. UI copy explicitly withholds
 compatibility, pricing, deployment requirements and readiness. Canonical v1,

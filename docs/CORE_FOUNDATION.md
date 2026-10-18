@@ -208,6 +208,11 @@ optional absence. Shared Python/Kotlin mutation cases and malformed-input tests
 cover this structural boundary; decoding does not authenticate or execute an
 evaluation, bind it to the current build, or certify its reported result.
 
+The [frozen Event decoder](FROZEN_EVENT_BOUNDARY.md) retains every event and payload
+field as immutable typed values, with exact subject revisions and explicit optional
+presence. Shared Python/Kotlin cases exercise the unchanged schema. Decoding adds
+no event execution, actor authority, idempotency, synchronization or telemetry.
+
 The [resource-estimate decoder](RESOURCE_ESTIMATE_BOUNDARY.md) retains all frozen
 capacity-estimate wire fields, exact decimal strings, arbitrary-size revisions and
 declared confidence as immutable values. Shared Python/Kotlin fixtures and boundary
