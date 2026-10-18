@@ -128,7 +128,7 @@ class LocalDraftSelectionStorageTest {
         val first = saved(store().save(null, DraftContent(components = DraftSelections(listOf(model)))))
         val original = raw()
         val mutations: List<(ObjectNode) -> Unit> = listOf(
-            { it.put("local_format_version", 5) },
+            { it.put("local_format_version", 6) },
             { (it["history"][0]["content"] as ObjectNode).remove("components") },
             { (it["history"][0]["content"] as ObjectNode).putNull("components") },
             { components(it).put("unknown", true) },
