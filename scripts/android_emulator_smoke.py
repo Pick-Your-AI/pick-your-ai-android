@@ -503,32 +503,96 @@ class Device:
         return {"terminated_pid": old_pid, "relaunch_pid": new_pid, "method": "am force-stop"}
 
 
+def ui_stream_observation(value: str | bytes | None) -> dict:
+    """Bound retained decoded text; this does not bound subprocess capture memory."""
+    if value is None:
+        return {"available": False}
+    if not isinstance(value, (str, bytes)):
+        return {"available": False, "unexpected_type": type(value).__name__}
+    text = value.decode("utf-8", errors="replace") if isinstance(value, bytes) else value
+    return {"available": True, "decoded_from_bytes": isinstance(value, bytes),
+            "text_characters": len(text), "text_sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
+            "prefix": text[:1200], "suffix": text[-1200:], "edges_truncated": len(text) > 2400}
+
+
+def observe_ui_command(device: Device, arguments: tuple[str, ...], observed: dict, *, timeout: int):
+    """Retain the exact owned command result before any capture assertion."""
+    observed.update(arguments=list(arguments), timeout_seconds=timeout)
+    started = time.monotonic()
+    try:
+        result = device.adb(*arguments, timeout=timeout, check=False)
+        observed.update(exit_code=result.returncode, stdout=ui_stream_observation(result.stdout),
+                        stderr=ui_stream_observation(result.stderr))
+        return result
+    except subprocess.TimeoutExpired as error:
+        observed.update(command_timeout_seconds=error.timeout, stdout=ui_stream_observation(error.stdout),
+                        stderr=ui_stream_observation(error.stderr))
+        raise
+    except Exception as error:
+        observed["error"] = bounded_text(str(error), 1200)
+        raise
+    finally:
+        observed["seconds"] = round(time.monotonic() - started, 3)
+
+
 class Ui:
     def __init__(self, device: Device, output: Path, receipt: dict):
         self.device, self.output = device, output
         self.dumps = receipt.setdefault("ui_hierarchy_dumps", {"attempted": 0, "completed": 0, "exit_137": 0})
+        self.observations = receipt.setdefault("ui_hierarchy_observations", {"attempted": 0, "recent_attempts": []})
 
     def snapshot(self) -> ET.Element:
         path = UI_DUMP_PATH
-        self.device.shell("rm", "-f", path)
-        self.dumps["attempted"] += 1
-        result = self.device.adb("shell", "uiautomator", "dump", path, timeout=20, check=False)
-        # This pinned image has returned 137 after reporting the completed dump.
-        # Do not infer its cause or accept an exit alone: a prior dump was removed,
-        # the exact completion message is required, and fresh XML is read below.
-        completed_with_137 = (result.returncode == 137 and not result.stderr.strip() and
-                              result.stdout.strip() == "UI hierchary dumped to: " + path)
-        require(result.returncode == 0 or completed_with_137,
-                f"UI hierarchy dump failed ({result.returncode}): " +
-                (result.stdout + result.stderr)[-6000:])
-        raw = self.device.adb("exec-out", "cat", path).stdout
-        root = ET.fromstring(raw)
-        require(root.tag == "hierarchy" and root.get("rotation") in ("0", "1", "2", "3") and
-                any(True for _ in root.iter("node")), "Invalid or empty UI hierarchy")
-        self.dumps["completed"] += 1
-        if completed_with_137:
-            self.dumps["exit_137"] += 1
-        return root
+        self.observations["attempted"] += 1
+        attempt = {"sequence": self.observations["attempted"], "ui_dump_path": path,
+                   "completed": False, "commands": {}}
+        self.observations["last_attempt"] = attempt
+        self.observations["recent_attempts"].append(attempt)
+        del self.observations["recent_attempts"][:-8]
+        started = time.monotonic()
+        try:
+            attempt["stage"] = "remove"
+            removed = observe_ui_command(self.device, ("shell", "rm", "-f", path),
+                                         attempt["commands"].setdefault("remove", {}), timeout=30)
+            require(removed.returncode == 0,
+                    f"Prior UI hierarchy removal failed ({removed.returncode}): " +
+                    (removed.stdout + removed.stderr)[-6000:])
+            self.dumps["attempted"] += 1
+            attempt["stage"] = "dump"
+            result = observe_ui_command(self.device, ("shell", "uiautomator", "dump", path),
+                                        attempt["commands"].setdefault("dump", {}), timeout=20)
+            # The observed 137 path and ordinary zero path both require the full
+            # completion message. Neither an exit nor that message replaces fresh XML.
+            completion_passed = (result.returncode in (0, 137) and not result.stderr.strip() and
+                                 result.stdout.strip() == "UI hierchary dumped to: " + path)
+            attempt["dump_completion_passed"] = completion_passed
+            require(completion_passed,
+                    f"UI hierarchy dump failed ({result.returncode}): " +
+                    (result.stdout + result.stderr)[-6000:])
+            attempt["stage"] = "read"
+            read = observe_ui_command(self.device, ("exec-out", "cat", path),
+                                      attempt["commands"].setdefault("read", {}), timeout=30)
+            require(read.returncode == 0 and not read.stderr.strip(),
+                    f"Fresh UI hierarchy read failed ({read.returncode}): " +
+                    (read.stdout + read.stderr)[-6000:])
+            attempt["stage"] = "parse"
+            root = ET.fromstring(read.stdout)
+            require(root.tag == "hierarchy" and root.get("rotation") in ("0", "1", "2", "3") and
+                    any(True for _ in root.iter("node")), "Invalid or empty UI hierarchy")
+            self.dumps["completed"] += 1
+            if result.returncode == 137:
+                self.dumps["exit_137"] += 1
+            attempt["completed"] = True
+            return root
+        except Exception as error:
+            failure = {"type": type(error).__name__, "message": bounded_text(str(error), 1200)}
+            if isinstance(error, ET.ParseError):
+                failure.update(code=getattr(error, "code", None), position=getattr(error, "position", None))
+            attempt["error"] = failure
+            self.observations.setdefault("first_failed_attempt", attempt)
+            raise
+        finally:
+            attempt["seconds"] = round(time.monotonic() - started, 3)
 
     def scroll(self, root: ET.Element, down: bool) -> bool:
         node = single_match(root, lambda item: item.get("class") == "android.widget.ScrollView")

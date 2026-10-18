@@ -1,6 +1,7 @@
 """Host-side guard tests; these do not install or run an Android app."""
 
 import copy
+import hashlib
 import importlib.util
 import io
 import os
@@ -847,26 +848,30 @@ class EmulatorSmokeGuardTest(unittest.TestCase):
             with self.subTest(status=status):
                 device, receipt = Mock(spec=smoke.Device), {}
                 device.adb.side_effect = [
+                    subprocess.CompletedProcess([], 0, "", ""),
                     subprocess.CompletedProcess([], status, "UI hierchary dumped to: " + path + "\n", ""),
                     subprocess.CompletedProcess([], 0, raw, ""),
                 ]
                 root = smoke.Ui(device, Path("unused"), receipt).snapshot()
                 self.assertEqual("hierarchy", root.tag)
                 self.assertEqual([
-                    call.shell("rm", "-f", path),
+                    call.adb("shell", "rm", "-f", path, timeout=30, check=False),
                     call.adb("shell", "uiautomator", "dump", path, timeout=20, check=False),
-                    call.adb("exec-out", "cat", path),
+                    call.adb("exec-out", "cat", path, timeout=30, check=False),
                 ], device.mock_calls)
                 self.assertEqual({"attempted": 1, "completed": 1, "exit_137": int(status == 137)},
                                  receipt["ui_hierarchy_dumps"])
 
     def test_failed_prior_dump_removal_cannot_reuse_stale_xml(self):
         device, receipt = Mock(spec=smoke.Device), {}
-        device.shell.side_effect = smoke.SmokeFailure("Dump removal failed")
+        original = smoke.SmokeFailure("Dump removal failed")
+        device.adb.side_effect = original
         with self.assertRaisesRegex(smoke.SmokeFailure, "removal failed"):
             smoke.Ui(device, Path("unused"), receipt).snapshot()
-        device.adb.assert_not_called()
+        device.adb.assert_called_once_with("shell", "rm", "-f", smoke.UI_DUMP_PATH, timeout=30, check=False)
         self.assertEqual(0, receipt["ui_hierarchy_dumps"]["completed"])
+        self.assertEqual(0, receipt["ui_hierarchy_dumps"]["attempted"])
+        self.assertEqual("remove", receipt["ui_hierarchy_observations"]["first_failed_attempt"]["stage"])
 
     def test_unrelated_dump_failure_or_inexact_completion_is_rejected(self):
         marker = "UI hierchary dumped to: " + smoke.UI_DUMP_PATH
@@ -875,14 +880,24 @@ class EmulatorSmokeGuardTest(unittest.TestCase):
             (137, marker + "\nERROR: dump failed", ""),
             (137, "UI hierchary dumped to: /sdcard/pyai-smoke-window.xml", ""),
             (137, "UI hierchary dumped to: /sdcard/another.xml", ""),
+            (0, "", ""), (0, "ERROR: could not get idle state.", ""),
+            (0, marker, "ERROR: null root node returned"),
+            (0, marker + "\nERROR: dump failed", ""),
+            (0, "UI hierchary dumped to: /sdcard/another.xml", ""),
         ):
             with self.subTest(status=status, stdout=stdout, stderr=stderr):
                 device, receipt = Mock(spec=smoke.Device), {}
-                device.adb.return_value = subprocess.CompletedProcess([], status, stdout, stderr)
+                device.adb.side_effect = [subprocess.CompletedProcess([], 0, "", ""),
+                                           subprocess.CompletedProcess([], status, stdout, stderr)]
                 with self.assertRaisesRegex(smoke.SmokeFailure, "UI hierarchy dump failed"):
                     smoke.Ui(device, Path("unused"), receipt).snapshot()
-                self.assertEqual(1, device.adb.call_count)
+                self.assertEqual(2, device.adb.call_count)
                 self.assertEqual(0, receipt["ui_hierarchy_dumps"]["completed"])
+                failed = receipt["ui_hierarchy_observations"]["first_failed_attempt"]
+                self.assertEqual("dump", failed["stage"])
+                self.assertFalse(failed["dump_completion_passed"])
+                self.assertNotIn("read", failed["commands"])
+                self.assertEqual(stdout, failed["commands"]["dump"]["stdout"]["prefix"])
 
     def test_completion_message_cannot_replace_missing_truncated_or_invalid_xml(self):
         marker = "UI hierchary dumped to: " + smoke.UI_DUMP_PATH
@@ -893,11 +908,132 @@ class EmulatorSmokeGuardTest(unittest.TestCase):
                 device, receipt = Mock(spec=smoke.Device), {}
                 read = (smoke.SmokeFailure("Fresh dump missing") if raw is None else
                         subprocess.CompletedProcess([], 0, raw, ""))
-                device.adb.side_effect = [subprocess.CompletedProcess([], 137, marker, ""), read]
+                device.adb.side_effect = [subprocess.CompletedProcess([], 0, "", ""),
+                                           subprocess.CompletedProcess([], 137, marker, ""), read]
                 with self.assertRaises((smoke.SmokeFailure, ET.ParseError)):
                     smoke.Ui(device, Path("unused"), receipt).snapshot()
                 self.assertEqual(0, receipt["ui_hierarchy_dumps"]["completed"])
                 self.assertEqual(0, receipt["ui_hierarchy_dumps"]["exit_137"])
+
+    def test_capture_keeps_first_parse_input_separate_from_later_valid_hierarchies(self):
+        device, receipt = Mock(spec=smoke.Device), {}
+        marker = "UI hierchary dumped to: " + smoke.UI_DUMP_PATH
+        valid = '<hierarchy rotation="0"><node package="' + smoke.PACKAGE + '" /></hierarchy>'
+        malformed = "unexpected leading output\n" + valid
+        results = lambda raw: [subprocess.CompletedProcess([], 0, "", ""),
+                               subprocess.CompletedProcess([], 0, marker, ""),
+                               subprocess.CompletedProcess([], 0, raw, "")]
+        device.adb.side_effect = results(malformed) + results(valid) * 9
+        try:
+            ET.fromstring(malformed)
+        except ET.ParseError as error:
+            original = error
+        ui = smoke.Ui(device, Path("unused"), receipt)
+        with patch.object(smoke.ET, "fromstring", side_effect=original) as parse:
+            with self.assertRaises(ET.ParseError) as raised:
+                ui.snapshot()
+            self.assertIs(original, raised.exception)
+            parse.assert_called_once_with(malformed)
+        for _ in range(9):
+            self.assertEqual("hierarchy", ui.snapshot().tag)
+        observed = receipt["ui_hierarchy_observations"]
+        failed = observed["first_failed_attempt"]
+        self.assertEqual(1, failed["sequence"])
+        self.assertEqual("parse", failed["stage"])
+        self.assertFalse(failed["completed"])
+        self.assertEqual({"type": "ParseError", "message": str(original), "code": original.code,
+                          "position": original.position}, failed["error"])
+        raw = failed["commands"]["read"]["stdout"]
+        self.assertEqual(malformed, raw["prefix"])
+        self.assertEqual(malformed, raw["suffix"])
+        self.assertEqual(len(malformed), raw["text_characters"])
+        self.assertEqual(hashlib.sha256(malformed.encode("utf-8")).hexdigest(), raw["text_sha256"])
+        self.assertFalse(raw["edges_truncated"])
+        self.assertEqual(10, observed["attempted"])
+        self.assertEqual(list(range(3, 11)), [row["sequence"] for row in observed["recent_attempts"]])
+        self.assertEqual(10, observed["last_attempt"]["sequence"])
+        self.assertTrue(observed["last_attempt"]["completed"])
+        self.assertNotIn("error", observed["last_attempt"])
+        self.assertEqual({"attempted": 10, "completed": 9, "exit_137": 0}, receipt["ui_hierarchy_dumps"])
+        self.assertEqual(30, device.adb.call_count)
+
+    def test_capture_timeouts_and_process_errors_keep_bounded_original_observations(self):
+        marker = "UI hierchary dumped to: " + smoke.UI_DUMP_PATH
+        for index, (stage, budget) in enumerate((("remove", 30), ("dump", 20), ("read", 30))):
+            for original in (subprocess.TimeoutExpired("adb", budget, output=b"\xff" + b"x" * 5000,
+                                                       stderr=b"stderr" * 700),
+                             smoke.SmokeFailure("Owned emulator process exited")):
+                with self.subTest(stage=stage, error=type(original).__name__):
+                    device, receipt = Mock(spec=smoke.Device), {}
+                    preceding = [subprocess.CompletedProcess([], 0, "", ""),
+                                 subprocess.CompletedProcess([], 0, marker, "")]
+                    device.adb.side_effect = preceding[:index] + [original]
+                    with self.assertRaises(type(original)) as raised:
+                        smoke.Ui(device, Path("unused"), receipt).snapshot()
+                    self.assertIs(original, raised.exception)
+                    self.assertEqual(index + 1, device.adb.call_count)
+                    failed = receipt["ui_hierarchy_observations"]["first_failed_attempt"]
+                    self.assertEqual(stage, failed["stage"])
+                    self.assertFalse(failed["completed"])
+                    command = failed["commands"][stage]
+                    self.assertEqual(budget, command["timeout_seconds"])
+                    self.assertNotIn("exit_code", command)
+                    if isinstance(original, subprocess.TimeoutExpired):
+                        self.assertEqual(budget, command["command_timeout_seconds"])
+                        for stream in ("stdout", "stderr"):
+                            raw = getattr(original, stream).decode("utf-8", errors="replace")
+                            value = command[stream]
+                            self.assertTrue(value["decoded_from_bytes"])
+                            self.assertTrue(value["edges_truncated"])
+                            self.assertEqual(1200, len(value["prefix"]))
+                            self.assertEqual(1200, len(value["suffix"]))
+                            self.assertEqual(len(raw), value["text_characters"])
+                            self.assertEqual(hashlib.sha256(raw.encode("utf-8")).hexdigest(), value["text_sha256"])
+                    else:
+                        self.assertEqual(str(original), command["error"])
+                    self.assertEqual(0, receipt["ui_hierarchy_dumps"]["completed"])
+
+    def test_nonzero_removal_or_read_cannot_accept_xml_like_output(self):
+        marker = "UI hierchary dumped to: " + smoke.UI_DUMP_PATH
+        valid = '<hierarchy rotation="0"><node /></hierarchy>'
+        for stage, results in (
+            ("remove", [subprocess.CompletedProcess([], 1, valid, "removal failed")]),
+            ("read", [subprocess.CompletedProcess([], 0, "", ""),
+                       subprocess.CompletedProcess([], 0, marker, ""),
+                       subprocess.CompletedProcess([], 1, valid, "read failed")]),
+        ):
+            with self.subTest(stage=stage):
+                device, receipt = Mock(spec=smoke.Device), {}
+                device.adb.side_effect = results
+                with patch.object(smoke.ET, "fromstring") as parse, self.assertRaises(smoke.SmokeFailure):
+                    smoke.Ui(device, Path("unused"), receipt).snapshot()
+                parse.assert_not_called()
+                self.assertEqual(len(results), device.adb.call_count)
+                failed = receipt["ui_hierarchy_observations"]["first_failed_attempt"]
+                self.assertEqual(stage, failed["stage"])
+                self.assertEqual(1, failed["commands"][stage]["exit_code"])
+                self.assertEqual(valid, failed["commands"][stage]["stdout"]["prefix"])
+                self.assertEqual(0, receipt["ui_hierarchy_dumps"]["completed"])
+
+    def test_zero_exit_read_with_diagnostic_stderr_cannot_accept_valid_xml(self):
+        marker = "UI hierchary dumped to: " + smoke.UI_DUMP_PATH
+        valid = '<hierarchy rotation="0"><node /></hierarchy>'
+        diagnostic = "cat: read error\n"
+        device, receipt = Mock(spec=smoke.Device), {}
+        device.adb.side_effect = [subprocess.CompletedProcess([], 0, "", ""),
+                                 subprocess.CompletedProcess([], 0, marker, ""),
+                                 subprocess.CompletedProcess([], 0, valid, diagnostic)]
+        with patch.object(smoke.ET, "fromstring") as parse, self.assertRaisesRegex(
+                smoke.SmokeFailure, "Fresh UI hierarchy read failed"):
+            smoke.Ui(device, Path("unused"), receipt).snapshot()
+        parse.assert_not_called()
+        self.assertEqual(3, device.adb.call_count)
+        failed = receipt["ui_hierarchy_observations"]["first_failed_attempt"]
+        self.assertEqual("read", failed["stage"])
+        self.assertEqual(0, failed["commands"]["read"]["exit_code"])
+        self.assertEqual(valid, failed["commands"]["read"]["stdout"]["prefix"])
+        self.assertEqual(diagnostic, failed["commands"]["read"]["stderr"]["prefix"])
+        self.assertEqual(0, receipt["ui_hierarchy_dumps"]["completed"])
 
     def test_incomplete_or_differently_scoped_receipts_fail(self):
         receipt = {"source_commit": "a" * 40, "scope": "owned-installed-aosp-emulator", "status": "passed",

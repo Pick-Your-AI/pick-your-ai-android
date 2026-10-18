@@ -37,6 +37,7 @@ the owned emulator booted and the APK installed, but the first UI dump returned
 exit 137 with only its exact completed-file message. The launch case failed and
 the remaining three cases were unexecuted. The harness now allows that particular
 status only with the exact expected-path completion message and empty stderr.
+An ordinary zero exit now requires the same complete message and empty stderr.
 Every snapshot first successfully removes the prior dump, independently reads
 the new file and requires complete hierarchy XML with a valid rotation and nodes.
 Missing, stale, truncated or invalid XML and every other nonzero/error result fail.
@@ -322,11 +323,11 @@ logcat was retained to distinguish slow initialization from a userspace stall.
 Guest timestamps are not a measured conversion to elapsed host time. All four
 installed cases remain `not_run`, with no guest readiness, APK install or launch.
 
-The next experiment changes only the explicit HVF cold-boot limit from 300 to 600
+The next reviewed experiment changed only the explicit HVF cold-boot limit from 300 to 600
 seconds. KVM remains 300 seconds and software mode 900; the receipt validator must
-match the exact budget for its selected mode. This single bounded increase tests
-whether the observed late cold startup can finish. It is not a verified repair or
-a performance qualification, and another failure does not authorize further
+match the exact budget for its selected mode. This single bounded increase tested
+whether the observed late cold startup could finish. It was not a verified repair or
+a performance qualification, and a failure does not authorize further
 budget increases without diagnosing the retained evidence.
 
 The installed job retains its 25-minute limit. The 600-second boot allocation,
@@ -338,11 +339,82 @@ observed preceding job spent 58 seconds before entering the harness. Every boot
 result must still satisfy the complete original predicate before its absolute
 deadline, followed by all nine readiness checks and all four actual installed
 cases. The host, binary/image/APK pins, graphics/CPU arguments, command limits,
-failure handling, cleanup and artifact handoff remain unchanged. If this bounded
-run also fails, its original failure must be preserved while a separately reviewed
+failure handling, cleanup and artifact handoff remain unchanged. If a subsequent
+run fails at boot, its original failure must be preserved while a separately reviewed
 read-only framework diagnostic identifies the wait before another configuration
 change. The expanded existing host tests reject the old 300-second and software
 900-second budgets for HVF, and reject 600 seconds for KVM or software receipts.
+
+### Observed HVF launch and first-capture failure
+
+The [600-second-budget run 39112194859](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39112194859)
+checked out `159cf4c6a1bd6dcde1c4863c74e2c8c319bf8e13`, exact reviewed tree
+`eecf3179270b81726ed3c3395aa5d7e0777c6102`, with parents `899e9178` and `91341f85`.
+Core and native jobs passed, including all 48 host guards. Downloaded reports contain
+260 core and 29 simulated Activity cases with zero failures, errors or skips on
+that older canonical baseline. The exact producer APK again has SHA-256
+`c3e99c4783b5b71da2df1d6e665c9f6129509f5978f40de46075fe68dfc4449f`.
+Installed artifact `12131331327` has verified ZIP SHA-256
+`7b59904e3473df26a4bde3c74e3b2dc550b476d4c27721ed4edab0e23711d33f`.
+
+Boot completed after 281.918 seconds and 230 probes. That is within the preceding
+300-second limit too, so this result does not establish that the larger budget
+caused success. All nine readiness checks passed together on attempt four after
+10.155 seconds; the first full observation had reported user 0 still locked.
+Installation and the exact preview Activity launch succeeded. The launch command
+returned exit 0, empty stderr, `Status: ok` and `LaunchState: COLD` after 14.415
+seconds. These observations establish one actual HVF boot, readiness, install and
+launch, without establishing repeatability or completion of any installed case.
+
+The first case then failed after 24.363 seconds with `ParseError: syntax error:
+line 1, column 0`. The receipt and JUnit agree on one failed case and three
+`not_run` cases. At that source revision, reaching the parser implies an admitted
+dump result and a successful `exec-out cat`, but their original streams were not
+retained. Their missing contents prevent a diagnosis of that first XML input.
+The later failure checkpoint is a distinct successful capture: its 7,782-byte XML
+contains 20 nodes from the preview package, and its screenshot shows the synthetic
+draft. It cannot replace the failed first capture. These artifacts do not establish
+a selector problem, truncation, renderer fault or the original malformed text.
+
+### Bounded UI capture observations and complete dump results
+
+Each snapshot now records its sequence, exact dump path, current stage and elapsed
+time in `ui_hierarchy_observations`. Removal, dump and read have separate command
+arguments, elapsed times and returned exit codes or original timeout/process
+errors. Their existing command limits remain 30, 20 and 30 seconds respectively.
+Each available stdout/stderr observation retains its decoded character count,
+SHA-256 of the UTF-8 encoded decoded text, first 1,200 characters, last 1,200
+characters and whether those retained edges omit a middle section. Byte streams
+from a timeout are decoded with replacement and explicitly identified; the digest
+is text-derived, not a claim about the original subprocess bytes. These are bounds
+on retained receipt text, not on the existing `capture_output` memory allocation.
+
+The receipt retains the latest eight attempts and the first failed attempt
+separately, so a later successful failure checkpoint cannot overwrite the failed
+input. Parser failures include the original exception type, message, code and
+position. Observation does not alter or suppress that exception. No retry, XML
+prefix removal or other input repair is performed: the complete returned read
+stdout goes directly to the same XML parser and hierarchy predicate.
+
+Both an ordinary dump exit 0 and the existing narrowly accepted exit 137 now
+require the complete expected-path `UI hierchary dumped to:` message and empty
+stderr. An exit alone cannot authorize the read. Prior-file removal and the fresh
+read must each succeed; the read must also have no nonwhitespace stderr before
+parsing. Valid-looking XML cannot override a read-command diagnostic. This stronger
+read check is not a diagnosis of the missing first input in the preceding run.
+The exact marker still cannot replace valid hierarchy XML
+with a recognized rotation and nodes. The existing dump counters retain their
+meaning, including no completed dump or exit-137 completion until XML passes.
+
+Host regressions exercise zero-exit failures, wrong or contaminated completion
+messages, nonzero removal/read or read stderr despite XML-like output, retained malformed parser
+input, later successful checkpoints, bounded history and timeout streams, and
+preservation of the original timeout/process/parser exceptions. All 52 host tests
+pass locally. These tests do not run a device or establish an installed repair.
+The emulator/image/APK selection, boot and readiness requirements, launch check,
+UI selectors, all four installed case bodies and cleanup are unchanged. An actual
+changed-source run must still execute and pass all four cases before the installed
+lane can be accepted.
 
 ## Inputs and provenance
 
