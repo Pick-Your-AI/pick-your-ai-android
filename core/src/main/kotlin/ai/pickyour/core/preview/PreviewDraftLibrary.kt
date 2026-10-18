@@ -168,13 +168,30 @@ class PreviewDraftLibrary internal constructor(root: Path, private val checkpoin
      * must still match; null permits only a still-missing or unreadable record, never a valid save.
      * Tombstoned records can only resume cleanup. Listing never grants an editor a new save token.
      */
-    fun delete(id: PreviewDraftId, expected: PreviewStoredDraft?): PreviewLibraryDelete {
+    fun delete(id: PreviewDraftId, expected: PreviewStoredDraft?): PreviewLibraryDelete = delete(id, expected, false)
+
+    /** Reconcile a named earlier removal, including an absent final marker; never start deleting an active row. */
+    fun retryDeletion(id: PreviewDraftId): PreviewLibraryDelete = delete(id, null, true)
+
+    private fun delete(id: PreviewDraftId, expected: PreviewStoredDraft?, retryOnly: Boolean): PreviewLibraryDelete {
         var started = false
         return locked({ if (started) PreviewLibraryDelete.Unconfirmed(it) else PreviewLibraryDelete.Failed(it) }) {
             if (expected != null && expected.draft.version.store != root.resolve(id.value))
                 return@locked PreviewLibraryDelete.Conflict
             val pending = pendingPath(id)
+            if (retryOnly && !Files.exists(root.resolve(id.value), NOFOLLOW_LINKS) && !Files.exists(pending, NOFOLLOW_LINKS)) {
+                // Removal may be complete while its final acknowledgement was lost. Re-sync
+                // absence without adding a new pending row to an already full library.
+                started = true
+                if (id.value == "guest-draft") durableMarker(root.resolve(LEGACY_DELETED))
+                sync(root)
+                val directory = deletionDirectory()
+                if (Files.exists(directory, NOFOLLOW_LINKS)) sync(directory)
+                return@locked PreviewLibraryDelete.Deleted
+            }
             if (!hasTombstone(id)) {
+                if (retryOnly && Files.exists(root.resolve(id.value), NOFOLLOW_LINKS))
+                    return@locked PreviewLibraryDelete.Conflict
                 val current = if (!Files.exists(root.resolve(id.value), NOFOLLOW_LINKS)) PreviewDraftLoad.Missing
                     else try { unbound(id).load() }
                     catch (_: IllegalArgumentException) { PreviewDraftLoad.Failed(DraftStorageFailure.CORRUPT) }
