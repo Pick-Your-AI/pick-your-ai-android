@@ -63,6 +63,14 @@ hosted VM. Artifact retention never includes AVD userdata or the temporary signi
 directory. KVM permission repair, when necessary, changes ownership of only the
 ephemeral runner's `/dev/kvm` device to the runner user.
 
+The host also needs Ubuntu's `libpulse0` runtime library even with emulator audio
+disabled. The preparation step installs that specific package and the receipt
+records its installed version. The first [hosted attempt](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39098235903)
+passed compilation/lint and all 11 simulated cases, then failed loading
+`libpulse.so.0` during emulator version inspection. Its retained receipt correctly
+marks all four installed cases unexecuted and the original APK unchanged. This
+failure is setup evidence; a later passing installed receipt is still required.
+
 ## Inputs and provenance
 
 The application keeps its existing JDK 21, Gradle 8.11.1, Kotlin 2.1.20, AGP 8.9.2,
@@ -138,6 +146,8 @@ Primary references checked 2026-10-18: [GitHub-hosted runner Android acceleratio
 [KVM acceleration](https://developer.android.com/studio/run/emulator-acceleration),
 [apksigner](https://developer.android.com/tools/apksigner), and the official
 [AOSP system-image metadata](https://dl.google.com/android/repository/sys-img/android/sys-img2-1.xml).
-The last source lists API 35 default x86_64 revision 2 as `x86_64-35_r02.zip`,
+Ubuntu's [libpulse0 file list](https://packages.ubuntu.com/noble/amd64/libpulse0/filelist)
+identifies the required `libpulse.so.0` library on the selected runner distribution.
+The SDK metadata lists API 35 default x86_64 revision 2 as `x86_64-35_r02.zip`,
 782,404,023 bytes, with its published archive checksum. These references establish
 tool usage and available inputs; they do not establish a passing app run.

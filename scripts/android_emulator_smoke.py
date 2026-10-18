@@ -415,6 +415,7 @@ def main() -> int:
         receipt["system_image"] = {"package": SYSTEM_IMAGE, "revision": revision,
                                   "package_xml_sha256": digest(image_dir / "package.xml"),
                                   "system_img_sha256": digest(image_dir / "system.img")}
+        receipt["libpulse0_version"] = command(["dpkg-query", "-W", "-f=${Version}", "libpulse0"]).stdout.strip()
         receipt["emulator_version"] = command([str(emulator), "-version"]).stdout.strip()
         receipt["emulator_binary_sha256"] = digest(emulator)
         receipt["adb_version"] = command([str(adb), "version"]).stdout.strip()
