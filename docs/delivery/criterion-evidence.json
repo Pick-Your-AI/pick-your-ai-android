@@ -1,10 +1,10 @@
 {
-  "schema_version": 4,
+  "schema_version": 5,
   "observed_on": "2026-10-18",
   "repository": "Pick-Your-AI/pick-your-ai-android",
   "implementation_baseline": "cc4869aa40316fe81b4e00a2e6b73a2df01a2329",
   "source": "Live GitHub issue-list read across all states; criterion order and exact text retained. Closed accepted issues remain in the source comparison.",
-  "purpose": "Living evidence index: 15 reviewed documentary/design criteria for Android #20/#23/#24/#25/#34 are complete; 426 criteria remain incomplete. This does not replace acceptance receipts, GitHub issue status or native dependencies.",
+  "purpose": "Living evidence index: 18 reviewed documentary/design criteria for Android #20/#23/#24/#25/#34/#47 are complete; 423 criteria remain incomplete. This does not replace acceptance receipts, GitHub issue status or native dependencies.",
   "evidence": {
     "pr-131": {
       "pr_url": "https://github.com/Pick-Your-AI/pick-your-ai-android/pull/131",
@@ -138,6 +138,13 @@
       "revision": "68e52dd9c79cefe97af65e8fd1e86e4b72d2c42c",
       "artifact_url": "https://github.com/Pick-Your-AI/pick-your-ai-android/blob/68e52dd9c79cefe97af65e8fd1e86e4b72d2c42c/docs/decisions/0003-android-25-acceptance-record.md",
       "scope_limit": "Accepted Android #25 guest-local, accounts, revenue, analytics, diagnostic and notification applicability decision, exact three-criterion mapping and ADR 0003 placement, with independent delegated product/Android technical receiving review. This accepts the documented enable/defer/reject and canonical remote-authorization decisions. The source retains explicit demand/value hypotheses, counterfactual disabled-service walkthroughs and current policy applicability limits. Account/service implementation, support destination, telemetry, purchases, notification behavior, participant evidence, installed devices and store/release/operating acceptance retain their own requirements."
+    },
+    "pr-318": {
+      "pr_url": "https://github.com/Pick-Your-AI/pick-your-ai-android/pull/318",
+      "observed_state": "merged",
+      "revision": "b6935a8ee7843831f90b0219c8794071557c71d4",
+      "artifact_url": "https://github.com/Pick-Your-AI/pick-your-ai-android/blob/b6935a8ee7843831f90b0219c8794071557c71d4/docs/decisions/0004-android-47-acceptance-record.md",
+      "scope_limit": "Accepted Android #47 qualification and ownership baseline decision, A01–A13 requirements and measurement/artifact methods, selected device/API/window targets, exact criterion mapping and narrowly scoped ADR 0004 placement, with actual independent source and delegated product/Android receiving reviews. This accepts three literal design outcomes. Physical equipment and installed-device results, measured performance/resource/capacity budgets, participant or source-rights/data qualification, future publisher/support/operating commitments, store and production release retain their separate prerequisites; no selected target is represented as an observed result."
     }
   },
   "issues": [
@@ -2999,7 +3006,7 @@
       "url": "https://github.com/Pick-Your-AI/pick-your-ai-android/issues/47",
       "title": "Android 01.06: Acceptance and ownership baseline",
       "canonical_acceptance_record": {
-        "repository": "Pick-Your-AI/pickyour.ai",
+        "repository": "Pick-Your-AI/pick-your-ai-android",
         "path": "docs/delivery/android/work-packages/01.06.md"
       },
       "criteria": [
@@ -3007,57 +3014,67 @@
           "id": "47.1",
           "text": "Set measurable product/performance/reliability criteria, supported devices, review roles and release gates without inventing dates, budgets or assignees.",
           "text_sha256": "a3a18d7099e6a93d467f427faa9c826c92dde14f7548a217cad5feb619afde8a",
-          "status": "incomplete",
+          "status": "complete",
           "partial_evidence_refs": [
             "pr-131"
           ],
-          "evidence_relation": "issue_context_only; inspect artifact scope before attributing any criterion result",
-          "remaining_engineering": "Implement and validate this exact criterion in the selected scope; record negative/recovery cases and receiving evidence.",
-          "external_prerequisites": [
-            {
-              "kind": "owner_acceptance",
-              "requirement": "Actual review/release ownership and supported-device commitments; engineering measurement thresholds can be proposed and tested now."
-            }
-          ],
-          "completion_evidence": []
+          "evidence_relation": "criterion_complete_reviewed_design_outcome",
+          "remaining_engineering": "",
+          "external_prerequisites": [],
+          "completion_evidence": [
+            "pr-318"
+          ]
         },
         {
           "id": "47.2",
           "text": "Every release criterion has a measurement/review method and inspectable evidence artifact.",
           "text_sha256": "3a3c7a2613998f2bf036cf6cb1bed70fbfc0bc09e46a943bad682f218d6f4ea6",
-          "status": "incomplete",
+          "status": "complete",
           "partial_evidence_refs": [
             "pr-131"
           ],
-          "evidence_relation": "issue_context_only; inspect artifact scope before attributing any criterion result",
-          "remaining_engineering": "Implement and validate this exact criterion in the selected scope; record negative/recovery cases and receiving evidence.",
-          "external_prerequisites": [
-            {
-              "kind": "owner_acceptance",
-              "requirement": "Actual review/release ownership and supported-device commitments; engineering measurement thresholds can be proposed and tested now."
-            }
-          ],
-          "completion_evidence": []
+          "evidence_relation": "criterion_complete_reviewed_design_outcome",
+          "remaining_engineering": "",
+          "external_prerequisites": [],
+          "completion_evidence": [
+            "pr-318"
+          ]
         },
         {
           "id": "47.3",
           "text": "Decided thresholds and devices are recorded; structural validation, factual acceptance, application behavior and live release verification remain separate gates.",
           "text_sha256": "0b4be01e81cc371f7c8f6a8fc6245b0bde780d259700e11a23d8e97dd4a61b48",
-          "status": "incomplete",
+          "status": "complete",
           "partial_evidence_refs": [
             "pr-131"
           ],
-          "evidence_relation": "issue_context_only; inspect artifact scope before attributing any criterion result",
-          "remaining_engineering": "Implement and validate this exact criterion in the selected scope; record negative/recovery cases and receiving evidence.",
-          "external_prerequisites": [
-            {
-              "kind": "owner_acceptance",
-              "requirement": "Actual review/release ownership and supported-device commitments; engineering measurement thresholds can be proposed and tested now."
-            }
-          ],
-          "completion_evidence": []
+          "evidence_relation": "criterion_complete_reviewed_design_outcome",
+          "remaining_engineering": "",
+          "external_prerequisites": [],
+          "completion_evidence": [
+            "pr-318"
+          ]
         }
-      ]
+      ],
+      "accepted_design_outcome": {
+        "scope": "android_acceptance_and_ownership_baseline_decision",
+        "evidence_ref": "pr-318",
+        "decision_revision": "b6935a8ee7843831f90b0219c8794071557c71d4",
+        "decision_url": "https://github.com/Pick-Your-AI/pick-your-ai-android/blob/b6935a8ee7843831f90b0219c8794071557c71d4/docs/decisions/0004-android-47-acceptance-record.md",
+        "record_url": "https://github.com/Pick-Your-AI/pick-your-ai-android/blob/b6935a8ee7843831f90b0219c8794071557c71d4/docs/delivery/android/work-packages/01.06.md",
+        "baseline_url": "https://github.com/Pick-Your-AI/pick-your-ai-android/blob/b6935a8ee7843831f90b0219c8794071557c71d4/docs/ACCEPTANCE_BASELINE.md",
+        "receiving_reviews": [
+          "https://github.com/Pick-Your-AI/pick-your-ai-android/pull/318#pullrequestreview-5563013669",
+          "https://github.com/Pick-Your-AI/pick-your-ai-android/pull/318#pullrequestreview-5563018910",
+          "https://github.com/Pick-Your-AI/pick-your-ai-android/pull/318#pullrequestreview-5563074154",
+          "https://github.com/Pick-Your-AI/pick-your-ai-android/pull/318#pullrequestreview-5563081505"
+        ],
+        "source_review_revision": "8800b02a8068902773652b553d52749ce8a8e167",
+        "historical_acceptance_record": {
+          "repository": "Pick-Your-AI/pickyour.ai",
+          "path": "docs/delivery/android/work-packages/01.06.md"
+        }
+      }
     },
     {
       "number": 48,
