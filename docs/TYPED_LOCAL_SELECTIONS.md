@@ -80,7 +80,10 @@ does not enforce library entry liveness during concurrent deletion.
 - Add retains the supplied explicit role/settings and requires exact catalog pins.
 - Replace keeps target selection ID, kind, role, enabled state, notes and extensions.
   Settings also stay intact unless an explicit replacement settings object is supplied.
-- Configure replaces only the typed settings object.
+- Configure with no explicit role replaces only the typed settings object. An
+  explicit changed role is one atomic `CONFIGURE_ROLE` command that preserves
+  identity and all other fields besides the supplied role/settings. The native
+  [role editor](LOCAL_SELECTION_ROLES.md) supplies the complete original settings.
 - Disable/re-enable changes only enabled state and rechecks active cardinality.
 - Remove deletes the selected identity and exactly its incident links. It never
   promotes a secondary selection or changes an unrelated selection/link.
@@ -95,7 +98,10 @@ content by sorted selection/link ID and stable JSON field order.
 
 ## Migration and preservation
 
-New writes use private local envelope version 4. Every content entry includes a
+New drafts use private local envelope version 4. A real explicit selection role
+change upgrades to version 5 without changing format-4 `CONFIGURE` semantics;
+[the role history boundary](LOCAL_SELECTION_ROLES.md) preserves earlier records
+and keeps subsequent writes at version 5. Every content entry includes a
 `components` object with `selections` and `links`; every history entry includes a
 nullable `selection_change`. Unknown versions and unknown/missing/invalid fields
 fail closed without rewriting or resetting stored bytes. Frozen v1 files are unchanged.
