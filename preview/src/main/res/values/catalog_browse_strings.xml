@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="catalog_tier_title">Choose a tier</string>
+    <string name="catalog_kind_title">Choose a canonical kind</string>
+    <string name="catalog_sort_title">Sort synthetic results</string>
+    <string name="catalog_all_tiers">All tiers</string>
+    <string name="catalog_all_kinds">All kinds</string>
+    <string name="catalog_tier">Tier: %1$s</string>
+    <string name="catalog_kind">Kind: %1$s</string>
+    <string name="catalog_sort">Sort: %1$s</string>
+    <string name="catalog_sort_name">Name</string>
+    <string name="catalog_sort_fixture">Fixture order</string>
+    <string name="catalog_sort_kind">Tier and kind</string>
+    <string name="catalog_previous">Previous catalog page</string>
+    <string name="catalog_next">Next catalog page</string>
+    <string name="catalog_page">Synthetic results: page %1$d of %2$d · %3$d matching items</string>
+    <string name="catalog_no_matches">No synthetic items match this query and these filters. Change the search or select All tiers and All kinds.</string>
+    <string name="catalog_browse_waiting">Catalog browsing is unavailable until the fixture has loaded.</string>
+    <string name="catalog_snapshot_changed">The synthetic catalog snapshot changed. The page was reset; your draft selection keeps its original version.</string>
+    <string name="catalog_state_reset">The previous browse settings are unsupported. Default browse settings are shown.</string>
+</resources>
