@@ -233,7 +233,8 @@ permission is added.
 
 The immutable [v1 baseline at `8162a557`](https://github.com/Pick-Your-AI/pick-your-ai-android/blob/8162a5571147874635d3139e73a171a1077a6d2b/docs/delivery/criterion-evidence.json)
 [v2 delivery at `0b1875db`](https://github.com/Pick-Your-AI/pick-your-ai-android/blob/0b1875db66016e5187b181534e2fefcd268beddd/docs/delivery/criterion-evidence.json)
-and [v3 delivery at `f4d1487c`](https://github.com/Pick-Your-AI/pick-your-ai-android/blob/f4d1487cb82921e8418d4474cc373c2b817e0a59/docs/delivery/criterion-evidence.json)
+[v3 delivery at `f4d1487c`](https://github.com/Pick-Your-AI/pick-your-ai-android/blob/f4d1487cb82921e8418d4474cc373c2b817e0a59/docs/delivery/criterion-evidence.json)
+and [v4 delivery at `1c171fc5`](https://github.com/Pick-Your-AI/pick-your-ai-android/blob/1c171fc5cff9733702466effdafca6a96da12960/docs/delivery/criterion-evidence.json)
 remain in Git history with their original validators and observations. Current
 acceptance evolves through explicit schema review and delivered receipts.
 Future completion or placement support needs independent review and its own
