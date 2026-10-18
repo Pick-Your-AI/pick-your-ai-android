@@ -1,0 +1,230 @@
+{
+  "fixture_set": "android-preview-scenarios-1",
+  "classification": "synthetic",
+  "schema_version": "1.0.0",
+  "source": {
+    "android_adoption_commit": "9769fcd9ea380b1211669b2753181c7782444178",
+    "import_manifest_sha256": "ef6d5801eec10f3169e2bf84653e7026b33088e305a987991ec52faadcd7f554",
+    "registry_sha256": "cd60070e912a60504f605f2fd9f86c64520160cce7f4184c8ea200209c6b1918",
+    "original_cost_estimate_sha256": "4b7c3889881d3c424ed98cc47b146b25b05df21c5459c9558717f21b6198b7e4"
+  },
+  "evidence_limit": "Local frozen-reference examples only; no product, vendor, measured or publication evidence.",
+  "assets": [
+    {
+      "key": "ORIGINAL_BUILD",
+      "asset_path": "build.json",
+      "document": "BUILD",
+      "bytes": 14681,
+      "sha256": "26762208769a8cf1012b4f33b1c1608556d275187ce21117d0b9632cdf951864",
+      "disposition": "frozen_schema_valid"
+    },
+    {
+      "key": "CATALOG",
+      "asset_path": "catalog.json",
+      "document": "CATALOG",
+      "bytes": 23827,
+      "sha256": "2e9120db823faef3e1e330a7d2e8067b3ab064328e2faed699d15cf41880fbf8",
+      "disposition": "frozen_schema_valid"
+    },
+    {
+      "key": "RULESET",
+      "asset_path": "ruleset.json",
+      "document": "RULESET",
+      "bytes": 63617,
+      "sha256": "05474568204fdbfd407cb4e4cfc9334e22fdf24e75111bed8990868926fab418",
+      "disposition": "frozen_schema_valid"
+    },
+    {
+      "key": "GRAPH",
+      "asset_path": "dependency-graph.json",
+      "document": "DEPENDENCY_GRAPH",
+      "bytes": 17959,
+      "sha256": "e9b3bca19a9cf8241fd74f6618824882a3413649822add88be1ac93cb3f1bacc",
+      "disposition": "frozen_schema_valid"
+    },
+    {
+      "key": "PRICEBOOK",
+      "asset_path": "pricebook.json",
+      "document": "PRICEBOOK",
+      "bytes": 1255,
+      "sha256": "716a848822fc2b182d226c597f7e50f4b00a0fe01ba5c03879e858ca6f0c9b46",
+      "disposition": "frozen_schema_valid"
+    },
+    {
+      "key": "EMPTY_BUILD",
+      "asset_path": "preview-scenarios/v1/empty-build.json",
+      "document": "BUILD",
+      "bytes": 778,
+      "sha256": "3529acb36b506ecc0936a81ff0ea2cfbf8f824812ae83190203c30e734f05430",
+      "disposition": "expected_schema_rejection"
+    },
+    {
+      "key": "CORE_BUILD",
+      "asset_path": "preview-scenarios/v1/core-build.json",
+      "document": "BUILD",
+      "bytes": 14718,
+      "sha256": "40324f2eae5668f02da8d3e8912ea7ace87fd627fc44df2420c64b5788fcf754",
+      "disposition": "frozen_schema_valid"
+    },
+    {
+      "key": "FAILED_BUILD",
+      "asset_path": "preview-scenarios/v1/failed-build.json",
+      "document": "BUILD",
+      "bytes": 14727,
+      "sha256": "428dd5ee688ec933bc572229826f81a0903c0443f267c7f2b58813c40c8f8c7c",
+      "disposition": "frozen_schema_valid"
+    },
+    {
+      "key": "PARTIAL_ESTIMATE",
+      "asset_path": "preview-scenarios/v1/partial-estimate.json",
+      "document": "COST_ESTIMATE",
+      "bytes": 1470,
+      "sha256": "8002ec8be9cbc356655c1f85de67e5b2ee36361d491867a444c15172b1bf28d3",
+      "disposition": "frozen_schema_valid"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "empty_draft",
+      "build": "EMPTY_BUILD",
+      "disposition": "expected_schema_rejection",
+      "expected": {
+        "missing_objectives": [
+          "region",
+          "currency",
+          "data_classification"
+        ],
+        "selections_min_items": 2
+      }
+    },
+    {
+      "id": "core_build",
+      "build": "CORE_BUILD",
+      "disposition": "frozen_diagnostic",
+      "expected": {
+        "summary": {
+          "passed": 21,
+          "failed": 0,
+          "unknown": 3,
+          "skipped": 21
+        },
+        "result": "indeterminate",
+        "deployment_readiness": "blocked",
+        "reference_report_sha256": "e5f5c24f399bfde092e0bc24e015248bed420c8d1c88cc754d387becb0c2f4c7",
+        "findings": [
+          {
+            "rule_id": "rule.vram.estimate.fit",
+            "outcome": "unknown"
+          },
+          {
+            "rule_id": "rule.budget.monthly.cap",
+            "outcome": "unknown"
+          },
+          {
+            "rule_id": "rule.vram.per.device.fit",
+            "outcome": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "id": "unknown_evidence",
+      "build": "ORIGINAL_BUILD",
+      "disposition": "frozen_diagnostic",
+      "expected": {
+        "summary": {
+          "passed": 38,
+          "failed": 0,
+          "unknown": 3,
+          "skipped": 4
+        },
+        "result": "indeterminate",
+        "deployment_readiness": "blocked",
+        "reference_report_sha256": "e81646d2a69fad2f46b948794db0dbf973ee513f8e51f3357338278d9291b416",
+        "findings": [
+          {
+            "rule_id": "rule.vram.estimate.fit",
+            "outcome": "unknown"
+          },
+          {
+            "rule_id": "rule.budget.monthly.cap",
+            "outcome": "unknown"
+          },
+          {
+            "rule_id": "rule.vram.per.device.fit",
+            "outcome": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "id": "failed_rule",
+      "build": "FAILED_BUILD",
+      "disposition": "frozen_diagnostic",
+      "expected": {
+        "summary": {
+          "passed": 19,
+          "failed": 2,
+          "unknown": 3,
+          "skipped": 21
+        },
+        "result": "invalid",
+        "deployment_readiness": "blocked",
+        "reference_report_sha256": "f975f5b3bccc61e970afad536fd11693379f9ce901c95f448d97db17c2971df1",
+        "findings": [
+          {
+            "rule_id": "rule.model.context.fit",
+            "outcome": "fail"
+          },
+          {
+            "rule_id": "rule.vram.estimate.fit",
+            "outcome": "unknown"
+          },
+          {
+            "rule_id": "rule.budget.monthly.cap",
+            "outcome": "unknown"
+          },
+          {
+            "rule_id": "rule.context.policy.limit",
+            "outcome": "fail"
+          },
+          {
+            "rule_id": "rule.vram.per.device.fit",
+            "outcome": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "id": "partial_quote",
+      "build": "CORE_BUILD",
+      "estimate": "PARTIAL_ESTIMATE",
+      "disposition": "recorded_partial_quote",
+      "expected": {
+        "coverage": "partial",
+        "subtotal": "2.50",
+        "tax": "0.00",
+        "total": "2.50",
+        "currency": "USD",
+        "unpriced_selection_ids": [
+          "sel_compute_profile"
+        ],
+        "unclassified_active_selection_ids": [
+          "sel_accelerator",
+          "sel_context_policy",
+          "sel_cost_policy",
+          "sel_deployment_mode",
+          "sel_deployment_target",
+          "sel_evaluation_suite",
+          "sel_guardrail",
+          "sel_hosting_platform",
+          "sel_inference_engine",
+          "sel_model",
+          "sel_model_provider",
+          "sel_monitoring_stack",
+          "sel_workload"
+        ]
+      }
+    }
+  ]
+}

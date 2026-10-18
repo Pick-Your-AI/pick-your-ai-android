@@ -1,0 +1,54 @@
+{
+  "schema_version": "1.0.0",
+  "id": "estimate.android.synthetic.partial.v1",
+  "build_id": "build.android.synthetic.core.v1",
+  "build_revision": 1,
+  "pricebook_id": "prices.fixture.1",
+  "estimated_at": "2026-10-16T09:00:00Z",
+  "period_days": 30,
+  "currency": "USD",
+  "line_items": [
+    {
+      "id": "line.storage.fixture",
+      "selection_id": "sel_storage",
+      "price_rate_id": "rate.storage.fixture",
+      "meter": "storage_gb_month",
+      "quantity": "50",
+      "unit_price": {
+        "amount": "0.05",
+        "currency": "USD"
+      },
+      "amount": {
+        "amount": "2.50",
+        "currency": "USD"
+      },
+      "method": "workload_projection",
+      "confidence": "low",
+      "assumptions": [
+        "FIXTURE ONLY: usage and pricing are illustrative."
+      ]
+    }
+  ],
+  "subtotal": {
+    "amount": "2.50",
+    "currency": "USD"
+  },
+  "tax": {
+    "amount": "0.00",
+    "currency": "USD"
+  },
+  "total": {
+    "amount": "2.50",
+    "currency": "USD"
+  },
+  "coverage": "partial",
+  "unpriced_selection_ids": [
+    "sel_compute_profile"
+  ],
+  "warnings": [
+    "SYNTHETIC preview only: recorded storage amount, not a vendor quote or measured use.",
+    "Compute is explicitly unpriced; other active selections without lines remain unclassified.",
+    "The recorded 2.50 USD subtotal is not a complete stack price or a proven lower bound.",
+    "Freshness, free or included treatment and budget approval are not established."
+  ]
+}

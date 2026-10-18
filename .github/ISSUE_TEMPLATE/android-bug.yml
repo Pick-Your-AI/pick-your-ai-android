@@ -1,0 +1,67 @@
+name: Android app bug
+description: Report reproducible Android preview behavior using safe synthetic inputs.
+title: "[Android bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **This issue and any attachments will be public.** Check [existing Android reports](https://github.com/Pick-Your-AI/pick-your-ai-android/issues) first and read the [help and triage guide](https://github.com/Pick-Your-AI/pick-your-ai-android/blob/main/SUPPORT.md).
+
+        Use an invented, synthetic reproduction. Do not include private drafts, personal information, credentials, private URLs, raw files or logs. No private reporting destination is verified for this preview: do not submit confidential or sensitive security details here. A browser/form opening is not a submitted or triaged report, and no response-time guarantee is offered.
+
+        For a public source, claim, price or evidence error, use the **Android evidence correction** form instead. The app does not populate or upload this report; review everything before you submit it yourself.
+  - type: checkboxes
+    id: public-review
+    attributes:
+      label: Public-content review
+      options:
+        - label: I reviewed the text and any attachments and excluded private information, credentials and sensitive security details.
+          required: true
+  - type: input
+    id: version
+    attributes:
+      label: App version and Android API
+      description: Copy only the app version/code and Android API shown in Help. No device identifier is needed.
+      placeholder: 0.0.1-synthetic (code 1), Android API 28
+    validations:
+      required: true
+  - type: dropdown
+    id: behavior
+    attributes:
+      label: Affected behavior
+      options:
+        - Editing, saving or recovery
+        - Catalog, findings or comparison presentation
+        - Help, diagnostics or public-page navigation
+        - Accessibility or layout
+        - Startup or another app behavior
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Safe reproduction steps
+      description: Use a new synthetic draft and invented values. Name the controls and steps; say whether a local save was acknowledged. Do not attach the original private draft or raw logs.
+      placeholder: |
+        1. Open a new synthetic draft.
+        2. Enter an invented title.
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected-observed
+    attributes:
+      label: Expected and observed behavior
+      description: Describe what should happen and what actually happened. Include a safe on-screen status and whether recovery worked; remove private text from any screenshot.
+    validations:
+      required: true
+  - type: textarea
+    id: reviewed-diagnostics
+    attributes:
+      label: Optional reviewed diagnostic report
+      description: If useful, manually paste only the complete small report from Review diagnostics after inspecting it. Do not paste raw system logs, files or exceptions. Leaving this empty is supported.
+  - type: input
+    id: related-report
+    attributes:
+      label: Related public report
+      description: Optional existing public issue or reviewed-fix URL. Do not include private or credential-bearing URLs.
