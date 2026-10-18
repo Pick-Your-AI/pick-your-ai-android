@@ -60,8 +60,11 @@ camera, and disabled emulator metrics. Only this job's process group is terminat
 during normal completion or failure, and its AVD/key/copy are removed with the
 temporary directory. Hard job cancellation additionally relies on disposal of the
 hosted VM. Artifact retention never includes AVD userdata or the temporary signing
-directory. KVM permission repair, when necessary, changes ownership of only the
-ephemeral runner's `/dev/kvm` device to the runner user.
+directory. A read-only KVM preflight reports the current effective UID, groups and
+device ownership/mode, requires a real character device and checks existing
+read/write access. It runs before SDK provisioning and again before the emulator
+acceleration probe. Missing devices, symbolic links and unavailable access fail
+clearly; this lane changes no KVM ownership, permissions, groups or udev rules.
 
 The host also needs Ubuntu's `libpulse0` runtime library even with emulator audio
 disabled. The preparation step installs that specific package and the receipt

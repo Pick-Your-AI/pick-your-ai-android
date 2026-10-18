@@ -2,8 +2,10 @@
 
 import copy
 import importlib.util
+import io
 import os
 from pathlib import Path
+import stat
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -20,6 +22,59 @@ def node(text="", kind="android.widget.TextView", package=smoke.PACKAGE, box="[0
 
 
 class EmulatorSmokeGuardTest(unittest.TestCase):
+    def test_kvm_preflight_rejects_missing_regular_and_symlink_devices(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            regular = root / "regular"
+            regular.touch()
+            link = root / "link"
+            link.symlink_to(regular)
+            with patch.object(smoke.os, "access") as access, patch.object(smoke, "command") as command, \
+                    patch("sys.stdout", new_callable=io.StringIO):
+                for device in (root / "missing", regular, link):
+                    with self.subTest(device=device.name), self.assertRaises(smoke.SmokeFailure):
+                        smoke.check_kvm_access(device)
+                access.assert_not_called()
+                command.assert_not_called()
+
+    def test_kvm_metadata_permission_error_fails_without_access_changes(self):
+        with patch.object(Path, "lstat", side_effect=PermissionError), \
+                patch.object(smoke.os, "access") as access, patch.object(smoke.os, "chown") as chown, \
+                patch.object(smoke.os, "chmod") as chmod, patch.object(smoke, "command") as command, \
+                patch("sys.stdout", new_callable=io.StringIO):
+            with self.assertRaisesRegex(smoke.SmokeFailure, "absent or unreadable"):
+                smoke.check_kvm_access()
+            access.assert_not_called()
+            chown.assert_not_called()
+            chmod.assert_not_called()
+            command.assert_not_called()
+
+    def test_kvm_denied_access_fails_without_attempting_permission_repair(self):
+        metadata = os.stat_result((stat.S_IFCHR | 0o660, 1, 1, 1, 1001, 108, 0, 0, 0, 0))
+        with patch.object(Path, "lstat", return_value=metadata), \
+                patch.object(smoke.os, "access", return_value=False) as access, \
+                patch.object(smoke.os, "chown") as chown, patch.object(smoke.os, "chmod") as chmod, \
+                patch.object(smoke, "command") as command, patch("sys.stdout", new_callable=io.StringIO):
+            with self.assertRaisesRegex(smoke.SmokeFailure, "read/write access is unavailable"):
+                smoke.check_kvm_access()
+            access.assert_called_once_with(Path("/dev/kvm"), os.R_OK | os.W_OK, effective_ids=True)
+            chown.assert_not_called()
+            chmod.assert_not_called()
+            command.assert_not_called()
+
+    def test_kvm_existing_character_device_access_is_accepted_without_commands(self):
+        metadata = os.stat_result((stat.S_IFCHR | 0o660, 1, 1, 1, 1001, 108, 0, 0, 0, 0))
+        with patch.object(Path, "lstat", return_value=metadata), \
+                patch.object(smoke.os, "access", return_value=True) as access, \
+                patch.object(smoke.os, "chown") as chown, patch.object(smoke.os, "chmod") as chmod, \
+                patch.object(smoke, "command") as command, patch("sys.stdout", new_callable=io.StringIO) as output:
+            smoke.check_kvm_access()
+            access.assert_called_once_with(Path("/dev/kvm"), os.R_OK | os.W_OK, effective_ids=True)
+            self.assertIn("mode=crw-rw---- owner=1001 group=108", output.getvalue())
+            chown.assert_not_called()
+            chmod.assert_not_called()
+            command.assert_not_called()
+
     def test_only_exact_owned_avd_identity_is_accepted(self):
         name = "pyai_smoke_" + "a" * 32
         smoke.validate_target(smoke.SERIAL, "1\n", name + "\nOK\n", name)

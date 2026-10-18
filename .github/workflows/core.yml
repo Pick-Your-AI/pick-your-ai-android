@@ -109,11 +109,7 @@ jobs:
         shell: bash
         run: |
           test "$RUNNER_ENVIRONMENT" = 'github-hosted'
-          test -c /dev/kvm
-          if [ ! -r /dev/kvm ] || [ ! -w /dev/kvm ]; then
-            sudo chown "$(id -u):$(id -g)" /dev/kvm
-          fi
-          test -r /dev/kvm && test -w /dev/kvm
+          python -c 'from scripts.android_emulator_smoke import check_kvm_access; check_kvm_access()'
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends libpulse0
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platform-tools' 'emulator' 'system-images;android-35;default;x86_64'

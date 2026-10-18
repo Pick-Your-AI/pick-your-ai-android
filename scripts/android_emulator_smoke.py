@@ -10,6 +10,7 @@ import os
 from pathlib import Path
 import re
 import signal
+import stat
 import subprocess
 import sys
 import tempfile
@@ -43,6 +44,19 @@ class SmokeFailure(RuntimeError):
 def require(condition: bool, message: str) -> None:
     if not condition:
         raise SmokeFailure(message)
+
+
+def check_kvm_access(device: Path = Path("/dev/kvm")) -> None:
+    """Require existing runner access; never repair ownership, modes or groups."""
+    print(f"KVM preflight: effective_uid={os.geteuid()} groups={os.getgroups()} device={device}")
+    try:
+        metadata = device.lstat()
+    except OSError:
+        raise SmokeFailure("KVM device is absent or unreadable; no host permissions were changed") from None
+    print(f"KVM device: mode={stat.filemode(metadata.st_mode)} owner={metadata.st_uid} group={metadata.st_gid}")
+    require(stat.S_ISCHR(metadata.st_mode), "KVM path is not an existing character device")
+    require(os.access(device, os.R_OK | os.W_OK, effective_ids=True),
+            "KVM read/write access is unavailable; no host permissions were changed")
 
 
 def command(args: list[str], *, env=None, timeout=30, input=None, check=True):
@@ -419,7 +433,7 @@ def main() -> int:
         receipt["emulator_version"] = command([str(emulator), "-version"]).stdout.strip()
         receipt["emulator_binary_sha256"] = digest(emulator)
         receipt["adb_version"] = command([str(adb), "version"]).stdout.strip()
-        require(os.access("/dev/kvm", os.R_OK | os.W_OK), "KVM acceleration is unavailable")
+        check_kvm_access()
         command([str(emulator), "-accel-check"])
         connected = command([str(adb), "devices"]).stdout.splitlines()[1:]
         require(not any(line.strip() for line in connected), "Existing adb devices found; refusing shared-device execution")
