@@ -71,9 +71,9 @@ new change disclosure. Replayed, stale or foreign intents cannot overwrite a new
 edit. Failed and rejected outcomes retain the previous acknowledged state;
 `Uncertain` requires reopening before retry and must never be shown as saved.
 
-This core slice has no preview command adapter. Future UI adoption for a
-`PreviewDraftLibrary`-managed draft must route commands through the existing outer
-library liveness/write guard, as save, restore and tier operations do. It must not
+The managed preview command adapter described below routes commands through the
+existing outer library liveness/write guard, as save, restore and tier operations
+do. Future UI adoption must use that adapter for library-managed drafts, not
 instantiate an unguarded `LocalDraftStore` for a managed draft; the inner CAS alone
 does not enforce library entry liveness during concurrent deletion.
 
@@ -170,3 +170,31 @@ regressions, for 26 new selection-focused tests in total. The same frozen/refere
 ledger, wrapper, relative-link and whitespace checks passed on the integrated source.
 The original independently reviewed 280-test candidate remains frozen separately;
 these new results qualify the combined source rather than reusing prior evidence.
+
+## Managed-library command adapter
+
+`PreviewStoredDraft.components` exposes the same immutable local aggregate.
+`PreviewDraftPersistence.applySelection` carries the captured record's original
+revision/hash into the canonical command while holding the existing managed
+library transaction and liveness guard. A retained adapter cannot acknowledge
+any command, including a no-op, after its draft is marked for deletion or removed.
+No separate storage path or library identity is created by this adapter.
+
+The typed result preserves command rejection reasons and a successful command's
+exact link-impact disclosure. The guest form is decoded from acknowledged stored
+metadata; objective, context, workload, legacy optional tiers and unknown metadata
+are untouched. An outer lock-cleanup failure after dispatch returns `Uncertain`,
+including after an otherwise successful no-op. Callers must reopen and reconcile;
+it is not permission to replay against a newer token.
+
+Adapter regressions cover all five commands, changed/current/stale/foreign tokens,
+completed and interrupted deletion, library lock contention and interruption,
+unknown preview metadata, retention refusal/no-op, preactivation failure,
+postactivation uncertainty and outer-cleanup uncertainty. This is a callable core
+boundary only; no preview button, dialog, UI lifecycle acceptance or installed
+Android evidence is added here. The existing UI remains unchanged.
+
+The adapter candidate passed a fresh forced core check/assemble/test run: **311
+tests across 39 suites**, zero failures/errors/skips, all six tasks executed in
+32 seconds. These are local JVM results; final current-main integration and
+hosted Android build/lint remain separate required gates.
