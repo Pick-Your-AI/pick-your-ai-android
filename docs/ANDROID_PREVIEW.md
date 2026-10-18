@@ -595,6 +595,10 @@ API 28 Android resources and Views. The existing unsigned CI lane retains its
 JUnit XML and HTML reports and fails if that task fails. AndroidX is enabled for
 the test infrastructure; the preview UI still uses platform Views.
 
+The simulated API 28 runtime is a separate locked, checksum-verified Gradle test
+input. Robolectric's runtime downloads are disabled; see the
+[runtime provenance and update procedure](ROBOLECTRIC_RUNTIME.md).
+
 The bounded tests cover acknowledged objective/context restoration, stale pending
 forms after another writer advances the saved head, explicit tier confirmation,
 and typed read-only revision comparison. They drive visible controls, wait for
@@ -664,6 +668,13 @@ zero failures, errors or skips. Frozen reference,
 fixture, tampering and ledger checks also passed. Three additional Activity tests
 exercise browse restoration, empty facet combinations and selection baseline guards.
 Their exact-head hosted compile/lint/Robolectric results are required before merge.
+
+The Activity closes its catalog browser during destruction. Retained editor,
+facet-dialog, paging and row callbacks cannot change the retired browse state or
+open another dialog. An additional required Activity regression recreates the
+screen and delivers callbacks from its destroyed predecessor, checking that the
+current screen and draft remain unchanged. This is a simulated lifecycle check,
+not installed-device or process-death evidence.
 
 These are bounded in-memory fixture pages, not a remote pagination protocol. API
 cursor contracts, cancellable remote search, next-page network failure/retry,

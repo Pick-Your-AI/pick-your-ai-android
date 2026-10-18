@@ -143,6 +143,7 @@ org.jspecify:jspecify:1.0.0=debugUnitTestCompileClasspath,debugUnitTestRuntimeCl
 org.ow2.asm:asm-commons:9.10.1=debugUnitTestCompileClasspath,debugUnitTestRuntimeClasspath,testImplementationDependenciesMetadata
 org.ow2.asm:asm-tree:9.10.1=debugUnitTestCompileClasspath,debugUnitTestRuntimeClasspath,testImplementationDependenciesMetadata
 org.ow2.asm:asm:9.10.1=debugUnitTestCompileClasspath,debugUnitTestRuntimeClasspath,testImplementationDependenciesMetadata
+org.robolectric:android-all-instrumented:9-robolectric-4913185-2-i7=robolectricRuntime
 org.robolectric:annotations:4.17=debugUnitTestCompileClasspath,debugUnitTestRuntimeClasspath,testImplementationDependenciesMetadata
 org.robolectric:junit:4.17=debugUnitTestCompileClasspath,debugUnitTestRuntimeClasspath,testImplementationDependenciesMetadata
 org.robolectric:nativeruntime-dist-compat:1.0.19=debugUnitTestRuntimeClasspath
