@@ -1,18 +1,32 @@
 # JVM core implementation and acceptance limits
 
+The [frozen CostEstimate boundary](FROZEN_COST_ESTIMATE_BOUNDARY.md) preserves every
+recorded field, exact scalar string and ordered line as immutable Kotlin values.
+Its shared structural cases keep schema validity separate from the existing
+Build-bound cost inspector's stronger checks. No pricing calculation, evidence
+acceptance or budget verdict follows; broader #21/#32 acceptance remains separate.
+
+The [frozen Pricebook boundary](FROZEN_PRICEBOOK_BOUNDARY.md) retains every recorded
+rate/provenance field, exact scalar string and ordered duplicate as immutable
+Kotlin values. Shared structural cases preserve absence/empty distinctions and
+keep the existing recorded-price reader's stricter interval, money and revision
+checks intact. No screening or price/evidence acceptance follows; #21/#32 stay partial.
+
 The [frozen Ruleset boundary](FROZEN_RULESET_BOUNDARY.md) adds an immutable typed
 representation of every recorded rule, expression and operand. Shared reference
 cases retain closed shapes, exact opaque literal JSON and ordered duplicate rules.
 This structural reader performs no evaluation, reference resolution, metric
 calculation or baseline activation; broader #21/#32 acceptance remains separate.
 
-This is an executable, platform-independent Kotlin foundation for the Android
-client. It does not select a publisher identity, commit a production hosting
-architecture, or claim an installed Android application. The maintainer's current
-implementation mandate permits this isolated code while product/device receiving
-acceptance remains pending. Kotlin is chosen for this core because it follows the
-reviewed native recommendation and can be tested without Android APIs; Compose,
-Room, the application ID and SDK support are not silently accepted by this choice.
+This is the executable, Android-SDK-independent Kotlin core for the bounded
+guest-local client. The accepted [native decision](proposals/02-native-architecture.md)
+selects Kotlin/platform Views, the existing local revision store and the
+`:core`/`:preview` boundaries. Compose and Room remain documented alternatives.
+The [repository scope](REPOSITORY_SCOPE.md) distinguishes the current preview ID
+from the selected future product engineering namespace; publisher registration,
+device qualification and installed release acceptance remain separate. The
+[service decision](SERVICE_BASELINE.md) records the future shared-service placement
+and its activation gates; this core does not deploy or operate that service.
 
 ## Reproduce
 
@@ -88,14 +102,16 @@ a separate repository setting; publishing this workflow does not make it require
 | --- | --- | --- |
 | #21 exact upstream revision/hash, import integrity | 43 original files + two pinned manifests, hash-first reference runner | The schema adapter covers all 13 document kinds; actual API/storage consumers and receiving acceptance remain separate |
 | #21 invalid fields/enums/versions and decimal round trip | Strict parsing, bundled JVM schema validation, immutable reference suite and typed decimal/version tests | Validate every actual network/storage consumer when those adapters exist |
-| #48 pinned toolchain / clean checkout | JDK21, Gradle wrapper, Kotlin module, dependency locks and verification, JVM build | Approved product package, installed-app launch and full module boundaries; the separate unsigned fixture preview is only a diagnostic |
+| #48 pinned toolchain / clean checkout | JDK21, Gradle wrapper, Kotlin module, dependency locks and verification, JVM build; accepted #34 native/package/module decision | The future product application, publisher identity and installed-app build/launch qualification remain separate; the unsigned fixture preview is a diagnostic |
 | #49 versioned fixtures and reference expectations | Exact upstream examples and 21 reference tests | Cross-language comparison, successor migration cases and accepted new semantics; frozen reference tests cannot approve queued changes |
 | #58 cancelled/superseded work and typed failures | Synchronized identity/ticket coordinator and race tests | UI observation, dispatchers, storage/network adapters and cancellation propagation |
 | #30/#31 untrusted import boundary | Bounded parser and adversarial tests | Disclosure projection, explicit user acceptance, Android document-provider lifecycle, actual draft import/export and receiving security review |
 | #59 reproducible checks and untrusted execution | Reference/JVM workflow with restricted token and retained artifacts | Product Android/emulator coverage, required-status setting and observed controlled hosted failure; the unsigned fixture preview has a separate build/lint lane |
 | #115 late/out-of-order analysis | Unique attempt identity, all input pins, cancellation and duplicate tests | Automatic reevaluation, durable-save sequencing, historical report persistence and integrated UI behavior |
 
-The canonical acceptance records remain in `pickyour.ai`. Parent coordination can
+The implementation acceptance records listed below retain their canonical paths
+in `pickyour.ai`; the separately accepted decision-record placements are listed in
+[repository scope](REPOSITORY_SCOPE.md). Parent coordination can
 copy the criterion evidence above into `03.01.md`, `02.01.md`, `03.06.md`, `02.04.md`,
 `11.03.md`, `14.05.md`, `02.05.md` and `09.06.md` under
 `docs/delivery/android/work-packages/`, linking the merged PR and exact test runs.

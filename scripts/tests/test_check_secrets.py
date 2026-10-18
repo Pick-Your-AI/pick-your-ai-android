@@ -1,5 +1,6 @@
 """Rejection and disclosure boundaries; real scanner fixtures run separately in CI."""
 
+import copy
 import hashlib
 import importlib.util
 import json
@@ -20,6 +21,23 @@ def finding():
     return {"RuleID": "github-pat", "File": "example.txt", "StartLine": 3, "Commit": "a" * 40,
             "Secret": "PRIVATE_MATCH", "Match": "PRIVATE_LINE", "Line": "PRIVATE_CONTEXT",
             "Author": "PRIVATE_AUTHOR", "Email": "PRIVATE_EMAIL", "Message": "PRIVATE_MESSAGE"}
+
+
+def history_events(repository):
+    common = {"sid": "synthetic-history-process", "thread": "main"}
+    return [
+        {**common, "event": "version", "evt": "4"},
+        {**common, "event": "start", "argv": [
+            "git", "-C", str(repository), "log", "-p", "-U0", "--full-history",
+            "--diff-merges=separate", "--text", "--no-ext-diff", "--no-textconv", "HEAD",
+        ]},
+        {**common, "event": "exit", "code": 0},
+        {**common, "event": "atexit", "code": 0},
+    ]
+
+
+def write_events(trace, rows):
+    trace.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
 
 
 class SecretCheckTest(unittest.TestCase):
@@ -133,14 +151,57 @@ class SecretCheckTest(unittest.TestCase):
                 self.assertEqual(str(private / "empty-ignore"), args[args.index("--gitleaks-ignore-path") + 1])
                 self.assertNotIn("GITLEAKS_CONFIG", kwargs["env"])
                 self.assertNotIn("GITLEAKS_CONFIG_TOML", kwargs["env"])
+                self.assertEqual(str(private / "history-git-trace.json"), kwargs["env"]["GIT_TRACE2_EVENT"])
+                self.assertEqual("1", kwargs["env"]["GIT_TRACE2_EVENT_BRIEF"])
+                self.assertEqual("1", kwargs["env"]["GIT_TRACE2_EVENT_NESTING"])
                 self.assertEqual("[extend]\nuseDefault = true\n", (private / "built-in-rules.toml").read_text())
                 self.assertEqual("", (private / "empty-ignore").read_text())
                 (private / "history.json").write_text("[]")
+                write_events(Path(kwargs["env"]["GIT_TRACE2_EVENT"]), history_events(Path("repository")))
                 return subprocess.CompletedProcess(args, 0, "", "")
-            with patch.dict(os.environ, {"GITLEAKS_CONFIG": "unreviewed", "GITLEAKS_CONFIG_TOML": "unreviewed"}), \
+            with patch.dict(os.environ, {"GITLEAKS_CONFIG": "unreviewed", "GITLEAKS_CONFIG_TOML": "unreviewed",
+                                         "GIT_TRACE2_EVENT": "unreviewed", "GIT_TRACE2_EVENT_BRIEF": "0",
+                                         "GIT_TRACE2_EVENT_NESTING": "0"}), \
                     patch.object(check.subprocess, "run", side_effect=run):
                 self.assertEqual({"exit_code": 0, "finding_count": 0, "findings": []},
                                  check.scan(Path("scanner"), Path("repository"), private, "history", history=True))
+
+    def test_consistent_clean_or_detected_history_requires_completed_git_child(self):
+        for code, payload in ((0, []), (10, [finding()])):
+            for completed in (False, True):
+                with self.subTest(code=code, completed=completed), tempfile.TemporaryDirectory() as temporary:
+                    private = Path(temporary)
+                    def run(args, **kwargs):
+                        (private / "history.json").write_text(json.dumps(payload))
+                        if completed:
+                            write_events(Path(kwargs["env"]["GIT_TRACE2_EVENT"]), history_events(Path("repository")))
+                        return subprocess.CompletedProcess(args, code, "", "")
+                    with patch.object(check.subprocess, "run", side_effect=run):
+                        if completed:
+                            result = check.scan(Path("scanner"), Path("repository"), private, "history", history=True)
+                            self.assertEqual(code, result["exit_code"])
+                            self.assertEqual(len(payload), result["finding_count"])
+                            self.assertNotIn("PRIVATE_", json.dumps(result))
+                        else:
+                            with self.assertRaises(check.HistoryCompletionFailure) as raised:
+                                check.scan(Path("scanner"), Path("repository"), private, "history", history=True)
+                            self.assertEqual(check.HISTORY_COMPLETION_ERROR, str(raised.exception))
+
+    def test_preexisting_file_directory_or_dangling_trace_is_rejected_before_scanner(self):
+        for kind in ("file", "directory", "dangling"):
+            with self.subTest(kind=kind), tempfile.TemporaryDirectory() as temporary:
+                private = Path(temporary)
+                trace = private / "history-git-trace.json"
+                if kind == "file":
+                    write_events(trace, history_events(Path("repository")))
+                elif kind == "directory":
+                    trace.mkdir()
+                else:
+                    trace.symlink_to(private / "absent-trace")
+                with patch.object(check.subprocess, "run") as run:
+                    with self.assertRaisesRegex(check.ScanFailure, "pre-existing Git completion trace"):
+                        check.scan(Path("scanner"), Path("repository"), private, "history", history=True)
+                    run.assert_not_called()
 
     def test_shallow_dirty_or_mismatched_workflow_source_is_rejected(self):
         baseline = {("rev-parse", "--show-toplevel"): str(check.ROOT),
@@ -160,6 +221,104 @@ class SecretCheckTest(unittest.TestCase):
                     patch.object(check, "git", side_effect=lambda *args: inputs[args]):
                 with self.assertRaises(check.ScanFailure):
                     check.inspect_source()
+
+
+class HistoryCompletionTest(unittest.TestCase):
+    def setUp(self):
+        self.folder = tempfile.TemporaryDirectory(prefix="history-completion-test-")
+        self.addCleanup(self.folder.cleanup)
+        self.repository = Path(self.folder.name) / "source"
+        self.trace = Path(self.folder.name) / "trace.json"
+        self.rows = history_events(self.repository)
+
+    def rejected(self, rows):
+        write_events(self.trace, rows)
+        with self.assertRaises(check.HistoryCompletionFailure) as raised:
+            check.require_history_completion(self.trace, self.repository)
+        self.assertEqual(check.HISTORY_COMPLETION_ERROR, str(raised.exception))
+
+    def test_completed_history_with_separate_remote_metadata_failure(self):
+        other = copy.deepcopy(self.rows)
+        for row in other:
+            row["sid"] = "synthetic-remote-metadata-process"
+        other[1]["argv"] = ["git", "remote", "get-url", "origin"]
+        other[2]["code"] = other[3]["code"] = 2
+        write_events(self.trace, other + self.rows)
+        check.require_history_completion(self.trace, self.repository)
+
+    def test_missing_failed_signaled_or_out_of_order_completion(self):
+        cases = [[], self.rows[1:], self.rows[:-1], self.rows[:2] + self.rows[3:],
+                 self.rows[:2] + list(reversed(self.rows[2:]))]
+        for field in (2, 3):
+            for code in (73, -9, False, 0.0):
+                rows = copy.deepcopy(self.rows)
+                rows[field]["code"] = code
+                cases.append(rows)
+        cases.append(self.rows[:2] + [{"sid": self.rows[0]["sid"], "event": "signal", "signo": 9}])
+        for rows in cases:
+            with self.subTest(events=[row["event"] for row in rows]):
+                self.rejected(rows)
+
+    def test_wrong_command_repository_session_format_or_thread_cannot_substitute(self):
+        for change in ("arguments", "repository", "scope", "merge-policy", "session", "format", "thread"):
+            rows = copy.deepcopy(self.rows)
+            if change == "arguments":
+                rows[1]["argv"].remove("--text")
+            elif change == "repository":
+                rows[1]["argv"][2] += "-other"
+            elif change == "scope":
+                rows[1]["argv"][-1] = "--all"
+            elif change == "merge-policy":
+                rows[1]["argv"][7] = "--diff-merges=first-parent"
+            elif change == "session":
+                rows[3]["sid"] = "different-process"
+            elif change == "format":
+                rows[0]["evt"] = "5"
+            else:
+                rows[2]["thread"] = "different-thread"
+            with self.subTest(change=change):
+                self.rejected(rows)
+
+    def test_duplicate_or_post_shutdown_events_are_ambiguous(self):
+        other = copy.deepcopy(self.rows)
+        for row in other:
+            row["sid"] = "duplicate-history-process"
+        cases = [self.rows + other, self.rows + self.rows,
+                 self.rows[:3] + [self.rows[2]] + self.rows[3:],
+                 self.rows + [{"sid": self.rows[0]["sid"], "event": "data"}]]
+        for rows in cases:
+            with self.subTest(events=[row["event"] for row in rows]):
+                self.rejected(rows)
+
+    def test_malformed_truncated_duplicate_key_and_unreadable_trace(self):
+        with self.assertRaises(check.HistoryCompletionFailure):
+            check.require_history_completion(self.trace, self.repository)
+        write_events(self.trace, self.rows)
+        valid = self.trace.read_bytes()
+        cases = [b"not JSON\n", b"[]\n", b"{}\n", b"\xff\n", valid[:-1],
+                 b"[" * 2000 + b"]" * 2000 + b"\n",
+                 valid.replace(b'"code": 0', b'"code": 73, "code": 0', 1),
+                 valid.replace(b'"code": 0', b'"code": NaN', 1)]
+        for number, raw in enumerate(cases):
+            with self.subTest(case=number):
+                self.trace.write_bytes(raw)
+                with self.assertRaises(check.HistoryCompletionFailure) as raised:
+                    check.require_history_completion(self.trace, self.repository)
+                self.assertEqual(check.HISTORY_COMPLETION_ERROR, str(raised.exception))
+        with patch.object(Path, "open", side_effect=PermissionError("PRIVATE_TRACE")):
+            with self.assertRaises(check.HistoryCompletionFailure) as raised:
+                check.require_history_completion(self.trace, self.repository)
+            self.assertEqual(check.HISTORY_COMPLETION_ERROR, str(raised.exception))
+
+    def test_private_receipt_resource_bounds(self):
+        write_events(self.trace, self.rows)
+        for limit in ("MAX_TRACE_BYTES", "MAX_TRACE_LINE_BYTES"):
+            with self.subTest(limit=limit), patch.object(check, limit, 8):
+                with self.assertRaises(check.HistoryCompletionFailure):
+                    check.require_history_completion(self.trace, self.repository)
+        rows = [{"sid": f"synthetic-process-{number}", "event": "version"} for number in range(65)]
+        self.rejected(rows + self.rows)
+        self.rejected(self.rows[:2] + [self.rows[2]] * 7 + self.rows[3:])
 
 
 if __name__ == "__main__":

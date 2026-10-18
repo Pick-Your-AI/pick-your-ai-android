@@ -73,7 +73,9 @@ class FrozenEvaluationReportTest {
                 }
             }
         }
-        assertEquals(input, parse(report.json.toByteArray()))
+        // Compare the wire values through the same exact-number reader: a hand-built IntNode
+        // and its parsed BigIntegerNode have equal JSON values but different node equality.
+        assertEquals(parse(input.toString().toByteArray()), parse(report.json.toByteArray()))
     }
 
     @TestFactory
