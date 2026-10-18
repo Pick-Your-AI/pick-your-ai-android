@@ -622,3 +622,42 @@ uses Android's forward-focus search through the three editors to the Clear actio
 The report gate requires both cases. These are reproducible JVM layout/focus checks,
 not a screenshot review, full keyboard journey, TalkBack traversal, contrast test,
 complete localization, device render or acceptance of a support matrix.
+
+### Local synthetic catalog search
+
+The catalog now offers a labelled search field with a 120-character limit. Matching
+is a case-insensitive literal substring against each sample's name, exact ID, raw
+canonical kind and version, using locale-independent case conversion. A blank or
+whitespace-only query shows every sample. Results retain the fixture order; regex,
+wildcard, ranking, typed facets and API pagination semantics are not introduced.
+The already byte-bounded fixture is additionally capped at 256 rows before Views
+are created. The unchanged frozen fixture contains one entry for each of 29 kinds.
+
+Filtering affects only the visible list. It never changes a selected identity,
+catalog pin, draft revision, pending editor field or save readiness. A selected
+sample hidden by the query still resolves against the entire validated snapshot.
+The empty-result message offers editing/clearing the query while preserving the
+draft. Query text survives explicit Bundle recreation and detail dialogs; it is
+not written into draft metadata or uploaded. Input uses the existing best-effort
+request to disable personalized keyboard learning.
+
+The worker still loads and validates the complete fixed fixture. Each successful
+load renders with the query currently in the editor, preventing an older captured
+query from replacing a newer filter. A failed load has an unavailable catalog
+state distinct from a valid empty result. Recreated query state retains the last
+validated catalog digest; a changed digest is explicitly announced without
+repinning any saved selection.
+
+Six JVM cases cover matching, literal punctuation, locale behavior, bounds/redacted
+diagnostics and exact-ID reachability of all 29 frozen kinds. Two additional
+Robolectric Activity regressions exercise filtering around saved selections,
+detail cancellation/recreation, empty-result recovery and query changes during a
+catalog reload. The hosted unsigned lane requires those named cases alongside the
+existing eight simulations; their observed result must be checked on the final head.
+
+This is partial [#82](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/82)
+discovery for the existing synthetic preview. Shared real-data/label publication,
+typed facets/sorting, API paging/cancellation/retry, list-position restoration,
+production-scale performance, installed accessibility and receiving acceptance
+remain separate requirements. No real-data, complete search journey, device result
+or whole-issue completion is inferred from local filtering or JVM simulations.

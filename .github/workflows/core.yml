@@ -91,6 +91,8 @@ jobs:
               "comparisonDistinguishesLiteralSentinelWithoutWriting",
               "editorsExposeLabelsAndSavedStatusUsesTextAndLiveRegion",
               "confirmedCurrentDraftDeletionRetainsPendingFormAndRevokesSaveAuthority",
+              "catalogQuerySurvivesDetailsAndRecreationWithoutChangingPinnedSelection",
+              "emptyCatalogSearchCanRecoverAndReloadUsesTheCurrentQuery",
               "largeTextRtlButtonsRetainMeasuredTargetsAndUntruncatedLabels",
               "forwardFocusOrderKeepsEditorsAndClearActionReachable",
           }
