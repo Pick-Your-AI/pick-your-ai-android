@@ -119,6 +119,76 @@ class EmulatorSmokeGuardTest(unittest.TestCase):
                 smoke.main()
             command.assert_not_called()
 
+    def test_launch_records_separate_output_without_relaxing_success_requirement(self):
+        for status, stdout, stderr, accepted in (
+            (0, "Status: ok\n", "", True),
+            (0, "Status: timeout\n", "diagnostic stderr", False),
+            (0, "Status: ok\nError: activity failed\n", "", False),
+            (1, "Status: ok\n", "command failed", False),
+        ):
+            with self.subTest(status=status, stdout=stdout):
+                receipt = {}
+                device = smoke.Device(Path("adb"), {}, Mock(), "unused", receipt)
+                with patch.object(device, "verify_identity") as identity, patch.object(
+                        device, "adb", return_value=subprocess.CompletedProcess([], status, stdout, stderr)) as adb:
+                    if accepted:
+                        device.launch()
+                    else:
+                        with self.assertRaises(smoke.SmokeFailure):
+                            device.launch()
+                    identity.assert_called_once_with()
+                    adb.assert_called_once_with("shell", "am", "start", "-W", "-n",
+                                                smoke.PACKAGE + "/" + smoke.ACTIVITY, check=False)
+                attempt = receipt["activity_launches"][0]
+                self.assertEqual(accepted, attempt["check_passed"])
+                self.assertEqual(status, attempt["exit_code"])
+                self.assertEqual(stdout, attempt["stdout_tail"])
+                self.assertEqual(stderr, attempt["stderr_tail"])
+
+    def test_launch_command_timeout_retains_bounded_partial_streams_and_fails(self):
+        receipt = {}
+        device = smoke.Device(Path("adb"), {}, Mock(), "unused", receipt)
+        error = subprocess.TimeoutExpired("am", 30, output=b"x" * 7000, stderr=b"partial error")
+        with patch.object(device, "verify_identity"), patch.object(device, "adb", side_effect=error):
+            with self.assertRaises(subprocess.TimeoutExpired) as raised:
+                device.launch()
+        self.assertIs(error, raised.exception)
+        attempt = receipt["activity_launches"][0]
+        self.assertFalse(attempt["check_passed"])
+        self.assertEqual(30, attempt["command_timeout_seconds"])
+        self.assertEqual("x" * 6000, attempt["stdout_tail"])
+        self.assertEqual("partial error", attempt["stderr_tail"])
+        self.assertNotIn("exit_code", attempt)
+
+    def test_failure_diagnostics_are_bounded_and_cannot_mask_original_case_failure(self):
+        for log_result in (subprocess.CompletedProcess([], 1, "x" * 140000, "log failed"),
+                           subprocess.TimeoutExpired("logcat", 20)):
+            with self.subTest(log_result=type(log_result).__name__), tempfile.TemporaryDirectory() as temporary:
+                receipt = {"cases": [{"id": name, "status": "not_run"} for name in smoke.CASE_IDS]}
+                device = Mock(spec=smoke.Device)
+                original = smoke.SmokeFailure("Original launch failure")
+                device.launch.side_effect = original
+                device.adb.side_effect = ([log_result] if isinstance(log_result, Exception) else None)
+                device.adb.return_value = log_result
+                with patch.object(smoke.Ui, "checkpoint", side_effect=smoke.SmokeFailure("Capture failed")):
+                    with self.assertRaises(smoke.SmokeFailure) as raised:
+                        smoke.exercise(device, Path(temporary), receipt)
+                self.assertIs(original, raised.exception)
+                self.assertEqual("failed", receipt["cases"][0]["status"])
+                self.assertTrue(all(row["status"] == "not_run" for row in receipt["cases"][1:]))
+                self.assertEqual("Capture failed", receipt["failure_checkpoint_error"])
+                args, kwargs = device.adb.call_args
+                self.assertEqual("logcat", args[0])
+                self.assertIn("400", args)
+                self.assertEqual({"timeout": 20, "check": False}, kwargs)
+                if isinstance(log_result, Exception):
+                    self.assertIn("timed out", receipt["failure_logcat"]["error"])
+                    self.assertFalse((Path(temporary) / "failure-logcat.txt").exists())
+                else:
+                    self.assertEqual("x" * 131072, (Path(temporary) / "failure-logcat.txt").read_text())
+                    self.assertEqual(1, receipt["failure_logcat"]["exit_code"])
+                    self.assertEqual("log failed", receipt["failure_logcat"]["stderr_tail"])
+
     def test_ambiguous_controls_are_not_guessed(self):
         root = ET.Element("hierarchy")
         root.extend([node("Delete local draft", smoke.BUTTON), node("Delete local draft", smoke.BUTTON)])

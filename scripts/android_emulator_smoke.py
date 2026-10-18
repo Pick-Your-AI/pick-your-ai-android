@@ -90,6 +90,12 @@ def digest(path: Path) -> str:
         return hashlib.file_digest(source, "sha256").hexdigest()
 
 
+def bounded_text(value: str | bytes | None, limit=6000) -> str:
+    if isinstance(value, bytes):
+        value = value.decode("utf-8", errors="replace")
+    return (value or "")[-limit:]
+
+
 def validate_target(serial: str, qemu: str, avd_name: str, expected_name: str) -> None:
     require(serial == SERIAL, "Only the dedicated emulator serial is permitted")
     require(qemu.strip() == "1", "Target is not an Android emulator")
@@ -148,8 +154,9 @@ def complete_receipt(receipt: dict, source_sha: str) -> None:
 
 
 class Device:
-    def __init__(self, adb: Path, env: dict, process: subprocess.Popen, avd_name: str):
+    def __init__(self, adb: Path, env: dict, process: subprocess.Popen, avd_name: str, receipt: dict):
         self.adb_path, self.env, self.process, self.avd_name = adb, env, process, avd_name
+        self.receipt = receipt
 
     def adb(self, *args, timeout=30, check=True):
         require(self.process.poll() is None, "Owned emulator process exited")
@@ -165,8 +172,23 @@ class Device:
 
     def launch(self):
         self.verify_identity()
-        result = self.shell("am", "start", "-W", "-n", PACKAGE + "/" + ACTIVITY)
-        require("Status: ok" in result and "Error:" not in result, "Activity did not launch")
+        attempt = {"component": PACKAGE + "/" + ACTIVITY, "check_passed": False}
+        self.receipt.setdefault("activity_launches", []).append(attempt)
+        started = time.monotonic()
+        try:
+            result = self.adb("shell", "am", "start", "-W", "-n", attempt["component"], check=False)
+        except subprocess.TimeoutExpired as error:
+            attempt.update(command_timeout_seconds=error.timeout,
+                           stdout_tail=bounded_text(error.stdout), stderr_tail=bounded_text(error.stderr))
+            raise
+        finally:
+            attempt["seconds"] = round(time.monotonic() - started, 3)
+        attempt.update(exit_code=result.returncode, stdout_tail=bounded_text(result.stdout),
+                       stderr_tail=bounded_text(result.stderr))
+        require(result.returncode == 0, f"Activity start command failed ({result.returncode})")
+        require("Status: ok" in result.stdout and "Error:" not in result.stdout,
+                "Activity did not launch; inspect activity_launches in the receipt")
+        attempt["check_passed"] = True
 
     def cold_restart(self):
         self.verify_identity()
@@ -316,6 +338,21 @@ def case(receipt: dict, case_id: str):
         row["seconds"] = round(time.monotonic() - started, 3)
 
 
+def retain_failure_log(device: Device, output: Path, receipt: dict):
+    """Best-effort bounded diagnostics from this owned synthetic installation."""
+    try:
+        result = device.adb("logcat", "-b", "main", "-b", "system", "-b", "crash",
+                            "-d", "-v", "threadtime", "-t", "400", "ActivityManager:I",
+                            "ActivityTaskManager:I", "AndroidRuntime:E", "System.err:W", "*:S",
+                            timeout=20, check=False)
+        receipt["failure_logcat"] = {"exit_code": result.returncode,
+                                     "stderr_tail": bounded_text(result.stderr),
+                                     "retained_character_limit": 131072}
+        (output / "failure-logcat.txt").write_text(bounded_text(result.stdout, 131072), encoding="utf-8")
+    except Exception as error:
+        receipt["failure_logcat"] = {"error": bounded_text(str(error))}
+
+
 def exercise(device: Device, output: Path, receipt: dict):
     ui = Ui(device, output, receipt)
     try:
@@ -384,8 +421,11 @@ def exercise(device: Device, output: Path, receipt: dict):
             ui.checkpoint("08-deleted-draft-stays-absent-after-relaunch")
             ui.click("Close", scroll=False)
     except Exception:
-        with contextlib.suppress(Exception):
+        retain_failure_log(device, output, receipt)
+        try:
             ui.checkpoint("failure")
+        except Exception as error:
+            receipt["failure_checkpoint_error"] = bounded_text(str(error))
         raise
 
 
@@ -515,7 +555,7 @@ def main() -> int:
                          "-camera-front", "none", "-camera-back", "none"],
                         env=emulator_env, stdout=log, stderr=subprocess.STDOUT, start_new_session=True,
                     )
-                    device = Device(adb, env, process, avd_name)
+                    device = Device(adb, env, process, avd_name, receipt)
                     boot_timeout = settings["boot_timeout_seconds"]
                     deadline = time.monotonic() + boot_timeout
                     while time.monotonic() < deadline:

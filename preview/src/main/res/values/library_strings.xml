@@ -26,4 +26,7 @@
     <string name="library_delete_conflict">The selected saved draft changed after this list was read. Nothing was deleted. Refresh Manage local drafts and review the current record before deleting.</string>
     <string name="library_delete_failed">Deletion could not start. The current form is retained. Refresh Manage local drafts and retry after the storage problem is resolved.</string>
     <string name="library_delete_unconfirmed">Deletion could not be fully confirmed. Some local files may remain. Refresh Manage local drafts; if the ID is listed as pending cleanup, select it and retry cleanup. A completed removal may already be absent from the list.</string>
+    <string name="recovery_copy">Save pending edits as a new local draft</string>
+    <string name="recovery_confirm">Create recovery copy</string>
+    <string name="recovery_warning">Create a separate local draft using the visible title, sample selection, objective, context and workload inputs? Other domain settings and metadata come from the loaded baseline revision %1$s. Newer changes to the original are not merged. The original draft and its history stay unchanged. The copy starts its own history and does not carry evaluation or pricing acceptance. If creation is unconfirmed, inspect the reported local ID before trying again.</string>
 </resources>

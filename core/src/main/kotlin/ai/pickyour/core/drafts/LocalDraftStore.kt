@@ -1,14 +1,17 @@
 package ai.pickyour.core.drafts
 
 import ai.pickyour.core.cache.*
+import ai.pickyour.core.contracts.ContractDecimal
 import ai.pickyour.core.importing.BoundedJsonReader
 import ai.pickyour.core.importing.JsonInputResult
+import com.fasterxml.jackson.databind.JsonMappingException
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.ObjectNode
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.io.OutputStream
+import java.math.BigInteger
 import java.nio.channels.FileChannel
 import java.nio.channels.OverlappingFileLockException
 import java.nio.file.Files
@@ -96,7 +99,7 @@ class LocalDraftStore internal constructor(
 
     /**
      * Omitted metadata preserves the current map; an explicit empty map clears it.
-     * A current format-2 token with unchanged content/metadata reuses its durable revision.
+     * A current format-2/3 token with unchanged content/metadata reuses its durable revision.
      * Token validation precedes deduplication; a stale retry never acknowledges another writer.
      */
     fun save(expected: DraftVersion?, content: DraftContent, metadata: Map<String, String>? = null): DraftSave =
@@ -118,8 +121,8 @@ class LocalDraftStore internal constructor(
                 return@guarded DraftSave.Conflict
             }
             // Repeated save events must not consume bounded history. Legacy saves still perform
-            // their explicit v1 -> v2 migration, and restore remains an intentional new revision.
-            if (restore == null && current?.localFormatVersion == 2 && current.content == content &&
+            // their explicit v1 -> v3 migration, and restore remains an intentional new revision.
+            if (restore == null && current != null && current.localFormatVersion >= 2 && current.content == content &&
                 current.metadata == (metadata ?: current.metadata)) {
                 return@guarded DraftSave.Saved(current)
             }
@@ -201,7 +204,7 @@ class LocalDraftStore internal constructor(
 private class EnvelopeFailure(val reason: DraftStorageFailure) : RuntimeException()
 private data class DecodedEnvelope(val format: Int, val history: List<StoredRevision>, val legacySourceHash: ArtifactHash?)
 
-/** Private local formats, never frozen contracts or BuildSnapshots. V1 reads never rewrite bytes. */
+/** Private local formats, never frozen contracts or BuildSnapshots. Reads never rewrite bytes. */
 private object DraftEnvelope {
     private val mapper = ObjectMapper()
     private fun bad(): Nothing = throw EnvelopeFailure(DraftStorageFailure.CORRUPT)
@@ -213,9 +216,10 @@ private object DraftEnvelope {
         if (version.intValue() == 1) {
             fields(node, setOf("local_format_version", "revision", "content", "metadata"))
             return DecodedEnvelope(1, listOf(StoredRevision(number(node["revision"]), StoredRevisionChange.LEGACY_ANCHOR,
-                null, content(node["content"]), strings(node["metadata"]))), null)
+                null, content(node["content"], 1), strings(node["metadata"]))), null)
         }
-        if (version.intValue() != 2) throw EnvelopeFailure(DraftStorageFailure.UNSUPPORTED_VERSION)
+        val format = version.intValue()
+        if (format != 2 && format != 3) throw EnvelopeFailure(DraftStorageFailure.UNSUPPORTED_VERSION)
         fields(node, setOf("local_format_version", "revision", "legacy_source_hash", "history"))
         val head = number(node["revision"])
         val legacy = node["legacy_source_hash"].let {
@@ -228,7 +232,7 @@ private object DraftEnvelope {
             val change = StoredRevisionChange.entries.find { it.name == text(entry["change"]) } ?: bad()
             StoredRevision(number(entry["number"]), change,
                 if (entry["restored_from"].isNull) null else number(entry["restored_from"]),
-                content(entry["content"]), strings(entry["metadata"]))
+                content(entry["content"], format), strings(entry["metadata"]))
         }
         val first = history.first()
         if (legacy == null) {
@@ -246,10 +250,11 @@ private object DraftEnvelope {
             } else if (entry.restoredFrom != null) bad()
         }
         if (history.last().number != head) bad()
-        return DecodedEnvelope(2, history, legacy)
+        return DecodedEnvelope(format, history, legacy)
     }
-    private fun content(content: JsonNode): DraftContent {
-        fields(content, setOf("objective", "context", "primaryModel", "optional"))
+    private fun content(content: JsonNode, format: Int): DraftContent {
+        val expected = setOf("objective", "context", "primaryModel", "optional")
+        fields(content, if (format == 3) expected + "workload" else expected)
         val optional = content["optional"]
         fields(optional, OptionalTier.entries.map { it.name }.toSet())
         val tiers = OptionalTier.entries.associateWith { tier ->
@@ -263,7 +268,25 @@ private object DraftEnvelope {
             TierDraft(mode, inputs.toSet(), strings(value["settings"]))
         }
         fun nullable(name: String): String? = content[name].let { if (it.isNull) null else text(it) }
-        return DraftContent(nullable("objective"), nullable("context"), nullable("primaryModel"), tiers)
+        return DraftContent(nullable("objective"), nullable("context"), nullable("primaryModel"), tiers,
+            if (format == 3) workload(content["workload"]) else DraftWorkload())
+    }
+    private fun workload(node: JsonNode): DraftWorkload {
+        fields(node, setOf("region", "currency", "monthly_budget_amount", "requests_per_day",
+            "avg_input_tokens", "avg_output_tokens", "max_concurrency", "max_latency_ms", "data_classification"))
+        fun nullableText(name: String): String? = node[name].let { if (it.isNull) null else text(it) }
+        fun integer(name: String): BigInteger? = node[name].let {
+            if (it.isNull) null else if (it.isIntegralNumber) it.bigIntegerValue() else bad()
+        }
+        return try {
+            DraftWorkload(nullableText("region"), nullableText("currency"),
+                nullableText("monthly_budget_amount")?.let { ContractDecimal.parse(it) },
+                integer("requests_per_day"), integer("avg_input_tokens"), integer("avg_output_tokens"),
+                integer("max_concurrency"), integer("max_latency_ms"),
+                nullableText("data_classification")?.let { encoded ->
+                    DraftDataClassification.entries.find { it.encoded == encoded } ?: bad()
+                })
+        } catch (_: IllegalArgumentException) { bad() }
     }
     private fun text(node: JsonNode): String = if (node.isTextual) node.textValue() else bad()
     private fun number(node: JsonNode): Long {
@@ -278,7 +301,7 @@ private object DraftEnvelope {
         return node.properties().associate { it.key to it.value.textValue() }
     }
     fun encode(history: List<StoredRevision>, legacy: ArtifactHash?): ByteArray {
-        val node = mapper.createObjectNode().put("local_format_version", 2).put("revision", history.last().number)
+        val node = mapper.createObjectNode().put("local_format_version", 3).put("revision", history.last().number)
         node.put("legacy_source_hash", legacy?.hex)
         val entries = node.putArray("history")
         history.forEach { entry ->
@@ -298,11 +321,24 @@ private object DraftEnvelope {
                 output.write(bytes, offset, length)
             }
         }
-        mapper.writeValue(bounded, node)
+        try { mapper.writeValue(bounded, node) } catch (failure: JsonMappingException) {
+            // Jackson can wrap the bounded stream's failure while serializing a nested node.
+            // Recover only our explicit limit signal; unrelated IO retains its original outcome.
+            val cause = failure.cause
+            if (cause is EnvelopeFailure) throw cause
+            throw failure
+        }
         return output.toByteArray()
     }
     private fun encodeContent(body: ObjectNode, content: DraftContent) {
         body.put("objective", content.objective).put("context", content.context).put("primaryModel", content.primaryModel)
+        val workload = content.workload
+        body.putObject("workload")
+            .put("region", workload.region).put("currency", workload.currency)
+            .put("monthly_budget_amount", workload.monthlyBudgetAmount?.encoded)
+            .put("requests_per_day", workload.requestsPerDay).put("avg_input_tokens", workload.avgInputTokens)
+            .put("avg_output_tokens", workload.avgOutputTokens).put("max_concurrency", workload.maxConcurrency)
+            .put("max_latency_ms", workload.maxLatencyMs).put("data_classification", workload.dataClassification?.encoded)
         val optional = body.putObject("optional")
         content.optional.forEach { (tier, value) ->
             val target = optional.putObject(tier.name).put("activation", value.activation.name)

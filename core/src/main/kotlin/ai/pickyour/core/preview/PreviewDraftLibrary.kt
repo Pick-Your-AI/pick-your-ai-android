@@ -128,7 +128,14 @@ class PreviewDraftLibrary internal constructor(root: Path, private val checkpoin
         return createFrom(source)
     }
 
-    private fun createFrom(source: PreviewStoredDraft?): PreviewLibraryCreate {
+    /** Explicit new identity from a captured baseline plus pending inputs; source is never rewritten. */
+    fun recoverPending(source: PreviewStoredDraft, pending: PreviewPendingDraft): PreviewLibraryCreate {
+        require(source.draft.version.store.parent == root)
+        PreviewDraftId(source.draft.version.store.fileName.toString())
+        return createFrom(source, pending)
+    }
+
+    private fun createFrom(source: PreviewStoredDraft?, pending: PreviewPendingDraft? = null): PreviewLibraryCreate {
         var created: PreviewDraftId? = null
         return locked({ reason -> created?.let { PreviewLibraryCreate.Unconfirmed(it, reason) }
             ?: PreviewLibraryCreate.Failed(reason) }) {
@@ -145,7 +152,8 @@ class PreviewDraftLibrary internal constructor(root: Path, private val checkpoin
             sync(root)
             val persistence = unbound(id) // The library lock is already held, deliberately non-reentrant.
             val result = if (source == null) persistence.save(null, PreviewDraftFields())
-                else persistence.copySavedSnapshot(source)
+                else if (pending == null) persistence.copySavedSnapshot(source)
+                else persistence.copyPendingSnapshot(source, pending)
             checkpoint(LibraryCheckpoint.AFTER_SAVE)
             when (result) {
                 is PreviewDraftSave.Saved -> PreviewLibraryCreate.Saved(id, result.record)

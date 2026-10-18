@@ -43,6 +43,25 @@ the same installed selectors and behavioral assertions must still pass. This
 handling does not establish why Android terminated that utility or demonstrate
 performance stability.
 
+The [first explicit software attempt](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39100152906)
+checked out `c3fcacae081ffd4a7f6b6d55fb5a20c7aab3d846`, with the reviewed
+`89ce14ae9b6be91af9a49b7a43c162c2e79dde42` tree. Core checks, build, lint and all
+11 simulated cases passed. The emulator log recorded boot in 679.642 seconds and
+the synthetic APK installed. The initial Activity launch check then failed; the
+remaining three cases were not run and no UI hierarchy completed. Artifact
+`12126154523` has verified ZIP SHA-256
+`741d882b39b4a990994ef18463b4ab4a4d7506c2432b5d14d28c74f1fb9cbe33`.
+The old launch predicate discarded the command's output, so this receipt does not
+establish a timeout, crash or other cause. No installed case passed.
+
+Launch attempts now retain separate bounded stdout/stderr tails, exit code or
+command timeout, elapsed time and the result of the unchanged launch check in
+`activity_launches`. A failed case also attempts a filtered 400-line logcat read
+from the owned fresh emulator, retaining at most 131,072 characters and its command
+result. Failed log reads and failed UI checkpoint capture are recorded explicitly
+without replacing the original case failure. These diagnostics do not accept a
+launch timeout or relax any installed assertion; another observed run is required.
+
 ## Isolation and diagnostic signing
 
 Provisioning is restricted to a standard disposable GitHub-hosted Linux runner.
@@ -134,7 +153,8 @@ Setup failure is an explicit JUnit failure with the four cases unexecuted.
 
 The existing seven-day `android-preview-<workflow commit>` artifact includes this
 JSON receipt, JUnit XML, bounded emulator log and synthetic UI XML/PNG checkpoints,
-alongside the unsigned APK, lint reports and simulated-test reports. Link the exact
+bounded failure logcat when available, alongside the unsigned APK, lint reports
+and simulated-test reports. Link the exact
 run, commit and artifact before treating it as receiving evidence; artifact expiry
 does not create a permanent acceptance record.
 
@@ -164,13 +184,29 @@ earlier tree.
 
 ## Receiving gates that remain separate
 
-This lane does not itself close #59. Actual protected required-status enforcement,
-a controlled failing domain/contract run, and the canonical CI receiving record
-still require their own evidence. The inspection on 2026-10-18 found Android main
-reported `protected: false`; the connected integration received a 403 for the
-administration-only protection endpoint. The historical application protection
-statement in the migrated issue is not evidence of Android's current settings.
-No protection settings were changed or bypassed by this slice.
+This lane does not itself close #59. The independently reviewed, isolated
+[negative probe #223](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/223)
+added one indentation byte to the frozen example without changing its parsed JSON
+or checker. In [run 39100443483](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39100443483),
+core job `117595446217` failed the ordinary contract step with exactly
+`Contract integrity failure: frozen bytes changed: examples/build.json`; the native
+job passed its build, lint and all 25 simulations. The probe was closed without
+merge, and main retained the original fixture bytes. This is observed frozen-byte
+enforcement, not semantic schema/domain coverage or evidence of merge protection.
+
+Actual protected required-status enforcement and the canonical CI receiving
+record still require their completion evidence. The read-only inspection at
+2026-10-18 05:34 UTC on Android main `06a6c28c546c86b237eb8118008dfd28a378d70b`
+reported `protected: false`, protection disabled, enforcement `off`, empty required
+contexts/checks and an empty repository/parent rulesets list. The connected
+integration received a 403 for the detailed protection endpoint; the per-branch
+rules endpoint was unsupported by that connector and supplied no rules evidence.
+The observed main check names `Frozen contracts and JVM core` and `Unsigned
+synthetic Android preview` both passed [run 39100480068](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39100480068),
+but observed names are not configured requirements. The historical application
+protection statement in the migrated issue is not evidence of Android's current
+settings. [Issue #59's review receipt](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/59#issuecomment-6246184712)
+records this unmet gate; no Android or website protection setting was changed.
 
 Physical devices, low-memory death, interrupted writes/deletes, storage-full cases,
 supported OS/window/locale coverage, TalkBack and other manual accessibility,
