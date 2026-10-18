@@ -9,6 +9,10 @@ native architecture and service boundary against the existing delivery issues.
 These proposals await receiving review and do not establish implementation or
 release acceptance.
 
+The [data inventory and threat model](docs/security/DATA_INVENTORY_AND_THREAT_MODEL.md)
+maps the proposed preview and future service flows to privacy/security controls
+and verification work. It remains pending receiving review under Android #23.
+
 - [Delivery Project 4](https://github.com/orgs/Pick-Your-AI/projects/4) and program [Pick-Your-AI/pick-your-ai-android#1](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/1).
 - Repository and framework decision: [Pick-Your-AI/pick-your-ai-android#34](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/34). Repository creation is partial progress; framework, module layout and other architecture decisions remain open.
 - Shared-service decision: [Pick-Your-AI/pick-your-ai-android#35](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/35); reuse canonical services rather than create a competing backend.
