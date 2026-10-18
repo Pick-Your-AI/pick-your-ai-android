@@ -471,6 +471,35 @@ jobs:
               raise SystemExit("Retained-revision pair result count does not match executed cases")
           print(f"Verified {len(cases)} simulated retained-revision pair tests; no installed-device claim")
           PYTEST
+      - name: Require exact catalog pin recovery regressions to execute
+        run: |
+          python - <<'PYTEST'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          report = pathlib.Path("preview/build/test-results/testDebugUnitTest/TEST-ai.pickyour.android.preview.CatalogPinRecoveryActivityTest.xml")
+          suite = ET.parse(report).getroot()
+          expected = {
+              "currentPinnedInspectionUsesCapturedDetailsWithoutCreatingACacheOrSaving",
+              "retainedRetiredVersionDisplaysExactOlderBytesWithoutActivatingOrReplacingComparisonPins",
+              "missingSnapshotRetryRecoversOnlyTheSamePinAfterExactBytesBecomeAvailable",
+              "unsupportedInvalidAndAbsentVersionsHaveDistinctRecoverableMessagesAndPreserveBytes",
+              "corruptAndBusyRetainedCachesNeverFallBackAndBusyRecoveryUsesTheExactPin",
+              "cancelledLoadingAndResultCallbacksCannotReopenOrNavigateAfterDismissal",
+              "newerInspectionReplacesQueuedOriginAndRetainedControlsCannotReplaceItsResult",
+              "actualDetailAndPinInspectionRetireEachOthersRetainedActionsWithoutChangingPendingFields",
+              "comparisonAndPinInspectionRetireEachOthersRetainedActionsAndPreserveTrayPreferences",
+              "snapshotReplacementRemovalReloadAndRecreationRetireTheActualInspectionOrigin",
+              "changedSavedBaselineRejectsRetainedRetryAndBrowseWithoutReplacingPendingInputs",
+              "storageOperationRetiresInspectionEvenWhenTheMissingDraftBaselineIsUnchanged",
+              "retainedDirectorySymlinkIsRejectedWithoutOpeningTheTargetOrChangingThePin",
+              "narrowRtlLargeTextRecoveryActionsKeepMeasuredTargetsAndCompleteLabels",
+          }
+          cases = suite.findall("testcase")
+          assert expected <= {case.attrib["name"] for case in cases}, "Missing exact catalog pin recovery regression"
+          assert all(not case.findall("failure") and not case.findall("error") and not case.findall("skipped") for case in cases), "Catalog pin recovery regression did not pass"
+          assert int(suite.attrib["tests"]) >= len(expected)
+          print(f"Verified {len(cases)} simulated catalog pin recovery tests; no installed-device claim")
+          PYTEST
       - name: Require recorded findings selection context regressions to execute
         run: |
           python - <<'PYTEST'
