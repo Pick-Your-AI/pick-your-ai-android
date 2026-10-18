@@ -212,3 +212,10 @@ The [frozen Event decoder](FROZEN_EVENT_BOUNDARY.md) retains every event and pay
 field as immutable typed values, with exact subject revisions and explicit optional
 presence. Shared Python/Kotlin cases exercise the unchanged schema. Decoding adds
 no event execution, actor authority, idempotency, synchronization or telemetry.
+
+The [frozen Build snapshot reader](FROZEN_BUILD_BOUNDARY.md) retains all recorded
+Build fields, exact revisions/objectives, ordered selections/relationships and
+optional policy/extension content as immutable or defensive values. Shared
+Python/Kotlin fixtures cover its unchanged structural boundary; decoding neither
+creates a local identity nor verifies domain consistency, source rights, ownership,
+compatibility, saved state or a recorded deployment claim.
