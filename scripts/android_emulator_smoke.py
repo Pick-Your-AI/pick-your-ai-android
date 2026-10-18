@@ -29,6 +29,11 @@ HVF_EMULATOR_VERSION = "37.1.11.0"
 BOOT_TIMEOUT_SECONDS_BY_MODE = {"kvm": 300, "hvf": 600, "software": 900}
 HVF_HOST_IDENTITY = {"runner_environment": "github-hosted", "runner_os": "macOS",
                      "runner_arch": "X64", "system": "Darwin", "machine": "x86_64"}
+DISPLAY_CONFIGS = {
+    "pixel-2": {"hw.lcd.width": "1080", "hw.lcd.height": "1920", "hw.lcd.density": "420"},
+    "raster-720x1280-280": {"hw.lcd.width": "720", "hw.lcd.height": "1280", "hw.lcd.density": "280"},
+}
+DISPLAY_COMMANDS = {"size": ("shell", "wm", "size"), "density": ("shell", "wm", "density")}
 CASE_IDS = (
     "installed_synthetic_launch",
     "acknowledged_save_survives_force_stop",
@@ -465,7 +470,144 @@ def wait_for_guest_ready(device, receipt: dict, timeout_seconds=180):
         state["seconds"] = round(time.monotonic() - started, 3)
 
 
-def complete_receipt(receipt: dict, source_sha: str, expected_mode: str | None = None) -> None:
+def display_profile_setting(mode: str) -> str:
+    profile = os.environ.get("PYAI_EMULATOR_DISPLAY_PROFILE", "pixel-2")
+    require(profile in DISPLAY_CONFIGS, "Unknown startup display profile")
+    require(profile == "pixel-2" or mode == "hvf", "The raster experiment requires explicit HVF mode")
+    return profile
+
+
+def display_ini_content(raw: bytes) -> tuple[dict, list[str], dict]:
+    """Read only the three startup display keys; preserve every other line."""
+    require(0 < len(raw) <= 65536, "Unexpected owned AVD configuration size")
+    lines = raw.decode("utf-8").splitlines(keepends=True)
+    values, positions = {}, {}
+    for index, line in enumerate(lines):
+        key, separator, value = line.partition("=")
+        key = key.strip()
+        if separator and key in DISPLAY_CONFIGS["pixel-2"]:
+            require(key not in values, "Duplicate startup display configuration key")
+            require(re.fullmatch(r"[1-9][0-9]*", value.strip()) is not None,
+                    "Invalid startup display configuration value")
+            values[key], positions[key] = value.strip(), index
+    require(set(values) == set(DISPLAY_CONFIGS["pixel-2"]), "Incomplete startup display configuration")
+    return values, lines, positions
+
+
+def owned_display_file(avd_root: Path, avd_name: str, filename: str) -> Path:
+    require(re.fullmatch(r"pyai_smoke_[0-9a-f]{32}", avd_name) is not None,
+            "Unexpected owned AVD identity for startup display")
+    require(filename in ("config.ini", "hardware-qemu.ini"), "Unexpected startup display file")
+    directory = avd_root / (avd_name + ".avd")
+    require(avd_root.is_absolute() and avd_root.is_dir() and not avd_root.is_symlink()
+            and directory.is_dir() and not directory.is_symlink()
+            and directory.resolve().parent == avd_root.resolve(), "Startup display path is not the owned AVD")
+    path = directory / filename
+    metadata = path.lstat()
+    require(stat.S_ISREG(metadata.st_mode) and metadata.st_nlink == 1 and 0 < metadata.st_size <= 65536,
+            "Startup display file is not a bounded private regular file")
+    return path
+
+
+def display_config_observation(raw: bytes) -> dict:
+    values, lines, positions = display_ini_content(raw)
+    other = "".join(line for index, line in enumerate(lines) if index not in positions.values())
+    return {"sha256": hashlib.sha256(raw).hexdigest(), "bytes": len(raw), "properties": values,
+            "other_lines_sha256": hashlib.sha256(other.encode("utf-8")).hexdigest()}
+
+
+def configure_startup_display(avd_root: Path, avd_name: str, profile: str, receipt: dict) -> None:
+    """Configure only this newly created AVD, before the emulator process exists."""
+    require(profile in DISPLAY_CONFIGS, "Unknown startup display profile")
+    state = {"profile": profile, "avd_name": avd_name, "scope": "owned-avd-before-emulator-start",
+             "verified": False}
+    receipt["startup_display"] = state
+    try:
+        path = owned_display_file(avd_root, avd_name, "config.ini")
+        raw = path.read_bytes()
+        before = display_config_observation(raw)
+        state["configuration_before"] = before
+        require(before["properties"] == DISPLAY_CONFIGS["pixel-2"],
+                "Fresh Pixel 2 display defaults changed; review before applying the experiment")
+        values, lines, positions = display_ini_content(raw)
+        if profile != "pixel-2":
+            for key, value in DISPLAY_CONFIGS[profile].items():
+                index = positions[key]
+                ending = "\r\n" if lines[index].endswith("\r\n") else "\n" if lines[index].endswith("\n") else ""
+                lines[index] = lines[index].partition("=")[0] + "=" + value + ending
+            updated = "".join(lines).encode("utf-8")
+            require(display_config_observation(updated)["other_lines_sha256"] == before["other_lines_sha256"],
+                    "Startup display edit changed unrelated AVD configuration")
+            path.write_bytes(updated)
+        after = display_config_observation(path.read_bytes())
+        state["configuration_after"] = after
+        require(after["properties"] == DISPLAY_CONFIGS[profile]
+                and after["other_lines_sha256"] == before["other_lines_sha256"],
+                "Startup display configuration readback differs")
+        state["changed_keys"] = sorted(DISPLAY_CONFIGS[profile]) if profile != "pixel-2" else []
+    except Exception as error:
+        state["error"] = bounded_text(str(error), 1200)
+        raise
+
+
+def startup_display_passes(state: dict, expected_profile: str | None = None) -> bool:
+    if not (isinstance(state, dict) and isinstance(state.get("profile"), str)
+            and state["profile"] in DISPLAY_CONFIGS and state.get("verified") is True
+            and state.get("scope") == "owned-avd-before-emulator-start" and "error" not in state
+            and isinstance(state.get("avd_name"), str)
+            and re.fullmatch(r"pyai_smoke_[0-9a-f]{32}", state["avd_name"]) is not None):
+        return False
+    profile = state["profile"]
+    if expected_profile is not None and profile != expected_profile:
+        return False
+    expected = DISPLAY_CONFIGS[profile]
+    before, after, hardware = (state.get(name) for name in
+                               ("configuration_before", "configuration_after", "emulator_hardware"))
+    for observed, values in ((before, DISPLAY_CONFIGS["pixel-2"]), (after, expected), (hardware, expected)):
+        if not (isinstance(observed, dict) and observed.get("properties") == values
+                and type(observed.get("bytes")) is int and 0 < observed["bytes"] <= 65536
+                and all(isinstance(observed.get(key), str) and re.fullmatch(r"[0-9a-f]{64}", observed[key])
+                        for key in ("sha256", "other_lines_sha256"))):
+            return False
+    if (before["other_lines_sha256"] != after["other_lines_sha256"]
+            or (before["sha256"] == after["sha256"]) is not (profile == "pixel-2")
+            or state.get("changed_keys") != (sorted(expected) if profile != "pixel-2" else [])):
+        return False
+    observations = state.get("observations")
+    if not (isinstance(observations, dict) and set(observations) == set(DISPLAY_COMMANDS)
+            and all(interactive_command_passes(observations[name], args, 1024)
+                    for name, args in DISPLAY_COMMANDS.items())):
+        return False
+    width, height, density = (int(expected[key]) for key in ("hw.lcd.width", "hw.lcd.height", "hw.lcd.density"))
+    return (re.fullmatch(rf"Physical size: {width}x{height}\r?\n?", observations["size"]["stdout_tail"]) is not None
+            and re.fullmatch(rf"Physical density: {density}\r?\n?", observations["density"]["stdout_tail"]) is not None
+            and width * 420 == 1080 * density and height * 420 == 1920 * density)
+
+
+def observe_startup_display(device, avd_root: Path, receipt: dict) -> None:
+    state = receipt["startup_display"]
+    try:
+        require(device.avd_name == state["avd_name"], "Startup display belongs to a different AVD")
+        device.verify_identity()
+        path = owned_display_file(avd_root, state["avd_name"], "hardware-qemu.ini")
+        state["emulator_hardware"] = display_config_observation(path.read_bytes())
+        observations = {}
+        state["observations"] = observations
+        for name, arguments in DISPLAY_COMMANDS.items():
+            observed = {}
+            observations[name] = observed
+            observe_interactive_command(device, arguments, observed, timeout=30, retained_limit=1024)
+        receipt["display"] = "\n".join(observations[name]["stdout_tail"].strip() for name in DISPLAY_COMMANDS)
+        state["verified"] = True
+        require(startup_display_passes(state), "Observed startup display does not match the selected phone geometry")
+    except Exception as error:
+        state["verified"] = False
+        state["error"] = bounded_text(str(error), 1200)
+        raise
+
+
+def complete_receipt(receipt: dict, source_sha: str, expected_mode: str | None = None,
+                     expected_display_profile: str | None = None) -> None:
     require(receipt.get("source_commit") == source_sha, "Receipt source commit differs")
     require(receipt.get("scope") == "owned-installed-aosp-emulator", "Wrong evidence scope")
     require(receipt.get("status") == "passed", "Installed smoke did not pass")
@@ -496,6 +638,13 @@ def complete_receipt(receipt: dict, source_sha: str, expected_mode: str | None =
                 "Complete pinned Linux KVM acceleration evidence is missing")
     if emulation["mode"] in ("hvf", "kvm"):
         require_apk_handoff(receipt.get("unsigned_apk_sha256"), receipt.get("expected_unsigned_apk_sha256"))
+    if expected_display_profile is not None or "startup_display" in receipt:
+        display = receipt.get("startup_display")
+        require(startup_display_passes(display, expected_display_profile),
+                "Complete startup display configuration evidence is missing or inconsistent")
+        require(display["avd_name"] == receipt.get("avd_name")
+                and (display["profile"] == "pixel-2" or emulation["mode"] == "hvf"),
+                "Startup display differs from the owned AVD or selected mode")
     readiness = receipt.get("guest_readiness", {})
     require(isinstance(readiness, dict) and readiness.get("ready") is True and
             readiness.get("ui_dump_path") == UI_DUMP_PATH and
@@ -1119,6 +1268,7 @@ def main() -> int:
         original_hash = digest(apk)
         receipt["unsigned_apk_sha256"] = original_hash
         settings = emulation_settings(receipt)
+        display_profile = display_profile_setting(settings["mode"])
         if settings["mode"] in ("hvf", "kvm"):
             expected_hash = os.environ.get("PYAI_EXPECTED_APK_SHA256")
             require_apk_handoff(original_hash, expected_hash)
@@ -1187,6 +1337,7 @@ def main() -> int:
             receipt["avd_name"] = avd_name
             command([str(avdmanager), "create", "avd", "--name", avd_name,
                      "--package", SYSTEM_IMAGE, "--device", "pixel_2"], env=env, input="no\n", timeout=60)
+            configure_startup_display(Path(env["ANDROID_AVD_HOME"]), avd_name, display_profile, receipt)
             keystore = scratch / "disposable-preview.p12"
             signed_apk = scratch / "installed-preview.apk"
             password = "disposable-synthetic-preview"
@@ -1230,7 +1381,7 @@ def main() -> int:
                     require(receipt["device"]["ro.build.version.sdk"] == "35" and
                             receipt["device"]["ro.product.cpu.abi"] == "x86_64", "Unexpected installed platform")
                     receipt["device"]["online_cpus"] = device.shell("cat", "/sys/devices/system/cpu/online")
-                    receipt["display"] = device.shell("wm", "size") + "\n" + device.shell("wm", "density")
+                    observe_startup_display(device, Path(env["ANDROID_AVD_HOME"]), receipt)
                     for setting in ("window_animation_scale", "transition_animation_scale", "animator_duration_scale"):
                         device.shell("settings", "put", "global", setting, "0")
                     device.shell("settings", "put", "system", "screen_off_timeout", "1800000")
@@ -1266,7 +1417,7 @@ def main() -> int:
                         (output / "emulator.log").write_bytes(log.read())
         receipt["unsigned_apk_unchanged"] = digest(apk) == original_hash
         receipt["status"] = "passed"
-        complete_receipt(receipt, source, expected_mode=settings["mode"])
+        complete_receipt(receipt, source, expected_mode=settings["mode"], expected_display_profile=display_profile)
     except Exception as error:
         receipt.update(status="failed", error=str(error))
         print("Installed emulator smoke failed: " + str(error), file=sys.stderr)

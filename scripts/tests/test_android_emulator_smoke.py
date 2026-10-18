@@ -1676,5 +1676,313 @@ class EmulatorSmokeGuardTest(unittest.TestCase):
             self.assertEqual("No KVM", suite.find("testcase/failure").text)
 
 
+def startup_display_fixture(profile="raster-720x1280-280"):
+    """Independent synthetic receipt, usable against the pre-experiment validator."""
+    avd_name = "pyai_smoke_" + "a" * 32
+    baseline = {"hw.lcd.width": "1080", "hw.lcd.height": "1920", "hw.lcd.density": "420"}
+    selected = baseline if profile == "pixel-2" else {
+        "hw.lcd.width": "720", "hw.lcd.height": "1280", "hw.lcd.density": "280"}
+    other = b"hw.cpu.ncore=2\nhw.ramSize=2048\n"
+
+    def configuration(properties):
+        raw = other + "".join(key + "=" + value + "\n" for key, value in properties.items()).encode()
+        return {"sha256": hashlib.sha256(raw).hexdigest(), "bytes": len(raw), "properties": dict(properties),
+                "other_lines_sha256": hashlib.sha256(other).hexdigest()}
+
+    def observation(name, text):
+        return {"arguments": ["shell", "wm", name], "exit_code": 0, "timeout_seconds": 30, "seconds": 0,
+                "stdout_retained_character_limit": 1024, "stdout_tail_truncated": False, "stdout_tail": text,
+                "stdout": smoke.ui_stream_observation(text), "stderr": smoke.ui_stream_observation("")}
+
+    return {"profile": profile, "avd_name": avd_name, "scope": "owned-avd-before-emulator-start",
+            "verified": True, "configuration_before": configuration(baseline),
+            "configuration_after": configuration(selected), "emulator_hardware": configuration(selected),
+            "changed_keys": sorted(selected) if profile != "pixel-2" else [],
+            "observations": {
+                "size": observation("size", "Physical size: " + selected["hw.lcd.width"] + "x" + selected["hw.lcd.height"] + "\n"),
+                "density": observation("density", "Physical density: " + selected["hw.lcd.density"] + "\n")}}
+
+
+def complete_startup_display_fixture():
+    display = startup_display_fixture()
+    return {"source_commit": "a" * 40, "scope": "owned-installed-aosp-emulator", "status": "passed",
+            "avd_name": display["avd_name"], "startup_display": display,
+            "unsigned_apk_unchanged": True, "unsigned_apk_sha256": "b" * 64, "expected_unsigned_apk_sha256": "b" * 64,
+            "emulation": {"mode": "hvf", "accel_argument": "on", "boot_timeout_seconds": 600,
+                          "unsupported_software_opt_in": False,
+                          "host": dict(smoke.HVF_HOST_IDENTITY, kern_hv_support="1", support_check={
+                              "exit_code": 0, "stdout": "1\n", "stderr": "", "output_truncated": False})},
+            "host_acceleration": {"exit_code": 0, "stderr": "", "output_truncated": False,
+                                  "stdout": "accel:\n0\nHypervisor.Framework OS X Version 15.7\naccel\n"},
+            "guest_readiness": {"ready": True, "ui_dump_path": smoke.UI_DUMP_PATH,
+                                "last_checks": ready_checks(), "interactive": ready_interactive()},
+            "cases": [{"id": name, "status": "passed"} for name in smoke.CASE_IDS]}
+
+
+class StartupDisplayGuardTest(unittest.TestCase):
+    def test_raster_selection_is_explicit_and_has_no_host_side_effect(self):
+        with patch.dict(os.environ, {}, clear=True), patch.object(smoke, "command") as command:
+            for mode in ("kvm", "hvf", "software"):
+                self.assertEqual("pixel-2", smoke.display_profile_setting(mode))
+            with patch.dict(os.environ, {"PYAI_EMULATOR_DISPLAY_PROFILE": "raster-720x1280-280"}):
+                self.assertEqual("raster-720x1280-280", smoke.display_profile_setting("hvf"))
+                for mode in ("kvm", "software"):
+                    with self.assertRaises(smoke.SmokeFailure):
+                        smoke.display_profile_setting(mode)
+            for value in ("", "automatic", "1080x1920", "raster-720x1280-280 "):
+                with patch.dict(os.environ, {"PYAI_EMULATOR_DISPLAY_PROFILE": value}), self.assertRaises(smoke.SmokeFailure):
+                    smoke.display_profile_setting("hvf")
+            command.assert_not_called()
+
+    def make_avd(self, root, raw=None):
+        avd_name = "pyai_smoke_" + "a" * 32
+        directory = root / (avd_name + ".avd")
+        directory.mkdir()
+        raw = raw if raw is not None else (b"AvdId=synthetic\nhw.cpu.ncore=2\nhw.ramSize=2048\n"
+                                           b"hw.lcd.width=1080\nhw.lcd.height=1920\nhw.lcd.density=420\n"
+                                           b"image.sysdir.1=system-images/android-35/default/x86_64/\n")
+        (directory / "config.ini").write_bytes(raw)
+        return avd_name, directory
+
+    def test_startup_edit_changes_only_the_three_display_values_and_default_is_byte_exact(self):
+        for profile in ("pixel-2", "raster-720x1280-280"):
+            for newline in (b"\n", b"\r\n"):
+                with self.subTest(profile=profile, newline=newline), tempfile.TemporaryDirectory() as temporary:
+                    root, receipt = Path(temporary), {}
+                    original = (b"hw.cpu.ncore=2\nhw.lcd.width = 1080\nhw.lcd.height=1920\n"
+                                b"hw.lcd.density=420\nhw.ramSize=2048\n").replace(b"\n", newline)
+                    avd_name, directory = self.make_avd(root, original)
+                    with patch.object(smoke.subprocess, "Popen") as process, patch.object(smoke, "command") as command:
+                        smoke.configure_startup_display(root, avd_name, profile, receipt)
+                    expected = original if profile == "pixel-2" else original.replace(
+                        b"width = 1080", b"width =720").replace(b"height=1920", b"height=1280").replace(b"density=420", b"density=280")
+                    self.assertEqual(expected, (directory / "config.ini").read_bytes())
+                    state = receipt["startup_display"]
+                    self.assertFalse(state["verified"])
+                    self.assertEqual(hashlib.sha256(original).hexdigest(), state["configuration_before"]["sha256"])
+                    self.assertEqual(hashlib.sha256(expected).hexdigest(), state["configuration_after"]["sha256"])
+                    self.assertEqual(state["configuration_before"]["other_lines_sha256"], state["configuration_after"]["other_lines_sha256"])
+                    self.assertEqual(sorted(smoke.DISPLAY_CONFIGS[profile]) if profile != "pixel-2" else [], state["changed_keys"])
+                    process.assert_not_called()
+                    command.assert_not_called()
+
+    def test_startup_edit_rejects_incomplete_duplicate_changed_or_unreadable_defaults_without_writing(self):
+        baseline = b"hw.lcd.width=1080\nhw.lcd.height=1920\nhw.lcd.density=420\n"
+        invalid = [baseline.replace(b"1080", b"720"), baseline.replace(b"420", b"280"),
+                   baseline.replace(b"hw.lcd.height=1920\n", b""), baseline + b"hw.lcd.width=1080\n",
+                   baseline.replace(b"420", b"+420"), baseline.replace(b"420", b"420 # comment"),
+                   baseline + b"\xff", b"", baseline + b"#" * 65536]
+        for raw in invalid:
+            with self.subTest(raw_bytes=len(raw)), tempfile.TemporaryDirectory() as temporary:
+                root, receipt = Path(temporary), {}
+                avd_name, directory = self.make_avd(root, raw)
+                with self.assertRaises((smoke.SmokeFailure, UnicodeError)):
+                    smoke.configure_startup_display(root, avd_name, "raster-720x1280-280", receipt)
+                self.assertEqual(raw, (directory / "config.ini").read_bytes())
+                self.assertFalse(receipt["startup_display"]["verified"])
+                self.assertIn("error", receipt["startup_display"])
+
+    def test_startup_edit_refuses_foreign_names_links_and_shared_files(self):
+        for link_kind in ("file", "dangling", "directory", "root", "hardlink", "foreign-name"):
+            with self.subTest(link_kind=link_kind), tempfile.TemporaryDirectory() as temporary:
+                container = Path(temporary)
+                root = container / "owned"
+                root.mkdir()
+                avd_name, directory = self.make_avd(root)
+                original = (directory / "config.ini").read_bytes()
+                sentinel = container / "unrelated.ini"
+                sentinel.write_bytes(original)
+                if link_kind in ("file", "dangling", "hardlink"):
+                    (directory / "config.ini").unlink()
+                    if link_kind == "hardlink":
+                        os.link(sentinel, directory / "config.ini")
+                    else:
+                        (directory / "config.ini").symlink_to(sentinel if link_kind == "file" else container / "absent")
+                elif link_kind == "directory":
+                    moved = container / "unrelated-avd"
+                    directory.rename(moved)
+                    directory.symlink_to(moved, target_is_directory=True)
+                elif link_kind == "root":
+                    alias = container / "alias"
+                    alias.symlink_to(root, target_is_directory=True)
+                    root = alias
+                else:
+                    avd_name = "../unrelated"
+                with self.assertRaises(smoke.SmokeFailure):
+                    smoke.configure_startup_display(root, avd_name, "raster-720x1280-280", {})
+                self.assertEqual(original, sentinel.read_bytes())
+
+    def test_startup_edit_requires_actual_file_readback_before_launch(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root, receipt = Path(temporary), {}
+            avd_name, directory = self.make_avd(root)
+            original = (directory / "config.ini").read_bytes()
+            with patch.object(Path, "write_bytes", return_value=len(original)), self.assertRaisesRegex(smoke.SmokeFailure, "readback differs"):
+                smoke.configure_startup_display(root, avd_name, "raster-720x1280-280", receipt)
+            self.assertEqual(original, (directory / "config.ini").read_bytes())
+            self.assertFalse(receipt["startup_display"]["verified"])
+
+    def prepare_observation(self, root, profile="raster-720x1280-280"):
+        receipt = {}
+        avd_name, directory = self.make_avd(root)
+        smoke.configure_startup_display(root, avd_name, profile, receipt)
+        (directory / "hardware-qemu.ini").write_bytes((directory / "config.ini").read_bytes())
+        device = Mock(spec=smoke.Device)
+        device.avd_name = avd_name
+        selected = startup_display_fixture(profile)["observations"]
+        device.adb.side_effect = [subprocess.CompletedProcess([], 0, selected[name]["stdout_tail"], "")
+                                  for name in ("size", "density")]
+        return receipt, directory, device
+
+    def test_observed_physical_display_binds_generated_hardware_and_same_logical_phone_geometry(self):
+        for profile in ("pixel-2", "raster-720x1280-280"):
+            with self.subTest(profile=profile), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                receipt, directory, device = self.prepare_observation(root, profile)
+                smoke.observe_startup_display(device, root, receipt)
+                state = receipt["startup_display"]
+                self.assertTrue(smoke.startup_display_passes(state, profile))
+                self.assertEqual(hashlib.sha256((directory / "hardware-qemu.ini").read_bytes()).hexdigest(), state["emulator_hardware"]["sha256"])
+                self.assertEqual([call("shell", "wm", "size", timeout=30, check=False),
+                                  call("shell", "wm", "density", timeout=30, check=False)], device.adb.call_args_list)
+                device.verify_identity.assert_called_once_with()
+                device.shell.assert_not_called()
+                device.launch.assert_not_called()
+        self.assertEqual(720 * 420, 1080 * 280)
+        self.assertEqual(1280 * 420, 1920 * 280)
+        self.assertEqual(720 * 1280 * 9, 1080 * 1920 * 4)
+
+    def test_display_observation_rejects_overrides_stale_hardware_errors_and_stream_noise(self):
+        invalid = [("size", 0, "Physical size: 1080x1920\n", ""),
+                   ("size", 0, "Physical size: 1080x1920\nOverride size: 720x1280\n", ""),
+                   ("size", 0, "Physical size: 1280x720\n", ""),
+                   ("density", 0, "Physical density: 420\nOverride density: 280\n", ""),
+                   ("density", 0, "Physical density: 280\n\n", ""),
+                   ("density", 1, "Physical density: 280\n", ""),
+                   ("density", 0, "Physical density: 280\n", "service error"),
+                   ("size", 0, "x" * 2048, "")]
+        for name, code, stdout, stderr in invalid:
+            with self.subTest(name=name, code=code, stdout=stdout[:80]), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                receipt, directory, device = self.prepare_observation(root)
+                answers = [subprocess.CompletedProcess([], 0, "Physical size: 720x1280\n", ""),
+                           subprocess.CompletedProcess([], 0, "Physical density: 280\n", "")]
+                answers[0 if name == "size" else 1] = subprocess.CompletedProcess([], code, stdout, stderr)
+                device.adb.side_effect = answers
+                with self.assertRaises(smoke.SmokeFailure):
+                    smoke.observe_startup_display(device, root, receipt)
+                self.assertFalse(receipt["startup_display"]["verified"])
+                self.assertIn("error", receipt["startup_display"])
+                self.assertEqual(code, receipt["startup_display"]["observations"][name]["exit_code"])
+                device.launch.assert_not_called()
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            receipt, directory, device = self.prepare_observation(root)
+            (directory / "hardware-qemu.ini").write_bytes(b"hw.lcd.width=1080\nhw.lcd.height=1920\nhw.lcd.density=420\n")
+            with self.assertRaises(smoke.SmokeFailure):
+                smoke.observe_startup_display(device, root, receipt)
+            self.assertFalse(receipt["startup_display"]["verified"])
+
+    def test_display_timeout_foreign_avd_or_missing_generated_hardware_cannot_become_verified(self):
+        for reason in ("timeout", "process", "foreign", "hardware-missing", "hardware-symlink"):
+            with self.subTest(reason=reason), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                receipt, directory, device = self.prepare_observation(root)
+                if reason == "timeout":
+                    error = subprocess.TimeoutExpired("adb", 30, output=b"Physical size: 720", stderr=b"partial")
+                    device.adb.side_effect = error
+                elif reason == "process":
+                    error = smoke.SmokeFailure("Owned emulator process exited")
+                    device.adb.side_effect = error
+                elif reason == "foreign":
+                    device.avd_name = "pyai_smoke_" + "b" * 32
+                else:
+                    (directory / "hardware-qemu.ini").unlink()
+                    if reason == "hardware-symlink":
+                        (directory / "hardware-qemu.ini").symlink_to(directory / "config.ini")
+                with self.assertRaises((smoke.SmokeFailure, OSError, subprocess.TimeoutExpired)):
+                    smoke.observe_startup_display(device, root, receipt)
+                self.assertFalse(receipt["startup_display"]["verified"])
+                self.assertIn("error", receipt["startup_display"])
+                self.assertLessEqual(device.adb.call_count, 1)
+                if reason == "timeout":
+                    observed = receipt["startup_display"]["observations"]["size"]
+                    self.assertEqual(30, observed["command_timeout_seconds"])
+                    self.assertEqual("Physical size: 720", observed["stdout"]["prefix"])
+                    self.assertEqual("partial", observed["stderr"]["prefix"])
+                device.launch.assert_not_called()
+
+    def test_final_receipt_rejects_unbound_startup_configuration_and_observation_claims(self):
+        receipt = complete_startup_display_fixture()
+        smoke.complete_receipt(receipt, "a" * 40, expected_mode="hvf")
+        invalid = []
+        for key, value in (("verified", False), ("scope", "postboot-wm-override"), ("error", "failed"),
+                           ("changed_keys", ["hw.cpu.ncore"]), ("avd_name", "pyai_smoke_" + "b" * 32)):
+            changed = copy.deepcopy(receipt)
+            changed["startup_display"][key] = value
+            invalid.append(changed)
+        changed = copy.deepcopy(receipt)
+        changed["startup_display"]["emulator_hardware"]["properties"]["hw.lcd.width"] = "1080"
+        invalid.append(changed)
+        changed = copy.deepcopy(receipt)
+        changed["startup_display"]["configuration_after"]["other_lines_sha256"] = "c" * 64
+        invalid.append(changed)
+        changed = copy.deepcopy(receipt)
+        size = changed["startup_display"]["observations"]["size"]
+        size["stdout_tail"] = "Physical size: 1080x1920\n"
+        size["stdout"] = smoke.ui_stream_observation(size["stdout_tail"])
+        invalid.append(changed)
+        changed = copy.deepcopy(receipt)
+        changed["startup_display"]["observations"]["density"]["stderr"]["prefix"] = "contradiction"
+        invalid.append(changed)
+        changed = copy.deepcopy(receipt)
+        changed["startup_display"]["observations"]["size"]["stdout"]["text_sha256"] = "d" * 64
+        invalid.append(changed)
+        changed = copy.deepcopy(receipt)
+        changed["startup_display"]["observations"]["size"]["command_timeout_seconds"] = 30
+        invalid.append(changed)
+        changed = copy.deepcopy(receipt)
+        changed["startup_display"].pop("emulator_hardware")
+        invalid.append(changed)
+        for index, changed in enumerate(invalid):
+            with self.subTest(case=index), self.assertRaises(smoke.SmokeFailure):
+                smoke.complete_receipt(changed, "a" * 40, expected_mode="hvf")
+
+    def test_selected_experiment_requires_its_exact_receipt_and_all_original_gates(self):
+        receipt = complete_startup_display_fixture()
+        smoke.complete_receipt(receipt, "a" * 40, expected_mode="hvf", expected_display_profile="raster-720x1280-280")
+        for profile in ("pixel-2", "unknown"):
+            with self.assertRaises(smoke.SmokeFailure):
+                smoke.complete_receipt(receipt, "a" * 40, expected_display_profile=profile)
+        absent = copy.deepcopy(receipt)
+        absent.pop("startup_display")
+        with self.assertRaises(smoke.SmokeFailure):
+            smoke.complete_receipt(absent, "a" * 40, expected_display_profile="raster-720x1280-280")
+        invalid = []
+        for key, value in (("status", "failed"), ("unsigned_apk_unchanged", False),
+                           ("host_acceleration", {}), ("expected_unsigned_apk_sha256", "c" * 64)):
+            changed = copy.deepcopy(receipt)
+            changed[key] = value
+            invalid.append(changed)
+        for case in range(4):
+            changed = copy.deepcopy(receipt)
+            changed["cases"][case]["status"] = "not_run"
+            invalid.append(changed)
+        for name, _, _ in smoke.GUEST_READINESS_COMMANDS:
+            changed = copy.deepcopy(receipt)
+            changed["guest_readiness"]["last_checks"][name]["exit_code"] = 1
+            invalid.append(changed)
+        changed = copy.deepcopy(receipt)
+        changed["guest_readiness"]["interactive"]["ready"] = False
+        invalid.append(changed)
+        changed = copy.deepcopy(receipt)
+        changed["emulation"]["mode"] = "kvm"
+        changed["emulation"]["boot_timeout_seconds"] = 300
+        invalid.append(changed)
+        for changed in invalid:
+            with self.assertRaises(smoke.SmokeFailure):
+                smoke.complete_receipt(changed, "a" * 40, expected_display_profile="raster-720x1280-280")
+
+
 if __name__ == "__main__":
     unittest.main()
