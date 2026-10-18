@@ -26,6 +26,51 @@ class LocalDraftStoreTest {
     private fun raw() = (cache().active() as CacheRead.Available).bytes
     private fun seed(bytes: ByteArray) { assertTrue(cache().install(hash(bytes), bytes.inputStream()) is CacheInstall.Activated) }
 
+
+    @Test fun `missing root is rejected without implicitly creating ancestors`() {
+        val missing = root.resolve("missing/child")
+        assertThrows(IllegalArgumentException::class.java) { LocalDraftStore(missing) }
+        assertFalse(Files.exists(root.resolve("missing")))
+    }
+
+    @Test fun `revision directory creation failure prevents constructing a usable store`() {
+        val obstacle = root.resolve("revisions")
+        Files.writeString(obstacle, "preserve")
+        assertThrows(IOException::class.java) { LocalDraftStore(root) }
+        assertEquals("preserve", Files.readString(obstacle))
+        assertFalse(Files.exists(root.resolve("transaction.lock")))
+    }
+
+    @Test fun `failed parent sync cannot yield a store and retry syncs existing child before use`() {
+        var factoryCalls = 0
+        var syncCalls = 0
+        val factory: (Path) -> VerifiedArtifactCache = { path ->
+            factoryCalls++
+            VerifiedArtifactCache(path, LocalDraftStore.MAX_BYTES)
+        }
+        repeat(2) {
+            assertThrows(IOException::class.java) {
+                LocalDraftStore(root, factory, {}, { path ->
+                    syncCalls++
+                    assertEquals(root.toRealPath(), path)
+                    assertTrue(Files.isDirectory(path.resolve("revisions")))
+                    throw IOException("injected parent sync failure")
+                })
+            }
+            assertEquals(0, factoryCalls)
+            assertFalse(Files.exists(root.resolve("revisions/active")))
+        }
+        val reopened = LocalDraftStore(root, factory, {}, { path ->
+            syncCalls++
+            assertEquals(0, factoryCalls)
+            FileChannel.open(path, READ).use { it.force(true) }
+        })
+        assertEquals(3, syncCalls)
+        assertEquals(1, factoryCalls)
+        val draft = saved(reopened.save(null, DraftContent(context = "after successful initialization")))
+        assertEquals(draft.version.hash, loaded().version.hash)
+    }
+
     @Test fun `empty partial and populated inputs reopen without invented values`() {
         val empty = saved(store().save(null, DraftContent()))
         assertEquals(0, empty.version.number)
@@ -51,7 +96,7 @@ class LocalDraftStoreTest {
         val next = saved(store().save(first.version, DraftContent(context = "new")))
         assertEquals(DraftSave.Conflict, store().save(first.version, DraftContent(context = "stale")))
         assertEquals(DraftSave.Conflict, store().save(null, DraftContent()))
-        val other = LocalDraftStore(root.resolve("other"))
+        val other = LocalDraftStore(Files.createDirectory(root.resolve("other")))
         val foreign = saved(other.save(null, DraftContent()))
         assertEquals(DraftSave.Conflict, store().save(foreign.version, DraftContent()))
         assertEquals(next.version.hash, loaded().version.hash)
