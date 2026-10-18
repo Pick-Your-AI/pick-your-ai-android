@@ -4,7 +4,7 @@ Partial implementation for [Android #66](https://github.com/Pick-Your-AI/pick-yo
 `RateScreen` accepts one bounded frozen-v1 Pricebook and an explicit component ID,
 version, meter, region, currency and as-of instant. It validates the unmodified
 schema, rejects duplicate rate IDs and reversed intervals, and returns exact
-candidate IDs with the pricebook ID/revision. No implicit system clock, exchange
+candidate IDs with the pricebook ID/revision and received-byte SHA-256. No implicit system clock, exchange
 rate, region default, alternative summation or fixture fallback is used.
 
 This is discovery, not accepted rate resolution. Every result contains
@@ -25,8 +25,17 @@ queries redact their values in diagnostic `toString` output.
 - Unsupported timestamp precision/range fails closed. Input streams are caller-owned.
 - `asOf` filters rate applicability, not historical knowledge: later capture or
   provenance timestamps still require evidence review and do not certify freshness.
-- Candidate IDs refer back to the original pinned artifact. The caller must retain
-  its hash and provenance; ID/revision alone does not authenticate the publisher.
+- Candidate IDs refer back to the original pinned artifact. The result retains
+  its received-byte hash; this checksum and ID/revision do not authenticate a publisher.
+  The caller must retain the original artifact and provenance.
+
+`RecordedPricebook` now provides the immutable, validated snapshot shared by
+screening and [recorded catalog price context](CATALOG_PRICE_CONTEXT.md). Calling
+`screen(pricebook, query)` and `screen(input, query)` preserves the same candidate
+boundaries and unresolved gaps. Exact item/version metadata lookup on the book
+retains every alternative and never supplies eligibility by itself. The Android
+detail view displays fictional recorded metadata without choosing an as-of query,
+rate, current quote or total. No amount is added to `RateCandidates`.
 
 On 2026-10-18, [research #39](https://github.com/Pick-Your-AI/pick-your-ai-research/issues/39)
 was open, and [research PR #113](https://github.com/Pick-Your-AI/pick-your-ai-research/pull/113)
@@ -41,7 +50,7 @@ it is not a market quote or source-use receipt.
 | --- | --- | --- |
 | Exact versions, meter, region, currency, effective dates and eligibility determine rates | Exact-field and boundary tests; unresolved free-text eligibility is excluded | Governed structured eligibility, approved real pricebook and provenance policy |
 | Expired, future, wrong-region/currency and ineligible rates cannot be accepted | Candidate filtering and unresolved-condition tests | Actual estimate integration; no accepted estimate is produced here |
-| Reproducible pinned inputs/as-of, no accidental addition of alternatives | Query has explicit time, output retains revision; alternatives marked ambiguous | Authenticated publication and complete estimate pinning |
+| Reproducible pinned inputs/as-of, no accidental addition of alternatives | Query has explicit time, output retains revision and exact byte hash; alternatives marked ambiguous | Authenticated publication and complete estimate pinning |
 | Missing rate means unknown rather than zero | Empty candidates carry `NO_MATCH`; no amount exists in this API | Integrated cost presentation and receiving review |
 
 Tests also cover malformed JSON, schema/version rejection, duplicate identities,
@@ -52,4 +61,5 @@ and tamper tests from [CORE_FOUNDATION.md](CORE_FOUNDATION.md).
 The canonical acceptance path remains
 `docs/delivery/android/work-packages/10.01.md` in `Pick-Your-AI/pickyour.ai`.
 This Android-local evidence does not move it or close #66, #85 or #103.
-Android UI, real-data, installed-device and receiving-policy acceptance are unexecuted.
+Recorded fixture metadata has a bounded Android presentation; accepted-rate UI,
+real-data, installed-device and receiving-policy acceptance remain unexecuted.
