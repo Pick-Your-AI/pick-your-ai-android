@@ -27,6 +27,13 @@ def ready_checks():
             for name, _, expected in smoke.GUEST_READINESS_COMMANDS}
 
 
+def hvf_observations():
+    return {"runner_os": "macOS", "runner_arch": "X64", "system": "Darwin", "machine": "x86_64", "checks": {
+        "kern_hv_support": {"exit_code": 0, "stdout_tail": "1\n", "stderr_tail": "", "output_truncated": False},
+        "acceleration": {"exit_code": 0, "stdout_tail": "accel:\n0\nHypervisor.Framework OS X Version 15.7\naccel\n",
+                         "stderr_tail": "", "output_truncated": False}}}
+
+
 class ReadinessClock:
     def __init__(self):
         self.now = 0
@@ -200,6 +207,126 @@ class EmulatorSmokeGuardTest(unittest.TestCase):
             with self.assertRaisesRegex(smoke.SmokeFailure, "Unknown emulator mode"):
                 smoke.emulation_settings()
             kvm.assert_not_called()
+
+    def test_hvf_requires_explicit_hosted_intel_macos_before_any_command(self):
+        environment = {"GITHUB_ACTIONS": "true", "RUNNER_ENVIRONMENT": "github-hosted",
+                       "RUNNER_OS": "macOS", "RUNNER_ARCH": "X64", "ANDROID_HOME": "/sdk"}
+        for changed in ({"RUNNER_OS": "Linux"}, {"RUNNER_ARCH": "ARM64"},
+                        {"GITHUB_ACTIONS": "false"}, {"RUNNER_ENVIRONMENT": "self-hosted"}):
+            with self.subTest(changed=changed), patch.dict(os.environ, environment | changed, clear=True), \
+                    patch.object(smoke.platform, "system", return_value="Darwin"), \
+                    patch.object(smoke.platform, "machine", return_value="x86_64"), \
+                    patch.object(smoke, "command") as command, patch("sys.stdout", new_callable=io.StringIO):
+                with self.assertRaisesRegex(smoke.SmokeFailure, "explicit GitHub-hosted Intel macOS"):
+                    smoke.check_hvf_access()
+                command.assert_not_called()
+        for system, machine in (("Linux", "x86_64"), ("Darwin", "arm64")):
+            with self.subTest(system=system, machine=machine), patch.dict(os.environ, environment, clear=True), \
+                    patch.object(smoke.platform, "system", return_value=system), \
+                    patch.object(smoke.platform, "machine", return_value=machine), \
+                    patch.object(smoke, "command") as command, patch("sys.stdout", new_callable=io.StringIO):
+                with self.assertRaises(smoke.SmokeFailure):
+                    smoke.check_hvf_access()
+                command.assert_not_called()
+
+    def test_hvf_uses_only_bounded_existing_support_and_acceleration_observations(self):
+        expected = hvf_observations()
+        environment = {"GITHUB_ACTIONS": "true", "RUNNER_ENVIRONMENT": "github-hosted", "RUNNER_OS": "macOS",
+                       "RUNNER_ARCH": "X64", "ANDROID_HOME": "/sdk", "PYAI_EMULATOR_MODE": "hvf"}
+        answers = [subprocess.CompletedProcess([], 0, row["stdout_tail"], "") for row in expected["checks"].values()]
+        receipt = {}
+        with patch.dict(os.environ, environment, clear=True), patch.object(smoke.platform, "system", return_value="Darwin"), \
+                patch.object(smoke.platform, "machine", return_value="x86_64"), \
+                patch.object(Path, "is_file", return_value=True), patch.object(Path, "is_symlink", return_value=False), \
+                patch.object(smoke, "command", side_effect=answers) as command, \
+                patch.object(smoke, "check_kvm_access") as kvm, patch.object(smoke.os, "chmod") as chmod, \
+                patch.object(smoke.os, "chown") as chown, patch("sys.stdout", new_callable=io.StringIO):
+            settings = smoke.emulation_settings(receipt)
+        self.assertEqual({"mode": "hvf", "accel_argument": "on", "boot_timeout_seconds": 300,
+                          "unsupported_software_opt_in": False, "hvf_preflight": expected}, settings)
+        self.assertIs(settings, receipt["emulation"])
+        self.assertEqual([call(["/usr/sbin/sysctl", "-n", "kern.hv_support"], timeout=5, check=False),
+                          call(["/sdk/emulator/emulator", "-accel-check"], timeout=30, check=False)], command.call_args_list)
+        kvm.assert_not_called()
+        chmod.assert_not_called()
+        chown.assert_not_called()
+
+    def test_hvf_never_accepts_missing_failed_truncated_or_different_acceleration_evidence(self):
+        self.assertTrue(smoke.hvf_preflight_passes(hvf_observations()))
+        self.assertFalse(smoke.hvf_preflight_passes(None))
+        for key, changes in (
+                ("kern_hv_support", {"stdout_tail": "0"}),
+                ("kern_hv_support", {"exit_code": False}),
+                ("acceleration", {"exit_code": 1}),
+                ("acceleration", {"stdout_tail": "accel:\n0\nKVM is installed and usable\naccel\n"}),
+                ("acceleration", {"stdout_tail": "accel:\n1\nHypervisor.Framework OS X Version 15.7\naccel\n"}),
+                ("acceleration", {"stderr_tail": "failed"}),
+                ("acceleration", {"output_truncated": True}),
+                ("acceleration", {"command_timeout_seconds": 30})):
+            with self.subTest(key=key, changes=changes):
+                observed = hvf_observations()
+                observed["checks"][key].update(changes)
+                self.assertFalse(smoke.hvf_preflight_passes(observed))
+        for field in ("runner_os", "runner_arch", "system", "machine", "checks"):
+            observed = hvf_observations()
+            observed.pop(field)
+            self.assertFalse(smoke.hvf_preflight_passes(observed))
+        observed = hvf_observations()
+        observed["checks"].pop("kern_hv_support")
+        self.assertFalse(smoke.hvf_preflight_passes(observed))
+
+    def test_hvf_accepts_actual_hosted_response_only_with_complete_acceleration_markers(self):
+        # Exact stdout in #244 run 39104147868/job 117606323632, including its closing marker.
+        actual = "accel:\n0\nHypervisor.Framework OS X Version 15.7\naccel\n"
+        observed = hvf_observations()
+        self.assertEqual(actual, observed["checks"]["acceleration"]["stdout_tail"])
+        self.assertTrue(smoke.hvf_preflight_passes(observed))
+        for incomplete in (
+                actual.removesuffix("accel\n"),
+                actual.replace("\naccel\n", "\naccel:\n"),
+                actual + "accel\n",
+                actual.removeprefix("accel:\n"),
+                actual.replace("\n0\n", "0")):
+            with self.subTest(stdout=incomplete):
+                observed["checks"]["acceleration"]["stdout_tail"] = incomplete
+                self.assertFalse(smoke.hvf_preflight_passes(observed))
+
+    def test_hvf_timeout_retains_partial_observations_in_failed_receipt_without_fallback(self):
+        environment = {"GITHUB_ACTIONS": "true", "RUNNER_ENVIRONMENT": "github-hosted", "RUNNER_OS": "macOS",
+                       "RUNNER_ARCH": "X64", "ANDROID_HOME": "/sdk", "PYAI_EMULATOR_MODE": "hvf"}
+        receipt = {}
+        answers = [subprocess.CompletedProcess([], 0, "1\n", ""),
+                   subprocess.TimeoutExpired("emulator", 30, output=b"accel:\n0\n" + b"x" * 3000, stderr=b"partial")]
+        with patch.dict(os.environ, environment, clear=True), patch.object(smoke.platform, "system", return_value="Darwin"), \
+                patch.object(smoke.platform, "machine", return_value="x86_64"), \
+                patch.object(Path, "is_file", return_value=True), patch.object(Path, "is_symlink", return_value=False), \
+                patch.object(smoke, "command", side_effect=answers), patch.object(smoke, "check_kvm_access") as kvm, \
+                patch("sys.stdout", new_callable=io.StringIO) as output:
+            with self.assertRaisesRegex(smoke.SmokeFailure, "Existing HVF capability was not established"):
+                smoke.emulation_settings(receipt)
+        settings = receipt["emulation"]
+        self.assertEqual("hvf", settings["mode"])
+        self.assertFalse(settings["unsupported_software_opt_in"])
+        row = settings["hvf_preflight"]["checks"]["acceleration"]
+        self.assertEqual(30, row["command_timeout_seconds"])
+        self.assertEqual("x" * 1200, row["stdout_tail"])
+        self.assertEqual("partial", row["stderr_tail"])
+        self.assertIn("HVF preflight:", output.getvalue())
+        self.assertFalse(smoke.hvf_preflight_passes(settings["hvf_preflight"]))
+        kvm.assert_not_called()
+
+    def test_hvf_refuses_missing_or_linked_emulator_without_running_it(self):
+        environment = {"GITHUB_ACTIONS": "true", "RUNNER_ENVIRONMENT": "github-hosted", "RUNNER_OS": "macOS",
+                       "RUNNER_ARCH": "X64", "ANDROID_HOME": "/sdk"}
+        for present, linked in ((False, False), (True, True)):
+            with self.subTest(present=present, linked=linked), patch.dict(os.environ, environment, clear=True), \
+                    patch.object(smoke.platform, "system", return_value="Darwin"), \
+                    patch.object(smoke.platform, "machine", return_value="x86_64"), \
+                    patch.object(Path, "is_file", return_value=present), patch.object(Path, "is_symlink", return_value=linked), \
+                    patch.object(smoke, "command") as command, patch("sys.stdout", new_callable=io.StringIO):
+                with self.assertRaisesRegex(smoke.SmokeFailure, "existing Intel macOS emulator"):
+                    smoke.check_hvf_access()
+                command.assert_not_called()
 
     def test_kvm_preflight_rejects_missing_regular_and_symlink_devices(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -426,6 +553,8 @@ class EmulatorSmokeGuardTest(unittest.TestCase):
     def test_incomplete_or_differently_scoped_receipts_fail(self):
         receipt = {"source_commit": "a" * 40, "scope": "owned-installed-aosp-emulator", "status": "passed",
                    "unsigned_apk_unchanged": True,
+                   "emulation": {"mode": "software", "accel_argument": "off", "boot_timeout_seconds": 900,
+                                 "unsupported_software_opt_in": True},
                    "guest_readiness": {"ready": True, "ui_dump_path": smoke.UI_DUMP_PATH, "last_checks": ready_checks()},
                    "cases": [{"id": name, "status": "passed"} for name in smoke.CASE_IDS]}
         smoke.complete_receipt(receipt, "a" * 40)
@@ -449,6 +578,19 @@ class EmulatorSmokeGuardTest(unittest.TestCase):
         for changed in invalid + [missing, duplicate, skipped]:
             with self.assertRaises(smoke.SmokeFailure):
                 smoke.complete_receipt(changed, "a" * 40)
+        for key, value in (("mode", "automatic"), ("accel_argument", "on"),
+                           ("boot_timeout_seconds", 300), ("unsupported_software_opt_in", False)):
+            changed = copy.deepcopy(receipt)
+            changed["emulation"][key] = value
+            with self.assertRaises(smoke.SmokeFailure):
+                smoke.complete_receipt(changed, "a" * 40)
+        receipt["emulation"] = {"mode": "hvf", "accel_argument": "on", "boot_timeout_seconds": 300,
+                                "unsupported_software_opt_in": False, "hvf_preflight": hvf_observations()}
+        smoke.complete_receipt(receipt, "a" * 40)
+        for value in (None, {}, {"checks": hvf_observations()["checks"]}):
+            receipt["emulation"]["hvf_preflight"] = value
+            with self.assertRaises(smoke.SmokeFailure):
+                smoke.complete_receipt(receipt, "a" * 40)
 
     def test_setup_failure_report_never_counts_unexecuted_cases_as_passed(self):
         receipt = {"status": "failed", "error": "No KVM", "cases":

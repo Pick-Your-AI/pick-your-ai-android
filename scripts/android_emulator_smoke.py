@@ -8,6 +8,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import platform
 import re
 import signal
 import stat
@@ -72,15 +73,21 @@ def check_kvm_access(device: Path = Path("/dev/kvm")) -> None:
             "KVM read/write access is unavailable; no host permissions were changed")
 
 
-def emulation_settings() -> dict:
+def emulation_settings(receipt: dict | None = None) -> dict:
     """Select one explicit mode; an unavailable mode never becomes a skipped pass."""
     mode = os.environ.get("PYAI_EMULATOR_MODE", "kvm")
-    require(mode in ("kvm", "software"), "Unknown emulator mode; expected kvm or software")
+    require(mode in ("kvm", "software", "hvf"), "Unknown emulator mode; expected kvm, software or hvf")
     if mode == "kvm":
         check_kvm_access()
     settings = {"mode": mode, "accel_argument": "off" if mode == "software" else "on",
                 "boot_timeout_seconds": 900 if mode == "software" else 300,
                 "unsupported_software_opt_in": mode == "software"}
+    if receipt is not None:
+        receipt["emulation"] = settings
+    if mode == "hvf":
+        observed = {}
+        settings["hvf_preflight"] = observed
+        check_hvf_access(observed)
     print("Emulation settings: " + json.dumps(settings, sort_keys=True))
     return settings
 
@@ -107,6 +114,60 @@ def bounded_text(value: str | bytes | None, limit=6000) -> str:
     if isinstance(value, bytes):
         value = value.decode("utf-8", errors="replace")
     return (value or "")[-limit:]
+
+
+def hvf_preflight_passes(observed: dict) -> bool:
+    if not isinstance(observed, dict) or any(observed.get(key) != expected for key, expected in (
+            ("runner_os", "macOS"), ("runner_arch", "X64"), ("system", "Darwin"), ("machine", "x86_64"))):
+        return False
+    checks = observed.get("checks")
+    if not isinstance(checks, dict) or set(checks) != {"kern_hv_support", "acceleration"}:
+        return False
+    for value in checks.values():
+        if not (isinstance(value, dict) and type(value.get("exit_code")) is int and value["exit_code"] == 0
+                and value.get("output_truncated") is False and "command_timeout_seconds" not in value
+                and isinstance(value.get("stdout_tail"), str) and isinstance(value.get("stderr_tail"), str)
+                and not value["stderr_tail"].strip()):
+            return False
+    return checks["kern_hv_support"]["stdout_tail"].strip() == "1" and re.fullmatch(
+        r"accel:\r?\n0\r?\nHypervisor\.Framework OS X Version [0-9]+(?:\.[0-9]+)*\r?\naccel",
+        checks["acceleration"]["stdout_tail"].strip()) is not None
+
+
+def check_hvf_access(observed: dict | None = None) -> dict:
+    """Observe the existing Intel macOS host; never enable virtualization or alter access."""
+    if observed is None:
+        observed = {}
+    observed.update(runner_os=os.environ.get("RUNNER_OS"), runner_arch=os.environ.get("RUNNER_ARCH"),
+                    system=platform.system(), machine=platform.machine(), checks={})
+    try:
+        require(os.environ.get("GITHUB_ACTIONS") == "true" and
+                os.environ.get("RUNNER_ENVIRONMENT") == "github-hosted" and
+                observed["runner_os"] == "macOS" and observed["runner_arch"] == "X64" and
+                observed["system"] == "Darwin" and observed["machine"] == "x86_64",
+                "HVF requires the explicit GitHub-hosted Intel macOS runner")
+        emulator = Path(os.environ["ANDROID_HOME"]) / "emulator/emulator"
+        require(emulator.is_file() and not emulator.is_symlink(), "Expected the existing Intel macOS emulator")
+        for name, args, timeout in (
+                ("kern_hv_support", ["/usr/sbin/sysctl", "-n", "kern.hv_support"], 5),
+                ("acceleration", [str(emulator), "-accel-check"], 30)):
+            try:
+                result = command(args, timeout=timeout, check=False)
+                observed["checks"][name] = {"exit_code": result.returncode,
+                                            "stdout_tail": bounded_text(result.stdout, 1200),
+                                            "stderr_tail": bounded_text(result.stderr, 1200),
+                                            "output_truncated": len(result.stdout) > 1200 or len(result.stderr) > 1200}
+            except subprocess.TimeoutExpired as error:
+                observed["checks"][name] = {"command_timeout_seconds": error.timeout,
+                                            "stdout_tail": bounded_text(error.stdout, 1200),
+                                            "stderr_tail": bounded_text(error.stderr, 1200)}
+        require(hvf_preflight_passes(observed), "Existing HVF capability was not established; no host access was changed")
+        return observed
+    except Exception as error:
+        observed["error"] = bounded_text(str(error), 1200)
+        raise
+    finally:
+        print("HVF preflight: " + json.dumps(observed, sort_keys=True), flush=True)
 
 
 def validate_target(serial: str, qemu: str, avd_name: str, expected_name: str) -> None:
@@ -225,6 +286,16 @@ def complete_receipt(receipt: dict, source_sha: str) -> None:
     require([case.get("id") for case in cases] == list(CASE_IDS), "Missing or duplicate smoke case")
     require(all(case.get("status") == "passed" for case in cases), "A smoke case did not execute successfully")
     require(receipt.get("unsigned_apk_unchanged") is True, "Unsigned build preservation was not verified")
+    emulation = receipt.get("emulation")
+    require(isinstance(emulation, dict) and emulation.get("mode") in ("kvm", "software", "hvf"),
+            "Explicit emulation settings are missing")
+    software = emulation["mode"] == "software"
+    require(emulation.get("accel_argument") == ("off" if software else "on") and
+            emulation.get("boot_timeout_seconds") == (900 if software else 300) and
+            emulation.get("unsupported_software_opt_in") is software,
+            "Emulation settings differ from the explicit selected mode")
+    if emulation["mode"] == "hvf":
+        require(hvf_preflight_passes(emulation.get("hvf_preflight")), "Complete existing-HVF observations are missing")
     readiness = receipt.get("guest_readiness", {})
     require(isinstance(readiness, dict) and readiness.get("ready") is True and
             readiness.get("ui_dump_path") == UI_DUMP_PATH and
@@ -557,8 +628,7 @@ def main() -> int:
         require(apk.is_file() and not apk.is_symlink(), "Expected the original unsigned diagnostic APK")
         original_hash = digest(apk)
         receipt["unsigned_apk_sha256"] = original_hash
-        settings = emulation_settings()
-        receipt["emulation"] = settings
+        settings = emulation_settings(receipt)
         if settings["mode"] == "software":
             receipt["limitations"].append("software CPU emulation is a vendor-unsupported diagnostic mode")
         sdk = Path(os.environ["ANDROID_HOME"])
@@ -579,7 +649,8 @@ def main() -> int:
         receipt["system_image"] = {"package": SYSTEM_IMAGE, "revision": revision,
                                   "package_xml_sha256": digest(image_dir / "package.xml"),
                                   "system_img_sha256": digest(image_dir / "system.img")}
-        receipt["libpulse0_version"] = command(["dpkg-query", "-W", "-f=${Version}", "libpulse0"]).stdout.strip()
+        if settings["mode"] != "hvf":
+            receipt["libpulse0_version"] = command(["dpkg-query", "-W", "-f=${Version}", "libpulse0"]).stdout.strip()
         receipt["emulator_version"] = command([str(emulator), "-version"]).stdout.strip()
         receipt["emulator_binary_sha256"] = digest(emulator)
         receipt["adb_version"] = command([str(adb), "version"]).stdout.strip()
@@ -623,8 +694,10 @@ def main() -> int:
             receipt["installed_apk_sha256"] = digest(signed_apk)
             receipt["disposable_certificate_sha256"] = cert_hash.group(1)
             emulator_log = scratch / "emulator.log"
-            emulator_env = (dict(env, ANDROID_I_WANT_MY_TCG="yes")
-                            if settings["mode"] == "software" else env)
+            emulator_env = dict(env)
+            emulator_env.pop("ANDROID_I_WANT_MY_TCG", None)
+            if settings["mode"] == "software":
+                emulator_env["ANDROID_I_WANT_MY_TCG"] = "yes"
             try:
                 with emulator_log.open("wb") as log:
                     process = subprocess.Popen(

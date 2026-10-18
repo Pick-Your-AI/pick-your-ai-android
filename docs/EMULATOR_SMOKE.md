@@ -64,7 +64,9 @@ launch timeout or relax any installed assertion; another observed run is require
 
 ## Isolation and diagnostic signing
 
-Provisioning is restricted to a standard disposable GitHub-hosted Linux runner.
+Provisioning is restricted to a standard disposable GitHub-hosted runner. The
+current native job explicitly selects Intel macOS and its existing HVF capability;
+the independent JVM/contract job remains on Ubuntu.
 The workflow retains `contents: read`, checkout credential persistence stays off,
 and no production, publisher, signing or deployment secret is supplied. This uses
 the existing standard runner, not a larger paid runner or external coding job.
@@ -92,13 +94,13 @@ camera, and disabled emulator metrics. Only this job's process group is terminat
 during normal completion or failure, and its AVD/key/copy are removed with the
 temporary directory. Hard job cancellation additionally relies on disposal of the
 hosted VM. Artifact retention never includes AVD userdata or the temporary signing
-directory. In hardware mode a read-only KVM preflight reports the current effective UID, groups and
+directory. In the retained Linux KVM mode, a read-only preflight reports the current effective UID, groups and
 device ownership/mode, requires a real character device and checks existing
 read/write access. It runs before SDK provisioning and again before the emulator
 acceleration probe. Missing devices, symbolic links and unavailable access fail
 clearly; this lane changes no KVM ownership, permissions, groups or udev rules.
 
-The current workflow explicitly selects `PYAI_EMULATOR_MODE=software`. This is an
+The earlier Linux workflow explicitly selected `PYAI_EMULATOR_MODE=software`. It remains an
 experimental diagnostic setting, not an automatic fallback or a vendor-supported
 CI performance profile. The official emulator command-line reference documents
 `-accel off` as unsupported and very slow and requires the explicit
@@ -115,13 +117,14 @@ timeout or failure cannot become successful or skipped acceptance. The receipt
 records the selected mode, exact acceleration argument, boot budget and unsupported
 opt-in alongside the actual tool/platform versions and case results. Feasible
 execution has not been established by this configuration or its host guard tests.
-When `PYAI_EMULATOR_MODE` is absent, hardware mode remains the default: the strict
+When `PYAI_EMULATOR_MODE` is absent, Linux KVM mode remains the default: the strict
 read-only KVM preflight and emulator `-accel-check` must pass, with a 300-second
 boot deadline. Unknown mode names fail and hardware failure never switches modes.
 
-The host also needs Ubuntu's `libpulse0` runtime library even with emulator audio
-disabled. The preparation step installs that specific package and the receipt
-records its installed version. The first [hosted attempt](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39098235903)
+The Linux emulator host also needs Ubuntu's `libpulse0` runtime library even with
+emulator audio disabled. The earlier Linux preparation installed that specific
+package, and Linux-mode receipts record its installed version. The Intel macOS
+lane neither installs nor queries this Ubuntu package. The first [hosted attempt](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39098235903)
 passed compilation/lint and all 11 simulated cases, then failed loading
 `libpulse.so.0` during emulator version inspection. Its retained receipt correctly
 marks all four installed cases unexecuted and the original APK unchanged. This
@@ -329,3 +332,71 @@ mechanism, not the capabilities of a future guest. The previous owned AVD was
 destroyed by cleanup, so actual access must be observed in the next fresh hosted
 run. This staging correction does not claim a cure for the launch timeout or
 installed acceptance; both access and all installed assertions must still pass.
+
+
+## Explicit Intel macOS hardware acceleration
+
+The temp-directory follow-up [run 39105283009](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39105283009)
+used actual checkout `550e9afcabd398dcd9d70e8265cf1ab8d64269d0`, tree
+`5b70bfba360cfe5749d574ba3ea6576a76ece896`. Core, strict unsigned assembly/lint and
+all 29 pinned-base simulations passed. The owned software AVD booted in 464.816
+seconds. All nine guest readiness observations passed together on attempt 1 in
+11.175 seconds, including unlocked user 0 and every `/data/local/tmp` access test.
+APK installation proceeded. Launch still returned exit 0 with `Status: timeout`,
+`LaunchState: UNKNOWN (-1)` and `WaitTime: 23374` after 25.914 seconds. The failure
+checkpoint passed exact prior-file removal but its UI dump timed out at 20
+seconds. No hierarchy completed; the other three cases were `not_run`. Artifact
+`12128790765` has independently verified ZIP SHA-256
+`2472902025c672a59de0d9a9fd8b923eb5925311f9617d79958c460aa25a9233`.
+This demonstrates the chosen directory's actual readiness, not a usable app UI;
+changing the XML staging path did not cure the observed software launch timeout.
+
+The separate read-only diagnostic [#244](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/244)
+answered a different question. Its actual [run 39104147868](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39104147868),
+job `117606323632`, observed standard `macos-15-intel`, macOS 15.7.9, X64/x86_64,
+image `20260824.0482.1`. `kern.hv_support` returned 1; the existing emulator was
+37.1.11.0 (build 15917651); `-accel-check` returned exit 0 and the complete stdout
+`accel:\n0\nHypervisor.Framework OS X Version 15.7\naccel\n`, including its closing
+`accel` marker. Every observation had empty stderr and
+complete untruncated output. The reviewed workflow blob was
+`1771a0819f883219b9c3ddd9412e0668fa54a967` at actual checkout
+`ddffd8a43f058554846a013d2c3d1277e0a2bf48`. That diagnostic installed nothing,
+booted no AVD, ran no application and closed without merging. It establishes the
+observed host capability only.
+
+The native job now explicitly selects that standard Intel macOS label and
+`PYAI_EMULATOR_MODE=hvf`. It retains the existing pinned setup actions, adding
+Python 3.12 for the portable harness, and uses macOS `shasum` to check the same
+wrapper manifest. Preparation requires the preinstalled emulator; it does not
+replace that binary. SDK manager supplies platform tools and the same API 35
+x86_64 revision-2 image. No Ubuntu package operation is run on macOS. Actual
+emulator/adb versions, binary/image hashes and the resulting guest identity still
+enter the existing receipt.
+
+Before SDK preparation and again before AVD creation, the HVF preflight requires
+actual Darwin/x86_64 and hosted macOS/X64 runner identity. It performs only
+`/usr/sbin/sysctl -n kern.hv_support` (5-second bound) and that existing emulator's
+`-accel-check` (30-second bound). Accepted observations require support 1, the
+explicit successful HVF response, exit 0, empty stderr, no truncation and no
+command timeout. Different OS/architecture, missing or linked emulator paths and
+incomplete/failed queries stop execution. Bounded observations are printed even
+on failure and retained in the installed receipt when the main harness starts.
+Final success requires the complete correctly scoped HVF evidence and matching
+explicit acceleration, boot-budget and software-opt-in metadata.
+
+The owned process uses `-accel on` with the hardware 300-second boot deadline,
+within the existing 40-minute native job budget. Its child environment explicitly
+removes any inherited TCG opt-in; only explicitly chosen software mode sets it.
+HVF failure never falls back to KVM or software. No KVM probe, mode/ownership/group
+change, virtualization setting, credential or external device is involved in the
+HVF path. All existing AVD isolation, `/data/local/tmp` readiness, successful
+`Status: ok` launch, fresh XML, four installed case bodies, temporary signing and
+cleanup assertions remain mandatory. A fresh exact-source macOS build and actual
+four-case run must establish the new combination; the earlier capability receipt
+and the 35 host guard tests cannot substitute for that execution.
+
+Primary references checked 2026-10-18: [GitHub standard runner labels](https://docs.github.com/en/actions/reference/runners/github-hosted-runners),
+[the Intel macOS 15 runner inventory](https://github.com/actions/runner-images/blob/main/images/macos/macos-15-Readme.md),
+and [Android hardware acceleration](https://developer.android.com/studio/run/emulator-acceleration).
+The actual job receipts above identify the observed platform; those sources alone
+do not establish AVD or application behavior.
