@@ -51,6 +51,7 @@ class PreviewActivity : Activity() {
     private var componentCatalog: ai.pickyour.core.drafts.SelectionCatalogSnapshot? = null
     private lateinit var catalog: CatalogBrowseSection
     private lateinit var catalogComparison: CatalogComparisonSection
+    private lateinit var catalogPinRecovery: CatalogPinRecovery
     private var catalogFixture: CatalogFixtureData? = null // UI-thread owned, replaced even when pricing is absent.
     // The origin remains current while its child inspection is open after parent dismissal.
     private var catalogDetailDialog: AlertDialog? = null
@@ -63,6 +64,7 @@ class PreviewActivity : Activity() {
     private lateinit var clear: Button
     private lateinit var history: Button
     private lateinit var compareRetained: Button
+    private lateinit var compareLibrary: Button
     private lateinit var saveStatus: TextView
     private var draftLibrary: PreviewDraftLibrary? = null // Accessed only on the single worker.
     private var currentDraftId = PreviewDraftId("guest-draft")
@@ -78,6 +80,7 @@ class PreviewActivity : Activity() {
     private var revisionDialog: AlertDialog? = null
     private var revisionRequest: Any? = null
     private var revisionBrowser: RevisionComparisonBrowser? = null
+    private var libraryComparison: LibraryRevisionComparison? = null
     private var storageReady = false
     private var storageAuthority = Any() // UI-thread identity; never reused across storage operations.
     private var storageBusy = true
@@ -87,6 +90,7 @@ class PreviewActivity : Activity() {
                 retireRevisionInspection()
             }
             field = value
+            if (value && ::catalogPinRecovery.isInitialized) catalogPinRecovery.dismiss()
         }
     private var restoringFields = false
     private var restoration: PreviewDraftRestoration? = null
@@ -222,6 +226,11 @@ class PreviewActivity : Activity() {
             setOnClickListener { savedRecord?.let { showComparisonPicker(it, pickBoth = true) } }
         }
         content.addView(compareRetained)
+        compareLibrary = Button(this).apply {
+            setText(R.string.library_compare_open)
+            setOnClickListener { showLibraryComparison() }
+        }
+        content.addView(compareLibrary)
         libraryButton = Button(this).apply { setText(R.string.library_open); setOnClickListener { showLibrary() } }
         newDraftButton = Button(this).apply { setText(R.string.library_new); setOnClickListener { confirmCreate(false) } }
         duplicateButton = Button(this).apply { setText(R.string.library_duplicate); setOnClickListener { confirmCreate(true) } }
@@ -241,6 +250,7 @@ class PreviewActivity : Activity() {
         }
         content.addView(tierSection)
         componentSection = SelectionEditSection(this, ::commitSelection)
+        componentSection.restore(savedInstanceState)
         content.addView(componentSection)
         title.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
@@ -266,7 +276,13 @@ class PreviewActivity : Activity() {
         content.addView(catalogSearch)
         retry = Button(this).apply { setText(R.string.retry_catalog); setOnClickListener { loadCatalog() } }
         content.addView(retry)
-        catalogComparison = CatalogComparisonSection(this, savedInstanceState)
+        catalogPinRecovery = CatalogPinRecovery(this, worker) {
+            if (!destroyed) {
+                catalogSearch.requestFocus()
+                catalogSearch.requestRectangleOnScreen(android.graphics.Rect(0, 0, catalogSearch.width, catalogSearch.height), true)
+            }
+        }
+        catalogComparison = CatalogComparisonSection(this, savedInstanceState, ::showPinnedDetails, catalogPinRecovery::dismiss)
         content.addView(catalogComparison)
         catalog = CatalogBrowseSection(this, savedInstanceState, ::showDetails)
         content.addView(catalog)
@@ -368,6 +384,7 @@ class PreviewActivity : Activity() {
 
     private fun loadCatalog() {
         if (destroyed) return
+        catalogPinRecovery.dismiss()
         retry.isEnabled = false
         catalogStatus.setText(R.string.working)
         worker.execute {
@@ -396,6 +413,7 @@ class PreviewActivity : Activity() {
 
     private fun showDetails(item: PreviewCatalogItem, catalogHash: String) {
         if (destroyed) return
+        catalogPinRecovery.dismiss()
         catalogDetailDialog?.dismiss()
         catalogDetailDialog = null
         catalogPriceBrowser?.retire()
@@ -479,6 +497,19 @@ class PreviewActivity : Activity() {
         dialog.show()
     }
 
+    private fun showPinnedDetails(pin: PreviewCatalogPin, captured: PreviewCatalogBrowser?, originIsCurrent: () -> Boolean) {
+        if (destroyed || storageBusy || !originIsCurrent()) return
+        catalogDetailDialog?.dismiss()
+        catalogDetailDialog = null
+        catalogPriceBrowser?.retire()
+        catalogPriceBrowser = null
+        val baseline = savedRecord
+        val draftId = currentDraftId
+        catalogPinRecovery.open(pin, captured) {
+            !destroyed && !storageBusy && savedRecord === baseline && currentDraftId == draftId && originIsCurrent()
+        }
+    }
+
     private fun showSelection() {
         if (destroyed) return
         val name = catalog.selectedName(selectedId, selectedVersion, selectedCatalogHash)
@@ -537,6 +568,7 @@ class PreviewActivity : Activity() {
         reopen.isEnabled = !storageBusy && selectionResolved
         history.isEnabled = storageReady && !storageBusy && savedRecord != null
         compareRetained.isEnabled = history.isEnabled
+        compareLibrary.isEnabled = !storageBusy && !entryBlocked && selectionResolved
         libraryButton.isEnabled = !storageBusy
         newDraftButton.isEnabled = !storageBusy
         duplicateButton.isEnabled = storageReady && !storageBusy && savedRecord != null
@@ -545,7 +577,7 @@ class PreviewActivity : Activity() {
         retryDeleteButton.isEnabled = pendingDeleteId != null && !storageBusy
         if (::tierSection.isInitialized) tierSection.update(savedRecord, storageReady && !storageBusy && matchesSaved())
         if (::catalog.isInitialized) catalog.selectionEnabled(!storageBusy)
-        if (::componentSection.isInitialized) componentSection.update(savedRecord, storageReady && !storageBusy && matchesSaved())
+        if (::componentSection.isInitialized) componentSection.update(savedRecord, storageReady && !storageBusy && matchesSaved(), currentDraftId.value)
     }
 
     private fun showHistory() {
@@ -688,6 +720,22 @@ class PreviewActivity : Activity() {
         revisionDialog = null
         revisionBrowser?.retire()
         revisionBrowser = null
+        libraryComparison?.retire()
+        libraryComparison = null
+    }
+
+    private fun showLibraryComparison() {
+        if (destroyed || isFinishing || storageBusy || entryBlocked || !selectionResolved) return
+        retireRevisionInspection()
+        val request = Any()
+        revisionRequest = request
+        val authority = storageAuthority
+        val draftId = currentDraftId
+        val baseline = savedRecord
+        fun current() = !destroyed && !isFinishing && !storageBusy && !entryBlocked && selectionResolved &&
+            currentDraftId == draftId && savedRecord === baseline && storageAuthority === authority && revisionRequest === request
+        libraryComparison = LibraryRevisionComparison(this, { task -> worker.execute { task() } },
+            { library().list() }, ::current).also { it.show() }
     }
 
     private fun commitSelection(expected: PreviewStoredDraft, hash: String?, prepare: () -> PreviewSelectionPreparation,
@@ -1192,6 +1240,7 @@ class PreviewActivity : Activity() {
         outState.putBoolean("unsupportedEntry", unsupportedEntry)
         catalog.saveState(outState)
         catalogComparison.save(outState)
+        componentSection.save(outState)
         outState.putString("pendingDeleteId", pendingDeleteId?.value)
         outState.putString("draftId", currentDraftId.value)
         outState.putBoolean("selectionResolved", selectionResolved)
@@ -1245,6 +1294,7 @@ class PreviewActivity : Activity() {
         destroyed = true
         if (::findings.isInitialized) findings.close()
         if (::diagnostics.isInitialized) diagnostics.close()
+        if (::catalogPinRecovery.isInitialized) catalogPinRecovery.close()
         catalogDetailDialog?.dismiss()
         catalogDetailDialog = null
         catalogPriceBrowser?.retire()

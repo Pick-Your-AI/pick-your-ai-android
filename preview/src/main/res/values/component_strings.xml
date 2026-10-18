@@ -6,6 +6,8 @@
     <string name="component_choose_catalog">Choose exact fixture component</string>
     <string name="component_unsupported">This retained kind is outside the current T1/T2 editor. Its content remains unchanged.</string>
     <string name="component_configure">Edit settings</string>
+    <string name="component_edit_role">Edit role</string>
+    <string name="component_role_warning">Enter the role for %1$s. For a new role, use 1–50 ASCII characters: a–z first, then a–z, 0–9, _ or -. Saving keeps this component’s identity, enabled state, catalog choice, settings and links. Each role can be used once per component kind.</string>
     <string name="component_disable">Disable selection</string>
     <string name="component_enable">Enable selection</string>
     <string name="component_remove">Remove selection</string>
@@ -20,7 +22,7 @@
     <string name="component_enabled">Enabled in local draft</string>
     <string name="component_commit">Commit local revision</string>
     <string name="component_settings_warning">Replace only this selection’s settings with the exact JSON object below. Required settings must remain present. Raw credentials must never be entered; only opaque secret references are allowed where the frozen schema permits them. Invalid input remains visible and does not save.</string>
-    <string name="component_invalid">No revision committed. Enter an explicit schema-valid role and settings object within the editor limit. Invalid raw input is retained in the open form.</string>
+    <string name="component_invalid">No revision committed. Correct the entered values using the rules shown in this form. The original input is retained.</string>
     <string name="component_rejected">No revision committed. Selection command rejected: %1$s. Reopen or revise the explicit choice; no substitute was selected.</string>
     <string name="component_saved">Local selection revision saved. Compatibility, cost and readiness remain unestablished.</string>
     <string name="component_noop">The current saved selection already matches. No new revision was created.</string>

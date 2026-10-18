@@ -1,5 +1,11 @@
 # JVM core implementation and acceptance limits
 
+The [frozen Ruleset boundary](FROZEN_RULESET_BOUNDARY.md) adds an immutable typed
+representation of every recorded rule, expression and operand. Shared reference
+cases retain closed shapes, exact opaque literal JSON and ordered duplicate rules.
+This structural reader performs no evaluation, reference resolution, metric
+calculation or baseline activation; broader #21/#32 acceptance remains separate.
+
 This is an executable, platform-independent Kotlin foundation for the Android
 client. It does not select a publisher identity, commit a production hosting
 architecture, or claim an installed Android application. The maintainer's current
@@ -207,3 +213,8 @@ measured-run wire fields as immutable Kotlin values, including exact numbers and
 optional absence. Shared Python/Kotlin mutation cases and malformed-input tests
 cover this structural boundary; decoding does not authenticate or execute an
 evaluation, bind it to the current build, or certify its reported result.
+
+The [frozen Event decoder](FROZEN_EVENT_BOUNDARY.md) retains every event and payload
+field as immutable typed values, with exact subject revisions and explicit optional
+presence. Shared Python/Kotlin cases exercise the unchanged schema. Decoding adds
+no event execution, actor authority, idempotency, synchronization or telemetry.

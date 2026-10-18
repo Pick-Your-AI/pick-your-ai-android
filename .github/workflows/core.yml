@@ -273,6 +273,87 @@ jobs:
               raise SystemExit("Incoming-entry result count does not match executed cases")
           print(f"Verified {len(cases)} simulated incoming-entry tests; no installed-device claim")
           PYTEST
+      - name: Require bounded component form recovery regressions to execute
+        run: |
+          python - <<'PYTEST'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          expected = {
+              "ComponentFormRecoveryActivityTest": {
+                  "recreatedAddFormRetainsInvalidRawInputWithoutWritingOrRevivingOldConsent",
+                  "recoveredAddRequiresFreshConfirmationAndCommitsCapturedSelectionOnlyOnce",
+                  "recreatedConfigurationKeepsItsSelectionAcrossRepeatedReviewBeforeOneExplicitSave",
+                  "changedSavedHeadKeepsPendingComponentInputReadOnlyAfterExplicitReopen",
+                  "mismatchedLocalDraftIdentityCannotAcquireCurrentBaselineAuthorityFromRestoredState",
+                  "changedCatalogHashKeepsRecoveredAddReadOnlyWithoutUsingMatchingItemFallback",
+                  "savedInFlightCheckpointNeverReplaysAfterTheOriginalComponentWriteCompletes",
+                  "canceledAndDiscardedRecoveryCannotBeRevivedOrClearLaterInputThroughRetiredButtons",
+                  "oversizedComponentCheckpointShowsUnavailableWithoutSavingOrRetainingAValidPrefix",
+                  "openComponentFormCannotBeReplacedByRetainedEntryControlsBeforeCheckpointing",
+              },
+              "ComponentFormCheckpointTest": {
+                  "maximumPrimitiveCheckpointPreservesExactUnicodeAndRemainsBoundedWhenParcelled",
+                  "malformedPrimitiveTypesVersionsAndModesNeverSupplyRecoveryAuthority",
+                  "oversizedCombinedInputBecomesAnExplicitMarkerWithoutAnyTruncatedRawPrefix",
+                  "configureCheckpointRequiresItsOwnShapeAndKeepsInFlightState",
+              },
+          }
+          for name, required in expected.items():
+              qualified = "ai.pickyour.android.preview." + name
+              report = pathlib.Path("preview/build/test-results/testDebugUnitTest/TEST-" + qualified + ".xml")
+              suite = ET.parse(report).getroot()
+              cases = suite.findall("testcase")
+              names = [case.attrib["name"] for case in cases]
+              if suite.attrib.get("name") != qualified or any(case.attrib.get("classname") != qualified for case in cases):
+                  raise SystemExit("Wrong component recovery test suite")
+              if not required <= set(names) or len(names) != len(set(names)):
+                  raise SystemExit("Missing or repeated component recovery regression")
+              if int(suite.attrib["tests"]) != len(cases) or any(int(suite.attrib[key]) != 0 for key in ("failures", "errors", "skipped")):
+                  raise SystemExit("Component recovery report totals do not match passing execution")
+              if any(case.findall("failure") or case.findall("error") or case.findall("skipped") for case in cases):
+                  raise SystemExit("Component recovery regression did not pass")
+              print(f"Verified {len(cases)} simulated {name} cases; no installed-device claim")
+          PYTEST
+      - name: Require explicit component role and recovery regressions to execute
+        run: |
+          python - <<'PYTEST'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          expected = {
+              "ComponentRoleActivityTest": {
+                  "roleEditPreservesLargeSettingsSelectionIdentityAndLinksAcrossReopen",
+                  "duplicateAndInvalidRolesRemainVisibleUntilOneCorrectedExplicitCommit",
+                  "noOpCancellationAndRetiredControlsCannotConsumeARevisionOrReplaceNewInput",
+                  "repeatedRecreationKeepsExactRoleInputAndRequiresFreshConfirmation",
+                  "changedSavedHeadKeepsRecoveredRoleReadOnlyEvenAfterExplicitReopen",
+                  "differentDraftOrMissingSelectionCannotAdoptTheMatchingCurrentBaseline",
+                  "inFlightRoleCheckpointNeverReplaysAfterTheOriginalWriteCompletes",
+                  "oversizedRoleRecoveryKeepsAnUnavailableMarkerWithoutSavingAPrefix",
+                  "narrowRtlLargeTextKeepsRoleInputAndCommitReachable",
+              },
+              "ComponentRoleCheckpointTest": {
+                  "roleRoundTripRetainsOnlyExactInputAndOriginalIdentityWithinTheParcelBound",
+                  "versionOneAddAndSettingsKeepTheirMeaningAndCannotIntroduceRoleMode",
+                  "roleModeRejectsBorrowedSettingsCatalogActivationAndMalformedPrimitiveState",
+                  "oversizedRoleProducesOnlyUnavailableStateWithoutAValidPrefix",
+              },
+          }
+          for name, required in expected.items():
+              qualified = "ai.pickyour.android.preview." + name
+              report = pathlib.Path("preview/build/test-results/testDebugUnitTest/TEST-" + qualified + ".xml")
+              suite = ET.parse(report).getroot()
+              cases = suite.findall("testcase")
+              names = [case.attrib["name"] for case in cases]
+              if suite.attrib.get("name") != qualified or any(case.attrib.get("classname") != qualified for case in cases):
+                  raise SystemExit("Wrong component role test suite")
+              if not required <= set(names) or len(names) != len(set(names)):
+                  raise SystemExit("Missing or repeated component role regression")
+              if int(suite.attrib["tests"]) != len(cases) or any(int(suite.attrib[key]) != 0 for key in ("failures", "errors", "skipped")):
+                  raise SystemExit("Component role report totals do not match passing execution")
+              if any(case.findall("failure") or case.findall("error") or case.findall("skipped") for case in cases):
+                  raise SystemExit("Component role regression did not pass")
+              print(f"Verified {len(cases)} simulated {name} cases; no installed-device claim")
+          PYTEST
       - name: Require complete recorded-price browser regressions to execute
         run: |
           python - <<'PYTEST'
@@ -390,6 +471,68 @@ jobs:
               raise SystemExit("Retained-revision pair result count does not match executed cases")
           print(f"Verified {len(cases)} simulated retained-revision pair tests; no installed-device claim")
           PYTEST
+      - name: Require exact catalog pin recovery regressions to execute
+        run: |
+          python - <<'PYTEST'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          report = pathlib.Path("preview/build/test-results/testDebugUnitTest/TEST-ai.pickyour.android.preview.CatalogPinRecoveryActivityTest.xml")
+          suite = ET.parse(report).getroot()
+          expected = {
+              "currentPinnedInspectionUsesCapturedDetailsWithoutCreatingACacheOrSaving",
+              "retainedRetiredVersionDisplaysExactOlderBytesWithoutActivatingOrReplacingComparisonPins",
+              "missingSnapshotRetryRecoversOnlyTheSamePinAfterExactBytesBecomeAvailable",
+              "unsupportedInvalidAndAbsentVersionsHaveDistinctRecoverableMessagesAndPreserveBytes",
+              "corruptAndBusyRetainedCachesNeverFallBackAndBusyRecoveryUsesTheExactPin",
+              "cancelledLoadingAndResultCallbacksCannotReopenOrNavigateAfterDismissal",
+              "newerInspectionReplacesQueuedOriginAndRetainedControlsCannotReplaceItsResult",
+              "actualDetailAndPinInspectionRetireEachOthersRetainedActionsWithoutChangingPendingFields",
+              "comparisonAndPinInspectionRetireEachOthersRetainedActionsAndPreserveTrayPreferences",
+              "snapshotReplacementRemovalReloadAndRecreationRetireTheActualInspectionOrigin",
+              "changedSavedBaselineRejectsRetainedRetryAndBrowseWithoutReplacingPendingInputs",
+              "storageOperationRetiresInspectionEvenWhenTheMissingDraftBaselineIsUnchanged",
+              "retainedDirectorySymlinkIsRejectedWithoutOpeningTheTargetOrChangingThePin",
+              "narrowRtlLargeTextRecoveryActionsKeepMeasuredTargetsAndCompleteLabels",
+          }
+          cases = suite.findall("testcase")
+          assert expected <= {case.attrib["name"] for case in cases}, "Missing exact catalog pin recovery regression"
+          assert all(not case.findall("failure") and not case.findall("error") and not case.findall("skipped") for case in cases), "Catalog pin recovery regression did not pass"
+          assert int(suite.attrib["tests"]) >= len(expected)
+          print(f"Verified {len(cases)} simulated catalog pin recovery tests; no installed-device claim")
+          PYTEST
+      - name: Require explicit saved-library comparison regressions to execute
+        run: |
+          python - <<'PYTEST'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          qualified = "ai.pickyour.android.preview.LibraryRevisionComparisonActivityTest"
+          report = pathlib.Path("preview/build/test-results/testDebugUnitTest/TEST-" + qualified + ".xml")
+          suite = ET.parse(report).getroot()
+          expected = {
+              "explicitSavedDraftsKeepBothOlderSourcesAndPendingInputsThroughFullValueInspection",
+              "reversedSameAndReselectedSourcesNeverReuseAnEarlierPickerDirection",
+              "cancellationAtEveryPickerAndEitherWorkerBoundaryCannotResumeInspection",
+              "replacingALoadOrComparisonWithHistoryRejectsTheLateResult",
+              "startingStorageReadRetiresPickerAndBrowserEvenWithIdenticalSavedBaseline",
+              "recreationRetiresCapturedPairAndRetainedControlsWithoutSavingPendingInputs",
+              "capturedSourcesDoNotFollowLaterWritesOrDeletedDrafts",
+              "failedAndUnavailableLibraryReadsKeepExplicitRecoveryWithoutChoosingAnotherDraft",
+              "everyDraftAndRetainedRevisionRemainsReachableAcrossBoundedChoicePages",
+              "unsupportedColdEntryCannotInspectSavedLocalDrafts",
+              "narrowRtlLargeTextKeepsSourceIdentitiesAndChoiceTargetsComplete",
+          }
+          cases = suite.findall("testcase")
+          names = [case.attrib["name"] for case in cases]
+          if suite.attrib.get("name") != qualified or any(case.attrib.get("classname") != qualified for case in cases):
+              raise SystemExit("Wrong saved-library comparison test suite")
+          if not expected <= set(names) or len(names) != len(set(names)):
+              raise SystemExit("Missing or repeated saved-library comparison regression")
+          if int(suite.attrib["tests"]) != len(cases) or any(int(suite.attrib[key]) != 0 for key in ("failures", "errors", "skipped")):
+              raise SystemExit("Saved-library comparison report totals do not match passing execution")
+          if any(case.findall("failure") or case.findall("error") or case.findall("skipped") for case in cases):
+              raise SystemExit("Saved-library comparison regression did not pass")
+          print(f"Verified {len(cases)} simulated saved-library comparison cases; no installed-device claim")
+          PYTEST
       - name: Require recorded findings selection context regressions to execute
         run: |
           python - <<'PYTEST'
@@ -407,6 +550,8 @@ jobs:
               "replacementInspectionAndSourceIdentityRevokeRetainedContextCallbacks",
               "destroyedActivityRetiresRecordedSelectionWindowsAndCallbacks",
               "narrowRtlLargeTextContextActionsRemainVisibleAndComplete",
+              "selectionPageCountsRetainEmptySingleAndWholePagedTotals",
+              "selectionPageCountsKeepResourceLocaleAndExpandedRtlNavigation",
           }
           cases = suite.findall("testcase")
           names = [case.attrib["name"] for case in cases]
