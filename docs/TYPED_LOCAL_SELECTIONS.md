@@ -15,21 +15,30 @@ does not resolve them. Canonical receiving records remain `07.05.md` and `08.02.
 under `docs/delivery/android/work-packages/` in `Pick-Your-AI/pickyour.ai`; this file
 is implementation evidence, not a relocated acceptance record or closure receipt.
 
-The exact command subset is the frozen registry's T0/T1/T2 kinds: `workload`,
+The exact command subset is the frozen registry's T0/T1/T2/T3/T4 kinds: `workload`,
 `deployment_mode`, `model_provider`,
 `model`, `context_policy`, `hosting_platform`, `accelerator`, `compute_profile`,
-`inference_engine` and `storage`. All other valid frozen kinds can be retained,
+`inference_engine`, `storage`, `data_source`, `knowledge_base`, `embedding_model`,
+`vector_database`, `rag_pipeline`, `agent_framework`, `tool`, `mcp_server`,
+`memory_store` and `integration`. All other valid frozen kinds can be retained,
 compared, duplicated and restored; their mutation commands return
 `UNSUPPORTED_KIND`. Optional legacy tier controls retain their existing meaning.
 The [explicit foundation editor](FOUNDATION_SELECTIONS.md) adds only the two T0
 kinds to the same commands; it does not adapt placement or decide applicability.
+The [retrieval editor](RETRIEVAL_SELECTIONS.md) subsequently adds exactly the five
+T3 kinds. Typed edits preserve the separate optional-tier intent and retained
+opaque tier inputs; they do not activate T3, resolve references or run retrieval.
+The [agent editor](AGENT_SELECTIONS.md) then adds the five frozen T4 kinds through
+the same commands. Declared permission scopes, endpoints and opaque references
+remain input values; no connection, external action or permission grant follows.
 
 ## Payload and aggregate
 
 `LocalSelection` validates the complete unmodified frozen Selection schema.
 Identity, kind, exact catalog item/version, role, enabled and settings are explicit.
 Required typed settings are never guessed, including accelerator device count,
-compute instances and context reservations. Numeric settings retain arbitrary
+compute instances, context reservations and vector index dimension/metric.
+Numeric settings retain arbitrary
 precision subject to existing parser budgets. Notes and namespaced extensions,
 including nested null/boolean/numeric values, survive round trips. Objects exposed
 to callers are defensive snapshots; `toString` excludes payload content.
