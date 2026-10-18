@@ -13,7 +13,7 @@ import ai.pickyour.core.preview.PreviewStoredDraft
 class OptionalTierSection(context: Context,
     private val commit: (PreviewStoredDraft, OptionalTier, Activation) -> Unit,
 ) : LinearLayout(context) {
-    private var baseline: PreviewStoredDraft? = null
+    private var savedBaseline: PreviewStoredDraft? = null
     private val buttons = linkedMapOf<OptionalTier, Button>()
     init {
         orientation = VERTICAL
@@ -25,7 +25,7 @@ class OptionalTierSection(context: Context,
         OptionalTier.entries.forEach { tier ->
             buttons[tier] = Button(context).apply {
                 setOnClickListener {
-                    val expected = baseline ?: return@setOnClickListener
+                    val expected = savedBaseline ?: return@setOnClickListener
                     val choices = Activation.entries
                     AlertDialog.Builder(context).setTitle(tier.name)
                         .setItems(choices.map { label(it) }.toTypedArray()) { _, index ->
@@ -40,7 +40,7 @@ class OptionalTierSection(context: Context,
         }
     }
     fun update(record: PreviewStoredDraft?, editable: Boolean) {
-        baseline = record
+        savedBaseline = record
         buttons.forEach { (tier, button) ->
             val input = record?.optionalTiers?.getValue(tier)
             button.text = if (input == null) context.getString(R.string.tier_no_saved, tier.name)
