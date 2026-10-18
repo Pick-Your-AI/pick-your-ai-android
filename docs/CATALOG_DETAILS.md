@@ -35,9 +35,13 @@ field states. Long literals are visibly truncated; control and
 format characters are escaped. It shows at most eight provenance entries and
 states the displayed/retained count. All entries remain in the immutable
 projection. This is a bounded preview, not the complete real-data presentation.
-Source strings are not linkified or launched, including strings that happen to
-use HTTPS. Validated external-navigation and historical recovery flows remain
-separate work.
+Source strings in that message are not linkified. The separate **Review sources**
+action opens an eight-record page with every provenance index still reachable.
+Its [navigation adapter](NAVIGATION_BOUNDARY.md#android-source-navigation-adapter)
+requires an allowed HTTPS host and a second explicit confirmation of the full
+outgoing URL. The synthetic application configures no trusted source hosts, so
+navigation remains blocked pending a reviewed real-source configuration. Missing
+source URIs have a recoverable explanation. Historical recovery remains separate.
 
 The detail view does not load a pricebook rate. It states that currency, region,
 meter and effective period are unknown and that a recorded free/included billing
@@ -53,13 +57,16 @@ missing/unknown/false/zero/empty values, multiple conflicting provenance entries
 wide numbers and collection immutability. The mandatory hosted Activity gate
 includes selected model detail without a save, literal `unknown` identities
 alongside explicitly unknown specs, and bounded literal provenance
-rendering without external navigation. Existing browsing, selection and retired
+rendering without automatic navigation. Additional source-adapter cases exercise
+confirmation, cancellation, exact bounded destination display, hostile/unconfigured
+hosts, paging, missing handlers, single-use dispatch and retired callbacks using an
+explicit synthetic host policy. Existing browsing, selection and retired
 callback regressions remain required. Local core results and simulated Activity
 results do not establish installed-device or receiving acceptance.
 
 | Exact live #97 acceptance criterion | Bounded result | Remaining acceptance |
 | --- | --- | --- |
-| Versioned specs, provider/offering identity, license conditions, source links, dates, price conditions and limitations visible. | Exact fixture specs, provider reference, license declarations, source strings/dates and explicit rate/route limits are presented. | Accepted real catalog labels/data, offering identity, usable rate metadata and source navigation. |
+| Versioned specs, provider/offering identity, license conditions, source links, dates, price conditions and limitations visible. | Exact fixture specs, provider reference, license declarations, source strings/dates and explicit rate/route limits are presented. Source navigation has an explicit policy/confirmation adapter. | Accepted real catalog labels/data, offering identity, usable rate metadata, reviewed source hosts and installed external-handler behavior. |
 | The displayed item version and source dates match the requested snapshot; a missing pinned version never silently resolves to the latest component. | Exact item/version/hash lookup and source-date retention; absent pins fail without substitution. | Installed historical recovery, withdrawn-publication behavior and receiving review. |
 | Every presented factual field uses accepted evidence or is visibly unknown, and source verification labels follow the accepted evidence semantics. | All values are marked synthetic; missing and unknown distinctions and conservative evidence labels are preserved. | Approved real evidence, source-use rights and the Android catalog/UX/data-consumer acceptance. |
 | Price context identifies currency, region, meter and effective period where supplied; absence of a usable rate is not shown as free. | No rate is loaded and no applicable/free quote is inferred from billing class. | Accepted pricebook applicability/freshness join and its versioned negative cases. |
