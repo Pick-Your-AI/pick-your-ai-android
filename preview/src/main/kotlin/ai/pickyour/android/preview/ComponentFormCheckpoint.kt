@@ -25,11 +25,12 @@ internal class ComponentFormCheckpoint(
                     itemVersion.length in 1..128 && catalogHash?.matches(Regex("[a-f0-9]{64}")) == true &&
                     kind != null && PreviewSelectionForms.supported(kind)
                 CONFIGURE -> itemId == null && itemVersion == null && catalogHash == null && kind == null && role.isEmpty()
+                ROLE -> itemId == null && itemVersion == null && catalogHash == null && kind == null && settings.isEmpty() && !enabled
                 else -> false
             }
 
     fun bundle(): Bundle? = if (!bounded()) null else Bundle().apply {
-        putInt("version", 1)
+        putInt("version", 2)
         putString("mode", mode)
         putString("draftId", draftId)
         putString("baseline", baseline)
@@ -49,13 +50,16 @@ internal class ComponentFormCheckpoint(
     companion object {
         const val ADD = "add"
         const val CONFIGURE = "configure"
+        const val ROLE = "role"
         // Includes invalid input beyond the 16,384-character parser limit without copying an unbounded form.
         const val MAX_RAW_CHARACTERS = 20_000
 
         @Suppress("DEPRECATION") // Primitive type checks also work on the preview's API 26 minimum.
         fun read(value: Bundle): ComponentFormCheckpoint? {
-            if (value.get("version") != 1) return null
+            val version = value.get("version") as? Int ?: return null
+            if (version !in 1..2) return null
             val mode = value.get("mode") as? String ?: return null
+            if (version == 1 && mode == ROLE) return null
             val draftId = value.get("draftId") as? String ?: return null
             val baseline = value.get("baseline") as? String ?: return null
             val selectionId = value.get("selectionId") as? String ?: return null
