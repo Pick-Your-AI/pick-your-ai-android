@@ -32,11 +32,13 @@ RTL and subsequent empty insets neither accumulate nor leave old padding. The
 listener keeps dispatching the original insets to descendants and requests
 insets after installing the viewport.
 
-The preview theme still inherits `Theme.Material.Light.NoActionBar`. It now selects
-light status/navigation bars, which use dark foreground icons appropriate for that
-light background. On older platforms with opaque bars, both bar colors follow the
-same light theme background; this avoids putting dark icons on the inherited dark
-bar color. Android 15 retains its enforced transparent/translucent bar behavior.
+The preview theme still inherits `Theme.Material.Light.NoActionBar`. On API 26,
+it selects a light status bar with dark icons and keeps the platform's inherited
+navigation-bar background and icon appearance together. API 27 and later select
+the qualified theme, which also uses a light navigation bar with dark icons. Both
+light bar colors follow the theme background. The navigation-bar XML appearance
+attribute is confined to `values-v27`; the minimum SDK remains 26. Android 15
+retains its enforced transparent/translucent bar behavior.
 No new UI framework, dependency or system-bar hiding is added.
 The existing inset types and keyboard contract are retained. This change does not
 implement focus/caret restoration, keyboard animation or a complete adaptive-window
