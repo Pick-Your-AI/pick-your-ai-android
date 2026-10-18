@@ -900,8 +900,90 @@ class EmulatorSmokeGuardTest(unittest.TestCase):
         self.assertEqual("original readiness failure", receipt["error"])
         self.assertFalse(receipt["guest_readiness"]["ready"])
         self.assertTrue(all(c["status"] == "not_run" for c in receipt["cases"]))
-        self.assertEqual(6, device.adb.call_count)
+        self.assertEqual(8, device.adb.call_count)
+        self.assertEqual([
+            call("shell", "dumpsys", "-t", "3", "activity", "lastanr", timeout=5, check=False),
+            call("shell", "dumpsys", "-t", "3", "activity", "lastanr-traces", timeout=5, check=False),
+        ], device.adb.call_args_list[1:3])
+        state = receipt["guest_readiness_failure_observations"]
+        self.assertEqual("latest_global_records_not_automatically_package_bound", state["anr_record_scope"])
+        self.assertEqual(["framework_log", "last_anr_state", "last_anr_traces", "package_pid",
+                          "package_exit_history", "activity_stack", "package_processes", "low_memory_killer"],
+                         list(state["checks"]))
+        for name in ("last_anr_state", "last_anr_traces"):
+            self.assertEqual("observed", state["checks"][name]["stdout_prefix"])
+            self.assertEqual("observed", state["checks"][name]["stdout_tail"])
+            self.assertFalse(state["checks"][name]["stdout_prefix_truncated"])
         self.assertTrue(all(c.kwargs["timeout"] == 5 for c in device.adb.call_args_list))
+        device.launch.assert_not_called()
+
+    def test_readiness_anr_records_keep_bounded_identity_and_tail_without_claiming_completeness(self):
+        partial = b"ANR identity and first stack\n" + b"x" * 300000 + b"\xfffinal frame"
+        decoded = partial.decode("utf-8", errors="replace")
+        for failure in (subprocess.TimeoutExpired("dumpsys", 5, output=partial, stderr=b"partial error"),
+                        smoke.SmokeFailure("Owned emulator process exited")):
+            with self.subTest(failure=type(failure).__name__):
+                device = Mock(spec=smoke.Device)
+                device.adb.side_effect = [subprocess.CompletedProcess([], 0, "framework", ""),
+                                         subprocess.CompletedProcess([], 1, decoded, "state unavailable"),
+                                         failure] + [subprocess.CompletedProcess([], 0, "remaining", "")] * 5
+                receipt = {"error": "original HOME failure", "guest_readiness": {"ready": False},
+                           "cases": [{"id": c, "status": "not_run"} for c in smoke.CASE_IDS]}
+                with patch.object(smoke.time, "monotonic", return_value=0):
+                    smoke.retain_case_failure_state(device, receipt, phase="after_guest_readiness_failure")
+                checks = receipt["guest_readiness_failure_observations"]["checks"]
+                observed = checks["last_anr_state"]
+                self.assertEqual(1, observed["exit_code"])
+                self.assertEqual("state unavailable", observed["stderr"]["prefix"])
+                for name in ("last_anr_state", "last_anr_traces"):
+                    item = checks[name]
+                    if name == "last_anr_traces" and isinstance(failure, smoke.SmokeFailure):
+                        self.assertEqual("Owned emulator process exited", item["error"])
+                        self.assertNotIn("stdout_prefix", item)
+                        self.assertNotIn("exit_code", item)
+                        continue
+                    self.assertEqual(131072, item["stdout_prefix_retained_character_limit"])
+                    self.assertEqual(decoded[:131072], item["stdout_prefix"])
+                    self.assertEqual(decoded[-131072:], item["stdout_tail"])
+                    self.assertTrue(item["stdout_prefix_truncated"])
+                    self.assertTrue(item["stdout_tail_truncated"])
+                    self.assertEqual(len(decoded), item["stdout"]["text_characters"])
+                    self.assertEqual(hashlib.sha256(decoded.encode("utf-8")).hexdigest(), item["stdout"]["text_sha256"])
+                    if name == "last_anr_traces":
+                        self.assertEqual(5, item["command_timeout_seconds"])
+                        self.assertTrue(item["stdout"]["decoded_from_bytes"])
+                        self.assertEqual("partial error", item["stderr"]["prefix"])
+                        self.assertNotIn("exit_code", item)
+                self.assertEqual("remaining", checks["low_memory_killer"]["stdout_tail"])
+                self.assertNotIn("stdout_prefix", checks["framework_log"])
+                self.assertEqual(8, device.adb.call_count)
+                self.assertEqual(8, len({c.args for c in device.adb.call_args_list}))
+                self.assertEqual("original HOME failure", receipt["error"])
+                self.assertFalse(receipt["guest_readiness"]["ready"])
+                self.assertTrue(all(c["status"] == "not_run" for c in receipt["cases"]))
+                device.launch.assert_not_called()
+
+    def test_readiness_anr_records_share_the_existing_deadline_and_list_unattempted_reads(self):
+        receipt, clock, device = {"error": "original HOME failure"}, ReadinessClock(), Mock(spec=smoke.Device)
+
+        def read(*args, **kwargs):
+            clock.now += min(4.5, kwargs["timeout"])
+            raise subprocess.TimeoutExpired(args, kwargs["timeout"], output=b"partial", stderr=b"offline")
+
+        device.adb.side_effect = read
+        with patch.object(smoke.time, "monotonic", clock.monotonic):
+            smoke.retain_case_failure_state(device, receipt, phase="after_guest_readiness_failure")
+        state = receipt["guest_readiness_failure_observations"]
+        self.assertEqual(20, state["seconds"])
+        self.assertTrue(state["deadline_reached"])
+        self.assertEqual([5, 5, 5, 5, 2], [c.kwargs["timeout"] for c in device.adb.call_args_list])
+        self.assertEqual(["activity_stack", "package_processes", "low_memory_killer"], state["unattempted_checks"])
+        self.assertEqual("original HOME failure", receipt["error"])
+        for name in ("last_anr_state", "last_anr_traces"):
+            self.assertEqual("partial", state["checks"][name]["stdout_prefix"])
+            self.assertEqual("partial", state["checks"][name]["stdout_tail"])
+            self.assertFalse(state["checks"][name]["stdout_prefix_truncated"])
+            self.assertNotIn("exit_code", state["checks"][name])
         device.launch.assert_not_called()
 
     def test_actual_readiness_failure_handler_preserves_original_error_when_diagnostics_raise(self):

@@ -620,6 +620,78 @@ This is one measurable startup-synchronization experiment, with no passing
 installed result yet. A new exact-source hosted run must still pass all four
 installed cases before the lane can be accepted.
 
+### Observed pre-installation SystemUI ANR and retained global ANR records
+
+Changed-source [run `39120315926`](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39120315926)
+tested checkout `54028ba3ddb7d3d569a01ff87b7d4d971b483685`, exact reviewed tree
+`ed57cdf3c7789fd1369d3b4c16ef49fe3eca1a48`, with ordered `899e9178` and
+`50fad459` parents. The Linux artifacts contain 406 actual core cases and all 121
+required simulated native cases, with zero failures, errors or skips. The hosted
+69-method harness guard suite also passed. The producer and separate runtime
+inventory agree on unsigned APK SHA-256
+`e7527c350d50d92f4b3a29cee4fa5b9086a4da83fb1e6c910cf67546f2594f2b`.
+These producer results do not establish installed behavior.
+
+Installed artifact `12134710907` is 71,163 ZIP bytes with independently verified
+SHA-256 `58b0b70eac14ea04b7f0db986376d5349603dc10eaccc6562503bbb1549e9d24`.
+Boot completed in 307.206 seconds after 251 probes. The fourth user/storage
+readiness snapshot passed all nine existing predicates. The subsequent framework
+barrier returned a complete, clean exit-zero result in 48.720 seconds, including
+both ordered positive markers. Fresh hierarchy removal, dump and read also
+succeeded: the dump returned zero and its exact completion line in 4.237 seconds,
+and the clean read completed in 0.051 seconds. Its XML parsed successfully.
+
+That functional hierarchy contained only `android` nodes and no visible launcher
+node. Its retained text includes the system dialog's **Close app** and **Wait**
+controls. Both complete focus fields identify
+`Application Not Responding: com.android.systemui`. The launcher was the resumed
+Activity behind that dialog, which does not satisfy the required HOME window
+focus. The readiness phase correctly failed after 61.503 seconds, within its
+180-second limit; this was a failed functional predicate, not budget exhaustion.
+The preview was not installed or launched, and all four installed cases remained
+`not_run`. The original unsigned APK was unchanged. A signed disposable APK file
+in preparation is not evidence of an installation.
+
+The six later observations finished in 1.929 seconds. Their filtered framework
+tail begins only at 10:59:00 and records a phone-process restart, launcher draw
+after 21.290 seconds, a Bluetooth-process death/restart and the application-barrier
+completion at 10:59:13.471. The SystemUI ANR's earlier onset, reason and thread
+stacks are absent from that tail. The captured LMK count is zero, and no preview
+PID is present before installation. The emulator again records its fewer-than-six
+host-logical-core heuristic selecting one virtual CPU; the kernel confirms one
+CPU. None of these facts identifies a CPU, renderer, image or memory correction.
+The successful barrier/dump also does not show that this source cured the earlier
+UiAutomation failure in a different run.
+
+The narrow follow-up reads `dumpsys -t 3 activity lastanr` and
+`dumpsys -t 3 activity lastanr-traces` after a guest-readiness failure, immediately
+after the existing framework-log observation. The
+[Android 15 ActivityTaskManagerService implementation](https://github.com/aosp-mirror/platform_frameworks_base/blob/android-15.0.0_r1/services/core/java/com/android/server/wm/ActivityTaskManagerService.java)
+prints its saved ANR time/reason/state and the most recently modified existing
+file in `/data/anr`, respectively. These commands do not generate a new trace,
+send a process signal, dismiss a dialog or start the preview. This is a primary
+source reference, not a reconstruction of the exact SDK image's source hash.
+
+The two observations are **latest global records**. Their process identities and
+times must be read before attributing either to SystemUI; the saved state and
+latest trace can also describe different events. Missing records, command
+timeouts, partial output and read errors remain explicit observations. Each ANR
+result retains at most 131,072 decoded characters from its beginning and 131,072
+from its end, with separate limits/truncation flags plus the existing full-text
+character count and decoded-text SHA-256. Keeping the beginning preserves the
+available identity and initial stacks when a long trace's tail alone would lose
+them. These are retention limits, not a bound on subprocess capture memory or a
+claim of a complete trace.
+
+All eight readiness-failure reads share the existing 20-second total deadline,
+at most five seconds per subprocess and three seconds for each dumpsys service
+request. Unattempted reads are listed if the budget expires. The six ordinary
+post-case observations retain their exact previous order and arguments. The
+71-method host guard suite covers the new command order, bounded start/end,
+timeout partials, process errors, shared deadline and preservation of the
+original failure and unrun cases. No readiness predicate, case, launch, cleanup,
+image, renderer, CPU setting or budget changes; a new actual result is required.
+
 ## Inputs and provenance
 
 The application keeps its existing JDK 21, Gradle 8.11.1, Kotlin 2.1.20, AGP 8.9.2,

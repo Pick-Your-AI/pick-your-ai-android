@@ -76,6 +76,10 @@ CASE_FAILURE_COMMANDS = (
     ("package_processes", ("shell", "dumpsys", "-t", "3", "activity", "processes", PACKAGE), 32768),
     ("low_memory_killer", ("shell", "dumpsys", "-t", "3", "activity", "lmk"), 32768),
 )
+GUEST_ANR_FAILURE_COMMANDS = (
+    ("last_anr_state", ("shell", "dumpsys", "-t", "3", "activity", "lastanr"), 131072),
+    ("last_anr_traces", ("shell", "dumpsys", "-t", "3", "activity", "lastanr-traces"), 131072),
+)
 
 
 class SmokeFailure(RuntimeError):
@@ -898,14 +902,19 @@ def retain_case_failure_state(device: Device, receipt: dict, *, phase="after_fai
              "timeout_seconds": 20, "checks": {}}
     receipt["case_failure_observations" if phase == "after_failure_checkpoint"
             else "guest_readiness_failure_observations"] = state
+    commands = CASE_FAILURE_COMMANDS
+    if phase == "after_guest_readiness_failure":
+        # Existing global records can describe different ANRs; correlate their actual identities.
+        state["anr_record_scope"] = "latest_global_records_not_automatically_package_bound"
+        commands = commands[:1] + GUEST_ANR_FAILURE_COMMANDS + commands[1:]
     started = time.monotonic()
     deadline = started + state["timeout_seconds"]
     try:
-        for index, (name, arguments, retained_limit) in enumerate(CASE_FAILURE_COMMANDS):
+        for index, (name, arguments, retained_limit) in enumerate(commands):
             remaining = deadline - time.monotonic()
             if remaining <= 0:
                 state["deadline_reached"] = True
-                state["unattempted_checks"] = [item[0] for item in CASE_FAILURE_COMMANDS[index:]]
+                state["unattempted_checks"] = [item[0] for item in commands[index:]]
                 break
             observed = {"started_seconds": round(time.monotonic() - started, 3),
                         "stdout_retained_character_limit": retained_limit}
@@ -919,6 +928,12 @@ def retain_case_failure_state(device: Device, receipt: dict, *, phase="after_fai
                 continue  # The command's original error is already retained by observe_ui_command.
             observed["stdout_tail"] = bounded_text(stdout, retained_limit)
             observed["stdout_tail_truncated"] = observed["stdout"].get("text_characters", 0) > retained_limit
+            if name in ("last_anr_state", "last_anr_traces"):
+                # Keep the record header/first stacks as well as the end, including timeout partials.
+                text = stdout.decode("utf-8", errors="replace") if isinstance(stdout, bytes) else (stdout or "")
+                observed["stdout_prefix_retained_character_limit"] = retained_limit
+                observed["stdout_prefix"] = text[:retained_limit]
+                observed["stdout_prefix_truncated"] = len(text) > retained_limit
     finally:
         state["seconds"] = round(time.monotonic() - started, 3)
 
