@@ -77,6 +77,8 @@ class LocalDraftStore internal constructor(
 ) {
     internal constructor(directory: Path, cacheFactory: (Path) -> VerifiedArtifactCache) : this(directory, cacheFactory, {})
     constructor(directory: Path) : this(directory, { VerifiedArtifactCache(it, MAX_BYTES) }, {})
+    constructor(directory: Path, retention: CacheRetentionLimits) :
+        this(directory, { VerifiedArtifactCache(it, MAX_BYTES, retention) }, {})
     private val root: Path
     private val cache: VerifiedArtifactCache
     init {
@@ -194,7 +196,7 @@ class LocalDraftStore internal constructor(
         private fun mapFailure(reason: CacheFailure): DraftStorageFailure = when (reason) {
             CacheFailure.BUSY -> DraftStorageFailure.BUSY
             CacheFailure.CANCELLED -> DraftStorageFailure.CANCELLED
-            CacheFailure.TOO_LARGE -> DraftStorageFailure.LIMIT_EXCEEDED
+            CacheFailure.TOO_LARGE, CacheFailure.RETENTION_LIMIT -> DraftStorageFailure.LIMIT_EXCEEDED
             CacheFailure.CORRUPT, CacheFailure.HASH_MISMATCH -> DraftStorageFailure.CORRUPT
             CacheFailure.IO_FAILURE -> DraftStorageFailure.IO_FAILURE
         }
