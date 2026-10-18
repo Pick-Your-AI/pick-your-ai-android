@@ -95,6 +95,14 @@ class PreviewDraftPersistence internal constructor(private val store: LocalDraft
         is DraftLoad.Available -> decode(result.draft)
     } }
 
+    /** Local candidate review only. Library liveness and the original captured store token apply. */
+    fun prepareSnapshotCandidate(expected: PreviewStoredDraft, inputs: DraftSnapshotInputs): DraftProjectionPreparation =
+        guarded({ DraftProjectionPreparation.Failed(it) }) { store.prepareSnapshotCandidate(expected.draft.version, inputs) }
+
+    /** No export or saved feedback: Created is a reviewed in-memory candidate, with exact inputs. */
+    fun createSnapshotCandidate(review: DraftProjectionPreparation.Review, acknowledgment: DraftProjectionAcknowledgment?): DraftProjectionCreation =
+        guarded({ DraftProjectionCreation.Failed(it) }) { store.createSnapshotCandidate(review, acknowledgment) }
+
     fun save(expected: PreviewStoredDraft?, fields: PreviewDraftFields, contextInput: PreviewDraftContext? = null,
         workloadInput: DraftWorkload? = null): PreviewDraftSave = write {
         val previous = expected?.draft?.content ?: DraftContent()

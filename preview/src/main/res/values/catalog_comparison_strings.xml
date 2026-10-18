@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="catalog_compare_heading">Component comparison</string>
+    <string name="catalog_compare_limit">Choose up to %1$d synthetic components from their details. Comparison does not change or save your draft.</string>
+    <string name="catalog_compare_add">Add to comparison</string>
+    <string name="catalog_compare_open">Compare selected components</string>
+    <string name="catalog_compare_count">Comparison tray: %1$d / %2$d</string>
+    <string name="catalog_compare_added">Added the exact item version and snapshot.</string>
+    <string name="catalog_compare_already_present">This exact item version and snapshot is already in the tray.</string>
+    <string name="catalog_compare_full">The comparison tray is full. Remove a component before adding another.</string>
+    <string name="catalog_compare_identity_large">This identity is too long for the bounded comparison preview. Its full catalog detail remains available; the tray was not changed.</string>
+    <string name="catalog_compare_unavailable">This exact version or snapshot is unavailable in the current catalog. The pin is retained. Inspect the pinned component to retry its exact local snapshot, or explicitly remove it and add a currently available version. No newer version is substituted.</string>
+    <string name="catalog_compare_missing_name">Unavailable component</string>
+    <string name="catalog_compare_identity">Component %1$d: %2$s\nID: %3$s\nVersion: %4$s</string>
+    <string name="catalog_compare_remove">Remove component %1$d · version %2$s</string>
+    <string name="catalog_compare_removed">Removed the selected comparison pin.</string>
+    <string name="catalog_compare_reset">The saved comparison tray was invalid and was reset. Review and add the exact components again.</string>
+    <string name="catalog_compare_conditions">Values keep their recorded units. Similar numbers can describe different routes, precision, context or regions. Conditions and provenance remain visible below. This comparison does not establish interchangeable capabilities or rank components. Each component keeps its own recorded price context; differing currencies or workload bases are never merged into a cheaper verdict.</string>
+    <string name="catalog_compare_different_kinds">These components have different kinds. Their specifications are displayed without treating matching field names or numbers as equivalent.</string>
+    <string name="catalog_compare_differences">Differences only, keeping unknown values</string>
+    <string name="catalog_compare_values">Recorded field comparison</string>
+    <string name="catalog_compare_recorded_conditions">Recorded conditions and references:\n%1$s</string>
+    <string name="catalog_compare_row_count">Fields displayed: %1$d / %2$d. Item identities, conditions, licenses and provenance remain above.</string>
+    <string name="catalog_compare_spec">Specification</string>
+    <string name="catalog_compare_license">License declaration</string>
+    <string name="catalog_compare_field">%1$s · %2$s</string>
+    <string name="catalog_compare_not_defined">This field is not defined for this component kind.</string>
+    <string name="catalog_compare_same">Matching recorded value; no capability or applicability verdict.</string>
+    <string name="catalog_compare_different">Different recorded values; review their conditions.</string>
+    <string name="catalog_compare_unknown">Unknown or incomplete value retained; equivalence is not established.</string>
+    <string name="catalog_compare_not_comparable">Not comparable across these kinds or field definitions.</string>
+</resources>

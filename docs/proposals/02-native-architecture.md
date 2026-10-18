@@ -1,155 +1,184 @@
-# Native architecture: implemented preview and product recommendation
+# Android native implementation and repository decision
 
-Engineering-state reconciliation for
-[Android #34](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/34),
-observed at main `4080b04` on 2026-10-18. The maintainer has authorized implementation
-and delegated engineering choices. The bounded choices below are adopted for the
-guest preview; they do not require another technical-preference approval. Product
-receiving acceptance, actual ownership commitments and release qualification remain
-separate. The canonical acceptance-record path is unchanged. Read the
-[scope proposal](01-product-scope.md) for the preview's synthetic-data limits.
+Decision date: 2026-10-18. Effective through independent receiving review and the
+normal reviewed merge of this #34 decision and its [01.03 acceptance record](../delivery/android/work-packages/01.03.md).
+The maintainer delegated engineering decisions; the [#24 scope matrix](01-product-scope.md#capability-and-release-boundary)
+is the named prerequisite. The earlier proposal and its `4080b04` observation remain
+in Git history. This record selects the next implementation boundary without
+claiming that the product or its device/release gates are complete.
 
-## Current engineering decisions
+Select **native Kotlin with platform Android Views for the first bounded planning
+slice**, retaining the existing `:core` and opt-in `:preview` separation. Retain the
+canonical filesystem draft/revision store. Compose and Room are evaluated
+alternatives, not additional dependencies selected by this decision. Current source
+already exercises the required boundaries; changing UI or storage technology before
+qualifying the slice would add a rewrite/migration without demonstrated benefit.
+This is a scope and maintainability judgment, not a framework benchmark.
 
-| Decision | Implemented choice and rationale | Evidence and limit |
+## Requirement-to-choice map
+
+The requirements below come from the same reviewed #20/#24 decision package;
+acceptance of those named inputs is part of receiving review, not inferred from an
+unmerged proposal.
+
+| Requirement | Selected technology/boundary | Tradeoff and acceptance limit |
 | --- | --- | --- |
-| Repository and language | Existing Android repository; native Kotlin core keeps contract/domain behavior testable without Android APIs | [Core foundation](../CORE_FOUNDATION.md); JVM tests are not installed-app tests |
-| Preview UI | Platform Android Views in opt-in `:preview`; a small synthetic diagnostic exercises native layout and worker/lifecycle boundaries without introducing a new UI dependency | [Preview](../ANDROID_PREVIEW.md); no claim of complete builder, accessibility or device acceptance |
-| Local namespace | `ai.pickyour.android.preview` for the diagnostic only | [Preview build](../../preview/build.gradle.kts); unsigned debug, disabled release variants, no registration or production ownership assertion |
-| Module boundary | `:core` remains SDK-independent; `:preview` depends on core and is included only with `-PandroidPreview=true` | [Settings](../../settings.gradle.kts); production `:data`/`:app` modules are not implemented |
-| Toolchain | JDK 21 build, Java 17 bytecode, Gradle 8.11.1, Kotlin 2.1.20, AGP 8.9.2 | [Root build](../../build.gradle.kts), [core build](../../core/build.gradle.kts), pinned wrapper and dependency verification; current reproducible experiment |
-| SDK bounds | compile/target 35, minSdk 26, build-tools 35.0.0 | [Preview reproduction](../ANDROID_PREVIEW.md); these are compile/runtime bounds, not evidence that devices or current Play submission requirements are satisfied |
-| Storage boundary | Canonical local filesystem/revision primitives now back explicit guest-preview save/reopen; autosave and a full library remain separate | [Draft history](../DRAFT_HISTORY.md); no Room adoption or installed-device process-death qualification is implied |
+| R1: J1/J4 retain confirmed local work and distinguish pending edits | Native lifecycle and explicit restoration tokens; canonical local revision store | Existing work can be qualified without a new UI framework. Recreated Views and in-memory state are not durable acknowledgment; installed termination/fault checks remain required |
+| R2: J2/J3 preserve exact contracts, evidence and unknowns | SDK-independent Kotlin `:core`; frozen inputs and strict adapters | JVM logic and Java filesystem adapters are reusable within Android, not automatically Kotlin Multiplatform or Apple code. Canonical semantics remain outside UI |
+| R3: J1–J4 work with intermittent connectivity | App-private local storage and bounded permitted snapshots; no network dependency for local drafts | Explicit local operation avoids inventing a backend. It does not provide sync, remote backup or source-use permission |
+| R4: J2/J3 labelled, understandable lists and outcomes | Platform text/buttons, labelled inputs, text-based statuses and bounded catalog pages | Small existing UI surface is inspectable. TalkBack, keyboard focus, resizing and large-text behavior still need qualified device tests; Views alone prove no accessibility conformance |
+| R5: J5 has explicit disclosure and authority | Android document/URI/share adapters at the UI boundary, activated only after accepted format/service inputs | Native integration avoids a WebView bridge. No file sharing, App Links or remote permission is claimed implemented by choosing the boundary |
+| R6: Separate diagnostic from product/release identity | Existing Android repository and preview namespace; distinct reserved engineering name for future product | Keep unsigned synthetic diagnostics reproducible; do not turn their ID, SDK floor or test APK into a Play/publisher acceptance |
 
-The implementation choice of platform Views is bounded to this diagnostic. It does
-not claim to implement the earlier Compose/Room recommendation. Retain native Kotlin
-and the tested contract/domain boundary while extending the guest preview; evaluate
-any later UI/storage change against actual requirements and migration costs.
-No backend, account service or new shared contract is selected here.
+## Alternatives and rejected choices
 
-## Earlier product recommendation and alternatives
+| Candidate | Lifecycle/offline | Accessibility | Reuse and maintenance | Disposition |
+| --- | --- | --- | --- | --- |
+| Kotlin + existing platform Views | Direct Android lifecycle; existing revision store and worker boundaries | Platform controls/labels; real focus, text-size and TalkBack qualification remains | Preserves current Kotlin code, dependency locks and reviewed recovery work | Selected for the first bounded slice |
+| Kotlin + Compose, optionally Room | Native lifecycle and repository approach; Compose state is not durable storage; Room would need migration from current records | Compose semantics and lazy lists are inspectable in the official sample; device behavior remains app-specific | Retains Kotlin core but adds UI migration and dependencies; Room adds storage migration rather than replacing its necessity | Reject as an immediate rewrite. Reconsider for a concrete UI scale/state problem or relational-storage requirement with migration evidence |
+| Flutter shared client | Restoration APIs plus deliberate durable repository/storage integration | Semantics and automated guidance exist; native assistive tests remain necessary | Requires Dart/UI port and native adapters; neither current React nor Kotlin implementation is directly reused | Reject for this slice. Apple already accepted its native SwiftUI boundary, so a shared Dart client would require a second platform decision |
+| React/WebView wrapper | Browser lifecycle/storage must be bridged to native durable state and document handling | Existing DOM UI is reusable, but web/native focus and platform behavior need qualification | Most direct TypeScript/React reuse; adds WebView/bridge, serialization and release integration obligations | Reject for the core native/offline requirement. The existing website remains an independent client |
 
-The earlier product proposal recommends Kotlin with Jetpack Compose, a small pure Kotlin
-domain module, and Room-backed transactional local storage. Use the existing
-`Pick-Your-AI/pick-your-ai-android` repository. Propose `ai.pickyour.android` as the
-application ID and namespace; its Play availability and publisher authorization
-have not been checked. Do not register it or issue a release identity from this
-proposal alone.
+None of these alternatives is claimed incapable of offline or accessible behavior.
+The earlier Compose/Room recommendation was made before the present native store
+and diagnostic existed. Its useful separation of UI, domain and adapters is retained;
+its immediate framework/database choice is superseded for this bounded slice.
 
-| Requirement | Kotlin/Compose recommendation | Flutter alternative | React/web wrapper alternative |
-| --- | --- | --- | --- |
-| Lifecycle and durable edits | Native lifecycle APIs, saved navigation identity and a transactional repository; process-death tests remain necessary | State restoration and durable storage still need deliberate implementation; widgets alone do not persist drafts | Browser lifecycle/storage behavior does not satisfy Android durability by itself; native bridge work remains |
-| Offline storage/migration | Room/SQLite transaction boundary owned by Android data layer | SQLite integration and migrations through chosen packages/platform integration | Existing `localStorage` repository is browser-specific and unsuitable as Android persistence authority |
-| Accessibility/adaptive UI | Compose semantics plus TalkBack, keyboard, scaling and window testing | Flutter has semantics and accessibility testing; device verification is still needed | Existing responsive React UI is reusable in a wrapper, but mixed web/native focus and platform behavior need separate validation |
-| Reuse | Reuse frozen schemas, data, fixtures and semantics; port and parity-test domain implementation | Same language boundary for current TypeScript domain; Dart port/parity work remains | Most direct UI/TypeScript reuse, at the cost of maintaining a browser/native integration boundary |
-| Maintenance | One Android platform and its native tooling initially; Apple remains separately scoped | Shared Dart client can help if both clients explicitly adopt it; Apple has not made that decision | Additional webview/bridge surface; still requires Android release/security work |
+Apple's [accepted #22 ADR at `a73a933d`](https://github.com/Pick-Your-AI/pick-your-ai-apple/blob/a73a933dceea36bf7af35f95697acff0ab6d8e7f/docs/decisions/issue-22-platform.md)
+and [receiving receipt](https://github.com/Pick-Your-AI/pick-your-ai-apple/issues/22#issuecomment-6244062120)
+select SwiftUI/UIKit interoperability, Swift 6 and App/Core/Data separation with
+system SQLite for local history. Consume that independent boundary; do not reopen
+Apple architecture or imply identical client languages/stores. Share contracts,
+fixtures and accepted semantics, not UI frameworks or a competing service.
 
-This is an engineering tradeoff, not a benchmark claiming one framework is faster
-or more accessible. Flutter is a credible alternative; reject it for this bounded
-Android-first proposal because adopting a shared Dart UI does not reuse the current
-React/TypeScript implementation and would couple a still-open Apple decision.
-Reject a web wrapper because app-private durability, lifecycle recovery and native
-document/share behavior are central requirements rather than optional integrations.
+## Repository, package and module ownership
 
-## Inspected platform evidence
+Use `Pick-Your-AI/pick-your-ai-android` as the sole Android implementation repository.
+Source/package governance belongs to that project's existing maintainer and normal
+review process. Live assignees remain authority for individual work packages; this
+decision does not assign a person or an operating role. The user-delegated Android
+agent prepares this decision, with independent coordinating-agent receiving review.
 
-The official [Android architecture sample at `ee66e1526b84c026615df032c705842b7d2a521f`](https://github.com/android/architecture-samples/tree/ee66e1526b84c026615df032c705842b7d2a521f)
-was inspected, not built. Its `README.md` documents Compose, navigation, Flow,
-local Room storage, a fake remote and tests. In the same revision:
+| Location or identity | Selected responsibility | Dependency/ownership boundary |
+| --- | --- | --- |
+| `:core`, packages `ai.pickyour.core.*` | Contract adapters, domain state and analysis, plus the existing JVM filesystem/cache adapters | No Android SDK/UI dependency. UI does not own compatibility or revision policy; filesystem adapters are not pure functions or portable Swift/Dart implementations |
+| `:preview`, `ai.pickyour.android.preview` | Current synthetic Android diagnostic, native controls, lifecycle and app-private path composition | Depends on `:core`; included only with `-PandroidPreview=true`; unsigned debug and release variants disabled |
+| `ai.pickyour.android` | Selected engineering namespace for a future production application | Separate from preview. No Play availability, publisher account, release key or registration is asserted; resolve those exact identities before release |
+| Future `:app` | Product composition and native screens when the release application is created | Depends on core and any extracted adapters. Keep preview synthetic; adopting the name creates no module in this change |
+| Future `:data`, only when extraction has a concrete boundary benefit | Android storage/network/credential adapters behind explicit interfaces | Depends on core; preserve existing revision bytes/migrations. No second revision engine or mandatory database rewrite; core cannot depend on UI/data |
 
-- `app/src/main/java/com/example/android/architecture/blueprints/todoapp/tasks/TasksViewModel.kt` uses `SavedStateHandle` for filter state.
-- `.../tasks/TasksScreen.kt` uses lifecycle-aware state collection and content descriptions; `app/src/androidTest/.../tasks/TasksScreenTest.kt` contains UI assertions.
-- `.../addedittask/AddEditTaskViewModel.kt` keeps unsaved edits in memory and explicitly saves through its repository. It is not evidence of durable autosave after process death.
-- `.../data/source/local/ToDoDatabase.kt` demonstrates Room, but has `exportSchema = false`. Do not copy that sample setting into production migration policy.
+Feature packages need not become Gradle modules immediately. The selected current
+store remains `LocalDraftStore` with `PreviewDraftPersistence`/library adapters over
+`VerifiedArtifactCache`. A future storage change requires preserved histories,
+explicit format migration, conflict semantics and failure/recovery tests. Room is
+not selected merely because an official sample uses it.
 
-The official Flutter documentation source at
+Shared-service placement remains Android #35 / Apple #23 and the canonical website
+services. No server, account system, catalog publisher or inference engine is added
+to this client. The website's static hosting and existing checks remain unchanged.
+
+## Inspection of the selected approach
+
+Source baseline:
+[`952eb015c391971ca4529ede2c1d99de320173c1`](https://github.com/Pick-Your-AI/pick-your-ai-android/tree/952eb015c391971ca4529ede2c1d99de320173c1).
+The decision agent inspected these paths on 2026-10-18. This supplies #34's allowed
+source-inspection method; it does not certify installed behavior.
+
+| Required inspection | Source and observed mechanism | Negative/recovery limit |
+| --- | --- | --- |
+| Lifecycle restoration | [PreviewActivity](../../preview/src/main/kotlin/ai/pickyour/android/preview/PreviewActivity.kt) captures draft identity/baseline plus bounded pending fields, reloads storage, and requires explicit reconciliation when authority changes; [PreviewDraftRestoration](../../core/src/main/kotlin/ai/pickyour/core/preview/PreviewDraftPersistence.kt) separates baseline matching from saved acknowledgment | Pending form state does not establish a completed write. [Activity simulations](../../preview/src/test/kotlin/ai/pickyour/android/preview/PreviewActivityTest.kt) include recreation and a newer disk head; they are JVM simulations, not process-kill/device proof |
+| Offline draft | [LocalDraftStore](../../core/src/main/kotlin/ai/pickyour/core/drafts/LocalDraftStore.kt), [PreviewDraftLibrary](../../core/src/main/kotlin/ai/pickyour/core/preview/PreviewDraftLibrary.kt) and persistence adapters retain content-addressed revisions and revision/hash authority, exposing conflict, unsupported/corrupt, failed and uncertain outcomes | No automatic destructive reset. Directory/rename durability still needs Android qualification; no server or cloud-sync result is supplied |
+| Accessible list support | [CatalogBrowseSection](../../preview/src/main/kotlin/ai/pickyour/android/preview/CatalogBrowseSection.kt) renders item names/kinds as buttons, labelled paging/filter controls and a polite textual status; Activity and [WorkloadSection](../../preview/src/main/kotlin/ai/pickyour/android/preview/WorkloadSection.kt) associate captions with input IDs | Native semantic primitives are present. This is not a complete TalkBack, focus-order, target-size, large-text or device accessibility audit |
+
+The independently reviewed controls delivery [#284](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/284)
+records [actual receiving artifacts](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/284#issuecomment-6248549786):
+403 core and 88 Android simulation cases, zero failures/errors/skips, on receiving
+tree `236dd70d9f4f864efe355dd062887c918f48dcfe`, subsequently delivered as signed
+`952eb015`. Those receipts establish their stated test scope; they are not newly run
+tests of this documentation or whole-product acceptance.
+
+## Inspected alternatives: pinned primary sources
+
+The official [Android architecture sample at `ee66e152`](https://github.com/android/architecture-samples/tree/ee66e1526b84c026615df032c705842b7d2a521f)
+was re-inspected on 2026-10-18, not built. Its README, `TasksViewModel.kt`,
+`TasksScreen.kt`, `TasksScreenTest.kt`, `AddEditTaskViewModel.kt` and
+`ToDoDatabase.kt` show the relevant alternative boundaries:
+
+- Saved filter state and lifecycle-aware collection accompany a Compose task list
+  and labelled actions; UI tests assert display and toggling.
+- Unsaved title/description live in memory; explicit repository save precedes its
+  saved flag. The sample does not prove durable autosave.
+- Room is a demonstrated local store, but its sample `exportSchema = false` is
+  explicitly unsuitable as the application's production migration policy.
+
+Official Flutter documentation at
 [`1791ca9a14dc66d4a340b1c991e3aa13346eb350`](https://github.com/flutter/website/tree/1791ca9a14dc66d4a340b1c991e3aa13346eb350)
-contains Android restoration, offline-first and accessibility guidance. The
-following documents were inspected at that revision:
+was re-inspected, not executed:
+[Android restoration](https://github.com/flutter/website/blob/1791ca9a14dc66d4a340b1c991e3aa13346eb350/sites/docs/src/content/platform-integration/android/restore-state-android.md)
+separates transient restoration from long-lived storage and requires restorable
+navigation; [offline architecture](https://github.com/flutter/website/blob/1791ca9a14dc66d4a340b1c991e3aa13346eb350/sites/docs/src/content/app-architecture/design-patterns/offline-first.md)
+places local/remote data behind a repository;
+[accessibility testing](https://github.com/flutter/website/blob/1791ca9a14dc66d4a340b1c991e3aa13346eb350/sites/docs/src/content/ui/accessibility/accessibility-testing.md)
+describes semantics/contrast/target checks and platform inspection. Both options
+still require application-specific storage, recovery and assistive-device tests.
 
-- [Android restoration](https://github.com/flutter/website/blob/1791ca9a14dc66d4a340b1c991e3aa13346eb350/sites/docs/src/content/platform-integration/android/restore-state-android.md) distinguishes short-lived restoration state from long-lived storage and requires restorable navigation.
-- [Offline-first architecture](https://github.com/flutter/website/blob/1791ca9a14dc66d4a340b1c991e3aa13346eb350/sites/docs/src/content/app-architecture/design-patterns/offline-first.md) combines local and remote sources behind a repository; offline reconciliation remains application work.
-- [Accessibility testing](https://github.com/flutter/website/blob/1791ca9a14dc66d4a340b1c991e3aa13346eb350/sites/docs/src/content/ui/accessibility/accessibility-testing.md) describes semantics/contrast/target checks and platform accessibility inspection.
+## Existing website reuse audit
 
-Both frameworks require real application and device tests. These are source
-inspections, not executed sample tests or a measured framework comparison.
+The inspected website remains
+[`dc66a9e269917ab7241c7d08fd0e7f2a2f039872`](https://github.com/Pick-Your-AI/pickyour.ai/tree/dc66a9e269917ab7241c7d08fd0e7f2a2f039872).
+Its `contracts/PROVENANCE.json` pins research `d4bdca479f78439b3b98e7418b37acbaccbaa63c`.
+Android's [adoption record](../CONTRACT_ADOPTION.md) separately records
+`9769fcd9ea380b1211669b2753181c7782444178` and unchanged 43-file v1 package/manifests.
+Compare immutable bytes and semantics before reuse; do not silently replace either
+consumer's pin or treat a reference client as contract authority.
 
-## Module and reuse map
-
-The earlier product proposal describes three modules below. Only `:core` currently
-exists under those names; the implemented diagnostic is `:preview`, described above.
-Add modules when a demonstrated boundary needs them. Feature packages need not
-become Gradle modules immediately.
-
-| Location | Responsibility | Dependency direction |
-| --- | --- | --- |
-| `:core` | Platform-independent model adapters, pure evaluation/cost/revision logic and parity fixtures | No Android UI or database dependency |
-| `:data` | Room schema/migrations, repositories, atomic catalog activation and future network adapters | Depends on `:core`; exposes repository interfaces to UI |
-| `:app` | Compose navigation, screens, Android lifecycle, document/share adapters and accessibility | Depends on `:core` and `:data`; does not embed a competing compatibility policy |
-
-The authoritative contract remains research `contracts/v1`, adopted verbatim at a
-pinned revision with checksums; #40 owns extensions. The existing website
-[`dc66a9e269917ab7241c7d08fd0e7f2a2f039872`](https://github.com/Pick-Your-AI/pickyour.ai/tree/dc66a9e269917ab7241c7d08fd0e7f2a2f039872)
-pins contract source `d4bdca479f78439b3b98e7418b37acbaccbaa63c` in
-`contracts/PROVENANCE.json`. Android now records its own adoption in the
-[import manifest](../../contracts/v1/IMPORT_MANIFEST.json) and
-[contract adoption guide](../CONTRACT_ADOPTION.md); the older website pin above is
-historical reuse context, not a claim that it is the newest approved contract.
-
-| Existing website artifact | Android reuse decision |
+| Website source at the pin above | Reuse decision and concrete inspection result |
 | --- | --- |
-| `contracts/v1/**`, provenance, baseline graph/ruleset, examples | Reuse as immutable language-neutral inputs with their rights/provenance; verify hashes and preserve synthetic labels |
-| `src/domain/{build,evaluator,invalidation,cost,decimal}.ts` | Behavioral reference; port only with shared fixture/parity checks, decimal semantics and revision locking |
-| `tests/unit/{evaluator-parity,scenarios,contracts}.test.ts` | Reuse scenarios and expected semantics, not a claim that TypeScript tests validate Kotlin |
-| `src/data/local-builds.ts` | Do not reuse storage implementation: `localStorage`, memory fallback and browser limits are not Room transactions or Android process-death proof |
-| `src/domain/share.ts` | Inspect envelope/version compatibility; byte/depth limits and safe projection require Android-specific review, not direct copying |
-| React components, router, TanStack hooks, DOM validators | Platform-specific; no direct import into Compose |
-| Brand assets and display labels | Reuse only with original provenance and canonical label handoff (#18); do not treat synthetic images/data as real product evidence |
+| `contracts/v1/**`, provenance, graph/rules, examples | Reuse governed language-neutral inputs with exact hashes and original synthetic/source-use labels; research #40 alone governs extensions/compatibility semantics |
+| `src/domain/build.ts` | Immutable revision operations are behavioral reference. Browser-generated identities, default region/policy/settings and its draft-as-BuildSnapshot representation are not silently imported into Android's incomplete drafts |
+| `src/domain/evaluator.ts`, `src/domain/invalidation.ts` | Interpreter and before/after graph behavior are parity references. UI cannot create new compatibility policy; unsupported baseline behavior stays disclosed |
+| `src/domain/cost.ts`, `src/domain/decimal.ts` | Inspect covered/uncovered meters and decimal handling; TypeScript's scale/default/projection choices are not automatically Android money semantics. Preserve frozen decimal-string rules and explicit assumptions through shared fixtures |
+| `tests/unit/evaluator-parity.test.ts`, `tests/unit/scenarios.ts`, `tests/unit/scenarios.test.ts`, `tests/unit/contracts.test.ts` | Reuse scenario meaning after pin verification. The website API example omits T2–T6; Android's selected core T6 planning is not dropped by copying that example. TypeScript/Python parity does not validate Kotlin; optional local Python discovery is not an Android gate waiver |
+| `src/data/local-builds.ts` | Browser `localStorage`, memory fallback and separate record/index writes are not native persistence/CAS. Do not copy placeholder selections or treat browser storage recovery as Android evidence |
+| `src/domain/share.ts` | Version/envelope reference only. Its `text.length` limit counts JavaScript code units and JSON.parse has already collapsed duplicate keys; Android import requires its own original-byte, duplicate, depth and projection checks |
+| React/router/DOM components and assets | No direct native UI reuse. Retain brand/label provenance and canonical website #18 handoff before any actual asset reuse |
 
-Website checks continue unchanged. No Gradle dependency, generated Kotlin type or
-new contract field is added to the website or research repositories. Apple may
-consume shared fixtures/contracts independently; this does not select its UI stack.
+No website tests were executed or modified for this read-only audit. Its static CI
+and deployment setup are unchanged. No TypeScript implementation, third-party sample
+code or new schema is copied by this decision.
 
-## Required implementation behavior
+## Shared authorities and implementation rules
 
-- Durable edits: transactionally write the next revision and head before showing
-  saved state. Undo creates a revision. Never depend on `onStop`/`onDestroy` to save.
-- Restoration: saved UI state carries draft/revision/navigation identifiers; reload
-  durable content from storage. Do not serialize an entire private catalog or build
-  into a saved-state bundle. No acknowledgement may refer only to in-memory state.
-- Migration: export schema history; test every supported upgrade path and failed
-  migration. Preserve recoverable data; prohibit destructive fallback for user data.
-- Async analysis: bind results to draft revision, catalog, graph/ruleset and
-  pricebook pins. Cancellation alone is not protection against late results.
-- Catalog activation: validate a complete candidate and hashes before changing the
-  active pointer; interruption retains the previous usable snapshot.
-- Accessibility: use semantic names/states, logical focus, non-color-only outcomes,
-  scalable text and adaptive layouts; run manual TalkBack/keyboard/device checks.
+Research `contracts/v1` is the shared contract source; research #40 governs
+compatibility/versioned extensions, #39 pricing, #41 evidence and source intake,
+#42 saved-build lifecycle, and #60 source-use restrictions. Canonical website #15
+catalog, #16 resource/quality, #17 saved/shared builds and #18 labels remain their
+respective shared-service/data handoffs. The Android repository owns its adapters
+and UI, not a second instance of those authorities.
 
-## Toolchain and remaining acceptance
+Require durable completion before saved acknowledgment; preserve explicit failed,
+conflict and uncertain outcomes. Restored identity and bounded transient fields
+must rejoin the correct durable baseline. Keep old revision bytes and migration
+history, bind asynchronous results to exact revision/source pins, and activate a
+complete validated snapshot atomically. Labels, focus, non-color-only outcomes,
+text scaling and keyboard/TalkBack checks remain implementation requirements.
 
-The current toolchain and experimental SDK decisions are recorded above and in
-[ANDROID_PREVIEW.md](../ANDROID_PREVIEW.md), including the inspected upstream
-compatibility sources and build/lint evidence. The original documentation-only
-review predates the executable JVM core and unsigned Android build; its environment
-limitations are no longer the repository's current state. Instrumented, physical
-device and process-death evidence remain separate and are not supplied by build or
-lint success. Product min/target SDK and supported-device qualification remain under
-#47/#54; refresh official requirements before a release candidate is assessed.
+## Toolchain, remaining constraints and receiving review
 
-Before #34 closes, obtain product/Android receiving review of the scope and reuse
-map, record package identity disposition, and reconcile the #24 handoff. Before a
-release, require a verified publisher identity and actual distribution certificate;
-an engineering namespace recommendation is not store ownership evidence.
+Retain the current engineering pins in [build files](../../build.gradle.kts),
+[preview configuration](../../preview/build.gradle.kts) and [reproduction guide](../ANDROID_PREVIEW.md):
+JDK 21, Java 17 bytecode, Gradle 8.11.1, Kotlin 2.1.20, AGP 8.9.2; compile/target SDK
+35, minSdk 26 and the recorded build-tools 35.0.0 environment. These are a bounded
+build/runtime baseline, not measured audience coverage or current Play submission
+approval. Supported product devices and fresh platform/store requirements remain
+#47/#54 and release qualification; no paid runner, store registration or new
+production identity is selected.
 
-## Acceptance disposition
-
-### Issue #34
-
-Canonical record: `docs/delivery/android/work-packages/01.03.md` in `Pick-Your-AI/pickyour.ai`.
-
-| Exact live criterion | Evidence in this proposal | Remaining acceptance |
-| --- | --- | --- |
-| Compare Kotlin/Compose with a shared-client approach against offline, accessibility, reuse and maintenance; select package/repository/module boundaries with rationale. | Current guest-preview decisions above plus retained product alternatives; partial JVM/build/lint evidence linked | Product receiving review, applicable handoffs and installed-device/release evidence remain pending |
-| Each major technology choice maps to an accepted requirement and documented tradeoff. | Current guest-preview decisions above plus retained product alternatives; partial JVM/build/lint evidence linked | Product receiving review, applicable handoffs and installed-device/release evidence remain pending |
-| The decision identifies repository/package ownership and one authority for shared contracts and compatibility semantics. | Existing repository and experimental namespace; frozen contract authority and import pins identified | Actual production package ownership and receiving owner commitments remain unestablished |
+The independent reviewer must accept the selected scope, alternatives, R1–R6
+mapping, source/reuse findings, package/governance disposition and exact #24 input.
+That decision-content review can satisfy #34; no human signature or installed
+release criterion is invented. Actual devices, physical accessibility, production
+source/service acceptance, publisher identity and signing remain explicit
+downstream requirements. Record the published artifact and receiving receipt in
+[01.03](../delivery/android/work-packages/01.03.md) and the versioned acceptance
+index before reconciling issue metadata.

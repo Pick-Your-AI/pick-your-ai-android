@@ -46,4 +46,5 @@ internal class CostInspectionSection(
         container.addView(button)
         container.addView(output)
     }
+
 }

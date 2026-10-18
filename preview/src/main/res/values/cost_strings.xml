@@ -5,16 +5,7 @@
     <string name="cost_rejected">Cost record rejected: %1$s. No amount or passing budget is established.</string>
     <string name="cost_unavailable">Cost record unavailable. No amount or passing budget is established.</string>
     <string name="cost_identity">Fixture build: %1$s, revision %2$s\nEstimate: %3$s\nPricebook ID: %4$s</string>
-    <!-- %1$s is a separately pluralized period with an exact localized count. Currency remains an ISO code. -->
-    <string name="cost_period">%1$s\nCurrency: %2$s\nRecorded estimate time: %3$s (freshness not established)</string>
-    <plurals name="cost_period_days">
-        <item quantity="one">Declared period: %1$s day</item>
-        <item quantity="other">Declared period: %1$s days</item>
-    </plurals>
-    <!-- Quantity-neutral wording preserves counts that cannot fit Android's Int plural selector. -->
-    <string name="cost_period_days_exact">Declared period in days: %1$s</string>
-    <!-- Keep the full numeric precision and the original ISO currency code; do not substitute a currency symbol. -->
-    <string name="cost_money">%1$s %2$s</string>
+    <string name="cost_period">Declared period (days): %1$s\nCurrency: %2$s\nRecorded estimate time: %3$s (freshness not established)</string>
     <string name="cost_coverage">Producer-declared coverage: %1$s. Actual complete meter coverage is not established.</string>
     <string name="cost_amounts">Known declared line subtotal: %1$s\nDeclared tax: %2$s\nProducer-declared sum: %3$s\nThis is not a complete stack price or a proven lower bound.</string>
     <string name="cost_unpriced">Explicitly unpriced selections: %1$s</string>

@@ -8,6 +8,15 @@ Both inputs pass the shared bounded UTF-8 parser and unchanged bundled schemas. 
 
 All line unit-price/amount and summary money currencies must match the estimate's declared currency. No conversion or default currency is supplied. The already-recorded line amounts must sum exactly to the recorded subtotal, and subtotal plus recorded tax must equal recorded total. These are decimal consistency checks, not new quantity, billing or rounding semantics. Different decimal scales are numerically equivalent; original decimal strings remain available. No amount is recalculated from quantity times unit price: applicability, discounts, quote/manual-override semantics and rounding remain upstream responsibilities.
 
+Every money node must also satisfy the existing whole-string `ContractMoney` and
+`ContractDecimal` boundary before arithmetic or immutable result construction.
+A terminal LF can satisfy a frozen schema pattern while remaining outside that
+typed-money subset. Such money now returns `INVALID_ESTIMATE` without an escaping
+exception, trimming or coercion. Exact currency consistency retains its earlier
+`MIXED_CURRENCY` precedence. Quantity remains a recorded string and is not subject
+to this money preflight. The shared [frozen-pattern cases](FROZEN_PATTERN_PARITY.md)
+document that distinction and preserve the reference schema outcomes.
+
 An inspected result owns immutable values and a serialized snapshot containing every original line, quantity basis, rate ID, assumption, warning and decimal string. This private material is not a public export; callers must apply disclosure policy. Default diagnostic strings do not print its content. Caller streams remain open.
 
 ## Safe interpretation
@@ -20,11 +29,11 @@ Freshness, free/included treatment and budget pass are always `NOT_ESTABLISHED`,
 
 This synchronous check binds the supplied records only. Async/UI consumers must use current `AnalysisCoordinator` tickets and invalidate results on any input change; calling the inspector does not establish that the supplied build is still the user's current draft.
 
-The synthetic Android inspector uses [exact locale presentation](EXACT_COST_PRESENTATION.md)
-for recorded amounts, quantities and period counts. The app's resource locale changes
-digits and separators while keeping every supplied decimal place, the ISO currency,
-canonical JSON and all evidence limitations. This fixed fixture remains separate from
-the editable guest draft and is never labeled as its current estimate.
+The fixed synthetic Android inspector now uses the bounded, locale-aware
+[cost presentation adapter](COST_PRESENTATION.md). It keeps canonical decimals,
+explicit currencies, declared coverage and missing classifications while escaping
+literal text and disclosing display counts. Its simulated checks remain separate
+from current-draft pricing, accepted real rates and installed-device evidence.
 
 ## Criterion coverage and remaining acceptance
 

@@ -49,13 +49,27 @@ Its [navigation adapter](NAVIGATION_BOUNDARY.md#android-source-navigation-adapte
 requires an allowed HTTPS host and a second explicit confirmation of the full
 outgoing URL. The synthetic application configures no trusted source hosts, so
 navigation remains blocked pending a reviewed real-source configuration. Missing
-source URIs have a recoverable explanation. Historical recovery remains separate.
+source URIs have a recoverable explanation. [Exact local pin recovery](CATALOG_PIN_RECOVERY.md)
+is available from a comparison entry in a separate read-only inspection. It can
+read already retained snapshot bytes without activating them or attaching the
+current pricebook. Missing, unsupported and absent exact versions stay distinct;
+real historical acquisition and publisher withdrawal remain separate acceptance.
 
-The detail view does not load a pricebook rate. It states that currency, region,
-meter and effective period are unknown and that a recorded free/included billing
-class is not an applicable zero-cost quote. Catalog records receive no price
-fields. No evaluation, compatibility result, source assessment, selected draft
-revision or pin changes when detail is opened or cancelled.
+The detail view now joins [recorded pricebook context](CATALOG_PRICE_CONTEXT.md)
+by exact item ID and version. It retains book identity/revision/hash/capture date,
+canonical meter, exact decimal amount/currency, optional region/effective dates,
+conditions and each rate's own unassessed provenance. Every alternative remains
+recorded; up to eight rates and conditions per rate are visibly bounded in the
+message. **Review all recorded prices** opens every retained exact rate, every
+metadata field and every condition through bounded pages. Complete literal values
+are available in numbered escaped parts; inspecting a row does not select a rate.
+The browser retains the exact catalog/pricebook context and rejects callbacks
+from replaced snapshots, reloads, dismissed dialogs and destroyed Activities.
+This is fictional historical metadata, without an applicability query,
+accepted rate or total. Missing price data stays unknown, and a recorded zero or
+free/included billing class is not an applicable zero-cost quote. Catalog records
+receive no price fields. No evaluation, compatibility result, source assessment,
+selected draft revision or pin changes when detail is opened or cancelled.
 
 ## Verification and receiving boundary
 
@@ -76,10 +90,10 @@ results do not establish installed-device or receiving acceptance.
 
 | Exact live #97 acceptance criterion | Bounded result | Remaining acceptance |
 | --- | --- | --- |
-| Versioned specs, provider/offering identity, license conditions, source links, dates, price conditions and limitations visible. | Exact fixture specs, provider reference, license declarations, source strings/dates and explicit rate/route limits are presented. Source navigation has an explicit policy/confirmation adapter. | Accepted real catalog labels/data, offering identity, usable rate metadata, reviewed source hosts and installed external-handler behavior. |
-| The displayed item version and source dates match the requested snapshot; a missing pinned version never silently resolves to the latest component. | Exact item/version/hash lookup and source-date retention; absent pins fail without substitution. | Installed historical recovery, withdrawn-publication behavior and receiving review. |
+| Versioned specs, provider/offering identity, license conditions, source links, dates, price conditions and limitations visible. | Exact fixture specs, provider reference, license declarations, source strings/dates, recorded rate metadata and explicit rate/route limits are presented. Every exact retained rate, condition and complete literal pricing value is reachable through read-only pages. Source navigation has an explicit policy/confirmation adapter. | Accepted real catalog labels/data, offering identity, applicable rates, reviewed source hosts and installed external-handler behavior. |
+| The displayed item version and source dates match the requested snapshot; a missing pinned version never silently resolves to the latest component. | Exact item/version/hash lookup and source-date retention; local retained-byte inspection verifies the requested digest and exposes explicit exact retry without activation or substitution. | Real historical acquisition, installed recovery, withdrawn-publication behavior and receiving review. |
 | Every presented factual field uses accepted evidence or is visibly unknown, and source verification labels follow the accepted evidence semantics. | All values are marked synthetic; missing and unknown distinctions and conservative evidence labels are preserved. | Approved real evidence, source-use rights and the Android catalog/UX/data-consumer acceptance. |
-| Price context identifies currency, region, meter and effective period where supplied; absence of a usable rate is not shown as free. | No rate is loaded and no applicable/free quote is inferred from billing class. | Accepted pricebook applicability/freshness join and its versioned negative cases. |
+| Price context identifies currency, region, meter and effective period where supplied; absence of a usable rate is not shown as free. | Exact recorded fixture pricebook/item/version join retains supplied units, currency, region, effective dates and conditions. Missing records, unresolved applicability and zero amounts never become an accepted free quote. | Accepted real pricebook applicability/freshness policy, historical receiving cases and quote integration. |
 
 This document does not replace the canonical acceptance record at
 `docs/delivery/android/work-packages/07.03.md` in `Pick-Your-AI/pickyour.ai`.
