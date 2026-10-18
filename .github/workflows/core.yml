@@ -95,6 +95,9 @@ jobs:
               "emptyCatalogSearchCanRecoverAndReloadUsesTheCurrentQuery",
               "largeTextRtlButtonsRetainMeasuredTargetsAndUntruncatedLabels",
               "forwardFocusOrderKeepsEditorsAndClearActionReachable",
+              "catalogQuerySortAndPageSurviveDetailsAndRecreationWithoutChangingDraft",
+              "catalogFacetsExposeEveryKindAndEmptyMatchesWithoutReplacingSavedSelection",
+              "catalogDetailsCannotApplySelectionAfterEditorBaselineChanges",
           }
           cases = suite.findall("testcase")
           assert expected <= {case.attrib["name"] for case in cases}, "Missing UI regression"

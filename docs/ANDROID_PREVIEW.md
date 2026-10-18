@@ -623,41 +623,58 @@ The report gate requires both cases. These are reproducible JVM layout/focus che
 not a screenshot review, full keyboard journey, TalkBack traversal, contrast test,
 complete localization, device render or acceptance of a support matrix.
 
-### Local synthetic catalog search
+## Synthetic catalog search, facets and local pages
 
-The catalog now offers a labelled search field with a 120-character limit. Matching
-is a case-insensitive literal substring against each sample's name, exact ID, raw
-canonical kind and version, using locale-independent case conversion. A blank or
-whitespace-only query shows every sample. Results retain the fixture order; regex,
-wildcard, ranking, typed facets and API pagination semantics are not introduced.
-The already byte-bounded fixture is additionally capped at 256 rows before Views
-are created. The unchanged frozen fixture contains one entry for each of 29 kinds.
+Partial [#82](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/82)
+discovery extends the canonical `PreviewCatalogQuery` search from #192 with tier
+and kind facets, optional stable sorting and bounded local pages. Its existing
+120-character literal substring semantics across name, ID, version and canonical
+kind are preserved; matching and name sorting use `Locale.ROOT`, independent of
+the device locale. The tier and kind filters combine
+without silently changing one another. All seven tiers and all 29 frozen kind IDs
+remain reachable, including a kind with no matching row. These IDs are explicit
+fallback labels while the shared display-label handoff remains unaccepted.
 
-Filtering affects only the visible list. It never changes a selected identity,
-catalog pin, draft revision, pending editor field or save readiness. A selected
-sample hidden by the query still resolves against the entire validated snapshot.
-The empty-result message offers editing/clearing the query while preserving the
-draft. Query text survives explicit Bundle recreation and detail dialogs; it is
-not written into draft metadata or uploaded. Input uses the existing best-effort
-request to disable personalized keyboard learning.
+The default keeps fixture order. Optional name and tier/kind sorting use stable ID/version tie breakers, so duplicate labels
+cannot reorder page membership. Local pages contain at most ten rows; previous and
+next preserve the exact loaded snapshot. An empty result has a distinct message.
+Query (up to 120 UTF-16 units), tier, kind, sort and page are small transient Bundle
+values. Returning from details preserves them; recreation reapplies them after
+loading the fixture. Changed snapshot bytes reset the page with visible notice.
+Unsupported saved filters, sorting or page settings explicitly reset to the defaults;
+the Activity retains the bounded saved query. Filtering never
+rewrites the draft's original sample pin, and a hidden selected item still has its
+exact identity available from the full loaded snapshot.
 
-The worker still loads and validates the complete fixed fixture. Each successful
-load renders with the query currently in the editor, preventing an older captured
-query from replacing a newer filter. A failed load has an unavailable catalog
-state distinct from a valid empty result. Recreated query state retains the last
-validated catalog digest; a changed digest is explicitly announced without
-repinning any saved selection.
+The core copies its input and returns immutable collections, rejects ambiguous ID/version pairs
+and kind/tier mismatches, and verifies the original frozen schema and bounded JSON
+before browsing, retaining #192's 256-row snapshot bound. Distinct versions with the
+same item ID remain independently selectable. It bundles the byte-identical frozen component registry as a
+resource; no schema, registry or example is changed. Only the existing packaged
+synthetic fixture enters this UI. A detail confirmation captures the displayed
+snapshot and current editor baseline; a superseded callback cannot apply a sample
+to another loaded draft or silently choose a different version. Explicit selection
+only changes pending fields; the existing guarded save still owns disk changes.
 
-Six JVM cases cover matching, literal punctuation, locale behavior, bounds/redacted
-diagnostics and exact-ID reachability of all 29 frozen kinds. Two additional
-Robolectric Activity regressions exercise filtering around saved selections,
-detail cancellation/recreation, empty-result recovery and query changes during a
-catalog reload. The hosted unsigned lane requires those named cases alongside the
-existing eight simulations; their observed result must be checked on the final head.
+Nine new core regressions cover all canonical facets, preserved literal query semantics,
+Turkish-locale independence, stable paging with duplicate labels, missing categories,
+exact membership including distinct versions of one ID, immutable collections,
+bounds and invalid input. The complete integrated core suite passed 227 tests, with
+zero failures, errors or skips. Frozen reference,
+fixture, tampering and ledger checks also passed. Three additional Activity tests
+exercise browse restoration, empty facet combinations and selection baseline guards.
+Their exact-head hosted compile/lint/Robolectric results are required before merge.
 
-This is partial [#82](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/82)
-discovery for the existing synthetic preview. Shared real-data/label publication,
-typed facets/sorting, API paging/cancellation/retry, list-position restoration,
-production-scale performance, installed accessibility and receiving acceptance
-remain separate requirements. No real-data, complete search journey, device result
-or whole-issue completion is inferred from local filtering or JVM simulations.
+These are bounded in-memory fixture pages, not a remote pagination protocol. API
+cursor contracts, cancellable remote search, next-page network failure/retry,
+reverse-order transport responses, real catalog publication/labels, exact pixel
+scroll restoration and installed navigation/accessibility/process-death evidence
+remain separate #82 acceptance work. The generic catalog-loading worker applies
+the current query state when a fixture read finishes, so an earlier query cannot
+append rows into a newer query. No search request is sent to a service and no
+compatibility, price, source-rights or production-catalog claim is inferred.
+
+Android's [saved UI state guidance](https://developer.android.com/topic/libraries/architecture/saving-states)
+(checked 2026-10-18) distinguishes small transient state from durable storage and
+user-initiated dismissal. This preview uses that distinction; Bundle recreation
+tests do not establish force-stop or physical-device recovery.

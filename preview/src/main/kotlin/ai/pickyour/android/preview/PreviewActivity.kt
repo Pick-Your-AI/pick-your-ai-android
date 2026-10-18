@@ -23,7 +23,6 @@ import android.widget.TextView
 import ai.pickyour.core.contracts.FrozenDocument
 import ai.pickyour.core.contracts.FrozenSchemaValidator
 import ai.pickyour.core.contracts.FrozenValidation
-import org.json.JSONObject
 import java.util.concurrent.Executors
 import ai.pickyour.core.preview.SyntheticCatalogEvidence
 import ai.pickyour.core.evidence.EvidenceLabel
@@ -36,7 +35,6 @@ class PreviewActivity : Activity() {
     private var selectedId: String? = null
     private var selectedVersion: String? = null
     private var selectedCatalogHash: String? = null
-    private var loadedCatalogHash: String? = null
     private lateinit var title: EditText
     private lateinit var objective: EditText
     private lateinit var contextInput: EditText
@@ -44,13 +42,10 @@ class PreviewActivity : Activity() {
     private var domainContext = PreviewDraftContext()
     private var restoreContextFromDisk = false
     private lateinit var selection: TextView
-    private lateinit var catalog: LinearLayout
+    private lateinit var catalog: CatalogBrowseSection
     private lateinit var catalogStatus: TextView
     private lateinit var catalogSearch: EditText
-    private lateinit var catalogResults: TextView
-    private var searchCatalogHash: String? = null
     private lateinit var retry: Button
-    private var items: List<SampleItem> = emptyList()
     private lateinit var save: Button
     private lateinit var reopen: Button
     private lateinit var clear: Button
@@ -70,9 +65,6 @@ class PreviewActivity : Activity() {
     private var restoration: PreviewDraftRestoration? = null
 
 
-    private data class LoadedCatalog(val items: List<SampleItem>, val hash: String)
-    private data class SampleItem(val id: String, val name: String, val kind: String, val version: String)
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         currentDraftId = PreviewDraftId(savedInstanceState?.getString("draftId") ?: "guest-draft")
@@ -85,7 +77,6 @@ class PreviewActivity : Activity() {
         selectedId = savedInstanceState?.getString("selectedId")
         selectedVersion = savedInstanceState?.getString("selectedVersion")
         selectedCatalogHash = savedInstanceState?.getString("selectedCatalogHash")
-        searchCatalogHash = savedInstanceState?.getString("searchCatalogHash")
         val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         fun text(resource: Int, size: Float = 18f) = TextView(this).apply {
             setText(resource)
@@ -204,16 +195,16 @@ class PreviewActivity : Activity() {
         }
         searchLabel.labelFor = catalogSearch.id
         content.addView(catalogSearch)
-        catalogResults = text(R.string.catalog_search_waiting).apply {
-            accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
-        }
         retry = Button(this).apply { setText(R.string.retry_catalog); setOnClickListener { loadCatalog() } }
         content.addView(retry)
-        catalog = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        catalog = CatalogBrowseSection(this, savedInstanceState, ::showDetails)
         content.addView(catalog)
+        catalog.search(catalogSearch.text.toString())
         catalogSearch.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { renderCatalog() }
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                catalog.search(s.toString())
+            }
             override fun afterTextChanged(s: Editable?) {}
         })
         val status = text(R.string.ready).apply { accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE }
@@ -276,66 +267,33 @@ class PreviewActivity : Activity() {
         catalogStatus.setText(R.string.working)
         worker.execute {
             val loaded = try {
-                val bytes = readCatalogFixture()
-                check(FrozenSchemaValidator().validate(FrozenDocument.CATALOG, bytes.inputStream()) == FrozenValidation.Valid)
-                val rows = JSONObject(String(bytes, Charsets.UTF_8)).getJSONArray("items")
-                check(rows.length() <= 256) // A bounded fixture view, not production paging.
-                val rowsList = List(rows.length()) { index ->
-                    val row = rows.getJSONObject(index)
-                    SampleItem(row.getString("id"), row.getString("name"), row.getString("kind"), row.getString("version"))
-                }
-                LoadedCatalog(rowsList, java.security.MessageDigest.getInstance("SHA-256").digest(bytes)
-                    .joinToString("") { "%02x".format(it.toInt() and 255) })
+                PreviewCatalogBrowser.read(readCatalogFixture())
             } catch (_: Exception) { null }
             runOnUiThread {
                 if (!destroyed) {
                     retry.isEnabled = true
-                    items = loaded?.items.orEmpty()
-                    loadedCatalogHash = loaded?.hash
-                    val changed = loaded != null && searchCatalogHash != null && searchCatalogHash != loaded.hash
-                    catalogStatus.setText(when {
-                        loaded == null -> R.string.catalog_unavailable
-                        changed -> R.string.catalog_search_changed
-                        else -> R.string.catalog_ready
-                    })
-                    if (loaded != null) searchCatalogHash = loaded.hash
-                    renderCatalog()
+                    catalogStatus.setText(if (loaded == null) R.string.catalog_unavailable else R.string.catalog_ready)
+                    if (loaded == null) catalog.unavailable() else catalog.show(loaded)
+                    catalog.selectionEnabled(!storageBusy)
                     showSelection()
                 }
             }
         }
     }
 
-    /** Always uses the current query and complete loaded snapshot, including after an async reload. */
-    private fun renderCatalog() {
-        catalog.removeAllViews()
-        if (loadedCatalogHash == null) {
-            catalogResults.setText(R.string.catalog_search_waiting)
-            return
-        }
-        val query = PreviewCatalogQuery(catalogSearch.text.toString())
-        val visible = items.filter { query.matches(it.id, it.name, it.kind, it.version) }
-        catalogResults.text = if (visible.isEmpty()) getString(R.string.catalog_search_empty)
-            else getString(R.string.catalog_search_count, visible.size, items.size)
-        visible.forEach { item ->
-            catalog.addView(Button(this).apply {
-                text = getString(R.string.item_button, item.name, item.kind)
-                isEnabled = !storageBusy
-                setOnClickListener { showDetails(item) }
-            })
-        }
-    }
-
-    private fun showDetails(item: SampleItem) {
+    private fun showDetails(item: PreviewCatalogItem, catalogHash: String) {
+        val baseline = savedRecord
+        val draftId = currentDraftId
         AlertDialog.Builder(this)
             .setTitle(item.name)
             .setMessage(getString(R.string.item_details, item.id, item.kind, item.version))
             .setNegativeButton(R.string.close, null)
             .setPositiveButton(R.string.select_sample) { _, _ ->
-                if (!storageBusy && loadedCatalogHash != null) {
+                if (!destroyed && !storageBusy && savedRecord === baseline && currentDraftId == draftId &&
+                    catalog.contains(item, catalogHash)) {
                     selectedId = item.id
                     selectedVersion = item.version
-                    selectedCatalogHash = loadedCatalogHash
+                    selectedCatalogHash = catalogHash
                     showSelection()
                     formChanged()
                 }
@@ -344,11 +302,11 @@ class PreviewActivity : Activity() {
     }
 
     private fun showSelection() {
-        val item = items.firstOrNull { it.id == selectedId && it.version == selectedVersion && selectedCatalogHash == loadedCatalogHash }
+        val name = catalog.selectedName(selectedId, selectedVersion, selectedCatalogHash)
         selection.text = when {
             selectedId == null -> getString(R.string.no_selection)
-            item == null -> getString(R.string.selection_unavailable)
-            else -> getString(R.string.selected_sample, item.name)
+            name == null -> getString(R.string.selection_unavailable)
+            else -> getString(R.string.selected_sample, name)
         }
     }
 
@@ -397,7 +355,7 @@ class PreviewActivity : Activity() {
         newDraftButton.isEnabled = !storageBusy
         duplicateButton.isEnabled = storageReady && !storageBusy && savedRecord != null
         if (::tierSection.isInitialized) tierSection.update(savedRecord, storageReady && !storageBusy && matchesSaved())
-        if (::catalog.isInitialized) for (index in 0 until catalog.childCount) catalog.getChildAt(index).isEnabled = !storageBusy
+        if (::catalog.isInitialized) catalog.selectionEnabled(!storageBusy)
     }
 
     private fun showHistory() {
@@ -844,6 +802,7 @@ class PreviewActivity : Activity() {
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
+        catalog.saveState(outState)
         outState.putString("draftId", currentDraftId.value)
         outState.putBoolean("selectionResolved", selectionResolved)
         val checkpoint = PreviewDraftRestoration.capture(savedRecord, storageReady, storageBusy)
@@ -856,8 +815,6 @@ class PreviewActivity : Activity() {
         outState.putString("selectedId", selectedId)
         outState.putString("selectedVersion", selectedVersion)
         outState.putString("selectedCatalogHash", selectedCatalogHash)
-        outState.putString("catalogQuery", catalogSearch.text.toString().take(PreviewCatalogQuery.MAX_LENGTH))
-        outState.putString("searchCatalogHash", searchCatalogHash)
         super.onSaveInstanceState(outState)
     }
 
