@@ -15,7 +15,7 @@
     <string name="catalog_compare_remove">Remove component %1$d · version %2$s</string>
     <string name="catalog_compare_removed">Removed the selected comparison pin.</string>
     <string name="catalog_compare_reset">The saved comparison tray was invalid and was reset. Review and add the exact components again.</string>
-    <string name="catalog_compare_conditions">Values keep their recorded units. Similar numbers can describe different routes, precision, context or regions. Conditions and provenance remain visible below. This comparison does not establish interchangeable capabilities or rank components. Recorded price contexts remain separate; differing currencies or workload bases are never merged into a cheaper verdict.</string>
+    <string name="catalog_compare_conditions">Values keep their recorded units. Similar numbers can describe different routes, precision, context or regions. Conditions and provenance remain visible below. This comparison does not establish interchangeable capabilities or rank components. Each component keeps its own recorded price context; differing currencies or workload bases are never merged into a cheaper verdict.</string>
     <string name="catalog_compare_different_kinds">These components have different kinds. Their specifications are displayed without treating matching field names or numbers as equivalent.</string>
     <string name="catalog_compare_differences">Differences only, keeping unknown values</string>
     <string name="catalog_compare_values">Recorded field comparison</string>
