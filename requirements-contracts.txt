@@ -1,0 +1,9 @@
+# Validation dependencies; runtime application dependencies are outside this repo.
+jsonschema==4.25.1
+referencing==0.37.0
+jsonschema-specifications==2025.9.1
+attrs==26.1.0
+rpds-py==0.30.0
+PyYAML==6.0.3
+# Complete the Python 3.12 transitive lock used by referencing.
+typing-extensions==4.16.0
