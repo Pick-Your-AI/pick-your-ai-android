@@ -241,6 +241,12 @@ field as immutable typed values, with exact subject revisions and explicit optio
 presence. Shared Python/Kotlin cases exercise the unchanged schema. Decoding adds
 no event execution, actor authority, idempotency, synchronization or telemetry.
 
+The [conformance fixture preparation](CONFORMANCE_FIXTURES.md) adds a test-only
+consumer for the existing 223-case neutral wire profile and 34 private Android
+history/migration scenarios. Exact original bytes, versions, typed observations
+and named per-test XML receipts remain separate from evaluator, installed-device
+and issue-level receiving acceptance; the original prerequisite handoffs remain.
+
 The [resource-estimate decoder](RESOURCE_ESTIMATE_BOUNDARY.md) retains all frozen
 capacity-estimate wire fields, exact decimal strings, arbitrary-size revisions and
 declared confidence as immutable values. Shared Python/Kotlin fixtures and boundary
