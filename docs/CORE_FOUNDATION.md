@@ -1,5 +1,17 @@
 # JVM core implementation and acceptance limits
 
+The [frozen CostEstimate boundary](FROZEN_COST_ESTIMATE_BOUNDARY.md) preserves every
+recorded field, exact scalar string and ordered line as immutable Kotlin values.
+Its shared structural cases keep schema validity separate from the existing
+Build-bound cost inspector's stronger checks. No pricing calculation, evidence
+acceptance or budget verdict follows; broader #21/#32 acceptance remains separate.
+
+The [frozen Pricebook boundary](FROZEN_PRICEBOOK_BOUNDARY.md) retains every recorded
+rate/provenance field, exact scalar string and ordered duplicate as immutable
+Kotlin values. Shared structural cases preserve absence/empty distinctions and
+keep the existing recorded-price reader's stricter interval, money and revision
+checks intact. No screening or price/evidence acceptance follows; #21/#32 stay partial.
+
 The [frozen Ruleset boundary](FROZEN_RULESET_BOUNDARY.md) adds an immutable typed
 representation of every recorded rule, expression and operand. Shared reference
 cases retain closed shapes, exact opaque literal JSON and ordered duplicate rules.
@@ -222,6 +234,12 @@ The [frozen Event decoder](FROZEN_EVENT_BOUNDARY.md) retains every event and pay
 field as immutable typed values, with exact subject revisions and explicit optional
 presence. Shared Python/Kotlin cases exercise the unchanged schema. Decoding adds
 no event execution, actor authority, idempotency, synchronization or telemetry.
+
+The [conformance fixture preparation](CONFORMANCE_FIXTURES.md) adds a test-only
+consumer for the existing 223-case neutral wire profile and 34 private Android
+history/migration scenarios. Exact original bytes, versions, typed observations
+and named per-test XML receipts remain separate from evaluator, installed-device
+and issue-level receiving acceptance; the original prerequisite handoffs remain.
 
 The [resource-estimate decoder](RESOURCE_ESTIMATE_BOUNDARY.md) retains all frozen
 capacity-estimate wire fields, exact decimal strings, arbitrary-size revisions and

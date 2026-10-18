@@ -299,7 +299,9 @@ class SelectionEditSection(private val activity: Activity,
         val editor = EditText(activity).apply {
             id = View.generateViewId(); setText(value); setSelectAllOnFocus(false)
             isSaveEnabled = false // Only the bounded primitive checkpoint retains this raw input.
-            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE or
+                android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
+            imeOptions = imeOptions or android.view.inputmethod.EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING
         }
         label.labelFor = editor.id; layout.addView(label); layout.addView(editor)
         return editor

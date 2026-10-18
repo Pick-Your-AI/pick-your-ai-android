@@ -35,10 +35,18 @@ jobs:
         run: |
           python scripts/check_delivery_ledger.py
           python -m unittest discover -s scripts/tests -p 'test_delivery_ledger.py'
+      - name: Verify pinned conformance inputs and adversarial receipt guards
+        run: |
+          python scripts/check_conformance_fixtures.py
+          python -m unittest discover -s scripts/tests -p 'test_conformance_fixtures.py' -v
       - name: Check wrapper integrity
         run: sha256sum --check gradle/wrapper/wrapper.sha256
       - name: Compile and test JVM core
         run: ./gradlew --no-daemon --dependency-verification=strict --init-script scripts/runtime_inventory.init.gradle.kts :core:check :core:assemble runtimeInventory
+      - name: Require every conformance fixture and private migration observation
+        run: |
+          mkdir -p build/conformance
+          python scripts/check_conformance_fixtures.py --reports core/build/test-results/test --exit-code 0 --output build/conformance/qualified.json
       - name: Reject ignored packaged contract schemas
         run: python scripts/check_runtime_inventory_guards.py
       - name: Retain test and library artifacts
@@ -51,6 +59,7 @@ jobs:
             core/build/test-results/
             core/build/libs/
             build/inventory/
+            build/conformance/
           retention-days: 7
           if-no-files-found: ignore
   android-preview:
@@ -172,12 +181,16 @@ jobs:
               "catalogSourceCallbackCannotDispatchAfterAuthorityChangeOrRecreation",
               "catalogSourceConfirmationShowsCompleteBoundedUri",
               "catalogRecordedPriceShowsExactSnapshotUnitsAndDatesWithoutSaving",
+              "catalogDetailDialogsPreserveLiteralCatalogReferenceIds",
               "catalogRecordedPriceNeverSubstitutesMissingItemOrVersionWithFreePricing",
               "catalogRecordedPriceKeepsZeroConditionsAndUnknownLiteralsUnassessed",
               "catalogRecordedPriceBoundsLiteralAlternativesWithoutSelectingOrCombining",
               "catalogRecordedPriceReadFailureKeepsUnknownContextAndRetryUsesFreshSnapshot",
               "catalogRecordedPriceReloadAndRetiredDialogCannotChangePendingDraft",
               "explicitComponentsAddConfigureToggleAndRemovePreserveGuestInputs",
+              "componentAddEditorsRequestLiteralInputAndNoLearning",
+              "componentConfigureEditorRequestsLiteralInputWithoutSavingPendingText",
+              "recreatedRoleEditorRetainsExactPendingInputAndImeRequests",
               "invalidComponentInputRemainsVisibleAndCannotCommitTruncatedPrefix",
               "staleComponentFormCannotOverwriteConcurrentSavedHead",
               "repeatedAndRetiredComponentConfirmationsCannotCreateAnotherRevision",
@@ -788,6 +801,26 @@ jobs:
           if int(suite.attrib["tests"]) != len(cases):
               raise SystemExit("Recorded selection context result count does not match executed cases")
           print(f"Verified {len(cases)} simulated recorded selection context tests; no installed-device claim")
+          PYTEST
+      - name: Require current-choice accessibility regressions
+        run: |
+          python - <<'PYTEST'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          report = pathlib.Path("preview/build/test-results/testDebugUnitTest/TEST-ai.pickyour.android.preview.PreviewChoiceAccessibilityTest.xml")
+          suite = ET.parse(report).getroot()
+          expected = {
+              "catalogPickersExposeCurrentCheckedChoicesWithoutSaving",
+              "workloadPickerExposesUnansweredAndCurrentClassificationWithoutSaving",
+              "cancelledAndRepeatedPickerCallbacksCannotApplyAnotherChoice",
+              "changedWorkloadInputsRetireAnOpenPickerWithoutApplyingItsCheckedRow",
+              "recreationPreservesCheckedChoicesAndRetiresOldPickerCallbacks",
+          }
+          cases = suite.findall("testcase")
+          assert expected <= {case.attrib["name"] for case in cases}, "Missing current-choice accessibility regression"
+          assert all(not case.findall("failure") and not case.findall("error") and not case.findall("skipped") for case in cases), "Current-choice accessibility regression did not pass"
+          assert int(suite.attrib["tests"]) >= len(expected)
+          print(f"Verified {len(cases)} simulated current-choice accessibility tests; no installed TalkBack claim")
           PYTEST
       - name: Retain unsigned diagnostic and lint reports
         if: always()

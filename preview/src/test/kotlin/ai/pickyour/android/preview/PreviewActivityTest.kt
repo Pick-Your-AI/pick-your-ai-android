@@ -5,8 +5,11 @@ import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.os.Bundle
 import android.os.Looper
+import android.text.InputType
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputConnection
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
@@ -1891,6 +1894,40 @@ class PreviewActivityTest {
         assertNull(shadowOf(activity).nextStartedActivity)
     }
 
+    @Test fun catalogDetailDialogsPreserveLiteralCatalogReferenceIds() {
+        await { hasText(R.string.catalog_ready) }
+        field(R.string.draft_title).setText("pending reference review")
+        data class ReferenceCase(val kind: String, val target: String, val field: String, val array: Boolean)
+        for (case in listOf(ReferenceCase("model", "model_provider", "provider_ref", false),
+                            ReferenceCase("mcp_server", "tool", "tool_refs", true))) {
+            val root = activity.assets.open("catalog.json").bufferedReader(Charsets.UTF_8).use { org.json.JSONObject(it.readText()) }
+            val items = root.getJSONArray("items")
+            fun item(kind: String) = (0 until items.length()).map { items.getJSONObject(it) }.single { it.getString("kind") == kind }
+            item(case.target).put("id", "unknown")
+            val selected = item(case.kind)
+            selected.getJSONObject("spec").put(case.field,
+                if (case.array) org.json.JSONArray().put("unknown") else "unknown")
+            selected.put("billing_class", "unknown")
+            val browser = requireNotNull(PreviewCatalogBrowser.read(root.toString().toByteArray(Charsets.UTF_8)))
+            views().filterIsInstance<CatalogBrowseSection>().single().show(browser)
+            field(R.string.catalog_search).setText(selected.getString("id"))
+            await { samples().size == 1 }
+            samples().single().performClick()
+            val opened = dialog()
+            val message = shadowOf(opened).message.toString()
+            val expected = if (case.array) "${case.field} [array]: [\"unknown\"]" else "${case.field} [string]: \"unknown\""
+            assertEquals(expected, message.lineSequence().single { it.startsWith("${case.field} [") })
+            assertTrue(message.contains("Recorded billing class: unknown"))
+            assertTrue(message.contains(activity.getString(R.string.catalog_detail_price)))
+            assertNull(shadowOf(activity).nextStartedActivity)
+            assertTrue(adapter().load() is PreviewDraftLoad.Missing)
+            opened.getButton(AlertDialog.BUTTON_NEGATIVE).performClick()
+            await { !opened.isShowing }
+            assertEquals("pending reference review", field(R.string.draft_title).text.toString())
+            assertTrue(adapter().load() is PreviewDraftLoad.Missing)
+        }
+    }
+
     @Test fun catalogRecordedPriceNeverSubstitutesMissingItemOrVersionWithFreePricing() {
         field(R.string.catalog_search).setText("cat.model.fixture")
         await { samples().size == 1 }
@@ -2445,19 +2482,19 @@ class PreviewActivityTest {
         assertNotEquals(View.NO_ID, caption.labelFor)
         return dialog.findViewById(caption.labelFor)
     }
-    private fun componentChoice(): AlertDialog {
+    private fun componentChoice(kind: String = "model"): AlertDialog {
         await { button(R.string.component_choose_catalog).isEnabled }
         button(R.string.component_choose_catalog).performClick()
         val picker = dialog()
         val index = (0 until picker.listView.adapter.count).single {
-            picker.listView.adapter.getItem(it).toString().startsWith("model ·")
+            picker.listView.adapter.getItem(it).toString().startsWith("$kind ·")
         }
         shadowOf(picker).clickOnItem(index)
         await { dialog() !== picker && dialog().isShowing }
         return dialog()
     }
-    private fun componentAddForm(): AlertDialog {
-        val choices = componentChoice()
+    private fun componentAddForm(kind: String = "model"): AlertDialog {
+        val choices = componentChoice(kind)
         shadowOf(choices).clickOnItem(0)
         await { dialog() !== choices && dialog().isShowing }
         return dialog()
@@ -2479,6 +2516,96 @@ class PreviewActivityTest {
         shadowOf(actions).clickOnItem(index)
         await { dialog() !== actions && dialog().isShowing }
         return dialog()
+    }
+
+    private fun literalInputConnection(editor: EditText): InputConnection {
+        assertTrue(editor.requestFocus())
+        val info = EditorInfo()
+        val connection = requireNotNull(editor.onCreateInputConnection(info))
+        assertEquals("Request no personalized learning from the actual input connection",
+            EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING,
+            info.imeOptions and EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING)
+        assertEquals(InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS,
+            info.inputType and InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS)
+        assertEquals(InputType.TYPE_CLASS_TEXT, info.inputType and InputType.TYPE_MASK_CLASS)
+        assertEquals(InputType.TYPE_TEXT_FLAG_MULTI_LINE, info.inputType and InputType.TYPE_TEXT_FLAG_MULTI_LINE)
+        assertFalse(editor.isSuggestionsEnabled)
+        return connection
+    }
+
+    @Test fun componentAddEditorsRequestLiteralInputAndNoLearning() {
+        save()
+        val before = loaded()
+        val form = componentAddForm("model_provider")
+        val role = dialogField(form, R.string.component_role)
+        val settings = dialogField(form, R.string.component_settings)
+        val reference = "secret://fixture/Case:Provider_A"
+        val raw = "{\n  \"credential_ref\": \"$reference\"\n}"
+        assertTrue(literalInputConnection(role).commitText("primary", 1))
+        val connection = literalInputConnection(settings)
+        assertTrue(connection.setSelection(0, settings.length()))
+        assertTrue(connection.commitText(raw, 1))
+        assertEquals("primary", role.text.toString())
+        assertEquals(raw, settings.text.toString())
+        assertEquals(before.baselineIdentity, loaded().baselineIdentity)
+        form.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+        await { !form.isShowing && hasText(R.string.component_saved) }
+        val after = loaded()
+        assertEquals(before.revision + 1, after.revision)
+        assertEquals(reference, org.json.JSONObject(PreviewSelectionForms.settingsText(after.components.selections.single()))
+            .getString("credential_ref"))
+        assertEquals(before.fields, after.fields)
+        assertEquals(before.contextInput, after.contextInput)
+    }
+
+    @Test fun componentConfigureEditorRequestsLiteralInputWithoutSavingPendingText() {
+        save()
+        val add = componentAddForm("model_provider")
+        dialogField(add, R.string.component_role).setText("primary")
+        val original = "secret://fixture/Original_Reference"
+        dialogField(add, R.string.component_settings).setText("{\"credential_ref\":\"$original\"}")
+        add.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+        await { !add.isShowing && hasText(R.string.component_saved) }
+        val before = loaded()
+        val configure = componentAction(0)
+        val settings = dialogField(configure, R.string.component_settings)
+        assertTrue(settings.text.toString().contains(original))
+        val connection = literalInputConnection(settings)
+        val raw = "{\n  \"credential_ref\": \"secret://fixture/Pending:Case_A\"\n}"
+        assertTrue(connection.setSelection(0, settings.length()))
+        assertTrue(connection.commitText(raw, 1))
+        assertEquals(raw, settings.text.toString())
+        assertEquals(before.baselineIdentity, loaded().baselineIdentity)
+        configure.getButton(AlertDialog.BUTTON_NEGATIVE).performClick()
+        await { !configure.isShowing && button(R.string.component_manage).isEnabled }
+        assertEquals(before.baselineIdentity, loaded().baselineIdentity)
+        assertEquals(original, org.json.JSONObject(PreviewSelectionForms.settingsText(loaded().components.selections.single()))
+            .getString("credential_ref"))
+    }
+
+    @Test fun recreatedRoleEditorRetainsExactPendingInputAndImeRequests() {
+        save()
+        val before = addModel()
+        val role = componentAction(1)
+        val input = dialogField(role, R.string.component_role)
+        val connection = literalInputConnection(input)
+        assertFalse(input.isSaveEnabled)
+        assertTrue(connection.setSelection(0, input.length()))
+        assertTrue(connection.commitText("secondary", 1))
+        assertEquals("secondary", input.text.toString())
+        assertEquals(before.baselineIdentity, loaded().baselineIdentity)
+        recreate()
+        await { hasText(R.string.draft_saved) && button(R.string.component_recovery_review).visibility == View.VISIBLE }
+        assertEquals(before.baselineIdentity, loaded().baselineIdentity)
+        button(R.string.component_recovery_review).performClick()
+        val restored = dialog()
+        val restoredInput = dialogField(restored, R.string.component_role)
+        assertEquals("secondary", restoredInput.text.toString())
+        assertFalse(restoredInput.isSaveEnabled)
+        literalInputConnection(restoredInput)
+        restored.getButton(AlertDialog.BUTTON_NEGATIVE).performClick()
+        await { !restored.isShowing }
+        assertEquals(before.baselineIdentity, loaded().baselineIdentity)
     }
 
     @Test fun explicitComponentsAddConfigureToggleAndRemovePreserveGuestInputs() {

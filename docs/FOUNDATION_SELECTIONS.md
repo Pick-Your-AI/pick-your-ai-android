@@ -48,10 +48,11 @@ draft may remain empty, have one selection, use another role or keep a selection
 disabled. Those are retained incomplete choices, not fabricated complete builds.
 T1 `context_policy` remains the existing separately editable kind. The separate
 [retrieval continuation](RETRIEVAL_SELECTIONS.md) subsequently adds the five frozen
-T3 kinds to these commands while preserving optional-tier intent. Subsequent
-agent, training and guardrail/evaluation continuations are recorded in the
-[current command subset](TYPED_LOCAL_SELECTIONS.md). The original T0 continuation
-did not add optional-tier mutation or weaken its controls.
+T3 kinds to these commands while preserving optional-tier intent. The
+[agent continuation](AGENT_SELECTIONS.md) adds the five frozen T4 kinds through the
+same commands. Subsequent training and guardrail/evaluation continuations are
+recorded in the [current command subset](TYPED_LOCAL_SELECTIONS.md). The original
+T0 continuation did not add optional-tier mutation or weaken its controls.
 
 ## Persistence, recovery and snapshot preparation
 
