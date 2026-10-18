@@ -418,6 +418,32 @@ jobs:
               raise SystemExit("Recorded selection context result count does not match executed cases")
           print(f"Verified {len(cases)} simulated recorded selection context tests; no installed-device claim")
           PYTEST
+      - name: Require catalog count presentation regressions to execute
+        run: |
+          python - <<'PYTEST'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          report = pathlib.Path("preview/build/test-results/testDebugUnitTest/TEST-ai.pickyour.android.preview.CatalogQuantityActivityTest.xml")
+          suite = ET.parse(report).getroot()
+          expected = {
+              "browseCountsDistinguishUnavailableEmptySingleAndPagedTotals",
+              "sourceCountsUseTotalRecordsIncludingTheSingleRowOnTheLastPage",
+              "priceCountsKeepUnknownAndNoExactRateDistinctFromSingleAndPagedRecords",
+              "conditionCountsPreserveAbsentEmptyAndLiteralOrderWithoutEligibilityClaims",
+              "localizedCountsKeepRecordedMoneyAndCurrencyLiteral",
+          }
+          cases = suite.findall("testcase")
+          names = [case.attrib["name"] for case in cases]
+          if not expected <= set(names) or len(names) != len(set(names)):
+              raise SystemExit("Missing or repeated catalog count presentation regression")
+          if any(case.findall("failure") or case.findall("error") or case.findall("skipped") for case in cases):
+              raise SystemExit("Catalog count presentation regression did not pass")
+          if int(suite.attrib["tests"]) != len(cases):
+              raise SystemExit("Catalog count result count does not match executed cases")
+          if any(int(suite.attrib.get(key, 0)) != 0 for key in ("failures", "errors", "skipped")):
+              raise SystemExit("Catalog count suite reported a failure, error or skip")
+          print(f"Verified {len(cases)} simulated catalog count tests; no installed-device claim")
+          PYTEST
       - name: Retain unsigned diagnostic and lint reports
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
