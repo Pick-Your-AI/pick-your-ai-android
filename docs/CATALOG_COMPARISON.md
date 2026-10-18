@@ -37,8 +37,12 @@ it is never coerced into an item identity or allowed to crash restoration.
 
 A different snapshot hash makes the existing pin unavailable even when its item
 ID, version and display name are unchanged. The row remains visible with its exact
-identity and an explicit remove/reload recovery explanation. Only that original
-snapshot can resolve it again. A user may remove it and explicitly add a currently
+identity and an explicit recovery explanation. **Inspect pinned component** opens
+the [exact local pin recovery](CATALOG_PIN_RECOVERY.md) flow, which reads the
+captured catalog or already retained bytes for that digest and item version.
+Retry and return-to-current-browsing controls preserve the pin and current catalog;
+the separate inspection does not enable a comparison with substituted snapshots
+or a current pricebook. A user may remove the pin and explicitly add a currently
 available item; no latest-version substitution is performed.
 
 ## Recorded values and conditions
