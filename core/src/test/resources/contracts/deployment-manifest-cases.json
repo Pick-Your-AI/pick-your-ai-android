@@ -1,0 +1,845 @@
+{
+  "profile": "android-frozen-deployment-manifest-wire/v1",
+  "schema_sha256": "86bc716c906aca1299d9129eec08abec44378c26b5a97317d6310afe84d6b374",
+  "example_sha256": "c05603388efc50a15274d1e6fa8e25dac3c205377a1989bfb5b3a3e64face8ab",
+  "cases": [
+    {
+      "name": "unchanged synthetic deployment manifest",
+      "expected": "decoded"
+    },
+    {
+      "name": "unsupported schema version '2.0.0'",
+      "expected": "unsupported_version",
+      "set": {
+        "schema_version": "2.0.0"
+      }
+    },
+    {
+      "name": "unsupported schema version ''",
+      "expected": "unsupported_version",
+      "set": {
+        "schema_version": ""
+      }
+    },
+    {
+      "name": "unsupported schema version None",
+      "expected": "unsupported_version",
+      "set": {
+        "schema_version": null
+      }
+    },
+    {
+      "name": "unsupported schema version 1",
+      "expected": "unsupported_version",
+      "set": {
+        "schema_version": 1
+      }
+    },
+    {
+      "name": "unsupported schema version {}",
+      "expected": "unsupported_version",
+      "set": {
+        "schema_version": {}
+      }
+    },
+    {
+      "name": "unsupported schema version []",
+      "expected": "unsupported_version",
+      "set": {
+        "schema_version": []
+      }
+    },
+    {
+      "name": "missing required schema_version",
+      "expected": "unsupported_version",
+      "remove": [
+        "schema_version"
+      ]
+    },
+    {
+      "name": "missing required id",
+      "expected": "schema_mismatch",
+      "remove": [
+        "id"
+      ]
+    },
+    {
+      "name": "missing required build_id",
+      "expected": "schema_mismatch",
+      "remove": [
+        "build_id"
+      ]
+    },
+    {
+      "name": "missing required build_revision",
+      "expected": "schema_mismatch",
+      "remove": [
+        "build_revision"
+      ]
+    },
+    {
+      "name": "missing required deployment_target_selection_id",
+      "expected": "schema_mismatch",
+      "remove": [
+        "deployment_target_selection_id"
+      ]
+    },
+    {
+      "name": "missing required compatibility_report_id",
+      "expected": "schema_mismatch",
+      "remove": [
+        "compatibility_report_id"
+      ]
+    },
+    {
+      "name": "missing required quality_run_id",
+      "expected": "schema_mismatch",
+      "remove": [
+        "quality_run_id"
+      ]
+    },
+    {
+      "name": "missing required cost_estimate_id",
+      "expected": "schema_mismatch",
+      "remove": [
+        "cost_estimate_id"
+      ]
+    },
+    {
+      "name": "missing required resource_estimate_id",
+      "expected": "schema_mismatch",
+      "remove": [
+        "resource_estimate_id"
+      ]
+    },
+    {
+      "name": "missing required approvals",
+      "expected": "schema_mismatch",
+      "remove": [
+        "approvals"
+      ]
+    },
+    {
+      "name": "missing required rollout_strategy",
+      "expected": "schema_mismatch",
+      "remove": [
+        "rollout_strategy"
+      ]
+    },
+    {
+      "name": "missing required requested_at",
+      "expected": "schema_mismatch",
+      "remove": [
+        "requested_at"
+      ]
+    },
+    {
+      "name": "missing required status",
+      "expected": "schema_mismatch",
+      "remove": [
+        "status"
+      ]
+    },
+    {
+      "name": "invalid reference id",
+      "expected": "schema_mismatch",
+      "set": {
+        "id": "synthetic private manifest"
+      }
+    },
+    {
+      "name": "null reference id",
+      "expected": "schema_mismatch",
+      "set": {
+        "id": null
+      }
+    },
+    {
+      "name": "invalid reference build_id",
+      "expected": "schema_mismatch",
+      "set": {
+        "build_id": "synthetic private manifest"
+      }
+    },
+    {
+      "name": "null reference build_id",
+      "expected": "schema_mismatch",
+      "set": {
+        "build_id": null
+      }
+    },
+    {
+      "name": "invalid reference deployment_target_selection_id",
+      "expected": "schema_mismatch",
+      "set": {
+        "deployment_target_selection_id": "synthetic private manifest"
+      }
+    },
+    {
+      "name": "null reference deployment_target_selection_id",
+      "expected": "schema_mismatch",
+      "set": {
+        "deployment_target_selection_id": null
+      }
+    },
+    {
+      "name": "invalid reference compatibility_report_id",
+      "expected": "schema_mismatch",
+      "set": {
+        "compatibility_report_id": "synthetic private manifest"
+      }
+    },
+    {
+      "name": "null reference compatibility_report_id",
+      "expected": "schema_mismatch",
+      "set": {
+        "compatibility_report_id": null
+      }
+    },
+    {
+      "name": "invalid reference quality_run_id",
+      "expected": "schema_mismatch",
+      "set": {
+        "quality_run_id": "synthetic private manifest"
+      }
+    },
+    {
+      "name": "null reference quality_run_id",
+      "expected": "schema_mismatch",
+      "set": {
+        "quality_run_id": null
+      }
+    },
+    {
+      "name": "invalid reference cost_estimate_id",
+      "expected": "schema_mismatch",
+      "set": {
+        "cost_estimate_id": "synthetic private manifest"
+      }
+    },
+    {
+      "name": "null reference cost_estimate_id",
+      "expected": "schema_mismatch",
+      "set": {
+        "cost_estimate_id": null
+      }
+    },
+    {
+      "name": "invalid reference resource_estimate_id",
+      "expected": "schema_mismatch",
+      "set": {
+        "resource_estimate_id": "synthetic private manifest"
+      }
+    },
+    {
+      "name": "null reference resource_estimate_id",
+      "expected": "schema_mismatch",
+      "set": {
+        "resource_estimate_id": null
+      }
+    },
+    {
+      "name": "invalid build revision 0",
+      "expected": "schema_mismatch",
+      "set": {
+        "build_revision": 0
+      }
+    },
+    {
+      "name": "invalid build revision -1",
+      "expected": "schema_mismatch",
+      "set": {
+        "build_revision": -1
+      }
+    },
+    {
+      "name": "invalid build revision 1.5",
+      "expected": "schema_mismatch",
+      "set": {
+        "build_revision": 1.5
+      }
+    },
+    {
+      "name": "invalid build revision True",
+      "expected": "schema_mismatch",
+      "set": {
+        "build_revision": true
+      }
+    },
+    {
+      "name": "invalid build revision '1'",
+      "expected": "schema_mismatch",
+      "set": {
+        "build_revision": "1"
+      }
+    },
+    {
+      "name": "invalid build revision None",
+      "expected": "schema_mismatch",
+      "set": {
+        "build_revision": null
+      }
+    },
+    {
+      "name": "exact wide integer revision",
+      "expected": "decoded",
+      "set": {
+        "build_revision": 123456789012345678901234567890
+      }
+    },
+    {
+      "name": "rollout_strategy canary",
+      "expected": "decoded",
+      "set": {
+        "rollout_strategy": "canary"
+      }
+    },
+    {
+      "name": "rollout_strategy blue_green",
+      "expected": "decoded",
+      "set": {
+        "rollout_strategy": "blue_green"
+      }
+    },
+    {
+      "name": "rollout_strategy rolling",
+      "expected": "decoded",
+      "set": {
+        "rollout_strategy": "rolling"
+      }
+    },
+    {
+      "name": "rollout_strategy manual",
+      "expected": "decoded",
+      "set": {
+        "rollout_strategy": "manual"
+      }
+    },
+    {
+      "name": "invalid rollout_strategy 'unknown'",
+      "expected": "schema_mismatch",
+      "set": {
+        "rollout_strategy": "unknown"
+      }
+    },
+    {
+      "name": "invalid rollout_strategy ''",
+      "expected": "schema_mismatch",
+      "set": {
+        "rollout_strategy": ""
+      }
+    },
+    {
+      "name": "invalid rollout_strategy None",
+      "expected": "schema_mismatch",
+      "set": {
+        "rollout_strategy": null
+      }
+    },
+    {
+      "name": "invalid rollout_strategy 3",
+      "expected": "schema_mismatch",
+      "set": {
+        "rollout_strategy": 3
+      }
+    },
+    {
+      "name": "status proposed",
+      "expected": "decoded",
+      "set": {
+        "status": "proposed"
+      }
+    },
+    {
+      "name": "status approved",
+      "expected": "decoded",
+      "set": {
+        "status": "approved"
+      }
+    },
+    {
+      "name": "status rejected",
+      "expected": "decoded",
+      "set": {
+        "status": "rejected"
+      }
+    },
+    {
+      "name": "status deployed",
+      "expected": "decoded",
+      "set": {
+        "status": "deployed"
+      }
+    },
+    {
+      "name": "status rolled_back",
+      "expected": "decoded",
+      "set": {
+        "status": "rolled_back"
+      }
+    },
+    {
+      "name": "invalid status 'unknown'",
+      "expected": "schema_mismatch",
+      "set": {
+        "status": "unknown"
+      }
+    },
+    {
+      "name": "invalid status ''",
+      "expected": "schema_mismatch",
+      "set": {
+        "status": ""
+      }
+    },
+    {
+      "name": "invalid status None",
+      "expected": "schema_mismatch",
+      "set": {
+        "status": null
+      }
+    },
+    {
+      "name": "invalid status 3",
+      "expected": "schema_mismatch",
+      "set": {
+        "status": 3
+      }
+    },
+    {
+      "name": "invalid approvals []",
+      "expected": "schema_mismatch",
+      "set": {
+        "approvals": []
+      }
+    },
+    {
+      "name": "invalid approvals {}",
+      "expected": "schema_mismatch",
+      "set": {
+        "approvals": {}
+      }
+    },
+    {
+      "name": "invalid approvals None",
+      "expected": "schema_mismatch",
+      "set": {
+        "approvals": null
+      }
+    },
+    {
+      "name": "invalid approvals [None]",
+      "expected": "schema_mismatch",
+      "set": {
+        "approvals": [
+          null
+        ]
+      }
+    },
+    {
+      "name": "missing approval approver_ref",
+      "expected": "schema_mismatch",
+      "approval_remove": [
+        "approver_ref"
+      ]
+    },
+    {
+      "name": "missing approval decision",
+      "expected": "schema_mismatch",
+      "approval_remove": [
+        "decision"
+      ]
+    },
+    {
+      "name": "missing approval scope",
+      "expected": "schema_mismatch",
+      "approval_remove": [
+        "scope"
+      ]
+    },
+    {
+      "name": "approval decision approved",
+      "expected": "decoded",
+      "approval_set": {
+        "decision": "approved"
+      }
+    },
+    {
+      "name": "approval decision rejected",
+      "expected": "decoded",
+      "approval_set": {
+        "decision": "rejected"
+      }
+    },
+    {
+      "name": "approval decision pending",
+      "expected": "decoded",
+      "approval_set": {
+        "decision": "pending"
+      }
+    },
+    {
+      "name": "invalid approval decision 'unknown'",
+      "expected": "schema_mismatch",
+      "approval_set": {
+        "decision": "unknown"
+      }
+    },
+    {
+      "name": "invalid approval decision ''",
+      "expected": "schema_mismatch",
+      "approval_set": {
+        "decision": ""
+      }
+    },
+    {
+      "name": "invalid approval decision None",
+      "expected": "schema_mismatch",
+      "approval_set": {
+        "decision": null
+      }
+    },
+    {
+      "name": "approval scope security",
+      "expected": "decoded",
+      "approval_set": {
+        "scope": "security"
+      }
+    },
+    {
+      "name": "approval scope owner",
+      "expected": "decoded",
+      "approval_set": {
+        "scope": "owner"
+      }
+    },
+    {
+      "name": "approval scope finance",
+      "expected": "decoded",
+      "approval_set": {
+        "scope": "finance"
+      }
+    },
+    {
+      "name": "approval scope compliance",
+      "expected": "decoded",
+      "approval_set": {
+        "scope": "compliance"
+      }
+    },
+    {
+      "name": "invalid approval scope 'unknown'",
+      "expected": "schema_mismatch",
+      "approval_set": {
+        "scope": "unknown"
+      }
+    },
+    {
+      "name": "invalid approval scope ''",
+      "expected": "schema_mismatch",
+      "approval_set": {
+        "scope": ""
+      }
+    },
+    {
+      "name": "invalid approval scope None",
+      "expected": "schema_mismatch",
+      "approval_set": {
+        "scope": null
+      }
+    },
+    {
+      "name": "invalid approver reference ''",
+      "expected": "schema_mismatch",
+      "approval_set": {
+        "approver_ref": ""
+      }
+    },
+    {
+      "name": "invalid approver reference None",
+      "expected": "schema_mismatch",
+      "approval_set": {
+        "approver_ref": null
+      }
+    },
+    {
+      "name": "invalid approver reference 3",
+      "expected": "schema_mismatch",
+      "approval_set": {
+        "approver_ref": 3
+      }
+    },
+    {
+      "name": "literal whitespace approver reference",
+      "expected": "decoded",
+      "approval_set": {
+        "approver_ref": " \t"
+      }
+    },
+    {
+      "name": "literal requested timestamp 2026-10-16T10:30:00.123456+01:30",
+      "expected": "decoded",
+      "set": {
+        "requested_at": "2026-10-16T10:30:00.123456+01:30"
+      }
+    },
+    {
+      "name": "literal approval timestamp 2026-10-16T10:30:00.123456+01:30",
+      "expected": "decoded",
+      "approval_set": {
+        "approved_at": "2026-10-16T10:30:00.123456+01:30"
+      }
+    },
+    {
+      "name": "literal requested timestamp 2026-10-16T09:00:00.000Z",
+      "expected": "decoded",
+      "set": {
+        "requested_at": "2026-10-16T09:00:00.000Z"
+      }
+    },
+    {
+      "name": "literal approval timestamp 2026-10-16T09:00:00.000Z",
+      "expected": "decoded",
+      "approval_set": {
+        "approved_at": "2026-10-16T09:00:00.000Z"
+      }
+    },
+    {
+      "name": "invalid requested timestamp '2026-10-16'",
+      "expected": "schema_mismatch",
+      "set": {
+        "requested_at": "2026-10-16"
+      }
+    },
+    {
+      "name": "invalid approval timestamp '2026-10-16'",
+      "expected": "schema_mismatch",
+      "approval_set": {
+        "approved_at": "2026-10-16"
+      }
+    },
+    {
+      "name": "invalid requested timestamp '2026-13-01T00:00:00Z'",
+      "expected": "schema_mismatch",
+      "set": {
+        "requested_at": "2026-13-01T00:00:00Z"
+      }
+    },
+    {
+      "name": "invalid approval timestamp '2026-13-01T00:00:00Z'",
+      "expected": "schema_mismatch",
+      "approval_set": {
+        "approved_at": "2026-13-01T00:00:00Z"
+      }
+    },
+    {
+      "name": "invalid requested timestamp ''",
+      "expected": "schema_mismatch",
+      "set": {
+        "requested_at": ""
+      }
+    },
+    {
+      "name": "invalid approval timestamp ''",
+      "expected": "schema_mismatch",
+      "approval_set": {
+        "approved_at": ""
+      }
+    },
+    {
+      "name": "invalid requested timestamp None",
+      "expected": "schema_mismatch",
+      "set": {
+        "requested_at": null
+      }
+    },
+    {
+      "name": "invalid approval timestamp None",
+      "expected": "schema_mismatch",
+      "approval_set": {
+        "approved_at": null
+      }
+    },
+    {
+      "name": "literal rollback URI urn:synthetic:rollback:one",
+      "expected": "decoded",
+      "set": {
+        "rollback_artifact_uri": "urn:synthetic:rollback:one"
+      }
+    },
+    {
+      "name": "literal rollback URI https://example.invalid/rollback?version=1#original",
+      "expected": "decoded",
+      "set": {
+        "rollback_artifact_uri": "https://example.invalid/rollback?version=1#original"
+      }
+    },
+    {
+      "name": "literal rollback URI file:///synthetic/private",
+      "expected": "decoded",
+      "set": {
+        "rollback_artifact_uri": "file:///synthetic/private"
+      }
+    },
+    {
+      "name": "invalid rollback URI 'not a URI'",
+      "expected": "schema_mismatch",
+      "set": {
+        "rollback_artifact_uri": "not a URI"
+      }
+    },
+    {
+      "name": "invalid rollback URI 'relative/artifact'",
+      "expected": "schema_mismatch",
+      "set": {
+        "rollback_artifact_uri": "relative/artifact"
+      }
+    },
+    {
+      "name": "invalid rollback URI ''",
+      "expected": "schema_mismatch",
+      "set": {
+        "rollback_artifact_uri": ""
+      }
+    },
+    {
+      "name": "invalid rollback URI None",
+      "expected": "schema_mismatch",
+      "set": {
+        "rollback_artifact_uri": null
+      }
+    },
+    {
+      "name": "absent optional notes",
+      "expected": "decoded",
+      "remove": [
+        "notes"
+      ]
+    },
+    {
+      "name": "empty optional notes",
+      "expected": "decoded",
+      "set": {
+        "notes": []
+      }
+    },
+    {
+      "name": "ordered duplicate notes",
+      "expected": "decoded",
+      "set": {
+        "notes": [
+          "second",
+          "",
+          "second",
+          "synthetic-private-manifest\n\u05d0"
+        ]
+      }
+    },
+    {
+      "name": "invalid notes None",
+      "expected": "schema_mismatch",
+      "set": {
+        "notes": null
+      }
+    },
+    {
+      "name": "invalid notes {}",
+      "expected": "schema_mismatch",
+      "set": {
+        "notes": {}
+      }
+    },
+    {
+      "name": "invalid notes [1]",
+      "expected": "schema_mismatch",
+      "set": {
+        "notes": [
+          1
+        ]
+      }
+    },
+    {
+      "name": "invalid notes [None]",
+      "expected": "schema_mismatch",
+      "set": {
+        "notes": [
+          null
+        ]
+      }
+    },
+    {
+      "name": "empty deployment reference",
+      "expected": "decoded",
+      "set": {
+        "deployment_reference": ""
+      }
+    },
+    {
+      "name": "literal deployment reference",
+      "expected": "decoded",
+      "set": {
+        "deployment_reference": "synthetic-private-manifest\n\u05d0"
+      }
+    },
+    {
+      "name": "invalid deployment reference None",
+      "expected": "schema_mismatch",
+      "set": {
+        "deployment_reference": null
+      }
+    },
+    {
+      "name": "invalid deployment reference 3",
+      "expected": "schema_mismatch",
+      "set": {
+        "deployment_reference": 3
+      }
+    },
+    {
+      "name": "extra manifest field",
+      "expected": "schema_mismatch",
+      "set": {
+        "synthetic-private-manifest": "value"
+      }
+    },
+    {
+      "name": "extra approval field",
+      "expected": "schema_mismatch",
+      "approval_set": {
+        "synthetic-private-manifest": "value"
+      }
+    },
+    {
+      "name": "recorded deployed status with pending approval",
+      "expected": "decoded",
+      "set": {
+        "status": "deployed"
+      }
+    },
+    {
+      "name": "recorded approved decision without timestamp",
+      "expected": "decoded",
+      "approval_set": {
+        "decision": "approved"
+      }
+    },
+    {
+      "name": "repeated approval entries",
+      "expected": "decoded",
+      "set": {
+        "approvals": [
+          {
+            "approver_ref": "same",
+            "decision": "approved",
+            "scope": "owner"
+          },
+          {
+            "approver_ref": "same",
+            "decision": "rejected",
+            "scope": "owner"
+          }
+        ]
+      }
+    }
+  ]
+}
