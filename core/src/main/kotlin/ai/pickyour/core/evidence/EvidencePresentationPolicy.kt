@@ -63,16 +63,22 @@ data class EvidencePresentation(
 
 /** Pure presentation only: does not authorize reuse, evaluate compatibility, or invalidate a build. */
 object EvidencePresentationPolicy {
+    /** Presentation when no reviewed assessment was supplied; this grants no source-check meaning. */
+    fun unassessedLabel(rawStatus: FrozenVerificationStatus): EvidenceLabel = when (rawStatus) {
+        FrozenVerificationStatus.VERIFIED -> EvidenceLabel.VERIFICATION_UNESTABLISHED
+        FrozenVerificationStatus.UNVERIFIED -> EvidenceLabel.UNVERIFIED
+        FrozenVerificationStatus.USER_SUPPLIED -> EvidenceLabel.USER_SUPPLIED
+        FrozenVerificationStatus.ESTIMATED -> EvidenceLabel.ESTIMATED
+    }
+
     fun present(claim: EvidenceClaim, assessment: ReviewedEvidenceAssessment? = null): EvidencePresentation {
         val applicable = assessment?.takeIf { it.identity == claim.identity }
         val support = applicable?.independentSupport ?: IndependentSupport.NOT_ESTABLISHED
         val label = when (claim.rawStatus) {
-            FrozenVerificationStatus.ESTIMATED -> EvidenceLabel.ESTIMATED
-            FrozenVerificationStatus.USER_SUPPLIED -> EvidenceLabel.USER_SUPPLIED
+            FrozenVerificationStatus.ESTIMATED, FrozenVerificationStatus.USER_SUPPLIED -> unassessedLabel(claim.rawStatus)
             FrozenVerificationStatus.VERIFIED, FrozenVerificationStatus.UNVERIFIED -> when {
                 support != IndependentSupport.NOT_ESTABLISHED -> EvidenceLabel.INDEPENDENTLY_VERIFIED
-                claim.rawStatus == FrozenVerificationStatus.VERIFIED -> EvidenceLabel.VERIFICATION_UNESTABLISHED
-                else -> EvidenceLabel.UNVERIFIED
+                else -> unassessedLabel(claim.rawStatus)
             }
         }
         val freshness = when (claim.factClass) {
