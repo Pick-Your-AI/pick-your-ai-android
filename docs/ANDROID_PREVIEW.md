@@ -250,7 +250,28 @@ not generate a signing key or install/release an app.
 
 Partial criteria: #86 local open/save and recovery; #67 canonical storage integration;
 #122 acknowledgment and retained pending fields; #76 lifecycle restoration. Still
-missing are multiple-draft list/create/duplicate/delete, autosave/revision UI,
+missing are multiple-draft list/create/duplicate/delete, autosave/domain revision UI,
 retention UX, installed-process-death evidence and receiving acceptance. Canonical
 records remain `11.01.md`, `12.01.md`, `08.06.md` and `02.03.md` under the existing
 website Android work-package path. No issue closes.
+
+## Retained guest form history
+
+The saved-history button reads immutable entries from the canonical store. Each
+entry retains its exact title and opaque selection/version/catalog digest. Missing
+or unsupported private guest metadata is shown as unavailable; it is not replaced
+with an empty or current form. Migrated missing earlier history remains unavailable.
+
+Choosing a usable entry asks before replacing unsaved form edits. Confirmation
+copies only its guest fields into the editor, with no storage side effect. The user
+must explicitly Save locally to append a new EDIT using the current expected-head
+token. Existing domain content and current unrelated metadata stay intact. This is
+not canonical domain RESTORE, a report/price replay, or a complete revision editor.
+A dialog whose captured baseline was superseded by another in-Activity operation
+cannot copy into the editor; a different writer still fails the canonical save CAS.
+
+Three JVM regressions cover exact pinned fields and immutable historical views,
+unavailable metadata, no write while copying, new EDIT preservation, and concurrent
+save rejection. Hosted unsigned Android build/lint is required on the final PR;
+installed history-dialog accessibility and rotation behavior remain unexecuted.
+This is partial #122 recovery presentation and closes no work-package acceptance.
