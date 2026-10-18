@@ -21,7 +21,8 @@ freshness, or production readiness. Frozen reports lack complete evidence identi
 binding; this adapter does not invent those fields. Callers must use a trusted
 producer and retain evidence inputs separately. The existing `AnalysisCoordinator`
 must still protect current UI state from stale attempts, and callers must perform
-stream work off the UI thread. No transport or preview wiring is included.
+stream work off the UI thread. No transport is included; bounded read-only
+fixture preview wiring is described below.
 
 ## Reproduce and provenance
 
@@ -48,3 +49,30 @@ reports; neither schemas nor original fixtures are changed.
 
 No issue is complete from this slice. JVM/reference checks prove neither emulator
 nor physical-device behavior, vendor compatibility, store acceptance or release.
+
+## Read-only preview inspection
+
+The existing fixed `build.json`, `ruleset.json` and `evaluation-report.json`
+assets can now be inspected through this receiving boundary. No guest editor
+content is sent to it, no rule execution occurs, and no draft is written. The
+immutable inspection projection copies exact report/build/catalog/ruleset/graph
+identities, arbitrary-precision revisions, outcomes, independent severity,
+explanations, optional remediation, affected selection IDs and evidence fields.
+Absent evidence values remain absent; explicit JSON null and numeric values stay
+JSON rather than being coerced to a fact or a floating-point display number.
+
+The UI exposes summary outcome counts and one finding dialog at a time, with
+explicit raw outcome/severity labels and evidence/authority limitations. Optional
+remediation is displayed as reported text, never executed. Selection IDs are
+shown without fabricating a navigation destination. Work stays on the existing
+worker; concurrent inspection is disabled and destroyed Activities ignore late
+callbacks. Recreation resets this read-only diagnostic. This rendering is scoped
+to the fixed bundled fixture, not a general untrusted large-report renderer.
+
+Four core projection tests retain all generated reference outcomes, warning
+failure independence, null/absence/large-number distinctions and immutable lists.
+A required Robolectric Activity case checks labels, evidence limitations and no
+implicit guest save. Installed TalkBack/focus/contrast and actual evaluation
+integration remain unverified. This is partial #101: required-presence versus
+component-conflict categorization, current-draft analysis tickets, actionable
+role/version navigation and verified evidence/remediation remain separate work.

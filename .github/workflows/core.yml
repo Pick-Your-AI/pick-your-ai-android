@@ -95,6 +95,7 @@ jobs:
               "emptyCatalogSearchCanRecoverAndReloadUsesTheCurrentQuery",
               "largeTextRtlButtonsRetainMeasuredTargetsAndUntruncatedLabels",
               "forwardFocusOrderKeepsEditorsAndClearActionReachable",
+              "findingsInspectionKeepsOutcomeSeveritySeparateAndNeverWritesDraft",
           }
           cases = suite.findall("testcase")
           assert expected <= {case.attrib["name"] for case in cases}, "Missing UI regression"
