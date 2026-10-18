@@ -2,6 +2,7 @@ package ai.pickyour.android.preview
 
 import android.app.Activity
 import android.app.AlertDialog
+import android.content.DialogInterface
 import android.os.Bundle
 import android.text.InputFilter
 import android.text.Editable
@@ -48,6 +49,7 @@ class PreviewActivity : Activity() {
     private lateinit var selection: TextView
     private lateinit var catalog: CatalogBrowseSection
     private var catalogPricebook: RecordedPricebook? = null // UI-thread owned, replaced with each catalog load.
+    private lateinit var catalogComparison: CatalogComparisonSection
     private lateinit var catalogStatus: TextView
     private lateinit var catalogSearch: EditText
     private lateinit var retry: Button
@@ -222,6 +224,8 @@ class PreviewActivity : Activity() {
         content.addView(catalogSearch)
         retry = Button(this).apply { setText(R.string.retry_catalog); setOnClickListener { loadCatalog() } }
         content.addView(retry)
+        catalogComparison = CatalogComparisonSection(this, savedInstanceState)
+        content.addView(catalogComparison)
         catalog = CatalogBrowseSection(this, savedInstanceState, ::showDetails)
         content.addView(catalog)
         catalog.search(catalogSearch.text.toString())
@@ -301,6 +305,7 @@ class PreviewActivity : Activity() {
                     retry.isEnabled = true
                     catalogStatus.setText(if (loaded.catalog == null) R.string.catalog_unavailable else R.string.catalog_ready)
                     if (loaded.catalog == null) catalog.unavailable() else catalog.show(loaded.catalog)
+                    catalogComparison.show(loaded.catalog, loaded.pricebook)
                     catalog.selectionEnabled(!storageBusy)
                     showSelection()
                 }
@@ -318,6 +323,17 @@ class PreviewActivity : Activity() {
             .setTitle(item.name)
             .setMessage(detail?.let { CatalogDetailText.describe(this, it, catalogPricebook) }
                 ?: getString(R.string.catalog_detail_unavailable))
+            .setView(Button(this).apply {
+                setText(R.string.catalog_compare_add)
+                minHeight = (48 * resources.displayMetrics.density).toInt()
+                minWidth = (48 * resources.displayMetrics.density).toInt()
+                setOnClickListener {
+                    if (dialog.isShowing && !destroyed) {
+                        catalogComparison.add(item, catalogHash)
+                        dialog.dismiss()
+                    }
+                }
+            })
             .setNegativeButton(R.string.close, null)
             .setNeutralButton(R.string.catalog_sources) { _, _ ->
                 if (dialog.isShowing && detail != null) CatalogSourceNavigation(this, detail, isCurrent = {
@@ -417,26 +433,27 @@ class PreviewActivity : Activity() {
                 (revision.restoredFrom?.let { getString(R.string.domain_history_source, it.toString()) } ?: "")
         }.toTypedArray()
         AlertDialog.Builder(this).setTitle(R.string.draft_history)
-            .setItems(rows) { picker, index ->
-                if ((picker as? AlertDialog)?.isShowing != true || destroyed || !storageReady ||
-                    storageBusy || savedRecord !== baseline) return@setItems
+            .setItems(rows) { dialog, index ->
+                if (!historyDialogIsCurrent(dialog, baseline)) return@setItems
                 val revision = revisions[index]
                 val oldFields = revision.fields
                 if (oldFields == null) {
                     AlertDialog.Builder(this).setMessage(R.string.history_unavailable_detail)
+                        .setNeutralButton(R.string.domain_restore_preview) { dialog, _ ->
+                            if (historyDialogIsCurrent(dialog, baseline)) confirmDomainRestore(baseline, revision)
+                        }
                         .setPositiveButton(R.string.close, null).show()
                 } else {
                     AlertDialog.Builder(this).setTitle(getString(R.string.history_revision, revision.revision.toString()))
                         .setMessage(getString(R.string.history_copy_warning, oldFields.title,
                             if (baseline.earlierHistoryUnavailable) getString(R.string.history_earlier_unavailable) else ""))
                         .setNegativeButton(R.string.keep_edits, null)
-                        .setNeutralButton(R.string.domain_restore_preview) { detail, _ ->
-                            if ((detail as? AlertDialog)?.isShowing == true) confirmDomainRestore(baseline, revision)
+                        .setNeutralButton(R.string.domain_restore_preview) { dialog, _ ->
+                            if (historyDialogIsCurrent(dialog, baseline)) confirmDomainRestore(baseline, revision)
                         }
-                        .setPositiveButton(R.string.history_copy) { detail, _ ->
+                        .setPositiveButton(R.string.history_copy) { dialog, _ ->
                             // A dialog opened before another save/load cannot adopt that operation's baseline.
-                            if ((detail as? AlertDialog)?.isShowing == true && !destroyed && storageReady &&
-                                !storageBusy && savedRecord === baseline) {
+                            if (historyDialogIsCurrent(dialog, baseline)) {
                                 restoringFields = true
                                 title.setText(oldFields.title)
                                 selectedId = oldFields.selectedId
@@ -448,20 +465,22 @@ class PreviewActivity : Activity() {
                             }
                         }.show()
                 }
-            }.setPositiveButton(R.string.revision_compare_open) { picker, _ ->
-                if ((picker as? AlertDialog)?.isShowing == true) showComparisonPicker(baseline)
+            }.setPositiveButton(R.string.revision_compare_open) { dialog, _ ->
+                if (historyDialogIsCurrent(dialog, baseline)) showComparisonPicker(baseline)
             }
             .setNegativeButton(R.string.close, null).show()
     }
+
+    private fun historyDialogIsCurrent(dialog: DialogInterface, baseline: PreviewStoredDraft): Boolean =
+        !destroyed && (dialog as? AlertDialog)?.isShowing == true && storageReady && !storageBusy && savedRecord === baseline
 
     private fun showComparisonPicker(baseline: PreviewStoredDraft) {
         if (destroyed) return
         if (!storageReady || storageBusy || savedRecord !== baseline) return
         val revisions = baseline.history.reversed()
         AlertDialog.Builder(this).setTitle(R.string.revision_compare_open)
-            .setItems(revisions.map { getString(R.string.history_revision, it.revision.toString()) }.toTypedArray()) { picker, index ->
-                if ((picker as? AlertDialog)?.isShowing != true || destroyed || !storageReady ||
-                    storageBusy || savedRecord !== baseline) return@setItems
+            .setItems(revisions.map { getString(R.string.history_revision, it.revision.toString()) }.toTypedArray()) { dialog, index ->
+                if (!historyDialogIsCurrent(dialog, baseline)) return@setItems
                 worker.execute {
                     val comparison = baseline.compareRevision(revisions[index].revision)
                     runOnUiThread {
@@ -557,12 +576,14 @@ class PreviewActivity : Activity() {
                     R.string.workload_classification to w.dataClassification?.encoded)
                     .joinToString("\n") { (label, input) -> "${getString(label)}: ${value(input)}" }
             }
+        val components = getString(R.string.domain_restore_components,
+            baseline.components.selections.size.toString(), content.components.selections.size.toString(),
+            baseline.components.links.size.toString(), content.components.links.size.toString())
         AlertDialog.Builder(this).setTitle(getString(R.string.history_revision, revision.revision.toString()))
-            .setMessage(getString(R.string.domain_restore_warning, summary))
+            .setMessage(getString(R.string.domain_restore_warning, summary + "\n\n" + components))
             .setNegativeButton(R.string.keep_edits, null)
-            .setPositiveButton(R.string.domain_restore_commit) { confirmation, _ ->
-                if ((confirmation as? AlertDialog)?.isShowing == true && !destroyed && storageReady &&
-                    !storageBusy && savedRecord === baseline) restoreDomain(baseline, revision.revision)
+            .setPositiveButton(R.string.domain_restore_commit) { dialog, _ ->
+                if (historyDialogIsCurrent(dialog, baseline)) restoreDomain(baseline, revision.revision)
             }.show()
     }
 
@@ -940,6 +961,7 @@ class PreviewActivity : Activity() {
 
     override fun onSaveInstanceState(outState: Bundle) {
         catalog.saveState(outState)
+        catalogComparison.save(outState)
         outState.putString("pendingDeleteId", pendingDeleteId?.value)
         outState.putString("draftId", currentDraftId.value)
         outState.putBoolean("selectionResolved", selectionResolved)
@@ -981,6 +1003,7 @@ class PreviewActivity : Activity() {
     override fun onDestroy() {
         destroyed = true
         if (::catalog.isInitialized) catalog.close()
+        if (::catalogComparison.isInitialized) catalogComparison.close()
         storageReady = false
         storageBusy = true
         if (::tierSection.isInitialized) tierSection.close()
