@@ -25,8 +25,11 @@
     <string name="library_deleted_editor">This local draft was deleted or cleanup started. Your visible unsaved form remains, but saving to this ID is disabled. Manage local drafts to inspect cleanup or explicitly open or create another draft.</string>
     <string name="library_delete_conflict">The selected saved draft changed after this list was read. Nothing was deleted. Refresh Manage local drafts and review the current record before deleting.</string>
     <string name="library_delete_failed">Deletion could not start. The current form is retained. Refresh Manage local drafts and retry after the storage problem is resolved.</string>
-    <string name="library_delete_unconfirmed">Deletion could not be fully confirmed. Some local files may remain. Refresh Manage local drafts; if the ID is listed as pending cleanup, select it and retry cleanup. A completed removal may already be absent from the list.</string>
+    <string name="library_delete_unconfirmed">Deletion could not be fully confirmed. Some local files may remain. Use Retry local cleanup to reconcile the same ID, even if its row is already absent from Manage local drafts. Your visible unsaved form remains.</string>
     <string name="recovery_copy">Save pending edits as a new local draft</string>
     <string name="recovery_confirm">Create recovery copy</string>
     <string name="recovery_warning">Create a separate local draft using the visible title, sample selection, objective, context and workload inputs? Other domain settings and metadata come from the loaded baseline revision %1$s. Newer changes to the original are not merged. The original draft and its history stay unchanged. The copy starts its own history and does not carry evaluation or pricing acceptance. If creation is unconfirmed, inspect the reported local ID before trying again.</string>
+    <string name="library_existing_cleanup">Local cleanup for ID %1$s is still unconfirmed. Reconcile that operation before starting another deletion.</string>
+    <string name="library_retry_warning">Reconcile the previously requested local deletion of ID %1$s? Remaining cleanup will be retried, including when the row has already disappeared. A still-active row without a deletion marker will require fresh inspection and confirmation. Visible unsaved fields remain, and this does not remove external or remote copies.</string>
+    <string name="library_retry_failed">Local cleanup could not be confirmed. The pending ID is retained; use Retry local cleanup again after the storage condition is resolved.</string>
 </resources>

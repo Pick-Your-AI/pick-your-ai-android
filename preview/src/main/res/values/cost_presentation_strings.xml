@@ -1,0 +1,17 @@
+<resources>
+    <!-- Canonical text is the exact serialized decimal, not a converted amount. -->
+    <string name="cost_display_decimal">%1$s (canonical %2$s)</string>
+    <string name="cost_display_money">%1$s; currency %2$s</string>
+    <string name="cost_display_canonical_decimal">Canonical value: %1$s; localized display unavailable</string>
+    <string name="cost_display_large_decimal">Canonical value: %1$s; too long for localized display</string>
+    <string name="cost_display_truncated">%1$s … [display truncated; full original retained]</string>
+    <string name="cost_display_policy">Numbers use this screen’s locale without rounding or currency conversion. Quoted canonical values retain the recorded spelling. Quoted text is literal; escaped controls cannot change the surrounding labels. Display limits do not remove data or establish complete coverage.</string>
+    <plurals name="cost_display_entries">
+        <item quantity="one">Entries displayed: %1$d / %2$d retained entry\n%3$s</item>
+        <item quantity="other">Entries displayed: %1$d / %2$d retained entries\n%3$s</item>
+    </plurals>
+    <plurals name="cost_display_lines">
+        <item quantity="one">Line items displayed: %1$d / %2$d retained line. Declared sums above include every retained line.</item>
+        <item quantity="other">Line items displayed: %1$d / %2$d retained lines. Declared sums above include every retained line.</item>
+    </plurals>
+</resources>

@@ -29,9 +29,9 @@ class LocalDraftWorkloadStorageTest {
     private fun v2() = javaClass.getResourceAsStream("/drafts/local-format-2.json")!!.use { it.readBytes() }
     private fun workload(node: ObjectNode) = node["history"][0]["content"]["workload"] as ObjectNode
 
-    @Test fun `empty v3 writes every unanswered field explicitly and retains unknown versus zero`() {
+    @Test fun `empty current format writes every unanswered field explicitly and retains unknown versus zero`() {
         val empty = saved(store().save(null, DraftContent()))
-        assertEquals(3, empty.localFormatVersion)
+        assertEquals(4, empty.localFormatVersion)
         val inputs = workload(mapper.readTree(raw()) as ObjectNode)
         assertEquals(9, inputs.size())
         assertTrue(inputs.all { it.isNull })
@@ -83,7 +83,7 @@ class LocalDraftWorkloadStorageTest {
         val content = DraftContent(old.content.objective, old.content.context, old.content.primaryModel, old.content.optional,
             DraftWorkload(monthlyBudgetAmount = ContractDecimal.parse("25.0000")))
         val edited = saved(store().save(old.version, content))
-        assertEquals(3, edited.localFormatVersion)
+        assertEquals(4, edited.localFormatVersion)
         assertEquals(3L, edited.version.number)
         assertEquals(content, loaded().content)
         assertEquals(old.metadata, edited.metadata)
@@ -114,7 +114,7 @@ class LocalDraftWorkloadStorageTest {
         seed(bytes)
         val old = loaded()
         val restored = saved(store().restore(old.version, 8))
-        assertEquals(3, restored.localFormatVersion)
+        assertEquals(4, restored.localFormatVersion)
         assertEquals(listOf(7L, 8L, 9L, 10L), restored.history.map { it.number })
         assertEquals(old.legacySourceHash, restored.legacySourceHash)
         assertTrue(restored.earlierHistoryUnavailable)
@@ -201,12 +201,12 @@ class LocalDraftWorkloadStorageTest {
         }
     }
 
-    @Test fun `old format cannot smuggle new fields and version four remains intact`() {
+    @Test fun `old format cannot smuggle new fields and future version remains intact`() {
         val original = v2()
-        val versionFour = (mapper.readTree(original) as ObjectNode).put("local_format_version", 4)
+        val futureVersion = (mapper.readTree(original) as ObjectNode).put("local_format_version", 6)
         val extra = mapper.readTree(original) as ObjectNode
         (extra["history"][0]["content"] as ObjectNode).putObject("workload")
-        for ((node, failure) in listOf(versionFour to DraftStorageFailure.UNSUPPORTED_VERSION, extra to DraftStorageFailure.CORRUPT)) {
+        for ((node, failure) in listOf(futureVersion to DraftStorageFailure.UNSUPPORTED_VERSION, extra to DraftStorageFailure.CORRUPT)) {
             val bytes = mapper.writeValueAsBytes(node)
             seed(bytes)
             assertEquals(DraftLoad.Failed(failure), store().load())

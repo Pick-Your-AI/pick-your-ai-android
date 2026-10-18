@@ -5,6 +5,7 @@ import ai.pickyour.core.contracts.FrozenSchemaValidator
 import ai.pickyour.core.contracts.FrozenValidation
 import ai.pickyour.core.importing.BoundedJsonReader
 import ai.pickyour.core.importing.JsonInputResult
+import ai.pickyour.core.importing.localSnapshotRevision
 import java.security.MessageDigest
 import java.util.Collections
 import java.util.Locale
@@ -47,8 +48,12 @@ data class PreviewCatalogBrowseState(
 data class PreviewCatalogPage(val items: List<PreviewCatalogItem>, val total: Int, val page: Int, val pages: Int)
 
 /** Bounded, in-memory browsing of an already validated synthetic snapshot, with no remote paging. */
-class PreviewCatalogBrowser(val hash: String, entries: List<PreviewCatalogItem>) {
+class PreviewCatalogBrowser private constructor(val hash: String, entries: List<PreviewCatalogItem>,
+    details: Map<Pair<String, String>, PreviewCatalogDetails>,
+) {
+    constructor(hash: String, entries: List<PreviewCatalogItem>) : this(hash, entries, emptyMap())
     val items: List<PreviewCatalogItem> = Collections.unmodifiableList(entries.toList())
+    private val details = Collections.unmodifiableMap(details.toMap())
 
     init {
         require(hash.matches(Regex("[a-f0-9]{64}")))
@@ -79,6 +84,10 @@ class PreviewCatalogBrowser(val hash: String, entries: List<PreviewCatalogItem>)
 
     fun contains(item: PreviewCatalogItem, snapshotHash: String) = hash == snapshotHash && item in items
 
+    /** No latest-version fallback, name-only match or details for manually constructed browse rows. */
+    fun details(item: PreviewCatalogItem, snapshotHash: String): PreviewCatalogDetails? =
+        if (contains(item, snapshotHash)) details[item.id to item.version] else null
+
     companion object {
         const val PAGE_SIZE = 10
 
@@ -86,12 +95,19 @@ class PreviewCatalogBrowser(val hash: String, entries: List<PreviewCatalogItem>)
             if (bytes.size > 1_048_576) return null
             if (FrozenSchemaValidator().validate(FrozenDocument.CATALOG, bytes.inputStream()) != FrozenValidation.Valid) return null
             val root = (BoundedJsonReader().read(bytes.inputStream()) as? JsonInputResult.Parsed)?.value ?: return null
+            if (localSnapshotRevision(root["revision"]) == null) return null
+            if (root.path("items").size() > 256) return null
             val entries = root.path("items").map { item ->
                 PreviewCatalogItem(item.path("id").asText(), item.path("name").asText(), item.path("kind").asText(),
                     item.path("version").asText(), item.path("tier").asText())
             }
             val hash = MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it.toInt() and 255) }
-            return try { PreviewCatalogBrowser(hash, entries) } catch (_: IllegalArgumentException) { null }
+            return try {
+                val details = root.path("items").zip(entries).associate { (value, item) ->
+                    (item.id to item.version) to PreviewCatalogDetails.from(root, value, item, hash)
+                }
+                PreviewCatalogBrowser(hash, entries, details)
+            } catch (_: IllegalArgumentException) { null }
         }
     }
 }
