@@ -4,7 +4,9 @@ The Android planning client for discovering, configuring, checking, costing, com
 
 This repository contains a testable Kotlin/JVM core and an immutable frozen-v1
 contract/reference bundle. See [core setup and acceptance evidence](docs/CORE_FOUNDATION.md).
-There is no installable Android application, production backend or release yet.
+An [opt-in Android diagnostic](docs/ANDROID_PREVIEW.md) validates a bundled synthetic
+fixture in an unsigned debug APK. There is no signed installable product,
+production backend or release yet.
 
 The [foundation review package](docs/proposals/README.md) proposes a bounded scope,
 native architecture and service boundary against the existing delivery issues.
