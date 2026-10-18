@@ -11,7 +11,6 @@ internal object CatalogDetailText {
 
     fun describe(context: Context, detail: PreviewCatalogDetails): String {
         fun text(raw: String?): String {
-            if (raw == "unknown") return context.getString(R.string.catalog_detail_explicit_unknown)
             val value = PreviewComparedValue.from(raw)
             val literal = when (value.kind) {
                 PreviewComparedValueKind.ABSENT -> context.getString(R.string.catalog_detail_missing)

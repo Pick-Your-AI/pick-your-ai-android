@@ -29,7 +29,9 @@ unestablished** without an accepted independent assessment. Entries are not
 collapsed into a best or combined grade. Dates remain pinned metadata and do not
 invent an expiration threshold or a source-check event.
 
-The dialog uses plain text. Long literals are visibly truncated; control and
+The dialog uses plain text. Identity and free-text strings retain their literal
+spelling, including the word `unknown`; semantic unknown labels apply to typed
+field states. Long literals are visibly truncated; control and
 format characters are escaped. It shows at most eight provenance entries and
 states the displayed/retained count. All entries remain in the immutable
 projection. This is a bounded preview, not the complete real-data presentation.
@@ -49,7 +51,8 @@ Core regressions cover all 29 kinds, exact versions and snapshot identity,
 missing historical versions, retired records, restrictive/absent licenses,
 missing/unknown/false/zero/empty values, multiple conflicting provenance entries,
 wide numbers and collection immutability. The mandatory hosted Activity gate
-includes selected model detail without a save and bounded literal provenance
+includes selected model detail without a save, literal `unknown` identities
+alongside explicitly unknown specs, and bounded literal provenance
 rendering without external navigation. Existing browsing, selection and retired
 callback regressions remain required. Local core results and simulated Activity
 results do not establish installed-device or receiving acceptance.

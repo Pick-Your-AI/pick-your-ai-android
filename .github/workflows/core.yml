@@ -111,6 +111,7 @@ jobs:
               "retiredComparisonPickerCannotSubmitToClosedWorker",
               "retiredTierConfirmationCannotCommitAfterRecreation",
               "catalogDetailShowsPinnedSpecsEvidenceAndLicenseWithoutSaving",
+              "catalogDetailKeepsLiteralUnknownIdentitySeparateFromUnknownSpec",
               "catalogDetailRenderingKeepsUnknownAndBoundedLiteralSourceValues",
           }
           cases = suite.findall("testcase")

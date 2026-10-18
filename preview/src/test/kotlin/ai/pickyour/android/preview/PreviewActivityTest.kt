@@ -482,6 +482,28 @@ class PreviewActivityTest {
         assertTrue(adapter().load() is PreviewDraftLoad.Missing)
     }
 
+    @Test fun catalogDetailKeepsLiteralUnknownIdentitySeparateFromUnknownSpec() {
+        val root = activity.assets.open("catalog.json").bufferedReader(Charsets.UTF_8).use { org.json.JSONObject(it.readText()) }
+        root.put("id", "unknown")
+        val items = root.getJSONArray("items")
+        val model = (0 until items.length()).map { items.getJSONObject(it) }.single { it.getString("kind") == "model" }
+        model.put("id", "unknown").put("version", "unknown").put("description", "unknown")
+        model.getJSONObject("spec").put("license_ref", "unknown")
+        model.getJSONArray("provenance").getJSONObject(0).put("notes", "unknown")
+        val browser = requireNotNull(PreviewCatalogBrowser.read(root.toString().toByteArray(Charsets.UTF_8)))
+        val item = browser.items.single { it.kind == "model" }
+        val detail = requireNotNull(browser.details(item, browser.hash))
+        val message = CatalogDetailText.describe(activity, detail)
+        assertTrue(message.contains(activity.getString(R.string.item_details, "\"unknown\"", "model", "\"unknown\"")))
+        assertTrue(message.contains(activity.getString(R.string.catalog_detail_snapshot,
+            "\"unknown\"", detail.snapshotRevision.toString(), browser.hash)))
+        assertTrue(message.contains(activity.getString(R.string.catalog_detail_description, "\"unknown\"")))
+        assertTrue(message.contains("Notes: \"unknown\""))
+        assertTrue(message.contains("license_ref [string]: " + activity.getString(R.string.catalog_detail_explicit_unknown)))
+        assertNull(shadowOf(activity).nextStartedActivity)
+        assertTrue(adapter().load() is PreviewDraftLoad.Missing)
+    }
+
     @Test fun catalogDetailRenderingKeepsUnknownAndBoundedLiteralSourceValues() {
         val root = activity.assets.open("catalog.json").bufferedReader(Charsets.UTF_8).use { org.json.JSONObject(it.readText()) }
         val items = root.getJSONArray("items")
