@@ -5,6 +5,7 @@ import importlib.util
 import io
 import os
 from pathlib import Path
+import re
 import stat
 import subprocess
 import tempfile
@@ -39,6 +40,157 @@ class ReadinessClock:
 
 
 class EmulatorSmokeGuardTest(unittest.TestCase):
+    def test_hvf_workflow_artifact_id_download_reaches_the_harness_apk_path(self):
+        # v4.3.0 src/download-artifact.ts treats only a name lookup as a single
+        # artifact download. An ID list needs merge-multiple even with one ID.
+        # Exercise that pinned dependency's extraction rule with the workflow
+        # inputs, including the previously broken default as a negative case.
+        workflow = (ROOT / ".github/workflows/core.yml").read_text()
+        action = "actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093"
+        matches = re.findall(r"(?m)^      - uses: " + re.escape(action) + r"[^\n]*\n((?:        [^\n]*\n)+)", workflow)
+        self.assertEqual(1, len(matches))
+        inputs = dict(line.strip().split(":", 1) for line in matches[0].splitlines() if line.startswith("          "))
+        inputs = {key: value.strip() for key, value in inputs.items()}
+        self.assertEqual("${{ needs.android-preview.outputs.unsigned_artifact_id }}", inputs["artifact-ids"])
+        self.assertNotIn("name", inputs)
+        self.assertNotIn("pattern", inputs)
+        self.assertEqual("true", inputs.get("merge-multiple"))
+        artifact_name = "android-preview-" + "a" * 40
+        archive_entry = Path("outputs/apk/debug/preview-debug-unsigned.apk")
+        expected = Path("preview/build/outputs/apk/debug/preview-debug-unsigned.apk")
+
+        def extracted_path(options):
+            root = Path(options["path"])
+            return (root if options.get("name") or options.get("merge-multiple") == "true"
+                    else root / artifact_name) / archive_entry
+
+        self.assertEqual(expected, extracted_path(inputs))
+        without_merge = dict(inputs)
+        without_merge.pop("merge-multiple")
+        self.assertNotEqual(expected, extracted_path(without_merge))
+
+    def test_hvf_accepts_only_observed_host_support_without_kvm_or_permission_changes(self):
+        with patch.dict(os.environ, {"PYAI_EMULATOR_MODE": "hvf", "RUNNER_ENVIRONMENT": "github-hosted",
+                                     "RUNNER_OS": "macOS", "RUNNER_ARCH": "X64"}, clear=True), \
+                patch.multiple(smoke.platform, system=lambda: "Darwin", machine=lambda: "x86_64",
+                               mac_ver=lambda: ("15.7.9", (), "")), \
+                patch.object(smoke, "command", return_value=subprocess.CompletedProcess([], 0, "1\n", "")) as command, \
+                patch.object(smoke, "check_kvm_access") as kvm, \
+                patch.object(smoke.os, "chmod") as chmod, patch.object(smoke.os, "chown") as chown, \
+                patch("sys.stdout", new_callable=io.StringIO):
+            settings = smoke.emulation_settings()
+        command.assert_called_once_with(["/usr/sbin/sysctl", "-n", "kern.hv_support"], timeout=10, check=False)
+        self.assertEqual("hvf", settings["mode"])
+        self.assertEqual("on", settings["accel_argument"])
+        self.assertEqual(300, settings["boot_timeout_seconds"])
+        self.assertFalse(settings["unsupported_software_opt_in"])
+        self.assertTrue(smoke.hvf_host_passes(settings["host"]))
+        self.assertEqual("15.7.9", settings["host"]["macos_version"])
+        kvm.assert_not_called()
+        chmod.assert_not_called()
+        chown.assert_not_called()
+
+    def test_hvf_rejects_foreign_or_unobserved_host_before_any_command(self):
+        env = {"PYAI_EMULATOR_MODE": "hvf", "RUNNER_ENVIRONMENT": "github-hosted",
+               "RUNNER_OS": "macOS", "RUNNER_ARCH": "X64"}
+        for changed, system, machine in (
+            ({"RUNNER_ENVIRONMENT": "self-hosted"}, "Darwin", "x86_64"),
+            ({"RUNNER_OS": "Linux"}, "Darwin", "x86_64"),
+            ({"RUNNER_ARCH": "ARM64"}, "Darwin", "x86_64"),
+            ({"RUNNER_ARCH": ""}, "Darwin", "x86_64"),
+            ({}, "Linux", "x86_64"),
+            ({}, "Darwin", "arm64"),
+        ):
+            with self.subTest(changed=changed, system=system, machine=machine), \
+                    patch.dict(os.environ, dict(env, **changed), clear=True), \
+                    patch.object(smoke.platform, "system", return_value=system), \
+                    patch.object(smoke.platform, "machine", return_value=machine), \
+                    patch.object(smoke, "command") as command, patch.object(smoke, "check_kvm_access") as kvm:
+                with self.assertRaisesRegex(smoke.SmokeFailure, "explicit GitHub-hosted Intel"):
+                    smoke.emulation_settings()
+                command.assert_not_called()
+                kvm.assert_not_called()
+
+    def test_hvf_failed_or_ambiguous_support_never_falls_back(self):
+        env = {"PYAI_EMULATOR_MODE": "hvf", "RUNNER_ENVIRONMENT": "github-hosted",
+               "RUNNER_OS": "macOS", "RUNNER_ARCH": "X64"}
+        invalid = [(0, "0\n", ""), (1, "1\n", ""), (0, "1\n", "failure"),
+                   (0, "1\n", " "), (0, "1\nextra", ""), (False, "1\n", ""),
+                   (0, " " * 2048 + "1\n", "")]
+        for code, stdout, stderr in invalid:
+            with self.subTest(code=code, stdout=stdout[-12:], stderr=stderr), \
+                    patch.dict(os.environ, env, clear=True), \
+                    patch.multiple(smoke.platform, system=lambda: "Darwin", machine=lambda: "x86_64"), \
+                    patch.object(smoke, "command", return_value=subprocess.CompletedProcess([], code, stdout, stderr)), \
+                    patch.object(smoke, "check_kvm_access") as kvm:
+                with self.assertRaisesRegex(smoke.SmokeFailure, "support is unavailable"):
+                    smoke.emulation_settings()
+                kvm.assert_not_called()
+        with patch.dict(os.environ, env, clear=True), \
+                patch.multiple(smoke.platform, system=lambda: "Darwin", machine=lambda: "x86_64"), \
+                patch.object(smoke, "command", side_effect=subprocess.TimeoutExpired(["sysctl"], 10)), \
+                patch.object(smoke, "check_kvm_access") as kvm:
+            with self.assertRaises(subprocess.TimeoutExpired):
+                smoke.emulation_settings()
+            kvm.assert_not_called()
+
+    def test_hvf_acceleration_requires_complete_successful_hypervisor_output(self):
+        valid = {"exit_code": 0, "stdout": "accel:\n0\nHypervisor.Framework OS X Version 15.7\naccel\n", "stderr": ""}
+        with patch.object(smoke, "command", return_value=subprocess.CompletedProcess([], 0, valid["stdout"], "")) as command:
+            self.assertEqual(valid, smoke.check_hvf_acceleration(Path("/sdk/emulator/emulator")))
+        command.assert_called_once_with(["/sdk/emulator/emulator", "-accel-check"], timeout=30, check=False)
+        for change in ({"exit_code": 1}, {"exit_code": False}, {"stderr": "warning"},
+                       {"stdout": "Hypervisor.Framework is unavailable"},
+                       {"stdout": "accel:\n0\nKVM is installed and usable.\naccel\n"},
+                       {"stdout": valid["stdout"] + "unexpected"},
+                       {"stdout": " " * 3000 + valid["stdout"]}):
+            observed = dict(valid, **change)
+            with self.subTest(change=change), patch.object(smoke, "command", return_value=subprocess.CompletedProcess(
+                    [], observed["exit_code"], observed["stdout"], observed["stderr"])):
+                with self.assertRaisesRegex(smoke.SmokeFailure, "did not confirm usable"):
+                    smoke.check_hvf_acceleration(Path("/sdk/emulator/emulator"))
+        with patch.object(smoke, "command", side_effect=subprocess.TimeoutExpired(["emulator"], 30)):
+            with self.assertRaises(subprocess.TimeoutExpired):
+                smoke.check_hvf_acceleration(Path("/sdk/emulator/emulator"))
+
+    def test_apk_handoff_rejects_missing_malformed_or_different_build_digest(self):
+        actual = "a" * 64
+        smoke.require_apk_handoff(actual, actual)
+        for expected in (None, "", "a" * 63, "b" * 64, actual + "\n", actual.upper(), False):
+            with self.subTest(expected=expected), self.assertRaisesRegex(smoke.SmokeFailure, "exact SHA-256 handoff"):
+                smoke.require_apk_handoff(actual, expected)
+
+    def test_hvf_receipt_cannot_replace_host_handoff_or_installed_evidence(self):
+        receipt = {"source_commit": "a" * 40, "scope": "owned-installed-aosp-emulator", "status": "passed",
+                   "unsigned_apk_unchanged": True, "unsigned_apk_sha256": "b" * 64,
+                   "expected_unsigned_apk_sha256": "b" * 64,
+                   "emulation": {"mode": "hvf", "accel_argument": "on", "unsupported_software_opt_in": False,
+                                 "host": dict(smoke.HVF_HOST_IDENTITY, kern_hv_support="1")},
+                   "host_acceleration": {"exit_code": 0, "stderr": "",
+                                         "stdout": "accel:\n0\nHypervisor.Framework OS X Version 15.7\naccel\n"},
+                   "guest_readiness": {"ready": True, "ui_dump_path": smoke.UI_DUMP_PATH, "last_checks": ready_checks()},
+                   "cases": [{"id": name, "status": "passed"} for name in smoke.CASE_IDS]}
+        smoke.complete_receipt(receipt, "a" * 40, expected_mode="hvf")
+        invalid = []
+        for key in ("expected_unsigned_apk_sha256", "unsigned_apk_sha256", "host_acceleration", "emulation"):
+            changed = copy.deepcopy(receipt)
+            changed.pop(key)
+            invalid.append(changed)
+        for key, value in (("mode", "software"), ("accel_argument", "off"),
+                           ("unsupported_software_opt_in", True), ("host", {"kern_hv_support": "1"})):
+            changed = copy.deepcopy(receipt)
+            changed["emulation"][key] = value
+            invalid.append(changed)
+        changed = copy.deepcopy(receipt)
+        changed["guest_readiness"]["last_checks"]["ui_dump_writable"]["exit_code"] = 1
+        invalid.append(changed)
+        changed = copy.deepcopy(receipt)
+        changed["cases"][0]["status"] = "not_run"
+        invalid.append(changed)
+        for changed in invalid:
+            with self.subTest(receipt=changed), self.assertRaises(smoke.SmokeFailure):
+                smoke.complete_receipt(changed, "a" * 40, expected_mode="hvf")
+
     def test_guest_readiness_requires_all_read_only_observations_on_the_verified_target(self):
         receipt, clock = {}, ReadinessClock()
         device = Mock(spec=smoke.Device)

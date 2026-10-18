@@ -1,8 +1,10 @@
 # Installed synthetic emulator verification
 
-The existing **Unsigned synthetic Android preview** CI job now has an installed
-smoke stage after compilation, lint and the named Robolectric regressions. It uses
-the same unsigned debug APK and one fresh AOSP API 35 x86_64 AVD. The workflow
+The existing **Unsigned synthetic Android preview** CI job builds, lints and runs
+the named Robolectric regressions on Linux. After that job succeeds, **Installed
+synthetic Android preview (Intel HVF)** verifies the exact unsigned APK handoff and
+runs the same smoke harness on an explicitly selected Intel macOS runner. It uses
+one fresh AOSP API 35 x86_64 AVD. The workflow
 definition and host-side harness tests are preparation; only an observed passing
 run and its exact receipt establish installed-emulator evidence.
 
@@ -64,7 +66,9 @@ launch timeout or relax any installed assertion; another observed run is require
 
 ## Isolation and diagnostic signing
 
-Provisioning is restricted to a standard disposable GitHub-hosted Linux runner.
+Provisioning is restricted to a standard disposable GitHub-hosted runner; the
+current installed job explicitly selects `macos-15-intel` and requires observed
+Darwin/x86_64 with hosted macOS/X64 identity and existing Hypervisor.Framework support.
 The workflow retains `contents: read`, checkout credential persistence stays off,
 and no production, publisher, signing or deployment secret is supplied. This uses
 the existing standard runner, not a larger paid runner or external coding job.
@@ -98,8 +102,8 @@ read/write access. It runs before SDK provisioning and again before the emulator
 acceleration probe. Missing devices, symbolic links and unavailable access fail
 clearly; this lane changes no KVM ownership, permissions, groups or udev rules.
 
-The current workflow explicitly selects `PYAI_EMULATOR_MODE=software`. This is an
-experimental diagnostic setting, not an automatic fallback or a vendor-supported
+The preceding Linux workflow explicitly selected `PYAI_EMULATOR_MODE=software`.
+That remains an opt-in experimental diagnostic setting, not an automatic fallback or a vendor-supported
 CI performance profile. The official emulator command-line reference documents
 `-accel off` as unsupported and very slow and requires the explicit
 `ANDROID_I_WANT_MY_TCG=yes` opt-in; that variable is supplied only to the owned
@@ -109,23 +113,77 @@ found `/dev/kvm` mode `crw-rw----`, owner 0/group 993, while the hosted job's
 effective UID 1001 had groups 4, 100, 118, 999 and 1001. It failed before provisioning
 because existing KVM access was unavailable; its permissions were left unchanged.
 
-Software mode has a 900-second boot deadline inside a 40-minute job budget. It
+The preceding software lane used a 900-second boot deadline inside a 40-minute job budget. It
 still must boot the pinned image, install the APK and execute every required case;
 timeout or failure cannot become successful or skipped acceptance. The receipt
 records the selected mode, exact acceleration argument, boot budget and unsupported
 opt-in alongside the actual tool/platform versions and case results. Feasible
 execution has not been established by this configuration or its host guard tests.
-When `PYAI_EMULATOR_MODE` is absent, hardware mode remains the default: the strict
+When `PYAI_EMULATOR_MODE` is absent, KVM mode remains the default: the strict
 read-only KVM preflight and emulator `-accel-check` must pass, with a 300-second
 boot deadline. Unknown mode names fail and hardware failure never switches modes.
 
-The host also needs Ubuntu's `libpulse0` runtime library even with emulator audio
-disabled. The preparation step installs that specific package and the receipt
-records its installed version. The first [hosted attempt](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39098235903)
+The Linux emulator host also needs Ubuntu's `libpulse0` runtime library even with emulator audio
+disabled. The previous preparation step installed that specific package and the receipt
+recorded its installed version. The first [hosted attempt](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39098235903)
 passed compilation/lint and all 11 simulated cases, then failed loading
 `libpulse.so.0` during emulator version inspection. Its retained receipt correctly
 marks all four installed cases unexecuted and the original APK unchanged. This
 failure is setup evidence; a later passing installed receipt is still required.
+
+### Observed Intel HVF capability and selected lane
+
+The read-only diagnostic [#244](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/244)
+ran on the existing `macos-15-intel` label in
+[run 39104147868](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39104147868).
+Its observed hosted macOS 15.7.9/X64 environment returned `kern.hv_support=1` and
+the preinstalled emulator 37.1.11.0 returned exit 0 with
+`Hypervisor.Framework OS X Version 15.7`. All bounded observations were complete,
+without stderr or timeout. That diagnostic was closed without merging its temporary
+workflow. It establishes capability on that observed host only; it booted no AVD.
+
+The installed job now explicitly selects `PYAI_EMULATOR_MODE=hvf`, a 300-second boot
+deadline and a 25-minute job budget. Both its preparation and harness check the
+hosted Intel platform and read-only `/usr/sbin/sysctl -n kern.hv_support` result.
+The harness also requires a complete successful `emulator -accel-check` result
+identifying Hypervisor.Framework, uses `-accel on`, and records the actual host and
+acceleration observations. Missing, failed, truncated, contradictory or timed-out
+observations fail; neither KVM probing nor software fallback follows an HVF failure.
+The preinstalled emulator version is pinned to 37.1.11.0 for this bounded adaptation;
+runner version drift requires a reviewed pin update. The workflow installs only the
+selected AOSP image through the existing SDK manager and verifies existing adb and
+build-tools 35.0.0. It changes no host permission, group, driver, hypervisor or SDK
+emulator binary. Linux-specific `dpkg-query` is not used on macOS.
+
+The successful Linux job exposes the unsigned APK's SHA-256 and its immutable
+uploaded artifact ID as job outputs. The installed job requires a single nonempty
+numeric artifact ID, downloads only that ID from the same workflow run with pinned
+`actions/download-artifact` v4.3.0, and compares the APK bytes against the producer's
+separate digest before signing or installation. Both checkouts must match the same
+workflow commit. The build/lint/simulation job must succeed before the installed
+job can start. A missing handoff or a different APK cannot become installed evidence;
+the digest alone is not a publisher attestation or release signature.
+
+The download explicitly sets `merge-multiple: true` while still accepting only one
+numeric artifact ID. In the pinned action's
+[extraction implementation](https://github.com/actions/download-artifact/blob/d3f86a106a0bac45b974a628896c90dbdf5c8093/src/download-artifact.ts),
+an ID-only lookup otherwise adds the artifact-name directory even when the list
+contains one ID. The explicit setting restores the archive's `outputs/...` path
+directly under `preview/build`, matching the harness; it broadens no artifact selection.
+The workflow layout regression applies those pinned extraction rules and reproduces
+the wrong nested APK path when the setting is removed.
+
+This change preserves the exact guest user/storage readiness gate, successful
+launch predicate, fresh UI hierarchy rules and all four installed case bodies.
+The prior software receipt [39103295994](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39103295994)
+still records inaccessible `/sdcard` with an unlocked user and all four cases
+unexecuted. Hardware support does not establish the cause of that storage failure
+or guarantee a cure. A fresh installed receipt must determine the result.
+
+The additional seven host guard methods bring the local harness suite to 36 passing
+tests. They cover foreign/missing host identity, absent/ambiguous support, command
+timeouts, acceleration output, exact APK handoff and final receipt rejection.
+Those Linux-hosted unit tests do not execute Hypervisor.Framework or install Android.
 
 ## Inputs and provenance
 
@@ -135,8 +193,9 @@ build-tools 35.0.0, compile/target 35 and minSdk 26 pins. This lane selects
 The upstream SDK manager resolves that package through the official SDK repository;
 the AOSP image needs no Google account or Google Play image.
 
-The runner's emulator/platform-tools binaries can change independently of this
-image pin. The receipt therefore records the actual emulator and adb versions,
+The runner's binaries can change independently of the image pin. The HVF lane
+rejects a preinstalled emulator version outside its separate pin; adb remains an
+observed runner input. The receipt records the actual emulator and adb versions,
 emulator binary hash, image package metadata hash, `system.img` hash, runtime API,
 ABI, build fingerprint, persisted/default locale properties, display size and density. The runner image and
 these tool versions are recorded inputs, not an assertion that every runner byte
@@ -151,17 +210,20 @@ A second workflow step requires the exact four successful case IDs and matching
 workflow commit, preventing an absent, stale or incomplete report from passing.
 Setup failure is an explicit JUnit failure with the four cases unexecuted.
 
-The existing seven-day `android-preview-<workflow commit>` artifact includes this
-JSON receipt, JUnit XML, bounded emulator log and synthetic UI XML/PNG checkpoints,
-bounded failure logcat when available, alongside the unsigned APK, lint reports
-and simulated-test reports. Link the exact
+The existing seven-day `android-preview-<workflow commit>` artifact retains the
+unsigned APK, lint reports and simulated-test reports from Linux. The separate
+`android-installed-hvf-<workflow commit>` artifact retains this JSON receipt, JUnit
+XML, bounded emulator log, synthetic UI XML/PNG checkpoints and bounded failure
+logcat when available. The final receipt requires the selected HVF mode, observed
+host/acceleration and producer APK digest in addition to guest readiness and all
+four actual cases. Link the exact
 run, commit and artifact before treating it as receiving evidence; artifact expiry
 does not create a permanent acceptance record.
 
 ## Running and reviewing
 
-The core lane checks the harness guards. The preview lane executes the installed
-harness after the unsigned build and simulations:
+The core lane checks the harness guards. The dependent installed lane executes the
+same harness after the successful unsigned build/simulation and exact APK handoff:
 
 ```sh
 python -m unittest discover -s scripts/tests -p 'test_android_emulator_smoke.py' -v
@@ -225,6 +287,16 @@ identifies the required `libpulse.so.0` library on the selected runner distribut
 The SDK metadata lists API 35 default x86_64 revision 2 as `x86_64-35_r02.zip`,
 782,404,023 bytes, with its published archive checksum. These references establish
 tool usage and available inputs; they do not establish a passing app run.
+
+Additional primary references checked 2026-10-18:
+[Android macOS acceleration](https://developer.android.com/studio/run/emulator-acceleration#vm-mac),
+[Intel macOS runner inventory](https://github.com/actions/runner-images/blob/main/images/macos/macos-15-Readme.md)
+and pinned [download-artifact v4.3.0 inputs](https://github.com/actions/download-artifact/blob/d3f86a106a0bac45b974a628896c90dbdf5c8093/action.yml).
+The download action's exact tag resolves to `d3f86a106a0bac45b974a628896c90dbdf5c8093`;
+no cross-repository/run token is supplied. Current Android documentation identifies
+`swiftshader_indirect` as deprecated; this adaptation preserves that existing
+graphics selection for the isolated capability change. Actual graphics results
+still require the fresh installed run, with no claimed renderer qualification.
 
 ## Owned guest readiness after boot
 

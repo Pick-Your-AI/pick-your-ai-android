@@ -8,6 +8,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import platform
 import re
 import signal
 import stat
@@ -24,6 +25,9 @@ ACTIVITY = PACKAGE + ".PreviewActivity"
 SERIAL = "emulator-5554"
 SYSTEM_IMAGE = "system-images;android-35;default;x86_64"
 IMAGE_REVISION = "2"
+HVF_EMULATOR_VERSION = "37.1.11.0"
+HVF_HOST_IDENTITY = {"runner_environment": "github-hosted", "runner_os": "macOS",
+                     "runner_arch": "X64", "system": "Darwin", "machine": "x86_64"}
 CASE_IDS = (
     "installed_synthetic_launch",
     "acknowledged_save_survives_force_stop",
@@ -72,15 +76,61 @@ def check_kvm_access(device: Path = Path("/dev/kvm")) -> None:
             "KVM read/write access is unavailable; no host permissions were changed")
 
 
+def hvf_host_passes(host: dict) -> bool:
+    return (isinstance(host, dict) and all(host.get(key) == value for key, value in HVF_HOST_IDENTITY.items())
+            and host.get("kern_hv_support") == "1")
+
+
+def check_hvf_access() -> dict:
+    """Observe the explicit hosted Intel Mac; never install or enable a hypervisor."""
+    host = {"runner_environment": os.environ.get("RUNNER_ENVIRONMENT"),
+            "runner_os": os.environ.get("RUNNER_OS"), "runner_arch": os.environ.get("RUNNER_ARCH"),
+            "system": platform.system(), "machine": platform.machine(),
+            "macos_version": platform.mac_ver()[0]}
+    require(all(host[key] == value for key, value in HVF_HOST_IDENTITY.items()),
+            "HVF mode requires the explicit GitHub-hosted Intel macOS runner")
+    result = command(["/usr/sbin/sysctl", "-n", "kern.hv_support"], timeout=10, check=False)
+    require(type(result.returncode) is int and result.returncode == 0
+            and isinstance(result.stdout, str) and len(result.stdout) <= 1024
+            and result.stdout.strip() == "1" and result.stderr == "",
+            "Existing Hypervisor.Framework support is unavailable; no host setting was changed")
+    host["kern_hv_support"] = result.stdout.strip()
+    return host
+
+
+def hvf_acceleration_passes(observed: dict) -> bool:
+    return (isinstance(observed, dict) and type(observed.get("exit_code")) is int
+            and observed["exit_code"] == 0 and observed.get("stderr") == ""
+            and isinstance(observed.get("stdout"), str) and len(observed["stdout"]) <= 2048
+            and re.fullmatch(r"accel:\r?\n0\r?\nHypervisor\.Framework OS X Version [0-9.]+\r?\naccel\r?\n?",
+                             observed["stdout"]) is not None)
+
+
+def check_hvf_acceleration(emulator: Path) -> dict:
+    result = command([str(emulator), "-accel-check"], timeout=30, check=False)
+    observed = {"exit_code": result.returncode, "stdout": result.stdout, "stderr": result.stderr}
+    require(hvf_acceleration_passes(observed),
+            "The existing emulator did not confirm usable Hypervisor.Framework acceleration")
+    return observed
+
+
+def require_apk_handoff(actual_hash: str, expected_hash: str | None) -> None:
+    require(isinstance(expected_hash, str) and re.fullmatch(r"[0-9a-f]{64}", expected_hash) is not None
+            and expected_hash == actual_hash,
+            "Unsigned APK does not match the successful Linux build's exact SHA-256 handoff")
+
+
 def emulation_settings() -> dict:
     """Select one explicit mode; an unavailable mode never becomes a skipped pass."""
     mode = os.environ.get("PYAI_EMULATOR_MODE", "kvm")
-    require(mode in ("kvm", "software"), "Unknown emulator mode; expected kvm or software")
+    require(mode in ("kvm", "software", "hvf"), "Unknown emulator mode; expected kvm, software or hvf")
     if mode == "kvm":
         check_kvm_access()
     settings = {"mode": mode, "accel_argument": "off" if mode == "software" else "on",
                 "boot_timeout_seconds": 900 if mode == "software" else 300,
                 "unsupported_software_opt_in": mode == "software"}
+    if mode == "hvf":
+        settings["host"] = check_hvf_access()
     print("Emulation settings: " + json.dumps(settings, sort_keys=True))
     return settings
 
@@ -217,7 +267,7 @@ def wait_for_guest_ready(device, receipt: dict, timeout_seconds=180):
         state["seconds"] = round(time.monotonic() - started, 3)
 
 
-def complete_receipt(receipt: dict, source_sha: str) -> None:
+def complete_receipt(receipt: dict, source_sha: str, expected_mode: str | None = None) -> None:
     require(receipt.get("source_commit") == source_sha, "Receipt source commit differs")
     require(receipt.get("scope") == "owned-installed-aosp-emulator", "Wrong evidence scope")
     require(receipt.get("status") == "passed", "Installed smoke did not pass")
@@ -225,6 +275,17 @@ def complete_receipt(receipt: dict, source_sha: str) -> None:
     require([case.get("id") for case in cases] == list(CASE_IDS), "Missing or duplicate smoke case")
     require(all(case.get("status") == "passed" for case in cases), "A smoke case did not execute successfully")
     require(receipt.get("unsigned_apk_unchanged") is True, "Unsigned build preservation was not verified")
+    emulation = receipt.get("emulation", {})
+    if expected_mode is not None:
+        require(isinstance(emulation, dict) and emulation.get("mode") == expected_mode,
+                "Receipt does not use the selected emulator mode")
+    if isinstance(emulation, dict) and emulation.get("mode") == "hvf":
+        require(emulation.get("accel_argument") == "on"
+                and emulation.get("unsupported_software_opt_in") is False
+                and hvf_host_passes(emulation.get("host"))
+                and hvf_acceleration_passes(receipt.get("host_acceleration")),
+                "Complete hosted Intel Hypervisor.Framework evidence is missing")
+        require_apk_handoff(receipt.get("unsigned_apk_sha256"), receipt.get("expected_unsigned_apk_sha256"))
     readiness = receipt.get("guest_readiness", {})
     require(isinstance(readiness, dict) and readiness.get("ready") is True and
             readiness.get("ui_dump_path") == UI_DUMP_PATH and
@@ -559,6 +620,10 @@ def main() -> int:
         receipt["unsigned_apk_sha256"] = original_hash
         settings = emulation_settings()
         receipt["emulation"] = settings
+        if settings["mode"] == "hvf":
+            expected_hash = os.environ.get("PYAI_EXPECTED_APK_SHA256")
+            require_apk_handoff(original_hash, expected_hash)
+            receipt["expected_unsigned_apk_sha256"] = expected_hash
         if settings["mode"] == "software":
             receipt["limitations"].append("software CPU emulation is a vendor-unsupported diagnostic mode")
         sdk = Path(os.environ["ANDROID_HOME"])
@@ -579,12 +644,18 @@ def main() -> int:
         receipt["system_image"] = {"package": SYSTEM_IMAGE, "revision": revision,
                                   "package_xml_sha256": digest(image_dir / "package.xml"),
                                   "system_img_sha256": digest(image_dir / "system.img")}
-        receipt["libpulse0_version"] = command(["dpkg-query", "-W", "-f=${Version}", "libpulse0"]).stdout.strip()
+        if settings["mode"] != "hvf":
+            receipt["libpulse0_version"] = command(["dpkg-query", "-W", "-f=${Version}", "libpulse0"]).stdout.strip()
         receipt["emulator_version"] = command([str(emulator), "-version"]).stdout.strip()
         receipt["emulator_binary_sha256"] = digest(emulator)
         receipt["adb_version"] = command([str(adb), "version"]).stdout.strip()
         if settings["mode"] == "kvm":
             command([str(emulator), "-accel-check"])
+        elif settings["mode"] == "hvf":
+            require(receipt["emulator_version"].splitlines()[0].startswith(
+                    "Android emulator version " + HVF_EMULATOR_VERSION + " "),
+                    "The preinstalled HVF emulator version changed; review its capability before updating the pin")
+            receipt["host_acceleration"] = check_hvf_acceleration(emulator)
         connected = command([str(adb), "devices"]).stdout.splitlines()[1:]
         require(not any(line.strip() for line in connected), "Existing adb devices found; refusing shared-device execution")
         badging = command([str(build_tools / "aapt"), "dump", "badging", str(apk)]).stdout
@@ -679,7 +750,7 @@ def main() -> int:
                         (output / "emulator.log").write_bytes(log.read())
         receipt["unsigned_apk_unchanged"] = digest(apk) == original_hash
         receipt["status"] = "passed"
-        complete_receipt(receipt, source)
+        complete_receipt(receipt, source, expected_mode=settings["mode"])
     except Exception as error:
         receipt.update(status="failed", error=str(error))
         print("Installed emulator smoke failed: " + str(error), file=sys.stderr)
