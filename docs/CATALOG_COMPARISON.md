@@ -4,7 +4,8 @@ The synthetic native preview can retain two exact catalog pins, show their typed
 recorded fields in a stacked comparison, and hide matching recorded values while
 keeping missing, unknown and non-comparable rows visible. Comparison is transient
 read-only UI state. It does not select a draft component, acquire a save token,
-write a revision, evaluate compatibility, load a pricebook rate or rank items.
+write a revision, evaluate compatibility or rank items. Each component retains
+the same bounded recorded price context as its catalog detail.
 
 ## Bounded selection and exact identity
 
@@ -61,10 +62,18 @@ Each item's exact identity, snapshot metadata, license declarations and bounded
 provenance remain above the field comparison. Frozen condition/reference fields,
 including provider/hosting/accelerator references, precision, context, region and
 workload metrics, remain displayed even when their matching rows are hidden.
-Provider references still do not establish an offering or serving route. No
-pricebook rate is loaded, and the existing explicit unknown currency, region,
-meter and effective-period language remains visible. A billing class is not an
-applicable free quote. Existing conservative source labels remain unchanged.
+Provider references still do not establish an offering or serving route.
+The current immutable pricebook arrives with the catalog load and supplies the
+same exact item/version recorded metadata described in
+[CATALOG_PRICE_CONTEXT.md](CATALOG_PRICE_CONTEXT.md). Both components retain the
+pricebook ID, hash and dates, their own recorded amounts, currency, meter, region,
+conditions and unassessed provenance above the differences filter. Different
+meters or alternatives are neither combined nor ranked. A missing record and an
+unreadable pricebook remain distinct unknown states; neither becomes zero. A
+failed reload clears the old book, and a later successful load restores its
+explicit recorded context. The tray pins catalog snapshots, not a historical
+pricebook: each opened comparison identifies the book actually used. A billing
+class is not an applicable free quote. Existing source labels remain unchanged.
 
 ## Phone presentation and lifetime
 
@@ -93,15 +102,19 @@ source-navigation, managed selection or storage-liveness guards.
 Seven core regressions cover same-name exact versions, limit/removal, forged or
 stale lookup, oversized identity refusal, exact-snapshot recovery, arbitrary
 precision, unknown/false/zero/empty distinctions, cross-kind refusal and immutable
-state. Six mandatory Activity regressions exercise actual dialog controls and
+state. Seven mandatory Activity regressions exercise actual dialog controls and
 Back navigation, pending form preservation and recreation, retained/dismissed
 callbacks, unavailable snapshot recovery, differences with conditions, malformed
 restoration, and a measured 320 dp RTL layout at 2x font scale. That measurement
 checks wrapping headings without ellipsis and the check box's target, label,
 checkable state and focusability. It is simulated Android evidence, not a
-screen-reader session on an installed device.
+screen-reader session on an installed device. The added receiving regression
+combines real compute/storage detail controls with the tray, verifies their
+separate exact recorded price contexts above the differences filter, clears
+unavailable pricing without reusing stale rates, and restores it after recovery
+and Activity recreation without writing a draft or changing its pending fields.
 
-The combined local strict gate on accepted main `7f3d59b` includes core checks and
+The combined local strict gate includes core checks and
 assembly, unsigned preview assembly, lint and all Activity simulations. Exact
 published-source hosted results and independent review are recorded in the
 delivery PR; local execution does not replace those gates.
@@ -110,7 +123,7 @@ delivery PR; local execution does not replace those gates.
 | --- | --- | --- |
 | Normalize comparable fields and conditions; unknown remains explicit; accessible horizontal or stacked comparison on phones. | Same-kind canonical-field numeric spelling comparison; typed unknowns and conditions retained; stacked native prototype. | Accepted production comparison limit, any agreed convertible-unit cases, real-data semantics, complete #80/#97 inputs and receiving review. |
 | Different versions or offerings remain distinguishable even when display names are identical, and missing fields are labeled rather than rendered as zero. | Exact ID/version/hash pins, repeated version headings, no latest fallback, explicit missing/unknown/false/zero distinctions. | Accepted offering identity/real catalog coverage and installed unavailable-version recovery. |
-| A comparison never merges rates with different currencies or workload bases into an unsupported cheaper/better verdict. | No rate join, arithmetic, conversion or ranking; explicit unavailable rate context stays visible. | Accepted pricebook applicability/freshness joins and their versioned negative cases if rates are added. |
+| A comparison never merges rates with different currencies or workload bases into an unsupported cheaper/better verdict. | Separate exact recorded metadata retains units, conditions, provenance and unknowns above the differences filter; no arithmetic, conversion, eligibility or ranking. | Accepted real pricebook applicability/freshness semantics and versioned quote/negative cases. |
 | The selected comparison set and headings remain usable at the supported narrow width and font scale with screen-reader navigation. | Bounded saved tray, wrapping repeated headings, 320 dp RTL/2x simulated measurement, platform heading and check-box semantics. | Supported device/window/font/locale matrix, installed TalkBack traversal, manual accessibility and Android catalog/UX/data-consumer acceptance. |
 
 The canonical acceptance record remains

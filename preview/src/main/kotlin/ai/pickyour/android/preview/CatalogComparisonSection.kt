@@ -10,6 +10,7 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import ai.pickyour.core.preview.*
+import ai.pickyour.core.pricing.RecordedPricebook
 
 /** Read-only transient comparison. It never receives an editor save token or worker. */
 class CatalogComparisonSection(private val activity: Activity, saved: Bundle?) : LinearLayout(activity) {
@@ -28,6 +29,7 @@ class CatalogComparisonSection(private val activity: Activity, saved: Bundle?) :
     } catch (_: IllegalArgumentException) { resetState = true; PreviewCatalogTray() }
     private var differencesOnly = saved?.getBoolean("comparisonDifferencesOnly", false) ?: false
     private var browser: PreviewCatalogBrowser? = null
+    private var pricebook: RecordedPricebook? = null
     private var closed = false
     private var comparisonDialog: AlertDialog? = null
     private val status: TextView
@@ -56,7 +58,12 @@ class CatalogComparisonSection(private val activity: Activity, saved: Bundle?) :
         if (android.os.Build.VERSION.SDK_INT >= 28) isAccessibilityHeading = heading
     }.also(parent::addView)
 
-    fun show(value: PreviewCatalogBrowser?) { if (active()) { browser = value; render() } }
+    fun show(value: PreviewCatalogBrowser?, prices: RecordedPricebook? = null) {
+        if (!active()) return
+        browser = value
+        pricebook = if (value == null) null else prices
+        render()
+    }
 
     fun add(item: PreviewCatalogItem, hash: String) {
         if (!active()) return
@@ -125,7 +132,7 @@ class CatalogComparisonSection(private val activity: Activity, saved: Bundle?) :
         current.forEachIndexed { index, entry ->
             caption(content, identity(index, entry), true)
             val detail = requireNotNull(entry.detail)
-            caption(content, CatalogDetailText.describe(activity, detail, includeSpecifications = false))
+            caption(content, CatalogDetailText.describe(activity, detail, pricebook, includeSpecifications = false))
             val conditions = detail.specs.filter { it.name in CONDITION_FIELDS }
             if (conditions.isNotEmpty()) caption(content, activity.getString(R.string.catalog_compare_recorded_conditions,
                 conditions.joinToString("\n") { field -> activity.getString(R.string.catalog_detail_field,

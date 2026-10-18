@@ -3,6 +3,7 @@ package ai.pickyour.android.preview
 import android.content.Context
 import ai.pickyour.core.evidence.EvidenceLabel
 import ai.pickyour.core.preview.*
+import ai.pickyour.core.pricing.RecordedPricebook
 
 /** Plain bounded text only. Source strings are never linkified, resolved or launched. */
 internal object CatalogDetailText {
@@ -39,7 +40,8 @@ internal object CatalogDetailText {
         PreviewCatalogValueState.SUPPLIED -> json(context, requireNotNull(field.valueJson))
     }
 
-    fun describe(context: Context, detail: PreviewCatalogDetails, includeSpecifications: Boolean = true): String {
+    fun describe(context: Context, detail: PreviewCatalogDetails, pricebook: RecordedPricebook? = null,
+                 includeSpecifications: Boolean = true): String {
         fun text(raw: String?) = literal(context, raw)
         fun fields(values: List<PreviewCatalogField>) = values.joinToString("\n") { field ->
             context.getString(R.string.catalog_detail_field, field.name, field.type, fieldValue(context, field))
@@ -70,6 +72,7 @@ internal object CatalogDetailText {
             context.getString(R.string.evidence_support_unestablished),
             context.getString(R.string.evidence_pinned),
             context.getString(R.string.catalog_detail_price),
+            CatalogPriceText.describe(context, item, pricebook),
             context.getString(R.string.catalog_detail_source_limits),
         ).joinToString("\n\n")
     }
