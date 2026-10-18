@@ -148,6 +148,7 @@ class T6PlanningActivityTest {
         assertTrue(started.await(15, TimeUnit.SECONDS))
         try {
             reopen()
+            idle()
             assertTrue(texts().contains(activity.getString(R.string.planning_loading)))
             assertEquals(5, texts().count { it == activity.getString(R.string.planning_choices_unavailable) })
             assertFalse(texts().contains(activity.getString(R.string.planning_choices_missing)))
