@@ -483,16 +483,17 @@ class PreviewActivityTest {
     }
 
     @Test fun catalogDetailRenderingKeepsUnknownAndBoundedLiteralSourceValues() {
-        val mapper = com.fasterxml.jackson.databind.ObjectMapper()
-        val root = activity.assets.open("catalog.json").use { mapper.readTree(it) } as com.fasterxml.jackson.databind.node.ObjectNode
-        val provider = root["items"].single { it["kind"].textValue() == "model_provider" } as com.fasterxml.jackson.databind.node.ObjectNode
-        (provider["spec"] as com.fasterxml.jackson.databind.node.ObjectNode).putArray("supported_regions").add("region-fixture").add("unknown")
-        val sources = provider.putArray("provenance")
+        val root = activity.assets.open("catalog.json").bufferedReader(Charsets.UTF_8).use { org.json.JSONObject(it.readText()) }
+        val items = root.getJSONArray("items")
+        val provider = (0 until items.length()).map { items.getJSONObject(it) }.single { it.getString("kind") == "model_provider" }
+        provider.getJSONObject("spec").put("supported_regions", org.json.JSONArray().put("region-fixture").put("unknown"))
+        val sources = org.json.JSONArray()
+        provider.put("provenance", sources)
         repeat(10) { index ->
-            sources.addObject().put("checked_at", "2026-10-16T09:00:00Z").put("verification_status", "verified")
-                .put("source_uri", "https://example.invalid/fixture-$index").put("notes", "\u202e" + "x".repeat(200))
+            sources.put(org.json.JSONObject().put("checked_at", "2026-10-16T09:00:00Z").put("verification_status", "verified")
+                .put("source_uri", "https://example.invalid/fixture-$index").put("notes", "\u202e" + "x".repeat(200)))
         }
-        val browser = requireNotNull(PreviewCatalogBrowser.read(mapper.writeValueAsBytes(root)))
+        val browser = requireNotNull(PreviewCatalogBrowser.read(root.toString().toByteArray(Charsets.UTF_8)))
         val item = browser.items.single { it.kind == "model_provider" }
         val message = CatalogDetailText.describe(activity, requireNotNull(browser.details(item, browser.hash)))
         assertTrue(message.contains("contains explicit unknown entries"))
