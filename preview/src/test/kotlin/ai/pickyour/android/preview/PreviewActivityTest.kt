@@ -318,4 +318,54 @@ class PreviewActivityTest {
         assertTrue(adapter().load() is PreviewDraftLoad.Missing)
     }
 
+    @Test fun retiredEditorButtonsCannotDispatchWorkOrOpenDialogs() {
+        save()
+        val baseline = loaded().baselineIdentity
+        field(R.string.draft_title).setText("pending survives")
+        val retired = listOf(R.string.save_draft, R.string.reopen_draft, R.string.clear_draft,
+            R.string.draft_history, R.string.library_open, R.string.library_new, R.string.library_duplicate,
+            R.string.retry_catalog, R.string.run).map(::button) +
+            views().filterIsInstance<Button>().filter { it.text.toString().startsWith("T3:") }
+        recreate()
+        await { hasText(R.string.draft_unsaved) && button(R.string.save_draft).isEnabled }
+        val lastDialog = ShadowAlertDialog.getLatestAlertDialog()
+        retired.forEach { it.performClick() }
+        shadowOf(Looper.getMainLooper()).idle()
+        assertSame(lastDialog, ShadowAlertDialog.getLatestAlertDialog())
+        assertEquals("pending survives", field(R.string.draft_title).text.toString())
+        assertEquals(baseline, loaded().baselineIdentity)
+        assertTrue(button(R.string.save_draft).isEnabled)
+    }
+
+    @Test fun retiredComparisonPickerCannotSubmitToClosedWorker() {
+        save()
+        val baseline = loaded().baselineIdentity
+        button(R.string.draft_history).performClick()
+        val history = dialog()
+        history.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+        await { dialog() !== history && dialog().isShowing }
+        val retiredPicker = dialog()
+        recreate()
+        await { hasText(R.string.draft_saved) }
+        val lastDialog = ShadowAlertDialog.getLatestAlertDialog()
+        shadowOf(retiredPicker).clickOnItem(0)
+        shadowOf(Looper.getMainLooper()).idle()
+        assertSame(lastDialog, ShadowAlertDialog.getLatestAlertDialog())
+        assertEquals(baseline, loaded().baselineIdentity)
+    }
+
+    @Test fun retiredTierConfirmationCannotCommitAfterRecreation() {
+        save()
+        val baseline = loaded().baselineIdentity
+        views().filterIsInstance<Button>().single { it.text.toString().startsWith("T3:") }.performClick()
+        shadowOf(dialog()).clickOnItem(Activation.ENABLED.ordinal)
+        val retiredConfirmation = dialog()
+        recreate()
+        await { hasText(R.string.draft_saved) }
+        retiredConfirmation.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+        assertEquals(baseline, loaded().baselineIdentity)
+        assertEquals(Activation.DISABLED, loaded().optionalTiers.getValue(OptionalTier.T3).activation)
+    }
+
 }

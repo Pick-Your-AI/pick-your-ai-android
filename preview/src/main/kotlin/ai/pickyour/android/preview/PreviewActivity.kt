@@ -146,6 +146,7 @@ class PreviewActivity : Activity() {
         clear = Button(this).apply {
             setText(R.string.clear_draft)
             setOnClickListener {
+                if (destroyed) return@setOnClickListener
                 title.setText("")
                 selectedId = null
                 selectedVersion = null
@@ -161,6 +162,7 @@ class PreviewActivity : Activity() {
         reopen = Button(this).apply {
             setText(R.string.reopen_draft)
             setOnClickListener {
+                if (destroyed) return@setOnClickListener
                 AlertDialog.Builder(this@PreviewActivity).setTitle(R.string.reopen_draft)
                     .setMessage(R.string.reopen_warning)
                     .setNegativeButton(R.string.keep_edits, null)
@@ -220,6 +222,7 @@ class PreviewActivity : Activity() {
         val evidenceDetails = text(R.string.evidence_ready)
         val run = Button(this).apply { setText(R.string.run) }
         run.setOnClickListener {
+                if (destroyed) return@setOnClickListener
             run.isEnabled = false
             status.setText(R.string.working)
             evidenceDetails.setText(R.string.evidence_ready)
@@ -273,6 +276,7 @@ class PreviewActivity : Activity() {
     }
 
     private fun loadCatalog() {
+        if (destroyed) return
         retry.isEnabled = false
         catalogStatus.setText(R.string.working)
         worker.execute {
@@ -309,6 +313,7 @@ class PreviewActivity : Activity() {
 
     /** Always uses the current query and complete loaded snapshot, including after an async reload. */
     private fun renderCatalog() {
+        if (destroyed) return
         catalog.removeAllViews()
         if (loadedCatalogHash == null) {
             catalogResults.setText(R.string.catalog_search_waiting)
@@ -328,12 +333,13 @@ class PreviewActivity : Activity() {
     }
 
     private fun showDetails(item: SampleItem) {
+        if (destroyed) return
         AlertDialog.Builder(this)
             .setTitle(item.name)
             .setMessage(getString(R.string.item_details, item.id, item.kind, item.version))
             .setNegativeButton(R.string.close, null)
             .setPositiveButton(R.string.select_sample) { _, _ ->
-                if (!storageBusy && loadedCatalogHash != null) {
+                if (!destroyed && !storageBusy && loadedCatalogHash != null) {
                     selectedId = item.id
                     selectedVersion = item.version
                     selectedCatalogHash = loadedCatalogHash
@@ -345,6 +351,7 @@ class PreviewActivity : Activity() {
     }
 
     private fun showSelection() {
+        if (destroyed) return
         val item = items.firstOrNull { it.id == selectedId && it.version == selectedVersion && selectedCatalogHash == loadedCatalogHash }
         selection.text = when {
             selectedId == null -> getString(R.string.no_selection)
@@ -354,6 +361,7 @@ class PreviewActivity : Activity() {
     }
 
     private fun applyContext(value: PreviewDraftContext) {
+        if (destroyed) return
         domainContext = value
         val wasRestoring = restoringFields
         restoringFields = true
@@ -364,6 +372,7 @@ class PreviewActivity : Activity() {
     }
 
     private fun updateContextState() {
+        if (destroyed) return
         if (!::contextState.isInitialized) return
         fun label(value: String?) = getString(when {
             value == null -> R.string.context_unanswered
@@ -378,6 +387,7 @@ class PreviewActivity : Activity() {
     private fun fields() = PreviewDraftFields(title.text.toString(), selectedId, selectedVersion, selectedCatalogHash)
 
     private fun formChanged() {
+        if (destroyed) return
         updateContextState()
         if (restoringFields || !::saveStatus.isInitialized) return
         if (!storageBusy && storageReady) {
@@ -387,6 +397,7 @@ class PreviewActivity : Activity() {
     }
 
     private fun updateEditingEnabled() {
+        if (destroyed) return
         title.isEnabled = !storageBusy
         objective.isEnabled = !storageBusy
         contextInput.isEnabled = !storageBusy
@@ -402,6 +413,7 @@ class PreviewActivity : Activity() {
     }
 
     private fun showHistory() {
+        if (destroyed) return
         val baseline = savedRecord ?: return
         if (!storageReady || storageBusy) return
         val revisions = baseline.history.reversed()
@@ -412,6 +424,7 @@ class PreviewActivity : Activity() {
         }.toTypedArray()
         AlertDialog.Builder(this).setTitle(R.string.draft_history)
             .setItems(rows) { _, index ->
+                if (destroyed) return@setItems
                 val revision = revisions[index]
                 val oldFields = revision.fields
                 if (oldFields == null) {
@@ -425,7 +438,7 @@ class PreviewActivity : Activity() {
                         .setNeutralButton(R.string.domain_restore_preview) { _, _ -> confirmDomainRestore(baseline, revision) }
                         .setPositiveButton(R.string.history_copy) { _, _ ->
                             // A dialog opened before another save/load cannot adopt that operation's baseline.
-                            if (storageReady && !storageBusy && savedRecord === baseline) {
+                            if (!destroyed && storageReady && !storageBusy && savedRecord === baseline) {
                                 restoringFields = true
                                 title.setText(oldFields.title)
                                 selectedId = oldFields.selectedId
@@ -442,10 +455,12 @@ class PreviewActivity : Activity() {
     }
 
     private fun showComparisonPicker(baseline: PreviewStoredDraft) {
+        if (destroyed) return
         if (!storageReady || storageBusy || savedRecord !== baseline) return
         val revisions = baseline.history.reversed()
         AlertDialog.Builder(this).setTitle(R.string.revision_compare_open)
             .setItems(revisions.map { getString(R.string.history_revision, it.revision.toString()) }.toTypedArray()) { _, index ->
+                if (destroyed) return@setItems
                 worker.execute {
                     val comparison = baseline.compareRevision(revisions[index].revision)
                     runOnUiThread {
@@ -461,6 +476,7 @@ class PreviewActivity : Activity() {
     }
 
     private fun setDraftActivation(expected: PreviewStoredDraft, tier: OptionalTier, activation: Activation) {
+        if (destroyed) return
         val id = currentDraftId
         storageBusy = true
         saveStatus.setText(R.string.draft_saving)
@@ -505,6 +521,7 @@ class PreviewActivity : Activity() {
     }
 
     private fun showRevisionComparison(comparison: PreviewRevisionComparison) {
+        if (destroyed) return
         val value: (String?) -> String = ::renderLocalValue
         val rows = comparison.changes.take(100).map { change ->
             getString(R.string.revision_compare_row, change.field,
@@ -520,6 +537,7 @@ class PreviewActivity : Activity() {
     }
 
     private fun confirmDomainRestore(baseline: PreviewStoredDraft, revision: PreviewDraftRevision) {
+        if (destroyed) return
         if (!storageReady || storageBusy || savedRecord !== baseline) return
         val value: (String?) -> String = ::renderLocalValue
         val content = revision.content
@@ -532,11 +550,12 @@ class PreviewActivity : Activity() {
             .setMessage(getString(R.string.domain_restore_warning, summary))
             .setNegativeButton(R.string.keep_edits, null)
             .setPositiveButton(R.string.domain_restore_commit) { _, _ ->
-                if (storageReady && !storageBusy && savedRecord === baseline) restoreDomain(baseline, revision.revision)
+                if (!destroyed && storageReady && !storageBusy && savedRecord === baseline) restoreDomain(baseline, revision.revision)
             }.show()
     }
 
     private fun restoreDomain(expected: PreviewStoredDraft, revision: Long) {
+        if (destroyed) return
         val id = currentDraftId
         storageBusy = true
         saveStatus.setText(R.string.draft_saving)
@@ -583,6 +602,7 @@ class PreviewActivity : Activity() {
     }
 
     private fun restoreActiveDraft(preserveRestoredFields: Boolean) {
+        if (destroyed) return
         storageBusy = true
         storageReady = false
         updateEditingEnabled()
@@ -612,6 +632,7 @@ class PreviewActivity : Activity() {
     }
 
     private fun showLibrary() {
+        if (destroyed) return
         if (storageBusy) return
         storageBusy = true
         updateEditingEnabled()
@@ -633,6 +654,7 @@ class PreviewActivity : Activity() {
                                 ?: getString(R.string.library_unavailable), entry.id.value)
                         }.toTypedArray()
                         AlertDialog.Builder(this).setTitle(R.string.library_open).setItems(labels) { _, index ->
+                            if (destroyed) return@setItems
                             val entry = entries[index]
                             if (entry.deletionPending) confirmDelete(entry)
                             else AlertDialog.Builder(this).setTitle(getString(R.string.library_local_id, entry.id.value))
@@ -650,6 +672,7 @@ class PreviewActivity : Activity() {
     }
 
     private fun confirmDelete(entry: PreviewLibraryEntry) {
+        if (destroyed) return
         if (storageBusy) return
         AlertDialog.Builder(this).setTitle(if (entry.deletionPending) R.string.library_retry_delete else R.string.library_delete)
             .setMessage(getString(R.string.library_delete_warning, entry.id.value))
@@ -660,6 +683,7 @@ class PreviewActivity : Activity() {
     }
 
     private fun deleteDraft(entry: PreviewLibraryEntry) {
+        if (destroyed) return
         val previous = PreviewDraftSession(currentDraftId, savedRecord, fields(), storageReady)
         val expected = (entry.state as? PreviewDraftLoad.Available)?.record
         storageBusy = true
@@ -690,6 +714,7 @@ class PreviewActivity : Activity() {
     }
 
     private fun openDraftTarget(target: PreviewDraftId) {
+        if (destroyed) return
         if (storageBusy) return
         val previous = PreviewDraftSession(currentDraftId, savedRecord, fields(), storageReady)
         storageBusy = true
@@ -733,6 +758,7 @@ class PreviewActivity : Activity() {
     }
 
     private fun confirmCreate(duplicate: Boolean) {
+        if (destroyed) return
         if (storageBusy) return
         val source = if (duplicate) savedRecord ?: return else null
         AlertDialog.Builder(this).setTitle(if (duplicate) R.string.library_duplicate else R.string.library_new)
@@ -744,6 +770,7 @@ class PreviewActivity : Activity() {
     }
 
     private fun createDraft(source: PreviewStoredDraft?) {
+        if (destroyed) return
         storageBusy = true
         updateEditingEnabled()
         worker.execute {
@@ -765,6 +792,7 @@ class PreviewActivity : Activity() {
     }
 
     private fun loadDraft(preserveRestoredFields: Boolean) {
+        if (destroyed) return
         val id = currentDraftId
         activeDraft.text = getString(R.string.library_active, id.value)
         storageBusy = true
@@ -809,6 +837,7 @@ class PreviewActivity : Activity() {
     }
 
     private fun saveDraft() {
+        if (destroyed) return
         if (!storageReady || storageBusy) return
         val id = currentDraftId
         val pendingContext = domainContext
@@ -885,6 +914,9 @@ class PreviewActivity : Activity() {
 
     override fun onDestroy() {
         destroyed = true
+        storageReady = false
+        storageBusy = true
+        if (::tierSection.isInitialized) tierSection.close()
         worker.shutdownNow()
         super.onDestroy()
     }
