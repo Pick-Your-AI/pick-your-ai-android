@@ -38,7 +38,7 @@ jobs:
       - name: Check wrapper integrity
         run: sha256sum --check gradle/wrapper/wrapper.sha256
       - name: Compile and test JVM core
-        run: ./gradlew --no-daemon :core:check :core:assemble
+        run: ./gradlew --no-daemon --dependency-verification=strict --init-script scripts/runtime_inventory.init.gradle.kts :core:check :core:assemble runtimeInventory
       - name: Retain test and library artifacts
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -48,6 +48,7 @@ jobs:
             core/build/reports/tests/
             core/build/test-results/
             core/build/libs/
+            build/inventory/runtime-inventory.json
           retention-days: 7
           if-no-files-found: ignore
   android-preview:
@@ -76,7 +77,7 @@ jobs:
       - name: Check wrapper integrity
         run: sha256sum --check gradle/wrapper/wrapper.sha256
       - name: Compile unsigned preview, run lint and simulated UI tests
-        run: ./gradlew --no-daemon --dependency-verification=strict -PandroidPreview=true :preview:assembleDebug :preview:lintDebug :preview:testDebugUnitTest
+        run: ./gradlew --no-daemon --dependency-verification=strict --init-script scripts/runtime_inventory.init.gradle.kts -PandroidPreview=true :preview:assembleDebug :preview:lintDebug :preview:testDebugUnitTest runtimeInventory
       - name: Require all simulated UI regressions to execute
         run: |
           python - <<'PYTEST'
@@ -159,5 +160,7 @@ jobs:
             preview/build/reports/lint-results-debug.*
             preview/build/reports/tests/testDebugUnitTest/
             preview/build/test-results/testDebugUnitTest/
+            core/build/libs/
+            build/inventory/runtime-inventory.json
           retention-days: 7
           if-no-files-found: ignore
