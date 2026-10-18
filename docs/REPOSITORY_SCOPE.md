@@ -28,9 +28,13 @@ receiving records; it does not accept implementation or release.
 `docs/delivery/android/work-packages/14.01.md` record in this repository.
 [ADR 0002](decisions/0002-android-foundation-records.md) adds only #20/#24/#34's
 `01.01.md`, `01.02.md` and `01.03.md` records under that same directory after its
-independently reviewed merge. Their original intended website paths are preserved
-as history; the pinned website tree contained none of these records. Every other
-issue path retains its current authority. A versioned current acceptance record
+independently reviewed merge. [ADR 0004](decisions/0004-android-47-acceptance-record.md)
+adds only #47's [01.06](delivery/android/work-packages/01.06.md) acceptance-baseline
+record after its independent review and normal merge. Its
+[selected device/quality requirements](ACCEPTANCE_BASELINE.md) are qualification
+targets, not observed device or release results. Their original intended website
+paths are preserved as history; the pinned website tree contained none of these
+records. Every other issue path retains its current authority. A versioned current acceptance record
 must bind exact delivered artifacts and reviews before issue completion; the v1
 partial-evidence ledger is not silently rewritten to assert acceptance.
 

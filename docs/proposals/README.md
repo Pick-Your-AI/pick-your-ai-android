@@ -11,7 +11,8 @@ separate from decision acceptance, device, store or production completion.
 | --- | --- | --- |
 | [Product and scope](01-product-scope.md) | [#20](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/20), [#24](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/24); retained #25 recommendation | Pinned evidence/hypotheses, five journeys and actual desk walkthrough, four-mode and capability decisions |
 | [Native architecture](02-native-architecture.md) | [#34](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/34) | Select retained Kotlin/Views/store boundary; compare Compose/shared clients; inspect native lifecycle/storage/lists and portable versus platform-specific reuse |
-| [Services and acceptance](03-service-and-readiness.md) | [#35](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/35), [#47](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/47) | Local-first preview; explicit production service, operations and device gates |
+| [Service recommendation](03-service-and-readiness.md) | [#35](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/35) | Local preview and later shared-service proposal; hosting and operating owner remain unaccepted |
+| [Acceptance baseline](../ACCEPTANCE_BASELINE.md) | [#47](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/47) | Concrete device/API/window targets, A01–A13 measurement/evidence criteria, explicit roles and separate structural/factual/application/release gates; effective through independent receiving review and normal merge |
 | [Issue audit](issues-snapshot.md) | All open Android issues | Dated inventory of issue-body prerequisites and missing evidence |
 
 The original intended acceptance locations for 01.01–01.06 were in
@@ -19,8 +20,11 @@ The original intended acceptance locations for 01.01–01.06 were in
 explicitly places only [01.01](../delivery/android/work-packages/01.01.md),
 [01.02](../delivery/android/work-packages/01.02.md) and
 [01.03](../delivery/android/work-packages/01.03.md) in this Android repository after
-reviewed merge, preserving all nine literal criteria. 01.04–01.06 and every other
-unmoved path retain their existing authority. This source package changes no
+reviewed merge, preserving all nine literal criteria.
+[ADR 0004](../decisions/0004-android-47-acceptance-record.md) adds only
+[01.06](../delivery/android/work-packages/01.06.md) after its independent review and
+normal merge, preserving #47's three literal criteria. 01.04, 01.05 and every other
+unmoved path retain their independently governed authority. This source package changes no
 website files, issue fields, assignees, checkboxes or native relationships.
 
 The product decision authority and Android technical lead are the required receiving
