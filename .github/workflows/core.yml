@@ -98,6 +98,7 @@ jobs:
               "retiredCleanupConfirmationCannotDispatchAfterRecreation",
               "retainedConfirmationCannotReplaceAnotherPendingCleanup",
               "retainedConfirmationUsesCurrentSameIdCleanupAuthority",
+              "canceledCleanupConfirmationCannotDeleteItsAcknowledgedDraft",
               "largeTextRtlButtonsRetainMeasuredTargetsAndUntruncatedLabels",
               "forwardFocusOrderKeepsEditorsAndClearActionReachable",
               "catalogQuerySortAndPageSurviveDetailsAndRecreationWithoutChangingDraft",

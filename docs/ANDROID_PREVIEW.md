@@ -770,6 +770,15 @@ dispatch uses retry-only semantics, including retaining the receipt when storage
 is busy. The confirmation's earlier view of the operation is not sufficient
 authority for a later submission.
 
+A deletion confirmation also must still be showing when its positive callback
+dispatches. Canceling or dismissing it ends that confirmation's authority, even
+when its Activity and original draft are still current. A further simulated
+regression invokes the actual retained positive button after both cancellation
+and dismissal, requiring the acknowledged draft, pending form and empty cleanup
+receipt to remain unchanged. The two pending-identity regressions keep their
+earlier confirmation visible across the later operation, so they still exercise
+the dispatch identity and retry checks independently of this terminal-dialog guard.
+
 Two further simulated regressions retain actual positive controls across these
 state changes. One creates two distinct drafts, leaves the second absent after an
 injected final-acknowledgement failure, and requires its saved retry receipt and
@@ -786,3 +795,22 @@ the pending UUID replaced by `guest-draft`, and the second observed the new-dele
 failure result instead of a receipt-preserving retry failure. All 38 earlier
 cases passed. This establishes the regression targets; passing verification of
 the corrected source is recorded separately, with no installed-device inference.
+
+The later cancellation reproduction ran against
+`a63b51fbbde52c403e11270a94c8b0778706012a` and failed after a canceled actual
+positive button deleted `guest-draft`; expected rows were `[guest-draft]`, actual
+rows were empty. [Review 5561842608](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/250#pullrequestreview-5561842608)
+records that one-case simulated failure. After adding the terminal-dialog check,
+the cancellation and both pending-identity cases passed. A separate control kept
+the new dialog check but temporarily removed only the pending-ID/retry dispatch
+checks: both identity regressions again failed with their distinct wrong-receipt
+and wrong-failure-message outcomes. The checks were restored before verification.
+
+The corrected source was then verified locally on 2026-10-18 with JDK 21,
+Gradle 8.11.1, SDK 35 and strict verified offline dependencies: all 321 core tests
+and all 49 mandatory API 28 Activity simulations passed, with zero failures,
+errors or skips. Unsigned assembly and lint also passed in the combined 57-task,
+68-second run; lint reported zero errors and nine warning entries across
+`PluralsCandidate`, `UnusedResources` and `ViewConstructor`. Frozen/reference and
+delivery-ledger checks passed. These local SDK/JVM observations preserve the
+separate hosted and installed-device gates; the unsigned APK was not installed.

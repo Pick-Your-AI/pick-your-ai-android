@@ -425,8 +425,7 @@ class PreviewActivityTest {
         field(R.string.context_objective).setText("pending A objective")
         val firstConfirmation = deleteConfirmation(first)
         val retainedPositive = firstConfirmation.getButton(AlertDialog.BUTTON_POSITIVE)
-        firstConfirmation.getButton(AlertDialog.BUTTON_NEGATIVE).performClick()
-        await { !firstConfirmation.isShowing }
+        assertTrue(firstConfirmation.isShowing)
 
         var faultReached = false
         failFinalCleanup { faultReached = true }
@@ -438,6 +437,7 @@ class PreviewActivityTest {
         dialog().getButton(AlertDialog.BUTTON_POSITIVE).performClick()
 
         // A's positive control belongs to this still-live Activity, but B now owns the receipt.
+        assertTrue(firstConfirmation.isShowing)
         retainedPositive.performClick()
         await { button(R.string.library_open).isEnabled }
         assertTrue(button(R.string.library_retry_delete).isEnabled)
@@ -467,8 +467,7 @@ class PreviewActivityTest {
         val id = PreviewDraftId("guest-draft")
         val firstConfirmation = deleteConfirmation(id)
         val retainedPositive = firstConfirmation.getButton(AlertDialog.BUTTON_POSITIVE)
-        firstConfirmation.getButton(AlertDialog.BUTTON_NEGATIVE).performClick()
-        await { !firstConfirmation.isShowing }
+        assertTrue(firstConfirmation.isShowing)
         var faultReached = false
         failFinalCleanup { faultReached = true }
         deleteConfirmation(id).getButton(AlertDialog.BUTTON_POSITIVE).performClick()
@@ -481,6 +480,7 @@ class PreviewActivityTest {
 
         FileChannel.open(root.resolve(".preview-library.lock"), WRITE).use { channel ->
             channel.lock().use {
+                assertTrue(firstConfirmation.isShowing)
                 retainedPositive.performClick()
                 await { button(R.string.library_open).isEnabled }
                 assertEquals(activity.getString(R.string.library_retry_failed), shadowOf(dialog()).message.toString())
@@ -496,6 +496,26 @@ class PreviewActivityTest {
             shadowOf(dialog()).message.toString() == activity.getString(R.string.library_deleted) }
         assertFalse(button(R.string.library_retry_delete).isEnabled)
         assertTrue((PreviewDraftLibrary(root).list() as PreviewLibraryRead.Available).entries.isEmpty())
+    }
+
+    @Test fun canceledCleanupConfirmationCannotDeleteItsAcknowledgedDraft() {
+        save()
+        val before = loaded()
+        field(R.string.draft_title).setText("pending after cancellation")
+        for (dismissDirectly in listOf(false, true)) {
+            val confirmation = deleteConfirmation(PreviewDraftId("guest-draft"))
+            val retainedPositive = confirmation.getButton(AlertDialog.BUTTON_POSITIVE)
+            if (dismissDirectly) confirmation.dismiss()
+            else confirmation.getButton(AlertDialog.BUTTON_NEGATIVE).performClick()
+            await { !confirmation.isShowing && button(R.string.library_open).isEnabled }
+            retainedPositive.performClick()
+            await { button(R.string.library_open).isEnabled }
+            val rows = (PreviewDraftLibrary(activity.noBackupFilesDir.toPath()).list() as PreviewLibraryRead.Available).entries
+            assertEquals(listOf("guest-draft"), rows.map { it.id.value })
+            assertEquals(before.baselineIdentity, loaded().baselineIdentity)
+            assertEquals("pending after cancellation", field(R.string.draft_title).text.toString())
+            assertFalse(button(R.string.library_retry_delete).isEnabled)
+        }
     }
 
     @Test

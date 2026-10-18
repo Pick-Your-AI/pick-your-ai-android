@@ -692,8 +692,8 @@ class PreviewActivity : Activity() {
         AlertDialog.Builder(this).setTitle(if (retryOnly) R.string.library_retry_delete else R.string.library_delete)
             .setMessage(getString(if (retryOnly) R.string.library_retry_warning else R.string.library_delete_warning, id.value))
             .setNegativeButton(R.string.keep_edits, null)
-            .setPositiveButton(if (retryOnly) R.string.library_retry_delete else R.string.library_delete) { _, _ ->
-                if (!storageBusy) deleteDraft(id, expected, retryOnly)
+            .setPositiveButton(if (retryOnly) R.string.library_retry_delete else R.string.library_delete) { confirmation, _ ->
+                if ((confirmation as? AlertDialog)?.isShowing == true && !storageBusy) deleteDraft(id, expected, retryOnly)
             }.show()
     }
 
