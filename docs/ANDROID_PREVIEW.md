@@ -250,7 +250,7 @@ not generate a signing key or install/release an app.
 
 Partial criteria: #86 local open/save and recovery; #67 canonical storage integration;
 #122 acknowledgment and retained pending fields; #76 lifecycle restoration. Still
-missing are multiple-draft list/create/duplicate/delete, autosave/domain revision UI,
+missing are recoverable draft deletion, autosave/domain revision UI,
 retention UX, installed-process-death evidence and receiving acceptance. Canonical
 records remain `11.01.md`, `12.01.md`, `08.06.md` and `02.03.md` under the existing
 website Android work-package path. No issue closes.
@@ -302,3 +302,42 @@ projection tests cover immutable exact line evidence and zero-price non-attestat
 Hosted Android compilation/lint and installed rendering/accessibility remain
 separate validation. This is partial #103 presentation, not approved pricing,
 real-data acceptance or completion of its budget-gate/delayed-response criteria.
+
+
+## Bounded local draft library
+
+The preview now lists, creates, opens and duplicates local drafts through
+PreviewDraftLibrary, a bounded directory catalog over the same LocalDraftStore.
+Opaque UUID directory IDs are separate from user-editable titles. Renaming is an
+ordinary title edit plus Save locally. The original `guest-draft` directory stays
+in place with unchanged identity/history; there is no silent bulk migration.
+
+Creation serializes through an app-private library lock, provisions/syncs the
+child directory before canonical save, and acknowledges only its returned saved
+snapshot. Any failure after directory creation returns the stable unconfirmed ID;
+the UI retains its current form and asks the user to inspect that ID before another
+creation. Incomplete/corrupt/unsupported entries remain visible, never deleted or
+reset; individual open failures do not prevent opening other valid entries. Known path IDs reject traversal, symlink entries fail closed, and catalogs
+are bounded to 64 drafts and 256 scanned entries. Capacity errors never trim data.
+
+Duplicate explicitly copies the selected saved snapshot (content and metadata),
+not pending fields, into a fresh initial revision with separate identity and save
+authority. Local duplicate lineage records the source directory ID, revision and content hash.
+Source history and source bytes are not changed. Open/new/duplicate
+require confirmation before abandoning pending form edits; controls serialize IO
+and existing lifecycle baseline checks remain in force. Current selected draft ID
+survives Bundle recreation. Without restoration state, cold launch still selects
+the original guest draft; all others remain available through Open local draft.
+A durable last-opened pointer and general active-draft recovery remain incomplete.
+
+Ten JVM tests cover independent create/open/rename, exact snapshot duplicate
+without authority/history reuse, legacy and unavailable entries, creation faults
+before/after commit, lock contention, capacity/path/scan bounds and symlink rejection.
+Failed switching (including successful creation followed by failed reopen) preserves
+the original ID, expected-head token, save readiness and pending form as one state;
+only a successful target read commits the editor switch.
+These are native filesystem tests, not installed Android filesystem/process-death
+proof. Hosted Android build/lint is required on final head; dialog accessibility,
+installed switching/rotation and device storage tests remain unexecuted. Partial
+#86/#67 only: deletion/trash, retention/export, autosave, active-pointer recovery,
+installed qualification and receiving work-package acceptance remain outstanding.
