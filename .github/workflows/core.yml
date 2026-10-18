@@ -194,6 +194,7 @@ jobs:
               "hostileLiteralTextCannotReplaceLabelsAndLongTextIsExplicitlyTruncated",
               "boundedLinesAndListsDiscloseCountsWhileTotalsRetainEveryLine",
               "oversizedDecimalUsesBoundedCanonicalDisclosureWithoutAFalseRoundedAmount",
+              "schemaPermittedTerminalNewlineQuantityRemainsLiteralWithoutCrashing",
               "absentLinesAndUnknownCoverageStayUnpricedWithoutManufacturedCompleteness",
           }
           cost_cases = cost_suite.findall("testcase")

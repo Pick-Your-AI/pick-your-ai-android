@@ -156,6 +156,20 @@ class CostInspectionTextTest {
         assertEquals(encoded, value.encoded)
     }
 
+    @Test fun schemaPermittedTerminalNewlineQuantityRemainsLiteralWithoutCrashing() {
+        val estimate = fixture("cost-estimate")
+        estimate.getJSONArray("line_items").getJSONObject(0).put("quantity", "720\n")
+        val value = inspect(estimate)
+        val recorded = value.recordedJson
+        val text = CostInspectionText.describe(context(Locale.GERMANY), value)
+        assertTrue(text.contains("\"720\\n\""))
+        assertFalse(text.contains("\"720\n\""))
+        assertEquals("720\n", value.lines.first().quantity)
+        assertEquals(recorded, value.recordedJson)
+        assertEquals("578.50", value.reportedTotal.amount.encoded)
+        assertEquals(CostEvidence.NOT_ESTABLISHED, value.budgetPass)
+    }
+
     @Test fun absentLinesAndUnknownCoverageStayUnpricedWithoutManufacturedCompleteness() {
         val estimate = fixture("cost-estimate").put("coverage", "unknown")
         estimate.putArray("line_items")
