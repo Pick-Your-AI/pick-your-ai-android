@@ -26,6 +26,7 @@ SERIAL = "emulator-5554"
 SYSTEM_IMAGE = "system-images;android-35;default;x86_64"
 IMAGE_REVISION = "2"
 HVF_EMULATOR_VERSION = "37.1.11.0"
+BOOT_TIMEOUT_SECONDS_BY_MODE = {"kvm": 300, "hvf": 600, "software": 900}
 HVF_HOST_IDENTITY = {"runner_environment": "github-hosted", "runner_os": "macOS",
                      "runner_arch": "X64", "system": "Darwin", "machine": "x86_64"}
 CASE_IDS = (
@@ -181,7 +182,7 @@ def emulation_settings(receipt: dict | None = None) -> dict:
     if mode == "kvm":
         check_kvm_access()
     settings = {"mode": mode, "accel_argument": "off" if mode == "software" else "on",
-                "boot_timeout_seconds": 900 if mode == "software" else 300,
+                "boot_timeout_seconds": BOOT_TIMEOUT_SECONDS_BY_MODE[mode],
                 "unsupported_software_opt_in": mode == "software"}
     if receipt is not None:
         receipt["emulation"] = settings
@@ -431,7 +432,7 @@ def complete_receipt(receipt: dict, source_sha: str, expected_mode: str | None =
             "Explicit emulation settings are missing")
     software = emulation["mode"] == "software"
     require(emulation.get("accel_argument") == ("off" if software else "on") and
-            emulation.get("boot_timeout_seconds") == (900 if software else 300) and
+            emulation.get("boot_timeout_seconds") == BOOT_TIMEOUT_SECONDS_BY_MODE[emulation["mode"]] and
             emulation.get("unsupported_software_opt_in") is software,
             "Emulation settings differ from the explicit selected mode")
     if expected_mode is not None:

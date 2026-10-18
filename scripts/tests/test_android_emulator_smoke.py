@@ -227,7 +227,7 @@ class EmulatorSmokeGuardTest(unittest.TestCase):
         command.assert_called_once_with(["/usr/sbin/sysctl", "-n", "kern.hv_support"], timeout=10, check=False)
         self.assertEqual("hvf", settings["mode"])
         self.assertEqual("on", settings["accel_argument"])
-        self.assertEqual(300, settings["boot_timeout_seconds"])
+        self.assertEqual(600, settings["boot_timeout_seconds"])
         self.assertFalse(settings["unsupported_software_opt_in"])
         self.assertTrue(smoke.hvf_host_passes(settings["host"]))
         self.assertEqual("15.7.9", settings["host"]["macos_version"])
@@ -457,6 +457,7 @@ class EmulatorSmokeGuardTest(unittest.TestCase):
                     smoke.complete_receipt(changed, "a" * 40)
             for field, value in (("accel_argument", "off" if accel == "on" else "on"),
                                  ("boot_timeout_seconds", 900 if budget == 300 else 300),
+                                 ("boot_timeout_seconds", 600),
                                  ("unsupported_software_opt_in", not opt_in)):
                 changed = copy.deepcopy(receipt)
                 changed["emulation"][field] = value
@@ -467,7 +468,7 @@ class EmulatorSmokeGuardTest(unittest.TestCase):
         receipt = {"source_commit": "a" * 40, "scope": "owned-installed-aosp-emulator", "status": "passed",
                    "unsigned_apk_unchanged": True, "unsigned_apk_sha256": "b" * 64,
                    "expected_unsigned_apk_sha256": "b" * 64,
-                   "emulation": {"mode": "hvf", "accel_argument": "on", "boot_timeout_seconds": 300,
+                   "emulation": {"mode": "hvf", "accel_argument": "on", "boot_timeout_seconds": 600,
                                  "unsupported_software_opt_in": False,
                                  "host": dict(smoke.HVF_HOST_IDENTITY, kern_hv_support="1", support_check={
                                      "exit_code": 0, "stdout": "1\n", "stderr": "", "output_truncated": False})},
@@ -482,7 +483,8 @@ class EmulatorSmokeGuardTest(unittest.TestCase):
             changed = copy.deepcopy(receipt)
             changed.pop(key)
             invalid.append(changed)
-        for key, value in (("mode", "software"), ("accel_argument", "off"), ("boot_timeout_seconds", 900),
+        for key, value in (("mode", "software"), ("accel_argument", "off"),
+                           ("boot_timeout_seconds", 300), ("boot_timeout_seconds", 900),
                            ("unsupported_software_opt_in", True), ("host", {"kern_hv_support": "1"})):
             changed = copy.deepcopy(receipt)
             changed["emulation"][key] = value

@@ -142,7 +142,7 @@ the preinstalled emulator 37.1.11.0 returned exit 0 with
 without stderr or timeout. That diagnostic was closed without merging its temporary
 workflow. It establishes capability on that observed host only; it booted no AVD.
 
-The installed job now explicitly selects `PYAI_EMULATOR_MODE=hvf`, a 300-second boot
+The installed job now explicitly selects `PYAI_EMULATOR_MODE=hvf`, a 600-second boot
 deadline and a 25-minute job budget. Both its preparation and harness check the
 hosted Intel platform and read-only `/usr/sbin/sysctl -n kern.hv_support` result.
 The harness also requires a complete successful `emulator -accel-check` result
@@ -213,8 +213,8 @@ the reason for the boot failure. The old poll discarded every ADB response, and
 the retained log had no guest kernel trace. It cannot distinguish a stalled boot
 from an unavailable ADB transport or a rejected boot-property observation.
 
-The diagnostic follow-up preserves the selected emulator, image, graphics, CPU
-arguments and 300-second HVF boot limit. `boot_wait` records the attempt count,
+The initial diagnostic follow-up preserved the selected emulator, image, graphics,
+CPU arguments and 300-second HVF boot limit. `boot_wait` records the attempt count,
 elapsed time, first and last probe and at most 16 recent probes. Each result keeps
 its exit code, separate stdout/stderr tails of at most 1200 characters and a
 truncation indication. A command timeout retains bounded partial streams and
@@ -291,7 +291,58 @@ emulator paths without running them, receipt binding before failed queries,
 bounded partial output, original error identity, malformed capability output,
 inconsistent mode metadata and inherited software opt-in. The reviewed boot
 poll/diagnostics, guest readiness, all four installed cases and cleanup semantics
-are unchanged. No actual installed run has yet tested this combined source.
+are unchanged. Its first actual installed run is recorded below.
+
+### Observed cold startup and one bounded HVF budget experiment
+
+The combined-source [run 39110300905](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39110300905)
+checked out `ec524074ca7a8e6c6028382bd7cb93a08de45ff8`, exact reviewed tree
+`38b136452b8b815c9ebd4b4d2e0f81efe25ac30e`, with parents `899e9178` and `264eaaca`.
+Core and native jobs passed, including all 48 host guards. Independently downloaded
+reports again contain 260 core and 29 simulated Activity cases with zero failures,
+errors or skips on that older canonical baseline. The producer APK retained SHA-256
+`c3e99c4783b5b71da2df1d6e665c9f6129509f5978f40de46075fe68dfc4449f`.
+
+Installed artifact `12130288364` has verified ZIP SHA-256
+`aa1c536d52d4e0e979de04c20cf35964ff41777f15f8be0e3a293d4fc57c96f7`.
+Its receipt records failed boot after 300.052 seconds and 229 observations. Every
+retained late probe returned exit 0, empty stderr and an empty boot property; the
+four final same-serial diagnostics completed in 0.803 seconds and confirmed the
+responsive owned AVD. They do not establish framework readiness. The boot animation
+being stopped is also insufficient because this lane explicitly disables it.
+
+The kernel trace identifies a complete cold startup and the emulator's existing
+reduction to one virtual CPU on this host. Zygote starts at guest time 90.85 seconds,
+SurfaceFlinger at 105.34, and system_server PID 600 registers services from 162.68
+through the later artd/idmap2d activity around 198 seconds. The idmap2d termination
+follows an explicit system_server stop request. Later healthd heartbeats at 217.03
+and 277.10 seconds do not prove continued framework progress. This kernel trace
+records no demonstrated cause for the missing boot-complete property; no framework
+logcat was retained to distinguish slow initialization from a userspace stall.
+Guest timestamps are not a measured conversion to elapsed host time. All four
+installed cases remain `not_run`, with no guest readiness, APK install or launch.
+
+The next experiment changes only the explicit HVF cold-boot limit from 300 to 600
+seconds. KVM remains 300 seconds and software mode 900; the receipt validator must
+match the exact budget for its selected mode. This single bounded increase tests
+whether the observed late cold startup can finish. It is not a verified repair or
+a performance qualification, and another failure does not authorize further
+budget increases without diagnosing the retained evidence.
+
+The installed job retains its 25-minute limit. The 600-second boot allocation,
+unchanged 180-second readiness limit, 60-second installation command, 20-second
+boot-failure diagnostics and at most 25 seconds of process cleanup leave 615
+seconds for setup, other guest observations, the unchanged UI cases and artifact
+upload. This is scheduling room, not evidence that every case will finish; the
+observed preceding job spent 58 seconds before entering the harness. Every boot
+result must still satisfy the complete original predicate before its absolute
+deadline, followed by all nine readiness checks and all four actual installed
+cases. The host, binary/image/APK pins, graphics/CPU arguments, command limits,
+failure handling, cleanup and artifact handoff remain unchanged. If this bounded
+run also fails, its original failure must be preserved while a separately reviewed
+read-only framework diagnostic identifies the wait before another configuration
+change. The expanded existing host tests reject the old 300-second and software
+900-second budgets for HVF, and reject 600 seconds for KVM or software receipts.
 
 ## Inputs and provenance
 
