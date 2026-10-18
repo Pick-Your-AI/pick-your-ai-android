@@ -9,6 +9,12 @@ effect through independent decision-content receiving review and normal merge.
 Their exact criterion mappings are linked below. Implementation evidence remains
 separate from decision acceptance, device, store or production completion.
 
+The [integrated epic 01 record](../delivery/android/epics/01.md) connects all six
+delivered foundation decisions, their accountable preparation and actual receiving
+evidence. Its D1–D8 desk demonstration covers the supported local journey,
+conditional capabilities and failure/recovery decisions. Independent parent
+receiving review is required; accepted children alone do not complete the epic.
+
 | Proposal | Existing issues | Outcome |
 | --- | --- | --- |
 | [Product and scope](01-product-scope.md) | [#20](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/20), [#24](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/24) | Pinned evidence/hypotheses, five journeys and actual desk walkthrough, four-mode and capability decisions |
@@ -33,6 +39,9 @@ normal merge, preserving #47's three literal criteria.
 [ADR 0005](../decisions/0005-android-35-acceptance-record.md) separately places only
 [01.04](../delivery/android/work-packages/01.04.md) after independent review and
 normal merge, preserving #35's three criteria and original website history.
+[ADR 0006](../decisions/0006-android-2-acceptance-record.md) separately proposes
+only the parent [epic 01 record](../delivery/android/epics/01.md) here, preserving
+its four literal criteria and original location through reviewed placement.
 Every other unmoved path retains its existing authority.
 This source package changes no
 website files, issue fields, assignees, checkboxes or native relationships.

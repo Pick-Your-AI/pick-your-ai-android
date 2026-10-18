@@ -58,6 +58,14 @@ decision. Android's guest-local first-slice scope and conditional remote feature
 remain; Apple and website activation follows their own accepted scope, without
 waiting for Android feature or product completion.
 
+[ADR 0006](decisions/0006-android-2-acceptance-record.md) proposes placement of only
+#2's [integrated epic 01 receiving record](delivery/android/epics/01.md) here after
+independent product/Android review and normal merge. The record connects all six
+accepted decision children and their exact handoffs through a concrete decision
+demonstration. It preserves all four parent criteria and the original website
+placement, and supplies no application, device, operator or service acceptance.
+Its later strict current-ledger reconciliation remains a separate reviewed step.
+
 The existing website remains static. The selected future server package is
 separately built/deployed at `Pick-Your-AI/pickyour.ai/services/planner-api` only
 through canonical owner/coordinator and operations review before dependent code;
