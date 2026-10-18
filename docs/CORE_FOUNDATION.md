@@ -147,3 +147,9 @@ The [reference report receiving boundary](REFERENCE_REPORT_BOUNDARY.md) adds
 structural and cross-document checks before accepting frozen reference reports.
 Its Python-generated cases and Kotlin negative tests are partial #32/#49/#84
 evidence, not a local evaluator or deployment approval.
+
+The [quality-run decoder](QUALITY_RUN_BOUNDARY.md) preserves the separate frozen
+measured-run wire fields as immutable Kotlin values, including exact numbers and
+optional absence. Shared Python/Kotlin mutation cases and malformed-input tests
+cover this structural boundary; decoding does not authenticate or execute an
+evaluation, bind it to the current build, or certify its reported result.

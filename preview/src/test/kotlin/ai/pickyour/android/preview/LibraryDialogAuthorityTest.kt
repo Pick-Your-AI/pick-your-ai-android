@@ -220,9 +220,12 @@ class LibraryDialogAuthorityTest {
             return dialog()
         }
 
+        // Durable reads share the writer's nonblocking locks; observe them only after acknowledgement.
         button(R.string.library_new).performClick()
         dialog().getButton(AlertDialog.BUTTON_POSITIVE).performClick()
-        await { selected() != null && hasText(R.string.draft_saved) && button(R.string.library_open).isEnabled }
+        finishWork()
+        assertTrue(hasText(R.string.draft_saved))
+        assertTrue(button(R.string.library_open).isEnabled)
         val original = requireNotNull(selected())
         assertNotEquals(PreviewDraftId("guest-draft"), original)
         field(R.string.draft_title).setText("independent target")
@@ -234,8 +237,11 @@ class LibraryDialogAuthorityTest {
         val duplicateConfirmation = dialog()
         val duplicate = duplicateConfirmation.getButton(AlertDialog.BUTTON_POSITIVE)
         duplicate.performClick()
-        await { selected() != original && hasText(R.string.draft_saved) && button(R.string.library_open).isEnabled }
+        finishWork()
+        assertTrue(hasText(R.string.draft_saved))
+        assertTrue(button(R.string.library_open).isEnabled)
         val copy = requireNotNull(selected())
+        assertNotEquals(original, copy)
         assertEquals("independent target", field(R.string.draft_title).text.toString())
         assertEquals(source.baselineIdentity, (library.open(original).load() as PreviewDraftLoad.Available).record.baselineIdentity)
         duplicate.performClick()
@@ -244,14 +250,17 @@ class LibraryDialogAuthorityTest {
         assertEquals(copy, selected())
 
         entry(original).getButton(AlertDialog.BUTTON_POSITIVE).performClick()
-        await { selected() == original && hasText(R.string.draft_saved) && button(R.string.library_open).isEnabled }
+        finishWork()
+        assertTrue(hasText(R.string.draft_saved))
+        assertTrue(button(R.string.library_open).isEnabled)
+        assertEquals(original, selected())
         val deletionEntry = entry(copy)
         deletionEntry.getButton(AlertDialog.BUTTON_NEUTRAL).performClick()
         await { dialog() !== deletionEntry && dialog().isShowing }
         dialog().getButton(AlertDialog.BUTTON_POSITIVE).performClick()
-        await { button(R.string.library_open).isEnabled &&
-            (library.list() as? PreviewLibraryRead.Available)?.entries?.none { it.id == copy } == true }
         finishWork()
+        assertTrue(button(R.string.library_open).isEnabled)
+        assertTrue((library.list() as PreviewLibraryRead.Available).entries.none { it.id == copy })
         assertEquals(original, selected())
         assertEquals("independent target", field(R.string.draft_title).text.toString())
         assertEquals(source.baselineIdentity, (library.open(original).load() as PreviewDraftLoad.Available).record.baselineIdentity)
