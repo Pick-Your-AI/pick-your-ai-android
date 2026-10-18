@@ -1,0 +1,5 @@
+<resources>
+    <string name="active_unknown">Active local draft is unresolved.</string>
+    <string name="active_read_failed">Last-opened draft selection could not be read. Your visible edits are retained but cannot be saved yet. Choose a draft explicitly through Open local draft; no default replaces unreadable selection data.</string>
+    <string name="active_write_failed">The last-opened selection could not be confirmed. Your original editor and pending edits are retained. The selected draft remains in the library, and the next cold launch may open it. Choose Open local draft to reconcile before relying on launch selection.</string>
+</resources>
