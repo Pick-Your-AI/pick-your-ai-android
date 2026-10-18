@@ -4,6 +4,11 @@ Proposal for Android #20, #24 and #25. Receiving acceptance remains pending; see
 [review package](README.md). This is a scope recommendation, not validated demand
 or an assertion that any journey works in an Android application.
 
+The [initial decision record](04-initial-decisions.md) supplies concrete #20/#24
+scope choices and a pinned desk walkthrough for receiving review. It separates
+those decision outcomes from downstream application validation. This original
+proposal remains the account/revenue input for #25.
+
 ## Evidence and intended users
 
 The research inputs are pinned to

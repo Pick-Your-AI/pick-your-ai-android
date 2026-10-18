@@ -13,6 +13,7 @@ does not establish device, store or production completion.
 | [Native architecture](02-native-architecture.md) | [#34](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/34) | Adopted Kotlin/platform-Views diagnostic, current pins and boundaries; earlier Compose/Room product alternatives |
 | [Services and acceptance](03-service-and-readiness.md) | [#35](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/35), [#47](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/47) | Local-first preview; explicit production service, operations and device gates |
 | [Issue audit](issues-snapshot.md) | All open Android issues | Dated inventory of issue-body prerequisites and missing evidence |
+| [Initial decisions and walkthrough](04-initial-decisions.md) | [#20](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/20), [#24](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/24), [#34](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/34) | Concrete first-slice product, mode, module and namespace choices; pinned desk/source walkthrough for receiving review |
 
 The live issues still name `docs/delivery/android/work-packages/01.01.md` through
 `01.06.md` in `Pick-Your-AI/pickyour.ai` as their acceptance records. These proposal

@@ -9,6 +9,11 @@ receiving acceptance, actual ownership commitments and release qualification rem
 separate. The canonical acceptance-record path is unchanged. Read the
 [scope proposal](01-product-scope.md) for the preview's synthetic-data limits.
 
+The [initial decision record](04-initial-decisions.md#3-native-package-and-shared-authority-decisions--34)
+now selects the initial guest-client/module/identity direction for #34 receiving
+review, superseding the earlier automatic Compose/Room recommendation for that
+slice. The alternatives and inspected evidence below remain supporting history.
+
 ## Current engineering decisions
 
 | Decision | Implemented choice and rationale | Evidence and limit |
