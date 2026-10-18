@@ -1,0 +1,11 @@
+<resources>
+    <string name="tier_heading">Optional local draft tiers</string>
+    <string name="tier_limits">T3 knowledge/retrieval, T4 agents/integrations and T5 training are independent draft states. Save or reopen pending form edits before changing one. Disabling retains selections and settings. Unknown activation stays unresolved. T6 readiness remains core and cannot be disabled here. These controls do not enable a service or run evaluation or pricing; no compatibility or zero-cost result is established.</string>
+    <string name="tier_enabled">enabled</string>
+    <string name="tier_disabled">disabled; configuration retained</string>
+    <string name="tier_unknown">unknown; requires review</string>
+    <string name="tier_no_saved">%1$s: save a local draft first</string>
+    <string name="tier_state">%1$s: %2$s; %3$s retained selections; %4$s retained settings</string>
+    <string name="tier_confirm">Save this tier as %1$s? Other tiers and all saved selections/settings, objective/context and metadata stay unchanged. This commits a local edit immediately. No evaluation or price is established; disabled selections are excluded from the active optional-selection projection, and unknown activation must still be reviewed.</string>
+    <string name="tier_commit">Save activation locally</string>
+</resources>
