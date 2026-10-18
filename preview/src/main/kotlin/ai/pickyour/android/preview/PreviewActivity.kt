@@ -46,7 +46,12 @@ class PreviewActivity : Activity() {
     private lateinit var clear: Button
     private lateinit var history: Button
     private lateinit var saveStatus: TextView
-    private var persistence: PreviewDraftPersistence? = null // Accessed only on the single worker.
+    private var draftLibrary: PreviewDraftLibrary? = null // Accessed only on the single worker.
+    private var currentDraftId = PreviewDraftId("guest-draft")
+    private lateinit var activeDraft: TextView
+    private lateinit var libraryButton: Button
+    private lateinit var newDraftButton: Button
+    private lateinit var duplicateButton: Button
     private var savedRecord: PreviewStoredDraft? = null // UI-thread owned.
     private var storageReady = false
     private var storageBusy = true
@@ -59,6 +64,7 @@ class PreviewActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        currentDraftId = PreviewDraftId(savedInstanceState?.getString("draftId") ?: "guest-draft")
         restoration = savedInstanceState?.let {
             PreviewDraftRestoration(it.getString("draftBaseline"), it.getBoolean("draftRequiresReopen", true))
         }
@@ -73,6 +79,7 @@ class PreviewActivity : Activity() {
         text(R.string.notice, 20f)
         text(R.string.guest_draft, 22f).apply { if (android.os.Build.VERSION.SDK_INT >= 28) isAccessibilityHeading = true }
         text(R.string.temporary)
+        activeDraft = text(R.string.library_active).apply { text = getString(R.string.library_active, currentDraftId.value) }
         val titleLabel = text(R.string.draft_title)
         title = EditText(this).apply {
             id = View.generateViewId()
@@ -115,6 +122,12 @@ class PreviewActivity : Activity() {
         content.addView(reopen)
         history = Button(this).apply { setText(R.string.draft_history); setOnClickListener { showHistory() } }
         content.addView(history)
+        libraryButton = Button(this).apply { setText(R.string.library_open); setOnClickListener { showLibrary() } }
+        newDraftButton = Button(this).apply { setText(R.string.library_new); setOnClickListener { confirmCreate(false) } }
+        duplicateButton = Button(this).apply { setText(R.string.library_duplicate); setOnClickListener { confirmCreate(true) } }
+        content.addView(libraryButton)
+        content.addView(newDraftButton)
+        content.addView(duplicateButton)
         title.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { formChanged() }
@@ -259,6 +272,9 @@ class PreviewActivity : Activity() {
         save.isEnabled = storageReady && !storageBusy && savedRecord?.fields != fields()
         reopen.isEnabled = !storageBusy
         history.isEnabled = storageReady && !storageBusy && savedRecord != null
+        libraryButton.isEnabled = !storageBusy
+        newDraftButton.isEnabled = !storageBusy
+        duplicateButton.isEnabled = storageReady && !storageBusy && savedRecord != null
         if (::catalog.isInitialized) for (index in 0 until catalog.childCount) catalog.getChildAt(index).isEnabled = !storageBusy
     }
 
@@ -299,27 +315,136 @@ class PreviewActivity : Activity() {
             }.setNegativeButton(R.string.close, null).show()
     }
 
-    private fun openPersistence(): PreviewDraftPersistence {
-        persistence?.let { return it }
-        // Android owns the established app data directory. Repeat both parent syncs after mkdir,
-        // including a retry after failed initialization; never acknowledge an unsynced root.
+    private fun library(): PreviewDraftLibrary {
+        draftLibrary?.let { return it }
         val parent = noBackupFilesDir.toPath()
         require(Files.isDirectory(parent, NOFOLLOW_LINKS))
         FileChannel.open(parent.parent, READ).use { it.force(true) }
-        val root = parent.resolve("guest-draft")
-        require(!Files.isSymbolicLink(root))
-        Files.createDirectories(root)
-        FileChannel.open(parent, READ).use { it.force(true) }
-        return PreviewDraftPersistence(LocalDraftStore(root)).also { persistence = it }
+        return PreviewDraftLibrary(parent).also { draftLibrary = it }
+    }
+
+    private fun openPersistence(id: PreviewDraftId): PreviewDraftPersistence {
+        val library = library()
+        if (id.value == "guest-draft") {
+            val root = noBackupFilesDir.toPath().resolve(id.value)
+            require(!Files.isSymbolicLink(root))
+            Files.createDirectories(root)
+        }
+        return library.open(id) // Repeats parent sync before canonical store initialization.
+    }
+
+    private fun showLibrary() {
+        if (storageBusy) return
+        storageBusy = true
+        updateEditingEnabled()
+        worker.execute {
+            val result = try { library().list() } catch (_: Exception) { null }
+            runOnUiThread {
+                if (!destroyed) {
+                    storageBusy = false
+                    updateEditingEnabled()
+                    val entries = (result as? PreviewLibraryRead.Available)?.entries
+                    if (entries == null || entries.isEmpty()) {
+                        AlertDialog.Builder(this).setMessage(if (entries == null) R.string.library_failed else R.string.library_empty)
+                            .setPositiveButton(R.string.close, null).show()
+                    } else {
+                        val labels = entries.map { entry ->
+                            val record = (entry.state as? PreviewDraftLoad.Available)?.record
+                            getString(R.string.library_entry, record?.fields?.title?.ifEmpty { getString(R.string.library_untitled) }
+                                ?: getString(R.string.library_unavailable), entry.id.value)
+                        }.toTypedArray()
+                        AlertDialog.Builder(this).setTitle(R.string.library_open).setItems(labels) { _, index ->
+                            AlertDialog.Builder(this).setMessage(R.string.library_switch_warning)
+                                .setNegativeButton(R.string.keep_edits, null)
+                                .setPositiveButton(R.string.library_open) { _, _ ->
+                                    if (!storageBusy) {
+                                        openDraftTarget(entries[index].id)
+                                    }
+                                }.show()
+                        }.setNegativeButton(R.string.close, null).show()
+                    }
+                }
+            }
+        }
+    }
+
+    private fun openDraftTarget(target: PreviewDraftId) {
+        if (storageBusy) return
+        val previous = PreviewDraftSession(currentDraftId, savedRecord, fields(), storageReady)
+        storageBusy = true
+        updateEditingEnabled()
+        worker.execute {
+            val result = try { openPersistence(target).load() } catch (_: Exception) { null }
+            runOnUiThread {
+                if (!destroyed) {
+                    storageBusy = false
+                    val next = previous.switchTo(target, result)
+                    if (next === previous) {
+                        // Identity, baseline, save readiness and pending form still belong together.
+                        AlertDialog.Builder(this).setMessage(R.string.library_switch_failed)
+                            .setPositiveButton(R.string.close, null).show()
+                    } else {
+                        currentDraftId = next.id
+                        savedRecord = next.record
+                        storageReady = next.ready
+                        restoration = null
+                        restoringFields = true
+                        title.setText(next.fields.title)
+                        selectedId = next.fields.selectedId
+                        selectedVersion = next.fields.selectedVersion
+                        selectedCatalogHash = next.fields.catalogHash
+                        restoringFields = false
+                        activeDraft.text = getString(R.string.library_active, currentDraftId.value)
+                        showSelection()
+                        formChanged()
+                    }
+                    updateEditingEnabled()
+                }
+            }
+        }
+    }
+
+    private fun confirmCreate(duplicate: Boolean) {
+        if (storageBusy) return
+        val source = if (duplicate) savedRecord ?: return else null
+        AlertDialog.Builder(this).setTitle(if (duplicate) R.string.library_duplicate else R.string.library_new)
+            .setMessage(if (duplicate) R.string.library_duplicate_warning else R.string.library_new_warning)
+            .setNegativeButton(R.string.keep_edits, null)
+            .setPositiveButton(R.string.library_continue) { _, _ ->
+                if (!storageBusy && (!duplicate || savedRecord === source && storageReady)) createDraft(source)
+            }.show()
+    }
+
+    private fun createDraft(source: PreviewStoredDraft?) {
+        storageBusy = true
+        updateEditingEnabled()
+        worker.execute {
+            val result = try { if (source == null) library().create() else library().duplicate(source) } catch (_: Exception) { null }
+            runOnUiThread {
+                if (!destroyed) {
+                    storageBusy = false
+                    if (result is PreviewLibraryCreate.Saved) {
+                        openDraftTarget(result.id)
+                    } else {
+                        updateEditingEnabled()
+                        AlertDialog.Builder(this).setMessage(if (result is PreviewLibraryCreate.Unconfirmed)
+                            getString(R.string.library_unconfirmed, result.id.value) else getString(R.string.library_create_failed))
+                            .setPositiveButton(R.string.close, null).show()
+                    }
+                }
+            }
+        }
     }
 
     private fun loadDraft(preserveRestoredFields: Boolean) {
+        val id = currentDraftId
+        activeDraft.text = getString(R.string.library_active, id.value)
         storageBusy = true
         storageReady = false
         saveStatus.setText(R.string.draft_loading)
         updateEditingEnabled()
         worker.execute {
-            val result = try { openPersistence().load() } catch (_: Exception) { null }
+            val result = try { openPersistence(id).load() } catch (_: Exception) { null }
             runOnUiThread {
                 if (!destroyed) {
                     storageBusy = false
@@ -352,13 +477,14 @@ class PreviewActivity : Activity() {
 
     private fun saveDraft() {
         if (!storageReady || storageBusy) return
+        val id = currentDraftId
         val pending = fields()
         val expected = savedRecord
         storageBusy = true
         saveStatus.setText(R.string.draft_saving)
         updateEditingEnabled()
         worker.execute {
-            val result = try { openPersistence().save(expected, pending) } catch (_: Exception) { null }
+            val result = try { openPersistence(id).save(expected, pending) } catch (_: Exception) { null }
             runOnUiThread {
                 if (!destroyed) {
                     storageBusy = false
@@ -385,6 +511,7 @@ class PreviewActivity : Activity() {
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
+        outState.putString("draftId", currentDraftId.value)
         val checkpoint = PreviewDraftRestoration.capture(savedRecord, storageReady, storageBusy)
         outState.putString("draftBaseline", checkpoint.baselineIdentity)
         outState.putBoolean("draftRequiresReopen", checkpoint.requiresReopen)
