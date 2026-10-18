@@ -8,7 +8,11 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
-tasks.test { useJUnitPlatform() }
+tasks.test {
+    useJUnitPlatform()
+    // The fixture receipt binds each observation to the test that actually produced it.
+    reports.junitXml.isOutputPerTestCase = true
+}
 dependencyLocking { lockAllConfigurations() }
 
 tasks.processResources {
