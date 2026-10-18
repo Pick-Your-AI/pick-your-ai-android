@@ -74,6 +74,7 @@ class PreviewActivityTest {
     private fun adapter() = PreviewDraftLibrary(activity.noBackupFilesDir.toPath()).openLegacy()
     private fun loaded() = (adapter().load() as PreviewDraftLoad.Available).record
     private fun dialog() = ShadowAlertDialog.getLatestAlertDialog()!!
+    private fun samples() = views().filterIsInstance<Button>().filter { it.text.toString().startsWith("Open FICTIONAL") }
 
     @Test fun acknowledgedFieldsAndExplicitEmptySurviveRecreation() {
         field(R.string.draft_title).setText("saved title")
@@ -155,7 +156,7 @@ class PreviewActivityTest {
 
     @Test fun editorsExposeLabelsAndSavedStatusUsesTextAndLiveRegion() {
         val editors = views().filterIsInstance<EditText>()
-        assertEquals(3, editors.size)
+        assertEquals(4, editors.size)
         editors.forEach { editor ->
             val labels = views().filterIsInstance<TextView>().filter { it.labelFor == editor.id }
             assertEquals("Each editor needs one explicit visible label", 1, labels.size)
@@ -196,6 +197,56 @@ class PreviewActivityTest {
         val library = PreviewDraftLibrary(activity.noBackupFilesDir.toPath())
         assertTrue((library.list() as PreviewLibraryRead.Available).entries.isEmpty())
         assertEquals(activity.getString(R.string.library_deleted), shadowOf(dialog()).message.toString())
+    }
+
+    @Test fun catalogQuerySurvivesDetailsAndRecreationWithoutChangingPinnedSelection() {
+        val search = field(R.string.catalog_search)
+        search.setText("cat.model.fixture")
+        assertEquals(1, samples().size)
+        samples().single().performClick()
+        dialog().getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+        await { views().filterIsInstance<TextView>().any {
+            it.text.toString() == activity.getString(R.string.selected_sample, "FICTIONAL Model")
+        } }
+        save()
+        val saved = loaded()
+        assertEquals("cat.model.fixture", saved.fields.selectedId)
+
+        search.setText("cat.storage.fixture")
+        assertEquals(1, samples().size)
+        assertTrue(hasText(R.string.draft_saved))
+        assertFalse(button(R.string.save_draft).isEnabled)
+        assertTrue(views().filterIsInstance<TextView>().any {
+            it.text.toString() == activity.getString(R.string.selected_sample, "FICTIONAL Model")
+        })
+        samples().single().performClick()
+        val details = dialog()
+        details.getButton(AlertDialog.BUTTON_NEGATIVE).performClick()
+        await { !details.isShowing }
+        assertEquals("cat.storage.fixture", search.text.toString())
+        recreate()
+        await { hasText(R.string.draft_saved) && samples().size == 1 }
+        assertEquals("cat.storage.fixture", field(R.string.catalog_search).text.toString())
+        assertEquals(saved.baselineIdentity, loaded().baselineIdentity)
+        assertEquals(saved.fields, loaded().fields)
+    }
+
+    @Test fun emptyCatalogSearchCanRecoverAndReloadUsesTheCurrentQuery() {
+        assertEquals(29, samples().size)
+        val search = field(R.string.catalog_search)
+        search.setText(".* definitely absent")
+        assertTrue(samples().isEmpty())
+        assertTrue(hasText(R.string.catalog_search_empty))
+        search.setText("")
+        assertEquals(29, samples().size)
+
+        button(R.string.retry_catalog).performClick()
+        search.setText("cat.accelerator.fixture")
+        await { button(R.string.retry_catalog).isEnabled }
+        assertEquals(1, samples().size)
+        assertEquals(activity.getString(R.string.item_button, "FICTIONAL Accelerator", "accelerator"),
+            samples().single().text.toString())
+        assertTrue(adapter().load() is PreviewDraftLoad.Missing)
     }
 
     @Test
