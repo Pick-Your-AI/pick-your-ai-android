@@ -66,7 +66,8 @@ object PreviewSelectionForms {
         SelectionCommand.Replace(selection.id, CatalogSelectionChoice(ArtifactHash(hash), item.kind, item.id, item.version))
     }
 
-    fun supported(kind: String) = PreviewCatalogKinds.all.any { it.id == kind && it.tier in setOf("T0", "T1", "T2", "T3", "T4") }
+    fun supported(kind: String) = PreviewCatalogKinds.all.any { it.id == kind &&
+        (it.tier in setOf("T0", "T1", "T2", "T3", "T4", "T5") || it.id in setOf("guardrail", "evaluation_suite")) }
     fun settingsText(selection: LocalSelection): String = selection.settings.toString()
     private fun prepare(action: () -> SelectionCommand): PreviewSelectionPreparation = try {
         PreviewSelectionPreparation.Ready(action())
