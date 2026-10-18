@@ -68,6 +68,11 @@ BOOT_FAILURE_COMMANDS = (
     ("emulator_property", ("shell", "getprop", "ro.kernel.qemu")),
     ("boot_animation", ("shell", "getprop", "init.svc.bootanim")),
 )
+BOOT_FRAMEWORK_COMMANDS = (
+    ("framework_log", ("logcat", "-b", "main", "-b", "system", "-b", "crash", "-b", "events",
+                       "-d", "-v", "threadtime", "-t", "2000", "SystemServer:V", "SystemServerTiming:V", "*:I"), 131072),
+    ("framework_services", ("shell", "dumpsys", "-l"), 32768),
+)
 CASE_FAILURE_COMMANDS = (
     ("framework_log", ("logcat", "-b", "main", "-b", "system", "-b", "crash", "-b", "events",
                        "-d", "-v", "threadtime", "-t", "2000", "ActivityManager:I",
@@ -404,8 +409,55 @@ def retain_boot_failure_state(device, receipt: dict):
                              stderr_tail=bounded_text(error.stderr, 1200))
             except Exception as error:
                 check["error"] = bounded_text(str(error), 1200)
+        retain_boot_framework_state(device, state, deadline)
     finally:
         state["seconds"] = round(time.monotonic() - started, 3)
+
+
+def retain_boot_framework_state(device, boot_state: dict, deadline: float):
+    """Read existing framework state within the original boot-diagnostic budget."""
+    state = {"phase": "after_boot_failure", "serial": SERIAL, "target_verified": False,
+             "record_scope": "existing_global_framework_records_not_package_bound",
+             "checks": {}, "unattempted_checks": [item[0] for item in BOOT_FRAMEWORK_COMMANDS],
+             "deadline_reached": time.monotonic() >= deadline}
+    boot_state["framework"] = state
+    if state["deadline_reached"]:
+        boot_state["deadline_reached"] = True
+    try:
+        identity = boot_state["checks"]
+        for name in ("adb_state", "emulator_name", "emulator_property"):
+            observed = identity.get(name)
+            require(isinstance(observed, dict) and type(observed.get("exit_code")) is int
+                    and observed["exit_code"] == 0 and observed.get("output_truncated") is False
+                    and isinstance(observed.get("stdout_tail"), str) and observed.get("stderr_tail") == ""
+                    and "command_timeout_seconds" not in observed and "error" not in observed,
+                    "Complete owned boot identity observation is unavailable: " + name)
+        require(identity["adb_state"]["stdout_tail"].strip() == "device", "Owned ADB transport is unavailable")
+        validate_target(SERIAL, identity["emulator_property"]["stdout_tail"],
+                        identity["emulator_name"]["stdout_tail"], device.avd_name)
+        state["target_verified"] = True
+    except Exception as error:
+        state["identity_error"] = bounded_text(str(error), 1200)
+        return  # Do not read broader guest state using an incomplete or foreign identity.
+    for index, (name, arguments, retained_limit) in enumerate(BOOT_FRAMEWORK_COMMANDS):
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            state["deadline_reached"] = boot_state["deadline_reached"] = True
+            break
+        observed = {"stdout": ui_stream_observation(None), "stderr": ui_stream_observation(None)}
+        state["checks"][name] = observed
+        state["unattempted_checks"] = [item[0] for item in BOOT_FRAMEWORK_COMMANDS[index + 1:]]
+        try:
+            observe_interactive_command(device, arguments, observed,
+                                        timeout=min(5, remaining), retained_limit=retained_limit)
+        except subprocess.TimeoutExpired:
+            observed["status"] = "timed_out"
+        except Exception:
+            observed["status"] = "error"  # The original command error and unavailable streams are retained.
+        else:
+            observed["status"] = "completed"  # This records an exit, including nonzero; it cannot rescue boot.
+    if time.monotonic() >= deadline:
+        state["deadline_reached"] = boot_state["deadline_reached"] = True
 
 
 def guest_readiness_checks_pass(checks: dict) -> bool:

@@ -238,7 +238,7 @@ predicate, and must arrive before the deadline. Every command and sleep is cappe
 by the remaining budget. These observations do not replace the subsequent full
 guest-readiness or installed-case gates.
 
-After a failed boot, `boot_failure_observations` records only the owned serial's
+At that diagnostic checkpoint, `boot_failure_observations` recorded only the owned serial's
 ADB state, reported AVD name, emulator property and boot-animation property. These
 read-only queries have a separate 20-second total budget and at most five seconds
 per command. Missing, failed or timed-out diagnostics are retained and cannot
@@ -878,8 +878,8 @@ all original gates and four cases on that exact source.
 
 ## Startup display experiment: smaller raster, same logical phone dimensions
 
-This source prepares one explicitly selected diagnostic variation; it has no
-installed result yet. The baseline remains relevant: [run 39123226538](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39123226538)
+This source prepares one explicitly selected diagnostic variation. Its actual
+failed boot result is retained below. The baseline remains relevant: [run 39123226538](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39123226538)
 at `f180a53228b3206445328685c5011ccfd77f921d` used synthetic checkout
 `cf26f89c749373ccdb3976bcc7bfb48ddb976e72`, tree
 `77bcced552386e2c496ac7f12816194519eae4d6`. Its artifact `12136125002` has
@@ -968,6 +968,89 @@ defines the dp/pixel relationship, and [`DENSITY_280`](https://developer.android
 documents this intermediate density. Actual startup and app results remain a
 separate hosted experiment after independent source review and coordination with
 the existing installed-lane owner.
+
+### Actual raster boot failure and framework capture gap
+
+The raster experiment's [run 39136743463, attempt 1 / installed job 117703746313](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39136743463/job/117703746313)
+executed signed prepared checkout `1505ed0b69fcc72b75eab1e1d14d920a50ac3aa7`,
+tree `fcf41c02ba51fa38748698dc8fbba654d5994147`, from source
+`9ffd094819d282d10a5c3d14c1f0d9d0e63e6d07`. The original installed artifact
+`12140024756` is 54,797 ZIP bytes, SHA-256
+`a0bf12b012d9011a8d6b790d77146d784080b76ebf4895d06f494a4b7f9eb6d7`.
+Its receipt, JUnit and emulator log were independently downloaded and inspected;
+the [canonical actual-result review](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/255#pullrequestreview-5563604391)
+also preserves the separate producer artifacts and successful host checks.
+
+The actual Intel macOS/HVF host and immutable APK handoff passed their existing
+checks. Boot completion was not observed: the receipt records 400 probes over
+600.019 seconds, `completed: false`, with the final command capped at the
+remaining 2.023928962 seconds and then timing out. Recent complete probes returned
+an empty boot property. The four post-failure queries observed ADB `device`, the
+exact owned AVD name, emulator property `1` and stopped boot animation in 1.517
+seconds. None of those observations replaces `sys.boot_completed=1`.
+
+All four installed cases remain `not_run`; JUnit contains one environment failure
+and four skipped cases. The script did not reach guest readiness, installation or
+launch. The separately prepared signed-copy hash is not installation evidence.
+The edited startup configuration and emulator log show 720 by 1280 pixels at 280
+dpi, but `startup_display.verified` is false: the later generated-hardware and
+physical `wm` checks did not execute. The emulator reported increasing guest memory
+to 2560 MiB and reducing the requested CPU count to one; the retained kernel log
+also reports one initialized CPU. Slow startup messages and later service records
+do not establish the boot failure's cause or a performance benefit or harm from
+the raster change. The earlier KVM policy-denial receipt remains a separate result.
+
+The original boot-failure path retained only the four property/device observations
+above, so it supplied no framework logcat before cleanup. The bounded diagnostic
+follow-up adds two observations under `boot_failure_observations.framework`:
+
+| Observation | Read-only command after the same owned identity is confirmed | Retained stdout tail |
+| --- | --- | --- |
+| Existing framework log | `logcat -b main -b system -b crash -b events -d -v threadtime -t 2000 SystemServer:V SystemServerTiming:V *:I` | At most 131,072 decoded characters |
+| Existing service names | `shell dumpsys -l` | At most 32,768 decoded characters |
+
+Both commands use the same fixed owned serial. They run only if the original ADB
+state, generated AVD name and emulator-property observations all have successful,
+complete, untruncated results with empty stderr and match the existing target
+validator. An incomplete, failed, noisy or foreign identity leaves both commands
+explicitly unattempted. Each attempted command receives at most five seconds and
+no more than the time remaining in the original **20-second total diagnostic
+budget**, including all four earlier queries. Exhausted time is recorded; no new
+deadline, reconnect, retry or fallback is introduced.
+
+Each new observation retains exact arguments, command timeout and elapsed time,
+integer exit status or timeout/error, and separate stdout/stderr availability,
+decoded-character count, decoded-text SHA-256, first/last 1200 characters and edge
+truncation flags. The larger stdout tail has its own retention limit/truncation
+flag. Timeout partials stay distinct from complete results; missing streams stay
+unavailable, and every unattempted command remains named. Byte-valued partials
+are decoded as UTF-8 with replacement before these text hashes are computed, so
+the hashes do not assert original byte identity. These bounds limit retained
+receipt text, not subprocess capture memory or total log history. The logs describe
+existing global framework records and are not automatically bound to the preview
+package, which was not installed in the failed run.
+
+The 600-second boot poll, original four observation records, readiness/install
+checks, all four installed case bodies, selected display/renderer/resource inputs,
+workflow and cleanup remain unchanged. A diagnostic result cannot rescue boot or
+replace the original failure. Eight added host tests cover the exact command
+boundary, rejected identities, complete and partial stream retention, one shared
+deadline, exhausted/unattempted work, owned-process exit, absent versus empty
+streams and the actual main handler's original-exception propagation. The original
+source failed the new six-command expectation before the implementation. All 118
+host methods then passed under both normal and optimized Python, with zero
+failures, errors or skips. These fake-device/time tests do not run an emulator or
+establish that a future guest will answer either diagnostic command. Native
+execution remains coordinated through the existing #255 owner and normal gates.
+
+Primary mechanism references checked on 2026-10-18: the pinned Android 15
+[`logcat` implementation](https://android.googlesource.com/platform/system/logging/+/android-15.0.0_r1/logcat/logcat.cpp)
+makes `-d`/numeric `-t` a nonblocking read of existing records; the tag filters
+select recorded priorities without changing system logging. The pinned
+[`dumpsys` implementation](https://android.googlesource.com/platform/frameworks/native/+/android-15.0.0_r1/cmds/dumpsys/dumpsys.cpp)
+lists/checks existing services for `-l` and returns before starting service-dump
+threads. The subprocess deadline still bounds an unresponsive service manager.
+Neither command clears logs, starts a service or changes a host/guest permission.
 
 ## Inputs and provenance
 
