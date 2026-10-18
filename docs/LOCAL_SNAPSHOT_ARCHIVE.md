@@ -1,5 +1,13 @@
 # Private immutable snapshot archive
 
+Current issue-level reconciliation is in the proposed
+[03.02 receiving record](delivery/android/work-packages/03.02.md), under
+[ADR 0007](decisions/0007-android-26-acceptance-record.md). The slice coverage and
+remaining-input statements below retain their original implementation scope and
+dated evidence; the receiving record separately maps the complete current model
+and its remaining delivery/review gates. This crosslink does not relabel an
+earlier run or close another work package.
+
 This extends [Android #26](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/26)
 with durable creation and read-only recovery of the complete
 [reviewed local projection](DRAFT_SNAPSHOT_PROJECTION.md). The implementation uses

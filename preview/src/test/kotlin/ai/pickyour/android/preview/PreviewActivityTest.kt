@@ -1430,6 +1430,9 @@ class PreviewActivityTest {
             assertFalse(state.getBoolean("comparisonDifferencesOnly"))
         }
         assertEquals("pending comparison objective", field(R.string.context_objective).text.toString())
+        // Catalog readiness does not imply the recreated draft worker has released
+        // the library lock. Observe durable state only after its queued work.
+        finishActivityWork()
         assertEquals(baseline, loaded().baselineIdentity)
     }
 

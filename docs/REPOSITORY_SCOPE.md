@@ -58,6 +58,14 @@ decision. Android's guest-local first-slice scope and conditional remote feature
 remain; Apple and website activation follows their own accepted scope, without
 waiting for Android feature or product completion.
 
+[ADR 0007](decisions/0007-android-26-acceptance-record.md) proposes the separate
+placement of only #26's [03.02 local-model receiving record](delivery/android/work-packages/03.02.md)
+in Android, effective through its independent receiving review and normal merge.
+It preserves the original website path as history and changes no shared contract,
+service placement or other work package. The executed draft/projection/private-
+archive model and its exact evidence remain distinct from future creation/removal
+UI, shared saved-build services, installed devices and release qualification.
+
 The existing website remains static. The selected future server package is
 separately built/deployed at `Pick-Your-AI/pickyour.ai/services/planner-api` only
 through canonical owner/coordinator and operations review before dependent code;
