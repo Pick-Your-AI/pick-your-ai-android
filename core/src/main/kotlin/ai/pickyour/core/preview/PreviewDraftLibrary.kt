@@ -103,6 +103,7 @@ class PreviewDraftLibrary internal constructor(root: Path, private val checkpoin
     }
 
     private fun bound(id: PreviewDraftId): PreviewDraftPersistence = persistence(id, object : PreviewDraftAccess {
+        override fun permitsArchive(archive: LocalSnapshotArchive): Boolean = archive.isDisjointFrom(root)
         override fun <T> run(failed: (DraftStorageFailure) -> T, action: () -> T): T = locked(failed) {
             if (hasTombstone(id) || !Files.isDirectory(root.resolve(id.value), NOFOLLOW_LINKS))
                 failed(DraftStorageFailure.CORRUPT)
