@@ -18,6 +18,14 @@ import java.util.concurrent.atomic.AtomicReference
 
 class LocalSnapshotArchiveTest {
     @TempDir lateinit var root: Path
+    // The immutable archive uses ordinary install; current-selection cleanup is a separate operation.
+    // Every observed callback must remain in this explicit matrix, so a future ordinary checkpoint
+    // cannot silently disappear from interruption coverage when the cache enum grows.
+    private val archiveWritePoints = listOf(CacheWritePoint.STAGED, CacheWritePoint.ARTIFACT_PUBLISHED,
+        CacheWritePoint.POINTER_STAGED, CacheWritePoint.POINTER_ACTIVATED)
+    private fun requireArchiveCheckpoint(reached: CacheWritePoint) {
+        assertTrue(reached in archiveWritePoints, "Unexpected ordinary archive checkpoint: $reached")
+    }
     private val sourcePath get() = directory("source")
     private val archivePath get() = directory("archive")
     private fun directory(name: String) = root.resolve(name).also { Files.createDirectories(it) }
@@ -160,13 +168,18 @@ class LocalSnapshotArchiveTest {
     }
 
     @Test fun `all bundle and index write interruptions preserve earlier entries and reconcile exact complete orphans`() {
-        for (target in listOf("bundles", "indices")) for (point in CacheWritePoint.entries) {
+        for (target in listOf("bundles", "indices")) for (point in archiveWritePoints) {
             val name = "$target-${point.name.lowercase()}"
             val path = directory(name)
             var armed = false
+            var injected = false
             val archive = LocalSnapshotArchive(path, SnapshotArchiveLimits(), { cachePath, max, retention ->
                 VerifiedArtifactCache(cachePath, max, retention) { reached ->
-                    if (armed && cachePath.fileName.toString() == target && reached == point) throw IOException("injected archive point")
+                    requireArchiveCheckpoint(reached)
+                    if (armed && cachePath.fileName.toString() == target && reached == point) {
+                        injected = true
+                        throw IOException("injected archive point")
+                    }
                 }
             })
             if (store().load() is DraftLoad.Missing) complete()
@@ -176,6 +189,7 @@ class LocalSnapshotArchiveTest {
             armed = true
             val result = save(next, oldVersion, archive)
             armed = false
+            assertTrue(injected, "Requested archive interruption was not reached: $name")
             val uncertain = target == "indices" && point == CacheWritePoint.POINTER_ACTIVATED
             val entry = if (uncertain) (result as DraftSnapshotArchival.Uncertain).entry else (result as DraftSnapshotArchival.NotPublished).entry
             assertArrayEquals(review(id = "build.before.$name").candidateBytes, read(first.entry, archive).bytes())
@@ -229,13 +243,22 @@ class LocalSnapshotArchiveTest {
     }
 
     @Test fun `initial empty index interruption can resume only that exact never published baseline`() {
-        for (point in CacheWritePoint.entries) {
+        for (point in archiveWritePoints) {
             val path = directory("initial-${point.name}")
             var armed = true
+            var injected = false
             val failing = LocalSnapshotArchive(path, SnapshotArchiveLimits(), { cachePath, max, retention ->
-                VerifiedArtifactCache(cachePath, max, retention) { reached -> if (armed && reached == point) throw IOException("initial interruption") }
+                VerifiedArtifactCache(cachePath, max, retention) { reached ->
+                    requireArchiveCheckpoint(reached)
+                    if (armed && reached == point) {
+                        injected = true
+                        throw IOException("initial interruption")
+                    }
+                }
             })
-            assertEquals(SnapshotArchiveLoad.Failed(SnapshotArchiveFailure.IO_FAILURE), failing.load())
+            val result = failing.load()
+            assertTrue(injected, "Requested initial index interruption was not reached: $point")
+            assertEquals(SnapshotArchiveLoad.Failed(SnapshotArchiveFailure.IO_FAILURE), result)
             assertFalse(Files.exists(path.resolve("namespace")))
             armed = false
             val resumed = current(failing)
