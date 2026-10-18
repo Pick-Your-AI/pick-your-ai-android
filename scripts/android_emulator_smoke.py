@@ -35,16 +35,18 @@ OBJECTIVE_LABEL = "Draft objective (optional)"
 CONTEXT_LABEL = "Draft context (optional)"
 BUTTON = "android.widget.Button"
 EDITOR = "android.widget.EditText"
+UI_DUMP_DIRECTORY = "/data/local/tmp"
+UI_DUMP_PATH = UI_DUMP_DIRECTORY + "/pyai-smoke-window.xml"
 GUEST_READINESS_COMMANDS = (
     ("boot_completed", ("getprop", "sys.boot_completed"), ("1",)),
     ("boot_animation", ("getprop", "init.svc.bootanim"), ("", "stopped")),
     ("current_user", ("am", "get-current-user"), ("0",)),
     ("user_state", ("am", "get-started-user-state", "0"), ("RUNNING_UNLOCKED",)),
     ("package_manager", ("pm", "path", "android"), ("package:/system/framework/framework-res.apk",)),
-    ("shared_storage_directory", ("test", "-d", "/sdcard"), ("",)),
-    ("shared_storage_readable", ("test", "-r", "/sdcard"), ("",)),
-    ("shared_storage_writable", ("test", "-w", "/sdcard"), ("",)),
-    ("shared_storage_searchable", ("test", "-x", "/sdcard"), ("",)),
+    ("ui_dump_directory", ("test", "-d", UI_DUMP_DIRECTORY), ("",)),
+    ("ui_dump_readable", ("test", "-r", UI_DUMP_DIRECTORY), ("",)),
+    ("ui_dump_writable", ("test", "-w", UI_DUMP_DIRECTORY), ("",)),
+    ("ui_dump_searchable", ("test", "-x", UI_DUMP_DIRECTORY), ("",)),
 )
 
 
@@ -171,11 +173,12 @@ def guest_readiness_checks_pass(checks: dict) -> bool:
 def wait_for_guest_ready(device, receipt: dict, timeout_seconds=180):
     """Read-only readiness observations of the already verified, owned API-35 guest.
 
-    Boot completion alone does not demonstrate unlocked-user or shared-storage
+    Boot completion alone does not demonstrate unlocked-user or UI-dump directory
     access. These observations do not certify performance or successful app launch.
     """
     require(0 < timeout_seconds <= 180, "Invalid guest readiness deadline")
-    state = {"ready": False, "timeout_seconds": timeout_seconds, "attempts": 0, "last_checks": {}}
+    state = {"ready": False, "timeout_seconds": timeout_seconds, "attempts": 0,
+             "ui_dump_path": UI_DUMP_PATH, "last_checks": {}}
     receipt["guest_readiness"] = state
     started = time.monotonic()
     deadline = started + timeout_seconds
@@ -224,6 +227,7 @@ def complete_receipt(receipt: dict, source_sha: str) -> None:
     require(receipt.get("unsigned_apk_unchanged") is True, "Unsigned build preservation was not verified")
     readiness = receipt.get("guest_readiness", {})
     require(isinstance(readiness, dict) and readiness.get("ready") is True and
+            readiness.get("ui_dump_path") == UI_DUMP_PATH and
             guest_readiness_checks_pass(readiness.get("last_checks")),
             "Complete owned-guest readiness evidence is missing")
 
@@ -285,7 +289,7 @@ class Ui:
         self.dumps = receipt.setdefault("ui_hierarchy_dumps", {"attempted": 0, "completed": 0, "exit_137": 0})
 
     def snapshot(self) -> ET.Element:
-        path = "/sdcard/pyai-smoke-window.xml"
+        path = UI_DUMP_PATH
         self.device.shell("rm", "-f", path)
         self.dumps["attempted"] += 1
         result = self.device.adb("shell", "uiautomator", "dump", path, timeout=20, check=False)

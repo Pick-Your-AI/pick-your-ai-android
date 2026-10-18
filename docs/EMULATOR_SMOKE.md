@@ -238,7 +238,7 @@ remove `/sdcard/pyai-smoke-window.xml` because access was denied. The other thre
 installed cases did not run. Artifact `12126642819` has ZIP SHA-256
 `088224b76255521ff996a9790f5f282c28f96ac52593632609589c5547ef4556`.
 
-The previous setup observed only `sys.boot_completed` before continuing. Setup now
+The original setup observed only `sys.boot_completed` before continuing. Setup now
 also requires a complete read-only readiness snapshot after the existing wake and
 keyguard-dismissal commands, before installation or any application case:
 
@@ -249,7 +249,7 @@ keyguard-dismissal commands, before installation or any application case:
 | `am get-current-user` | Exact `0`; no user is created or switched |
 | `am get-started-user-state 0` | Exact `RUNNING_UNLOCKED`; no unlock command or credential is supplied |
 | `pm path android` | The pinned image's `package:/system/framework/framework-res.apk` |
-| `test -d/-r/-w/-x /sdcard` | All four commands succeed with empty output/stderr |
+| `test -d/-r/-w/-x /data/local/tmp` | All four commands succeed with empty output/stderr |
 
 The full snapshot must complete within a single 180-second deadline. Each command
 gets at most ten seconds and never more than the remaining deadline. Incomplete
@@ -257,11 +257,12 @@ observations can be retried within that deadline; command timeouts, nonzero exit
 unexpected output, stderr and truncated diagnostic output cannot establish
 readiness. The receipt retains the number of attempts, elapsed time, first
 incomplete and last observations, including separate bounded output and command
-timeout metadata. Missing or false readiness is rejected by the final receipt
-validator even if its case rows were marked passed.
+timeout metadata, and the exact `ui_dump_path`. Missing, false or differently
+scoped readiness is rejected by the final receipt validator even if its case
+rows were marked passed.
 
-These probes observe access; they do not create/delete a shared-storage file,
-change guest permissions, claim usable UI, or measure app performance. The
+These probes observe access; they do not create/delete a file, change guest
+permissions, claim usable UI, or measure app performance. The
 existing fresh XML write/read, successful `Status: ok` launch and all four
 behavioral cases remain mandatory. The observed software-mode system-service
 ANRs and inaccessible shared storage suggest a readiness investigation; they do
@@ -283,3 +284,48 @@ Host-side regressions verify complete/partial snapshots, locked or different
 users, denied storage, failed services, timeout/truncated output, exact owned
 target, the absolute deadline and final receipt rejection. These are harness
 tests, not installed-case acceptance.
+
+
+### Observed unlocked user and UI-dump directory correction
+
+The first readiness run [39103295994](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39103295994)
+used source `750c75b5a4c1c636a76f3d90932d22bb20d0b4bf`, tree
+`fa85f8ddf2167ac21cb5e3eb4512c784f57b089e`. Build, lint and all 29 pinned-base
+simulated Activity cases passed. The owned software AVD booted, but readiness
+failed after 180.002 seconds and 15 observation attempts, before APK installation
+or any of the four installed cases. In its first full snapshot, boot, stopped
+animation, current user 0, `RUNNING_UNLOCKED` and the platform package all passed;
+the four `/sdcard` directory/access tests each returned 1 with empty output and
+stderr. Its last partial snapshot timed out querying the current user with 1.169
+seconds left. No full snapshot passed. Artifact `12127459274` has ZIP SHA-256
+`571214cf59312c1c2cb8b1119993455e0435ece14f14b505d6d1b6ca764c83bf`.
+
+That receipt shows the user was already unlocked at the first observation; a
+locked-user explanation does not account for that observed `/sdcard` failure.
+It does not establish why shared storage was unavailable or explain the earlier
+launch timeout. All four cases remain `not_run`, and the earlier launch-failure
+receipt remains relevant.
+
+The synthetic app stores drafts in its existing internal `noBackupFilesDir`.
+The harness used `/sdcard` only to stage UI hierarchy XML, adding an unnecessary
+external-storage prerequisite. It now requests the explicit file
+`/data/local/tmp/pyai-smoke-window.xml` and observes directory/read/write/search
+access to that existing directory on the verified owned guest. It does not create
+the directory or change any permissions. Every snapshot still requires successful
+removal of that exact prior path, a fresh explicit-path dump, and an independent
+read and parse of complete hierarchy XML. An exit-137 completion marker naming the
+old `/sdcard` path is rejected. The receipt binds readiness to the exact new path.
+The successful `Status: ok` launch predicate and all four behavioral case bodies
+are unchanged.
+
+Pinned Android 15 sources checked 2026-10-18 support this path choice:
+[DumpCommand](https://github.com/aosp-mirror/platform_frameworks_base/blob/android-15.0.0_r1/cmds/uiautomator/cmds/uiautomator/src/com/android/commands/uiautomator/DumpCommand.java)
+uses a supplied non-option argument as the `File` passed to the dumper;
+[AccessibilityNodeInfoDumper's explicit-file overload](https://github.com/aosp-mirror/platform_frameworks_base/blob/android-15.0.0_r1/cmds/uiautomator/library/core-src/com/android/uiautomator/core/AccessibilityNodeInfoDumper.java)
+writes that file without changing directory permissions; and
+[platform init](https://github.com/aosp-mirror/platform_system_core/blob/android-15.0.0_r1/rootdir/init.rc)
+provisions `/data/local/tmp` for the shell user. Source establishes the platform
+mechanism, not the capabilities of a future guest. The previous owned AVD was
+destroyed by cleanup, so actual access must be observed in the next fresh hosted
+run. This staging correction does not claim a cure for the launch timeout or
+installed acceptance; both access and all installed assertions must still pass.

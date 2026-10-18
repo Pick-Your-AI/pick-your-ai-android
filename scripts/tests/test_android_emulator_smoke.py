@@ -51,10 +51,20 @@ class EmulatorSmokeGuardTest(unittest.TestCase):
                           for _, args, _ in smoke.GUEST_READINESS_COMMANDS], device.adb.call_args_list)
         self.assertTrue(receipt["guest_readiness"]["ready"])
         self.assertEqual(1, receipt["guest_readiness"]["attempts"])
+        self.assertEqual(smoke.UI_DUMP_PATH, receipt["guest_readiness"]["ui_dump_path"])
         self.assertEqual(ready_checks(), receipt["guest_readiness"]["last_checks"])
         self.assertNotIn("first_incomplete_checks", receipt["guest_readiness"])
         device.launch.assert_not_called()
         device.shell.assert_not_called()
+
+    def test_ui_dump_storage_queries_observe_existing_shell_temp_directory(self):
+        self.assertEqual("/data/local/tmp/pyai-smoke-window.xml", smoke.UI_DUMP_PATH)
+        self.assertEqual([
+            ("ui_dump_directory", ("test", "-d", "/data/local/tmp"), ("",)),
+            ("ui_dump_readable", ("test", "-r", "/data/local/tmp"), ("",)),
+            ("ui_dump_writable", ("test", "-w", "/data/local/tmp"), ("",)),
+            ("ui_dump_searchable", ("test", "-x", "/data/local/tmp"), ("",)),
+        ], [entry for entry in smoke.GUEST_READINESS_COMMANDS if entry[0].startswith("ui_dump_")])
 
     def test_boot_property_alone_cannot_accept_locked_user_storage_or_failed_services(self):
         for key, change in (
@@ -65,10 +75,10 @@ class EmulatorSmokeGuardTest(unittest.TestCase):
             ("user_state", {"stdout_tail": "RUNNING_LOCKED"}),
             ("user_state", {"stdout_tail": "User is not started: 0"}),
             ("package_manager", {"stdout_tail": ""}),
-            ("shared_storage_directory", {"exit_code": 1}),
-            ("shared_storage_readable", {"exit_code": 1}),
-            ("shared_storage_writable", {"exit_code": 1, "stderr_tail": "Permission denied"}),
-            ("shared_storage_searchable", {"exit_code": 1}),
+            ("ui_dump_directory", {"exit_code": 1}),
+            ("ui_dump_readable", {"exit_code": 1}),
+            ("ui_dump_writable", {"exit_code": 1, "stderr_tail": "Permission denied"}),
+            ("ui_dump_searchable", {"exit_code": 1}),
             ("user_state", {"stderr_tail": "service failure"}),
             ("user_state", {"exit_code": False}),
             ("user_state", {"output_truncated": True}),
@@ -79,7 +89,7 @@ class EmulatorSmokeGuardTest(unittest.TestCase):
                 self.assertFalse(smoke.guest_readiness_checks_pass(checks))
         self.assertFalse(smoke.guest_readiness_checks_pass(None))
         checks = ready_checks()
-        checks.pop("shared_storage_writable")
+        checks.pop("ui_dump_writable")
         self.assertFalse(smoke.guest_readiness_checks_pass(checks))
 
     def test_guest_readiness_retries_incomplete_state_without_mutating_or_launching(self):
@@ -115,7 +125,7 @@ class EmulatorSmokeGuardTest(unittest.TestCase):
         self.assertFalse(state["ready"])
         self.assertEqual(2, state["attempts"])
         self.assertEqual(2, state["seconds"])
-        self.assertEqual("Permission denied", state["last_checks"]["shared_storage_writable"]["stderr_tail"])
+        self.assertEqual("Permission denied", state["last_checks"]["ui_dump_writable"]["stderr_tail"])
         self.assertTrue(all(call.kwargs["timeout"] <= 2 for call in device.adb.call_args_list))
         device.launch.assert_not_called()
         device.shell.assert_not_called()
@@ -355,7 +365,7 @@ class EmulatorSmokeGuardTest(unittest.TestCase):
         self.assertIsNone(smoke.labelled_editor(root, smoke.TITLE_LABEL))
 
     def test_dump_requires_removal_then_fresh_xml_and_records_completed_137(self):
-        path = "/sdcard/pyai-smoke-window.xml"
+        path = smoke.UI_DUMP_PATH
         raw = '<hierarchy rotation="0"><node package="' + smoke.PACKAGE + '" /></hierarchy>'
         for status in (0, 137):
             with self.subTest(status=status):
@@ -383,10 +393,11 @@ class EmulatorSmokeGuardTest(unittest.TestCase):
         self.assertEqual(0, receipt["ui_hierarchy_dumps"]["completed"])
 
     def test_unrelated_dump_failure_or_inexact_completion_is_rejected(self):
-        marker = "UI hierchary dumped to: /sdcard/pyai-smoke-window.xml"
+        marker = "UI hierchary dumped to: " + smoke.UI_DUMP_PATH
         for status, stdout, stderr in (
             (1, marker, ""), (137, "", ""), (137, marker, "Killed"),
             (137, marker + "\nERROR: dump failed", ""),
+            (137, "UI hierchary dumped to: /sdcard/pyai-smoke-window.xml", ""),
             (137, "UI hierchary dumped to: /sdcard/another.xml", ""),
         ):
             with self.subTest(status=status, stdout=stdout, stderr=stderr):
@@ -398,7 +409,7 @@ class EmulatorSmokeGuardTest(unittest.TestCase):
                 self.assertEqual(0, receipt["ui_hierarchy_dumps"]["completed"])
 
     def test_completion_message_cannot_replace_missing_truncated_or_invalid_xml(self):
-        marker = "UI hierchary dumped to: /sdcard/pyai-smoke-window.xml"
+        marker = "UI hierchary dumped to: " + smoke.UI_DUMP_PATH
         for raw in (None, "", '<hierarchy rotation="0"><node>',
                     '<other><node /></other>', '<hierarchy rotation="0" />',
                     '<hierarchy rotation="9"><node /></hierarchy>'):
@@ -415,14 +426,16 @@ class EmulatorSmokeGuardTest(unittest.TestCase):
     def test_incomplete_or_differently_scoped_receipts_fail(self):
         receipt = {"source_commit": "a" * 40, "scope": "owned-installed-aosp-emulator", "status": "passed",
                    "unsigned_apk_unchanged": True,
-                   "guest_readiness": {"ready": True, "last_checks": ready_checks()},
+                   "guest_readiness": {"ready": True, "ui_dump_path": smoke.UI_DUMP_PATH, "last_checks": ready_checks()},
                    "cases": [{"id": name, "status": "passed"} for name in smoke.CASE_IDS]}
         smoke.complete_receipt(receipt, "a" * 40)
         invalid = []
         for key, value in (("source_commit", "b" * 40), ("scope", "simulated"),
                            ("status", "failed"), ("unsigned_apk_unchanged", False),
                            ("guest_readiness", None), ("guest_readiness", {"ready": True}),
-                           ("guest_readiness", {"ready": False, "last_checks": ready_checks()})):
+                           ("guest_readiness", {"ready": False, "ui_dump_path": smoke.UI_DUMP_PATH, "last_checks": ready_checks()}),
+                           ("guest_readiness", {"ready": True, "last_checks": ready_checks()}),
+                           ("guest_readiness", {"ready": True, "ui_dump_path": "/sdcard/pyai-smoke-window.xml", "last_checks": ready_checks()})):
             changed = copy.deepcopy(receipt)
             changed[key] = value
             invalid.append(changed)
