@@ -571,11 +571,25 @@ pins. It flags metadata divergence without exposing arbitrary metadata values.
 Missing historical guest metadata stays explicitly unavailable. Neither side is
 mutated and no save token is adopted; pending editor values are excluded.
 
-The UI computes on the shared worker and rejects display if the saved baseline has
-changed. It displays at most 100 changed rows and the first 160 source UTF-16 units per value/key,
-escaped for display (escaped text can be longer),
-with explicit truncation/count disclosure; full exact values stay in the immutable
-comparison result and durable source. A same-revision comparison has no changes.
+The UI computes on the shared worker under a captured draft identity, saved baseline,
+non-reusable storage authority and inspection request. A cancellable preparation
+dialog owns the response. Cancellation, a new history request, any storage-operation
+start or Activity destruction retires that request; a late worker result cannot open
+an obsolete comparison even if a read finishes with the same saved baseline.
+
+The read-only browser exposes every changed field in pages of eight, with absolute
+change numbers, exact from/to revision context and page counts. Field previews retain
+the existing 160-source-UTF16-unit bound and explicit truncation notice. Opening a
+field provides complete stable-key, before-value and after-value inspection in ordered
+parts of at most 160 code units. Each part shows its number and complete source range;
+quotes, control/format characters and surrogate units remain escaped, including a
+surrogate pair split across parts. Decimal spellings, empty input, absent input and
+literal sentinels stay distinct. URLs remain plain local text. Returning to the changes
+restores the selected field's page, including fields beyond the former 100-row limit.
+One scrollable column keeps complete labels and controls reachable at narrow widths
+and large text sizes. Dismissed, replaced and retired controls cannot navigate again.
+A same-revision comparison explicitly shows no supported-field changes while retaining
+the separate metadata and historical-availability disclosures.
 Comparison is within one retained history only: report, cost, rules and evidence
 comparison and cross-build semantics remain the separate accepted receiving work.
 It supplies no new evaluation, price or recommendation and is not full #117 closure.
@@ -584,7 +598,12 @@ Four JVM cases cover exact missing/empty/opaque values, same-setting changes,
 deterministic selection deltas, unchanged/unknown targets, unsupported guest
 metadata, read-only head identity and immutable output. Typed display separates absent/empty
 sentinels from quoted literals (also reused by domain-restore confirmation), escapes controls/format characters and bounds
-truncated text explicitly. Hosted Android compile/lint
+truncated text explicitly. RevisionComparisonBrowserActivityTest exercises the real
+native controls and serial-worker callbacks for complete paging, stable component
+keys, literal parts, immutable saved/pending context, cancellation, storage changes,
+request replacement, recreation and measured narrow RTL/large-text targets. These
+are Robolectric simulations; the required workflow checks their named cases executed.
+Hosted Android compile/lint
 and installed dialog/accessibility/lifecycle behavior remain separate gates.
 
 ### Simulated Activity regression tests
