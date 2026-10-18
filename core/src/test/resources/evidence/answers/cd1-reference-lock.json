@@ -1,0 +1,62 @@
+{
+  "fixtureVersion": "android-cd1-reference-1",
+  "answerProfile": "cd1-0.2",
+  "researchRepository": "https://github.com/Pick-Your-AI/pick-your-ai-research",
+  "researchCommit": "cebbf59345e01d34b8ad4c20d0b57782f6e05369",
+  "researchTree": "6e9f196d091fb0fb89443c3fc0e6adcf05607c55",
+  "sourceFiles": {
+    "tests/t0_answer_attribution_prototype.py": {
+      "sha256": "e3caec2f7db53cce66c3778a5faf31c04cc52aca7f555a3fba2ec0da174d3469",
+      "bytes": 6364,
+      "blob": "4f17b43f330b65294525d24c16a219cb59e75419"
+    },
+    "tests/t0_answer_state_prototype.py": {
+      "sha256": "722fa8af1e3453413f2cd3a65161fbf9102ea1c1d57725e3dcd03c6167cd5631",
+      "bytes": 13218,
+      "blob": "01a713cc7021a6f42e9b7b3850b334527904f652"
+    },
+    "tests/t0_known_value_schema.py": {
+      "sha256": "1d7878298f4c3c3b8de5a2ade13a8c3b2f408d52b79df2d082e8102153da99dd",
+      "bytes": 6426,
+      "blob": "2691fac7def1590c8e4a4ad20258cd630f206d98"
+    },
+    "tests/selection_quantifier_prototype.py": {
+      "sha256": "2db82645589d292ac17c89413bae340187ddad7b7751c9dc5b670d1713b677f7",
+      "bytes": 4953,
+      "blob": "922cc7a882cc2cccbe122e98127253d71c12205f"
+    },
+    "tests/fixtures/t0-answer-attribution.schema.json": {
+      "sha256": "958e090b22c3ec6f58da4e0a52740a6b9693d5237467a1b9cfd8ab0c795089ac",
+      "bytes": 1546,
+      "blob": "7302418b45c9d53d4c54e534a05b07358ae7a4b1"
+    },
+    "tests/fixtures/t0-answer-states.schema.json": {
+      "sha256": "51e18c1b5694daf905aee539712dd0a9e46e78be0ca8e438d758628d88357e0d",
+      "bytes": 1370,
+      "blob": "91aab5e6bae86f3b7dfb8e504a65c02502c6defb"
+    },
+    "tests/fixtures/t0-answer-attribution.json": {
+      "sha256": "b5c198899830d9c4e7e0acce4f72903be1eb69497e935c0238725d1d2ec4dc8b",
+      "bytes": 786,
+      "blob": "d7f0c9f33d88cb17d18fa1c443a8630a0c9b1061"
+    },
+    "research/T0-configuration/component-schema-compatibility.md": {
+      "sha256": "e000ea7c05fb53b061ce7af9060f072eae89544079a62bd3626928e222a9a640",
+      "bytes": 275985,
+      "blob": "8ee5a7b7a960ae63c073c996cfdc73b80d939e7c"
+    }
+  },
+  "referenceRuntime": {
+    "python": "3.12",
+    "jsonschema": "4.25.1"
+  },
+  "fixture": {
+    "path": "cd1-reference.json",
+    "bytes": 449598,
+    "sha256": "e41334d419c74d0a2d5c5e4dec3b4a3fc441430b2936f9cf99ed98754650ac97",
+    "cases": 623,
+    "readCases": 427,
+    "ruleCases": 196
+  },
+  "scope": "Synthetic normalized answer/profile observations; no released wire, editor, evidence or evaluator adoption."
+}
