@@ -705,3 +705,163 @@ old row and detail callbacks, unchanged saved baseline, and a successful explici
 selection/save pinned to the replacement. It exercises the Activity at the local
 snapshot acceptance boundary; it supplies no remote cancellation, transport
 ordering, installed-device or whole-issue acceptance evidence.
+
+### Retry after the final deletion acknowledgement is lost
+
+The final deletion marker can already be absent when directory synchronization or
+transaction cleanup prevents an acknowledgement. The library correctly returns
+`Unconfirmed`, but an absent row previously left the Activity with no reachable
+retry action. The Activity now captures the affected local ID before dispatching
+deletion, retains it in saved instance state, and exposes **Retry local cleanup**
+independently of the library rows. Cancellation or a busy retry retains that ID.
+Only a confirmed removal, a conflict requiring fresh inspection, or a known failure
+before a new deletion starts clears it. Another deletion cannot silently replace
+the one unresolved operation in that Activity. Unrelated editor identity, pending
+title/context and save authority remain subject to the existing session transition.
+
+`PreviewDraftLibrary.retryDeletion` reconciles the named earlier operation. A
+still-active directory without a deletion marker returns conflict even when its
+contents are unreadable or incomplete; a retry does not become fresh permission
+to discard it. Existing intent uses the canonical cleanup sequence. If the draft
+and pending marker are both absent, retry synchronizes that absence without
+creating another pending library row. This also works at the 64-draft limit and
+retains the permanent legacy-default suppression marker. It introduces no new
+draft format, persistence engine, retention policy or remote deletion behavior.
+
+The simulated regression
+`interruptedFinalCleanupCanBeRetriedAfterRecreationWithoutLibraryRow` drives the
+native confirmation and injects the existing `TOMBSTONE_REMOVED` failure. On
+accepted main `5359a3b`, it reached an empty library and recreated Activity but
+failed because no retry control existed. With this correction it preserves the
+pending title/objective, cancels a retry, encounters a busy retry, recreates again,
+and explicitly completes cleanup without recreating the deleted guest. CI requires
+the named case to execute and pass. Three core regressions separately cover
+refusal of active readable/corrupt/incomplete rows, existing/absent final intent,
+and safe acknowledgement when the remaining library is full.
+
+Local verification on 2026-10-18 passed **215 core JVM tests and 9 simulated
+Activity tests**, with no failures, errors or skips. A clean unsigned preview
+assembly and lint passed; lint retained the existing `ViewConstructor` warning
+for the unchanged, programmatically constructed `OptionalTierSection`. The frozen
+43-file import and both manifests, 21 Python references, four report fixtures,
+four integrity regressions, six ledger regressions and wrapper integrity also
+passed. The ledger still matches all 129 issue identities and 441 incomplete
+criteria. The saved-instance checkpoint is UI recovery context; installed process
+termination, filesystem power loss and receiving acceptance for #86/#67 remain
+separate evidence requirements.
+
+After reconciliation with accepted catalog search at `a4e7df2`, the same recovery
+delta in local commit `f4dd243` passed a fresh clean build on 2026-10-18:
+**221 core JVM tests and 11 simulated Activity tests**, with zero failures, errors
+or skips. The combined `:core:clean :preview:clean :core:check :core:assemble
+:preview:assembleDebug :preview:lintDebug :preview:testDebugUnitTest` run completed
+all 58 tasks in 47 seconds. Lint reported zero errors and two existing warnings:
+`PluralsCandidate` in catalog search strings and `ViewConstructor` in
+`OptionalTierSection`. This later receipt preserves the earlier 215/9 result;
+neither run supplies installed-device or whole-issue acceptance.
+
+The integration with the later workload, pending-copy and objective guidance
+preserves their saved state and controls alongside the pending cleanup ID. Both
+the shared cleanup confirmation and deletion-dispatch entry reject a destroyed
+Activity before opening a dialog, changing the pending operation or submitting
+work. Two additional simulated regressions restore the pending-ID receipt, retain
+the actual retry control or positive confirmation, recreate the Activity, then
+deliver those old callbacks. They require the current pending fields, retry state
+and acknowledged baseline to remain unchanged. The existing interruption test
+above continues to exercise how the pending cleanup receipt is produced. The
+combined native gate requires all three cleanup regressions; this source addition
+does not itself supply an installed-device result.
+
+The pending identity is also checked again immediately before deletion dispatch
+in the same live Activity. A retained positive confirmation for another ID cannot
+replace the current cleanup receipt. If that same ID has since become pending,
+dispatch uses retry-only semantics, including retaining the receipt when storage
+is busy. The confirmation's earlier view of the operation is not sufficient
+authority for a later submission.
+
+A deletion confirmation also must still be showing when its positive callback
+dispatches. Canceling or dismissing it ends that confirmation's authority, even
+when its Activity and original draft are still current. A further simulated
+regression invokes the actual retained positive button after both cancellation
+and dismissal, requiring the acknowledged draft, pending form and empty cleanup
+receipt to remain unchanged. The two pending-identity regressions keep their
+earlier confirmation visible across the later operation, so they still exercise
+the dispatch identity and retry checks independently of this terminal-dialog guard.
+
+Two further simulated regressions retain actual positive controls across these
+state changes. One creates two distinct drafts, leaves the second absent after an
+injected final-acknowledgement failure, and requires its saved retry receipt and
+the first draft's acknowledged contents to survive the older confirmation. The
+other requires the same-ID callback to preserve its new retry receipt after a
+busy result. Both recreate and explicitly reconcile the pending operation; the
+native workflow requires both cases alongside all accepted Activity regressions.
+
+The failing-before source `284881bf1c7d2037ef9da5e78551e66c1b97b210` (tree
+`0f5702715795770184fd38675fc75609441291ff`) ran all 40 simulated Activity cases in
+[hosted run 39104121579](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39104121579).
+Exactly these two new cases failed, with no errors or skips: the first observed
+the pending UUID replaced by `guest-draft`, and the second observed the new-delete
+failure result instead of a receipt-preserving retry failure. All 38 earlier
+cases passed. This establishes the regression targets; passing verification of
+the corrected source is recorded separately, with no installed-device inference.
+
+The later cancellation reproduction ran against
+`a63b51fbbde52c403e11270a94c8b0778706012a` and failed after a canceled actual
+positive button deleted `guest-draft`; expected rows were `[guest-draft]`, actual
+rows were empty. [Review 5561842608](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/250#pullrequestreview-5561842608)
+records that one-case simulated failure. After adding the terminal-dialog check,
+the cancellation and both pending-identity cases passed. A separate control kept
+the new dialog check but temporarily removed only the pending-ID/retry dispatch
+checks: both identity regressions again failed with their distinct wrong-receipt
+and wrong-failure-message outcomes. The checks were restored before verification.
+
+The corrected source was then verified locally on 2026-10-18 with JDK 21,
+Gradle 8.11.1, SDK 35 and strict verified offline dependencies: all 321 core tests
+and all 49 mandatory API 28 Activity simulations passed, with zero failures,
+errors or skips. Unsigned assembly and lint also passed in the combined 57-task,
+68-second run; lint reported zero errors and nine warning entries across
+`PluralsCandidate`, `UnusedResources` and `ViewConstructor`. Frozen/reference and
+delivery-ledger checks passed. These local SDK/JVM observations preserve the
+separate hosted and installed-device gates; the unsigned APK was not installed.
+
+### Canceled and consumed editing dialogs
+
+The adjacent [modal-authority review 5561872573](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/250#pullrequestreview-5561872573)
+identified a reproduced canceled-reopen callback that discarded pending edits,
+plus the same missing cancellation check in other draft-editing and chooser
+paths. Those callbacks now require their actual dialog to still be showing before
+copying or restoring fields, switching or creating drafts, committing activation,
+changing workload classification or catalog facets, scheduling comparison work,
+or opening a follow-up window. Cleanup retry redirection also checks its parent
+dialog. Existing Activity lifetime, storage-busy, baseline identity, pending-ID,
+retry and durable CAS checks still apply; visibility supplies the separate
+confirmation-lifetime requirement.
+
+The pinned API 28 [AlertController source](https://github.com/aosp-mirror/platform_frameworks_base/blob/android-9.0.0_r1/core/java/com/android/internal/app/AlertController.java)
+dispatches standard button and item callbacks before its normal dialog dismissal.
+An ordinary current choice therefore remains actionable, while a canceled,
+explicitly dismissed or already-consumed dialog cannot authorize another callback.
+Accepted catalog source-navigation guards remain unchanged.
+
+The failing-before checkpoint
+`27f8915fd0835f13ac628dce528e5158ef3fc507`, tree
+`15407b5d7727bc32327adf4cdd3be8003bd3cd7e`, adds 15 actual-control regressions to
+unchanged `1dff52cc` production source. Its focused run executed 16 cases: all 15
+new cases failed their intended assertions, the prior deletion-cancellation case
+passed, and there were no errors or skips. Failures included replaced pending
+title/objective, a changed active pointer, unwanted new/duplicate/recovery rows,
+unconfirmed tier activation and follow-up windows after cancellation. The tests
+drain the real Activity worker and main loop before checking durable state or UI.
+The restore test compares retained revision/content and guest-field values;
+fresh history wrapper objects do not have value equality.
+
+After the visibility guards, the full local strict SDK/JVM verification passed
+all 321 core tests and all 64 required API 28 Activity simulations. No case failed,
+errored or skipped. Fresh positive history-copy, domain-restore and draft-switch
+paths also pass, alongside the existing positive flows and independent visible
+pending-cleanup race cases. Unsigned assembly and lint passed; the final 57-task
+invocation took 42 seconds with seven tasks executed and 50 current tasks reused.
+Lint retained zero errors and nine warning entries across the same three kinds.
+Frozen/reference and delivery-ledger checks passed. Hosted exact-head verification,
+reviewed signed delivery, installed-device evidence and complete work-package
+acceptance remain separate; these observations do not close a delivery criterion.

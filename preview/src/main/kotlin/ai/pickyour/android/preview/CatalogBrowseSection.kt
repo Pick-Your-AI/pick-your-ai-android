@@ -110,8 +110,8 @@ class CatalogBrowseSection(
         if (!active()) return
         val values = listOf<String?>(null) + PreviewCatalogKinds.tiers
         AlertDialog.Builder(activity).setTitle(R.string.catalog_tier_title)
-            .setItems(values.map { it ?: activity.getString(R.string.catalog_all_tiers) }.toTypedArray()) { _, index ->
-                if (!active()) return@setItems
+            .setItems(values.map { it ?: activity.getString(R.string.catalog_all_tiers) }.toTypedArray()) { picker, index ->
+                if ((picker as? AlertDialog)?.isShowing != true || !active()) return@setItems
                 state = state.copy(tier = values[index], page = 0)
                 render()
             }.setNegativeButton(R.string.close, null).show()
@@ -123,8 +123,8 @@ class CatalogBrowseSection(
         val values = listOf<PreviewCatalogKind?>(null) + PreviewCatalogKinds.all
         AlertDialog.Builder(activity).setTitle(R.string.catalog_kind_title)
             .setItems(values.map { it?.let { entry -> "${entry.tier} · ${entry.id}" }
-                ?: activity.getString(R.string.catalog_all_kinds) }.toTypedArray()) { _, index ->
-                if (!active()) return@setItems
+                ?: activity.getString(R.string.catalog_all_kinds) }.toTypedArray()) { picker, index ->
+                if ((picker as? AlertDialog)?.isShowing != true || !active()) return@setItems
                 state = state.copy(kind = values[index]?.id, page = 0)
                 render()
             }.setNegativeButton(R.string.close, null).show()
@@ -134,8 +134,8 @@ class CatalogBrowseSection(
         if (!active()) return
         val values = PreviewCatalogSort.entries
         AlertDialog.Builder(activity).setTitle(R.string.catalog_sort_title)
-            .setItems(values.map(::sortName).toTypedArray()) { _, index ->
-                if (!active()) return@setItems
+            .setItems(values.map(::sortName).toTypedArray()) { picker, index ->
+                if ((picker as? AlertDialog)?.isShowing != true || !active()) return@setItems
                 state = state.copy(sort = values[index], page = 0)
                 render()
             }.setNegativeButton(R.string.close, null).show()
