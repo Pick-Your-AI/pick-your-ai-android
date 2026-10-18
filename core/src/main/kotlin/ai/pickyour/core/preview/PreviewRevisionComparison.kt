@@ -34,6 +34,18 @@ fun PreviewStoredDraft.compareRevision(number: Long): PreviewRevisionComparison?
     add("workload.max_concurrency", before.workload.maxConcurrency?.toString(), after.workload.maxConcurrency?.toString())
     add("workload.max_latency_ms", before.workload.maxLatencyMs?.toString(), after.workload.maxLatencyMs?.toString())
     add("workload.data_classification", before.workload.dataClassification?.encoded, after.workload.dataClassification?.encoded)
+    val oldSelections = before.components.selections.associateBy { it.id }
+    val newSelections = after.components.selections.associateBy { it.id }
+    for (id in (oldSelections.keys + newSelections.keys).sorted()) {
+        val left = oldSelections[id]?.toJson()
+        val right = newSelections[id]?.toJson()
+        for (field in listOf("kind", "catalog_item_id", "catalog_item_version", "role", "enabled", "settings", "notes", "extensions"))
+            add("components.selection.$field", left?.get(field)?.let(::stableSelectionJson), right?.get(field)?.let(::stableSelectionJson), id)
+    }
+    val oldLinks = before.components.links.associateBy { it.id }
+    val newLinks = after.components.links.associateBy { it.id }
+    for (id in (oldLinks.keys + newLinks.keys).sorted())
+        add("components.link", oldLinks[id]?.toJson()?.let(::stableSelectionJson), newLinks[id]?.toJson()?.let(::stableSelectionJson), id)
     for (tier in OptionalTier.entries) {
         val left = before.optional.getValue(tier)
         val right = after.optional.getValue(tier)
@@ -81,4 +93,13 @@ class PreviewComparedValue private constructor(val kind: PreviewComparedValueKin
         }
     }
     override fun toString() = "PreviewComparedValue"
+}
+
+/** Stable object field order, retaining JSON types, nulls and array order. No resource resolution. */
+private fun stableSelectionJson(value: com.fasterxml.jackson.databind.JsonNode): String = when {
+    value.isObject -> value.properties().sortedBy { it.key }.joinToString(",", "{", "}") {
+        com.fasterxml.jackson.databind.node.TextNode(it.key).toString() + ":" + stableSelectionJson(it.value)
+    }
+    value.isArray -> value.joinToString(",", "[", "]") { stableSelectionJson(it) }
+    else -> value.toString()
 }
