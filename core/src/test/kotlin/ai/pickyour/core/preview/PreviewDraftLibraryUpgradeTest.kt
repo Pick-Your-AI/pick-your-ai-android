@@ -81,6 +81,27 @@ class PreviewDraftLibraryUpgradeTest {
         assertEquals(PreviewActiveRead.Selected(id), PreviewActiveDraftStore(root).read())
     }
 
+    @Test fun `selection returns a typed failure when the provisioned root is removed`() {
+        val directory = Files.createDirectory(root.resolve("removed"))
+        val active = PreviewActiveDraftStore(directory)
+        Files.delete(directory.resolve(".active-draft"))
+        Files.delete(directory)
+
+        assertEquals(PreviewActiveWrite.Failed(CacheFailure.CORRUPT), active.select(PreviewDraftId("guest-draft")))
+        assertFalse(Files.exists(directory))
+    }
+
+    @Test fun `selection returns a typed failure without modifying a replacement root file`() {
+        val directory = Files.createDirectory(root.resolve("replaced"))
+        val active = PreviewActiveDraftStore(directory)
+        Files.delete(directory.resolve(".active-draft"))
+        Files.delete(directory)
+        Files.writeString(directory, "replacement stays intact")
+
+        assertEquals(PreviewActiveWrite.Failed(CacheFailure.CORRUPT), active.select(PreviewDraftId("guest-draft")))
+        assertEquals("replacement stays intact", Files.readString(directory))
+    }
+
     @Test fun `selection contender cannot acknowledge a target or release the active deletion process lock`() {
         val target = library().create() as PreviewLibraryCreate.Saved
         val active = PreviewActiveDraftStore(root)
