@@ -65,7 +65,8 @@ class LocalDraftStore internal constructor(
     /** Read immutable history without activating it; restoring is an explicit new save with current token. */
     fun revision(hash: ArtifactHash): DraftLoad = guarded({ DraftLoad.Failed(it) }) { decode(cache.pinned(hash)) }
 
-    fun save(expected: DraftVersion?, content: DraftContent, metadata: Map<String, String> = emptyMap()): DraftSave {
+    /** Omitted metadata preserves the current map; an explicit empty map clears it. */
+    fun save(expected: DraftVersion?, content: DraftContent, metadata: Map<String, String>? = null): DraftSave {
         var attemptedHash: ArtifactHash? = null
         return guarded({ reason -> attemptedHash?.let { DraftSave.Uncertain(it) } ?: DraftSave.Failed(reason) }) {
             val current = when (val loaded = decode(cache.active())) {
@@ -80,7 +81,7 @@ class LocalDraftStore internal constructor(
             val number = try { Math.incrementExact(current?.version?.number ?: -1L) } catch (_: ArithmeticException) {
                 return@guarded DraftSave.Failed(DraftStorageFailure.LIMIT_EXCEEDED)
             }
-            val bytes = try { DraftEnvelope.encode(number, content, metadata) } catch (_: EnvelopeFailure) {
+            val bytes = try { DraftEnvelope.encode(number, content, metadata ?: current?.metadata ?: emptyMap()) } catch (_: EnvelopeFailure) {
                 return@guarded DraftSave.Failed(DraftStorageFailure.LIMIT_EXCEEDED)
             }
             // Apply the same parser limits to writes, so every acknowledged envelope can be reopened.
