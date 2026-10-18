@@ -1,5 +1,79 @@
 # Criterion evidence ledger
 
+## Current version 8: integrated foundation decision
+
+Version 8 records **25 reviewed design criteria and three reviewed implementation
+criteria complete, with 413 criteria incomplete**. Its only new accepted issue is
+Android #2, whose four literal criteria are the integrated product-scope and
+decision outcome. The existing #26 model implementation, explicit-save correction,
+all seven earlier design outcomes and their original evidence remain unchanged.
+
+The [01 epic record](android/epics/01.md) and its narrow
+[ADR 0006](../decisions/0006-android-2-acceptance-record.md) were delivered in the
+agreed nine-path [#412 receiver](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/412).
+The final signed commit is
+[c0278410](https://github.com/Pick-Your-AI/pick-your-ai-android/commit/c0278410f5a8a90776df9de2f466103cba48f9f1),
+exact tree `49fd5b522999f3042bfa5894320575b9ee96b144` and sole preceding accepted-main
+parent `ced002ddb32ceaad2a2a2dcdf4fb438f2a1c0bc9`. This places only the parent decision
+record in the Android repository; the original website coordinate stays in its
+historical acceptance metadata.
+
+| Literal criterion | Accepted decision evidence and boundary |
+| --- | --- |
+| 2.1 Child deliverables, owners, validation and review | Six exact delivered child records and their actual preparation/receiving evidence. Delegated in-session responsibility does not assign a GitHub user or create an ongoing operating commitment. |
+| 2.2 Integrated journey with failure/recovery | The completed D1–D8 desk traversal connects the six accepted decisions, supported local outcomes, interruption/recovery requirements and additional authority gates. It is a product-decision demonstration. |
+| 2.3 Conditional/deferred scope | Selected, optional, conditional and excluded capabilities retain explicit dispositions. Omitted implementations are not completed by this decision. |
+| 2.4 Accepted handoffs | The record consumes its exact Research, Apple and Android receiving inputs, preserving canonical shared-service, frozen-contract, pricing/evidence, lifecycle and rights authority. |
+
+The [actual product-decision and Android technical receiving review](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/404#pullrequestreview-5564615467)
+accepted all four criteria and the complete decision demonstration under the
+maintainer's delegation. The independent
+[joint receiving source/composition review](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/412#pullrequestreview-5564841847)
+verified all nine selected blobs and 353 unrelated accepted-main entries. These are
+disclosed in-session reviewers; they are not fabricated replies from a historical
+assignee, physical witnesses or new ongoing service owners.
+
+The separate [actual c027 default-main receipt](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/412#issuecomment-6255080145)
+qualifies 2,933 core and 265 simulated Android cases, 17 mandatory report programs,
+18 host policy methods, 12 compiled policy controls, strict 8/10-pin inventories,
+both real ignored-packaged-input rejections and the 167-commit zero-finding scanner.
+It verifies all four original ZIP identities, 221 member CRCs and original source,
+upload and output bindings. The APK is 2,931,697 bytes with SHA-256
+18e3483ff13736bcef1c493035454d5d5c74923ca25842ff77a99e247cfc92b6.
+Those are checks of the delivered composition. They do not turn D1–D8 into an
+installed product run, the scenario's RAM into fit evidence, or the service and
+device requirements into executed qualification.
+
+The fixed source allowlist binds both complete record blobs/lengths/hashes,
+the actual receiving roles/revisions, all six child inputs, the eight desk cases,
+each handoff/outcome limit and the distinct default-main receipt. Every observation
+retains its exact type; a boolean or floating-point alias is not an interchangeable
+receipt. The required ledger tests inspect both current canonical record files.
+
+All 128 other issue objects, 23 earlier evidence entries, 129 titles, 441 literal
+criterion texts/digests and prior partial history are preserved. The existing
+version-7 model reconstruction and all version-6 history digests stay intact:
+only the source-defined #2 placement/completion fields are reversed before those
+old checks. Its complete earlier issue object, including both different receiving
+prerequisites, must be recovered exactly. The 120 remaining ordinary acceptance
+coordinates stay at their unchanged website paths. Matching issue checkboxes,
+titles or arbitrary approval flags cannot authorize another completion.
+
+Run the same offline checker and named ledger suite; --issues additionally checks
+a fresh all-state issue capture. The CLI reports design and implementation totals
+separately and states whether live comparison occurred. Normal independent review,
+current-source delivery and exact live reconciliation precede the deliberate
+#2 checkbox/state update. Other issues, native relationships, Project fields and
+assignments are unchanged. Installed-device, participant, permitted-source,
+resource, accessibility, shared-service, operating and release work retain their
+own requirements.
+
+## Retained version 7 and earlier descriptions
+
+The complete previous text follows unchanged. Its version counts, current-state
+wording and preparation observations describe those historical versions; the
+version-8 rules above govern this amendment.
+
 ## Current version 7: reviewed local-model implementation
 
 Version 7 records **21 reviewed design criteria and three reviewed implementation
