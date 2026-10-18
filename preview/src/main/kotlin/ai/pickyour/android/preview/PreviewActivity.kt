@@ -62,6 +62,8 @@ class PreviewActivity : Activity() {
     private lateinit var newDraftButton: Button
     private lateinit var recoverButton: Button
     private lateinit var duplicateButton: Button
+    private lateinit var retryDeleteButton: Button
+    private var pendingDeleteId: PreviewDraftId? = null
     private var savedRecord: PreviewStoredDraft? = null // UI-thread owned.
     private var storageReady = false
     private var storageBusy = true
@@ -72,6 +74,7 @@ class PreviewActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         currentDraftId = PreviewDraftId(savedInstanceState?.getString("draftId") ?: "guest-draft")
+        pendingDeleteId = savedInstanceState?.getString("pendingDeleteId")?.let(::PreviewDraftId)
         selectionResolved = savedInstanceState != null && savedInstanceState.getBoolean("selectionResolved", true)
         restoration = savedInstanceState?.let {
             PreviewDraftRestoration(it.getString("draftBaseline"), it.getBoolean("draftRequiresReopen", true))
@@ -176,11 +179,16 @@ class PreviewActivity : Activity() {
         libraryButton = Button(this).apply { setText(R.string.library_open); setOnClickListener { showLibrary() } }
         newDraftButton = Button(this).apply { setText(R.string.library_new); setOnClickListener { confirmCreate(false) } }
         duplicateButton = Button(this).apply { setText(R.string.library_duplicate); setOnClickListener { confirmCreate(true) } }
+        retryDeleteButton = Button(this).apply {
+            setText(R.string.library_retry_delete)
+            setOnClickListener { pendingDeleteId?.let { confirmDelete(it, null, true) } }
+        }
         content.addView(libraryButton)
         content.addView(newDraftButton)
         content.addView(duplicateButton)
         recoverButton = Button(this).apply { setText(R.string.recovery_copy); setOnClickListener { confirmRecoveryCopy() } }
         content.addView(recoverButton)
+        content.addView(retryDeleteButton)
         tierSection = OptionalTierSection(this) { expected, tier, activation ->
             if (storageReady && !storageBusy && savedRecord === expected && matchesSaved())
                 setDraftActivation(expected, tier, activation)
@@ -389,6 +397,8 @@ class PreviewActivity : Activity() {
         newDraftButton.isEnabled = !storageBusy
         duplicateButton.isEnabled = storageReady && !storageBusy && savedRecord != null
         recoverButton.isEnabled = !storageBusy && savedRecord != null && !matchesSaved() && workloadSection.inputs.parsed() != null
+        retryDeleteButton.visibility = if (pendingDeleteId == null) View.GONE else View.VISIBLE
+        retryDeleteButton.isEnabled = pendingDeleteId != null && !storageBusy
         if (::tierSection.isInitialized) tierSection.update(savedRecord, storageReady && !storageBusy && matchesSaved())
         if (::catalog.isInitialized) catalog.selectionEnabled(!storageBusy)
     }
@@ -665,28 +675,48 @@ class PreviewActivity : Activity() {
 
     private fun confirmDelete(entry: PreviewLibraryEntry) {
         if (destroyed) return
+        confirmDelete(entry.id, (entry.state as? PreviewDraftLoad.Available)?.record, entry.deletionPending)
+    }
+
+    private fun confirmDelete(id: PreviewDraftId, expected: PreviewStoredDraft?, retry: Boolean) {
+        if (destroyed) return
         if (storageBusy) return
-        AlertDialog.Builder(this).setTitle(if (entry.deletionPending) R.string.library_retry_delete else R.string.library_delete)
-            .setMessage(getString(R.string.library_delete_warning, entry.id.value))
+        val pending = pendingDeleteId
+        if (pending != null && pending != id) {
+            AlertDialog.Builder(this).setMessage(getString(R.string.library_existing_cleanup, pending.value))
+                .setPositiveButton(R.string.library_retry_delete) { _, _ -> confirmDelete(pending, null, true) }
+                .setNegativeButton(R.string.close, null).show()
+            return
+        }
+        val retryOnly = retry || pending == id
+        AlertDialog.Builder(this).setTitle(if (retryOnly) R.string.library_retry_delete else R.string.library_delete)
+            .setMessage(getString(if (retryOnly) R.string.library_retry_warning else R.string.library_delete_warning, id.value))
             .setNegativeButton(R.string.keep_edits, null)
-            .setPositiveButton(if (entry.deletionPending) R.string.library_retry_delete else R.string.library_delete) { _, _ ->
-                if (!storageBusy) deleteDraft(entry)
+            .setPositiveButton(if (retryOnly) R.string.library_retry_delete else R.string.library_delete) { _, _ ->
+                if (!storageBusy) deleteDraft(id, expected, retryOnly)
             }.show()
     }
 
-    private fun deleteDraft(entry: PreviewLibraryEntry) {
-        if (destroyed) return
+    private fun deleteDraft(id: PreviewDraftId, expected: PreviewStoredDraft?, retryOnly: Boolean) {
+        if (destroyed || storageBusy) return
+        val pending = pendingDeleteId
+        if (pending != null && pending != id) return
+        // A retained confirmation must use the operation that is current at dispatch.
+        val retry = retryOnly || pending == id
         val previous = PreviewDraftSession(currentDraftId, savedRecord, fields(), storageReady)
-        val expected = (entry.state as? PreviewDraftLoad.Available)?.record
+        // Capture the named operation before dispatch so recreation can reconcile even if its row disappears.
+        pendingDeleteId = id
         storageBusy = true
         updateEditingEnabled()
         worker.execute {
-            val result = try { library().delete(entry.id, expected) }
+            val result = try { if (retry) library().retryDeletion(id) else library().delete(id, expected) }
                 catch (_: Exception) { PreviewLibraryDelete.Unconfirmed(DraftStorageFailure.IO_FAILURE) }
             runOnUiThread {
                 if (!destroyed) {
                     storageBusy = false
-                    val next = previous.afterDeletion(entry.id, result)
+                    if (result == PreviewLibraryDelete.Deleted || result == PreviewLibraryDelete.Conflict ||
+                        !retry && result is PreviewLibraryDelete.Failed) pendingDeleteId = null
+                    val next = previous.afterDeletion(id, result)
                     savedRecord = next.record
                     storageReady = next.ready
                     if (next !== previous) {
@@ -697,7 +727,7 @@ class PreviewActivity : Activity() {
                     AlertDialog.Builder(this).setMessage(when (result) {
                         PreviewLibraryDelete.Deleted -> R.string.library_deleted
                         PreviewLibraryDelete.Conflict -> R.string.library_delete_conflict
-                        is PreviewLibraryDelete.Failed -> R.string.library_delete_failed
+                        is PreviewLibraryDelete.Failed -> if (retry) R.string.library_retry_failed else R.string.library_delete_failed
                         is PreviewLibraryDelete.Unconfirmed -> R.string.library_delete_unconfirmed
                     }).setPositiveButton(R.string.close, null).show()
                 }
@@ -893,6 +923,7 @@ class PreviewActivity : Activity() {
 
     override fun onSaveInstanceState(outState: Bundle) {
         catalog.saveState(outState)
+        outState.putString("pendingDeleteId", pendingDeleteId?.value)
         outState.putString("draftId", currentDraftId.value)
         outState.putBoolean("selectionResolved", selectionResolved)
         val checkpoint = PreviewDraftRestoration.capture(savedRecord, storageReady, storageBusy)

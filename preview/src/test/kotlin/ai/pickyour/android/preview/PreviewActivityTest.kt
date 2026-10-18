@@ -28,6 +28,10 @@ import org.robolectric.annotation.GraphicsMode
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.LooperMode
 import org.robolectric.shadows.ShadowAlertDialog
+import java.io.IOException
+import java.nio.channels.FileChannel
+import java.nio.file.Path
+import java.nio.file.StandardOpenOption.WRITE
 
 /** Simulated Android lifecycle/resources on the JVM, never installed-device evidence. */
 @RunWith(RobolectricTestRunner::class)
@@ -74,6 +78,14 @@ class PreviewActivityTest {
         controller.pause().saveInstanceState(state).stop().destroy()
         controller = Robolectric.buildActivity(PreviewActivity::class.java).create(state).start().resume().visible()
     }
+    private fun restorePendingCleanupId() {
+        val state = Bundle()
+        controller.pause().saveInstanceState(state).stop().destroy()
+        // Restore the saved operation receipt independently of the interruption test below.
+        state.putString("pendingDeleteId", "guest-draft")
+        controller = Robolectric.buildActivity(PreviewActivity::class.java).create(state).start().resume().visible()
+        await { button(R.string.library_open).isEnabled && button(R.string.library_retry_delete).isEnabled }
+    }
     private fun adapter() = PreviewDraftLibrary(activity.noBackupFilesDir.toPath()).openLegacy()
     private fun loaded() = (adapter().load() as PreviewDraftLoad.Available).record
     private fun dialog() = ShadowAlertDialog.getLatestAlertDialog()!!
@@ -93,6 +105,34 @@ class PreviewActivityTest {
         model.put("provenance", provenance)
         val browser = requireNotNull(PreviewCatalogBrowser.read(root.toString().toByteArray(Charsets.UTF_8)))
         return requireNotNull(browser.details(browser.items.single { it.kind == "model" }, browser.hash))
+    }
+
+    private fun deleteConfirmation(id: PreviewDraftId): AlertDialog {
+        val previous = ShadowAlertDialog.getLatestAlertDialog()
+        button(R.string.library_open).performClick()
+        await { ShadowAlertDialog.getLatestAlertDialog()?.let { it !== previous && it.isShowing } == true &&
+            button(R.string.library_open).isEnabled }
+        val entries = dialog().listView.adapter
+        val index = (0 until entries.count).single { entries.getItem(it).toString().contains(id.value) }
+        shadowOf(dialog()).clickOnItem(index)
+        val entry = dialog()
+        entry.getButton(AlertDialog.BUTTON_NEUTRAL).performClick()
+        await { dialog() !== entry && dialog().isShowing }
+        return dialog()
+    }
+
+    private fun failFinalCleanup(onReached: () -> Unit) {
+        val constructor = PreviewDraftLibrary::class.java.getDeclaredConstructor(
+            Path::class.java, kotlin.jvm.functions.Function1::class.java, kotlin.jvm.functions.Function1::class.java)
+        val creation: (Any) -> Unit = {}
+        val removal: (Any) -> Unit = { point ->
+            if (point.toString() == "TOMBSTONE_REMOVED") {
+                onReached()
+                throw IOException("injected final acknowledgement failure")
+            }
+        }
+        val faulty = constructor.newInstance(activity.noBackupFilesDir.toPath(), creation, removal) as PreviewDraftLibrary
+        PreviewActivity::class.java.getDeclaredField("draftLibrary").apply { isAccessible = true }.set(activity, faulty)
     }
 
     @Test fun acknowledgedFieldsAndExplicitEmptySurviveRecreation() {
@@ -268,6 +308,194 @@ class PreviewActivityTest {
         assertEquals(activity.getString(R.string.item_button, "FICTIONAL Accelerator", "accelerator"),
             samples().single().text.toString())
         assertTrue(adapter().load() is PreviewDraftLoad.Missing)
+    }
+
+    @Test fun interruptedFinalCleanupCanBeRetriedAfterRecreationWithoutLibraryRow() {
+        field(R.string.draft_title).setText("saved before deletion")
+        save()
+        field(R.string.draft_title).setText("pending title remains")
+        field(R.string.context_objective).setText("pending objective remains")
+        val root = activity.noBackupFilesDir.toPath()
+        var faultReached = false
+        // Exercise the core's existing deletion fault seam without adding a production UI hook.
+        val constructor = PreviewDraftLibrary::class.java.getDeclaredConstructor(
+            Path::class.java, kotlin.jvm.functions.Function1::class.java, kotlin.jvm.functions.Function1::class.java)
+        val creation: (Any) -> Unit = {}
+        val removal: (Any) -> Unit = { point ->
+            if (point.toString() == "TOMBSTONE_REMOVED") {
+                faultReached = true
+                throw IOException("injected final acknowledgement failure")
+            }
+        }
+        val faulty = constructor.newInstance(root, creation, removal) as PreviewDraftLibrary
+        PreviewActivity::class.java.getDeclaredField("draftLibrary").apply { isAccessible = true }.set(activity, faulty)
+        button(R.string.library_open).performClick()
+        await { ShadowAlertDialog.getLatestAlertDialog()?.isShowing == true }
+        shadowOf(dialog()).clickOnItem(0)
+        val entryDialog = dialog()
+        entryDialog.getButton(AlertDialog.BUTTON_NEUTRAL).performClick()
+        await { dialog() !== entryDialog && dialog().isShowing }
+        dialog().getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+        await { button(R.string.library_open).isEnabled &&
+            shadowOf(dialog()).message.toString() == activity.getString(R.string.library_delete_unconfirmed) }
+        assertTrue(faultReached)
+        assertTrue((PreviewDraftLibrary(root).list() as PreviewLibraryRead.Available).entries.isEmpty())
+        recreate()
+        await { button(R.string.library_open).isEnabled }
+        assertFalse(button(R.string.save_draft).isEnabled)
+        assertEquals("pending title remains", field(R.string.draft_title).text.toString())
+        assertEquals("pending objective remains", field(R.string.context_objective).text.toString())
+        assertTrue(button(R.string.library_retry_delete).isEnabled)
+        button(R.string.library_retry_delete).performClick()
+        val confirmation = dialog()
+        assertTrue(shadowOf(confirmation).message.toString().contains("guest-draft"))
+        confirmation.getButton(AlertDialog.BUTTON_NEGATIVE).performClick()
+        await { !confirmation.isShowing }
+        assertTrue(button(R.string.library_retry_delete).isEnabled)
+        FileChannel.open(root.resolve(".preview-library.lock"), WRITE).use { channel ->
+            channel.lock().use {
+                button(R.string.library_retry_delete).performClick()
+                dialog().getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+                await { button(R.string.library_open).isEnabled &&
+                    shadowOf(dialog()).message.toString() == activity.getString(R.string.library_retry_failed) }
+                assertTrue(button(R.string.library_retry_delete).isEnabled)
+            }
+        }
+        recreate()
+        await { button(R.string.library_open).isEnabled }
+        assertTrue(button(R.string.library_retry_delete).isEnabled)
+        button(R.string.library_retry_delete).performClick()
+        dialog().getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+        await { button(R.string.library_open).isEnabled &&
+            shadowOf(dialog()).message.toString() == activity.getString(R.string.library_deleted) }
+        assertFalse(button(R.string.library_retry_delete).isEnabled)
+        assertEquals("pending title remains", field(R.string.draft_title).text.toString())
+        assertTrue((PreviewDraftLibrary(root).list() as PreviewLibraryRead.Available).entries.isEmpty())
+    }
+
+    @Test fun retiredCleanupRetryCannotOpenConfirmationAfterRecreation() {
+        save()
+        val baseline = loaded().baselineIdentity
+        field(R.string.draft_title).setText("pending retry title")
+        field(R.string.workload_budget).setText("12.00")
+        restorePendingCleanupId()
+        val retiredRetry = button(R.string.library_retry_delete)
+        recreate()
+        await { button(R.string.library_open).isEnabled && button(R.string.library_retry_delete).isEnabled }
+        val previousDialog = ShadowAlertDialog.getLatestAlertDialog()
+        retiredRetry.performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+        assertSame(previousDialog, ShadowAlertDialog.getLatestAlertDialog())
+        assertEquals("pending retry title", field(R.string.draft_title).text.toString())
+        assertEquals("12.00", field(R.string.workload_budget).text.toString())
+        assertTrue(button(R.string.library_retry_delete).isEnabled)
+        assertEquals(baseline, loaded().baselineIdentity)
+    }
+
+    @Test fun retiredCleanupConfirmationCannotDispatchAfterRecreation() {
+        save()
+        val baseline = loaded().baselineIdentity
+        field(R.string.draft_title).setText("pending confirmation title")
+        field(R.string.context_objective).setText("pending confirmation objective")
+        restorePendingCleanupId()
+        button(R.string.library_retry_delete).performClick()
+        val confirmation = dialog()
+        assertTrue(confirmation.isShowing)
+        val retainedPositive = confirmation.getButton(AlertDialog.BUTTON_POSITIVE)
+        recreate()
+        await { button(R.string.library_open).isEnabled && button(R.string.library_retry_delete).isEnabled }
+        val previousDialog = ShadowAlertDialog.getLatestAlertDialog()
+        retainedPositive.performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+        assertSame(previousDialog, ShadowAlertDialog.getLatestAlertDialog())
+        assertEquals("pending confirmation title", field(R.string.draft_title).text.toString())
+        assertEquals("pending confirmation objective", field(R.string.context_objective).text.toString())
+        assertTrue(button(R.string.library_retry_delete).isEnabled)
+        assertEquals(baseline, loaded().baselineIdentity)
+    }
+
+    @Test fun retainedConfirmationCannotReplaceAnotherPendingCleanup() {
+        field(R.string.draft_title).setText("saved A")
+        save()
+        val original = loaded()
+        val first = PreviewDraftId("guest-draft")
+        val root = activity.noBackupFilesDir.toPath()
+        val second = (PreviewDraftLibrary(root).create() as PreviewLibraryCreate.Saved).id
+        field(R.string.draft_title).setText("pending A title")
+        field(R.string.context_objective).setText("pending A objective")
+        val firstConfirmation = deleteConfirmation(first)
+        val retainedPositive = firstConfirmation.getButton(AlertDialog.BUTTON_POSITIVE)
+        firstConfirmation.getButton(AlertDialog.BUTTON_NEGATIVE).performClick()
+        await { !firstConfirmation.isShowing }
+
+        var faultReached = false
+        failFinalCleanup { faultReached = true }
+        deleteConfirmation(second).getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+        await { button(R.string.library_open).isEnabled &&
+            shadowOf(dialog()).message.toString() == activity.getString(R.string.library_delete_unconfirmed) }
+        assertTrue(faultReached)
+        assertFalse((PreviewDraftLibrary(root).list() as PreviewLibraryRead.Available).entries.any { it.id == second })
+        dialog().getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+
+        // A's positive control belongs to this still-live Activity, but B now owns the receipt.
+        retainedPositive.performClick()
+        await { button(R.string.library_open).isEnabled }
+        assertTrue(button(R.string.library_retry_delete).isEnabled)
+        button(R.string.library_retry_delete).performClick()
+        val retry = dialog()
+        assertEquals(activity.getString(R.string.library_retry_warning, second.value), shadowOf(retry).message.toString())
+        retry.getButton(AlertDialog.BUTTON_NEGATIVE).performClick()
+        await { !retry.isShowing }
+        assertEquals(original.baselineIdentity, loaded().baselineIdentity)
+        assertEquals(original.fields, loaded().fields)
+        assertEquals("pending A title", field(R.string.draft_title).text.toString())
+        assertEquals("pending A objective", field(R.string.context_objective).text.toString())
+
+        recreate()
+        await { button(R.string.library_open).isEnabled && button(R.string.library_retry_delete).isEnabled }
+        button(R.string.library_retry_delete).performClick()
+        assertEquals(activity.getString(R.string.library_retry_warning, second.value), shadowOf(dialog()).message.toString())
+        dialog().getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+        await { button(R.string.library_open).isEnabled &&
+            shadowOf(dialog()).message.toString() == activity.getString(R.string.library_deleted) }
+        assertFalse(button(R.string.library_retry_delete).isEnabled)
+        assertEquals(original.baselineIdentity, loaded().baselineIdentity)
+    }
+
+    @Test fun retainedConfirmationUsesCurrentSameIdCleanupAuthority() {
+        save()
+        val id = PreviewDraftId("guest-draft")
+        val firstConfirmation = deleteConfirmation(id)
+        val retainedPositive = firstConfirmation.getButton(AlertDialog.BUTTON_POSITIVE)
+        firstConfirmation.getButton(AlertDialog.BUTTON_NEGATIVE).performClick()
+        await { !firstConfirmation.isShowing }
+        var faultReached = false
+        failFinalCleanup { faultReached = true }
+        deleteConfirmation(id).getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+        await { button(R.string.library_open).isEnabled &&
+            shadowOf(dialog()).message.toString() == activity.getString(R.string.library_delete_unconfirmed) }
+        assertTrue(faultReached)
+        val root = activity.noBackupFilesDir.toPath()
+        assertTrue((PreviewDraftLibrary(root).list() as PreviewLibraryRead.Available).entries.isEmpty())
+        dialog().getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+
+        FileChannel.open(root.resolve(".preview-library.lock"), WRITE).use { channel ->
+            channel.lock().use {
+                retainedPositive.performClick()
+                await { button(R.string.library_open).isEnabled }
+                assertEquals(activity.getString(R.string.library_retry_failed), shadowOf(dialog()).message.toString())
+                assertTrue(button(R.string.library_retry_delete).isEnabled)
+            }
+        }
+        recreate()
+        await { button(R.string.library_open).isEnabled && button(R.string.library_retry_delete).isEnabled }
+        button(R.string.library_retry_delete).performClick()
+        assertEquals(activity.getString(R.string.library_retry_warning, id.value), shadowOf(dialog()).message.toString())
+        dialog().getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+        await { button(R.string.library_open).isEnabled &&
+            shadowOf(dialog()).message.toString() == activity.getString(R.string.library_deleted) }
+        assertFalse(button(R.string.library_retry_delete).isEnabled)
+        assertTrue((PreviewDraftLibrary(root).list() as PreviewLibraryRead.Available).entries.isEmpty())
     }
 
     @Test
