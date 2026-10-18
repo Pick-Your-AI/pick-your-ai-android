@@ -19,6 +19,33 @@ EXTERNAL_KINDS = {
     'user_evidence', 'signing_custody', 'operational_evidence', 'domain_control',
 }
 
+# This is one reviewed documentary outcome, not a generic permission to complete
+# other criteria or relocate their records. Further acceptance needs source review.
+DESIGN_23_REVISION = 'e86e8bd7645234e12b9887f1e6a0148a2d52073e'
+DESIGN_23_PATH = 'docs/delivery/android/work-packages/14.01.md'
+DESIGN_23_RECORD = {'repository': REPOSITORY, 'path': DESIGN_23_PATH}
+DESIGN_23_ACCEPTANCE = {
+    'scope': 'planned_data_inventory_and_mitigation_handoff',
+    'evidence_ref': 'pr-279',
+    'decision_revision': DESIGN_23_REVISION,
+    'decision_url': f'{BASE}/blob/{DESIGN_23_REVISION}/docs/decisions/0001-android-23-acceptance-record.md',
+    'record_url': f'{BASE}/blob/{DESIGN_23_REVISION}/{DESIGN_23_PATH}',
+    'receiving_reviews': [
+        f'{BASE}/pull/279#pullrequestreview-5562297375',
+        f'{BASE}/pull/279#pullrequestreview-5562386507',
+    ],
+    'source_review_revision': '8162a5571147874635d3139e73a171a1077a6d2b',
+    'historical_acceptance_record': {
+        'repository': 'Pick-Your-AI/pickyour.ai', 'path': DESIGN_23_PATH,
+    },
+}
+DESIGN_23_CRITERIA = [
+    'df30567f84cf670a382658c134de05c36d1de247d71f1597f1f3410e399bc8f8',
+    '4cc396aeec72b467fa8300a28f11638007a6644498982e90b94a57c13e0122ef',
+    'f4804f53f5566bc5b20ec73034ac19bbe3870f1a06adc523ab8195c29f8b9c5f',
+]
+COMPLETE_DESIGN_RELATION = 'criterion_complete_reviewed_design_outcome'
+
 
 def require(condition, message):
     if not condition:
@@ -32,7 +59,7 @@ def source_criteria(body):
 
 
 def validate(ledger, source=None):
-    require(ledger['schema_version'] == 1, 'unsupported schema version')
+    require(type(ledger['schema_version']) is int and ledger['schema_version'] == 2, 'unsupported schema version')
     require(ledger['repository'] == REPOSITORY, 'wrong repository')
     evidence = ledger['evidence']
     require(bool(evidence), 'missing evidence catalog')
@@ -45,11 +72,13 @@ def validate(ledger, source=None):
         require(bool(artifact['scope_limit'].strip()), 'missing evidence limitation')
     issues = ledger['issues']
     numbers = [issue['number'] for issue in issues]
+    require(all(type(number) is int for number in numbers), 'ledger issue numbers must be integers')
     require(numbers == list(range(1, 130)), 'expected unique ordered issue numbers 1–129')
     require(sum(len(issue['criteria']) for issue in issues) == 441, 'expected 441 criteria')
     source_by_number = None
     if source is not None:
         require(isinstance(source, list), 'source must be a gh issue-list array')
+        require(all(type(issue['number']) is int for issue in source), 'source issue numbers must be integers')
         source_by_number = {issue['number']: issue for issue in source}
         require(len(source) == len(source_by_number), 'duplicate source issue')
         require(set(source_by_number) == set(numbers), 'live issue inventory differs; reconcile explicitly')
@@ -57,7 +86,21 @@ def validate(ledger, source=None):
         number = issue['number']
         require(issue['url'] == f'{BASE}/issues/{number}', f'wrong issue URL: {number}')
         record = issue['canonical_acceptance_record']
-        require(record['repository'] == 'Pick-Your-AI/pickyour.ai', f'acceptance repository moved: {number}')
+        accepted_design = number == 23
+        if accepted_design:
+            require(record == DESIGN_23_RECORD, 'unreviewed acceptance placement: 23')
+            require(issue.get('accepted_design_outcome') == DESIGN_23_ACCEPTANCE,
+                    'missing or changed reviewed design acceptance: 23')
+            require([c['text_sha256'] for c in issue['criteria']] == DESIGN_23_CRITERIA,
+                    'reviewed design criterion set changed: 23')
+            receipt = evidence.get('pr-279', {})
+            require(receipt.get('observed_state') == 'merged' and
+                    receipt.get('revision') == DESIGN_23_REVISION and
+                    receipt.get('artifact_url') == DESIGN_23_ACCEPTANCE['record_url'],
+                    'accepted design receipt is not the reviewed merged artifact: 23')
+        else:
+            require('accepted_design_outcome' not in issue, f'unsupported design acceptance: {number}')
+            require(record['repository'] == 'Pick-Your-AI/pickyour.ai', f'acceptance repository moved: {number}')
         require(re.fullmatch(r'docs/delivery/android/(program|epics/[0-9]{2}|work-packages/[0-9]{2}\.[0-9]{2})\.md', record['path']) is not None, f'invalid acceptance path: {number}')
         require(bool(issue['criteria']), f'empty issue: {number}')
         for index, criterion in enumerate(issue['criteria'], 1):
@@ -66,10 +109,17 @@ def validate(ledger, source=None):
             text = criterion['text']
             require(isinstance(text, str) and bool(text.strip()), f'empty criterion: {key}')
             require(criterion['text_sha256'] == hashlib.sha256(text.encode()).hexdigest(), f'criterion text digest mismatch: {key}')
-            # This ledger version deliberately supports no closure or completion assertions.
-            require(criterion['status'] == 'incomplete' and criterion['completion_evidence'] == [], f'unreviewed completion claim: {key}')
-            require(bool(criterion['remaining_engineering'].strip()), f'missing remaining work: {key}')
-            require(criterion['evidence_relation'] in {'issue_context_only; inspect artifact scope before attributing any criterion result', 'criterion_partial_results_with_issue_context'}, f'unsupported evidence attribution: {key}')
+            if accepted_design:
+                require(criterion['status'] == 'complete' and criterion['completion_evidence'] == ['pr-279'],
+                        f'missing reviewed design completion evidence: {key}')
+                require(criterion['remaining_engineering'] == '' and criterion['external_prerequisites'] == [],
+                        f'completed criterion still has unfinished requirements: {key}')
+                require(criterion['evidence_relation'] == COMPLETE_DESIGN_RELATION,
+                        f'unsupported design completion attribution: {key}')
+            else:
+                require(criterion['status'] == 'incomplete' and criterion['completion_evidence'] == [], f'unreviewed completion claim: {key}')
+                require(bool(criterion['remaining_engineering'].strip()), f'missing remaining work: {key}')
+                require(criterion['evidence_relation'] in {'issue_context_only; inspect artifact scope before attributing any criterion result', 'criterion_partial_results_with_issue_context'}, f'unsupported evidence attribution: {key}')
             refs = criterion['partial_evidence_refs']
             require(len(refs) == len(set(refs)) and set(refs) <= set(evidence), f'unknown/duplicate evidence reference: {key}')
             results = criterion.get('partial_results', [])
@@ -91,7 +141,7 @@ def validate(ledger, source=None):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--ledger', type=Path, default=ROOT / 'docs/delivery/criterion-evidence.json')
-    parser.add_argument('--issues', type=Path, help='fresh gh issue list JSON for authoritative text/path comparison')
+    parser.add_argument('--issues', type=Path, help='fresh gh issue list --state all JSON for authoritative text/path comparison')
     args = parser.parse_args()
     try:
         source = json.loads(args.issues.read_text()) if args.issues else None
@@ -99,7 +149,7 @@ def main():
     except (OSError, ValueError, KeyError, TypeError) as error:
         print(f'Delivery ledger check failed: {error}', file=sys.stderr)
         return 1
-    print('PASS: 129 unique issue URLs, 441 incomplete criteria, pinned partial evidence and canonical paths' +
+    print('PASS: 129 unique issue URLs, 438 incomplete criteria, 3 reviewed design criteria, pinned evidence and canonical paths' +
           ('; exact source criteria matched.' if source is not None else '; live source comparison NOT performed.'))
     return 0
 

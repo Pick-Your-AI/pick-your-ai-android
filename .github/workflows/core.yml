@@ -247,6 +247,32 @@ jobs:
               raise SystemExit("Local dialog authority result count does not match executed cases")
           print(f"Verified {len(cases)} simulated local dialog authority tests; no installed-device claim")
           PYTEST
+      - name: Require incoming-entry recovery regressions to execute
+        run: |
+          python - <<'PYTEST'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          report = pathlib.Path("preview/build/test-results/testDebugUnitTest/TEST-ai.pickyour.android.preview.IncomingEntryTest.xml")
+          suite = ET.parse(report).getroot()
+          expected = {
+              "unsupportedColdEntryCannotOpenPreviousLocalDraft",
+              "unsupportedActionsDataTypesClipsAndSelectorsNeverAcquireLocalSaveAuthority",
+              "warmUnsupportedEntryPreservesPendingEditorAndRecreationContext",
+              "ordinaryColdAndWarmLaunchesKeepTheLocalDraftAndPendingEditor",
+              "blockedCheckpointCannotAdoptTheActiveDraftDuringRecreationOrLauncherRetry",
+              "explicitLibraryChoiceOpensOnlyTheChosenDraftAndSurvivesRecreation",
+              "explicitNewDraftRecoveryCreatesANewIdentityWithoutReplacingThePriorDraft",
+          }
+          cases = suite.findall("testcase")
+          names = [case.attrib["name"] for case in cases]
+          if not expected <= set(names) or len(names) != len(set(names)):
+              raise SystemExit("Missing or repeated incoming-entry recovery regression")
+          if any(case.findall("failure") or case.findall("error") or case.findall("skipped") for case in cases):
+              raise SystemExit("Incoming-entry recovery regression did not pass")
+          if int(suite.attrib["tests"]) != len(cases):
+              raise SystemExit("Incoming-entry result count does not match executed cases")
+          print(f"Verified {len(cases)} simulated incoming-entry tests; no installed-device claim")
+          PYTEST
       - name: Require complete recorded-price browser regressions to execute
         run: |
           python - <<'PYTEST'
@@ -273,6 +299,40 @@ jobs:
           assert all(not case.findall("failure") and not case.findall("error") and not case.findall("skipped") for case in cases), "Recorded-price browser regression did not pass"
           assert int(suite.attrib["tests"]) >= len(expected)
           print(f"Verified {len(cases)} simulated recorded-price browser tests; no installed-device claim")
+          PYTEST
+      - name: Require complete local revision comparison regressions to execute
+        run: |
+          python - <<'PYTEST'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          report = pathlib.Path("preview/build/test-results/testDebugUnitTest/TEST-ai.pickyour.android.preview.RevisionComparisonBrowserActivityTest.xml")
+          suite = ET.parse(report).getroot()
+          expected = {
+              "actualSavedComparisonPreservesPendingInputsAndDurableBaseline",
+              "everyChangedFieldAfterTheOldHundredRowLimitIsReachable",
+              "fullKeysAndLiteralPartsPreserveUnicodeControlsAndDecimalSpelling",
+              "absentEmptyAndLiteralSentinelsStayDistinctDuringInspection",
+              "unavailableHistoricalMetadataIsDisclosedWithoutReconstruction",
+              "unchangedRevisionHasExplicitEmptyResultWithRetainedContext",
+              "changedComponentRoleAndSettingsKeepTheirExactStableKey",
+              "cancelledAndReplacedComparisonControlsCannotReopenDialogs",
+              "revokedComparisonAuthorityCannotBecomeCurrentAgain",
+              "actualStorageStartRetiresInspectionEvenWhenSavedBaselineIsUnchanged",
+              "cancelledPreparationCannotDisplayLateWorkerResult",
+              "aNewHistoryRequestRetiresAnOlderQueuedComparison",
+              "queuedStorageOperationRejectsComparisonResultWithTheSameSavedBaseline",
+              "recreatedActivityRetiresComparisonAndPreservesPendingInputs",
+              "narrowRtlLargeTextComparisonControlsRemainReachableAndComplete",
+          }
+          cases = suite.findall("testcase")
+          names = [case.attrib["name"] for case in cases]
+          if not expected <= set(names) or len(names) != len(set(names)):
+              raise SystemExit("Missing or repeated local revision comparison regression")
+          if any(case.findall("failure") or case.findall("error") or case.findall("skipped") for case in cases):
+              raise SystemExit("Local revision comparison regression did not pass")
+          if int(suite.attrib["tests"]) != len(cases):
+              raise SystemExit("Local revision comparison result count does not match executed cases")
+          print(f"Verified {len(cases)} simulated local revision comparison tests; no installed-device claim")
           PYTEST
       - name: Retain unsigned diagnostic and lint reports
         if: always()
