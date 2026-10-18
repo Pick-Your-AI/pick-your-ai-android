@@ -2,6 +2,7 @@ package ai.pickyour.core.preview
 
 import ai.pickyour.core.drafts.*
 import ai.pickyour.core.cache.CacheFailure
+import ai.pickyour.core.cache.CacheRetentionLimits
 import java.nio.channels.FileChannel
 import java.nio.channels.OverlappingFileLockException
 import java.io.IOException
@@ -116,7 +117,7 @@ class PreviewDraftLibrary internal constructor(root: Path, private val checkpoin
         require(Files.isDirectory(path, NOFOLLOW_LINKS))
         // Also retries parent synchronization for a directory left by interrupted creation.
         sync(root)
-        return PreviewDraftPersistence(LocalDraftStore(path), access)
+        return PreviewDraftPersistence(LocalDraftStore(path, REVISION_RETENTION), access)
     }
 
     fun create(): PreviewLibraryCreate = createFrom(null)
@@ -300,6 +301,9 @@ class PreviewDraftLibrary internal constructor(root: Path, private val checkpoin
     private class LimitExceeded : Exception()
     companion object {
         const val MAX_DRAFTS = 64
+        // One bounded immutable envelope per supported history entry; failed publications count too.
+        private val REVISION_RETENTION = CacheRetentionLimits(LocalDraftStore.MAX_HISTORY,
+            LocalDraftStore.MAX_HISTORY.toLong() * LocalDraftStore.MAX_BYTES)
         internal const val MAX_DELETE_ENTRIES = 4096
         private const val MAX_DELETE_DEPTH = 16
         private const val LEGACY_DELETED = ".preview-guest-deleted"
