@@ -12,10 +12,39 @@ complete reviewed documentary/design outcome. Its [canonical 14.01 record](andro
 and [ADR 0001](../decisions/0001-android-23-acceptance-record.md) were independently
 reviewed and merged through [PR #279](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/279).
 The record pins the accepted source, actual receiving reviews and subsequent
-current-source reconciliation. The other **438 criteria remain incomplete**.
-Their merged PR references identify partial issue context, not an assertion that
-a linked artifact passes each criterion. Exact artifact revisions and limitations
-are in the top-level `evidence` catalog.
+current-source reconciliation. That original acceptance and its evidence remain
+unchanged.
+
+Nine further criteria for **Android #20, #24 and #34** now have complete reviewed
+decision outcomes, delivered through [PR #297](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/297)
+at signed `93bebf787a091fe4858c1c70fd07cabefe17170f`:
+
+| Issue | Canonical receiving record | Accepted decision boundary |
+| --- | --- | --- |
+| #20 | [01.01](android/work-packages/01.01.md) | Users, mobile context, J1–J5 journeys and explicit evidence/hypothesis limits |
+| #24 | [01.02](android/work-packages/01.02.md) | Core/later/conditional scope across all four modes, including core T6 retention |
+| #34 | [01.03](android/work-packages/01.03.md) | Native Kotlin/Views/current-store choice, alternatives and repository/module boundaries |
+
+[ADR 0002](../decisions/0002-android-foundation-records.md) moves only those three
+previously intended website records. Independent delegated product/Android
+receiving reviews [5562594206](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/291#pullrequestreview-5562594206),
+[5562605533](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/291#pullrequestreview-5562605533)
+and [5562661670](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/297#pullrequestreview-5562661670)
+cover the complete source, narrow ADR correction and final accepted-main
+composition. The [receiving receipt](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/297#issuecomment-6249148786)
+distinguishes actual native execution from the later metadata-only composition.
+The [post-main receipt](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/297#issuecomment-6249335277)
+records the signed delivery and actual default-branch checks. No absent human
+reviewer, operating commitment or participant result is inferred.
+
+The index therefore records **12 reviewed design criteria complete and 429
+criteria incomplete**. Executing the selected journeys, real-data qualification,
+participant studies, service activation, device behavior and release each retain
+their own requirements. The current change preserves every literal criterion,
+ordinal and text digest, all earlier artifact entries and partial observations,
+and all 126 other issue records, including #23.
+Merged PR references for incomplete criteria identify partial issue context.
+Exact artifact revisions and limitations are in the top-level `evidence` catalog.
 No JVM, unsigned APK, lint or fixture result proves installed-device, production,
 source rights, store distribution or operational acceptance.
 
@@ -40,7 +69,9 @@ to five supported portions of #67, #83 and #125. Exact signed revisions, source
 reviews, core and simulated Activity test runs are recorded separately from
 remaining placement, remote reconciliation and installed-device work. The 129
 live issue criteria and canonical paths were rechecked on 2026-10-18 for this
-reconciliation; all 441 statuses and their original text remain unchanged.
+historical reconciliation; at that time all 441 statuses and their original text
+remained unchanged. The later reviewed design outcomes above do not rewrite that
+older observation.
 
 The catalog-detail receipt additionally links merged PR #234 to partial results
 for all four exact #97 criteria. It records exact item/version/snapshot lookup,
@@ -49,11 +80,13 @@ path, with the reviewed merge tree and final 35-case simulated Activity run. Rea
 catalog and offering data, source navigation, accepted evidence/source rights,
 pricebook applicability, installed historical recovery and the required receiving
 reviews remain incomplete. The separately coordinated source-navigation work is
-not attributed to this plain-text detail receipt. The fresh live reconciliation
-preserves every criterion, status and canonical acceptance path.
+not attributed to this plain-text detail receipt. That historical reconciliation
+preserved every criterion, status and canonical acceptance path at its baseline.
 
-Each criterion retains its original text, stable issue/ordinal ID, digest,
-remaining engineering work and any concrete external prerequisites. An empty
+Each criterion retains its original text, stable issue/ordinal ID and digest.
+Incomplete criteria retain remaining engineering work and concrete external
+prerequisites. Completed design criteria require their exact accepted evidence and
+have no unfinished requirement for that literal decision outcome. An empty
 external-prerequisite list means no external gate was identified for that exact
 criterion in this audit; it does not waive future integration review. Explicit
 external inputs include actual source rights/evidence, accepted contract changes,
@@ -64,10 +97,11 @@ These classifications are review aids, not an assertion that the complete native
 prerequisite graph has been resolved.
 
 The `canonical_acceptance_record` fields preserve every original relative path.
-Only #23's repository changes to `Pick-Your-AI/pick-your-ai-android`, through the
-reviewed ADR 0001 placement. Its `accepted_design_outcome` retains the historical
-website repository/path, exact decision and record URLs, receiving review URLs,
-and source-review revision. All other records remain intended paths in
+#23 uses the reviewed ADR 0001 placement; #20/#24/#34 use the reviewed ADR 0002
+placement in `Pick-Your-AI/pick-your-ai-android`. Each
+`accepted_design_outcome` retains its historical website repository/path, exact
+decision and individual record URLs, receiving review URLs and source-review
+revision. All other records remain intended paths in
 `Pick-Your-AI/pickyour.ai`; their presence in this index does not assert those files
 exist. Parent coordination must reconcile accepted evidence without silently
 moving records or assigning owners. In particular, Android #35 still needs one
@@ -103,12 +137,27 @@ reconcile their old ordinal references before recording new ones.
 Refresh PR state and revision explicitly when evidence advances. Do not replace a
 pinned artifact with a mutable branch link or turn a proposed test into a reported
 pass. Add exact test commands/results, recovery cases and receiving dispositions
-before narrowing a criterion's remaining work. Ledger schema version 2 permits
-only #23's three exact, reviewed design criteria to be complete. The validator
-requires its immutable merged #279 artifact, both actual receiving reviews,
-explicit scope and source pins, preserved placement history, and no unfinished
-requirement for those criteria. Changing another status, transplanting that proof
-to another issue, removing a review or substituting another revision fails.
+before narrowing a criterion's remaining work. Ledger schema version 3 permits
+only the twelve exact reviewed design criteria for #20/#23/#24/#34 to be complete.
+The validator's source-defined receipt for each issue requires its own literal
+criterion hashes, accepted scope, canonical placement and historical path,
+immutable delivered artifact, source revision and actual receiving reviews.
+#23 retains its exact merged #279 record and both reviews. The three foundation
+outcomes require the exact merged #297 ADR receipt and all three reviews above;
+each still binds its own record URL, scope and criterion set.
+
+Changing another status, transplanting proof between decisions, removing a review,
+substituting a revision/path or leaving unfinished requirements fails. Partial
+results retain their independent evidence/command guards. Issue-number aliases,
+missing or repeated issues, text/hash drift and incomplete source inventories
+remain rejected. The version-3 expansion adds no generic completion permission.
+
+The immutable [v1 baseline at `8162a557`](https://github.com/Pick-Your-AI/pick-your-ai-android/blob/8162a5571147874635d3139e73a171a1077a6d2b/docs/delivery/criterion-evidence.json)
+and [v2 delivery at `0b1875db`](https://github.com/Pick-Your-AI/pick-your-ai-android/blob/0b1875db66016e5187b181534e2fefcd268beddd/docs/delivery/criterion-evidence.json)
+remain in Git history with their original validators and observations. Current
+acceptance evolves through explicit schema review and delivered receipts.
 Future completion or placement support needs independent review and its own
-criterion-level receipts. This exception supplies no implementation, device,
-service, store or release acceptance for another issue.
+criterion-level evidence. Issue checkboxes and closure are reconciled separately
+after the reviewed current ledger is delivered; neither a green check nor a
+changed index supplies implementation, device, service, store or release
+acceptance for another issue.
