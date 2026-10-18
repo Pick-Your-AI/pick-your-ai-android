@@ -55,4 +55,5 @@
     <string name="draft_conflict">Another local copy changed. Your edits are retained but were not saved. Reopen the saved copy before editing again; unsaved edits are not overwritten automatically.</string>
     <string name="draft_uncertain">Save could not be confirmed. Your edits are retained, and the new copy may already be on disk. Reopen the saved copy before retrying.</string>
     <string name="draft_history_full">Local history or record limit reached. Your visible edits are not saved; earlier revisions are retained. Reopening restores the saved copy. This preview does not yet support history trimming or export.</string>
+    <string name="draft_reconcile">Local state needs reconciliation. Your visible edits are retained but are not confirmed saved. Reopen the saved copy before saving again.</string>
 </resources>

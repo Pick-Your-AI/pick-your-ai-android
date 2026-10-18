@@ -298,7 +298,7 @@ class PreviewActivity : Activity() {
                     }
                     saveStatus.setText(when {
                         !loadSucceeded -> R.string.draft_load_failed
-                        needsReopen -> R.string.draft_conflict
+                        needsReopen -> R.string.draft_reconcile
                         savedRecord?.fields == fields() -> R.string.draft_saved
                         else -> R.string.draft_unsaved
                     })
