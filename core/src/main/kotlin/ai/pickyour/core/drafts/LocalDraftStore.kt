@@ -94,7 +94,11 @@ class LocalDraftStore internal constructor(
     /** Read immutable history without activating it; restoring is an explicit new save with current token. */
     fun revision(hash: ArtifactHash): DraftLoad = guarded({ DraftLoad.Failed(it) }) { decode(cache.pinned(hash)) }
 
-    /** Omitted metadata preserves the current map; an explicit empty map clears it. */
+    /**
+     * Omitted metadata preserves the current map; an explicit empty map clears it.
+     * A current format-2 token with unchanged content/metadata reuses its durable revision.
+     * Token validation precedes deduplication; a stale retry never acknowledges another writer.
+     */
     fun save(expected: DraftVersion?, content: DraftContent, metadata: Map<String, String>? = null): DraftSave =
         update(expected, content, metadata, null)
 
@@ -112,6 +116,12 @@ class LocalDraftStore internal constructor(
             if (current == null && expected != null || current != null &&
                 (expected == null || expected.store != root || expected.hash != current.version.hash || expected.number != current.version.number)) {
                 return@guarded DraftSave.Conflict
+            }
+            // Repeated save events must not consume bounded history. Legacy saves still perform
+            // their explicit v1 -> v2 migration, and restore remains an intentional new revision.
+            if (restore == null && current?.localFormatVersion == 2 && current.content == content &&
+                current.metadata == (metadata ?: current.metadata)) {
+                return@guarded DraftSave.Saved(current)
             }
             val number = try { Math.incrementExact(current?.version?.number ?: -1L) } catch (_: ArithmeticException) {
                 return@guarded DraftSave.Failed(DraftStorageFailure.LIMIT_EXCEEDED)

@@ -129,10 +129,62 @@ class LocalDraftHistoryStorageTest {
         assertNotEquals(initial.version.hash, restored.version.hash)
     }
 
+    @Test fun `repeated current saves retain the same durable revision without writing`() {
+        val content = DraftContent(context = "retained", optional = mapOf(
+            OptionalTier.T3 to TierDraft(Activation.UNKNOWN, setOf("unresolved"), mapOf("raw" to "0.00"))))
+        val first = saved(store().save(null, content, mapOf("pin" to "one")))
+        val bytes = raw()
+        var cacheWrites = 0
+        val noWrites = LocalDraftStore(root) { path -> VerifiedArtifactCache(path, LocalDraftStore.MAX_BYTES) {
+            cacheWrites++
+            throw IOException("A no-op must not attempt an artifact write")
+        } }
+        repeat(3) {
+            val same = saved(noWrites.save(first.version, content))
+            assertEquals(first.version.hash, same.version.hash)
+            assertEquals(first.version.number, same.version.number)
+            assertEquals(1, same.history.size)
+        }
+        val explicit = saved(noWrites.save(first.version, content, mapOf("pin" to "one")))
+        assertEquals(first.version.hash, explicit.version.hash)
+        assertEquals(0, cacheWrites)
+        assertArrayEquals(bytes, raw())
+        assertEquals(first.version.hash, loaded().version.hash)
+        val cleared = saved(store().save(first.version, content, emptyMap()))
+        assertEquals(1, cleared.version.number)
+        assertTrue(loaded().metadata.isEmpty())
+    }
+
+    @Test fun `identical input cannot turn a stale missing or foreign token into a successful save`() {
+        val first = saved(store().save(null, DraftContent(context = "initial")))
+        val current = saved(store().save(first.version, DraftContent(context = "current")))
+        assertEquals(DraftSave.Conflict, store().save(first.version, current.content, current.metadata))
+        assertEquals(DraftSave.Conflict, store().save(null, current.content, current.metadata))
+        val foreign = LocalDraftStore(java.nio.file.Files.createDirectory(root.resolve("other")))
+        val other = saved(foreign.save(null, current.content, current.metadata))
+        assertEquals(DraftSave.Conflict, store().save(other.version, current.content, current.metadata))
+        assertEquals(current.version.hash, loaded().version.hash)
+    }
+
+    @Test fun `unchanged legacy save still performs the explicit migration once`() {
+        val bytes = legacy(7)
+        seed(bytes)
+        val original = loaded()
+        val migrated = saved(store().save(original.version, original.content))
+        assertEquals(2, migrated.localFormatVersion)
+        assertEquals(listOf(7L, 8L), migrated.history.map { it.number })
+        assertEquals(original.content, migrated.content)
+        assertEquals(original.metadata, migrated.metadata)
+        assertEquals(hash(bytes), migrated.legacySourceHash)
+        assertArrayEquals(bytes, (cache().pinned(hash(bytes)) as CacheRead.Available).bytes)
+        assertEquals(migrated.version.hash, saved(store().save(migrated.version, migrated.content)).version.hash)
+    }
+
     @Test fun `history bound rejects edits and restores without dropping acknowledged revisions`() {
         var draft = saved(store().save(null, DraftContent()))
         repeat(LocalDraftStore.MAX_HISTORY - 1) { draft = saved(store().save(draft.version, DraftContent(context = "edit-$it"))) }
         assertEquals(LocalDraftStore.MAX_HISTORY, loaded().history.size)
+        assertEquals(draft.version.hash, saved(store().save(draft.version, draft.content)).version.hash)
         assertEquals(DraftSave.Failed(DraftStorageFailure.LIMIT_EXCEEDED), store().save(draft.version, DraftContent()))
         assertEquals(DraftSave.Failed(DraftStorageFailure.LIMIT_EXCEEDED), store().restore(draft.version, 0))
         assertEquals(draft.version.hash, loaded().version.hash)
