@@ -140,14 +140,40 @@ gradle.projectsEvaluated {
                     "Tracked source bytes differ from the recorded commit"
                 }
             }
-            // Ignored, untracked Kotlin/Java/resources can still enter a build.
-            listOfNotNull(core, preview).forEach { project ->
-                project.file("src").walkTopDown().forEach { file ->
-                    check(!Files.isSymbolicLink(file.toPath())) { "Source symlinks are not inventoried" }
-                    if (file.isFile) check(file.relativeTo(root.rootDir).invariantSeparatorsPath in tracked) {
-                        "Untracked source cannot enter an inventoried build"
+            val checkout = root.rootDir.toPath().toAbsolutePath().normalize()
+            val generated = root.allprojects.flatMap { project ->
+                listOf(project.layout.buildDirectory.get().asFile, project.file(".gradle"),
+                    project.file(".kotlin"), project.file("local.properties"))
+            }.plus(root.file(".git")).map { it.toPath().toAbsolutePath().normalize() }
+            val visited = mutableSetOf<java.nio.file.Path>()
+            fun verifyProjectInput(file: File) {
+                val path = file.toPath().toAbsolutePath().normalize()
+                if (!path.startsWith(checkout) || generated.any { path.startsWith(it) } ||
+                    !visited.add(path) || !Files.exists(path, LinkOption.NOFOLLOW_LINKS)) return
+                var ancestor = path
+                while (ancestor != checkout) {
+                    check(!Files.isSymbolicLink(ancestor)) { "Source symlinks are not inventoried" }
+                    ancestor = ancestor.parent
+                }
+                if (Files.isDirectory(path, LinkOption.NOFOLLOW_LINKS)) {
+                    Files.list(path).use { files -> files.forEach { verifyProjectInput(it.toFile()) } }
+                } else {
+                    check(Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS) &&
+                        checkout.relativize(path).toString().replace(File.separatorChar, '/') in tracked) {
+                        "Untracked project build input cannot enter an inventoried build"
                     }
                 }
+            }
+            // Module roots alone miss imported schemas/assets. Follow declared
+            // JVM sources and actual task/copy inputs beneath this checkout too.
+            // Generated outputs and external build-tool inputs are not source.
+            listOfNotNull(core, preview).forEach { verifyProjectInput(it.file("src")) }
+            core.extensions.getByType(org.gradle.api.tasks.SourceSetContainer::class.java).forEach {
+                it.allSource.srcDirs.forEach(::verifyProjectInput)
+            }
+            gradle.taskGraph.allTasks.filter { it.path != path }.forEach { task ->
+                task.inputs.files.files.forEach(::verifyProjectInput)
+                if (task is org.gradle.api.tasks.AbstractCopyTask) task.source.files.forEach(::verifyProjectInput)
             }
             val classpaths = mutableListOf(core to "runtimeClasspath")
             if (preview != null) classpaths.add(preview to "debugRuntimeClasspath")

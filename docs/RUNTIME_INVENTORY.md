@@ -37,7 +37,12 @@ source changes separately and run again from the resulting clean commit.
 
 Both existing CI jobs run the task and retain
 `build/inventory/runtime-inventory.json` beside the corresponding build artifacts
-for seven days. The native job includes both the core JAR and the unsigned APK.
+for seven days. The native job's separate `android-runtime-inventory-<commit>`
+archive includes the inventory, core JAR and unsigned APK with repository-relative
+paths. Its existing `android-preview-<commit>` diagnostic archive keeps its
+`preview/build` root, including `outputs/apk/...`, for the installed-emulator
+consumer. The existing artifact's layout and immutable-ID/APK handoff are not
+changed by adding the inventory archive.
 Only a successfully completed command establishes a new receipt; an older local
 receipt may still exist after a failed build. Record the run, artifact archive
 digest and exact source commit when consuming an archived receipt.
@@ -46,7 +51,7 @@ digest and exact source commit when consuming an archived receipt.
 
 | Field | Meaning |
 | --- | --- |
-| `source.commit` and `source.tree` | Git commit/tree of the checkout; all tracked file bytes must match the committed blobs, and untracked files under the core/preview source roots are rejected even when ignored |
+| `source.commit` and `source.tree` | Git commit/tree of the checkout; all tracked file bytes must match committed blobs, and configured project source/copy/task inputs are checked for ignored/untracked files and symlinks |
 | `source.pins` | SHA-256 hashes of selected build, lock, verification and wrapper inputs plus the inventory driver |
 | `toolchain` | Gradle and Java versions actually running the inventory task |
 | `outputs` | Repository-relative output names, byte sizes and SHA-256 hashes of the built core JAR and, when enabled, unsigned preview APK |
@@ -60,6 +65,30 @@ Artifact resolution errors, missing or ambiguous POMs, non-strict verification,
 changed tracked bytes, source symlinks, and untracked source fail the task. The
 task always reruns its inspection; it does not reuse a cached inventory output.
 JSON is written atomically only after every required input has been collected.
+
+The source guard inspects module source folders, declared JVM source directories,
+and the selected Gradle tasks' project-local file and copy inputs. This includes
+the core's `contracts/v1/schemas` import and the preview's
+`contracts/v1/examples` assets, which are outside the module folders. It checks
+ancestor symlinks as well as individual files. Generated project build directories,
+Git/Gradle/Kotlin bookkeeping and local SDK configuration are outside this source
+guard; external build-tool inputs are outside its project-source claim. This does
+not turn the build into a hermetic environment attestation.
+
+Each CI job also runs an actual ignored-input rejection regression. The helper
+creates a private disposable Git checkout, confirms clean Git status with an
+ignored schema or asset, executes the real pinned offline build, verifies the
+fixture bytes reached the JAR/APK, and requires the inventory to fail at the source
+guard without writing a fresh receipt. Its sanitized result is retained beside
+the positive inventory. Reproduce after warming the matching build/POM caches:
+
+```sh
+python scripts/check_runtime_inventory_guards.py
+python scripts/check_runtime_inventory_guards.py --preview
+```
+
+The second command uses the configured Android SDK. These are packaging/source
+rejection checks; they do not install the APK.
 
 The explicit POM artifact query needs five metadata files that the prior runtime
 resolution used Gradle module metadata instead of directly verifying. Their
