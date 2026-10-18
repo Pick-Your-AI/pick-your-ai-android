@@ -55,7 +55,9 @@ jobs:
   android-preview:
     name: Unsigned synthetic Android preview
     runs-on: ubuntu-24.04
-    timeout-minutes: 25
+    timeout-minutes: 40
+    env:
+      PYAI_EMULATOR_MODE: software
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -109,7 +111,7 @@ jobs:
         shell: bash
         run: |
           test "$RUNNER_ENVIRONMENT" = 'github-hosted'
-          python -c 'from scripts.android_emulator_smoke import check_kvm_access; check_kvm_access()'
+          python -c 'from scripts.android_emulator_smoke import emulation_settings; emulation_settings()'
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends libpulse0
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platform-tools' 'emulator' 'system-images;android-35;default;x86_64'

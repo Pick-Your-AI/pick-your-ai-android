@@ -30,6 +30,19 @@ Rotation is accepted only after the hierarchy reports the requested orientation.
 The fixed inputs contain only synthetic ASCII text. These checks do not measure
 TalkBack traversal, real keyboard usability, contrast, performance or energy.
 
+On the [second hosted attempt](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39098735808),
+the owned emulator booted and the APK installed, but the first UI dump returned
+exit 137 with only its exact completed-file message. The launch case failed and
+the remaining three cases were unexecuted. The harness now allows that particular
+status only with the exact expected-path completion message and empty stderr.
+Every snapshot first successfully removes the prior dump, independently reads
+the new file and requires complete hierarchy XML with a valid rotation and nodes.
+Missing, stale, truncated or invalid XML and every other nonzero/error result fail.
+The receipt counts attempted/completed dumps and completed dumps with exit 137;
+the same installed selectors and behavioral assertions must still pass. This
+handling does not establish why Android terminated that utility or demonstrate
+performance stability.
+
 ## Isolation and diagnostic signing
 
 Provisioning is restricted to a standard disposable GitHub-hosted Linux runner.
@@ -55,16 +68,37 @@ certificate fingerprint and both APK hashes, and checks the original unsigned AP
 is unchanged. This certificate is unrelated to any publisher or product identity.
 Neither the key nor the installable copy is committed or uploaded.
 
-The emulator uses KVM, headless software graphics, no saved snapshot, no audio or
+The emulator uses the explicit CPU mode below, headless software graphics, no saved snapshot, no audio or
 camera, and disabled emulator metrics. Only this job's process group is terminated
 during normal completion or failure, and its AVD/key/copy are removed with the
 temporary directory. Hard job cancellation additionally relies on disposal of the
 hosted VM. Artifact retention never includes AVD userdata or the temporary signing
-directory. A read-only KVM preflight reports the current effective UID, groups and
+directory. In hardware mode a read-only KVM preflight reports the current effective UID, groups and
 device ownership/mode, requires a real character device and checks existing
 read/write access. It runs before SDK provisioning and again before the emulator
 acceleration probe. Missing devices, symbolic links and unavailable access fail
 clearly; this lane changes no KVM ownership, permissions, groups or udev rules.
+
+The current workflow explicitly selects `PYAI_EMULATOR_MODE=software`. This is an
+experimental diagnostic setting, not an automatic fallback or a vendor-supported
+CI performance profile. The official emulator command-line reference documents
+`-accel off` as unsupported and very slow and requires the explicit
+`ANDROID_I_WANT_MY_TCG=yes` opt-in; that variable is supplied only to the owned
+emulator process. Software mode accesses no KVM device and grants no host access.
+The [read-only hardware probe](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39099340825)
+found `/dev/kvm` mode `crw-rw----`, owner 0/group 993, while the hosted job's
+effective UID 1001 had groups 4, 100, 118, 999 and 1001. It failed before provisioning
+because existing KVM access was unavailable; its permissions were left unchanged.
+
+Software mode has a 900-second boot deadline inside a 40-minute job budget. It
+still must boot the pinned image, install the APK and execute every required case;
+timeout or failure cannot become successful or skipped acceptance. The receipt
+records the selected mode, exact acceleration argument, boot budget and unsupported
+opt-in alongside the actual tool/platform versions and case results. Feasible
+execution has not been established by this configuration or its host guard tests.
+When `PYAI_EMULATOR_MODE` is absent, hardware mode remains the default: the strict
+read-only KVM preflight and emulator `-accel-check` must pass, with a 300-second
+boot deadline. Unknown mode names fail and hardware failure never switches modes.
 
 The host also needs Ubuntu's `libpulse0` runtime library even with emulator audio
 disabled. The preparation step installs that specific package and the receipt
@@ -92,6 +126,7 @@ is immutable. Review unexpected platform/tool behavior before changing this gate
 `preview/build/reports/emulator-smoke/receipt.json` also records the exact checked
 out commit/tree, workflow commit, run ID/attempt, generated AVD identity, required
 case results, process restart observations and unchanged unsigned input status.
+Its UI-dump counters expose the narrowly handled utility exit described above.
 The script refuses a checkout/workflow mismatch or tracked source modifications.
 A second workflow step requires the exact four successful case IDs and matching
 workflow commit, preventing an absent, stale or incomplete report from passing.
@@ -115,7 +150,7 @@ python scripts/android_emulator_smoke.py
 
 The first command is safe host-side validation of target, selector and receipt
 rejection. It does not execute an emulator. The second intentionally refuses a
-local/self-hosted environment and expects the workflow's SDK inputs and KVM setup.
+local/self-hosted environment and expects the workflow's SDK inputs and explicit CPU mode.
 Use the ordinary PR workflow to obtain its actual installed run. Keep the required
 contract/domain failure gates in the independent core lane; do not turn a missing
 emulator, image download, install or case result into a skipped-success job.

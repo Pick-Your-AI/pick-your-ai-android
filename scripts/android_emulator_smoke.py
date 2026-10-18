@@ -59,6 +59,19 @@ def check_kvm_access(device: Path = Path("/dev/kvm")) -> None:
             "KVM read/write access is unavailable; no host permissions were changed")
 
 
+def emulation_settings() -> dict:
+    """Select one explicit mode; an unavailable mode never becomes a skipped pass."""
+    mode = os.environ.get("PYAI_EMULATOR_MODE", "kvm")
+    require(mode in ("kvm", "software"), "Unknown emulator mode; expected kvm or software")
+    if mode == "kvm":
+        check_kvm_access()
+    settings = {"mode": mode, "accel_argument": "off" if mode == "software" else "on",
+                "boot_timeout_seconds": 900 if mode == "software" else 300,
+                "unsupported_software_opt_in": mode == "software"}
+    print("Emulation settings: " + json.dumps(settings, sort_keys=True))
+    return settings
+
+
 def command(args: list[str], *, env=None, timeout=30, input=None, check=True):
     result = subprocess.run(
         [str(arg) for arg in args], env=env, timeout=timeout, input=input,
@@ -170,16 +183,30 @@ class Device:
 
 
 class Ui:
-    def __init__(self, device: Device, output: Path):
+    def __init__(self, device: Device, output: Path, receipt: dict):
         self.device, self.output = device, output
+        self.dumps = receipt.setdefault("ui_hierarchy_dumps", {"attempted": 0, "completed": 0, "exit_137": 0})
 
     def snapshot(self) -> ET.Element:
         path = "/sdcard/pyai-smoke-window.xml"
         self.device.shell("rm", "-f", path)
-        self.device.shell("uiautomator", "dump", path, timeout=20)
+        self.dumps["attempted"] += 1
+        result = self.device.adb("shell", "uiautomator", "dump", path, timeout=20, check=False)
+        # This pinned image has returned 137 after reporting the completed dump.
+        # Do not infer its cause or accept an exit alone: a prior dump was removed,
+        # the exact completion message is required, and fresh XML is read below.
+        completed_with_137 = (result.returncode == 137 and not result.stderr.strip() and
+                              result.stdout.strip() == "UI hierchary dumped to: " + path)
+        require(result.returncode == 0 or completed_with_137,
+                f"UI hierarchy dump failed ({result.returncode}): " +
+                (result.stdout + result.stderr)[-6000:])
         raw = self.device.adb("exec-out", "cat", path).stdout
         root = ET.fromstring(raw)
-        require(root.tag == "hierarchy", "Invalid UI hierarchy")
+        require(root.tag == "hierarchy" and root.get("rotation") in ("0", "1", "2", "3") and
+                any(True for _ in root.iter("node")), "Invalid or empty UI hierarchy")
+        self.dumps["completed"] += 1
+        if completed_with_137:
+            self.dumps["exit_137"] += 1
         return root
 
     def scroll(self, root: ET.Element, down: bool) -> bool:
@@ -290,7 +317,7 @@ def case(receipt: dict, case_id: str):
 
 
 def exercise(device: Device, output: Path, receipt: dict):
-    ui = Ui(device, output)
+    ui = Ui(device, output, receipt)
     try:
         with case(receipt, CASE_IDS[0]):
             device.launch()
@@ -411,6 +438,10 @@ def main() -> int:
         require(apk.is_file() and not apk.is_symlink(), "Expected the original unsigned diagnostic APK")
         original_hash = digest(apk)
         receipt["unsigned_apk_sha256"] = original_hash
+        settings = emulation_settings()
+        receipt["emulation"] = settings
+        if settings["mode"] == "software":
+            receipt["limitations"].append("software CPU emulation is a vendor-unsupported diagnostic mode")
         sdk = Path(os.environ["ANDROID_HOME"])
         adb = sdk / "platform-tools/adb"
         emulator = sdk / "emulator/emulator"
@@ -433,8 +464,8 @@ def main() -> int:
         receipt["emulator_version"] = command([str(emulator), "-version"]).stdout.strip()
         receipt["emulator_binary_sha256"] = digest(emulator)
         receipt["adb_version"] = command([str(adb), "version"]).stdout.strip()
-        check_kvm_access()
-        command([str(emulator), "-accel-check"])
+        if settings["mode"] == "kvm":
+            command([str(emulator), "-accel-check"])
         connected = command([str(adb), "devices"]).stdout.splitlines()[1:]
         require(not any(line.strip() for line in connected), "Existing adb devices found; refusing shared-device execution")
         badging = command([str(build_tools / "aapt"), "dump", "badging", str(apk)]).stdout
@@ -473,23 +504,27 @@ def main() -> int:
             receipt["installed_apk_sha256"] = digest(signed_apk)
             receipt["disposable_certificate_sha256"] = cert_hash.group(1)
             emulator_log = scratch / "emulator.log"
+            emulator_env = (dict(env, ANDROID_I_WANT_MY_TCG="yes")
+                            if settings["mode"] == "software" else env)
             try:
                 with emulator_log.open("wb") as log:
                     process = subprocess.Popen(
                         [str(emulator), "-avd", avd_name, "-port", "5554", "-no-window", "-no-audio",
                          "-no-boot-anim", "-no-snapshot", "-no-metrics", "-gpu", "swiftshader_indirect",
-                         "-accel", "on", "-cores", "2", "-memory", "2048", "-camera-front", "none", "-camera-back", "none"],
-                        env=env, stdout=log, stderr=subprocess.STDOUT, start_new_session=True,
+                         "-accel", settings["accel_argument"], "-cores", "2", "-memory", "2048",
+                         "-camera-front", "none", "-camera-back", "none"],
+                        env=emulator_env, stdout=log, stderr=subprocess.STDOUT, start_new_session=True,
                     )
                     device = Device(adb, env, process, avd_name)
-                    deadline = time.monotonic() + 300
+                    boot_timeout = settings["boot_timeout_seconds"]
+                    deadline = time.monotonic() + boot_timeout
                     while time.monotonic() < deadline:
                         boot = device.adb("shell", "getprop", "sys.boot_completed", timeout=10, check=False)
                         if boot.stdout.strip() == "1":
                             break
                         time.sleep(1)
                     else:
-                        raise SmokeFailure("Owned emulator did not boot within 300 seconds")
+                        raise SmokeFailure(f"Owned emulator did not boot within {boot_timeout} seconds")
                     device.verify_identity()
                     require(not device.shell("pm", "list", "packages", PACKAGE),
                             "Fresh AVD unexpectedly already contains the preview")
