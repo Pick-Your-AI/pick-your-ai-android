@@ -32,14 +32,14 @@ class PreviewStoredDraft internal constructor(internal val draft: StoredDraft, v
     val baselineIdentity: String get() = "${draft.version.number}:${draft.version.hash.hex}"
     /** Retained guest forms only; unavailable metadata is never reconstructed or replaced. */
     val history: List<PreviewDraftRevision> get() = java.util.Collections.unmodifiableList(draft.history.map {
-        PreviewDraftRevision(it.number, decodePreviewFields(it.metadata), it.content, it.change, it.restoredFrom)
+        PreviewDraftRevision(it.number, decodePreviewFields(it.metadata), it.content, it.change, it.restoredFrom, it.selectionChange)
     })
     val earlierHistoryUnavailable: Boolean get() = draft.earlierHistoryUnavailable
     override fun toString() = "PreviewStoredDraft"
 }
 /** Retained local content and guest metadata, never an evaluation or price result. */
 class PreviewDraftRevision internal constructor(val revision: Long, val fields: PreviewDraftFields?,
-    val content: DraftContent, val change: StoredRevisionChange, val restoredFrom: Long?) {
+    val content: DraftContent, val change: StoredRevisionChange, val restoredFrom: Long?, val selectionChange: SelectionChange? = null) {
     override fun toString() = "PreviewDraftRevision"
 }
 
@@ -90,7 +90,7 @@ class PreviewDraftPersistence internal constructor(private val store: LocalDraft
         val content = DraftContent(
             if (contextInput == null) previous.objective else contextInput.objective,
             if (contextInput == null) previous.context else contextInput.context,
-            previous.primaryModel, previous.optional, workloadInput ?: previous.workload)
+            previous.primaryModel, previous.optional, workloadInput ?: previous.workload, previous.components)
         val metadata = previewMetadata(expected?.draft?.metadata.orEmpty(), fields)
         when (val result = store.save(expected?.draft?.version, content, metadata)) {
             is DraftSave.Saved -> PreviewDraftSave.Saved(PreviewStoredDraft(result.draft, fields))
@@ -148,7 +148,7 @@ class PreviewDraftPersistence internal constructor(private val store: LocalDraft
     internal fun copyPendingSnapshot(source: PreviewStoredDraft, pending: PreviewPendingDraft): PreviewDraftSave = write {
         val previous = source.draft.content
         val content = DraftContent(pending.context.objective, pending.context.context, previous.primaryModel,
-            previous.optional, pending.workload)
+            previous.optional, pending.workload, previous.components)
         val metadata = previewMetadata(source.draft.metadata, pending.fields) + mapOf(
             "preview.recoverySourceId" to source.draft.version.store.fileName.toString(),
             "preview.recoverySourceRevision" to source.revision.toString(),
