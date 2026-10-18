@@ -221,6 +221,60 @@ class PreviewActivityTest {
     private fun recordedPrices(json: org.json.JSONObject) =
         (RecordedPricebook.read(json.toString().byteInputStream()) as RecordedPricebookResult.Parsed).pricebook
 
+    @Test fun systemBarInsetsStayOnViewportWhenContentScrolls() {
+        val viewport = views().filterIsInstance<android.widget.ScrollView>().single()
+        val content = viewport.getChildAt(0)
+        val originalPadding = listOf(content.paddingLeft, content.paddingTop, content.paddingRight, content.paddingBottom)
+        viewport.dispatchApplyWindowInsets(windowInsets(android.graphics.Rect(8, 24, 12, 48)))
+        viewport.measure(View.MeasureSpec.makeMeasureSpec(720, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(1280, View.MeasureSpec.EXACTLY))
+        viewport.layout(0, 0, 720, 1280)
+        viewport.scrollTo(0, 80)
+        assertEquals(80, viewport.scrollY)
+        assertTrue(viewport.clipToPadding)
+        assertEquals(listOf(8, 24, 12, 48), listOf(viewport.paddingLeft, viewport.paddingTop, viewport.paddingRight, viewport.paddingBottom))
+        assertEquals(originalPadding, listOf(content.paddingLeft, content.paddingTop, content.paddingRight, content.paddingBottom))
+    }
+
+    @Test fun repeatedAndRotatedSystemInsetsReplaceViewportPadding() {
+        val viewport = views().filterIsInstance<android.widget.ScrollView>().single()
+        val content = viewport.getChildAt(0)
+        val originalPadding = listOf(content.paddingLeft, content.paddingTop, content.paddingRight, content.paddingBottom)
+        repeat(2) { viewport.dispatchApplyWindowInsets(windowInsets(android.graphics.Rect(0, 24, 0, 48))) }
+        assertEquals(listOf(0, 24, 0, 48), listOf(viewport.paddingLeft, viewport.paddingTop, viewport.paddingRight, viewport.paddingBottom))
+        viewport.layoutDirection = View.LAYOUT_DIRECTION_RTL
+        viewport.dispatchApplyWindowInsets(windowInsets(android.graphics.Rect(16, 24, 48, 0)))
+        assertEquals(listOf(16, 24, 48, 0), listOf(viewport.paddingLeft, viewport.paddingTop, viewport.paddingRight, viewport.paddingBottom))
+        assertEquals(originalPadding, listOf(content.paddingLeft, content.paddingTop, content.paddingRight, content.paddingBottom))
+    }
+
+    @Test fun clearedSystemInsetsRemoveOnlyViewportPadding() {
+        val viewport = views().filterIsInstance<android.widget.ScrollView>().single()
+        val content = viewport.getChildAt(0)
+        val originalPadding = listOf(content.paddingLeft, content.paddingTop, content.paddingRight, content.paddingBottom)
+        viewport.dispatchApplyWindowInsets(windowInsets(android.graphics.Rect(8, 24, 12, 48)))
+        viewport.dispatchApplyWindowInsets(windowInsets(android.graphics.Rect()))
+        assertEquals(listOf(0, 0, 0, 0), listOf(viewport.paddingLeft, viewport.paddingTop, viewport.paddingRight, viewport.paddingBottom))
+        assertEquals(originalPadding, listOf(content.paddingLeft, content.paddingTop, content.paddingRight, content.paddingBottom))
+    }
+
+    // The pinned API 28 runtime exposes this fixture constructor; compileSdk 35 hides it.
+    private fun windowInsets(insets: android.graphics.Rect): android.view.WindowInsets =
+        android.view.WindowInsets::class.java
+            .getConstructor(android.graphics.Rect::class.java).newInstance(insets)
+
+    @Test fun lightPreviewThemeSelectsDarkSystemBarIcons() {
+        val attributes = activity.theme.obtainStyledAttributes(intArrayOf(
+            android.R.attr.windowLightStatusBar, android.R.attr.windowLightNavigationBar,
+            android.R.attr.colorBackground, android.R.attr.statusBarColor, android.R.attr.navigationBarColor))
+        try {
+            assertTrue(attributes.getBoolean(0, false))
+            assertTrue(attributes.getBoolean(1, false))
+            assertEquals(attributes.getColor(2, 0), attributes.getColor(3, 1))
+            assertEquals(attributes.getColor(2, 0), attributes.getColor(4, 2))
+        } finally { attributes.recycle() }
+    }
+
     @Test fun acknowledgedFieldsAndExplicitEmptySurviveRecreation() {
         field(R.string.draft_title).setText("saved title")
         field(R.string.context_objective).setText("objective")
