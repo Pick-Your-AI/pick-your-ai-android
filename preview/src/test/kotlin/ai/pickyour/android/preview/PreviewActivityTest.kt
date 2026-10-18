@@ -150,4 +150,49 @@ class PreviewActivityTest {
         assertTrue(message.contains("After: text: \"explicitly empty\""))
         assertEquals(baseline, loaded().baselineIdentity)
     }
+
+    @Test fun editorsExposeLabelsAndSavedStatusUsesTextAndLiveRegion() {
+        val editors = views().filterIsInstance<EditText>()
+        assertEquals(3, editors.size)
+        editors.forEach { editor ->
+            val labels = views().filterIsInstance<TextView>().filter { it.labelFor == editor.id }
+            assertEquals("Each editor needs one explicit visible label", 1, labels.size)
+            assertTrue(labels.single().text.isNotBlank())
+            assertTrue(editor.isFocusable)
+            assertTrue(editor.isEnabled)
+        }
+        assertTrue(views().filterIsInstance<TextView>().any { it.isAccessibilityHeading })
+        field(R.string.draft_title).setText("semantics check")
+        save()
+        val status = views().filterIsInstance<TextView>().single { it.text.toString() == activity.getString(R.string.draft_saved) }
+        assertEquals(View.ACCESSIBILITY_LIVE_REGION_POLITE, status.accessibilityLiveRegion)
+        assertTrue(status.text.isNotBlank())
+        val tier = views().filterIsInstance<Button>().single { it.text.toString().startsWith("T3:") }
+        assertTrue(tier.text.toString().contains(activity.getString(R.string.tier_disabled)))
+        assertTrue(tier.isFocusable)
+        assertTrue(tier.isEnabled)
+    }
+
+    @Test fun confirmedCurrentDraftDeletionRetainsPendingFormAndRevokesSaveAuthority() {
+        field(R.string.draft_title).setText("saved before deletion")
+        save()
+        field(R.string.draft_title).setText("pending title stays visible")
+        field(R.string.context_objective).setText("pending objective stays visible")
+        button(R.string.library_open).performClick()
+        await { ShadowAlertDialog.getLatestAlertDialog()?.isShowing == true }
+        shadowOf(dialog()).clickOnItem(0)
+        val entryDialog = dialog()
+        entryDialog.getButton(AlertDialog.BUTTON_NEUTRAL).performClick()
+        await { dialog() !== entryDialog && dialog().isShowing }
+        val confirmation = dialog()
+        confirmation.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+        await { hasText(R.string.library_deleted_editor) && button(R.string.library_open).isEnabled }
+        assertEquals("pending title stays visible", field(R.string.draft_title).text.toString())
+        assertEquals("pending objective stays visible", field(R.string.context_objective).text.toString())
+        assertFalse(button(R.string.save_draft).isEnabled)
+        assertFalse(button(R.string.draft_history).isEnabled)
+        val library = PreviewDraftLibrary(activity.noBackupFilesDir.toPath())
+        assertTrue((library.list() as PreviewLibraryRead.Available).entries.isEmpty())
+        assertEquals(activity.getString(R.string.library_deleted), shadowOf(dialog()).message.toString())
+    }
 }

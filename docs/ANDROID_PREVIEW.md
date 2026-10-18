@@ -442,7 +442,7 @@ after explicit confirmation; transient busy, IO and cancellation failures do not
 authorize treating a record as corrupt.
 
 Every library read, creation, deletion and bound persistence operation, including
-objective/context saves and durable domain restores, shares the
+objective/context saves, durable domain restores and active-pointer writes, shares the
 same nonblocking library lock. The canonical-root JVM guard is acquired before the
 OS lock file is opened, retaining the process-lock protection from the prior fix.
 The library checks each bound adapter's identity again under that lock. An editor
@@ -450,6 +450,22 @@ opened before deletion cannot recreate files, restore history or save into a tom
 directory. All cooperating library writers must obtain their adapter through
 `PreviewDraftLibrary.open` or `openLegacy`; the standalone store constructor remains
 available for independent stores outside the library.
+
+The existing active-pointer payload and deletion protocol remain unchanged.
+Selection now rechecks directory and tombstone liveness under the same library
+lock before writing the pointer. A pending deletion cannot acquire a new selected
+acknowledgement, and a rejected same-process selector cannot release the deleting
+operation's OS lock. Errors after a pointer write was attempted remain uncertain.
+Legacy bootstrap obeys the 64-entry capacity bound and requires a genuinely absent
+pointer when its directory is missing; a missing explicitly selected guest never
+becomes a fabricated empty replacement.
+
+Upgrade regressions populate the preceding `guest-draft` and `draft-UUID` layout
+with retained history, exact sample pins, objective/context, an unsupported record
+and a selected draft. Reopening preserves those identities, paths, hashes, inputs
+and the selected pointer. Independent regressions reproduce the prior 65th-entry
+bootstrap and acknowledgement of pending-deletion targets, including a real
+external-JVM lock probe before and after same-process selector contention.
 
 Deletion first writes and forces a tiny intent marker in `.preview-deletions`,
 then forces its parent before removing any record bytes. An interrupted operation
@@ -585,3 +601,12 @@ sandbox before using local draft storage. These JVM simulations do not establish
 installed app, emulator, physical-device, accessibility, filesystem power-loss,
 Play submission, or release qualification. The native SDK build and all those
 receiving acceptance gates remain separate.
+
+The simulated regression suite also inspects explicit editor label associations,
+focusability, textual tier state and polite saved-status announcements, and drives
+confirmed deletion of the current draft while unsaved title/objective inputs are
+visible. The deletion case requires retained pending fields, revoked save/history
+authority and an empty local library after acknowledged removal. These are bounded
+partial automated checks for #64/#106 and local recovery; they do not establish
+screen-reader traversal, keyboard usability, contrast, measured touch targets,
+large-text/RTL rendering or physical filesystem durability.

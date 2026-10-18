@@ -89,6 +89,8 @@ jobs:
               "newerDiskHeadCannotAdoptStalePendingFormAfterRecreation",
               "tierActivationRequiresCleanFormAndExplicitConfirmation",
               "comparisonDistinguishesLiteralSentinelWithoutWriting",
+              "editorsExposeLabelsAndSavedStatusUsesTextAndLiveRegion",
+              "confirmedCurrentDraftDeletionRetainsPendingFormAndRevokesSaveAuthority",
           }
           cases = suite.findall("testcase")
           assert expected <= {case.attrib["name"] for case in cases}, "Missing UI regression"
