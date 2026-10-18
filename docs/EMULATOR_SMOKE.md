@@ -602,6 +602,9 @@ still terminates only this job's owned emulator through its existing cleanup.
 After the barrier, exactly one fresh home hierarchy must pass the existing prior
 file removal, exact dump completion, clean read and XML requirements. The same
 30/20/30-second command maxima are clamped to the remaining readiness deadline.
+Only the complete unavailable-root response described in the later KVM receipt
+below permits another HOME observation, with at most three attempts and no new
+deadline or barrier. Every failed predecessor remains in the receipt.
 No application is launched to warm it up. The hierarchy must be in the configured
 portrait rotation, contain a launcher node with positive visible bounds, and
 contain only launcher or System UI packages. A final server-side Activity query
@@ -1274,6 +1277,88 @@ or installed results. Neither these guards nor the prior HVF configuration
 observation establish an actual ACL grant, KVM boot, performance improvement or
 installed pass. The whole current-main composition requires independent review
 before the one new hosted attempt.
+
+### Actual KVM boot followed by an unavailable HOME hierarchy
+
+[Run 39146579521, attempt 1 / installed job 117732554493](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39146579521/job/117732554493)
+executed signed prepared checkout `5b6274b826c60c45b730d80e98776c5a86bb03cc`,
+tree `8af9ad75108d206a1179c4f483f3629e3a6e900f`, from canonical source
+`2b04d2ef258dc0f5d958f9dd2c52e54e35767e9b`. Its original installed artifact
+`12143473819` is 66,125 ZIP bytes, SHA-256
+`a14c88b89dea5a4988c1f77e2444d5c8890efa4e82cc47a19481c6a5709dbc2c`.
+The receipt, JUnit, emulator log and separate ACL receipt were independently
+downloaded and checked against the actual job and source.
+
+The original KVM boot limit remained 300 seconds. Boot completed after 26 probes
+in 25.301 seconds, the configured/generated/physical 720 by 1280 at 280 dpi
+observations passed, and all nine user/storage predicates passed together on the
+first readiness snapshot. The single framework barrier then returned exit zero
+with both required completion lines and empty stderr. Its retained pending-work
+lines remain part of that complete observation.
+
+The first HOME snapshot removed the exact prior XML path successfully, then
+`uiautomator dump` returned exit zero with empty stdout and this complete
+58-byte stderr, including the final newline:
+
+```text
+ERROR: null root node returned by UiTestAutomationBridge.
+```
+
+The stderr text SHA-256 is
+`406bd8df88b9c43b78dc2a75c35ee3f96f79a5b3ea922e8ead222b4c5b5752f9`.
+The original source correctly rejected this result before reading XML or querying
+HOME focus. Functional readiness failed after 3.652 seconds; installation,
+launch and all four installed cases were never reached. Every case remains
+`not_run`, with one environment failure and four skipped cases in JUnit. The
+prepared signed-copy hash is not installation evidence.
+
+Later bounded failure diagnostics observed the launcher as displayed, focused
+and resumed, with no recorded ANR since boot and an LMK total of zero. Those later
+observations do not establish why the earlier root was unavailable, whether it
+would become available within another observation, or an application crash.
+The separate ACL cleanup also failed: the observed device ACL differed from the
+owned granted snapshot, so both cleanup attempts refused before a restoration
+command. The named UID grant was absent and a mask remained; neither its cause
+nor exact restoration was proved. This HOME-only change preserves that refusal
+and does not change any ACL, permission, privilege or cleanup code.
+
+The bounded follow-up can perform at most **three HOME snapshots** within the
+original shared **180-second readiness deadline**. Only the exact recorded
+null-root failure qualifies: successful removal of the exact prior path with
+complete empty streams, then integer dump exit zero, complete empty stdout,
+the exact complete stderr above, the original failure type/message, and no
+timeout or other command error. A quarter-second interval between eligible
+attempts is clamped to the remaining deadline; time is checked again before
+continuing. Each new snapshot repeats the existing fresh-file removal, and no
+framework barrier or application command is retried.
+
+The receipt retains every attempt, the unchanged first failure, the final attempt
+and the explicit cap. Acceptance requires sequential complete history, exact
+command/stream metadata for every failed predecessor, and exactly one completed
+final dump. The original fresh XML read/parse, portrait/visible launcher identity,
+user-zero HOME focus, original command maxima and absolute deadline all remain
+required. Unrelated errors, partial timeouts, stale or malformed XML, foreign
+targets, changed stream digests and missing/reordered history cannot pass. App
+snapshots, launch/install logic, all four case bodies, boot/resource/display
+settings and both cleanup paths are unchanged.
+
+The exact receipt-derived regression failed against unchanged `2b04` before this
+implementation. All 17 new host methods then passed; the complete current
+`scripts/tests` discovery passed **232 methods**, with zero failures, errors or
+skips. These tests use fake command results and time to verify failure retention,
+cap/deadline boundaries, command ordering and rejection predicates. They do not
+execute an emulator or demonstrate that this source cures the observed failure.
+No new installed attempt was started for this isolated contribution. Native
+execution and the full current-main integration remain with the existing #255
+owner and ordinary reviewed gates, including successful ACL restoration and
+all four real installed cases.
+
+Primary mechanism checked on 2026-10-18: pinned Android 15
+[`DumpCommand`](https://github.com/aosp-mirror/platform_frameworks_base/blob/android-15.0.0_r1/cmds/uiautomator/cmds/uiautomator/src/com/android/commands/uiautomator/DumpCommand.java)
+waits for idle, requests the active window root once, and prints this diagnostic
+then returns before file writing if that root is null. This establishes the
+observed command branch; it does not establish the underlying cause or the
+sufficiency of another bounded observation.
 
 ## Inputs and provenance
 

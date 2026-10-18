@@ -49,6 +49,8 @@ UI_DUMP_DIRECTORY = "/data/local/tmp"
 UI_DUMP_PATH = UI_DUMP_DIRECTORY + "/pyai-smoke-window.xml"
 HOME_PACKAGE = "com.android.launcher3"
 HOME_WINDOW = HOME_PACKAGE + "/" + HOME_PACKAGE + ".uioverrides.QuickstepLauncher"
+HOME_SNAPSHOT_ATTEMPT_LIMIT = 3
+HOME_NULL_ROOT_STDERR = "ERROR: null root node returned by UiTestAutomationBridge.\n"
 FRAMEWORK_BARRIER = ("shell", "am", "wait-for-broadcast-barrier", "--flush-application-threads")
 HOME_FOCUS_QUERY = ("shell", "dumpsys", "-t", "3", "activity", "activities")
 GUEST_READINESS_COMMANDS = (
@@ -892,11 +894,67 @@ def home_hierarchy_summary(root: ET.Element, read_observation: dict) -> dict:
             "read_text_sha256": read_observation["stdout"].get("text_sha256")}
 
 
+def home_null_root_attempt(attempt: dict) -> bool:
+    """Recognize only the complete observed no-root result, never a passing dump."""
+    if not (isinstance(attempt, dict) and attempt.get("ui_dump_path") == UI_DUMP_PATH
+            and type(attempt.get("sequence")) is int
+            and 1 <= attempt["sequence"] <= HOME_SNAPSHOT_ATTEMPT_LIMIT
+            and attempt.get("stage") == "dump" and attempt.get("completed") is False
+            and attempt.get("dump_completion_passed") is False
+            and attempt.get("error") == {"type": "SmokeFailure",
+                                         "message": "UI hierarchy dump failed (0): " + HOME_NULL_ROOT_STDERR}
+            and isinstance(attempt.get("commands"), dict)
+            and set(attempt["commands"]) == {"remove", "dump"}):
+        return False
+    for name, arguments, stderr in (
+        ("remove", ("shell", "rm", "-f", UI_DUMP_PATH), ""),
+        ("dump", ("shell", "uiautomator", "dump", UI_DUMP_PATH), HOME_NULL_ROOT_STDERR),
+    ):
+        observed = attempt["commands"].get(name)
+        if not (isinstance(observed, dict) and observed.get("arguments") == list(arguments)
+                and type(observed.get("exit_code")) is int and observed["exit_code"] == 0
+                and "command_timeout_seconds" not in observed and "error" not in observed
+                and ui_stream_matches_text(observed.get("stdout"), "")
+                and ui_stream_matches_text(observed.get("stderr"), stderr)):
+            return False
+    return True
+
+
+def home_snapshot_history_passes(state: dict) -> bool:
+    """Require every bounded predecessor to be the same explicit no-root result."""
+    if not (isinstance(state, dict) and type(state.get("home_snapshot_attempt_limit")) is int
+            and state["home_snapshot_attempt_limit"] == HOME_SNAPSHOT_ATTEMPT_LIMIT):
+        return False
+    observations, dumps = (state.get(name) for name in ("ui_hierarchy_observations", "ui_hierarchy_dumps"))
+    if not isinstance(observations, dict) or not isinstance(dumps, dict):
+        return False
+    count, history = observations.get("attempted"), observations.get("recent_attempts")
+    if not (type(count) is int and 1 <= count <= HOME_SNAPSHOT_ATTEMPT_LIMIT
+            and isinstance(history, list) and len(history) == count
+            and all(isinstance(attempt, dict) and type(attempt.get("sequence")) is int
+                    and attempt["sequence"] == index + 1 for index, attempt in enumerate(history))
+            and observations.get("last_attempt") == history[-1]
+            and all(home_null_root_attempt(attempt) for attempt in history[:-1])):
+        return False
+    if count == 1:
+        if "first_failed_attempt" in observations:
+            return False
+    elif observations.get("first_failed_attempt") != history[0]:
+        return False
+    commands = history[-1].get("commands")
+    if not isinstance(commands, dict) or not isinstance(commands.get("dump"), dict):
+        return False
+    expected = {"attempted": count, "completed": 1,
+                "exit_137": 1 if commands["dump"].get("exit_code") == 137 else 0}
+    return dumps == expected and all(type(dumps.get(name)) is int for name in expected)
+
+
 def interactive_readiness_passes(state: dict) -> bool:
     if not (isinstance(state, dict) and state.get("ready") is True
             and state.get("phase") == "before_installation" and state.get("serial") == SERIAL
             and state.get("home_package") == HOME_PACKAGE and "error" not in state
-            and framework_barrier_passes(state.get("barrier")) and home_focus_passes(state.get("focus"))):
+            and framework_barrier_passes(state.get("barrier")) and home_focus_passes(state.get("focus"))
+            and home_snapshot_history_passes(state)):
         return False
     hierarchy = state.get("home_hierarchy", {})
     observations = state.get("ui_hierarchy_observations", {})
@@ -926,19 +984,41 @@ def interactive_readiness_passes(state: dict) -> bool:
             and type(hierarchy.get("visible_home_nodes")) is int and hierarchy["visible_home_nodes"] > 0
             and isinstance(hierarchy.get("read_text_sha256"), str)
             and re.fullmatch(r"[0-9a-f]{64}", hierarchy["read_text_sha256"]) is not None
-            and type(observations.get("attempted")) is int and observations["attempted"] == 1
-            and "first_failed_attempt" not in observations
-            and type(attempt.get("sequence")) is int and attempt["sequence"] == 1 and "error" not in attempt
+            and type(attempt.get("sequence")) is int
+            and attempt["sequence"] == observations["attempted"] and "error" not in attempt
             and attempt.get("completed") is True and attempt.get("dump_completion_passed") is True
             and attempt.get("ui_dump_path") == UI_DUMP_PATH and attempt.get("stage") == "parse"
             and ui_read_observation_passes(read.get("stdout"))
             and hierarchy["read_text_sha256"] == read["stdout"].get("text_sha256"))
 
 
+def observe_home_hierarchy(device: Device, state: dict, deadline: float) -> ET.Element:
+    """Wait only for the observed unavailable HOME root within the existing budget."""
+    ui = Ui(device, Path("."), state)
+    for index in range(HOME_SNAPSHOT_ATTEMPT_LIMIT):
+        try:
+            return ui.snapshot(deadline=deadline)
+        except SmokeFailure:
+            attempt = state["ui_hierarchy_observations"]["last_attempt"]
+            if (not home_null_root_attempt(attempt) or attempt["sequence"] != index + 1
+                    or index + 1 == HOME_SNAPSHOT_ATTEMPT_LIMIT or time.monotonic() >= deadline):
+                raise
+            # Each snapshot first removes the preceding file. Retain all failed
+            # attempts; only a later fresh hierarchy plus exact HOME focus can pass.
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise
+            time.sleep(min(0.25, remaining))
+            if time.monotonic() >= deadline:
+                raise
+    raise SmokeFailure("Owned HOME observation limit exhausted")
+
+
 def establish_interactive_readiness(device: Device, readiness: dict, deadline: float):
     """Synchronize once, then positively observe the owned home UI before installation."""
     state = {"ready": False, "phase": "before_installation", "serial": SERIAL,
-             "home_package": HOME_PACKAGE, "barrier": {}, "focus": {}}
+             "home_package": HOME_PACKAGE, "home_snapshot_attempt_limit": HOME_SNAPSHOT_ATTEMPT_LIMIT,
+             "barrier": {}, "focus": {}}
     readiness["interactive"] = state
     started = time.monotonic()
     try:
@@ -946,7 +1026,7 @@ def establish_interactive_readiness(device: Device, readiness: dict, deadline: f
                                     timeout=command_budget(deadline, 120), retained_limit=16384)
         require(framework_barrier_passes(state["barrier"]),
                 "Owned framework broadcast/application barriers did not complete")
-        root = Ui(device, Path("."), state).snapshot(deadline=deadline)
+        root = observe_home_hierarchy(device, state, deadline)
         state["home_hierarchy"] = home_hierarchy_summary(
             root, state["ui_hierarchy_observations"]["last_attempt"]["commands"]["read"])
         observe_interactive_command(device, HOME_FOCUS_QUERY, state["focus"],
