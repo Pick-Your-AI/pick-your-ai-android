@@ -4,6 +4,11 @@ The Android planning client for discovering, configuring, checking, costing, com
 
 This repository currently contains contribution and scope guidance only. No application implementation, build toolchain, backend or release is included.
 
+The [foundation review package](docs/proposals/README.md) proposes a bounded scope,
+native architecture and service boundary against the existing delivery issues.
+These proposals await receiving review and do not establish implementation or
+release acceptance.
+
 - [Delivery Project 4](https://github.com/orgs/Pick-Your-AI/projects/4) and program [Pick-Your-AI/pick-your-ai-android#1](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/1).
 - Repository and framework decision: [Pick-Your-AI/pick-your-ai-android#34](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/34). Repository creation is partial progress; framework, module layout and other architecture decisions remain open.
 - Shared-service decision: [Pick-Your-AI/pick-your-ai-android#35](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/35); reuse canonical services rather than create a competing backend.
