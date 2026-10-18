@@ -442,7 +442,7 @@ after explicit confirmation; transient busy, IO and cancellation failures do not
 authorize treating a record as corrupt.
 
 Every library read, creation, deletion and bound persistence operation, including
-objective/context saves and durable domain restores, shares the
+objective/context saves, durable domain restores and active-pointer writes, shares the
 same nonblocking library lock. The canonical-root JVM guard is acquired before the
 OS lock file is opened, retaining the process-lock protection from the prior fix.
 The library checks each bound adapter's identity again under that lock. An editor
@@ -450,6 +450,22 @@ opened before deletion cannot recreate files, restore history or save into a tom
 directory. All cooperating library writers must obtain their adapter through
 `PreviewDraftLibrary.open` or `openLegacy`; the standalone store constructor remains
 available for independent stores outside the library.
+
+The existing active-pointer payload and deletion protocol remain unchanged.
+Selection now rechecks directory and tombstone liveness under the same library
+lock before writing the pointer. A pending deletion cannot acquire a new selected
+acknowledgement, and a rejected same-process selector cannot release the deleting
+operation's OS lock. Errors after a pointer write was attempted remain uncertain.
+Legacy bootstrap obeys the 64-entry capacity bound and requires a genuinely absent
+pointer when its directory is missing; a missing explicitly selected guest never
+becomes a fabricated empty replacement.
+
+Upgrade regressions populate the preceding `guest-draft` and `draft-UUID` layout
+with retained history, exact sample pins, objective/context, an unsupported record
+and a selected draft. Reopening preserves those identities, paths, hashes, inputs
+and the selected pointer. Independent regressions reproduce the prior 65th-entry
+bootstrap and acknowledgement of pending-deletion targets, including a real
+external-JVM lock probe before and after same-process selector contention.
 
 Deletion first writes and forces a tiny intent marker in `.preview-deletions`,
 then forces its parent before removing any record bytes. An interrupted operation
