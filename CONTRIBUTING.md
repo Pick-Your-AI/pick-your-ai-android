@@ -6,6 +6,11 @@ Use a scoped branch, signed commits and a pull request. Obtain independent recei
 
 Run `git diff --check`, check relative Markdown links, and manually review scope and canonical references. For core/contract changes, follow [CORE_FOUNDATION.md](docs/CORE_FOUNDATION.md): verify the frozen import, run the Python reference suite and `./gradlew --no-daemon :core:check :core:assemble`. Never claim installed Android or production validation from JVM, reference or documentation checks.
 
+The [pinned secret-scanning check](docs/SECRET_SCANNING.md) runs against the exact
+checkout and its reachable history. Review sanitized findings without copying
+matched values into public comments; successful pattern detection is one security
+check and does not establish dependency, credential-rotation or release acceptance.
+
 Keep local build, simulator/emulator, physical device, store and production results distinct. Only perform release, provisioning, spending or outreach when the authority actually granted permits it. Read the organization [code of conduct](https://github.com/Pick-Your-AI/.github/blob/main/CODE_OF_CONDUCT.md).
 
 For preview/toolchain changes, also run the opt-in unsigned Android build and lint
