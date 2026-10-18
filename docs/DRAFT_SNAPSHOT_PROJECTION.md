@@ -179,13 +179,18 @@ button, document export, sharing grant or automatic acknowledgment.
 
 ## Existing migrations and remaining acceptance
 
-Preparation uses the existing supported v1/v2/v3/v4 decoder without rewriting the
-source. Old formats have no typed aggregate inferred from free text, so their
-incomplete projections stay withheld. Explicit existing save/restore migration
-can write v4 while retaining entered values, earlier entries and legacy identity;
-this converter does not add or silently invoke a migration. Unknown/corrupt input
-remains preserved and blocks preparation. A future shared schema or local profile
-requires an explicit version, migration decision and affected-consumer review.
+At accepted selection-role main `ed816a4c`, preparation uses the existing local
+format 1–5 decoder without rewriting the source. Formats 1–3 have no typed
+selection aggregate inferred from free text, so incomplete projections stay
+withheld. Explicit existing save/restore migration can write format 4 while
+retaining entered values, earlier entries and legacy identity. A real role edit
+introduces format 5, which later writes and restores retain; unchanged format-4
+`CONFIGURE` history keeps its settings-only meaning. This converter does not add
+or silently invoke a migration. It projects the acknowledged durable draft;
+unsaved or pending role-form input remains outside its input, and the future
+creation UI must explicitly handle that distinction. Unknown/corrupt input stays
+preserved and blocks preparation. A future shared schema or local profile requires
+an explicit version, migration decision and affected-consumer review.
 
 | Literal #26 criterion | Bounded coverage here | Remaining acceptance |
 | --- | --- | --- |
