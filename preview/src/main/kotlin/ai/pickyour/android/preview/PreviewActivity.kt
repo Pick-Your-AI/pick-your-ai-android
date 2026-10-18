@@ -64,6 +64,7 @@ class PreviewActivity : Activity() {
     private lateinit var clear: Button
     private lateinit var history: Button
     private lateinit var compareRetained: Button
+    private lateinit var compareLibrary: Button
     private lateinit var saveStatus: TextView
     private var draftLibrary: PreviewDraftLibrary? = null // Accessed only on the single worker.
     private var currentDraftId = PreviewDraftId("guest-draft")
@@ -79,6 +80,7 @@ class PreviewActivity : Activity() {
     private var revisionDialog: AlertDialog? = null
     private var revisionRequest: Any? = null
     private var revisionBrowser: RevisionComparisonBrowser? = null
+    private var libraryComparison: LibraryRevisionComparison? = null
     private var storageReady = false
     private var storageAuthority = Any() // UI-thread identity; never reused across storage operations.
     private var storageBusy = true
@@ -225,6 +227,11 @@ class PreviewActivity : Activity() {
             setOnClickListener { savedRecord?.let { showComparisonPicker(it, pickBoth = true) } }
         }
         content.addView(compareRetained)
+        compareLibrary = Button(this).apply {
+            setText(R.string.library_compare_open)
+            setOnClickListener { showLibraryComparison() }
+        }
+        content.addView(compareLibrary)
         libraryButton = Button(this).apply { setText(R.string.library_open); setOnClickListener { showLibrary() } }
         newDraftButton = Button(this).apply { setText(R.string.library_new); setOnClickListener { confirmCreate(false) } }
         duplicateButton = Button(this).apply { setText(R.string.library_duplicate); setOnClickListener { confirmCreate(true) } }
@@ -564,6 +571,7 @@ class PreviewActivity : Activity() {
         reopen.isEnabled = !storageBusy && selectionResolved
         history.isEnabled = storageReady && !storageBusy && savedRecord != null
         compareRetained.isEnabled = history.isEnabled
+        compareLibrary.isEnabled = !storageBusy && !entryBlocked && selectionResolved
         libraryButton.isEnabled = !storageBusy
         newDraftButton.isEnabled = !storageBusy
         duplicateButton.isEnabled = storageReady && !storageBusy && savedRecord != null
@@ -715,6 +723,22 @@ class PreviewActivity : Activity() {
         revisionDialog = null
         revisionBrowser?.retire()
         revisionBrowser = null
+        libraryComparison?.retire()
+        libraryComparison = null
+    }
+
+    private fun showLibraryComparison() {
+        if (destroyed || isFinishing || storageBusy || entryBlocked || !selectionResolved) return
+        retireRevisionInspection()
+        val request = Any()
+        revisionRequest = request
+        val authority = storageAuthority
+        val draftId = currentDraftId
+        val baseline = savedRecord
+        fun current() = !destroyed && !isFinishing && !storageBusy && !entryBlocked && selectionResolved &&
+            currentDraftId == draftId && savedRecord === baseline && storageAuthority === authority && revisionRequest === request
+        libraryComparison = LibraryRevisionComparison(this, { task -> worker.execute { task() } },
+            { library().list() }, ::current).also { it.show() }
     }
 
     private fun commitSelection(expected: PreviewStoredDraft, hash: String?, prepare: () -> PreviewSelectionPreparation,

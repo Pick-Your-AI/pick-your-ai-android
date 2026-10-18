@@ -3,6 +3,9 @@ import copy
 import importlib.util
 import json
 from pathlib import Path
+import subprocess
+import sys
+import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -528,6 +531,121 @@ class LedgerValidationTest(unittest.TestCase):
                                              evidence_relation=module.COMPLETE_DESIGN_RELATION)
                 with self.assertRaisesRegex(ValueError, f'unsupported design acceptance: {number}'):
                     module.validate(ledger)
+
+
+class LedgerInputIntegrityTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.raw_ledger = (ROOT / 'docs/delivery/criterion-evidence.json').read_text(encoding='utf-8')
+        cls.ledger = json.loads(cls.raw_ledger)
+        # Controlled all-state source fixture; this is not a live GitHub capture.
+        cls.source = [
+            {'number': issue['number'], 'title': issue['title'],
+             'state': 'closed' if issue['number'] in module.REVIEWED_DESIGNS else 'open',
+             'body': '## Acceptance criteria\n' +
+                     '\n'.join('- [x] ' + c['text'] for c in issue['criteria']) +
+                     '\n## Delivery record\n`' + issue['canonical_acceptance_record']['path'] + '`'}
+            for issue in cls.ledger['issues']
+        ]
+        cls.raw_source = json.dumps(cls.source, ensure_ascii=False)
+
+    def run_cli(self, ledger_text=None, source_text=None, optimized=False):
+        with tempfile.TemporaryDirectory(prefix='ledger-input-') as directory:
+            path = Path(directory)
+            ledger_path = path / 'ledger.json'
+            ledger_path.write_text(self.raw_ledger if ledger_text is None else ledger_text,
+                                   encoding='utf-8')
+            command = [sys.executable] + (['-O'] if optimized else []) + [
+                str(ROOT / 'scripts/check_delivery_ledger.py'), '--ledger', str(ledger_path)]
+            if source_text is not None:
+                source_path = path / 'issues.json'
+                source_path.write_text(source_text, encoding='utf-8')
+                command += ['--issues', str(source_path)]
+            return subprocess.run(command, capture_output=True, text=True, timeout=10)
+
+    def assert_rejected(self, message, **inputs):
+        for optimized in (False, True):
+            with self.subTest(optimized=optimized):
+                result = self.run_cli(optimized=optimized, **inputs)
+                self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+                self.assertIn('Delivery ledger check failed: ', result.stderr)
+                self.assertIn(message, result.stderr)
+                self.assertNotIn('PASS:', result.stdout)
+                self.assertNotIn('Traceback', result.stderr)
+
+    def test_duplicate_schema_and_source_identity_members_fail_at_cli(self):
+        self.assert_rejected('duplicate JSON member', ledger_text=self.raw_ledger.replace(
+            '"schema_version": 6', '"schema_version": 5, "schema_version": 6', 1))
+        self.assert_rejected('duplicate JSON member', source_text=self.raw_source.replace(
+            '"number": 1', '"number": 999, "number": 1', 1))
+
+    def test_nested_review_and_source_body_duplicates_fail_at_cli(self):
+        self.assert_rejected('duplicate JSON member', ledger_text=self.raw_ledger.replace(
+            '"receiving_reviews": [', '"receiving_reviews": [], "receiving_reviews": [', 1))
+        self.assert_rejected('duplicate JSON member', source_text=self.raw_source.replace(
+            '"body":', '"body": "Unreviewed replacement", "body":', 1))
+
+    def test_escaped_duplicate_members_fail_at_both_cli_inputs(self):
+        self.assert_rejected('duplicate JSON member', ledger_text=self.raw_ledger.replace(
+            '"schema_version": 6', r'"\u0073chema_version": 5, "schema_version": 6', 1))
+        self.assert_rejected('duplicate JSON member', source_text=self.raw_source.replace(
+            '"number": 1', r'"\u006eumber": 999, "number": 1', 1))
+        for location, raw in (('ledger_text', self.raw_ledger), ('source_text', self.raw_source)):
+            with self.subTest(location=location):
+                changed = raw.replace('{', r'{"synthetic_probe": {"x": 0, "\u0078": 1},', 1)
+                self.assert_rejected('duplicate JSON member', **{location: changed})
+
+    def test_nonfinite_literals_fail_at_both_cli_inputs(self):
+        for token in ('NaN', 'Infinity', '-Infinity'):
+            for location, raw in (('ledger_text', self.raw_ledger), ('source_text', self.raw_source)):
+                with self.subTest(token=token, location=location):
+                    changed = raw.replace('{', '{"synthetic_probe": [' + token + '],', 1)
+                    self.assert_rejected('non-finite JSON number', **{location: changed})
+
+    def test_numeric_overflow_fails_at_both_cli_inputs(self):
+        for token in ('1e10000', '-1e10000'):
+            for location, raw in (('ledger_text', self.raw_ledger), ('source_text', self.raw_source)):
+                with self.subTest(token=token, location=location):
+                    changed = raw.replace('{', '{"synthetic_probe": [' + token + '],', 1)
+                    self.assert_rejected('non-finite JSON number', **{location: changed})
+
+    def test_finite_values_unicode_and_numeric_text_keep_live_audit_behavior(self):
+        metadata = json.dumps({'values': [0.0, 1.125, -2.5, 1e308, 1e-308],
+                               'text': 'NaN Infinity 1e10000 café 日本語'}, ensure_ascii=False)
+        ledger_text = self.raw_ledger.replace('{', '{"synthetic_probe": ' + metadata + ',', 1)
+        source_text = self.raw_source.replace('{', '{"synthetic_probe": ' + metadata + ',', 1)
+        for optimized in (False, True):
+            with self.subTest(optimized=optimized):
+                result = self.run_cli(ledger_text, source_text, optimized)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertIn('420 incomplete criteria, 21 reviewed design criteria', result.stdout)
+                self.assertIn('exact source criteria matched.', result.stdout)
+                self.assertEqual(result.stderr, '')
+        changed = copy.deepcopy(self.source)
+        changed[0]['body'] = changed[0]['body'].replace('All selected core work packages',
+                                                      'Changed selected work packages')
+        self.assert_rejected('live criteria differ: 1', source_text=json.dumps(changed))
+
+    def test_each_ordinary_record_rejects_a_different_valid_website_path(self):
+        for issue in self.ledger['issues']:
+            if issue['number'] in module.REVIEWED_DESIGNS:
+                continue
+            with self.subTest(number=issue['number']):
+                ledger = copy.deepcopy(self.ledger)
+                ledger['issues'][issue['number'] - 1]['canonical_acceptance_record']['path'] = (
+                    'docs/delivery/android/work-packages/99.99.md')
+                with self.assertRaisesRegex(ValueError, 'unreviewed acceptance coordinates'):
+                    module.validate(ledger)
+
+    def test_matching_source_substitution_cannot_move_an_ordinary_record(self):
+        ledger = copy.deepcopy(self.ledger)
+        source = copy.deepcopy(self.source)
+        original = ledger['issues'][47]['canonical_acceptance_record']['path']
+        substituted = 'docs/delivery/android/work-packages/99.99.md'
+        ledger['issues'][47]['canonical_acceptance_record']['path'] = substituted
+        source[47]['body'] = source[47]['body'].replace(original, substituted)
+        self.assert_rejected('unreviewed acceptance coordinates',
+                             ledger_text=json.dumps(ledger), source_text=json.dumps(source))
 
 
 if __name__ == '__main__':

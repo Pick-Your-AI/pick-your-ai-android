@@ -246,6 +246,25 @@ reconciliation; the script never changes GitHub. Update digests only after readi
 the changed criterion, not to suppress a discrepancy. If criteria are reordered,
 reconcile their old ordinal references before recording new ones.
 
+Both JSON file inputs reject duplicate decoded member names at every nesting
+level, including escaped spellings of the same key, non-finite literals and
+numbers that overflow the decoder's finite numeric range. Conflicting versions,
+review lists or issue bodies cannot be silently replaced by a later duplicate.
+Finite values, Unicode text and the existing exact live-source comparison retain
+their behavior. Malformed inputs return a failed check without a success receipt.
+
+The seven accepted design placements remain bound to their individual reviewed
+receipts. The other 122 issue/repository/path coordinates are pinned to the exact
+[accepted v6 mapping at `ae61cfcb`](https://github.com/Pick-Your-AI/pick-your-ai-android/blob/ae61cfcb16eefe96e058b044deba833dac27d3ae/docs/delivery/criterion-evidence.json),
+which preserves those coordinates from the historical v1 baseline. The checker
+hashes their ordered list of `number`, `repository` and `path` with sorted JSON
+keys and compact separators. A syntactically valid different website filename
+therefore fails even without a live capture; a matching change in an input capture
+does not authorize relocation. Any later placement still needs its explicit
+reviewed decision and deliberate validator reconciliation. These input-integrity
+guards change no accepted receipt, criterion, completion status or schema version;
+they do not authenticate GitHub review or establish runtime acceptance.
+
 Refresh PR state and revision explicitly when evidence advances. Do not replace a
 pinned artifact with a mutable branch link or turn a proposed test into a reported
 pass. Add exact test commands/results, recovery cases and receiving dispositions

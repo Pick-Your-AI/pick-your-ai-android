@@ -36,6 +36,12 @@ The original retained numeric encodings, source history, metadata and durable
 head remain untouched. Workload decimal strings and other text still compare
 literally; booleans, missing values, nulls and array order remain distinct.
 
+The native preview also offers [explicit comparison between two saved local
+drafts](LOCAL_LIBRARY_COMPARISON.md), using that same exact value comparator.
+Each side retains its local directory ID, chosen retained revision and own guest
+metadata. This local library UI does not consume shared BuildSnapshot documents,
+assign shared build identities or qualify the report/evidence integration below.
+
 The durable-history regression first failed on reviewed tree `640bd341`:
 an objective-only change also reported settings and extensions as changed for
 equivalent numeric values. With this change applied to merged main `404b4944`, the corrected consumer
