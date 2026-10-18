@@ -15,6 +15,54 @@ class PreviewDraftPersistenceTest {
     private fun loaded() = (adapter().load() as PreviewDraftLoad.Available).record
     private fun saved(result: PreviewDraftSave) = (result as PreviewDraftSave.Saved).record
 
+    @Test fun `optional activation changes preserve configuration metadata and every independent state`() {
+        val tiers = OptionalTier.entries.associateWith { TierDraft(Activation.DISABLED, setOf("id-${it.name}"), mapOf("setting" to it.name)) }
+        store().save(null, DraftContent("objective", "context", "model", tiers), mapOf(
+            "preview.format" to "1", "preview.title" to "title", "lock" to "retained"))
+        var record = loaded()
+        val metadata = record.draft.metadata
+        for (t3 in Activation.entries) for (t4 in Activation.entries) for (t5 in Activation.entries) {
+            val chosen = mapOf(OptionalTier.T3 to t3, OptionalTier.T4 to t4, OptionalTier.T5 to t5)
+            for ((tier, state) in chosen) record = saved(adapter().setActivation(record, tier, state))
+            val reopened = loaded()
+            assertEquals(chosen, reopened.optionalTiers.mapValues { it.value.activation })
+            assertEquals(metadata, reopened.draft.metadata)
+            assertEquals("objective", reopened.contextInput.objective)
+            assertEquals("context", reopened.contextInput.context)
+            assertEquals("model", reopened.draft.content.primaryModel)
+            for (tier in OptionalTier.entries) {
+                assertEquals(tiers.getValue(tier).selections, reopened.optionalTiers.getValue(tier).selections)
+                assertEquals(tiers.getValue(tier).settings, reopened.optionalTiers.getValue(tier).settings)
+            }
+            assertEquals(chosen.filterValues { it == Activation.ENABLED }.keys, reopened.draft.content.activeOptionalSelections().keys)
+            assertEquals(chosen.filterValues { it == Activation.UNKNOWN }.keys, reopened.draft.content.unknownActivations())
+        }
+        assertThrows(UnsupportedOperationException::class.java) { (record.optionalTiers as MutableMap).clear() }
+    }
+    @Test fun `repeated optional activation deduplicates only current authority and stale tokens conflict`() {
+        val first = saved(adapter().save(null, PreviewDraftFields()))
+        val same = saved(adapter().setActivation(first, OptionalTier.T3, Activation.DISABLED))
+        assertEquals(first.baselineIdentity, same.baselineIdentity)
+        val enabled = saved(adapter().setActivation(same, OptionalTier.T3, Activation.ENABLED))
+        assertEquals(PreviewDraftSave.Conflict, adapter().setActivation(first, OptionalTier.T3, Activation.ENABLED))
+        assertEquals(enabled.baselineIdentity, loaded().baselineIdentity)
+        val restored = saved(adapter().restore(enabled, first.revision))
+        assertEquals(Activation.DISABLED, restored.optionalTiers.getValue(OptionalTier.T3).activation)
+    }
+    @Test fun `optional activation reports injected failure and uncertainty without false acknowledgement`() {
+        val first = saved(adapter().save(null, PreviewDraftFields()))
+        fun failing(point: CacheWritePoint) = PreviewDraftPersistence(LocalDraftStore(root) { path ->
+            VerifiedArtifactCache(path, LocalDraftStore.MAX_BYTES) { if (it == point) throw IOException("injected") }
+        })
+        assertEquals(PreviewDraftSave.Failed(DraftStorageFailure.IO_FAILURE), failing(CacheWritePoint.POINTER_STAGED)
+            .setActivation(first, OptionalTier.T4, Activation.UNKNOWN))
+        assertEquals(first.baselineIdentity, loaded().baselineIdentity)
+        assertEquals(PreviewDraftSave.Uncertain, failing(CacheWritePoint.POINTER_ACTIVATED)
+            .setActivation(first, OptionalTier.T4, Activation.UNKNOWN))
+        assertEquals(Activation.UNKNOWN, loaded().optionalTiers.getValue(OptionalTier.T4).activation)
+        assertEquals(PreviewDraftSave.Conflict, adapter().setActivation(first, OptionalTier.T4, Activation.UNKNOWN))
+    }
+
     @Test fun `domain restore appends exact retained content and preserves current guest metadata`() {
         val initial = DraftContent("old", null, "model", mapOf(OptionalTier.T3 to
             TierDraft(Activation.UNKNOWN, setOf("opaque"), mapOf("setting" to "value"))))

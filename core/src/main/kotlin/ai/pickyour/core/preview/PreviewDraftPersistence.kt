@@ -26,6 +26,7 @@ class PreviewContextCheckpoint(val hasInputs: Boolean, val inputs: PreviewDraftC
 }
 class PreviewStoredDraft internal constructor(internal val draft: StoredDraft, val fields: PreviewDraftFields) {
     val contextInput: PreviewDraftContext get() = PreviewDraftContext(draft.content.objective, draft.content.context)
+    val optionalTiers: Map<OptionalTier, TierDraft> get() = draft.content.optional
     val revision: Long get() = draft.version.number
     val baselineIdentity: String get() = "${draft.version.number}:${draft.version.hash.hex}"
     /** Retained guest forms only; unavailable metadata is never reconstructed or replaced. */
@@ -89,6 +90,19 @@ class PreviewDraftPersistence internal constructor(private val store: LocalDraft
         if (fields.catalogHash == null) metadata.remove(CATALOG) else metadata[CATALOG] = fields.catalogHash
         when (val result = store.save(expected?.draft?.version, content, metadata)) {
             is DraftSave.Saved -> PreviewDraftSave.Saved(PreviewStoredDraft(result.draft, fields))
+            DraftSave.Conflict -> PreviewDraftSave.Conflict
+            is DraftSave.Failed -> PreviewDraftSave.Failed(result.reason)
+            is DraftSave.Uncertain -> PreviewDraftSave.Uncertain
+            DraftSave.UnknownRevision -> PreviewDraftSave.Failed(DraftStorageFailure.CORRUPT)
+        }
+    }
+
+    /** Change only one existing optional activation; retain all selections/settings and metadata. */
+    fun setActivation(expected: PreviewStoredDraft, tier: OptionalTier, activation: Activation): PreviewDraftSave = write {
+        val current = expected.draft.content
+        val content = current.withTier(tier, current.optional.getValue(tier).withActivation(activation))
+        when (val result = store.save(expected.draft.version, content, expected.draft.metadata)) {
+            is DraftSave.Saved -> PreviewDraftSave.Saved(PreviewStoredDraft(result.draft, expected.fields))
             DraftSave.Conflict -> PreviewDraftSave.Conflict
             is DraftSave.Failed -> PreviewDraftSave.Failed(result.reason)
             is DraftSave.Uncertain -> PreviewDraftSave.Uncertain
