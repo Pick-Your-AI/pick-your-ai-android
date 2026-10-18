@@ -19,6 +19,24 @@ class PreviewDraftDeletionTest {
     private fun created() = library().create() as PreviewLibraryCreate.Saved
     private fun entries() = (library().list() as PreviewLibraryRead.Available).entries
 
+    @Test fun `held adapter cannot activate any tier after deletion or interrupted cleanup`() {
+        for (interrupted in listOf(false, true)) {
+            val item = created()
+            val adapter = library().open(item.id)
+            val saved = (adapter.load() as PreviewDraftLoad.Available).record
+            val deleting = if (!interrupted) library() else PreviewDraftLibrary(root, {}, {
+                if (it == LibraryDeleteCheckpoint.TOMBSTONE_DURABLE) throw IOException("injected")
+            })
+            val result = deleting.delete(item.id, saved)
+            if (interrupted) assertTrue(result is PreviewLibraryDelete.Unconfirmed)
+            else assertEquals(PreviewLibraryDelete.Deleted, result)
+            for (tier in OptionalTier.entries) for (state in Activation.entries)
+                assertEquals(PreviewDraftSave.Failed(DraftStorageFailure.CORRUPT), adapter.setActivation(saved, tier, state))
+            if (interrupted) assertEquals(PreviewLibraryDelete.Deleted, library().delete(item.id, null))
+            assertFalse(Files.exists(root.resolve(item.id.value)))
+        }
+    }
+
     @Test fun `delete removes all selected revisions while another draft and its token survive`() {
         val first = created()
         val other = created()

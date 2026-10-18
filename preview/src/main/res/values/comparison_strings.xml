@@ -1,0 +1,15 @@
+<resources>
+    <string name="revision_compare_text">text: %1$s</string>
+    <string name="revision_compare_absent">absent or unanswered</string>
+    <string name="revision_compare_open">Compare a revision with saved head</string>
+    <string name="revision_compare_title">Local revision %1$s → %2$s</string>
+    <string name="revision_compare_scope">Read-only local editing comparison, from the chosen retained revision to this saved head. Pending form edits are excluded. Values are opaque editing inputs, not verified facts. No evaluation, price, report, evidence or cross-build equivalence is inferred.</string>
+    <string name="revision_compare_count">Showing %1$s of %2$s changed fields (maximum 100). Long values are explicitly truncated.</string>
+    <string name="revision_compare_row">%1$s%2$s\nBefore: %3$s\nAfter: %4$s</string>
+    <string name="revision_compare_truncated">%1$s… [truncated]</string>
+    <string name="revision_compare_guest_known">Guest title/sample fields are comparable.</string>
+    <string name="revision_compare_guest_unknown">Historical guest title/sample metadata is unavailable; no fields are reconstructed.</string>
+    <string name="revision_compare_metadata_changed">Retained metadata differs. Only supported guest fields are detailed here; other metadata values are not displayed.</string>
+    <string name="revision_compare_metadata_same">Retained metadata is unchanged.</string>
+    <string name="revision_compare_changed">The saved draft changed while preparing this view. Open history again to compare its current saved head.</string>
+</resources>

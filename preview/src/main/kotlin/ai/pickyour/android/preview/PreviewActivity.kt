@@ -7,6 +7,8 @@ import android.text.InputFilter
 import android.text.Editable
 import android.text.TextWatcher
 import ai.pickyour.core.preview.*
+import ai.pickyour.core.drafts.Activation
+import ai.pickyour.core.drafts.OptionalTier
 import ai.pickyour.core.drafts.DraftStorageFailure
 import java.nio.file.Files
 import java.nio.file.LinkOption.NOFOLLOW_LINKS
@@ -30,6 +32,7 @@ import ai.pickyour.core.evidence.EvidenceLabel
 class PreviewActivity : Activity() {
     private val worker = Executors.newSingleThreadExecutor()
     private var destroyed = false
+    private lateinit var tierSection: OptionalTierSection
     private var selectedId: String? = null
     private var selectedVersion: String? = null
     private var selectedCatalogHash: String? = null
@@ -170,6 +173,11 @@ class PreviewActivity : Activity() {
         content.addView(libraryButton)
         content.addView(newDraftButton)
         content.addView(duplicateButton)
+        tierSection = OptionalTierSection(this) { expected, tier, activation ->
+            if (storageReady && !storageBusy && savedRecord === expected && matchesSaved())
+                setDraftActivation(expected, tier, activation)
+        }
+        content.addView(tierSection)
         title.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { formChanged() }
@@ -342,6 +350,7 @@ class PreviewActivity : Activity() {
         libraryButton.isEnabled = !storageBusy
         newDraftButton.isEnabled = !storageBusy
         duplicateButton.isEnabled = storageReady && !storageBusy && savedRecord != null
+        if (::tierSection.isInitialized) tierSection.update(savedRecord, storageReady && !storageBusy && matchesSaved())
         if (::catalog.isInitialized) for (index in 0 until catalog.childCount) catalog.getChildAt(index).isEnabled = !storageBusy
     }
 
@@ -381,16 +390,91 @@ class PreviewActivity : Activity() {
                             }
                         }.show()
                 }
+            }.setPositiveButton(R.string.revision_compare_open) { _, _ -> showComparisonPicker(baseline) }
+            .setNegativeButton(R.string.close, null).show()
+    }
+
+    private fun showComparisonPicker(baseline: PreviewStoredDraft) {
+        if (!storageReady || storageBusy || savedRecord !== baseline) return
+        val revisions = baseline.history.reversed()
+        AlertDialog.Builder(this).setTitle(R.string.revision_compare_open)
+            .setItems(revisions.map { getString(R.string.history_revision, it.revision.toString()) }.toTypedArray()) { _, index ->
+                worker.execute {
+                    val comparison = baseline.compareRevision(revisions[index].revision)
+                    runOnUiThread {
+                        if (!destroyed) {
+                            if (savedRecord !== baseline || comparison == null) {
+                                AlertDialog.Builder(this).setMessage(R.string.revision_compare_changed)
+                                    .setPositiveButton(R.string.close, null).show()
+                            } else showRevisionComparison(comparison)
+                        }
+                    }
+                }
             }.setNegativeButton(R.string.close, null).show()
+    }
+
+    private fun setDraftActivation(expected: PreviewStoredDraft, tier: OptionalTier, activation: Activation) {
+        val id = currentDraftId
+        storageBusy = true
+        saveStatus.setText(R.string.draft_saving)
+        updateEditingEnabled()
+        worker.execute {
+            val result = try { openPersistence(id).setActivation(expected, tier, activation) } catch (_: Exception) { null }
+            runOnUiThread {
+                if (!destroyed) {
+                    storageBusy = false
+                    when (result) {
+                        is PreviewDraftSave.Saved -> {
+                            savedRecord = result.record
+                            saveStatus.setText(if (matchesSaved()) R.string.draft_saved else R.string.draft_unsaved)
+                        }
+                        PreviewDraftSave.Conflict -> {
+                            storageReady = false
+                            saveStatus.setText(R.string.draft_conflict)
+                        }
+                        PreviewDraftSave.Uncertain, null -> {
+                            storageReady = false
+                            saveStatus.setText(R.string.draft_uncertain)
+                        }
+                        is PreviewDraftSave.Failed -> saveStatus.setText(if (result.reason == DraftStorageFailure.LIMIT_EXCEEDED)
+                            R.string.draft_history_full else R.string.draft_save_failed)
+                    }
+                    updateEditingEnabled()
+                }
+            }
+        }
+    }
+
+    private fun renderLocalValue(raw: String?): String {
+        val display = PreviewComparedValue.from(raw)
+        return when (display.kind) {
+            PreviewComparedValueKind.ABSENT -> getString(R.string.revision_compare_absent)
+            PreviewComparedValueKind.EMPTY -> getString(R.string.context_empty)
+            PreviewComparedValueKind.TEXT -> {
+                val literal = getString(R.string.revision_compare_text, display.quotedLiteral)
+                if (display.truncated) getString(R.string.revision_compare_truncated, literal) else literal
+            }
+        }
+    }
+
+    private fun showRevisionComparison(comparison: PreviewRevisionComparison) {
+        val value: (String?) -> String = ::renderLocalValue
+        val rows = comparison.changes.take(100).map { change ->
+            getString(R.string.revision_compare_row, change.field,
+                change.key?.let { " [${value(it)}]" }.orEmpty(), value(change.before), value(change.after))
+        }
+        val message = listOf(getString(R.string.revision_compare_scope),
+            getString(R.string.revision_compare_count, rows.size.toString(), comparison.changes.size.toString()),
+            getString(if (comparison.guestFieldsComparable) R.string.revision_compare_guest_known else R.string.revision_compare_guest_unknown),
+            getString(if (comparison.metadataChanged) R.string.revision_compare_metadata_changed else R.string.revision_compare_metadata_same),
+            rows.joinToString("\n\n")).joinToString("\n\n")
+        AlertDialog.Builder(this).setTitle(getString(R.string.revision_compare_title, comparison.from.toString(), comparison.to.toString()))
+            .setMessage(message).setPositiveButton(R.string.close, null).show()
     }
 
     private fun confirmDomainRestore(baseline: PreviewStoredDraft, revision: PreviewDraftRevision) {
         if (!storageReady || storageBusy || savedRecord !== baseline) return
-        fun value(text: String?) = when {
-            text == null -> getString(R.string.context_unanswered)
-            text.isEmpty() -> getString(R.string.context_empty)
-            else -> text
-        }
+        val value: (String?) -> String = ::renderLocalValue
         val content = revision.content
         val summary = getString(R.string.domain_restore_values, value(content.objective), value(content.context),
             value(content.primaryModel), content.optional.entries.joinToString("\n") { (tier, input) ->

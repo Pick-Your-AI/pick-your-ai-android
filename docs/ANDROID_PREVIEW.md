@@ -512,3 +512,59 @@ failure; confirming that a deleted legacy selection never creates an empty saved
 replacement; and verifying readable confirmation/recovery controls with large text
 and TalkBack. Canonical receiving records remain in the website repository at
 `docs/delivery/android/work-packages/11.01.md` and `12.01.md`.
+## Optional-tier activation editing
+
+Partial #121 integration exposes independent T3/T4/T5 activation from the existing
+local `DraftContent` model. Each saved tier displays ENABLED, DISABLED or UNKNOWN,
+plus retained selection/setting counts. The user chooses a state and confirms an
+immediate local commit. Controls require an acknowledged saved form with no pending
+title/sample/objective/context changes; save or explicitly reopen those changes
+first. A superseded dialog baseline cannot commit, and store CAS rejects another
+writer. Changing one activation retains every tier's selections/settings, the other
+activations, objective/context/primary model and all current metadata. Repeating
+the same activation with current authority uses canonical no-op save deduplication.
+
+Disabled inputs remain retained but are excluded from the core active optional
+projection; UNKNOWN stays separately identified and does not imply zero cost or
+compatibility. T6 is explicitly core and has no optional control. This is editing
+of existing opaque local configuration, not a launch decision or implementation of
+T3 knowledge, T4 integration or T5 training services. No rule evaluation or pricing
+runs from these controls; the fixed fixture diagnostics remain independent. Dynamic
+dependency-graph invalidation, accepted detailed settings and end-to-end evaluation
+remain separate integration work.
+
+The same worker, saved/saving/failure presentation, exact baseline and recreation
+blockade apply as to other durable operations. Visible state changes only after
+acknowledgement; pre-activation failure retains the previous state and uncertain
+activation requires explicit reopen. Three new JVM adapter tests exercise all 27
+activation combinations with reopened configuration/metadata preservation, active
+and unknown projections, immutable views, current-only deduplication, stale CAS,
+restore and injected pre/post-activation failures. A fourth regression verifies
+that a held library adapter cannot activate a deleted or tombstoned draft; activation
+uses the same library write/liveness guard as save and restore. Hosted Android compile/lint and
+installed lifecycle, TalkBack/font-scale/RTL/keyboard checks remain distinct gates.
+## Read-only local revision comparison
+
+Partial #117 integration lets history compare a chosen retained local revision to
+its captured saved head. The pure comparison preserves null versus empty versus
+literal `unknown`, identifies objective/context/model changes, per-tier activation,
+selection membership and settings-key changes, plus supported guest title/sample
+pins. It flags metadata divergence without exposing arbitrary metadata values.
+Missing historical guest metadata stays explicitly unavailable. Neither side is
+mutated and no save token is adopted; pending editor values are excluded.
+
+The UI computes on the shared worker and rejects display if the saved baseline has
+changed. It displays at most 100 changed rows and the first 160 source UTF-16 units per value/key,
+escaped for display (escaped text can be longer),
+with explicit truncation/count disclosure; full exact values stay in the immutable
+comparison result and durable source. A same-revision comparison has no changes.
+Comparison is within one retained history only: report, cost, rules and evidence
+comparison and cross-build semantics remain the separate accepted receiving work.
+It supplies no new evaluation, price or recommendation and is not full #117 closure.
+
+Four JVM cases cover exact missing/empty/opaque values, same-setting changes,
+deterministic selection deltas, unchanged/unknown targets, unsupported guest
+metadata, read-only head identity and immutable output. Typed display separates absent/empty
+sentinels from quoted literals (also reused by domain-restore confirmation), escapes controls/format characters and bounds
+truncated text explicitly. Hosted Android compile/lint
+and installed dialog/accessibility/lifecycle behavior remain separate gates.
