@@ -15,6 +15,54 @@ class PreviewDraftPersistenceTest {
     private fun loaded() = (adapter().load() as PreviewDraftLoad.Available).record
     private fun saved(result: PreviewDraftSave) = (result as PreviewDraftSave.Saved).record
 
+    @Test fun `older saved state without context keys hydrates baseline while explicit pending null stays unanswered`() {
+        val baseline = PreviewDraftContext("saved objective", "saved context")
+        assertEquals(baseline, PreviewContextCheckpoint(false, PreviewDraftContext()).forLoad(true, baseline))
+        val explicitNull = PreviewDraftContext()
+        assertEquals(explicitNull, PreviewContextCheckpoint(true, explicitNull).forLoad(true, baseline))
+        val explicitEmpty = PreviewDraftContext("", "")
+        assertEquals(explicitEmpty, PreviewContextCheckpoint(true, explicitEmpty).forLoad(true, baseline))
+        assertEquals(baseline, PreviewContextCheckpoint(true, explicitEmpty).forLoad(false, baseline))
+    }
+    @Test fun `objective and context retain unanswered empty and entered values across reopen`() {
+        val first = saved(adapter().save(null, PreviewDraftFields(), PreviewDraftContext()))
+        assertEquals(PreviewDraftContext(), loaded().contextInput)
+        val entered = PreviewDraftContext("objective", "context")
+        val second = saved(adapter().save(first, PreviewDraftFields(), entered))
+        assertEquals(entered, loaded().contextInput)
+        val empty = saved(adapter().save(second, PreviewDraftFields(), PreviewDraftContext("", "")))
+        assertEquals(PreviewDraftContext("", ""), loaded().contextInput)
+        saved(adapter().save(empty, PreviewDraftFields(), PreviewDraftContext()))
+        assertEquals(PreviewDraftContext(), loaded().contextInput)
+    }
+    @Test fun `explicit context edit preserves primary model tiers settings and unrelated metadata`() {
+        val content = DraftContent("old objective", "old context", "opaque model", mapOf(
+            OptionalTier.T3 to TierDraft(Activation.UNKNOWN, setOf("id"), mapOf("setting" to "exact"))))
+        store().save(null, content, mapOf("preview.format" to "1", "preview.title" to "title", "pin" to "keep"))
+        val current = loaded()
+        saved(adapter().save(current, current.fields, PreviewDraftContext("new objective", "new context")))
+        val raw = (store().load() as DraftLoad.Available).draft
+        assertEquals("opaque model", raw.content.primaryModel)
+        assertEquals(content.optional, raw.content.optional)
+        assertEquals("keep", raw.metadata["pin"])
+        assertEquals("old context", raw.history.first().content.context)
+    }
+    @Test fun `stale context edit cannot replace newer content and old form copy preserves current context`() {
+        val first = saved(adapter().save(null, PreviewDraftFields("first"), PreviewDraftContext("old", null)))
+        val newer = saved(adapter().save(first, PreviewDraftFields("newer"), PreviewDraftContext("new", "context")))
+        assertEquals(PreviewDraftSave.Conflict, adapter().save(first, first.fields, PreviewDraftContext("stale", "pending")))
+        assertEquals(newer.contextInput, loaded().contextInput)
+        saved(adapter().save(newer, first.fields))
+        assertEquals(newer.contextInput, loaded().contextInput)
+    }
+    @Test fun `context uses canonical string bounds without truncation or diagnostic disclosure`() {
+        val exact = PreviewDraftContext("x".repeat(16_384), "y".repeat(16_384))
+        saved(adapter().save(null, PreviewDraftFields(), exact))
+        assertEquals(exact, loaded().contextInput)
+        assertThrows(IllegalArgumentException::class.java) { PreviewDraftContext("x".repeat(16_385), null) }
+        assertThrows(IllegalArgumentException::class.java) { PreviewDraftContext(null, "x".repeat(16_385)) }
+        assertEquals("PreviewDraftContext", exact.toString())
+    }
     @Test fun `guest history retains exact form pins and copying requires explicit new save`() {
         val original = PreviewDraftFields("old", "id.old", "v1", "a".repeat(64))
         val first = saved(adapter().save(null, original))

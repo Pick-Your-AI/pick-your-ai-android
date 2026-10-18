@@ -14,7 +14,18 @@ data class PreviewDraftFields(val title: String = "", val selectedId: String? = 
     }
     override fun toString() = "PreviewDraftFields"
 }
+/** Null is unanswered; an entered empty string remains a distinct local edit. */
+data class PreviewDraftContext(val objective: String? = null, val context: String? = null) {
+    init { require(objective == null || objective.length <= 16_384); require(context == null || context.length <= 16_384) }
+    override fun toString() = "PreviewDraftContext"
+}
+/** Presence is separate from nullable input values, including older saved-state bundles. */
+class PreviewContextCheckpoint(val hasInputs: Boolean, val inputs: PreviewDraftContext) {
+    fun forLoad(preservePending: Boolean, baseline: PreviewDraftContext): PreviewDraftContext =
+        if (preservePending && hasInputs) inputs else baseline
+}
 class PreviewStoredDraft internal constructor(internal val draft: StoredDraft, val fields: PreviewDraftFields) {
+    val contextInput: PreviewDraftContext get() = PreviewDraftContext(draft.content.objective, draft.content.context)
     val revision: Long get() = draft.version.number
     val baselineIdentity: String get() = "${draft.version.number}:${draft.version.hash.hex}"
     /** Retained guest forms only; unavailable metadata is never reconstructed or replaced. */
@@ -62,14 +73,17 @@ class PreviewDraftPersistence(private val store: LocalDraftStore) {
         is DraftLoad.Available -> decode(result.draft)
     }
 
-    fun save(expected: PreviewStoredDraft?, fields: PreviewDraftFields): PreviewDraftSave {
+    fun save(expected: PreviewStoredDraft?, fields: PreviewDraftFields, contextInput: PreviewDraftContext? = null): PreviewDraftSave {
+        val previous = expected?.draft?.content ?: DraftContent()
+        val content = if (contextInput == null) previous else
+            DraftContent(contextInput.objective, contextInput.context, previous.primaryModel, previous.optional)
         val metadata = (expected?.draft?.metadata ?: emptyMap()).toMutableMap()
         metadata[FORMAT] = "1"
         metadata[TITLE] = fields.title
         if (fields.selectedId == null) metadata.remove(SELECTION) else metadata[SELECTION] = fields.selectedId
         if (fields.selectedVersion == null) metadata.remove(VERSION) else metadata[VERSION] = fields.selectedVersion
         if (fields.catalogHash == null) metadata.remove(CATALOG) else metadata[CATALOG] = fields.catalogHash
-        return when (val result = store.save(expected?.draft?.version, expected?.draft?.content ?: DraftContent(), metadata)) {
+        return when (val result = store.save(expected?.draft?.version, content, metadata)) {
             is DraftSave.Saved -> PreviewDraftSave.Saved(PreviewStoredDraft(result.draft, fields))
             DraftSave.Conflict -> PreviewDraftSave.Conflict
             is DraftSave.Failed -> PreviewDraftSave.Failed(result.reason)
