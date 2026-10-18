@@ -46,9 +46,11 @@ selection of each kind may be enabled; disabled alternatives need distinct roles
 The shared `(kind, role)` uniqueness rule includes disabled selections. A local
 draft may remain empty, have one selection, use another role or keep a selection
 disabled. Those are retained incomplete choices, not fabricated complete builds.
-T1 `context_policy` remains the existing separately editable kind. T3–T6 retain
-their current command boundaries; this continuation does not enable their typed
-mutation or weaken the optional-tier controls.
+T1 `context_policy` remains the existing separately editable kind. The separate
+[retrieval continuation](RETRIEVAL_SELECTIONS.md) subsequently adds the five frozen
+T3 kinds to these commands while preserving optional-tier intent. T4–T6 typed
+mutation remains outside the editor; the original T0 continuation did not add
+optional-tier mutation or weaken its controls.
 
 ## Persistence, recovery and snapshot preparation
 
@@ -90,7 +92,9 @@ changed to match the other.
 Nine dedicated core cases cover empty and explicit inputs, large integers and
 invalid settings, all four test-only catalog modes, exact pins, cardinality and
 role scope, retained format-4/5 history, managed liveness/CAS, projection integration
-and the unchanged T3–T6 command boundary. The four-mode catalog variants exist only
+and the retained unsupported-kind command boundary. That original T0 assertion
+covered T3–T6; the separate retrieval continuation narrows it to T4–T6 while keeping
+all T0 cases. The four-mode catalog variants exist only
 inside tests; the frozen examples and runtime catalog are unchanged.
 
 Nine mandatory Activity simulations exercise a new empty managed draft and

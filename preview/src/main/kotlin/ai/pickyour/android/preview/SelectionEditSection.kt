@@ -194,7 +194,7 @@ class SelectionEditSection(private val activity: Activity,
             when (index) {
                 0 -> settingsForm(expected, selection)
                 1 -> roleForm(expected, selection)
-                2 -> confirm(expected, null, label(selection), activity.getString(R.string.component_toggle_warning)) {
+                2 -> confirm(expected, null, label(selection), toggleWarning(selection.kind)) {
                     PreviewSelectionPreparation.Ready(SelectionCommand.SetEnabled(selection.id, !selection.enabled))
                 }
                 3 -> {
@@ -237,6 +237,38 @@ class SelectionEditSection(private val activity: Activity,
         layout.addView(TextView(activity).apply { setText(guidance) })
         if (showRoleChoice) layout.addView(TextView(activity).apply { setText(R.string.component_foundation_role_guidance) })
     }
+    private fun retrievalGuidanceResource(kind: String): Int? = when (kind) {
+        "data_source" -> R.string.component_data_source_guidance
+        "knowledge_base" -> R.string.component_knowledge_base_guidance
+        "embedding_model" -> R.string.component_embedding_model_guidance
+        "vector_database" -> R.string.component_vector_database_guidance
+        "rag_pipeline" -> R.string.component_rag_pipeline_guidance
+        else -> null
+    }
+    private fun retrievalGuidance(layout: LinearLayout, kind: String) {
+        val guidance = retrievalGuidanceResource(kind) ?: return
+        layout.addView(TextView(activity).apply { setText(guidance) })
+        layout.addView(TextView(activity).apply { setText(R.string.component_retrieval_intent_guidance) })
+    }
+    private fun agentGuidanceResource(kind: String): Int? = when (kind) {
+        "agent_framework" -> R.string.component_agent_framework_guidance
+        "tool" -> R.string.component_tool_guidance
+        "mcp_server" -> R.string.component_mcp_server_guidance
+        "memory_store" -> R.string.component_memory_store_guidance
+        "integration" -> R.string.component_integration_guidance
+        else -> null
+    }
+    private fun agentGuidance(layout: LinearLayout, kind: String) {
+        val guidance = agentGuidanceResource(kind) ?: return
+        layout.addView(TextView(activity).apply { setText(guidance) })
+        layout.addView(TextView(activity).apply { setText(R.string.component_agent_intent_guidance) })
+    }
+    private fun toggleWarning(kind: String): String = activity.getString(R.string.component_toggle_warning) +
+        when {
+            retrievalGuidanceResource(kind) != null -> "\n\n" + activity.getString(R.string.component_retrieval_intent_guidance)
+            agentGuidanceResource(kind) != null -> "\n\n" + activity.getString(R.string.component_agent_intent_guidance)
+            else -> ""
+        }
     private fun field(layout: LinearLayout, title: Int, value: String): EditText {
         val label = TextView(activity).apply { setText(title) }
         val editor = EditText(activity).apply {
@@ -253,6 +285,8 @@ class SelectionEditSection(private val activity: Activity,
         val layout = LinearLayout(activity).apply { orientation = VERTICAL }
         layout.addView(TextView(activity).apply { text = activity.getString(R.string.component_add_warning, item.id, item.version, hash) })
         foundationGuidance(layout, item.kind, showRoleChoice = true)
+        retrievalGuidance(layout, item.kind)
+        agentGuidance(layout, item.kind)
         layout.addView(TextView(activity).apply { setText(R.string.component_recovery_limit) })
         val role = field(layout, R.string.component_role, restored?.role.orEmpty())
         val settings = field(layout, R.string.component_settings, restored?.settings ?: "{}")
@@ -286,6 +320,8 @@ class SelectionEditSection(private val activity: Activity,
         val layout = LinearLayout(activity).apply { orientation = VERTICAL }
         layout.addView(TextView(activity).apply { setText(R.string.component_settings_warning) })
         foundationGuidance(layout, selection.kind)
+        retrievalGuidance(layout, selection.kind)
+        agentGuidance(layout, selection.kind)
         layout.addView(TextView(activity).apply { setText(R.string.component_recovery_limit) })
         val settings = field(layout, R.string.component_settings, text)
         val feedback = feedback().also(layout::addView)
