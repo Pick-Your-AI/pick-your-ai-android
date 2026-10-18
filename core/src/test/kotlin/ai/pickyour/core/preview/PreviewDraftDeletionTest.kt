@@ -38,8 +38,10 @@ class PreviewDraftDeletionTest {
         assertEquals(PreviewLibraryDelete.Deleted, library().delete(draft.id, draft.record))
         assertEquals(PreviewDraftLoad.Failed(DraftStorageFailure.CORRUPT), beforeDeletion.load())
         for (expected in listOf(null, draft.record)) {
-            assertEquals(PreviewDraftSave.Failed(DraftStorageFailure.CORRUPT), beforeDeletion.save(expected, PreviewDraftFields("old editor")))
+            assertEquals(PreviewDraftSave.Failed(DraftStorageFailure.CORRUPT), beforeDeletion.save(expected,
+                PreviewDraftFields("old editor"), PreviewDraftContext("old objective", "old context")))
         }
+        assertEquals(PreviewDraftSave.Failed(DraftStorageFailure.CORRUPT), beforeDeletion.restore(draft.record, draft.record.revision))
         assertThrows(IllegalArgumentException::class.java) { library().open(draft.id) }
         assertEquals(PreviewLibraryCreate.Failed(DraftStorageFailure.CORRUPT), library().duplicate(draft.record))
         assertFalse(Files.exists(root.resolve(draft.id.value), NOFOLLOW_LINKS))
@@ -65,6 +67,7 @@ class PreviewDraftDeletionTest {
             val faulty = PreviewDraftLibrary(root, {}, { if (it == point) throw IOException("injected") })
             assertEquals(PreviewLibraryDelete.Unconfirmed(DraftStorageFailure.IO_FAILURE), faulty.delete(draft.id, draft.record))
             assertEquals(PreviewDraftSave.Failed(DraftStorageFailure.CORRUPT), adapter.save(draft.record, PreviewDraftFields("resurrect")))
+            assertEquals(PreviewDraftSave.Failed(DraftStorageFailure.CORRUPT), adapter.restore(draft.record, draft.record.revision))
             val row = entries().find { it.id == draft.id }
             if (point != LibraryDeleteCheckpoint.TOMBSTONE_REMOVED) {
                 assertNotNull(row)
@@ -129,6 +132,7 @@ class PreviewDraftDeletionTest {
             if (point == LibraryDeleteCheckpoint.TOMBSTONE_DURABLE) {
                 assertEquals("BUSY", externalLockAttempt())
                 assertEquals(PreviewDraftSave.Failed(DraftStorageFailure.BUSY), adapter.save(draft.record, PreviewDraftFields("racing")))
+                assertEquals(PreviewDraftSave.Failed(DraftStorageFailure.BUSY), adapter.restore(draft.record, draft.record.revision))
                 assertEquals(PreviewLibraryRead.Failed(DraftStorageFailure.BUSY), alias.list())
                 assertEquals(PreviewLibraryCreate.Failed(DraftStorageFailure.BUSY), alias.create())
                 assertEquals(PreviewLibraryDelete.Failed(DraftStorageFailure.BUSY), alias.delete(draft.id, draft.record))
@@ -192,7 +196,10 @@ class PreviewDraftDeletionTest {
             }
         }
         assertEquals(PreviewDraftSave.Uncertain, PreviewDraftPersistence(store, access).save(null, PreviewDraftFields("saved")))
-        assertEquals("saved", (PreviewDraftPersistence(store).load() as PreviewDraftLoad.Available).record.fields.title)
+        val saved = (PreviewDraftPersistence(store).load() as PreviewDraftLoad.Available).record
+        assertEquals("saved", saved.fields.title)
+        assertEquals(PreviewDraftSave.Uncertain, PreviewDraftPersistence(store, access).restore(saved, saved.revision))
+        assertEquals(saved.revision + 1, (PreviewDraftPersistence(store).load() as PreviewDraftLoad.Available).record.revision)
     }
 
     private fun externalLockAttempt(): String {

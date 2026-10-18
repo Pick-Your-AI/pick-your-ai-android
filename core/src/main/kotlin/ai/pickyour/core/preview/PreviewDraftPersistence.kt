@@ -14,18 +14,30 @@ data class PreviewDraftFields(val title: String = "", val selectedId: String? = 
     }
     override fun toString() = "PreviewDraftFields"
 }
+/** Null is unanswered; an entered empty string remains a distinct local edit. */
+data class PreviewDraftContext(val objective: String? = null, val context: String? = null) {
+    init { require(objective == null || objective.length <= 16_384); require(context == null || context.length <= 16_384) }
+    override fun toString() = "PreviewDraftContext"
+}
+/** Presence is separate from nullable input values, including older saved-state bundles. */
+class PreviewContextCheckpoint(val hasInputs: Boolean, val inputs: PreviewDraftContext) {
+    fun forLoad(preservePending: Boolean, baseline: PreviewDraftContext): PreviewDraftContext =
+        if (preservePending && hasInputs) inputs else baseline
+}
 class PreviewStoredDraft internal constructor(internal val draft: StoredDraft, val fields: PreviewDraftFields) {
+    val contextInput: PreviewDraftContext get() = PreviewDraftContext(draft.content.objective, draft.content.context)
     val revision: Long get() = draft.version.number
     val baselineIdentity: String get() = "${draft.version.number}:${draft.version.hash.hex}"
     /** Retained guest forms only; unavailable metadata is never reconstructed or replaced. */
     val history: List<PreviewDraftRevision> get() = java.util.Collections.unmodifiableList(draft.history.map {
-        PreviewDraftRevision(it.number, decodePreviewFields(it.metadata))
+        PreviewDraftRevision(it.number, decodePreviewFields(it.metadata), it.content, it.change, it.restoredFrom)
     })
     val earlierHistoryUnavailable: Boolean get() = draft.earlierHistoryUnavailable
     override fun toString() = "PreviewStoredDraft"
 }
-/** This is guest form history, not a domain snapshot or an evaluation result. */
-class PreviewDraftRevision internal constructor(val revision: Long, val fields: PreviewDraftFields?) {
+/** Retained local content and guest metadata, never an evaluation or price result. */
+class PreviewDraftRevision internal constructor(val revision: Long, val fields: PreviewDraftFields?,
+    val content: DraftContent, val change: StoredRevisionChange, val restoredFrom: Long?) {
     override fun toString() = "PreviewDraftRevision"
 }
 
@@ -65,15 +77,33 @@ class PreviewDraftPersistence internal constructor(private val store: LocalDraft
         is DraftLoad.Available -> decode(result.draft)
     } }
 
-    fun save(expected: PreviewStoredDraft?, fields: PreviewDraftFields): PreviewDraftSave = write {
+    fun save(expected: PreviewStoredDraft?, fields: PreviewDraftFields, contextInput: PreviewDraftContext? = null): PreviewDraftSave = write {
+        val previous = expected?.draft?.content ?: DraftContent()
+        val content = if (contextInput == null) previous else
+            DraftContent(contextInput.objective, contextInput.context, previous.primaryModel, previous.optional)
         val metadata = (expected?.draft?.metadata ?: emptyMap()).toMutableMap()
         metadata[FORMAT] = "1"
         metadata[TITLE] = fields.title
         if (fields.selectedId == null) metadata.remove(SELECTION) else metadata[SELECTION] = fields.selectedId
         if (fields.selectedVersion == null) metadata.remove(VERSION) else metadata[VERSION] = fields.selectedVersion
         if (fields.catalogHash == null) metadata.remove(CATALOG) else metadata[CATALOG] = fields.catalogHash
-        when (val result = store.save(expected?.draft?.version, expected?.draft?.content ?: DraftContent(), metadata)) {
+        when (val result = store.save(expected?.draft?.version, content, metadata)) {
             is DraftSave.Saved -> PreviewDraftSave.Saved(PreviewStoredDraft(result.draft, fields))
+            DraftSave.Conflict -> PreviewDraftSave.Conflict
+            is DraftSave.Failed -> PreviewDraftSave.Failed(result.reason)
+            is DraftSave.Uncertain -> PreviewDraftSave.Uncertain
+            DraftSave.UnknownRevision -> PreviewDraftSave.Failed(DraftStorageFailure.CORRUPT)
+        }
+    }
+
+    /** Explicit domain restore; current guest metadata is retained by the canonical store. */
+    fun restore(expected: PreviewStoredDraft, revision: Long): PreviewDraftSave = write {
+        when (val result = store.restore(expected.draft.version, revision)) {
+            is DraftSave.Saved -> when (val decoded = decode(result.draft)) {
+                is PreviewDraftLoad.Available -> PreviewDraftSave.Saved(decoded.record)
+                is PreviewDraftLoad.Failed -> PreviewDraftSave.Failed(decoded.reason)
+                PreviewDraftLoad.Missing -> PreviewDraftSave.Failed(DraftStorageFailure.CORRUPT)
+            }
             DraftSave.Conflict -> PreviewDraftSave.Conflict
             is DraftSave.Failed -> PreviewDraftSave.Failed(result.reason)
             is DraftSave.Uncertain -> PreviewDraftSave.Uncertain

@@ -75,6 +75,20 @@
       "revision": "93f71e2c6c9039e096db30c6a02b845ca81d1e59",
       "artifact_url": "https://github.com/Pick-Your-AI/pick-your-ai-android/blob/93f71e2c6c9039e096db30c6a02b845ca81d1e59/docs/ANDROID_PREVIEW.md",
       "scope_limit": "Merged interactive synthetic diagnostic; not a durable builder, installed-device acceptance or production catalog evidence."
+    },
+    "pr-165": {
+      "pr_url": "https://github.com/Pick-Your-AI/pick-your-ai-android/pull/165",
+      "observed_state": "merged",
+      "revision": "54bcabd789d112f2fcc96d0a59b78482962c5c36",
+      "artifact_url": "https://github.com/Pick-Your-AI/pick-your-ai-android/blob/54bcabd789d112f2fcc96d0a59b78482962c5c36/docs/LOCAL_DRAFT_STORAGE.md",
+      "scope_limit": "Current-token format-2 saves deduplicate unchanged content/metadata without a cache write or new revision; stale tokens conflict and explicit restore/v1 migration remain distinct. 159 JVM tests and final CI passed. This is local persistence evidence, not autosave, installed Android recreation or full #67/#122 receiving acceptance."
+    },
+    "pr-168": {
+      "pr_url": "https://github.com/Pick-Your-AI/pick-your-ai-android/pull/168",
+      "observed_state": "merged",
+      "revision": "0eed13d8abd23b908b025e8e5927ffe7eb2bbdec",
+      "artifact_url": "https://github.com/Pick-Your-AI/pick-your-ai-android/blob/0eed13d8abd23b908b025e8e5927ffe7eb2bbdec/core/src/main/kotlin/ai/pickyour/core/preview/PreviewDraftLibrary.kt",
+      "scope_limit": "Canonical-root non-reentrant JVM guard preserves the active library creator process lock after local contention. A separate-JVM regression failed on e213ac2c and passed the repair; 167 JVM tests passed. This does not establish complete library operations, Android process/device qualification or power-loss safety."
     }
   },
   "issues": [
@@ -3925,33 +3939,75 @@
           "text": "Transactional durable draft/catalog storage with migration tests, version keys and retention limits.",
           "text_sha256": "ce144372f8f0a0a74b5edbb70eebdedb23cd22952bf997b1f4f5715c6713a648",
           "status": "incomplete",
-          "partial_evidence_refs": [],
-          "evidence_relation": "issue_context_only; inspect artifact scope before attributing any criterion result",
-          "remaining_engineering": "Implement transactional storage with schema export, supported migrations and recovery tests.",
+          "partial_evidence_refs": [
+            "pr-168"
+          ],
+          "evidence_relation": "criterion_partial_results_with_issue_context",
+          "remaining_engineering": "Complete the selected Android storage integration, catalog artifact retention/reference policy and schema/upgrade/recovery acceptance. The library serialization repair is narrower than full transactional draft/catalog storage acceptance.",
           "external_prerequisites": [],
-          "completion_evidence": []
+          "completion_evidence": [],
+          "partial_results": [
+            {
+              "evidence_refs": [
+                "pr-168"
+              ],
+              "description": "Library creation now claims a non-reentrant JVM guard for the canonical root before any contending lock channel opens. The separate-JVM regression verifies BUSY before and after a rejected same-process alias contender, then ACQUIRED only after the creator completes; the retained entry count stays one.",
+              "reproduction_commands": [
+                "./gradlew --no-daemon :core:test --tests ai.pickyour.core.preview.PreviewDraftLibraryTest"
+              ],
+              "observation_basis": "An isolated regression against e213ac2ce37cfec9b0fbfcccc65f763c7fd02ead failed with expected BUSY but was ACQUIRED from a separate JVM after a rejected local contender. The exact repaired tree delivered by signed head 0eed13d8abd23b908b025e8e5927ffe7eb2bbdec passed all 167 JVM tests. Independent scoped reviews: https://github.com/Pick-Your-AI/pick-your-ai-android/pull/166#pullrequestreview-5561087379 and https://github.com/Pick-Your-AI/pick-your-ai-android/pull/166#pullrequestreview-5561090703. Candidate CI: https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39089529261. Both final PR lanes passed in https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39089788669; PR168 merged as 7101666d38e241bea18cac17ee4585f5de52028c with a verified GitHub signature."
+            }
+          ]
         },
         {
           "id": "67.2",
           "text": "An atomic edit either commits its new revision and head together or leaves the prior valid state; no acknowledged revision is missing after recreation.",
           "text_sha256": "ca50e4bc4a6e554e58ff0d0fb4322f631e6412b93ce6f3cd619cbf856e8120d3",
           "status": "incomplete",
-          "partial_evidence_refs": [],
-          "evidence_relation": "issue_context_only; inspect artifact scope before attributing any criterion result",
-          "remaining_engineering": "Implement transactional storage with schema export, supported migrations and recovery tests.",
+          "partial_evidence_refs": [
+            "pr-165"
+          ],
+          "evidence_relation": "criterion_partial_results_with_issue_context",
+          "remaining_engineering": "Complete Android storage/lifecycle integration and verify transaction acknowledgement and recovery on the selected Android filesystem/device; retain explicit uncertainty after ambiguous activation. The no-op save regression does not prove every atomic edit criterion.",
           "external_prerequisites": [],
-          "completion_evidence": []
+          "completion_evidence": [],
+          "partial_results": [
+            {
+              "evidence_refs": [
+                "pr-165"
+              ],
+              "description": "An unchanged format-2 save with the current storage token reuses the existing durable hash, revision and bytes without entering any cache-write checkpoint, including at the 128-entry history limit. Equal-content stale, foreign and missing tokens still conflict. Explicit metadata clearing remains a new edit.",
+              "reproduction_commands": [
+                "./gradlew --no-daemon :core:test --tests ai.pickyour.core.drafts.LocalDraftHistoryStorageTest"
+              ],
+              "observation_basis": "Observed local JDK 21 run on the exact tree delivered by signed head 54bcabd789d112f2fcc96d0a59b78482962c5c36: 159 JVM tests, zero failures/errors/skips. Both final PR lanes passed in https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39089437223; merged by PR165. Candidate PR163 independently reviewed before signed delivery."
+            }
+          ]
         },
         {
           "id": "67.3",
           "text": "Migration tests cover every supported stored schema version and preserve build identities, settings and artifact locks without fabricated values.",
           "text_sha256": "f8d4c5f9f75fdf6276fb6a9bc5860da87d2c46c578847cbc1e0591834f59cb08",
           "status": "incomplete",
-          "partial_evidence_refs": [],
-          "evidence_relation": "issue_context_only; inspect artifact scope before attributing any criterion result",
-          "remaining_engineering": "Implement transactional storage with schema export, supported migrations and recovery tests.",
+          "partial_evidence_refs": [
+            "pr-165"
+          ],
+          "evidence_relation": "criterion_partial_results_with_issue_context",
+          "remaining_engineering": "Adopt the supported private storage migrations in the complete Android repository/UI path and qualify installed upgrade/recovery behavior. Future local formats and accepted canonical snapshot migration remain separate.",
           "external_prerequisites": [],
-          "completion_evidence": []
+          "completion_evidence": [],
+          "partial_results": [
+            {
+              "evidence_refs": [
+                "pr-165"
+              ],
+              "description": "An unchanged first format-1 save still migrates atomically to format 2 with the original anchor number, content, metadata and source hash retained; the original bytes remain readable. A subsequent unchanged format-2 save does not append again.",
+              "reproduction_commands": [
+                "./gradlew --no-daemon :core:test --tests ai.pickyour.core.drafts.LocalDraftHistoryStorageTest"
+              ],
+              "observation_basis": "Observed local JDK 21 run on the exact tree delivered by signed head 54bcabd789d112f2fcc96d0a59b78482962c5c36: 159 JVM tests, zero failures/errors/skips. Both final PR lanes passed in https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39089437223; merged by PR165. Candidate PR163 independently reviewed before signed delivery."
+            }
+          ]
         },
         {
           "id": "67.4",
@@ -4887,12 +4943,25 @@
           "text_sha256": "016c1c4e4de60b4097de9cfce6ac615c902f4bc890fa83864300ae278006893d",
           "status": "incomplete",
           "partial_evidence_refs": [
-            "pr-138"
+            "pr-138",
+            "pr-168"
           ],
-          "evidence_relation": "issue_context_only; inspect artifact scope before attributing any criterion result",
-          "remaining_engineering": "Integrate durable draft listing, reopen, deletion and historical revisions into UI.",
+          "evidence_relation": "criterion_partial_results_with_issue_context",
+          "remaining_engineering": "Complete deletion/retention/recovery UX and installed Android verification for the full create/rename/duplicate/list/open/delete journey; preserve the canonical per-draft store and corrected creation-lock lifecycle. The guard repair does not imply complete library acceptance.",
           "external_prerequisites": [],
-          "completion_evidence": []
+          "completion_evidence": [],
+          "partial_results": [
+            {
+              "evidence_refs": [
+                "pr-168"
+              ],
+              "description": "Library creation now claims a non-reentrant JVM guard for the canonical root before any contending lock channel opens. The separate-JVM regression verifies BUSY before and after a rejected same-process alias contender, then ACQUIRED only after the creator completes; the retained entry count stays one.",
+              "reproduction_commands": [
+                "./gradlew --no-daemon :core:test --tests ai.pickyour.core.preview.PreviewDraftLibraryTest"
+              ],
+              "observation_basis": "An isolated regression against e213ac2ce37cfec9b0fbfcccc65f763c7fd02ead failed with expected BUSY but was ACQUIRED from a separate JVM after a rejected local contender. The exact repaired tree delivered by signed head 0eed13d8abd23b908b025e8e5927ffe7eb2bbdec passed all 167 JVM tests. Independent scoped reviews: https://github.com/Pick-Your-AI/pick-your-ai-android/pull/166#pullrequestreview-5561087379 and https://github.com/Pick-Your-AI/pick-your-ai-android/pull/166#pullrequestreview-5561090703. Candidate CI: https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39089529261. Both final PR lanes passed in https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39089788669; PR168 merged as 7101666d38e241bea18cac17ee4585f5de52028c with a verified GitHub signature."
+            }
+          ]
         },
         {
           "id": "86.2",
@@ -7012,12 +7081,25 @@
           "status": "incomplete",
           "partial_evidence_refs": [
             "pr-138",
-            "pr-140"
+            "pr-140",
+            "pr-165"
           ],
-          "evidence_relation": "issue_context_only; inspect artifact scope before attributing any criterion result",
-          "remaining_engineering": "Connect immutable restore to durable transaction acknowledgement and Android recreation.",
+          "evidence_relation": "criterion_partial_results_with_issue_context",
+          "remaining_engineering": "Complete autosave/pending-edit recovery and integrated undo or revision-restore UX; validate Android process death and receiving acceptance. Repeated identical durable saves now preserve bounded history.",
           "external_prerequisites": [],
-          "completion_evidence": []
+          "completion_evidence": [],
+          "partial_results": [
+            {
+              "evidence_refs": [
+                "pr-165"
+              ],
+              "description": "An unchanged format-2 save with the current storage token reuses the existing durable hash, revision and bytes without entering any cache-write checkpoint, including at the 128-entry history limit. Equal-content stale, foreign and missing tokens still conflict. Explicit metadata clearing remains a new edit.",
+              "reproduction_commands": [
+                "./gradlew --no-daemon :core:test --tests ai.pickyour.core.drafts.LocalDraftHistoryStorageTest"
+              ],
+              "observation_basis": "Observed local JDK 21 run on the exact tree delivered by signed head 54bcabd789d112f2fcc96d0a59b78482962c5c36: 159 JVM tests, zero failures/errors/skips. Both final PR lanes passed in https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39089437223; merged by PR165. Candidate PR163 independently reviewed before signed delivery."
+            }
+          ]
         },
         {
           "id": "122.2",
@@ -7026,10 +7108,11 @@
           "status": "incomplete",
           "partial_evidence_refs": [
             "pr-138",
-            "pr-140"
+            "pr-140",
+            "pr-165"
           ],
           "evidence_relation": "criterion_partial_results_with_issue_context",
-          "remaining_engineering": "Connect restore to an atomic durable revision/head transaction and storage history; verify retained history after recreation and obtain receiving acceptance. In-memory Applied is not a saved acknowledgement.",
+          "remaining_engineering": "Complete Android restoration interaction, persistence feedback and installed recreation checks with receiving acceptance. The core durable restore semantics and their regression evidence are now linked separately from the earlier in-memory-only result.",
           "external_prerequisites": [],
           "completion_evidence": [],
           "partial_results": [
@@ -7042,6 +7125,16 @@
                 "./gradlew --no-daemon :core:test --tests ai.pickyour.core.drafts.DraftHistoryTest"
               ],
               "observation_basis": "Implementation and test behavior recorded in the pinned artifact; this ledger refresh does not claim a new runtime test execution."
+            },
+            {
+              "evidence_refs": [
+                "pr-165"
+              ],
+              "description": "The durable store continues to append an explicit RESTORE revision even when the selected retained content already equals the current head. The regression suite also checks edit/restore/edit, immutable earlier history and preservation of current metadata; save deduplication does not deduplicate restore commands.",
+              "reproduction_commands": [
+                "./gradlew --no-daemon :core:test --tests ai.pickyour.core.drafts.LocalDraftHistoryStorageTest"
+              ],
+              "observation_basis": "Observed local JDK 21 run on the exact tree delivered by signed head 54bcabd789d112f2fcc96d0a59b78482962c5c36: 159 JVM tests, zero failures/errors/skips. Both final PR lanes passed in https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39089437223; merged by PR165. Candidate PR163 independently reviewed before signed delivery."
             }
           ]
         },
@@ -7066,12 +7159,25 @@
           "status": "incomplete",
           "partial_evidence_refs": [
             "pr-138",
-            "pr-140"
+            "pr-140",
+            "pr-165"
           ],
-          "evidence_relation": "issue_context_only; inspect artifact scope before attributing any criterion result",
-          "remaining_engineering": "Connect immutable restore to durable transaction acknowledgement and Android recreation.",
+          "evidence_relation": "criterion_partial_results_with_issue_context",
+          "remaining_engineering": "Exercise rapid UI edits, in-flight saves and actual Android recreation with the complete pending-edit recovery path; local unchanged-save deduplication is verified but is not installed lifecycle evidence.",
           "external_prerequisites": [],
-          "completion_evidence": []
+          "completion_evidence": [],
+          "partial_results": [
+            {
+              "evidence_refs": [
+                "pr-165"
+              ],
+              "description": "An unchanged format-2 save with the current storage token reuses the existing durable hash, revision and bytes without entering any cache-write checkpoint, including at the 128-entry history limit. Equal-content stale, foreign and missing tokens still conflict. Explicit metadata clearing remains a new edit.",
+              "reproduction_commands": [
+                "./gradlew --no-daemon :core:test --tests ai.pickyour.core.drafts.LocalDraftHistoryStorageTest"
+              ],
+              "observation_basis": "Observed local JDK 21 run on the exact tree delivered by signed head 54bcabd789d112f2fcc96d0a59b78482962c5c36: 159 JVM tests, zero failures/errors/skips. Both final PR lanes passed in https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39089437223; merged by PR165. Candidate PR163 independently reviewed before signed delivery."
+            }
+          ]
         }
       ]
     },

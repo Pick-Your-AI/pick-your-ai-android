@@ -372,6 +372,64 @@ Android build/lint is still required at final head. Full #86/#76 acceptance reta
 its device, recovery, retention and receiving-review requirements.
 
 
+## Objective and context editing
+
+The local editor exposes the existing DraftContent objective/context fields without
+converting an incomplete form into BuildSnapshot. Null (unanswered), explicit empty
+text, and entered content stay distinct and have visible state labels. Both fields
+use the canonical 16,384-character bound; accepted stored text is never silently
+truncated. Clear draft explicitly resets these inputs to unanswered.
+
+Save locally commits these two fields together with title/sample metadata using
+the same exact expected token. Primary model, all optional-tier activations,
+selections/settings and unrelated metadata remain unchanged. The adapter's older
+save call without a context edit still preserves all existing domain content.
+Pending objective/context values survive Bundle restoration under the same
+baseline/reconciliation guards; older restoration bundles without these new keys
+hydrate them from the loaded baseline rather than silently clearing saved inputs.
+A failed library switch leaves them unchanged; a successful switch loads the target
+values. Guest-history copy still copies title/sample fields only, preserving any
+objective/context inputs currently in the editor.
+
+Five JVM regressions cover unanswered/empty/entered round trips, preservation of
+primary model/tiers/settings/metadata and history, stale rejection, old-call/history
+copy preservation, canonical bounds, redacted diagnostics, and a pure restoration
+checkpoint test distinguishing missing older keys from explicit pending null/empty
+values. This is not an Android Bundle/device lifecycle execution. Hosted Android build/
+lint and actual installed keyboard/accessibility/rotation tests remain separate.
+This is partial #26/#122 editing, not rule evaluation, recommendations or shared
+snapshot validation. No issue acceptance or device qualification is claimed.
+
+## Explicit domain revision restore
+
+Partial #122 integration now exposes a separate **Review domain restore** action
+from a supported retained history entry. The existing **Copy form to editor**
+operation still copies title/sample only and requires a later explicit save.
+Domain restore instead previews retained objective/context, opaque primary-model
+input and optional-tier activation/selection/setting counts. Its second explicit
+confirmation commits `LocalDraftStore.restore` with the original loaded token.
+It restores all domain content as a new `RESTORE` head and keeps current metadata,
+including saved title/sample pins and lock metadata, exactly as the canonical
+store specifies. Historical entries remain unchanged. The history list exposes
+change codes and restore-source revision numbers.
+
+On acknowledged success, restored objective/context replace those pending inputs;
+unsaved title/sample changes remain visible and unsaved. On failure every pending
+input remains visible. Conflict and uncertain activation require explicit reopen;
+no retry adopts a newer disk token. A dialog tied to a superseded in-Activity
+baseline cannot commit. Restoring while the Activity is recreated uses the existing
+in-flight/changed-baseline reconciliation guard, and destroyed views ignore late
+completion. No evaluation, price or report is replayed. A historical guest format
+that cannot be displayed remains unavailable in this bounded UI.
+
+Three new JVM adapter tests cover edit/restore/edit with opaque optional content,
+metadata/history preservation, same-content restore, stale/foreign/unknown targets,
+and pre/post-activation failures plus restoration-checkpoint rejection. These are
+core/adapter tests, not installed dialog, rotation, accessibility or power-loss
+acceptance. Verify those flows on the selected Android device matrix before claiming
+full #122 completion. Existing 128-entry and record-size bounds remain fail-closed.
+
+
 ## Explicit local deletion and interrupted cleanup
 
 The library's row actions now offer confirmed deletion for saved, incomplete and
@@ -383,11 +441,12 @@ returns conflict without starting deletion. An unreadable record can be removed 
 after explicit confirmation; transient busy, IO and cancellation failures do not
 authorize treating a record as corrupt.
 
-Every library read, creation, deletion and bound persistence operation shares the
+Every library read, creation, deletion and bound persistence operation, including
+objective/context saves and durable domain restores, shares the
 same nonblocking library lock. The canonical-root JVM guard is acquired before the
 OS lock file is opened, retaining the process-lock protection from the prior fix.
 The library checks each bound adapter's identity again under that lock. An editor
-opened before deletion cannot recreate files or save into a tombstoned or absent
+opened before deletion cannot recreate files, restore history or save into a tombstoned or absent
 directory. All cooperating library writers must obtain their adapter through
 `PreviewDraftLibrary.open` or `openLegacy`; the standalone store constructor remains
 available for independent stores outside the library.
@@ -426,14 +485,14 @@ failure before deletion starts leaves the editor state unchanged. Bundle restora
 retains the existing reconciliation marker; it cannot convert an interrupted delete
 into a saved acknowledgment or resurrect the legacy default.
 
-Local validation on 2026-10-18 passed 189 JVM tests, including 12 deletion/guard
+Local validation on 2026-10-18 passed 197 JVM tests, including 12 deletion/guard
 regressions. These cover complete selected-history removal, stale opened adapters,
 equal-byte foreign identities and stale tokens, faults at every deletion phase,
 legacy default suppression with a retained active pointer, corrupt/incomplete rows,
 symlink isolation, a separate JVM OS-lock probe, a busy canonical record, bounded
 cleanup/retry, editor transitions and post-save outer-lock uncertainty. The pinned
 JDK/Gradle/Android toolchain passed `:core:check :core:assemble
-:preview:assembleDebug :preview:lintDebug` in 33 seconds (49 tasks), with zero lint
+:preview:assembleDebug :preview:lintDebug` in 34 seconds (49 tasks), with zero lint
 issues. All 43 frozen files and both manifests remained unchanged; 21 Python
 reference tests, four reference-report fixtures, four integrity regressions and six
 ledger tests passed. Hosted validation must still be observed on the exact PR head.
