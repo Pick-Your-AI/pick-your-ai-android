@@ -13,6 +13,7 @@ android {
         versionName = "0.0.1-synthetic"
     }
     buildTypes.getByName("debug") { signingConfig = null }
+    testOptions.unitTests.isIncludeAndroidResources = true
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -22,5 +23,9 @@ android {
 }
 kotlin { jvmToolchain(21); compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17) } }
 androidComponents { beforeVariants(selector().withBuildType("release")) { it.enable = false } }
-dependencies { implementation(project(":core")) }
+dependencies {
+    implementation(project(":core"))
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.robolectric:robolectric:4.17")
+}
 dependencyLocking { lockAllConfigurations() }
