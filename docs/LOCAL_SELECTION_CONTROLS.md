@@ -24,6 +24,16 @@ settings exceeding this small editor limit remain saved and cannot be truncated
 through this editor. Raw credentials must not be entered; applicable settings
 accept only opaque secret references under the frozen schema.
 
+Role and settings editors keep multiline input literal and request
+[no dictionary suggestions](https://developer.android.com/reference/android/text/InputType#TYPE_TEXT_FLAG_NO_SUGGESTIONS)
+and [no personalized keyboard learning](https://developer.android.com/reference/android/view/inputmethod/EditorInfo#IME_FLAG_NO_PERSONALIZED_LEARNING).
+These are requests to the input method; they do not guarantee that an installed
+keyboard honors them or authorize raw credential entry. The same field factory
+applies them to add, settings and role forms, including explicitly reviewed
+checkpoint recovery. The existing bounded checkpoint remains the only View-state
+path for pending raw input; opening, typing or restoring a form supplies no save
+authority. Installed keyboard and accessibility qualification remain separate.
+
 Replace chooses an existing selection of the same kind and retains its identity,
 role, enabled state, settings, notes, extensions and links. **Edit settings** changes
 only settings. **Edit role** changes the explicitly entered role while retaining
@@ -72,6 +82,11 @@ replacement preservation. Seven mandatory paused-looper Activity simulations cov
 add/configure/toggle/remove, invalid input retention, concurrent-head conflict,
 repeated/retired and canceled callbacks, in-flight field freezing and exact
 replacement no-op with dirty-form blocking.
+Three additional actual input-connection simulations verify the literal-input and
+learning requests on add, settings and recreated role fields. They preserve exact
+opaque reference text and pending edits, require explicit commits, and retain
+acknowledged data when forms are canceled. The role case also checks that ordinary
+View-state saving stays disabled before and after explicit checkpoint review.
 The original source checkpoint's 43 existing Activity simulations and 50-case
 Activity total are historical counts. Current-main receiving retains every named
 Activity, cost-presentation, catalog-snapshot and complete recorded-price-browser

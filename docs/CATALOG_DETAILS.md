@@ -22,6 +22,14 @@ retain their other values and explicitly indicate the unknown entries; an empty
 capability collection never means complete absence of support. License fields
 retain absence and restrictive false values rather than inventing reuse rights.
 
+Catalog-reference fields follow the identity semantics declared by the frozen
+schema, for both scalar IDs and array members. An ID spelled `unknown` remains a
+supplied literal reference and is displayed as such. Missing references and empty
+reference arrays retain their distinct incomplete states. A supplied reference
+does not establish that its target resolves, is current, has accepted evidence or
+grants any rights, offering or applicable price. Non-reference unknown values and
+the recorded unknown billing class keep their existing presentation.
+
 Each provenance entry retains its source URI, exact checked-at spelling, notes
 and raw frozen status. The shared evidence presentation policy supplies the
 unassessed label: a raw `verified` declaration remains **Verification
@@ -74,7 +82,9 @@ alongside explicitly unknown specs, and bounded literal provenance
 rendering without automatic navigation. Additional source-adapter cases exercise
 confirmation, cancellation, exact bounded destination display, hostile/unconfigured
 hosts, paging, missing handlers, single-use dispatch and retired callbacks using an
-explicit synthetic host policy. Existing browsing, selection and retired
+explicit synthetic host policy. Scalar provider references and tool-reference
+arrays spelled `unknown` are also checked through the actual detail dialog, with
+pending edits retained and no draft write or navigation. Existing browsing, selection and retired
 callback regressions remain required. Local core results and simulated Activity
 results do not establish installed-device or receiving acceptance.
 
