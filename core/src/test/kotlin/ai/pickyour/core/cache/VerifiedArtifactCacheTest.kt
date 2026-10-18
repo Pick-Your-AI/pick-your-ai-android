@@ -21,6 +21,12 @@ class VerifiedArtifactCacheTest {
     private val second = "second complete bundle".toByteArray()
     private fun hash(bytes: ByteArray) = ArtifactHash(MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it.toInt() and 255) })
     private fun store() = VerifiedArtifactCache(root, 128)
+
+    @Test fun `missing root is rejected without creating directory entries`() {
+        val missing = root.resolve("not-provisioned/child")
+        assertThrows(IllegalArgumentException::class.java) { VerifiedArtifactCache(missing, 128) }
+        assertFalse(Files.exists(root.resolve("not-provisioned")))
+    }
     private fun install(bytes: ByteArray = first) = store().install(hash(bytes), bytes.inputStream())
     private fun bytes(result: CacheRead) = assertInstanceOf(CacheRead.Available::class.java, result).bytes
 

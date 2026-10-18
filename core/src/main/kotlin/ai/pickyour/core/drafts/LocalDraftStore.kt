@@ -14,6 +14,7 @@ import java.nio.channels.OverlappingFileLockException
 import java.nio.file.Files
 import java.nio.file.LinkOption.NOFOLLOW_LINKS
 import java.nio.file.Path
+import java.nio.file.StandardOpenOption.READ
 import java.nio.file.StandardOpenOption.CREATE
 import java.nio.file.StandardOpenOption.WRITE
 import java.security.MessageDigest
@@ -39,7 +40,8 @@ sealed interface DraftSave {
 }
 
 /**
- * One local draft per dedicated app-private directory. All writers must use this adapter.
+ * One local draft per existing, durably provisioned app-private directory.
+ * The caller must make the root and its ancestor entries durable. All writers use this adapter.
  * Preserves immutable content-addressed revisions using VerifiedArtifactCache; no eviction policy.
  * Directory and atomic-rename durability are inherited from that cache, not Android-qualified.
  * Unsupported/corrupt current data blocks saves without changing any original bytes.
@@ -48,16 +50,23 @@ class LocalDraftStore internal constructor(
     directory: Path,
     private val cacheFactory: (Path) -> VerifiedArtifactCache,
     private val afterTransaction: () -> Unit,
+    syncRoot: (Path) -> Unit = { path -> FileChannel.open(path, READ).use { it.force(true) } },
 ) {
     internal constructor(directory: Path, cacheFactory: (Path) -> VerifiedArtifactCache) : this(directory, cacheFactory, {})
     constructor(directory: Path) : this(directory, { VerifiedArtifactCache(it, MAX_BYTES) }, {})
     private val root: Path
     private val cache: VerifiedArtifactCache
     init {
-        require(!Files.isSymbolicLink(directory))
-        Files.createDirectories(directory)
+        require(Files.isDirectory(directory, NOFOLLOW_LINKS)) { "An existing durable store directory is required" }
         root = directory.toRealPath()
-        cache = cacheFactory(root.resolve("revisions"))
+        val revisions = root.resolve("revisions")
+        require(!Files.isSymbolicLink(revisions)) { "Revision directory must not be a symbolic link" }
+        Files.createDirectories(revisions)
+        // Sync even when the child already exists: a prior construction may have failed after
+        // mkdir but before its parent entry became durable. Do not construct a usable store
+        // until this succeeds. Concurrent cooperating constructors may safely repeat the sync.
+        syncRoot(root)
+        cache = cacheFactory(revisions)
     }
 
     fun load(): DraftLoad = guarded({ DraftLoad.Failed(it) }) { decode(cache.active()) }

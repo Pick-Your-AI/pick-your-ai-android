@@ -42,7 +42,8 @@ sealed interface CacheInstall {
 internal enum class CacheWritePoint { STAGED, ARTIFACT_PUBLISHED, POINTER_STAGED, POINTER_ACTIVATED }
 
 /**
- * Single-artifact (or caller-validated complete bundle) cache in a dedicated app-private directory.
+ * Single-artifact (or caller-validated complete bundle) cache in an existing app-private directory.
+ * Caller must durably provision the root and all ancestor directory entries before construction.
  * The caller supplies a trusted expected hash and is responsible for schema/rights/freshness checks.
  * No networking, archive unpacking, scheduling, automatic eviction or multi-file catalog assembly.
  * Pinned hashes remain readable after activation of newer bytes. Total retained storage is NOT bounded;
@@ -66,8 +67,7 @@ class VerifiedArtifactCache internal constructor(
     private val root: Path
     init {
         require(maxBytes > 0)
-        require(!Files.isSymbolicLink(directory)) { "Cache root must not be a symbolic link" }
-        Files.createDirectories(directory)
+        require(Files.isDirectory(directory, NOFOLLOW_LINKS)) { "An existing durable cache directory is required" }
         root = directory.toRealPath()
     }
 
