@@ -196,6 +196,35 @@ class PreviewPolicyTest(unittest.TestCase):
         with self.assertRaisesRegex(policy.PolicyFailure, "^XML_ATTRIBUTE_RESOURCE_ORDER$"):
             policy.xmltree("E: application (line=1)\n" + second + plain + first)
 
+    def test_reference_boolean_and_integer_spellings_cannot_be_quoted_strings(self):
+        for name, value in [
+            ("dataExtractionRules", "@0x7f040000"), ("theme", "@0x01030241"), ("icon", "@0x7f010000"),
+            ("fullBackupContent", "false"), ("allowBackup", "false"), ("usesCleartextTraffic", "false"),
+            ("debuggable", "true"), ("exported", "true"), ("supportsRtl", "true"),
+            ("extractNativeLibs", "false"), ("minSdkVersion", "26"), ("targetSdkVersion", "35"),
+            ("compileSdkVersion", "35"), ("versionCode", "1"), ("launchMode", "1"),
+        ]:
+            prefix = "E: application (line=1)\n  A: " + policy.ANDROID + name + \
+                     "(" + policy.FRAMEWORK_ATTRIBUTE_IDS[name] + ")="
+            with self.subTest(name=name):
+                self.assertEqual(value, policy.xmltree(prefix + value).attributes["android:" + name])
+                quoted = json.dumps(value)
+                with self.assertRaisesRegex(policy.PolicyFailure, "^XML_ATTRIBUTE_VALUE_KIND$"):
+                    policy.xmltree(prefix + quoted + " (Raw: " + quoted + ")")
+
+    def test_string_attributes_keep_their_kinds_and_explicit_label_reference(self):
+        for name in ["name", "versionName", "compileSdkVersionCodename", "label"]:
+            prefix = "E: application (line=1)\n  A: " + policy.ANDROID + name + \
+                     "(" + policy.FRAMEWORK_ATTRIBUTE_IDS[name] + ")="
+            self.assertEqual("1", policy.xmltree(prefix + '\"1\" (Raw: \"1\")').attributes["android:" + name])
+            invalid = ["1", "true", "false"] + ([] if name == "label" else ["@0x7f040000"])
+            for value in invalid:
+                with self.subTest(name=name, value=value), \
+                     self.assertRaisesRegex(policy.PolicyFailure, "^XML_ATTRIBUTE_VALUE_KIND$"):
+                    policy.xmltree(prefix + value)
+            if name == "label":
+                self.assertEqual("@0x7f040000", policy.xmltree(prefix + "@0x7f040000").attributes["android:label"])
+
     def test_inventory_must_identify_the_current_commit_tree_and_exact_apk(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

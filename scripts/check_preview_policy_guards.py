@@ -70,6 +70,78 @@ def change_framework_attributes(apk: Path, *, replacement: int | None = None,
     rewritten.replace(apk)
 
 
+def change_compiled_value_to_string(apk: Path, attribute_id: int, expected_type: int) -> None:
+    """Preserve a disposable value's displayed text while changing its binary kind."""
+    with zipfile.ZipFile(apk) as archive:
+        entries = [(entry, archive.read(entry)) for entry in archive.infolist()]
+    manifest = bytearray(next(data for entry, data in entries if entry.filename == "AndroidManifest.xml"))
+    require(len(manifest) >= 8, "FIXTURE_XML_HEADER")
+    kind, header, size = struct.unpack_from("<HHI", manifest)
+    require(kind == 0x0003 and header == 8 and size == len(manifest), "FIXTURE_XML_HEADER")
+    offset, target, pool = header, None, None
+    resource_ids: list[int] = []
+    while offset < len(manifest):
+        require(offset + 8 <= len(manifest), "FIXTURE_XML_CHUNK")
+        kind, header, size = struct.unpack_from("<HHI", manifest, offset)
+        require(8 <= header <= size and offset + size <= len(manifest), "FIXTURE_XML_CHUNK")
+        if kind == 0x0001:  # RES_STRING_POOL_TYPE
+            require(pool is None and header == 28, "FIXTURE_STRING_POOL")
+            pool = (offset, header, size)
+        elif kind == 0x0180:
+            require(header == 8 and (size - header) % 4 == 0, "FIXTURE_RESOURCE_MAP")
+            resource_ids = list(struct.unpack_from(f"<{(size - header) // 4}I", manifest, offset + header))
+        elif kind == 0x0102:
+            require(header == 16 and size >= header + 20, "FIXTURE_ELEMENT_HEADER")
+            start, width, count = struct.unpack_from("<HHH", manifest, offset + header + 8)
+            require(start >= 20 and width == 20 and header + start + count * width <= size,
+                    "FIXTURE_ATTRIBUTE_RECORDS")
+            for index in range(count):
+                position = offset + header + start + index * width
+                name_index = struct.unpack_from("<I", manifest, position + 4)[0]
+                if name_index < len(resource_ids) and resource_ids[name_index] == attribute_id:
+                    require(target is None, "FIXTURE_ATTRIBUTE_IDENTITY")
+                    target = position
+        offset += size
+    require(target is not None and pool is not None, "FIXTURE_ATTRIBUTE_IDENTITY")
+    require(manifest[target + 15] == expected_type, "FIXTURE_ATTRIBUTE_VALUE_KIND")
+    value = struct.unpack_from("<I", manifest, target + 16)[0]
+    if expected_type == 0x01:  # TYPE_REFERENCE
+        text = f"@0x{value:08x}"
+    elif expected_type == 0x12:  # TYPE_INT_BOOLEAN
+        text = "true" if value else "false"
+    else:
+        require(expected_type == 0x10, "FIXTURE_ATTRIBUTE_VALUE_KIND")  # TYPE_INT_DEC
+        text = str(value)
+
+    offset, header, size = pool
+    count, styles, flags, start, style_start = struct.unpack_from("<IIIII", manifest, offset + 8)
+    require(styles == 0 and style_start == 0 and start == header + count * 4 and start <= size,
+            "FIXTURE_STRING_POOL")
+    # These fixed ASCII values use the short length form in either pool encoding.
+    require(len(text) < 128, "FIXTURE_STRING_LENGTH")
+    encoded = (bytes([len(text), len(text)]) + text.encode("ascii") + b"\0" if flags & 0x100 else
+               struct.pack("<H", len(text)) + text.encode("utf-16-le") + b"\0\0")
+    encoded += b"\0" * (-len(encoded) % 4)
+    replacement = bytearray(manifest[offset:offset + header])
+    struct.pack_into("<I", replacement, 8, count + 1)
+    struct.pack_into("<I", replacement, 16, flags & ~1)  # Appending does not retain sorted order.
+    struct.pack_into("<I", replacement, 20, start + 4)
+    replacement += manifest[offset + header:offset + start]
+    replacement += struct.pack("<I", size - start)
+    replacement += manifest[offset + start:offset + size] + encoded
+    struct.pack_into("<I", replacement, 4, len(replacement))
+    struct.pack_into("<I", manifest, target + 8, count)  # Matching raw string spelling.
+    manifest[target + 15] = 0x03  # TYPE_STRING, not the original compiled scalar/reference.
+    struct.pack_into("<I", manifest, target + 16, count)
+    manifest = manifest[:offset] + replacement + manifest[offset + size:]
+    struct.pack_into("<I", manifest, 4, len(manifest))
+    rewritten = apk.with_suffix(".string-value.apk")
+    with zipfile.ZipFile(rewritten, "w") as archive:
+        for entry, data in entries:
+            archive.writestr(entry, manifest if entry.filename == "AndroidManifest.xml" else data)
+    rewritten.replace(apk)
+
+
 def check_guards(aapt2: Path, android_jar: Path) -> list[dict[str, object]]:
     base = ET.fromstring(f'''<manifest xmlns:android="{ANDROID[:-1]}" package="{PACKAGE}">
       <application android:label="Synthetic policy fixture" android:debuggable="true"
@@ -88,7 +160,10 @@ def check_guards(aapt2: Path, android_jar: Path) -> list[dict[str, object]]:
              ("redirected-backup-resource", "BACKUP_RESOURCE_IDENTITY"),
              ("unmapped-framework-attribute", "XML_ATTRIBUTE_RESOURCE_ID"),
              ("mismatched-framework-attribute", "XML_ATTRIBUTE_RESOURCE_ID"),
-             ("reordered-framework-attributes", "XML_ATTRIBUTE_RESOURCE_ORDER")]
+             ("reordered-framework-attributes", "XML_ATTRIBUTE_RESOURCE_ORDER"),
+             ("string-backup-resource", "XML_ATTRIBUTE_VALUE_KIND"),
+             ("string-backup-boolean", "XML_ATTRIBUTE_VALUE_KIND"),
+             ("string-launch-mode", "XML_ATTRIBUTE_VALUE_KIND")]
     for name, rejection in cases:
         manifest, backup = copy.deepcopy(base), copy.deepcopy(rules)
         app = manifest.find("application")
@@ -120,6 +195,13 @@ def check_guards(aapt2: Path, android_jar: Path) -> list[dict[str, object]]:
                 change_framework_attributes(apk, replacement=0 if name == "unmapped-framework-attribute" else 0x01010281)
             elif name == "reordered-framework-attributes":
                 change_framework_attributes(apk, swap_backup_attributes=True)
+            elif name in {"string-backup-resource", "string-backup-boolean", "string-launch-mode"}:
+                attribute_id, expected_type = {
+                    "string-backup-resource": (0x0101063e, 0x01),
+                    "string-backup-boolean": (0x010104eb, 0x12),
+                    "string-launch-mode": (0x0101001d, 0x10),
+                }[name]
+                change_compiled_value_to_string(apk, attribute_id, expected_type)
             observed = None
             try:
                 inspect_apk(apk, aapt2)
@@ -146,7 +228,7 @@ def main() -> int:
                "limitations": "Binary declaration fixtures only; no app execution, installed or release result."}
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n")
-    print("PASS: adopted policy and eight real packaged negative cases reached their exact expected boundary.")
+    print("PASS: adopted policy and eleven real packaged negative cases reached their exact expected boundary.")
     return 0
 
 

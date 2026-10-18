@@ -31,6 +31,19 @@ FRAMEWORK_ATTRIBUTE_IDS = {
     "compileSdkVersion": "0x01010572", "compileSdkVersionCodename": "0x01010573",
     "dataExtractionRules": "0x0101063e",
 }
+# Keep the compiled kind until admission. A quoted reference/false/integer is
+# a string-pool value, not the reference/boolean/integer Android would consume.
+FRAMEWORK_ATTRIBUTE_KINDS = {
+    "theme": {"reference"}, "label": {"string", "reference"}, "icon": {"reference"},
+    "name": {"string"}, "debuggable": {"boolean"}, "exported": {"boolean"},
+    "launchMode": {"integer"}, "minSdkVersion": {"integer"},
+    "versionCode": {"integer"}, "versionName": {"string"},
+    "targetSdkVersion": {"integer"}, "allowBackup": {"boolean"},
+    "supportsRtl": {"boolean"}, "extractNativeLibs": {"boolean"},
+    "fullBackupContent": {"boolean"}, "usesCleartextTraffic": {"boolean"},
+    "compileSdkVersion": {"integer"}, "compileSdkVersionCodename": {"string"},
+    "dataExtractionRules": {"reference"},
+}
 PACKAGE = "ai.pickyour.android.preview"
 APK_PATH = "preview/build/outputs/apk/debug/preview-debug-unsigned.apk"
 RULE_PATH = "res/xml/backup_rules.xml"
@@ -127,7 +140,15 @@ def xmltree(text: str) -> Element:
             # Android's framework attribute lookup walks these IDs forwards.
             # Keep each element's order even across unqualified attributes.
             stack[-1] = (node_level, node, framework_id)
-        if value.startswith('"'):
+        kind = ("string" if value.startswith('"') else
+                "boolean" if value in {"true", "false"} else
+                "integer" if re.fullmatch(r"[0-9]+", value) else
+                "reference" if re.fullmatch(r"@0x[0-9a-f]{8}", value) else None)
+        require(kind is not None, "XML_VALUE_FORMAT")
+        if name.startswith("android:"):
+            require(kind in FRAMEWORK_ATTRIBUTE_KINDS[name[len("android:"):]],
+                    "XML_ATTRIBUTE_VALUE_KIND")
+        if kind == "string":
             # AAPT2 includes the raw spelling for these strings. Both copies
             # must agree; newline or ambiguous display output is not accepted.
             quoted = re.fullmatch(r'("(?:[^"\\]|\\.)*") \(Raw: ("(?:[^"\\]|\\.)*")\)', value)
@@ -138,9 +159,6 @@ def xmltree(text: str) -> Element:
                 raise PolicyFailure("XML_STRING_FORMAT") from None
             require(decoded == raw, "XML_RAW_VALUE_MISMATCH")
             value = decoded
-        else:
-            require(re.fullmatch(r"(?:true|false|[0-9]+|@0x[0-9a-f]{8})", value) is not None,
-                    "XML_VALUE_FORMAT")
         stack[-1][1].attributes[name] = value
     require(len(roots) == 1, "XML_ROOT_COUNT")
     return roots[0]
