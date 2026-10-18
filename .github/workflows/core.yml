@@ -107,6 +107,8 @@ jobs:
               "classificationIsExplicitAndClearRemainsAnUnsavedWorkloadEdit",
               "oversizedWorkloadPastesNeverSaveAValidPrefix",
               "retiredWorkloadClassificationCallbackCannotOpenAnotherDialog",
+              "retiredWorkloadTextEditsCannotMutateItsModelOrCurrentDraft",
+              "retiredWorkloadOversizedPasteCannotRejectItsModelOrCurrentDraft",
               "retiredEditorButtonsCannotDispatchWorkOrOpenDialogs",
               "retiredComparisonPickerCannotSubmitToClosedWorker",
               "retiredTierConfirmationCannotCommitAfterRecreation",
@@ -114,6 +116,7 @@ jobs:
               "invalidOrChangedPendingInputsAndRetiredConfirmationCannotCreateRecovery",
               "requiredObjectiveGuidanceNavigatesMissingInputsWithoutClaimingReadiness",
               "retiredObjectiveGuidanceCannotOpenClassificationOrChangeCurrentInputs",
+              "retiredContextEditorsCannotChangeCapturedDomainState",
           }
           cases = suite.findall("testcase")
           assert expected <= {case.attrib["name"] for case in cases}, "Missing UI regression"
