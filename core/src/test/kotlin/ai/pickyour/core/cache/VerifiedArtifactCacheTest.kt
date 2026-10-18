@@ -1,0 +1,187 @@
+package ai.pickyour.core.cache
+
+import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.io.TempDir
+import java.io.ByteArrayInputStream
+import java.io.IOException
+import java.io.InputStream
+import java.nio.channels.FileChannel
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.StandardOpenOption.*
+import java.security.MessageDigest
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
+
+class VerifiedArtifactCacheTest {
+    @TempDir lateinit var root: Path
+    private val first = "first complete bundle".toByteArray()
+    private val second = "second complete bundle".toByteArray()
+    private fun hash(bytes: ByteArray) = ArtifactHash(MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it.toInt() and 255) })
+    private fun store() = VerifiedArtifactCache(root, 128)
+    private fun install(bytes: ByteArray = first) = store().install(hash(bytes), bytes.inputStream())
+    private fun bytes(result: CacheRead) = assertInstanceOf(CacheRead.Available::class.java, result).bytes
+
+    @Test fun `reopens verified active bytes and preserves old pins`() {
+        assertEquals(CacheRead.Missing, store().active())
+        assertEquals(CacheRead.Missing, store().pinned(hash(first)))
+        assertEquals(CacheInstall.Activated(hash(first)), install())
+        assertArrayEquals(first, bytes(store().active()))
+        assertEquals(CacheInstall.Activated(hash(second)), install(second))
+        assertArrayEquals(second, bytes(store().active()))
+        assertArrayEquals(first, bytes(store().pinned(hash(first))))
+        bytes(store().active())[0] = 0
+        assertArrayEquals(second, bytes(store().active()))
+    }
+
+    @Test fun `repeat activation retains exactly one content addressed file and caller owns stream`() {
+        val source = object : ByteArrayInputStream(first) {
+            var closed = false
+            override fun close() { closed = true }
+            override fun available() = 0
+            override fun read(bytes: ByteArray, offset: Int, length: Int) = super.read(bytes, offset, minOf(length, 1))
+        }
+        assertEquals(CacheInstall.Activated(hash(first)), store().install(hash(first), source))
+        assertFalse(source.closed)
+        assertEquals(CacheInstall.Activated(hash(first)), install())
+        Files.list(root).use { paths -> assertEquals(1L, paths.filter { it.toString().endsWith(".bin") }.count()) }
+        assertArrayEquals(first, bytes(store().active()))
+    }
+
+    @Test fun `wrong hash and provider failure retain previous active without closing input`() {
+        install()
+        val source = object : ByteArrayInputStream(second) { var closed = false; override fun close() { closed = true } }
+        assertEquals(CacheInstall.Failed(CacheFailure.HASH_MISMATCH), store().install(hash(first), source))
+        assertFalse(source.closed)
+        val broken = object : InputStream() { override fun read(): Int = throw IOException("secret provider path") }
+        assertEquals(CacheInstall.Failed(CacheFailure.IO_FAILURE), store().install(hash(second), broken))
+        assertArrayEquals(first, bytes(store().active()))
+        assertFalse(Files.exists(root.resolve("stage-artifact")))
+        assertFalse(Files.exists(root.resolve("stage-pointer")))
+    }
+
+    @Test fun `exact byte limit accepts and overflow consumes only one extra byte`() {
+        val cache = VerifiedArtifactCache(root, 3)
+        val content = byteArrayOf(1, 2, 3)
+        assertEquals(CacheInstall.Activated(hash(content)), cache.install(hash(content), content.inputStream()))
+        val source = object : InputStream() {
+            var consumed = 0
+            override fun available() = Int.MAX_VALUE
+            override fun read(): Int { consumed++; return 0 }
+        }
+        assertEquals(CacheInstall.Failed(CacheFailure.TOO_LARGE), cache.install(hash(first), source))
+        assertEquals(4, source.consumed)
+        assertArrayEquals(content, bytes(cache.active()))
+    }
+
+    @Test fun `each preactivation failure keeps prior pointer on reopen`() {
+        install()
+        for (point in listOf(CacheWritePoint.STAGED, CacheWritePoint.ARTIFACT_PUBLISHED, CacheWritePoint.POINTER_STAGED)) {
+            val cache = VerifiedArtifactCache(root, 128) { if (it == point) throw IOException("injected disk failure") }
+            assertEquals(CacheInstall.Failed(CacheFailure.IO_FAILURE), cache.install(hash(second), second.inputStream()))
+            assertArrayEquals(first, bytes(store().active()))
+        }
+        assertEquals(CacheInstall.Activated(hash(second)), install(second))
+    }
+
+    @Test fun `failure after pointer activation reports uncertain and reopen verifies new bytes`() {
+        install()
+        val cache = VerifiedArtifactCache(root, 128) { if (it == CacheWritePoint.POINTER_ACTIVATED) throw IOException("fsync failed") }
+        assertEquals(CacheInstall.ActivationUncertain(hash(second)), cache.install(hash(second), second.inputStream()))
+        assertArrayEquals(second, bytes(store().active()))
+        assertArrayEquals(first, bytes(store().pinned(hash(first))))
+    }
+
+    @Test fun `abandoned stages are ignored by reads and cleaned on next install`() {
+        install()
+        Files.write(root.resolve("stage-artifact"), "incomplete".toByteArray())
+        Files.write(root.resolve("stage-pointer"), hash(second).hex.toByteArray())
+        Files.write(root.resolve("unrelated"), first)
+        assertArrayEquals(first, bytes(store().active()))
+        assertEquals(CacheInstall.Activated(hash(second)), install(second))
+        assertFalse(Files.exists(root.resolve("stage-artifact")))
+        assertFalse(Files.exists(root.resolve("stage-pointer")))
+        assertArrayEquals(first, Files.readAllBytes(root.resolve("unrelated")))
+    }
+
+    @Test fun `corrupt active pointer payload and missing referenced content never report missing catalog`() {
+        install()
+        val artifact = root.resolve("${hash(first).hex}.bin")
+        Files.write(artifact, "tampered".toByteArray())
+        assertEquals(CacheRead.Failed(CacheFailure.CORRUPT), store().active())
+        assertEquals(CacheInstall.Failed(CacheFailure.CORRUPT), install())
+        Files.delete(artifact)
+        assertEquals(CacheRead.Failed(CacheFailure.CORRUPT), store().active())
+        Files.write(root.resolve("active"), "../secret".toByteArray())
+        assertEquals(CacheRead.Failed(CacheFailure.CORRUPT), store().active())
+        Files.write(root.resolve("active"), ByteArray(65))
+        assertEquals(CacheRead.Failed(CacheFailure.CORRUPT), store().active())
+    }
+
+    @Test fun `strict hash identity prevents path traversal and aliases`() {
+        for (bad in listOf("../secret", "/tmp/value", "a".repeat(63), "A".repeat(64), "a".repeat(64) + "\n")) {
+            assertThrows(IllegalArgumentException::class.java) { ArtifactHash(bad) }
+        }
+    }
+
+    @Test fun `symlink artifact and pointer are rejected without following target`() {
+        install()
+        val artifact = root.resolve("${hash(first).hex}.bin")
+        val outside = root.resolve("outside")
+        Files.write(outside, first)
+        Files.delete(artifact)
+        Files.createSymbolicLink(artifact, outside)
+        assertEquals(CacheRead.Failed(CacheFailure.CORRUPT), store().active())
+        Files.delete(root.resolve("active"))
+        Files.createSymbolicLink(root.resolve("active"), outside)
+        assertEquals(CacheRead.Failed(CacheFailure.CORRUPT), store().active())
+        assertArrayEquals(first, Files.readAllBytes(outside))
+    }
+
+    @Test fun `overlapping instances return busy instead of duplicate work`() {
+        install()
+        val entered = CountDownLatch(1)
+        val release = CountDownLatch(1)
+        val executor = Executors.newSingleThreadExecutor()
+        try {
+            val cache = VerifiedArtifactCache(root, 128) {
+                if (it == CacheWritePoint.STAGED) {
+                    entered.countDown()
+                    check(release.await(5, TimeUnit.SECONDS))
+                }
+            }
+            val running = executor.submit<CacheInstall> { cache.install(hash(second), second.inputStream()) }
+            assertTrue(entered.await(5, TimeUnit.SECONDS))
+            assertEquals(CacheRead.Failed(CacheFailure.BUSY), store().active())
+            assertEquals(CacheInstall.Failed(CacheFailure.BUSY), install())
+            release.countDown()
+            assertEquals(CacheInstall.Activated(hash(second)), running.get(5, TimeUnit.SECONDS))
+            assertArrayEquals(second, bytes(store().active()))
+        } finally {
+            release.countDown()
+            executor.shutdownNow()
+        }
+    }
+
+    @Test fun `held OS lock prevents access even without another cache instance`() {
+        FileChannel.open(root.resolve("lock"), CREATE, WRITE).use { channel ->
+            channel.lock().use {
+                assertEquals(CacheRead.Failed(CacheFailure.BUSY), store().active())
+                assertEquals(CacheInstall.Failed(CacheFailure.BUSY), install())
+            }
+        }
+        assertEquals(CacheInstall.Activated(hash(first)), install())
+    }
+
+    @Test fun `cancellation before activation preserves pointer and interrupt flag`() {
+        install()
+        val cache = VerifiedArtifactCache(root, 128) { if (it == CacheWritePoint.POINTER_STAGED) Thread.currentThread().interrupt() }
+        try {
+            assertEquals(CacheInstall.Failed(CacheFailure.CANCELLED), cache.install(hash(second), second.inputStream()))
+            assertTrue(Thread.currentThread().isInterrupted)
+        } finally { Thread.interrupted() }
+        assertArrayEquals(first, bytes(store().active()))
+    }
+}
