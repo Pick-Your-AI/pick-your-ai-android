@@ -114,6 +114,8 @@ jobs:
               "repeatedAndRotatedSystemInsetsReplaceViewportPadding",
               "clearedSystemInsetsRemoveOnlyViewportPadding",
               "lightPreviewThemeSelectsDarkSystemBarIcons",
+              "emptyLibraryDialogUsesLightNavigationIconsWithoutChangingPendingForm",
+              "deletionDialogKeepsLightNavigationIconsAcrossCancelReopenAndConfirmation",
               "newerDiskHeadCannotAdoptStalePendingFormAfterRecreation",
               "tierActivationRequiresCleanFormAndExplicitConfirmation",
               "comparisonDistinguishesLiteralSentinelWithoutWriting",

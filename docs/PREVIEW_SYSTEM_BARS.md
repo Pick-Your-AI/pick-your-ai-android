@@ -50,6 +50,34 @@ Primary platform references checked on 2026-10-18:
 - [Insets for Views](https://developer.android.com/develop/ui/views/layout/edge-to-edge#system-bars-insets)
 - [System-bar theme appearance](https://developer.android.com/develop/ui/views/layout/edge-to-edge-manually)
 
+## Floating-dialog navigation icons
+
+The combined installed [run 39174016224](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39174016224)
+on actual checkout `97824529d15e6a2d6c8e9189eca74aa622008396`, tree
+`75447a245d63483fa1b063f876d980bf5dfd5e83`, passed the four lifecycle cases and
+showed the corrected viewport. Its original artifact `12154555297` is 982,219 bytes,
+SHA-256 `66b07b12f23df5b518e15fda08b9abec786bdf573d2b3dc91787d1f87592aa71`.
+A separate remaining defect appears in the two modal checkpoints: dark navigation
+icons (solid RGB 69,70,79) remain over the dimmed background (RGB 100,100,100), a
+measured pixel-pair contrast of 1.583:1. The six nonmodal screenshots use the same
+icons over RGB 250,250,250, measuring 8.974:1. These bounded measurements do not
+establish full accessibility compliance or invalidate the passing lifecycle cases.
+
+The API 27 theme now selects an alert-dialog overlay that explicitly requests
+light navigation icons for the floating window. Its parent remains the platform
+`ThemeOverlay.Material.Dialog.Alert`; normal modal dimming and all existing dialog
+behavior remain. The underlying Activity retains its own light-background/dark-icon
+appearance throughout showing, dismissal and repeated dialogs. The API 26 theme
+and its inherited navigation appearance are unchanged. No per-dialog callback,
+Activity focus hook or global system-UI state mutation is introduced.
+
+This follows the pinned Android 15 framework's
+[dialog theme overlay](https://android.googlesource.com/platform/frameworks/base/+/android-15.0.0_r1/core/res/res/values/themes_material.xml),
+[window appearance initialization](https://android.googlesource.com/platform/frameworks/base/+/android-15.0.0_r1/core/java/com/android/internal/policy/PhoneWindow.java)
+and [dimming-window navigation appearance selection](https://android.googlesource.com/platform/frameworks/base/+/android-15.0.0_r1/services/core/java/com/android/server/wm/DisplayPolicy.java),
+inspected on 2026-10-18. Corrected installed pixels require a new run of the selected
+source; the original 978 screenshots remain the before-correction evidence.
+
 ## Validation scope
 
 Four mandatory `PreviewActivityTest` methods exercise the actual Activity's viewport
@@ -66,6 +94,13 @@ Their separate receipt gate checks exact suite/class identity, required unique n
 matching counts and no failed, skipped or errored case. Fixture-only reflection
 constructs API 28 `WindowInsets(Rect)` values because compileSdk 35 hides that
 constructor; the actual listener receives those values through public dispatch.
+
+Two additional mandatory Activity methods open the real empty-library and deletion
+AlertDialogs. They verify light navigation-icon requests on each dimmed floating
+window, unchanged 0.6 dim amount and unchanged underlying Activity appearance.
+Cancellation, reopening, confirmation and dismissal retain pending text/caret,
+acknowledged identity or the explicit deleted/save-disabled state as applicable.
+The strict existing Activity receipt gate requires both unique method names.
 
 These are API 28 Robolectric simulations using the existing pinned runtime.
 Current-source build, lint, original reports and receiving review are required for

@@ -4,5 +4,9 @@
         <item name="android:navigationBarColor">?android:attr/colorBackground</item>
         <item name="android:windowLightStatusBar">true</item>
         <item name="android:windowLightNavigationBar">true</item>
+        <item name="android:alertDialogTheme">@style/PreviewAlertDialogTheme</item>
+    </style>
+    <style name="PreviewAlertDialogTheme" parent="android:style/ThemeOverlay.Material.Dialog.Alert">
+        <item name="android:windowLightNavigationBar">false</item>
     </style>
 </resources>

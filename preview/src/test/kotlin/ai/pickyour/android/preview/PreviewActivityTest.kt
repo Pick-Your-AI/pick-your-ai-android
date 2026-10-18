@@ -278,6 +278,91 @@ class PreviewActivityTest {
         } finally { attributes.recycle() }
     }
 
+    @Test fun emptyLibraryDialogUsesLightNavigationIconsWithoutChangingPendingForm() {
+        controller.visible()
+        val originalAppearance = activity.window.decorView.systemUiVisibility
+        assertTrue(originalAppearance and View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR != 0)
+        save()
+        deleteConfirmation(PreviewDraftId("guest-draft")).getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+        await { hasText(R.string.library_deleted_editor) && button(R.string.library_open).isEnabled }
+        dialog().getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+        finishActivityWork()
+        assertTrue(libraryIds().isEmpty())
+        val title = field(R.string.draft_title)
+        title.setText("pending empty library review")
+        title.setSelection(7)
+        val previous = ShadowAlertDialog.getLatestAlertDialog()
+        button(R.string.library_open).performClick()
+        await { ShadowAlertDialog.getLatestAlertDialog()?.let { it !== previous && it.isShowing } == true }
+        val empty = dialog()
+        assertEquals(activity.getString(R.string.library_empty), shadowOf(empty).message.toString())
+        assertLightDialogNavigationIcons(empty, originalAppearance)
+        empty.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+        finishActivityWork()
+        assertFalse(empty.isShowing)
+        assertEquals(originalAppearance, activity.window.decorView.systemUiVisibility)
+        assertEquals("pending empty library review", title.text.toString())
+        assertEquals(7, title.selectionStart)
+        assertEquals(7, title.selectionEnd)
+        assertTrue(libraryIds().isEmpty())
+        assertTrue(hasText(R.string.library_deleted_editor))
+        assertFalse(button(R.string.save_draft).isEnabled)
+    }
+
+    @Test fun deletionDialogKeepsLightNavigationIconsAcrossCancelReopenAndConfirmation() {
+        controller.visible()
+        val originalAppearance = activity.window.decorView.systemUiVisibility
+        assertTrue(originalAppearance and View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR != 0)
+        field(R.string.draft_title).setText("saved modal baseline")
+        save()
+        val saved = loaded()
+        val title = field(R.string.draft_title)
+        title.setText("pending modal edit")
+        title.setSelection(5)
+        val first = deleteConfirmation(PreviewDraftId("guest-draft"))
+        assertLightDialogNavigationIcons(first, originalAppearance)
+        first.getButton(AlertDialog.BUTTON_NEGATIVE).performClick()
+        finishActivityWork()
+        assertFalse(first.isShowing)
+        assertEquals(originalAppearance, activity.window.decorView.systemUiVisibility)
+        assertEquals(saved.baselineIdentity, loaded().baselineIdentity)
+        assertEquals("pending modal edit", title.text.toString())
+        assertEquals(5, title.selectionStart)
+        assertEquals(5, title.selectionEnd)
+
+        val second = deleteConfirmation(PreviewDraftId("guest-draft"))
+        assertNotSame(first, second)
+        assertLightDialogNavigationIcons(second, originalAppearance)
+        second.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+        await { hasText(R.string.library_deleted_editor) && button(R.string.library_open).isEnabled }
+        val result = dialog()
+        assertEquals(activity.getString(R.string.library_deleted), shadowOf(result).message.toString())
+        assertLightDialogNavigationIcons(result, originalAppearance)
+        result.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+        finishActivityWork()
+        assertFalse(result.isShowing)
+        assertEquals(originalAppearance, activity.window.decorView.systemUiVisibility)
+        assertEquals("pending modal edit", title.text.toString())
+        assertTrue(libraryIds().isEmpty())
+        assertFalse(button(R.string.save_draft).isEnabled)
+    }
+
+    private fun assertLightDialogNavigationIcons(dialog: AlertDialog, activityAppearance: Int) {
+        assertTrue(dialog.isShowing)
+        val window = requireNotNull(dialog.window)
+        assertTrue(window.attributes.flags and android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND != 0)
+        assertEquals(0.6f, window.attributes.dimAmount, 0.0f)
+        assertEquals("The dimmed modal background needs light navigation icons", 0,
+            window.decorView.systemUiVisibility and View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR)
+        assertEquals(activityAppearance, activity.window.decorView.systemUiVisibility)
+        val attributes = dialog.context.theme.obtainStyledAttributes(intArrayOf(
+            android.R.attr.windowLightNavigationBar, android.R.attr.windowIsFloating))
+        try {
+            assertFalse(attributes.getBoolean(0, true))
+            assertTrue(attributes.getBoolean(1, false))
+        } finally { attributes.recycle() }
+    }
+
     @Test fun acknowledgedFieldsAndExplicitEmptySurviveRecreation() {
         field(R.string.draft_title).setText("saved title")
         field(R.string.context_objective).setText("objective")
