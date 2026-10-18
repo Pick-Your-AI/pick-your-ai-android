@@ -48,6 +48,7 @@ class PreviewActivity : Activity() {
     private lateinit var saveStatus: TextView
     private var draftLibrary: PreviewDraftLibrary? = null // Accessed only on the single worker.
     private var currentDraftId = PreviewDraftId("guest-draft")
+    private var selectionResolved = false
     private lateinit var activeDraft: TextView
     private lateinit var libraryButton: Button
     private lateinit var newDraftButton: Button
@@ -65,6 +66,7 @@ class PreviewActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         currentDraftId = PreviewDraftId(savedInstanceState?.getString("draftId") ?: "guest-draft")
+        selectionResolved = savedInstanceState != null && savedInstanceState.getBoolean("selectionResolved", true)
         restoration = savedInstanceState?.let {
             PreviewDraftRestoration(it.getString("draftBaseline"), it.getBoolean("draftRequiresReopen", true))
         }
@@ -79,7 +81,9 @@ class PreviewActivity : Activity() {
         text(R.string.notice, 20f)
         text(R.string.guest_draft, 22f).apply { if (android.os.Build.VERSION.SDK_INT >= 28) isAccessibilityHeading = true }
         text(R.string.temporary)
-        activeDraft = text(R.string.library_active).apply { text = getString(R.string.library_active, currentDraftId.value) }
+        activeDraft = text(R.string.library_active).apply {
+            text = if (selectionResolved) getString(R.string.library_active, currentDraftId.value) else getString(R.string.active_unknown)
+        }
         val titleLabel = text(R.string.draft_title)
         title = EditText(this).apply {
             id = View.generateViewId()
@@ -180,7 +184,7 @@ class PreviewActivity : Activity() {
         content.setPadding(padding, padding, padding, padding)
         updateEditingEnabled()
         loadCatalog()
-        loadDraft(savedInstanceState != null)
+        if (selectionResolved) loadDraft(true) else restoreActiveDraft(savedInstanceState != null)
     }
 
     private fun readCatalogFixture(): ByteArray = assets.open("catalog.json").use { stream ->
@@ -270,7 +274,7 @@ class PreviewActivity : Activity() {
         title.isEnabled = !storageBusy
         clear.isEnabled = !storageBusy
         save.isEnabled = storageReady && !storageBusy && savedRecord?.fields != fields()
-        reopen.isEnabled = !storageBusy
+        reopen.isEnabled = !storageBusy && selectionResolved
         history.isEnabled = storageReady && !storageBusy && savedRecord != null
         libraryButton.isEnabled = !storageBusy
         newDraftButton.isEnabled = !storageBusy
@@ -333,6 +337,35 @@ class PreviewActivity : Activity() {
         return library.open(id) // Repeats parent sync before canonical store initialization.
     }
 
+    private fun restoreActiveDraft(preserveRestoredFields: Boolean) {
+        storageBusy = true
+        storageReady = false
+        updateEditingEnabled()
+        worker.execute {
+            val result = try { library(); PreviewActiveDraftStore(noBackupFilesDir.toPath()).read() } catch (_: Exception) { null }
+            runOnUiThread {
+                if (!destroyed) {
+                    val id = when (result) {
+                        PreviewActiveRead.None -> PreviewDraftId("guest-draft")
+                        is PreviewActiveRead.Selected -> result.id
+                        else -> null
+                    }
+                    if (id == null) {
+                        storageBusy = false
+                        selectionResolved = false
+                        activeDraft.setText(R.string.active_unknown)
+                        saveStatus.setText(R.string.active_read_failed)
+                        updateEditingEnabled()
+                    } else {
+                        currentDraftId = id
+                        selectionResolved = true
+                        loadDraft(preserveRestoredFields)
+                    }
+                }
+            }
+        }
+    }
+
     private fun showLibrary() {
         if (storageBusy) return
         storageBusy = true
@@ -375,16 +408,22 @@ class PreviewActivity : Activity() {
         updateEditingEnabled()
         worker.execute {
             val result = try { openPersistence(target).load() } catch (_: Exception) { null }
+            val selection = if (result is PreviewDraftLoad.Available || result == PreviewDraftLoad.Missing) {
+                try { PreviewActiveDraftStore(noBackupFilesDir.toPath()).select(target) }
+                catch (_: Exception) { PreviewActiveWrite.Uncertain }
+            } else null
             runOnUiThread {
                 if (!destroyed) {
                     storageBusy = false
-                    val next = previous.switchTo(target, result)
+                    val next = previous.switchTo(target, result, selection ?: PreviewActiveWrite.Uncertain)
                     if (next === previous) {
                         // Identity, baseline, save readiness and pending form still belong together.
-                        AlertDialog.Builder(this).setMessage(R.string.library_switch_failed)
+                        AlertDialog.Builder(this).setMessage(if (selection != null && selection != PreviewActiveWrite.Saved)
+                            R.string.active_write_failed else R.string.library_switch_failed)
                             .setPositiveButton(R.string.close, null).show()
                     } else {
                         currentDraftId = next.id
+                        selectionResolved = true
                         savedRecord = next.record
                         storageReady = next.ready
                         restoration = null
@@ -512,6 +551,7 @@ class PreviewActivity : Activity() {
 
     override fun onSaveInstanceState(outState: Bundle) {
         outState.putString("draftId", currentDraftId.value)
+        outState.putBoolean("selectionResolved", selectionResolved)
         val checkpoint = PreviewDraftRestoration.capture(savedRecord, storageReady, storageBusy)
         outState.putString("draftBaseline", checkpoint.baselineIdentity)
         outState.putBoolean("draftRequiresReopen", checkpoint.requiresReopen)

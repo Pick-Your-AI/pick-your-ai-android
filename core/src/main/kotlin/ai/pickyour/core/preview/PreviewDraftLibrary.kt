@@ -135,9 +135,13 @@ internal enum class LibraryCheckpoint { AFTER_DIRECTORY_CREATE, AFTER_SAVE }
 /** Transactional editor switch: a failed target open cannot steal the current form's save authority. */
 class PreviewDraftSession(val id: PreviewDraftId, val record: PreviewStoredDraft?,
     val fields: PreviewDraftFields, val ready: Boolean) {
-    fun switchTo(target: PreviewDraftId, result: PreviewDraftLoad?): PreviewDraftSession = when (result) {
+    fun switchTo(target: PreviewDraftId, result: PreviewDraftLoad?,
+        selection: PreviewActiveWrite = PreviewActiveWrite.Saved): PreviewDraftSession {
+        if (selection != PreviewActiveWrite.Saved) return this
+        return when (result) {
         is PreviewDraftLoad.Available -> PreviewDraftSession(target, result.record, result.record.fields, true)
         PreviewDraftLoad.Missing -> PreviewDraftSession(target, null, PreviewDraftFields(), true)
         is PreviewDraftLoad.Failed, null -> this
+        }
     }
 }

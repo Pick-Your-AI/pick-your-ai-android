@@ -326,9 +326,8 @@ authority. Local duplicate lineage records the source directory ID, revision and
 Source history and source bytes are not changed. Open/new/duplicate
 require confirmation before abandoning pending form edits; controls serialize IO
 and existing lifecycle baseline checks remain in force. Current selected draft ID
-survives Bundle recreation. Without restoration state, cold launch still selects
-the original guest draft; all others remain available through Open local draft.
-A durable last-opened pointer and general active-draft recovery remain incomplete.
+survives Bundle recreation. Cold launch uses the durable last-opened pointer below;
+only an absent pointer permits the original guest default.
 
 Ten JVM tests cover independent create/open/rename, exact snapshot duplicate
 without authority/history reuse, legacy and unavailable entries, creation faults
@@ -339,5 +338,34 @@ only a successful target read commits the editor switch.
 These are native filesystem tests, not installed Android filesystem/process-death
 proof. Hosted Android build/lint is required on final head; dialog accessibility,
 installed switching/rotation and device storage tests remain unexecuted. Partial
-#86/#67 only: deletion/trash, retention/export, autosave, active-pointer recovery,
+#86/#67 only: deletion/trash, retention/export, autosave, installed active-pointer recovery,
 installed qualification and receiving work-package acceptance remain outstanding.
+
+
+## Durable last-opened selection
+
+A tiny private v1 payload contains only the local directory ID. It is stored through
+the existing VerifiedArtifactCache in a durably provisioned `.active-draft` child,
+with exact content hash, atomic activation and parent synchronization. It is not a
+save token, a shared contract or a second draft engine. Reads distinguish absent,
+selected and failed state. Only absent selection defaults to the original guest;
+malformed/future bytes and unavailable/corrupt selected records never silently
+fall back to another draft. Explicit Open local draft remains the recovery path.
+
+An explicit library switch first reads the target and then commits the selection
+pointer on the worker. Only an acknowledged selection changes the editor. Failure
+or uncertain activation retains the original ID, token, pending fields and save
+readiness, warns that a later cold launch may see the selected target, and leaves
+all draft records intact. A successfully created draft stays in the library even
+if selection cannot be confirmed. Bundle recreation retains its editor identity
+and baseline guards; it does not silently adopt another Activity's selected draft.
+Unresolved startup selection also survives recreation without enabling Save or
+Reopen against an invented active target.
+
+Seven JVM tests cover fresh-instance selection, independent draft preservation,
+malformed/future/path payload rejection, pre/postactivation failures, unavailable
+or symlink targets, initialization sync retry, and non-committing editor switches
+on pointer failure/uncertainty. These verify native storage and pure transition
+behavior, not installed Android process termination or power loss. Hosted unsigned
+Android build/lint is still required at final head. Full #86/#76 acceptance retains
+its device, recovery, deletion/retention and receiving-review requirements.
