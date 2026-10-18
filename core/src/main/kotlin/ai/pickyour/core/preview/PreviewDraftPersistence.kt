@@ -25,6 +25,7 @@ class PreviewContextCheckpoint(val hasInputs: Boolean, val inputs: PreviewDraftC
         if (preservePending && hasInputs) inputs else baseline
 }
 class PreviewStoredDraft internal constructor(internal val draft: StoredDraft, val fields: PreviewDraftFields) {
+    val workloadInput: DraftWorkload get() = draft.content.workload
     val contextInput: PreviewDraftContext get() = PreviewDraftContext(draft.content.objective, draft.content.context)
     val optionalTiers: Map<OptionalTier, TierDraft> get() = draft.content.optional
     val revision: Long get() = draft.version.number
@@ -78,10 +79,13 @@ class PreviewDraftPersistence internal constructor(private val store: LocalDraft
         is DraftLoad.Available -> decode(result.draft)
     } }
 
-    fun save(expected: PreviewStoredDraft?, fields: PreviewDraftFields, contextInput: PreviewDraftContext? = null): PreviewDraftSave = write {
+    fun save(expected: PreviewStoredDraft?, fields: PreviewDraftFields, contextInput: PreviewDraftContext? = null,
+        workloadInput: DraftWorkload? = null): PreviewDraftSave = write {
         val previous = expected?.draft?.content ?: DraftContent()
-        val content = if (contextInput == null) previous else
-            DraftContent(contextInput.objective, contextInput.context, previous.primaryModel, previous.optional, previous.workload)
+        val content = DraftContent(
+            if (contextInput == null) previous.objective else contextInput.objective,
+            if (contextInput == null) previous.context else contextInput.context,
+            previous.primaryModel, previous.optional, workloadInput ?: previous.workload)
         val metadata = (expected?.draft?.metadata ?: emptyMap()).toMutableMap()
         metadata[FORMAT] = "1"
         metadata[TITLE] = fields.title
