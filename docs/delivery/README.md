@@ -7,11 +7,9 @@ dependency graph, receiving acceptance, or a replacement for GitHub status.
 The earlier [issue audit](../proposals/issues-snapshot.md) remains a historical
 snapshot; it is not rewritten to imply it observed later implementation.
 
-Every criterion is **incomplete**. References to merged PRs #131–#139 identify
+Every criterion is **incomplete**. References to merged PRs #131–#140 identify
 partial issue context, not an assertion that a linked artifact passes each
-criterion. PRs #138 and #139 are now merged at their recorded merge revisions;
-PR #140 remains a draft at its inspected head. Its proposed work is explicitly
-distinguished from merged evidence. Exact
+criterion. Exact
 artifact revisions and limitations are in the top-level `evidence` catalog.
 No JVM, unsigned APK, lint or fixture result proves installed-device, production,
 source rights, store distribution or operational acceptance.

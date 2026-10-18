@@ -71,9 +71,9 @@
     },
     "pr-140": {
       "pr_url": "https://github.com/Pick-Your-AI/pick-your-ai-android/pull/140",
-      "observed_state": "draft",
-      "revision": "4d2abddc2055984adba73f51b11d29317c66a046",
-      "artifact_url": "https://github.com/Pick-Your-AI/pick-your-ai-android/blob/4d2abddc2055984adba73f51b11d29317c66a046/docs/ANDROID_PREVIEW.md",
+      "observed_state": "merged",
+      "revision": "93f71e2c6c9039e096db30c6a02b845ca81d1e59",
+      "artifact_url": "https://github.com/Pick-Your-AI/pick-your-ai-android/blob/93f71e2c6c9039e096db30c6a02b845ca81d1e59/docs/ANDROID_PREVIEW.md",
       "scope_limit": "Draft interactive synthetic diagnostic; not merged, durable builder, installed-device acceptance or production catalog evidence."
     }
   },
