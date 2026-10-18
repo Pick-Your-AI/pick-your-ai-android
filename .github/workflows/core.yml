@@ -116,6 +116,9 @@ jobs:
               "invalidOrChangedPendingInputsAndRetiredConfirmationCannotCreateRecovery",
               "requiredObjectiveGuidanceNavigatesMissingInputsWithoutClaimingReadiness",
               "retiredObjectiveGuidanceCannotOpenClassificationOrChangeCurrentInputs",
+              "catalogDetailShowsPinnedSpecsEvidenceAndLicenseWithoutSaving",
+              "catalogDetailKeepsLiteralUnknownIdentitySeparateFromUnknownSpec",
+              "catalogDetailRenderingKeepsUnknownAndBoundedLiteralSourceValues",
               "retiredContextEditorsCannotChangeCapturedDomainState",
           }
           cases = suite.findall("testcase")
