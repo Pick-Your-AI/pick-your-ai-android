@@ -23,6 +23,11 @@ def verify():
                 (BASE / 'UPSTREAM_SHA256SUMS').read_text().splitlines())
     if len(manifest['files']) != 43 or len(sums) != 43:
         raise ValueError('expected all 43 original package entries')
+    expected_files = {entry['path'] for entry in manifest['files']} | set(PINNED_METADATA)
+    actual_files = {str(path.relative_to(BASE)) for path in BASE.rglob('*') if path.is_file()
+                    and not ('__pycache__' in path.parts and path.suffix == '.pyc')}
+    if actual_files != expected_files:
+        raise ValueError('frozen import file inventory changed')
     for entry in manifest['files']:
         path = BASE / entry['path']
         if sums[entry['source_path']] != entry['sha256']:
