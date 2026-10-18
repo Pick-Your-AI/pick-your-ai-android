@@ -46,3 +46,36 @@ jobs:
             core/build/libs/
           retention-days: 7
           if-no-files-found: ignore
+  android-preview:
+    name: Unsigned synthetic Android preview
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Ensure experimental SDK inputs
+        shell: bash
+        run: |
+          test -n "$ANDROID_HOME"
+          if [ ! -f "$ANDROID_HOME/platforms/android-35/android.jar" ] || [ ! -f "$ANDROID_HOME/build-tools/35.0.0/aapt2" ]; then
+            "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-35' 'build-tools;35.0.0'
+          fi
+      - name: Check wrapper integrity
+        run: sha256sum --check gradle/wrapper/wrapper.sha256
+      - name: Compile unsigned preview and run lint
+        run: ./gradlew --no-daemon -PandroidPreview=true :preview:assembleDebug :preview:lintDebug
+      - name: Retain unsigned diagnostic and lint reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: android-preview-${{ github.sha }}
+          path: |
+            preview/build/outputs/apk/debug/*-unsigned.apk
+            preview/build/reports/lint-results-debug.*
+          retention-days: 7
+          if-no-files-found: ignore

@@ -1,5 +1,6 @@
 plugins { kotlin("jvm") }
-kotlin { jvmToolchain(21) }
+kotlin { jvmToolchain(21); compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17) } }
+tasks.withType<JavaCompile>().configureEach { options.release.set(17) }
 dependencies {
     implementation("com.networknt:json-schema-validator:1.5.6")
     implementation("com.fasterxml.jackson.core:jackson-databind:2.22.4")

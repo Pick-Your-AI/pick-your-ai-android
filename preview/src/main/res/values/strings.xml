@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">Synthetic contract preview</string>
+    <string name="notice">SYNTHETIC DATA — developer diagnostic only. Frozen-v1 structural validation does not establish compatibility, capacity, quality, or price accuracy. No real-data mode.</string>
+    <string name="run">Validate bundled synthetic build</string>
+    <string name="ready">Ready. No user data is collected or stored.</string>
+    <string name="working">Validating bundled synthetic fixture…</string>
+    <string name="valid">Synthetic build matches the frozen-v1 schema. Compatibility verdict: unknown.</string>
+    <string name="invalid">Synthetic fixture failed structural validation. No compatibility verdict is available.</string>
+    <string name="unavailable">Validation is unavailable. Bundled resources could not be checked. Retry validation.</string>
+</resources>
