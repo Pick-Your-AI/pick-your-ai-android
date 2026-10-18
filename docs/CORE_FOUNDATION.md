@@ -113,7 +113,9 @@ All cooperating instances first claim a shared non-reentrant JVM guard, then use
 nonblocking OS lock. A separate-JVM regression proves an unsuccessful same-JVM
 contender cannot release the active holder's process lock. Caller streams
 remain open. Cancellation cannot unblock a blocking provider; the adapter must
-provide timeouts/cancellation. The root must be a dedicated app-private directory;
+provide timeouts/cancellation. The root must be an existing, durably provisioned dedicated app-private directory;
+construction rejects a missing root and never implicitly creates ancestors. The
+caller must ensure the root and ancestor directory entries are durable;
 this class is not protection against a compromised app/OS or unrelated writers.
 There is deliberately no unsafe fallback when atomic rename or directory sync is
 unsupported. Storage errors are sanitized typed outcomes.

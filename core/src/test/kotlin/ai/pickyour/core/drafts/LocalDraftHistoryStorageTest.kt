@@ -20,7 +20,7 @@ class LocalDraftHistoryStorageTest {
     private fun cache() = VerifiedArtifactCache(root.resolve("revisions"), LocalDraftStore.MAX_BYTES)
     private fun raw() = (cache().active() as CacheRead.Available).bytes
     private fun hash(bytes: ByteArray) = ArtifactHash(MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it.toInt() and 255) })
-    private fun seed(bytes: ByteArray) { assertTrue(cache().install(hash(bytes), bytes.inputStream()) is CacheInstall.Activated) }
+    private fun seed(bytes: ByteArray) { store(); assertTrue(cache().install(hash(bytes), bytes.inputStream()) is CacheInstall.Activated) }
     private fun legacy(revision: Long): ByteArray = """{
         "local_format_version":1,"revision":$revision,
         "content":{"objective":"","context":null,"primaryModel":"entered",
