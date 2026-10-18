@@ -225,3 +225,61 @@ identifies the required `libpulse.so.0` library on the selected runner distribut
 The SDK metadata lists API 35 default x86_64 revision 2 as `x86_64-35_r02.zip`,
 782,404,023 bytes, with its published archive checksum. These references establish
 tool usage and available inputs; they do not establish a passing app run.
+
+## Owned guest readiness after boot
+
+The diagnostic run [39101681533](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39101681533)
+at source tree `fc21847c0af12a9a5cad00249e8f65befd526a33` reached boot and installed
+the APK, but its first launch failed. The retained `am start -W` result was exit 0
+with `Status: timeout`, `LaunchState: UNKNOWN (-1)` and `WaitTime: 24344` after
+26.775 seconds. This was Android's launch-wait timeout, not a Python subprocess
+timeout or demonstrated application crash. A failed UI checkpoint then could not
+remove `/sdcard/pyai-smoke-window.xml` because access was denied. The other three
+installed cases did not run. Artifact `12126642819` has ZIP SHA-256
+`088224b76255521ff996a9790f5f282c28f96ac52593632609589c5547ef4556`.
+
+The previous setup observed only `sys.boot_completed` before continuing. Setup now
+also requires a complete read-only readiness snapshot after the existing wake and
+keyguard-dismissal commands, before installation or any application case:
+
+| Observation | Required result on this pinned AOSP API 35 guest |
+| --- | --- |
+| `getprop sys.boot_completed` | Exact `1`, successful command, no stderr |
+| `getprop init.svc.bootanim` | `stopped`, or absent for the existing `-no-boot-anim` launch |
+| `am get-current-user` | Exact `0`; no user is created or switched |
+| `am get-started-user-state 0` | Exact `RUNNING_UNLOCKED`; no unlock command or credential is supplied |
+| `pm path android` | The pinned image's `package:/system/framework/framework-res.apk` |
+| `test -d/-r/-w/-x /sdcard` | All four commands succeed with empty output/stderr |
+
+The full snapshot must complete within a single 180-second deadline. Each command
+gets at most ten seconds and never more than the remaining deadline. Incomplete
+observations can be retried within that deadline; command timeouts, nonzero exits,
+unexpected output, stderr and truncated diagnostic output cannot establish
+readiness. The receipt retains the number of attempts, elapsed time, first
+incomplete and last observations, including separate bounded output and command
+timeout metadata. Missing or false readiness is rejected by the final receipt
+validator even if its case rows were marked passed.
+
+These probes observe access; they do not create/delete a shared-storage file,
+change guest permissions, claim usable UI, or measure app performance. The
+existing fresh XML write/read, successful `Status: ok` launch and all four
+behavioral cases remain mandatory. The observed software-mode system-service
+ANRs and inaccessible shared storage suggest a readiness investigation; they do
+not prove this additional gate cures the launch timeout. A new exact-source
+hosted result must supply that evidence. Software/KVM selection, host access,
+owned-target identity and temporary-signing boundaries are unchanged.
+
+The [Android Direct Boot guide](https://developer.android.com/privacy-and-security/direct-boot)
+(checked 2026-10-18) distinguishes credential-encrypted storage availability after
+user unlock from the powered-on device state. The pinned Android 15
+[ActivityManager shell source](https://github.com/aosp-mirror/platform_frameworks_base/blob/android-15.0.0_r1/services/core/java/com/android/server/am/ActivityManagerShellCommand.java),
+[ActivityManager service](https://github.com/aosp-mirror/platform_frameworks_base/blob/android-15.0.0_r1/services/core/java/com/android/server/am/ActivityManagerService.java)
+and [UserState](https://github.com/aosp-mirror/platform_frameworks_base/blob/android-15.0.0_r1/services/core/java/com/android/server/am/UserState.java)
+define the read-only started-user-state query and its `RUNNING_UNLOCKED` spelling.
+The API 35 UserManager shell does not expose `cmd user is-user-unlocked`, so this
+harness uses the actual command available in its pinned platform.
+
+Host-side regressions verify complete/partial snapshots, locked or different
+users, denied storage, failed services, timeout/truncated output, exact owned
+target, the absolute deadline and final receipt rejection. These are harness
+tests, not installed-case acceptance.

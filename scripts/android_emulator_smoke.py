@@ -35,6 +35,17 @@ OBJECTIVE_LABEL = "Draft objective (optional)"
 CONTEXT_LABEL = "Draft context (optional)"
 BUTTON = "android.widget.Button"
 EDITOR = "android.widget.EditText"
+GUEST_READINESS_COMMANDS = (
+    ("boot_completed", ("getprop", "sys.boot_completed"), ("1",)),
+    ("boot_animation", ("getprop", "init.svc.bootanim"), ("", "stopped")),
+    ("current_user", ("am", "get-current-user"), ("0",)),
+    ("user_state", ("am", "get-started-user-state", "0"), ("RUNNING_UNLOCKED",)),
+    ("package_manager", ("pm", "path", "android"), ("package:/system/framework/framework-res.apk",)),
+    ("shared_storage_directory", ("test", "-d", "/sdcard"), ("",)),
+    ("shared_storage_readable", ("test", "-r", "/sdcard"), ("",)),
+    ("shared_storage_writable", ("test", "-w", "/sdcard"), ("",)),
+    ("shared_storage_searchable", ("test", "-x", "/sdcard"), ("",)),
+)
 
 
 class SmokeFailure(RuntimeError):
@@ -143,6 +154,66 @@ def labelled_editor(root: ET.Element, label: str) -> ET.Element | None:
     return None
 
 
+def guest_readiness_checks_pass(checks: dict) -> bool:
+    if not isinstance(checks, dict) or set(checks) != {name for name, _, _ in GUEST_READINESS_COMMANDS}:
+        return False
+    return all(isinstance(checks[name], dict)
+               and type(checks[name].get("exit_code")) is int and checks[name]["exit_code"] == 0
+               and checks[name].get("output_truncated") is False
+               and isinstance(checks[name].get("stdout_tail"), str)
+               and checks[name]["stdout_tail"].strip() in expected
+               and isinstance(checks[name].get("stderr_tail"), str)
+               and not checks[name]["stderr_tail"].strip()
+               and "command_timeout_seconds" not in checks[name]
+               for name, _, expected in GUEST_READINESS_COMMANDS)
+
+
+def wait_for_guest_ready(device, receipt: dict, timeout_seconds=180):
+    """Read-only readiness observations of the already verified, owned API-35 guest.
+
+    Boot completion alone does not demonstrate unlocked-user or shared-storage
+    access. These observations do not certify performance or successful app launch.
+    """
+    require(0 < timeout_seconds <= 180, "Invalid guest readiness deadline")
+    state = {"ready": False, "timeout_seconds": timeout_seconds, "attempts": 0, "last_checks": {}}
+    receipt["guest_readiness"] = state
+    started = time.monotonic()
+    deadline = started + timeout_seconds
+    try:
+        device.verify_identity()
+        while time.monotonic() < deadline:
+            state["attempts"] += 1
+            checks = {}
+            state["last_checks"] = checks
+            for name, args, _ in GUEST_READINESS_COMMANDS:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    break
+                try:
+                    result = device.adb("shell", *args, timeout=min(10, remaining), check=False)
+                    checks[name] = {"exit_code": result.returncode,
+                                    "stdout_tail": bounded_text(result.stdout, 1200),
+                                    "stderr_tail": bounded_text(result.stderr, 1200),
+                                    "output_truncated": len(result.stdout) > 1200 or len(result.stderr) > 1200}
+                except subprocess.TimeoutExpired as error:
+                    checks[name] = {"command_timeout_seconds": error.timeout,
+                                    "stdout_tail": bounded_text(error.stdout, 1200),
+                                    "stderr_tail": bounded_text(error.stderr, 1200)}
+            if guest_readiness_checks_pass(checks) and time.monotonic() < deadline:
+                state["ready"] = True
+                return
+            state.setdefault("first_incomplete_checks", checks)
+            remaining = deadline - time.monotonic()
+            if remaining > 0:
+                time.sleep(min(1, remaining))
+        raise SmokeFailure(f"Owned guest user/storage readiness was not established within {timeout_seconds} seconds")
+    except Exception as error:
+        state["error"] = bounded_text(str(error), 1200)
+        raise
+    finally:
+        state["seconds"] = round(time.monotonic() - started, 3)
+
+
 def complete_receipt(receipt: dict, source_sha: str) -> None:
     require(receipt.get("source_commit") == source_sha, "Receipt source commit differs")
     require(receipt.get("scope") == "owned-installed-aosp-emulator", "Wrong evidence scope")
@@ -151,6 +222,10 @@ def complete_receipt(receipt: dict, source_sha: str) -> None:
     require([case.get("id") for case in cases] == list(CASE_IDS), "Missing or duplicate smoke case")
     require(all(case.get("status") == "passed" for case in cases), "A smoke case did not execute successfully")
     require(receipt.get("unsigned_apk_unchanged") is True, "Unsigned build preservation was not verified")
+    readiness = receipt.get("guest_readiness", {})
+    require(isinstance(readiness, dict) and readiness.get("ready") is True and
+            guest_readiness_checks_pass(readiness.get("last_checks")),
+            "Complete owned-guest readiness evidence is missing")
 
 
 class Device:
@@ -560,14 +635,12 @@ def main() -> int:
                     deadline = time.monotonic() + boot_timeout
                     while time.monotonic() < deadline:
                         boot = device.adb("shell", "getprop", "sys.boot_completed", timeout=10, check=False)
-                        if boot.stdout.strip() == "1":
+                        if boot.returncode == 0 and boot.stdout.strip() == "1" and not boot.stderr.strip():
                             break
                         time.sleep(1)
                     else:
                         raise SmokeFailure(f"Owned emulator did not boot within {boot_timeout} seconds")
                     device.verify_identity()
-                    require(not device.shell("pm", "list", "packages", PACKAGE),
-                            "Fresh AVD unexpectedly already contains the preview")
                     receipt["device"] = {key: device.shell("getprop", key) for key in
                                          ("ro.build.fingerprint", "ro.build.version.sdk", "ro.product.cpu.abi",
                                           "persist.sys.locale", "ro.product.locale")}
@@ -581,6 +654,9 @@ def main() -> int:
                     device.shell("settings", "put", "system", "user_rotation", "0")
                     device.shell("input", "keyevent", "KEYCODE_WAKEUP")
                     device.shell("wm", "dismiss-keyguard")
+                    wait_for_guest_ready(device, receipt)
+                    require(not device.shell("pm", "list", "packages", PACKAGE),
+                            "Fresh AVD unexpectedly already contains the preview")
                     require("Success" in device.adb("install", "--no-streaming", str(signed_apk), timeout=60).stdout,
                             "Synthetic APK installation failed")
                     exercise(device, output, receipt)

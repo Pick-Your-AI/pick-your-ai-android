@@ -22,7 +22,152 @@ def node(text="", kind="android.widget.TextView", package=smoke.PACKAGE, box="[0
     return ET.Element("node", text=text, **{"class": kind, "package": package, "bounds": box, "enabled": "true"})
 
 
+def ready_checks():
+    return {name: {"exit_code": 0, "stdout_tail": expected[-1], "stderr_tail": "", "output_truncated": False}
+            for name, _, expected in smoke.GUEST_READINESS_COMMANDS}
+
+
+class ReadinessClock:
+    def __init__(self):
+        self.now = 0
+
+    def monotonic(self):
+        return self.now
+
+    def sleep(self, seconds):
+        self.now += seconds
+
+
 class EmulatorSmokeGuardTest(unittest.TestCase):
+    def test_guest_readiness_requires_all_read_only_observations_on_the_verified_target(self):
+        receipt, clock = {}, ReadinessClock()
+        device = Mock(spec=smoke.Device)
+        device.adb.side_effect = [subprocess.CompletedProcess([], 0, expected[-1], "")
+                                  for _, _, expected in smoke.GUEST_READINESS_COMMANDS]
+        with patch.object(smoke.time, "monotonic", clock.monotonic), patch.object(smoke.time, "sleep", clock.sleep):
+            smoke.wait_for_guest_ready(device, receipt)
+        device.verify_identity.assert_called_once_with()
+        self.assertEqual([call("shell", *args, timeout=10, check=False)
+                          for _, args, _ in smoke.GUEST_READINESS_COMMANDS], device.adb.call_args_list)
+        self.assertTrue(receipt["guest_readiness"]["ready"])
+        self.assertEqual(1, receipt["guest_readiness"]["attempts"])
+        self.assertEqual(ready_checks(), receipt["guest_readiness"]["last_checks"])
+        self.assertNotIn("first_incomplete_checks", receipt["guest_readiness"])
+        device.launch.assert_not_called()
+        device.shell.assert_not_called()
+
+    def test_boot_property_alone_cannot_accept_locked_user_storage_or_failed_services(self):
+        for key, change in (
+            ("boot_completed", {"stdout_tail": ""}),
+            ("boot_animation", {"stdout_tail": "running"}),
+            ("current_user", {"stdout_tail": "10"}),
+            ("user_state", {"stdout_tail": "RUNNING_UNLOCKING"}),
+            ("user_state", {"stdout_tail": "RUNNING_LOCKED"}),
+            ("user_state", {"stdout_tail": "User is not started: 0"}),
+            ("package_manager", {"stdout_tail": ""}),
+            ("shared_storage_directory", {"exit_code": 1}),
+            ("shared_storage_readable", {"exit_code": 1}),
+            ("shared_storage_writable", {"exit_code": 1, "stderr_tail": "Permission denied"}),
+            ("shared_storage_searchable", {"exit_code": 1}),
+            ("user_state", {"stderr_tail": "service failure"}),
+            ("user_state", {"exit_code": False}),
+            ("user_state", {"output_truncated": True}),
+        ):
+            with self.subTest(key=key, change=change):
+                checks = ready_checks()
+                checks[key].update(change)
+                self.assertFalse(smoke.guest_readiness_checks_pass(checks))
+        self.assertFalse(smoke.guest_readiness_checks_pass(None))
+        checks = ready_checks()
+        checks.pop("shared_storage_writable")
+        self.assertFalse(smoke.guest_readiness_checks_pass(checks))
+
+    def test_guest_readiness_retries_incomplete_state_without_mutating_or_launching(self):
+        receipt, clock = {}, ReadinessClock()
+        device = Mock(spec=smoke.Device)
+        first = [subprocess.CompletedProcess([], 0, expected[-1], "")
+                 for _, _, expected in smoke.GUEST_READINESS_COMMANDS]
+        state_index = next(index for index, (name, _, _) in enumerate(smoke.GUEST_READINESS_COMMANDS)
+                           if name == "user_state")
+        first[state_index] = subprocess.CompletedProcess([], 0, "RUNNING_LOCKED", "")
+        second = [subprocess.CompletedProcess([], 0, expected[-1], "")
+                  for _, _, expected in smoke.GUEST_READINESS_COMMANDS]
+        device.adb.side_effect = first + second
+        with patch.object(smoke.time, "monotonic", clock.monotonic), patch.object(smoke.time, "sleep", clock.sleep):
+            smoke.wait_for_guest_ready(device, receipt)
+        state = receipt["guest_readiness"]
+        self.assertTrue(state["ready"])
+        self.assertEqual(2, state["attempts"])
+        self.assertEqual("RUNNING_LOCKED", state["first_incomplete_checks"]["user_state"]["stdout_tail"])
+        self.assertEqual("RUNNING_UNLOCKED", state["last_checks"]["user_state"]["stdout_tail"])
+        self.assertEqual(1, state["seconds"])
+        device.launch.assert_not_called()
+        device.shell.assert_not_called()
+
+    def test_guest_readiness_timeout_is_bounded_and_retains_actual_failed_probe(self):
+        receipt, clock = {}, ReadinessClock()
+        device = Mock(spec=smoke.Device)
+        device.adb.return_value = subprocess.CompletedProcess([], 1, "", "Permission denied")
+        with patch.object(smoke.time, "monotonic", clock.monotonic), patch.object(smoke.time, "sleep", clock.sleep):
+            with self.assertRaisesRegex(smoke.SmokeFailure, "not established within 2 seconds"):
+                smoke.wait_for_guest_ready(device, receipt, 2)
+        state = receipt["guest_readiness"]
+        self.assertFalse(state["ready"])
+        self.assertEqual(2, state["attempts"])
+        self.assertEqual(2, state["seconds"])
+        self.assertEqual("Permission denied", state["last_checks"]["shared_storage_writable"]["stderr_tail"])
+        self.assertTrue(all(call.kwargs["timeout"] <= 2 for call in device.adb.call_args_list))
+        device.launch.assert_not_called()
+        device.shell.assert_not_called()
+
+    def test_timed_out_readiness_probe_cannot_pass_from_partial_stdout(self):
+        receipt, clock = {}, ReadinessClock()
+        device = Mock(spec=smoke.Device)
+        device.adb.side_effect = subprocess.TimeoutExpired(["adb"], 1, output=b"RUNNING_UNLOCKED", stderr=b"partial")
+        with patch.object(smoke.time, "monotonic", clock.monotonic), patch.object(smoke.time, "sleep", clock.sleep):
+            with self.assertRaises(smoke.SmokeFailure):
+                smoke.wait_for_guest_ready(device, receipt, 1)
+        state = receipt["guest_readiness"]
+        self.assertFalse(state["ready"])
+        self.assertEqual(1, state["last_checks"]["user_state"]["command_timeout_seconds"])
+        self.assertEqual("RUNNING_UNLOCKED", state["last_checks"]["user_state"]["stdout_tail"])
+
+    def test_readiness_rejects_unverified_target_and_never_uses_truncated_output(self):
+        device = Mock(spec=smoke.Device)
+        device.verify_identity.side_effect = smoke.SmokeFailure("Different owned target")
+        receipt = {}
+        with self.assertRaisesRegex(smoke.SmokeFailure, "Different owned target"):
+            smoke.wait_for_guest_ready(device, receipt)
+        self.assertFalse(receipt["guest_readiness"]["ready"])
+        device.adb.assert_not_called()
+        device.verify_identity.side_effect = None
+        device.adb.return_value = subprocess.CompletedProcess([], 0, "x" * 3000 + "RUNNING_UNLOCKED", "")
+        clock = ReadinessClock()
+        with patch.object(smoke.time, "monotonic", clock.monotonic), patch.object(smoke.time, "sleep", clock.sleep):
+            with self.assertRaises(smoke.SmokeFailure):
+                smoke.wait_for_guest_ready(device, receipt, 1)
+        observed = receipt["guest_readiness"]["last_checks"]["user_state"]
+        self.assertTrue(observed["output_truncated"])
+        self.assertEqual(1200, len(observed["stdout_tail"]))
+
+    def test_guest_readiness_cannot_acknowledge_a_complete_snapshot_after_its_deadline(self):
+        receipt, clock = {}, ReadinessClock()
+        device = Mock(spec=smoke.Device)
+        answers = iter(smoke.GUEST_READINESS_COMMANDS)
+
+        def answer(*args, **kwargs):
+            name, _, expected = next(answers)
+            if name == smoke.GUEST_READINESS_COMMANDS[-1][0]:
+                clock.now = 2
+            return subprocess.CompletedProcess([], 0, expected[-1], "")
+
+        device.adb.side_effect = answer
+        with patch.object(smoke.time, "monotonic", clock.monotonic), patch.object(smoke.time, "sleep", clock.sleep):
+            with self.assertRaises(smoke.SmokeFailure):
+                smoke.wait_for_guest_ready(device, receipt, 1)
+        self.assertTrue(smoke.guest_readiness_checks_pass(receipt["guest_readiness"]["last_checks"]))
+        self.assertFalse(receipt["guest_readiness"]["ready"])
+
     def test_software_mode_is_explicit_and_never_uses_kvm_or_changes_host_access(self):
         with patch.dict(os.environ, {"PYAI_EMULATOR_MODE": "software"}), \
                 patch.object(smoke, "check_kvm_access") as kvm, \
@@ -270,11 +415,14 @@ class EmulatorSmokeGuardTest(unittest.TestCase):
     def test_incomplete_or_differently_scoped_receipts_fail(self):
         receipt = {"source_commit": "a" * 40, "scope": "owned-installed-aosp-emulator", "status": "passed",
                    "unsigned_apk_unchanged": True,
+                   "guest_readiness": {"ready": True, "last_checks": ready_checks()},
                    "cases": [{"id": name, "status": "passed"} for name in smoke.CASE_IDS]}
         smoke.complete_receipt(receipt, "a" * 40)
         invalid = []
         for key, value in (("source_commit", "b" * 40), ("scope", "simulated"),
-                           ("status", "failed"), ("unsigned_apk_unchanged", False)):
+                           ("status", "failed"), ("unsigned_apk_unchanged", False),
+                           ("guest_readiness", None), ("guest_readiness", {"ready": True}),
+                           ("guest_readiness", {"ready": False, "last_checks": ready_checks()})):
             changed = copy.deepcopy(receipt)
             changed[key] = value
             invalid.append(changed)
@@ -282,6 +430,9 @@ class EmulatorSmokeGuardTest(unittest.TestCase):
         missing["cases"].pop()
         duplicate["cases"][1] = duplicate["cases"][0]
         skipped["cases"][2]["status"] = "not_run"
+        changed = copy.deepcopy(receipt)
+        changed["guest_readiness"]["last_checks"]["user_state"]["stdout_tail"] = "RUNNING_LOCKED"
+        invalid.append(changed)
         for changed in invalid + [missing, duplicate, skipped]:
             with self.assertRaises(smoke.SmokeFailure):
                 smoke.complete_receipt(changed, "a" * 40)
