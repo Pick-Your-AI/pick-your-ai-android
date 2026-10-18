@@ -1,6 +1,8 @@
 package ai.pickyour.core.invalidation
 
-import com.fasterxml.jackson.databind.ObjectMapper
+import ai.pickyour.core.contracts.DependencyActivation
+import ai.pickyour.core.contracts.DependencyGraphDecoding
+import ai.pickyour.core.contracts.DependencyGraphDecoder
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 
@@ -87,14 +89,54 @@ class DependencyInvalidationTest {
 
     @Test
     fun `frozen graph has stable model neighbours and all changed kinds stay distinct`() {
-        val graph = ObjectMapper().readTree(javaClass.getResourceAsStream("/contracts/v1/examples/dependency-graph.json"))
-        val edges = graph["edges"].map {
-            InvalidationEdge(it["id"].asText(), it["dependent_kind"].asText(), it["depends_on_kind"].asText(), EdgeActivation.valueOf(it["activation"].asText().uppercase()))
+        val graph = requireNotNull(javaClass.getResourceAsStream("/contracts/v1/examples/dependency-graph.json")).use {
+            (DependencyGraphDecoder().decode(it) as DependencyGraphDecoding.Decoded).graph
         }
         val ctx = context(mode = DeploymentMode.API)
-        val actual = result(edges, setOf("model"), ctx)
+        val actual = DependencyInvalidation.affectedByChange(graph, setOf("model"), ctx, ctx)
         assertEquals(listOf("context_policy", "cost_policy", "deployment_mode", "deployment_target", "evaluation_suite", "guardrail", "model_provider", "monitoring_stack"), actual.affectedKinds)
         assertEquals(listOf("model"), actual.changedKinds)
-        assertEquals(actual, result(edges.reversed(), setOf("model"), ctx))
+        val reopened = (DependencyGraphDecoder().decode(graph.json.byteInputStream()) as DependencyGraphDecoding.Decoded).graph
+        assertEquals(actual, DependencyInvalidation.affectedByChange(reopened, setOf("model"), ctx, ctx))
+    }
+
+    @Test
+    fun `decoded activation labels retain the existing before and after truth table`() {
+        val inactive = context(mode = DeploymentMode.API, production = false)
+        val active = context("rag_pipeline", "agent_framework", "training_dataset", "model", "accelerator",
+            mode = DeploymentMode.HYBRID, production = true)
+        for (activation in DependencyActivation.entries) {
+            val input = """{"schema_version":"1.0.0","id":"graph.synthetic","revision":1,"edges":[
+                {"id":"edge.synthetic","dependent_kind":"accelerator","depends_on_kind":"model",
+                 "relationship":"informs","activation":"${activation.encoded}","rationale":"Synthetic mapping control"}]}"""
+            val graph = (DependencyGraphDecoder().decode(input.byteInputStream()) as DependencyGraphDecoding.Decoded).graph
+            for ((before, after) in listOf(inactive to active, active to inactive, active to active)) {
+                val actual = DependencyInvalidation.affectedByChange(graph, setOf("model"), before, after)
+                assertEquals(listOf("accelerator"), actual.affectedKinds, activation.encoded)
+                assertEquals(listOf("selection.accelerator", "selection.model"), actual.selectionIdsToRecheck, activation.encoded)
+            }
+            val inactiveResult = DependencyInvalidation.affectedByChange(graph, setOf("model"), inactive, inactive)
+            assertEquals(activation == DependencyActivation.ALWAYS, inactiveResult.affectedKinds.isNotEmpty(), activation.encoded)
+        }
+    }
+
+    @Test
+    fun `decoded cycles keep direct adjacency and disabled identities without changing the graph`() {
+        val input = """{"schema_version":"1.0.0","id":"graph.synthetic","revision":1,"edges":[
+            {"id":"edge.a","dependent_kind":"model","depends_on_kind":"accelerator","relationship":"requires","activation":"always","rationale":"a"},
+            {"id":"edge.a","dependent_kind":"accelerator","depends_on_kind":"model","relationship":"produces","activation":"if_selected","rationale":"b"},
+            {"id":"edge.c","dependent_kind":"storage","depends_on_kind":"accelerator","relationship":"informs","activation":"always","rationale":"c"}]}"""
+        val graph = (DependencyGraphDecoder().decode(input.byteInputStream()) as DependencyGraphDecoding.Decoded).graph
+        val before = InvalidationContext(listOf(InvalidationSelection("old.model", "model"),
+            InvalidationSelection("accelerator", "accelerator"), InvalidationSelection("storage", "storage")))
+        val after = InvalidationContext(listOf(InvalidationSelection("new.model", "model", false),
+            InvalidationSelection("accelerator", "accelerator"), InvalidationSelection("storage", "storage")))
+        val retained = graph.json
+        val result = DependencyInvalidation.affectedByChange(graph, setOf("model"), before, after)
+        assertEquals(listOf("accelerator"), result.affectedKinds)
+        assertEquals(listOf("accelerator", "new.model", "old.model"), result.selectionIdsToRecheck)
+        assertEquals(listOf("edge.a"), result.viaEdgeIds)
+        assertEquals(retained, graph.json)
+        assertEquals(3, graph.edges.size)
     }
 }
