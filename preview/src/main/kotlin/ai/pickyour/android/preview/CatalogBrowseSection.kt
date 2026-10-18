@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.view.View
 import android.widget.Button
 import android.widget.LinearLayout
+import android.widget.ScrollView
 import android.widget.TextView
 import ai.pickyour.core.preview.*
 
@@ -28,6 +29,7 @@ class CatalogBrowseSection(
     private var browser: PreviewCatalogBrowser? = null
     private var selectable = false
     private var closed = false
+    private val viewport = CatalogViewport(savedState?.takeUnless { resetState }) { active() }
     private val tier: Button
     private val kind: Button
     private val sort: Button
@@ -47,14 +49,18 @@ class CatalogBrowseSection(
         results = LinearLayout(activity).apply { orientation = VERTICAL }.also(::addView)
         previous = Button(activity).apply {
             setText(R.string.catalog_previous)
-            setOnClickListener { if (active() && state.page > 0) { state = state.copy(page = state.page - 1); render() } }
+            setOnClickListener { if (active() && state.page > 0) {
+                viewport.cancel(); state = state.copy(page = state.page - 1); render()
+            } }
         }.also(::addView)
         next = Button(activity).apply {
             setText(R.string.catalog_next)
             setOnClickListener {
                 if (!active()) return@setOnClickListener
                 val page = browser?.browse(state)
-                if (page != null && page.page + 1 < page.pages) { state = state.copy(page = page.page + 1); render() }
+                if (page != null && page.page + 1 < page.pages) {
+                    viewport.cancel(); state = state.copy(page = page.page + 1); render()
+                }
             }
         }.also(::addView)
         render()
@@ -63,7 +69,10 @@ class CatalogBrowseSection(
     private fun active() = !closed && !activity.isDestroyed && !activity.isFinishing
 
     /** Destruction is terminal even if an editor or dialog retains one of this instance's callbacks. */
-    fun close() { closed = true; selectable = false }
+    fun close() { closed = true; selectable = false; viewport.close() }
+
+    fun attachViewport(scroll: ScrollView) { if (active()) viewport.attach(scroll) }
+    fun cancelViewportRestore() { viewport.cancel() }
 
     fun show(value: PreviewCatalogBrowser) {
         if (!active()) return
@@ -79,6 +88,7 @@ class CatalogBrowseSection(
 
     fun search(query: String) {
         if (!active() || query == state.query) return
+        viewport.cancel()
         state = state.copy(query = query, page = 0)
         render()
     }
@@ -87,6 +97,7 @@ class CatalogBrowseSection(
         if (!active()) return
         selectable = value
         for (index in 0 until results.childCount) results.getChildAt(index).isEnabled = value
+        viewport.ready(value)
     }
 
     fun contains(item: PreviewCatalogItem, hash: String) = active() && browser?.contains(item, hash) == true
@@ -98,6 +109,7 @@ class CatalogBrowseSection(
         ?.items?.singleOrNull { it.id == id && it.version == version }?.name
 
     fun saveState(out: Bundle) {
+        viewport.save(out)
         out.putString("catalogQuery", state.query)
         out.putString("catalogTier", state.tier)
         out.putString("catalogKind", state.kind)
@@ -112,6 +124,7 @@ class CatalogBrowseSection(
         AlertDialog.Builder(activity).setTitle(R.string.catalog_tier_title)
             .setItems(values.map { it ?: activity.getString(R.string.catalog_all_tiers) }.toTypedArray()) { picker, index ->
                 if ((picker as? AlertDialog)?.isShowing != true || !active()) return@setItems
+                viewport.cancel()
                 state = state.copy(tier = values[index], page = 0)
                 render()
             }.setNegativeButton(R.string.close, null).show()
@@ -125,6 +138,7 @@ class CatalogBrowseSection(
             .setItems(values.map { it?.let { entry -> "${entry.tier} · ${entry.id}" }
                 ?: activity.getString(R.string.catalog_all_kinds) }.toTypedArray()) { picker, index ->
                 if ((picker as? AlertDialog)?.isShowing != true || !active()) return@setItems
+                viewport.cancel()
                 state = state.copy(kind = values[index]?.id, page = 0)
                 render()
             }.setNegativeButton(R.string.close, null).show()
@@ -136,6 +150,7 @@ class CatalogBrowseSection(
         AlertDialog.Builder(activity).setTitle(R.string.catalog_sort_title)
             .setItems(values.map(::sortName).toTypedArray()) { picker, index ->
                 if ((picker as? AlertDialog)?.isShowing != true || !active()) return@setItems
+                viewport.cancel()
                 state = state.copy(sort = values[index], page = 0)
                 render()
             }.setNegativeButton(R.string.close, null).show()
@@ -156,14 +171,20 @@ class CatalogBrowseSection(
         val page = current?.browse(state)
         if (page != null && page.page != state.page) state = state.copy(page = page.page)
         results.removeAllViews()
+        val rows = mutableListOf<Pair<PreviewCatalogItem, View>>()
         if (current != null && page != null) page.items.forEach { item ->
-            results.addView(Button(activity).apply {
+            val row = Button(activity).apply {
                 text = activity.getString(R.string.item_button, item.name, item.kind)
                 isEnabled = selectable
                 setOnClickListener {
-                    if (active() && selectable && browser === current) openDetails(item, current.hash)
+                    if (active() && selectable && browser === current) {
+                        viewport.cancel()
+                        openDetails(item, current.hash)
+                    }
                 }
-            })
+            }
+            results.addView(row)
+            rows.add(item to row)
         }
         val message = when {
             page == null -> activity.getString(R.string.catalog_browse_waiting)
@@ -178,5 +199,6 @@ class CatalogBrowseSection(
         ).joinToString("\n")
         previous.isEnabled = page != null && page.page > 0
         next.isEnabled = page != null && page.page + 1 < page.pages
+        viewport.render(current?.hash, rows)
     }
 }
