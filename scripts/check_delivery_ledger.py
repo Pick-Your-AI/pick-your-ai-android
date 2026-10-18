@@ -6,6 +6,7 @@ Read-only: never calls GitHub, changes issue state, or interprets checks as acce
 import argparse
 import hashlib
 import json
+import math
 from pathlib import Path
 import re
 import sys
@@ -181,6 +182,73 @@ REVIEWED_DESIGNS[47] = {
 }
 
 
+# Signed #347 delivers the hosting and shared-service decision with its explicit
+# open operating gate. It does not accept a live operator, endpoint or restore.
+DESIGN_35_REVISION = '4c753bd69f3857d9b15051be86078948e61074ac'
+DESIGN_35_PATH = 'docs/delivery/android/work-packages/01.04.md'
+DESIGN_35_DECISION = f'{BASE}/blob/{DESIGN_35_REVISION}/docs/decisions/0005-android-35-acceptance-record.md'
+DESIGN_35_ACCEPTANCE = {
+    'scope': 'android_service_hosting_and_explicit_operating_gate_decision',
+    'evidence_ref': 'pr-347',
+    'decision_revision': DESIGN_35_REVISION,
+    'decision_url': DESIGN_35_DECISION,
+    'record_url': f'{BASE}/blob/{DESIGN_35_REVISION}/{DESIGN_35_PATH}',
+    'baseline_url': f'{BASE}/blob/{DESIGN_35_REVISION}/docs/SERVICE_BASELINE.md',
+    'receiving_reviews': [
+        f'{BASE}/pull/344#pullrequestreview-5563320716',
+        f'{BASE}/pull/344#pullrequestreview-5563316183',
+        f'{BASE}/pull/351#pullrequestreview-5563388193',
+        f'{BASE}/pull/347#pullrequestreview-5563464371',
+    ],
+    'source_review_revision': '0a04903a89203ac199617fe3051453e0c5a997a6',
+    'historical_acceptance_record': {
+        'repository': 'Pick-Your-AI/pickyour.ai', 'path': DESIGN_35_PATH,
+    },
+}
+REVIEWED_DESIGNS[35] = {
+    'record': {'repository': REPOSITORY, 'path': DESIGN_35_PATH},
+    'acceptance': DESIGN_35_ACCEPTANCE,
+    'criteria': [
+        '2c4f0e64a78baf55954f341e6dbdcf2d4719512f928bb3d808e542116a771475',
+        'aae1f0146dc5a4bfd7d9c2840990b7e9441b57f4a56efefa601fa085442e5a57',
+        '69ca9177c58548856a51c8e1fda18e251452a17f00613cfed158f9e0699bb8fe',
+    ],
+    'artifact_url': DESIGN_35_DECISION,
+}
+
+
+# The 122 other number/repository/path coordinates are unchanged from the
+# original 8162a557 ledger through accepted v6 ae61cfcb16eefe96e058b044deba833dac27d3ae:
+# https://github.com/Pick-Your-AI/pick-your-ai-android/blob/ae61cfcb16eefe96e058b044deba833dac27d3ae/docs/delivery/criterion-evidence.json
+# Hash the ordered ordinary-coordinate list with sorted JSON keys and compact
+# separators. The seven separately reviewed amendments above keep their exact
+# source-defined receipts; another placement requires deliberate source review.
+ORDINARY_RECORD_COORDINATES_SHA256 = '5ec59e66e2d0727bda908441725f25bda6cc2ece3f3a4fc27f7082e75e262bc4'
+
+
+def read_json(path):
+    """Read one unambiguous JSON value without accepting non-finite numbers."""
+    def unique_members(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError('duplicate JSON member')
+            result[key] = value
+        return result
+
+    def reject_constant(_value):
+        raise ValueError('non-finite JSON number')
+
+    def finite_float(value):
+        parsed = float(value)
+        if not math.isfinite(parsed):
+            raise ValueError('non-finite JSON number')
+        return parsed
+
+    return json.loads(path.read_text(encoding='utf-8'), object_pairs_hook=unique_members,
+                      parse_constant=reject_constant, parse_float=finite_float)
+
+
 def require(condition, message):
     if not condition:
         raise ValueError(message)
@@ -193,7 +261,7 @@ def source_criteria(body):
 
 
 def validate(ledger, source=None):
-    require(type(ledger['schema_version']) is int and ledger['schema_version'] == 5, 'unsupported schema version')
+    require(type(ledger['schema_version']) is int and ledger['schema_version'] == 6, 'unsupported schema version')
     require(ledger['repository'] == REPOSITORY, 'wrong repository')
     evidence = ledger['evidence']
     require(bool(evidence), 'missing evidence catalog')
@@ -273,6 +341,17 @@ def validate(ledger, source=None):
             paths = re.findall(r'`(docs/delivery/android/[^`\n]+\.md)`', original['body'])
             require(record['path'] in paths, f'live acceptance path differs: {number}')
 
+    ordinary_coordinates = [
+        {'number': issue['number'],
+         'repository': issue['canonical_acceptance_record']['repository'],
+         'path': issue['canonical_acceptance_record']['path']}
+        for issue in issues if issue['number'] not in REVIEWED_DESIGNS
+    ]
+    coordinate_bytes = json.dumps(ordinary_coordinates, sort_keys=True,
+                                  separators=(',', ':')).encode('utf-8')
+    require(hashlib.sha256(coordinate_bytes).hexdigest() == ORDINARY_RECORD_COORDINATES_SHA256,
+            'unreviewed acceptance coordinates; reconcile placement explicitly')
+
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
@@ -280,12 +359,12 @@ def main():
     parser.add_argument('--issues', type=Path, help='fresh gh issue list --state all JSON for authoritative text/path comparison')
     args = parser.parse_args()
     try:
-        source = json.loads(args.issues.read_text()) if args.issues else None
-        validate(json.loads(args.ledger.read_text()), source)
+        source = read_json(args.issues) if args.issues else None
+        validate(read_json(args.ledger), source)
     except (OSError, ValueError, KeyError, TypeError) as error:
         print(f'Delivery ledger check failed: {error}', file=sys.stderr)
         return 1
-    print('PASS: 129 unique issue URLs, 423 incomplete criteria, 18 reviewed design criteria, pinned evidence and canonical paths' +
+    print('PASS: 129 unique issue URLs, 420 incomplete criteria, 21 reviewed design criteria, pinned evidence and canonical paths' +
           ('; exact source criteria matched.' if source is not None else '; live source comparison NOT performed.'))
     return 0
 

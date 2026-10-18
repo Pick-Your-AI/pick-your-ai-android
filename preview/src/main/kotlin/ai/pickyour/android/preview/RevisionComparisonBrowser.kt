@@ -11,13 +11,20 @@ import android.widget.TextView
 import ai.pickyour.core.preview.PreviewComparedValue
 import ai.pickyour.core.preview.PreviewComparedValueKind
 import ai.pickyour.core.preview.PreviewRevisionComparison
+import ai.pickyour.core.preview.PreviewLibraryComparison
+import ai.pickyour.core.preview.PreviewLibraryRevision
 
 /** All changes and literal parts from one captured local comparison; never reads or writes a draft. */
-internal class RevisionComparisonBrowser(
+internal class RevisionComparisonBrowser private constructor(
     private val activity: Activity,
     private val comparison: PreviewRevisionComparison,
     private val isCurrent: () -> Boolean,
+    private val libraryComparison: PreviewLibraryComparison?,
 ) {
+    constructor(activity: Activity, comparison: PreviewRevisionComparison, isCurrent: () -> Boolean) :
+        this(activity, comparison, isCurrent, null)
+    constructor(activity: Activity, comparison: PreviewLibraryComparison, isCurrent: () -> Boolean) :
+        this(activity, comparison.comparison, isCurrent, comparison)
     private var currentDialog: AlertDialog? = null
     private var retired = false
 
@@ -61,7 +68,8 @@ internal class RevisionComparisonBrowser(
         val start = page * PAGE_SIZE
         val end = minOf(start + PAGE_SIZE, changes.size)
         present {
-            text(activity.getString(R.string.revision_compare_scope))
+            text(activity.getString(if (libraryComparison == null) R.string.revision_compare_scope
+                else R.string.library_compare_scope))
             text(activity.getString(R.string.revision_compare_page, page + 1, pages,
                 if (changes.isEmpty()) 0 else start + 1, end, changes.size))
             text(activity.getString(if (comparison.guestFieldsComparable) R.string.revision_compare_guest_known
@@ -146,6 +154,13 @@ internal class RevisionComparisonBrowser(
                 comparison.changes[index].field), heading = true)
         }
 
+        fun source(label: Int, source: PreviewLibraryRevision) {
+            text(activity.getString(label, source.draftId.value, source.revision.toString()), heading = true)
+            text(activity.getString(R.string.library_compare_saved_title, literal(source.fields?.title)))
+            text(activity.getString(R.string.library_compare_captured_history, source.capturedBaselineIdentity))
+            if (source.earlierHistoryUnavailable) text(activity.getString(R.string.history_earlier_unavailable))
+        }
+
         fun action(label: Int, command: () -> Unit) = action(activity.getString(label), command)
 
         fun action(label: String, command: () -> Unit) {
@@ -164,7 +179,13 @@ internal class RevisionComparisonBrowser(
         if (!current()) return
         val dialog = AlertDialog.Builder(activity).create()
         val page = Page(dialog)
-        page.text(activity.getString(R.string.revision_compare_title, comparison.from.toString(), comparison.to.toString()), heading = true)
+        if (libraryComparison == null) {
+            page.text(activity.getString(R.string.revision_compare_title, comparison.from.toString(), comparison.to.toString()), heading = true)
+        } else {
+            page.text(activity.getString(R.string.library_compare_title), heading = true)
+            page.source(R.string.library_compare_before_source, libraryComparison.before)
+            page.source(R.string.library_compare_after_source, libraryComparison.after)
+        }
         page.render()
         dialog.setView(ScrollView(activity).apply { addView(page.content) })
         val previous = currentDialog
