@@ -9,7 +9,10 @@ explicitly unanswered until entered. Counts use arbitrary-precision integers, bu
 retains its exact decimal spelling, and budget may precede currency. Field bounds
 align with existing frozen `Build.objectives`; no complete build or placement
 verdict is inferred. See [local storage and migrations](LOCAL_DRAFT_STORAGE.md). Opaque local selections/settings are not
-asserted to be accepted catalog references or contract extensions.
+asserted to be accepted catalog references or contract extensions. A separate
+[typed local selection/link aggregate](TYPED_LOCAL_SELECTIONS.md) retains frozen
+schema-valid payloads without inferring them from these legacy inputs. It can
+remain empty and establishes no compatibility or complete-build verdict.
 
 T3, T4 and T5 activate independently. Disabling a tier preserves its selections and
 settings, while removing it from the active optional-selection projection. Unknown
