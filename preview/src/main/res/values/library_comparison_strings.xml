@@ -1,0 +1,26 @@
+<resources>
+    <string name="library_compare_open">Compare saved local drafts</string>
+    <string name="library_compare_title">Saved local draft comparison</string>
+    <string name="library_compare_loading">Reading saved local drafts. Closing this view cancels the inspection.</string>
+    <string name="library_compare_choose_before">Choose before draft</string>
+    <string name="library_compare_choose_after">Choose after draft</string>
+    <string name="library_compare_choose_revision">Choose a retained revision in %1$s</string>
+    <string name="library_compare_pick_draft">Choose draft %1$s</string>
+    <string name="library_compare_pick_revision">Choose revision %1$s</string>
+    <string name="library_compare_before_source">Before: local draft %1$s · revision %2$s</string>
+    <string name="library_compare_after_source">After: local draft %1$s · revision %2$s</string>
+    <string name="library_compare_saved_title">Saved title at this revision: %1$s</string>
+    <string name="library_compare_current_title">Title in the captured saved head: %1$s</string>
+    <string name="library_compare_captured_history">Captured history identity: %1$s</string>
+    <string name="library_compare_choices">Page %1$d of %2$d · choices %3$d–%4$d of %5$d</string>
+    <string name="library_compare_next_choices">Next choices</string>
+    <string name="library_compare_previous_choices">Previous choices</string>
+    <string name="library_compare_back_drafts">Back to draft choices</string>
+    <string name="library_compare_change_before">Choose a different before source</string>
+    <string name="library_compare_unavailable">This local draft is missing, unreadable or being deleted. It cannot supply a saved revision.</string>
+    <string name="library_compare_failed">Saved local drafts could not be read. Close this view and try again.</string>
+    <string name="library_compare_source_unavailable">One selected source is unavailable. Close this view and choose both saved sources again.</string>
+    <string name="library_compare_preparing">Preparing the two explicitly selected saved revisions. Closing this view cancels the inspection.</string>
+    <string name="library_compare_capture_scope">Choose both local draft identities and retained revision numbers. This captured listing does not follow later edits or deletions. Pending edits in the active draft stay in the editor and are excluded.</string>
+    <string name="library_compare_scope">Read-only comparison of the two saved local drafts and retained revisions identified above, in before → after order. Either side may precede its saved head. This captured view does not follow later edits or deletions. Pending edits are excluded. Selections and links match only by exact local IDs; different IDs appear as removals and additions. Values are opaque editing inputs. No evaluation, price, report, evidence or equivalence between shared builds is inferred.</string>
+</resources>
