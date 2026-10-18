@@ -29,6 +29,13 @@ jobs:
         run: python -m pip install -r requirements-contracts.txt
       - name: Verify frozen import and reference conformance
         run: python scripts/check_contracts.py
+      - name: Verify versioned synthetic scenario data
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          python scripts/check_preview_scenarios.py
+          python -m unittest discover -s scripts/tests -p 'test_preview_scenarios.py' -v
+          python -O -m unittest discover -s scripts/tests -p 'test_preview_scenarios.py' -v
       - name: Prove tampering fails closed
         run: python -m unittest discover -s tests -v
       - name: Verify delivery evidence ledger
@@ -101,6 +108,33 @@ jobs:
           python -m unittest discover -s scripts/tests -p 'test_preview_policy.py'
           python scripts/check_preview_policy.py --aapt2 "$ANDROID_HOME/build-tools/35.0.0/aapt2"
           python scripts/check_preview_policy_guards.py --aapt2 "$ANDROID_HOME/build-tools/35.0.0/aapt2" --android-jar "$ANDROID_HOME/platforms/android-35/android.jar"
+      - name: Require synthetic scenario admission regressions to execute
+        run: |
+          python - <<'PYSCENARIOS'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          class_name = "ai.pickyour.android.preview.SyntheticScenarioDataTest"
+          report = pathlib.Path("preview/build/test-results/testDebugUnitTest") / f"TEST-{class_name}.xml"
+          suite = ET.parse(report).getroot()
+          expected = {
+              "allFiveSamplesRetainSyntheticVersionAndDistinctInputIdentity",
+              "emptySampleIsOnlyAnExpectedSchemaRejectionWithoutAnAcceptedBuildOrReport",
+              "allDiagnosticFieldsMatchActualFrozenPythonReferenceAndRetainUnknowns",
+              "coreSampleKeepsT6AndDisablesOnlyTheFourteenOptionalSelections",
+              "partialQuoteKeepsRecordedMoneyUnpricedAndUnclassifiedEvidenceSeparate",
+              "manifestVersionsMalformedBytesAndSelfDeclaredReplacementHashesCannotBeAdmitted",
+              "eachMissingChangedOrSwappedInputRejectsBeforeAnUnrelatedSampleCanSucceed",
+              "byteBudgetsFailClosedBeforeAnyFixtureEvaluation",
+              "acceptedResultCannotBeReboundByLaterCallerArrayOrMapMutation",
+              "deliveryPlansAreImmutableFiniteDefinitionsWithExplicitRetryAndNewerFirstOrder",
+          }
+          cases = suite.findall("testcase")
+          if suite.get("name") != class_name or len(cases) != len(expected) or {case.get("name") for case in cases} != expected:
+              raise SystemExit("Synthetic scenario reader cases are missing, duplicated or unexpected")
+          if any(case.get("classname") != class_name or any(case.find(tag) is not None for tag in ("failure", "error", "skipped")) for case in cases):
+              raise SystemExit("Synthetic scenario reader case did not execute and pass")
+          print(f"All {len(expected)} synthetic scenario reader cases executed and passed; no scenario UI or installed-device inference.")
+          PYSCENARIOS
       - name: Require all simulated UI regressions to execute
         run: |
           python - <<'PYTEST'
@@ -563,6 +597,33 @@ jobs:
           if int(suite.attrib["tests"]) != len(cases):
               raise SystemExit("Diagnostic preview result count does not match executed cases")
           print(f"Verified {len(cases)} simulated diagnostic preview tests; no installed or delivery claim")
+          PYTEST
+      - name: Require local help and public-report consent regressions to execute
+        run: |
+          python - <<'PYTEST'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          report = pathlib.Path("preview/build/test-results/testDebugUnitTest/TEST-ai.pickyour.android.preview.LocalHelpActivityTest.xml")
+          suite = ET.parse(report).getroot()
+          expected = {
+              "localHelpAndActualBrowserIntentExcludeSavedAndPendingPrivateContent",
+              "eachPublicDestinationRequiresReviewAndOnlyOneExplicitFixedUriDispatch",
+              "cancelledDismissedAndReplacedHelpAndDestinationCallbacksCannotNavigate",
+              "missingOrForbiddenBrowserRetainsSafeDestinationAndNeedsFreshReview",
+              "helpDiagnosticsReusesTheExistingPreviewWithoutSharingOrRetainedNavigation",
+              "pauseAndRecreationRetireBothHelpReviewLevelsAndOldEntryButtons",
+              "closedHelpOwnerCannotOpenDiagnosticsOrDispatchRetainedPublicControls",
+              "narrowRtlLargeTextHelpAndDestinationKeepCompleteReachableActions",
+          }
+          cases = suite.findall("testcase")
+          names = [case.attrib["name"] for case in cases]
+          if not expected <= set(names) or len(names) != len(set(names)):
+              raise SystemExit("Missing or repeated local help regression")
+          if any(case.findall("failure") or case.findall("error") or case.findall("skipped") for case in cases):
+              raise SystemExit("Local help regression did not pass")
+          if int(suite.attrib["tests"]) != len(cases):
+              raise SystemExit("Local help result count does not match executed cases")
+          print(f"Verified {len(cases)} simulated help tests; no browser, submission or triage claim")
           PYTEST
       - name: Require explicit retained-revision pair regressions to execute
         run: |
