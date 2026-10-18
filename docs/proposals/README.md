@@ -29,5 +29,6 @@ server implementation follows #35 and the canonical website service handoffs.
 Validation for this documentation package is `git diff --check`, relative-link and
 issue-reference checks, comparison of its acceptance tables with the captured live
 issue bodies, and review of the pinned source files. There is no Android build or
-device result to report. The public-page audit cannot replace authenticated checks
-of repository rules, complete native relationships, review state or branch gates.
+device result to report. The [audit follow-up](issues-snapshot.md#access-and-completion-limits) records the
+authenticated refresh and its remaining limits. Engineering documentation review
+does not substitute for the named receiving roles or establish application acceptance.

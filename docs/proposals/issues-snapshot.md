@@ -4,7 +4,7 @@ Snapshot observed 2026-10-18 UTC (2026-10-17 America/New_York). GitHub remains a
 
 All six public issue-list pages were read: 129 unique open issues, one program, 18 epics and 110 work packages. All 129 showed Backlog, no assigned actors, no comments, no linked pull requests, and no checked acceptance criteria. The 441 acceptance criteria were read from the live bodies. The Android pull-request listing showed no open PR and one closed PR; #130 was already merged into the inspected main commit `b6c05c5334dd01158a0d1e858abca749287567dd`.
 
-This table records prerequisite references from each issue body, not a verified reconstruction of the live native dependency graph. Public pages truncate some timeline connections; authenticated API/native-edge and full Project-field refresh are still required before mutations. No issues, checkboxes, assignments, Project fields or native links were changed.
+This table records prerequisite references from each issue body, not a verified reconstruction of the live native dependency graph. A subsequent authenticated refresh retrieved every open issue body and comment, all 129 Project items and all 19 Project fields. Every issue still has no comments or assignees. The #34 native prerequisite was verified as #24. The complete native dependency graph has not been independently reconstructed; this table remains explicitly body-derived. No issues, checkboxes, assignments, Project fields or native links were changed.
 
 Research guidance PR #111 was still open at inspection. Its pinned mobile guidance remains proposed, and its separate no-merge hold is not changed by this Android package. The accepted repository instructions remain in force.
 
@@ -150,6 +150,10 @@ Every row below remains open and requires its own acceptance evidence. A proposa
 
 ## Access and completion limits
 
-HTTPS Git reads and a no-write push dry run succeeded through the existing platform Git proxy. GitHub API calls to `api.github.com` failed at the network proxy with HTTP 403; authenticated PR creation, branch protection/rules, full native-relationship refresh and merge were therefore unavailable at this stage. `api.github.com` was added to the saved environment network draft while preserving existing custom destinations; saving that draft is not proof the running network changed. No new token was requested or extracted.
+The authenticated follow-up on 2026-10-18 succeeded for issues/comments, all branches, all PRs, Project items/fields, workflow runs and effective branch rules. The repository reported both branches unprotected, no repository rulesets and no effective rules on `main`. The dedicated branch-protection endpoint returned HTTP 403 (`Resource not accessible by integration`); that endpoint was not bypassed. There were no open PRs, workflow runs or checks on the proposal head at this refresh. Research guidance PR #111 remained open with no approving review.
+
+The existing proposal commit `2e8b4b128819920719d13b3c72f118572266b64b` has a locally valid SSH signature. GitHub reports `verified: false`, reason `no_user`; local cryptographic verification is not GitHub identity verification. No signing credential was created or registered during this follow-up.
+
+The current user mandate authorizes Android implementation, testing, signed commits, pushes, PR creation, review, merge after passing applicable gates, and checkout synchronization. Earlier statements about missing campaign authority are historical. That mandate does not fabricate receiving acceptance, source rights, publisher access, physical-device results or operational commitments. No changes outside Android, paid resources or new credentials are authorized.
 
 Remaining external acceptance includes actual reviewers/operating commitments, accepted source/contract handoffs, physical-device and accessibility evidence, publisher/signing/Play access, store review and installed production verification. No substitute evidence was created for these gates.
