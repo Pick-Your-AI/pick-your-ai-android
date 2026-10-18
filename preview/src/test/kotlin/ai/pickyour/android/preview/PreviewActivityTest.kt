@@ -423,4 +423,54 @@ class PreviewActivityTest {
         assertEquals("", field(R.string.catalog_search).text.toString())
         assertTrue(adapter().load() is PreviewDraftLoad.Missing)
     }
+
+    @Test fun destroyedFindingsIgnoreRetainedInspectBrowseAndPickerCallbacks() {
+        val retiredInspect = button(R.string.findings_inspect)
+        retiredInspect.performClick()
+        await { button(R.string.findings_browse).isEnabled }
+        val retiredBrowse = button(R.string.findings_browse)
+        val retiredOutput = views().filterIsInstance<TextView>().single {
+            it.text.toString().startsWith(activity.getString(R.string.findings_notice))
+        }
+        val before = retiredOutput.text.toString()
+        retiredBrowse.performClick()
+        val pendingPicker = dialog()
+        recreate()
+        await { button(R.string.save_draft).isEnabled }
+
+        // None of these callbacks may submit work or open a window for the destroyed owner.
+        retiredInspect.performClick()
+        shadowOf(pendingPicker).clickOnItem(0)
+        pendingPicker.dismiss()
+        retiredBrowse.performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertSame(pendingPicker, dialog())
+        assertFalse(pendingPicker.isShowing)
+        assertTrue(retiredInspect.isEnabled)
+        assertEquals(before, retiredOutput.text.toString())
+        assertFalse(button(R.string.findings_browse).isEnabled)
+        assertTrue(hasText(R.string.findings_notice))
+        assertTrue(adapter().load() is PreviewDraftLoad.Missing)
+    }
+
+    @Test fun destroyedCostIgnoresRetainedInspectControl() {
+        val retiredInspect = button(R.string.cost_inspect)
+        val retiredOutput = views().filterIsInstance<TextView>().single {
+            it.text.toString() == activity.getString(R.string.cost_fixture_notice)
+        }
+        retiredInspect.performClick()
+        await { retiredInspect.isEnabled && retiredOutput.text.toString() != activity.getString(R.string.cost_fixture_notice) }
+        val before = retiredOutput.text.toString()
+        recreate()
+        await { button(R.string.save_draft).isEnabled }
+
+        retiredInspect.performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertTrue(retiredInspect.isEnabled)
+        assertEquals(before, retiredOutput.text.toString())
+        assertTrue(hasText(R.string.cost_fixture_notice))
+        assertTrue(adapter().load() is PreviewDraftLoad.Missing)
+    }
 }
