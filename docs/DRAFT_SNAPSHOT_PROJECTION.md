@@ -1,5 +1,13 @@
 # Local draft to frozen Build candidate
 
+Current issue-level reconciliation is in the proposed
+[03.02 receiving record](delivery/android/work-packages/03.02.md), under
+[ADR 0007](decisions/0007-android-26-acceptance-record.md). The slice coverage and
+remaining-input statements below retain their original implementation scope and
+dated evidence; the receiving record separately maps the complete current model
+and its remaining delivery/review gates. This crosslink does not relabel an
+earlier run or close another work package.
+
 This is bounded implementation for
 [Android #26](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/26).
 It supplies a callable local conversion boundary in the existing Kotlin core and
