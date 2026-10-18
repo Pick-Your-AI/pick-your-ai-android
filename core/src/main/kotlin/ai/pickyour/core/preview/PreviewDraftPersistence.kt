@@ -78,6 +78,20 @@ class PreviewDraftPersistence(private val store: LocalDraftStore) {
         }
     }
 
+    /** New library identity; copy content/metadata, never source history or its save authority. */
+    internal fun copySavedSnapshot(source: PreviewStoredDraft): PreviewDraftSave =
+        when (val result = store.save(null, source.draft.content, source.draft.metadata + mapOf(
+            "preview.duplicateSourceId" to source.draft.version.store.fileName.toString(),
+            "preview.duplicateSourceRevision" to source.revision.toString(),
+            "preview.duplicateSourceHash" to source.draft.version.hash.hex,
+        ))) {
+            is DraftSave.Saved -> PreviewDraftSave.Saved(PreviewStoredDraft(result.draft, source.fields))
+            DraftSave.Conflict -> PreviewDraftSave.Conflict
+            is DraftSave.Failed -> PreviewDraftSave.Failed(result.reason)
+            is DraftSave.Uncertain -> PreviewDraftSave.Uncertain
+            DraftSave.UnknownRevision -> PreviewDraftSave.Failed(DraftStorageFailure.CORRUPT)
+        }
+
     private fun decode(draft: StoredDraft): PreviewDraftLoad {
         if (draft.metadata[FORMAT] != "1") return PreviewDraftLoad.Failed(DraftStorageFailure.UNSUPPORTED_VERSION)
         val title = draft.metadata[TITLE] ?: return PreviewDraftLoad.Failed(DraftStorageFailure.CORRUPT)
