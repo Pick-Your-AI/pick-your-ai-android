@@ -84,6 +84,7 @@ class PreviewComparedValue private constructor(val kind: PreviewComparedValueKin
                     '\r' -> append("\\r")
                     '\t' -> append("\\t")
                     else -> if (Character.isISOControl(char) || Character.isSurrogate(char) ||
+                        char == '\u2028' || char == '\u2029' ||
                         Character.getType(char) == Character.FORMAT.toInt())
                         append("\\u" + char.code.toString(16).padStart(4, '0')) else append(char)
                 }
