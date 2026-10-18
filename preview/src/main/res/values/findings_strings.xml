@@ -10,7 +10,7 @@
     <string name="findings_row">%1$s\nOutcome: %2$s · Severity: %3$s</string>
     <string name="findings_reason">Code: %1$s\nReported explanation: %2$s</string>
     <string name="findings_remediation">Reported remediation (not executed): %1$s</string>
-    <string name="findings_selections">Affected fixture selection IDs: %1$s\nSelection navigation is unavailable in this diagnostic.</string>
+    <string name="findings_selections">Affected fixture selection IDs: %1$s\nUse Selections to inspect the recorded role and item version from this report’s checked build.</string>
     <string name="findings_no_evidence">No evidence entries were supplied. Evidence correctness, freshness and provenance are unestablished.</string>
     <string name="findings_not_supplied">Not supplied</string>
     <string name="findings_evidence">Reported evidence path: %1$s\nObserved JSON: %2$s\nExpected JSON: %3$s\nReported source version: %4$s</string>
