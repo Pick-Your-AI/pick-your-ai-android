@@ -910,6 +910,139 @@ and the two unexecuted installed cases remain unexecuted. Passing producer
 artifacts for this tree contain 2,635 core and 222 simulated native cases with no
 failures/errors/skips; those results do not supply the missing installed cases.
 
+### Staged wheel pass and receiver rotation-state failure
+
+The wheel source reached a complete installed result in
+[run 39158610938](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39158610938).
+Its actual signed checkout `063b22df79a49e5836c854015b21888d71ae6425` and
+preparation `86b1faba1c33825fb71ec664c1f409f5ef596394` share tree
+`5c674a2ddea78ff94c79c22391c3f778ed95a48d`. All four installed cases passed,
+including both rotations and confirmed deletion without resurrection. The original
+installed artifact `12148168724` is 978,543 bytes with SHA-256
+`5f1fa5d045f01610c6116c6747e503efd1076beaebc468650387695435104b69`.
+Independent reviews inspected the original receipts, all eight XML/PNG pairs,
+the four producer artifacts and exact original ACL restoration. This is an
+emulator result on that source, separate from physical-device qualification.
+
+The ordinary reviewed squash of [#255](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/255)
+produced valid-signed `5c07715b3553023b02ee3ccf61d1886bc0245ae1`, retaining that
+exact tree. Its sole parent is `899e917842bc62aedd9040c9622c87d17e12f1cf`.
+The next receiver, [#237](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/237),
+then executed signed checkout `ef6fd60782dec344b9132f4cfbf33d603c80b654`, with
+ordered parents `14a89f088e477c2dff3c455a27994faf75d36f69` and `5c07715b`, and
+the same `5c674a2d` source tree. Its own
+[run 39161826073](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39161826073)
+failed the installed rotation case:
+
+| Mandatory case | Actual receiver result |
+| --- | --- |
+| Installed synthetic launch | Passed, 56.408 seconds |
+| Acknowledged save and force-stop/cold relaunch | Passed, 130.201 seconds; process 2301 replaced by 3614 |
+| Pending fields across both rotations | Failed, 57.421 seconds: `Emulator did not reach the requested rotation` |
+| Confirmed deletion without resurrection | `not_run` |
+
+The receiver's original installed artifact `12149815317` is 623,985 bytes with
+SHA-256 `4b73ad3e5d336e7c7119aff2a7fab0a115aa2e420a1190d03d63a2cc11a33ed3`.
+Boot completed in 28.474 seconds; all nine prerequisites, the complete positive
+barrier, fresh HOME/QSB hierarchy and exact HOME focus passed in 7.260 seconds.
+Both actual `am start -W` commands reported `Status: ok` and `LaunchState: COLD`,
+in 1.198 and 1.284 seconds. All 118 hierarchy dumps completed with exit 0.
+The failure XML and PNG still show the pending title/objective and unchanged
+context in portrait. They establish neither a landscape transition nor the
+unexecuted deletion case. The receiver's own producer originals separately
+contain 2,635 passing core cases, 222 simulated cases, strict inventories, both
+packaged-input negative guards, lint and the 91-commit zero-finding scanner.
+Its hosted core-job log separately records all 210 host methods passing.
+
+The complete retained Activity stack is 30,976 characters and is not truncated.
+It identifies the resumed, drawn and focused `PreviewActivity`, whose requested
+orientation is `SCREEN_ORIENTATION_UNSPECIFIED`. Its default `DisplayRotation`
+block reports current `mRotation=0`, requested `mUserRotation=ROTATION_90`, and
+`mUserRotationMode=USER_ROTATION_FREE`. All eight retained rotation-lock history
+entries from 20:18:36 through 20:18:50 name
+`UiAutomationConnection#restoreRotationStateLocked` restoring `FREE` with the
+stored 90-degree angle. The first writer or timing that established free mode
+is not retained. These observations show why an angle alone cannot establish a
+locked landscape state; they do not prove the origin of the free mode.
+
+ACL cleanup completed independently of the failed case. The original non-root
+UID/GID/groups and character-device identity stayed constant through all five
+observations. Cleanup admitted only the exact base ACL plus its sole redundant
+`rw-` mask, executed the fixed BASE restoration with exit 0 and verified subtree
+quiescence, then read back an observation exactly equal to the original one.
+The actor that removed the named entry remains unidentified. The wrapper retains
+child exit 1 and the original rotation failure; its receiving gate remains failed.
+The earlier `063b22df` pass remains a separate historical result.
+
+#### Explicit lock and observed rotation before a fresh capture
+
+The bounded correction changes `Ui.rotate` and adds a parser for the current
+default-display state. It makes one explicit owned-guest request,
+`wm user-rotation -d 0 lock N`, selecting both lock mode and the requested angle.
+Exit 0 alone does not establish the applied state. Before opening another
+UiAutomation connection, it reads the existing bounded
+`dumpsys -t 3 activity activities` observation and requires a single unambiguous
+default-display block with `USER_ROTATION_LOCKED`, the requested user angle,
+the same current rotation and no deferred rotation pause.
+
+Only then does it request a fresh hierarchy through the existing remove/dump/read
+path. Success still requires the requested XML rotation and positive visible
+owned-app nodes. A second complete state observation after capture must retain
+the same lock and current rotation. A new snapshot is required if an earlier
+fresh XML observation does not meet the existing rotation predicate; old XML is
+never reused. The request is issued once, without a repeated lock or a different
+orientation mechanism if state does not converge.
+
+The original 30-second rotation budget now covers the request, state observations,
+fresh capture and final state check together. Each new command receives at most
+five seconds and the remaining shared budget; the internal `dumpsys` timeout stays
+three seconds. Fresh capture uses its existing per-command caps clamped to that
+same remaining deadline. Ordinary incomplete state is polled with waits of at most
+0.25 seconds. Failed/noisy/malformed/ambiguous or internally timed-out queries,
+capture failures and results completing at or after the deadline remain failures.
+The four case bodies, selectors, app implementation, startup readiness, workflow,
+image/renderer/display pins, ACL boundary and owned cleanup are unchanged.
+
+The receipt retains each lock command, the first and last full state observations,
+the last observation after capture, and 16 compact state summaries per request.
+Full state stdout retention is capped at 65,536 decoded characters per retained
+observation; the shared command helper separately bounds decoded stream edges.
+There are at most eight recent requests plus the first failed request. Snapshot
+sequence and parsed-XML SHA-256 distinguish the tested hierarchy from the retained
+command text and original checkpoint files. These are retention limits; subprocess
+capture memory is not claimed to be streaming-bounded. Timeout/error observations
+and an earlier failed request survive later observations.
+
+Primary source checked on 2026-10-18 is Android 15 tag `android-15.0.0_r1`, resolving
+to framework commit `4e43ad12e1b211f15152e9c5b16b0fe88e6b93f3`:
+
+- [UiAutomationConnection](https://github.com/aosp-mirror/platform_frameworks_base/blob/4e43ad12e1b211f15152e9c5b16b0fe88e6b93f3/core/java/android/app/UiAutomationConnection.java)
+  stores frozen state and the current rotation when it connects, and restores that
+  frozen angle or thaws rotation when it disconnects.
+- [DisplayRotation](https://github.com/aosp-mirror/platform_frameworks_base/blob/4e43ad12e1b211f15152e9c5b16b0fe88e6b93f3/services/core/java/com/android/server/wm/DisplayRotation.java)
+  writes both system settings for a default-display lock; a settings observer
+  subsequently updates its internal mode/angle. Its dump prints the current
+  rotation, deferred pause count and user mode/angle used by the parser.
+- [WindowManagerShellCommand](https://github.com/aosp-mirror/platform_frameworks_base/blob/4e43ad12e1b211f15152e9c5b16b0fe88e6b93f3/services/core/java/com/android/server/wm/WindowManagerShellCommand.java)
+  implements the explicit display lock request. Its separate user-rotation query
+  reports requested user state, which does not by itself prove the current angle.
+- [WindowManagerService](https://github.com/aosp-mirror/platform_frameworks_base/blob/4e43ad12e1b211f15152e9c5b16b0fe88e6b93f3/services/core/java/com/android/server/wm/WindowManagerService.java)
+  and [DisplayContent](https://github.com/aosp-mirror/platform_frameworks_base/blob/4e43ad12e1b211f15152e9c5b16b0fe88e6b93f3/services/core/java/com/android/server/wm/DisplayContent.java)
+  bind UiAutomation's current-rotation query to the same `DisplayRotation` value.
+
+These sources establish the mechanism, without claiming exact system-image
+binary/source equivalence or reconstructing the first free-mode transition.
+Nineteen new host-only methods cover the observed free-mode mismatch, capture
+before an applied rotation, both directions, distinct fresh XML, post-capture
+reversion, malformed/foreign/duplicate state, nonpositive bounds, command failures,
+partial timeouts, deadline edges and bounded failure retention. The two actual
+unchanged-source witnesses fail against the original `Ui.rotate` and pass against
+the candidate using deterministic state interleavings. All 229 host methods pass
+locally, including the existing harmless process-lifecycle fixtures; no production
+ACL entry, SDK or Android device is invoked by this validation. Current-source
+independent review and a complete new installed receiving result remain required
+before normal staged delivery and separate current-main integration.
+
 ### Observed pre-installation SystemUI ANR and retained global ANR records
 
 Changed-source [run `39120315926`](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39120315926)

@@ -55,6 +55,9 @@ HOME_ROOT_ATTEMPT_LIMIT = 3
 HOME_ROOT_UNAVAILABLE = "ERROR: null root node returned by UiTestAutomationBridge.\n"
 UI_SCROLL_WHEEL_UNITS = 2
 UI_SCROLL_MAX_STEPS = 64
+UI_ROTATION_TIMEOUT_SECONDS = 30
+UI_ROTATION_STATE_TEXT_LIMIT = 65536
+ROTATION_STATE_QUERY = ("shell", "dumpsys", "-t", "3", "activity", "activities")
 GUEST_READINESS_COMMANDS = (
     ("boot_completed", ("getprop", "sys.boot_completed"), ("1",)),
     ("boot_animation", ("getprop", "init.svc.bootanim"), ("", "stopped")),
@@ -1048,6 +1051,46 @@ def establish_interactive_readiness(device: Device, readiness: dict, deadline: f
         state["seconds"] = round(time.monotonic() - started, 3)
 
 
+def default_display_rotation_state(text: str) -> dict | None:
+    """Read only the current DisplayRotation block for the owned default display."""
+    if not (isinstance(text, str) and len(text) <= UI_ROTATION_STATE_TEXT_LIMIT
+            and text.startswith("ACTIVITY MANAGER ACTIVITIES (dumpsys activity activities)\n")
+            and "DUMP TIMEOUT" not in text and "Error dumping service info:" not in text
+            and "\x00" not in text):
+        return None
+    headers = list(re.finditer(
+        r"(?m)^Display #(0|[1-9][0-9]*) \(activities from top to bottom\):$", text))
+    ids = [header.group(1) for header in headers]
+    if ids.count("0") != 1 or len(ids) != len(set(ids)):
+        return None
+    index = ids.index("0")
+    section = text[headers[index].end():headers[index + 1].start() if index + 1 < len(headers) else len(text)]
+    blocks = list(re.finditer(r"(?m)^  DisplayRotation$", section))
+    if len(blocks) != 1:
+        return None
+    section = section[blocks[0].end():]
+    end = re.search(r"(?m)^  [^ \n]", section)
+    if end is not None:
+        section = section[:end.start()]
+    current_lines = re.findall(r"(?m)^    mRotation=.*$", section)
+    requested_lines = re.findall(r"(?m)^    mUserRotationMode=.*$", section)
+    if len(current_lines) != 1 or len(requested_lines) != 1:
+        return None
+    current = re.fullmatch(
+        r"    mRotation=([0-3]) mDeferredRotationPauseCount=(0|[1-9][0-9]{0,9})", current_lines[0])
+    requested = re.fullmatch(
+        r"    mUserRotationMode=(USER_ROTATION_FREE|USER_ROTATION_LOCKED) "
+        r"mUserRotation=(ROTATION_0|ROTATION_90|ROTATION_180|ROTATION_270) "
+        r"mCameraRotationMode=[0-9]+ mAllowAllRotations=(?:true|false|unknown)", requested_lines[0])
+    if current is None or requested is None:
+        return None
+    rotation, paused = current.groups()
+    mode, requested_rotation = requested.groups()
+    return {"display_id": 0, "current_rotation": int(rotation), "deferred_pause_count": int(paused),
+            "user_rotation_mode": mode,
+            "user_rotation": ("ROTATION_0", "ROTATION_90", "ROTATION_180", "ROTATION_270").index(requested_rotation)}
+
+
 class Ui:
     def __init__(self, device: Device, output: Path, receipt: dict):
         self.device, self.output = device, output
@@ -1268,13 +1311,87 @@ class Ui:
         (self.output / (name + ".png")).write_bytes(result.stdout)
 
     def rotate(self, rotation: int):
-        self.device.shell("settings", "put", "system", "user_rotation", str(rotation))
-        deadline = time.monotonic() + 30
-        while time.monotonic() < deadline:
-            root = self.snapshot()
-            if root.get("rotation") == str(rotation) and any(visible(node) for node in root.iter("node")):
-                return
-        raise SmokeFailure("Emulator did not reach the requested rotation")
+        require(type(rotation) is int and rotation in (0, 1, 2, 3), "Invalid requested UI rotation")
+        rotations = self.observations.setdefault("rotations", {"attempted": 0, "recent_requests": []})
+        rotations["attempted"] += 1
+        attempt = {"sequence": rotations["attempted"], "requested_rotation": rotation,
+                   "timeout_seconds": UI_ROTATION_TIMEOUT_SECONDS, "status": "waiting",
+                   "state_probes": 0, "snapshots": 0, "recent_states": [], "lock_command": {}}
+        rotations["last_request"] = attempt
+        rotations["recent_requests"].append(attempt)
+        del rotations["recent_requests"][:-8]
+        started = time.monotonic()
+        deadline = started + UI_ROTATION_TIMEOUT_SECONDS
+
+        def observe_state(phase: str) -> dict:
+            attempt["state_probes"] += 1
+            probe = {"sequence": attempt["state_probes"], "phase": phase, "command": {}}
+            attempt.setdefault("first_state", probe)
+            attempt["last_state"] = probe
+            if phase == "after_capture":
+                attempt["last_post_capture_state"] = probe
+            try:
+                observe_interactive_command(self.device, ROTATION_STATE_QUERY, probe["command"],
+                                            timeout=command_budget(deadline, 5),
+                                            retained_limit=UI_ROTATION_STATE_TEXT_LIMIT)
+                require(interactive_command_passes(probe["command"], ROTATION_STATE_QUERY,
+                                                   UI_ROTATION_STATE_TEXT_LIMIT),
+                        "Rotation state query did not complete cleanly")
+                state = default_display_rotation_state(probe["command"]["stdout_tail"])
+                require(state is not None, "Missing or ambiguous default-display rotation state")
+                probe["state"] = state
+                require(time.monotonic() < deadline, "Rotation state query completed after its deadline")
+                return state
+            except Exception as error:
+                probe["error"] = {"type": type(error).__name__, "message": bounded_text(str(error), 1200)}
+                raise
+            finally:
+                observed = probe["command"]
+                attempt["recent_states"].append({
+                    "sequence": probe["sequence"], "phase": phase, "state": probe.get("state"),
+                    "error": probe.get("error"), "exit_code": observed.get("exit_code"),
+                    "seconds": observed.get("seconds"),
+                    "stdout_text_sha256": observed.get("stdout", {}).get("text_sha256"),
+                    "stdout_text_characters": observed.get("stdout", {}).get("text_characters")})
+                del attempt["recent_states"][:-16]
+
+        expected = {"display_id": 0, "current_rotation": rotation, "deferred_pause_count": 0,
+                    "user_rotation_mode": "USER_ROTATION_LOCKED", "user_rotation": rotation}
+        try:
+            # A stored angle does not select locked mode. Also wait for the
+            # current rotation before UiAutomation can save/restore that state.
+            locked = observe_ui_command(
+                self.device, ("shell", "wm", "user-rotation", "-d", "0", "lock", str(rotation)),
+                attempt["lock_command"], timeout=command_budget(deadline, 5))
+            require(type(locked.returncode) is int and locked.returncode == 0
+                    and isinstance(locked.stdout, str) and not locked.stdout.strip()
+                    and isinstance(locked.stderr, str) and not locked.stderr.strip(),
+                    "Owned default-display rotation lock did not complete cleanly")
+            while time.monotonic() < deadline:
+                if observe_state("before_capture") == expected:
+                    root = self.snapshot(deadline=deadline)
+                    attempt["snapshots"] += 1
+                    attempt["last_snapshot"] = {
+                        "sequence": self.observations["attempted"], "rotation": root.get("rotation"),
+                        "parsed_xml_sha256": hashlib.sha256(ET.tostring(root)).hexdigest(),
+                        "visible_owned_nodes": sum(visible(node) for node in root.iter("node"))}
+                    if (root.get("rotation") == str(rotation)
+                            and attempt["last_snapshot"]["visible_owned_nodes"] > 0
+                            and observe_state("after_capture") == expected
+                            and time.monotonic() < deadline):
+                        attempt["status"] = "passed"
+                        return
+                remaining = deadline - time.monotonic()
+                if remaining > 0:
+                    time.sleep(min(0.25, remaining))
+            raise SmokeFailure("Emulator did not reach the requested rotation")
+        except Exception as error:
+            attempt.update(status="failed", error={"type": type(error).__name__,
+                                                   "message": bounded_text(str(error), 1200)})
+            rotations.setdefault("first_failed_request", attempt)
+            raise
+        finally:
+            attempt["seconds"] = round(time.monotonic() - started, 3)
 
 
 @contextlib.contextmanager
