@@ -1,5 +1,9 @@
 # Opt-in synthetic Android diagnostic
 
+The [versioned synthetic scenario data](SYNTHETIC_PREVIEW_SCENARIOS.md) supplies
+#77's separate fixture foundation; its scenario screen and #58 adapter integration
+remain pending.
+
 The `preview` module is an engineering experiment using platform Android Views,
 not an approved product UI/framework, production package registration, support
 matrix or release policy. It browses the unmodified frozen-v1 `catalog.json` fixture and offers a guest title and one sample selection with explicit local save/reopen. A separate diagnostic validates the original

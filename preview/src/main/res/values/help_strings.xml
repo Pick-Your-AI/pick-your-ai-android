@@ -1,0 +1,32 @@
+<resources>
+    <item name="help_open" type="id" />
+    <item name="help_bug" type="id" />
+    <item name="help_evidence" type="id" />
+    <item name="help_existing" type="id" />
+    <item name="help_diagnostics" type="id" />
+    <item name="help_destination" type="id" />
+    <item name="help_external_open" type="id" />
+    <item name="help_external_outcome" type="id" />
+    <string name="help_open">Help and report a problem</string>
+    <string name="help_title">Help</string>
+    <string name="help_build">App version: %1$s (code %2$d)\nAndroid API: %3$d</string>
+    <string name="help_local_title">Local planning preview</string>
+    <string name="help_local">Your planning drafts are stored on this device. The bundled examples are synthetic and do not establish real compatibility, price, capacity or quality. The phone is the planning client; this preview does not run your AI stack. The original-fixture diagnostic checks the bundled example, not your edited draft.</string>
+    <string name="help_recovery_title">Save and recover carefully</string>
+    <string name="help_recovery">Use Save locally and wait for the saved acknowledgement. If saving is uncertain or a saved copy changed, keep your visible edits and review the status before acting. Reopen saved copy can replace unsaved edits; read its confirmation. Save pending edits as a new local draft can preserve an eligible pending form separately. If creation is unconfirmed, inspect the reported local ID in Manage local drafts before creating another copy. Retained versions keep their exact saved content and pins; opening an old version does not make its evidence current.</string>
+    <string name="help_reproduction_title">Prepare a safe reproduction</string>
+    <string name="help_reproduction">Use a new synthetic draft with invented text. Record the app version, Android API, the controls you used, what you expected and what happened. For an evidence correction, include only public source links and the affected public item/version or value. Do not share a private draft, personal information, credentials, raw files or logs. Review diagnostics shows the complete small report before you choose whether and where to share it.</string>
+    <string name="help_public_title">Public project reports</string>
+    <string name="help_public">GitHub issues are public. Use the app-bug form for reproducible app behavior or the evidence-correction form for a public claim, source or value. Check existing reports first. You choose what to enter and submit on GitHub; opening a page sends no draft or diagnostic report. This preview does not confirm submission, receipt or a support response.</string>
+    <string name="help_private_title">Private reporting unavailable</string>
+    <string name="help_private">No private reporting destination is verified for this preview. Keep confidential information, credentials and sensitive security details out of public issues and attachments. If a credential was exposed, revoke or rotate it with its issuer. GitHub controls govern removal of content posted there; editing a post does not guarantee removal of its history or other copies.</string>
+    <string name="help_delete_title">Deletion has a local scope</string>
+    <string name="help_delete">Manage local drafts lets you review and confirm deletion of a selected draft and its retained revisions. Interrupted cleanup requires Retry local cleanup. This removes local files, not copies shared through other apps or posted to GitHub, and does not claim secure erasure. Handle any external copy at its destination.</string>
+    <string name="help_bug">Report an app bug on GitHub</string>
+    <string name="help_evidence">Request an evidence correction on GitHub</string>
+    <string name="help_existing">Browse existing GitHub reports</string>
+    <string name="help_confirm_title">Public page</string>
+    <string name="help_external_disclosure">The destination below is a public GitHub page. Opening it sends no draft text, diagnostic report or attachment. You review and submit any report yourself on GitHub, which may require sign-in. Do not post private information or sensitive security details. Opening a browser is not a submission or a confirmed response.</string>
+    <string name="help_external_open">Open GitHub</string>
+    <string name="help_external_unavailable">The public page could not be opened. No report submission is confirmed. The destination remains shown here and local help remains available. Close this page and review the destination again before retrying.</string>
+</resources>
