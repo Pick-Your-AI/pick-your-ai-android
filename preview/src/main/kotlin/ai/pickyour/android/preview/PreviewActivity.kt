@@ -51,6 +51,7 @@ class PreviewActivity : Activity() {
     private var componentCatalog: ai.pickyour.core.drafts.SelectionCatalogSnapshot? = null
     private lateinit var catalog: CatalogBrowseSection
     private lateinit var catalogComparison: CatalogComparisonSection
+    private lateinit var catalogPinRecovery: CatalogPinRecovery
     private var catalogFixture: CatalogFixtureData? = null // UI-thread owned, replaced even when pricing is absent.
     // The origin remains current while its child inspection is open after parent dismissal.
     private var catalogDetailDialog: AlertDialog? = null
@@ -87,6 +88,7 @@ class PreviewActivity : Activity() {
                 retireRevisionInspection()
             }
             field = value
+            if (value && ::catalogPinRecovery.isInitialized) catalogPinRecovery.dismiss()
         }
     private var restoringFields = false
     private var restoration: PreviewDraftRestoration? = null
@@ -265,7 +267,13 @@ class PreviewActivity : Activity() {
         content.addView(catalogSearch)
         retry = Button(this).apply { setText(R.string.retry_catalog); setOnClickListener { loadCatalog() } }
         content.addView(retry)
-        catalogComparison = CatalogComparisonSection(this, savedInstanceState)
+        catalogPinRecovery = CatalogPinRecovery(this, worker) {
+            if (!destroyed) {
+                catalogSearch.requestFocus()
+                catalogSearch.requestRectangleOnScreen(android.graphics.Rect(0, 0, catalogSearch.width, catalogSearch.height), true)
+            }
+        }
+        catalogComparison = CatalogComparisonSection(this, savedInstanceState, ::showPinnedDetails, catalogPinRecovery::dismiss)
         content.addView(catalogComparison)
         catalog = CatalogBrowseSection(this, savedInstanceState, ::showDetails)
         content.addView(catalog)
@@ -366,6 +374,7 @@ class PreviewActivity : Activity() {
 
     private fun loadCatalog() {
         if (destroyed) return
+        catalogPinRecovery.dismiss()
         retry.isEnabled = false
         catalogStatus.setText(R.string.working)
         worker.execute {
@@ -394,6 +403,7 @@ class PreviewActivity : Activity() {
 
     private fun showDetails(item: PreviewCatalogItem, catalogHash: String) {
         if (destroyed) return
+        catalogPinRecovery.dismiss()
         catalogDetailDialog?.dismiss()
         catalogDetailDialog = null
         catalogPriceBrowser?.retire()
@@ -475,6 +485,19 @@ class PreviewActivity : Activity() {
         catalogDetailDialog = dialog
         dialog.window?.decorView?.layoutDirection = resources.configuration.layoutDirection
         dialog.show()
+    }
+
+    private fun showPinnedDetails(pin: PreviewCatalogPin, captured: PreviewCatalogBrowser?, originIsCurrent: () -> Boolean) {
+        if (destroyed || storageBusy || !originIsCurrent()) return
+        catalogDetailDialog?.dismiss()
+        catalogDetailDialog = null
+        catalogPriceBrowser?.retire()
+        catalogPriceBrowser = null
+        val baseline = savedRecord
+        val draftId = currentDraftId
+        catalogPinRecovery.open(pin, captured) {
+            !destroyed && !storageBusy && savedRecord === baseline && currentDraftId == draftId && originIsCurrent()
+        }
     }
 
     private fun showSelection() {
@@ -1242,6 +1265,7 @@ class PreviewActivity : Activity() {
     override fun onDestroy() {
         destroyed = true
         if (::diagnostics.isInitialized) diagnostics.close()
+        if (::catalogPinRecovery.isInitialized) catalogPinRecovery.close()
         catalogDetailDialog?.dismiss()
         catalogDetailDialog = null
         catalogPriceBrowser?.retire()
