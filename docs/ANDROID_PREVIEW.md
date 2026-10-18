@@ -275,3 +275,30 @@ unavailable metadata, no write while copying, new EDIT preservation, and concurr
 save rejection. Hosted unsigned Android build/lint is required on the final PR;
 installed history-dialog accessibility and rotation behavior remain unexecuted.
 This is partial #122 recovery presentation and closes no work-package acceptance.
+
+## Synthetic cost inspection
+
+The cost-inspection button loads the fixed frozen `build.json` and
+`cost-estimate.json` together on the worker and passes them through the canonical
+CostEstimateAdapter. This diagnostic is explicitly separate from the editable
+guest form. It never submits a current-draft analysis ticket or attaches fixture
+amounts to user selections. A current-draft consumer still requires coordinator
+revision/ticket invalidation before it can display asynchronous estimates.
+
+The view shows bound fixture build/revision/pricebook, declared period/currency,
+recorded time (not freshness), producer-declared coverage, exact declared subtotal,
+tax and sum, explicit unpriced selections and unclassified active selections. Each
+line exposes exact quantity, unit/line amounts, rate ID, meter, method, confidence
+and assumptions; warnings are preserved. Immutable line projections retain decimal
+lexemes without deriving quantities or rounding. Empty lists say none declared,
+which is not completeness evidence. Declared COMPLETE never becomes verified
+complete coverage. No total is called a complete stack price or a proven lower bound.
+
+Budget pass, freshness and free/included treatment remain unestablished, including
+zero recorded amounts. Supported ranges are not invented. Rejection/error clears
+old display content and establishes no amount/pass. Frozen adapter tests cover
+partial/unknown/complete, zero, mixed currency and revision mismatch; two additional
+projection tests cover immutable exact line evidence and zero-price non-attestation.
+Hosted Android compilation/lint and installed rendering/accessibility remain
+separate validation. This is partial #103 presentation, not approved pricing,
+real-data acceptance or completion of its budget-gate/delayed-response criteria.

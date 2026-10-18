@@ -17,6 +17,34 @@ class CostEstimateAdapterTest {
     private fun rejected(reason: CostRejection, e: ObjectNode, b: ObjectNode = fixture("build")) =
         assertEquals(CostReception.Rejected(reason), inspect(e, b))
 
+    @Test fun `line presentation preserves exact declared evidence in immutable projections`() {
+        val result = value()
+        val line = result.lines.first()
+        assertEquals("line.compute_profile.fixture", line.id)
+        assertEquals("sel_compute_profile", line.selectionId)
+        assertEquals("rate.compute_profile.fixture", line.rateId)
+        assertEquals("gpu_hour", line.meter)
+        assertEquals("720", line.quantity)
+        assertEquals("0.80", line.unitPrice.amount.encoded)
+        assertEquals("576.00", line.amount.amount.encoded)
+        assertEquals("USD", line.amount.currency)
+        assertEquals("workload_projection", line.method)
+        assertEquals("low", line.confidence)
+        assertTrue(line.assumptions.single().contains("FIXTURE ONLY"))
+        assertThrows(UnsupportedOperationException::class.java) { (result.lines as MutableList).clear() }
+        assertThrows(UnsupportedOperationException::class.java) { (line.assumptions as MutableList).clear() }
+        assertEquals("InspectedCostLine", line.toString())
+    }
+    @Test fun `zero declared line does not grant free included freshness or budget evidence`() {
+        val e = fixture("cost-estimate")
+        e["line_items"].forEach { (it["amount"] as ObjectNode).put("amount", "0.00") }
+        for (key in listOf("subtotal", "tax", "total")) (e[key] as ObjectNode).put("amount", "0.00")
+        val result = value(e)
+        assertEquals("0.00", result.lines.first().amount.amount.encoded)
+        assertEquals(CostEvidence.NOT_ESTABLISHED, result.freeOrIncludedTreatment)
+        assertEquals(CostEvidence.NOT_ESTABLISHED, result.freshness)
+        assertEquals(CostEvidence.NOT_ESTABLISHED, result.budgetPass)
+    }
     @Test fun `frozen fixture retains declared decimals but never attests budget freshness or free treatment`() {
         val result = value()
         assertEquals("578.50", result.reportedSubtotal.amount.encoded)
