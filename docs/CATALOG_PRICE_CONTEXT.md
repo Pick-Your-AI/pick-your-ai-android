@@ -54,8 +54,39 @@ hash, exact matching rate count, recorded amounts and all supplied pricing field
 The message displays at most eight rate records and eight conditions per record,
 with explicit displayed/retained counts. Long values carry a truncation label;
 control and format characters are escaped. The projection retains the complete
-bounded values and all alternatives. A fuller rate-inspection interface remains
-separate from this bounded fixture detail.
+bounded values and all alternatives.
+
+The explicit **Review all recorded prices** action opens the complete exact
+item/version group in its stored order, eight rates per page. Selecting a row
+inspects its metadata; it does not select an applicable rate for the draft.
+Previous/Next and Back controls retain the original rate index and page. Each
+rate exposes the full pricebook and catalog snapshot identity, revision, capture
+date and byte hash, followed by every recorded rate field, its separate
+unassessed evidence label, and every condition in its original order. Field pages
+also hold at most eight rows; conditions are read by index rather than copying
+the entire collection into dialog labels.
+
+Opening any field shows its complete value in numbered parts of at most 160 UTF-16
+code units before literal escaping. Controls, format characters and surrogate
+code units are escaped, so even a pair crossing a part boundary remains fully
+represented. Displayed quotes and part labels are presentation, not stored data.
+No value part is silently prefix-truncated. Empty text, literal `unknown`, absent
+fields and absent versus explicitly empty condition arrays remain distinct.
+Rate source URIs remain plain text in every part and have no navigation action.
+
+The price entry and accepted **Add to comparison** action share the dialog
+builder's themed context and a vertical custom title/header above the separately
+scrolling native message. The measured narrow large-text case showed that placing
+an action in a second custom content panel could leave it at zero height. The detail and
+browser dialogs apply the current RTL layout direction. The named native-graphics
+simulation checks that controls have at least 48dp targets and complete
+non-ellipsized labels for both entries at 320dp width and font scale 2. Native
+navigation buttons may stack in a scrollable bar; the test uses the normal
+rectangle-on-screen request and verifies each action fits every measured ancestor
+viewport. It also checks each rendered line's horizontal bounds inside the text
+viewport and the final character offset, so a non-ellipsized label cannot hide
+overflow. This is native layout and scroll behavior in a simulation, not installed
+screen evidence.
 
 No matching item/version and unreadable pricing have distinct visible recovery
 messages. Neither means zero cost. A missing region does not mean global; a
@@ -72,7 +103,20 @@ adapter does not automatically authorize or dispatch a rate's URI.
 Opening, cancelling, reloading or recreating this view does not save a draft,
 change a selection or pin, derive totals, or alter an evaluation. Retired detail
 callbacks retain the existing Activity, dialog, baseline and exact catalog
-authority guards.
+authority guards. The price entry dismisses its parent detail before presenting
+the browser, retiring all parent actions. Every rate, field, value-part and Back
+callback requires its own current visible dialog, the live Activity, unchanged
+storage baseline and draft ID, the exact catalog item/snapshot, and the same
+immutable paired catalog/pricebook load result captured at entry. A catalog retry
+retires the old price context even if the received bytes are identical or pricing
+is absent. Cancellation, snapshot
+replacement and Activity recreation cannot revive old callbacks or replace a
+newer dialog. Opening another actual detail permanently retires the previous
+browser instance and dismisses the previous parent detail even when their captured
+data is unchanged. The current parent object remains the origin of its child
+inspection after normal dismissal; a different parent invalidates retained source,
+comparison and price callbacks. Activity teardown dismisses the parent and retires
+its price browser. A fresh detail opens the newly loaded context.
 
 ## Evidence and policy boundaries
 
@@ -99,15 +143,21 @@ stream ownership and equivalence between stream/object candidate screening.
 The mandatory Activity regressions exercise actual compute/storage/model details,
 preserved draft baselines and pending state, unknown versus recorded zero,
 literal conditions and evidence, bounded alternatives, failed asset reads, retry,
-recreation and retired detail callbacks. The usual strict unsigned compilation,
+recreation and retired detail callbacks. A separate mandatory Activity report
+covers the complete browser: all exact alternatives and identity fields, every
+condition beyond the first page, complete long literal/decimal/source parts,
+unknown recovery and conservative labels, parent/page cancellation and authority
+changes, plus narrow RTL layouts with large text and measured control labels.
+The usual strict unsigned compilation,
 lint and simulated UI gate remain required with the core and frozen-reference
 checks. Simulated results supply no installed-device evidence.
 
 This is partial evidence for #97's price-context criterion and the pinned-input
 portion of [candidate screening](RATE_SCREENING.md). Accepted real pricebooks,
 structured eligibility, authenticated publication, current-state freshness,
-source rights, historical withdrawal/recovery, complete quote integration, full
-rate browsing and Android catalog/UX/data receiving review remain outstanding.
+source rights, historical withdrawal/recovery, complete quote integration and
+Android catalog/UX/data receiving review remain outstanding. Complete inspection
+of the retained fictional rate metadata supplies no acceptance for those gaps.
 The canonical #97 acceptance record remains
 `docs/delivery/android/work-packages/07.03.md` in `Pick-Your-AI/pickyour.ai`.
 No whole work package is closed by this source change.

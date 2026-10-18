@@ -2,6 +2,7 @@ package ai.pickyour.android.preview
 
 import android.app.Activity
 import android.app.AlertDialog
+import android.content.DialogInterface
 import android.os.Bundle
 import android.text.InputFilter
 import android.text.Editable
@@ -27,7 +28,6 @@ import ai.pickyour.core.contracts.FrozenValidation
 import java.util.concurrent.Executors
 import ai.pickyour.core.preview.SyntheticCatalogEvidence
 import ai.pickyour.core.evidence.EvidenceLabel
-import ai.pickyour.core.pricing.RecordedPricebook
 
 /** Guest preview over synthetic fixtures with explicit local save through the canonical store. */
 class PreviewActivity : Activity() {
@@ -46,8 +46,14 @@ class PreviewActivity : Activity() {
     private var domainContext = PreviewDraftContext()
     private var restoreContextFromDisk = false
     private lateinit var selection: TextView
+    private lateinit var componentSection: SelectionEditSection
+    private var componentCatalog: ai.pickyour.core.drafts.SelectionCatalogSnapshot? = null
     private lateinit var catalog: CatalogBrowseSection
-    private var catalogPricebook: RecordedPricebook? = null // UI-thread owned, replaced with each catalog load.
+    private lateinit var catalogComparison: CatalogComparisonSection
+    private var catalogFixture: CatalogFixtureData? = null // UI-thread owned, replaced even when pricing is absent.
+    // The origin remains current while its child inspection is open after parent dismissal.
+    private var catalogDetailDialog: AlertDialog? = null
+    private var catalogPriceBrowser: CatalogPriceBrowser? = null
     private lateinit var catalogStatus: TextView
     private lateinit var catalogSearch: EditText
     private lateinit var retry: Button
@@ -188,6 +194,8 @@ class PreviewActivity : Activity() {
                 setDraftActivation(expected, tier, activation)
         }
         content.addView(tierSection)
+        componentSection = SelectionEditSection(this, ::commitSelection)
+        content.addView(componentSection)
         title.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { formChanged() }
@@ -212,6 +220,8 @@ class PreviewActivity : Activity() {
         content.addView(catalogSearch)
         retry = Button(this).apply { setText(R.string.retry_catalog); setOnClickListener { loadCatalog() } }
         content.addView(retry)
+        catalogComparison = CatalogComparisonSection(this, savedInstanceState)
+        content.addView(catalogComparison)
         catalog = CatalogBrowseSection(this, savedInstanceState, ::showDetails)
         content.addView(catalog)
         catalog.search(catalogSearch.text.toString())
@@ -284,13 +294,22 @@ class PreviewActivity : Activity() {
         retry.isEnabled = false
         catalogStatus.setText(R.string.working)
         worker.execute {
-            val loaded = CatalogFixtureData.read(::readCatalogFixture) { assets.open("pricebook.json") }
+            var componentSnapshot: ai.pickyour.core.drafts.SelectionCatalogSnapshot? = null
+            val loaded = CatalogFixtureData.read({
+                readCatalogFixture().also {
+                    componentSnapshot = ai.pickyour.core.drafts.SelectionCatalogSnapshot.fromJson(it)
+                }
+            }) { assets.open("pricebook.json") }
+            val selectionSnapshot = componentSnapshot.takeIf { loaded.catalog != null }
             runOnUiThread {
                 if (!destroyed) {
-                    catalogPricebook = loaded.pricebook
+                    catalogFixture = loaded
                     retry.isEnabled = true
                     catalogStatus.setText(if (loaded.catalog == null) R.string.catalog_unavailable else R.string.catalog_ready)
+                    componentCatalog = selectionSnapshot
+                    componentSection.catalog(loaded.catalog?.items.orEmpty(), loaded.catalog?.hash)
                     if (loaded.catalog == null) catalog.unavailable() else catalog.show(loaded.catalog)
+                    catalogComparison.show(loaded.catalog, loaded.pricebook)
                     catalog.selectionEnabled(!storageBusy)
                     showSelection()
                 }
@@ -300,23 +319,75 @@ class PreviewActivity : Activity() {
 
     private fun showDetails(item: PreviewCatalogItem, catalogHash: String) {
         if (destroyed) return
+        catalogDetailDialog?.dismiss()
+        catalogDetailDialog = null
+        catalogPriceBrowser?.retire()
+        catalogPriceBrowser = null
         val baseline = savedRecord
         val draftId = currentDraftId
         val detail = catalog.details(item, catalogHash)
+        val priceContext = catalogFixture
+        val prices = priceContext?.pricebook
         lateinit var dialog: AlertDialog
-        dialog = AlertDialog.Builder(this)
+        val builder = AlertDialog.Builder(this)
+        // Keep actions above the independently scrolling message. A separate custom content panel
+        // can collapse to zero height when the native message also fills the dialog.
+        builder.setCustomTitle(LinearLayout(builder.context).apply {
+            orientation = LinearLayout.VERTICAL
+            val target = kotlin.math.ceil(48 * resources.displayMetrics.density.toDouble()).toInt()
+            val inset = kotlin.math.ceil(16 * resources.displayMetrics.density.toDouble()).toInt()
+            setPadding(inset, inset, inset, 0)
+            addView(TextView(builder.context).apply {
+                text = item.name
+                setTextAppearance(android.R.style.TextAppearance_Material_Title)
+                maxLines = 2
+                ellipsize = android.text.TextUtils.TruncateAt.END
+            }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
+            if (detail != null) addView(Button(builder.context).apply {
+                setText(R.string.catalog_price_browse)
+                setSingleLine(false)
+                minHeight = target
+                minWidth = target
+                setOnClickListener {
+                    val isCurrent = {
+                        catalogDetailDialog === dialog && !destroyed && !storageBusy && savedRecord === baseline && currentDraftId == draftId &&
+                            catalogFixture === priceContext && catalog.contains(item, catalogHash)
+                    }
+                    if (dialog.isShowing && isCurrent()) {
+                        dialog.dismiss()
+                        CatalogPriceBrowser(this@PreviewActivity, detail, prices, isCurrent).also {
+                            catalogPriceBrowser = it
+                            it.show()
+                        }
+                    }
+                }
+            }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
+            addView(Button(builder.context).apply {
+                setText(R.string.catalog_compare_add)
+                setSingleLine(false)
+                minHeight = target
+                minWidth = target
+                setOnClickListener {
+                    if (catalogDetailDialog === dialog && dialog.isShowing && !destroyed) {
+                        catalogComparison.add(item, catalogHash)
+                        dialog.dismiss()
+                    }
+                }
+            }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
+        })
+        dialog = builder
             .setTitle(item.name)
-            .setMessage(detail?.let { CatalogDetailText.describe(this, it, catalogPricebook) }
+            .setMessage(detail?.let { CatalogDetailText.describe(this, it, prices) }
                 ?: getString(R.string.catalog_detail_unavailable))
             .setNegativeButton(R.string.close, null)
             .setNeutralButton(R.string.catalog_sources) { _, _ ->
                 if (dialog.isShowing && detail != null) CatalogSourceNavigation(this, detail, isCurrent = {
-                    !destroyed && !storageBusy && savedRecord === baseline && currentDraftId == draftId &&
+                    catalogDetailDialog === dialog && !destroyed && !storageBusy && savedRecord === baseline && currentDraftId == draftId &&
                         catalog.contains(item, catalogHash)
                 }).show()
             }
             .setPositiveButton(R.string.select_sample) { _, _ ->
-                if (dialog.isShowing && !destroyed && !storageBusy && savedRecord === baseline && currentDraftId == draftId &&
+                if (catalogDetailDialog === dialog && dialog.isShowing && !destroyed && !storageBusy && savedRecord === baseline && currentDraftId == draftId &&
                     catalog.contains(item, catalogHash)) {
                     selectedId = item.id
                     selectedVersion = item.version
@@ -326,6 +397,8 @@ class PreviewActivity : Activity() {
                 }
             }
             .create()
+        catalogDetailDialog = dialog
+        dialog.window?.decorView?.layoutDirection = resources.configuration.layoutDirection
         dialog.show()
     }
 
@@ -392,6 +465,7 @@ class PreviewActivity : Activity() {
         recoverButton.isEnabled = !storageBusy && savedRecord != null && !matchesSaved() && workloadSection.inputs.parsed() != null
         if (::tierSection.isInitialized) tierSection.update(savedRecord, storageReady && !storageBusy && matchesSaved())
         if (::catalog.isInitialized) catalog.selectionEnabled(!storageBusy)
+        if (::componentSection.isInitialized) componentSection.update(savedRecord, storageReady && !storageBusy && matchesSaved())
     }
 
     private fun showHistory() {
@@ -405,22 +479,27 @@ class PreviewActivity : Activity() {
                 (revision.restoredFrom?.let { getString(R.string.domain_history_source, it.toString()) } ?: "")
         }.toTypedArray()
         AlertDialog.Builder(this).setTitle(R.string.draft_history)
-            .setItems(rows) { _, index ->
-                if (destroyed) return@setItems
+            .setItems(rows) { dialog, index ->
+                if (!historyDialogIsCurrent(dialog, baseline)) return@setItems
                 val revision = revisions[index]
                 val oldFields = revision.fields
                 if (oldFields == null) {
                     AlertDialog.Builder(this).setMessage(R.string.history_unavailable_detail)
+                        .setNeutralButton(R.string.domain_restore_preview) { dialog, _ ->
+                            if (historyDialogIsCurrent(dialog, baseline)) confirmDomainRestore(baseline, revision)
+                        }
                         .setPositiveButton(R.string.close, null).show()
                 } else {
                     AlertDialog.Builder(this).setTitle(getString(R.string.history_revision, revision.revision.toString()))
                         .setMessage(getString(R.string.history_copy_warning, oldFields.title,
                             if (baseline.earlierHistoryUnavailable) getString(R.string.history_earlier_unavailable) else ""))
                         .setNegativeButton(R.string.keep_edits, null)
-                        .setNeutralButton(R.string.domain_restore_preview) { _, _ -> confirmDomainRestore(baseline, revision) }
-                        .setPositiveButton(R.string.history_copy) { _, _ ->
+                        .setNeutralButton(R.string.domain_restore_preview) { dialog, _ ->
+                            if (historyDialogIsCurrent(dialog, baseline)) confirmDomainRestore(baseline, revision)
+                        }
+                        .setPositiveButton(R.string.history_copy) { dialog, _ ->
                             // A dialog opened before another save/load cannot adopt that operation's baseline.
-                            if (!destroyed && storageReady && !storageBusy && savedRecord === baseline) {
+                            if (historyDialogIsCurrent(dialog, baseline)) {
                                 restoringFields = true
                                 title.setText(oldFields.title)
                                 selectedId = oldFields.selectedId
@@ -432,17 +511,22 @@ class PreviewActivity : Activity() {
                             }
                         }.show()
                 }
-            }.setPositiveButton(R.string.revision_compare_open) { _, _ -> showComparisonPicker(baseline) }
+            }.setPositiveButton(R.string.revision_compare_open) { dialog, _ ->
+                if (historyDialogIsCurrent(dialog, baseline)) showComparisonPicker(baseline)
+            }
             .setNegativeButton(R.string.close, null).show()
     }
+
+    private fun historyDialogIsCurrent(dialog: DialogInterface, baseline: PreviewStoredDraft): Boolean =
+        !destroyed && (dialog as? AlertDialog)?.isShowing == true && storageReady && !storageBusy && savedRecord === baseline
 
     private fun showComparisonPicker(baseline: PreviewStoredDraft) {
         if (destroyed) return
         if (!storageReady || storageBusy || savedRecord !== baseline) return
         val revisions = baseline.history.reversed()
         AlertDialog.Builder(this).setTitle(R.string.revision_compare_open)
-            .setItems(revisions.map { getString(R.string.history_revision, it.revision.toString()) }.toTypedArray()) { _, index ->
-                if (destroyed) return@setItems
+            .setItems(revisions.map { getString(R.string.history_revision, it.revision.toString()) }.toTypedArray()) { dialog, index ->
+                if (!historyDialogIsCurrent(dialog, baseline)) return@setItems
                 worker.execute {
                     val comparison = baseline.compareRevision(revisions[index].revision)
                     runOnUiThread {
@@ -455,6 +539,52 @@ class PreviewActivity : Activity() {
                     }
                 }
             }.setNegativeButton(R.string.close, null).show()
+    }
+
+    private fun commitSelection(expected: PreviewStoredDraft, hash: String?, prepare: () -> PreviewSelectionPreparation,
+        completed: (Boolean, String) -> Unit) {
+        if (destroyed || !storageReady || storageBusy || savedRecord !== expected || !matchesSaved() ||
+            hash != null && componentCatalog?.hash?.hex != hash) { completed(false, getString(R.string.draft_reconcile)); return }
+        val id = currentDraftId
+        val snapshot = componentCatalog
+        storageBusy = true
+        saveStatus.setText(R.string.draft_saving)
+        updateEditingEnabled()
+        worker.execute {
+            val result = try {
+                when (val prepared = prepare()) {
+                    PreviewSelectionPreparation.Invalid -> null
+                    is PreviewSelectionPreparation.Ready -> openPersistence(id).applySelection(expected, prepared.command, snapshot)
+                }
+            } catch (_: Exception) { PreviewSelectionSave.Uncertain }
+            runOnUiThread {
+                if (!destroyed) {
+                    storageBusy = false
+                    var acknowledged = false
+                    when (result) {
+                        null -> saveStatus.setText(R.string.component_invalid)
+                        is PreviewSelectionSave.Saved -> {
+                            savedRecord = result.record
+                            acknowledged = true
+                            saveStatus.setText(if (result.change == null) R.string.component_noop else R.string.component_saved)
+                        }
+                        PreviewSelectionSave.Conflict -> {
+                            storageReady = false
+                            saveStatus.setText(R.string.draft_conflict)
+                        }
+                        PreviewSelectionSave.Uncertain -> {
+                            storageReady = false
+                            saveStatus.setText(R.string.draft_uncertain)
+                        }
+                        is PreviewSelectionSave.Rejected -> saveStatus.text = getString(R.string.component_rejected, result.reason.name)
+                        is PreviewSelectionSave.Failed -> saveStatus.setText(if (result.reason == DraftStorageFailure.LIMIT_EXCEEDED)
+                            R.string.draft_history_full else R.string.draft_save_failed)
+                    }
+                    updateEditingEnabled()
+                    completed(acknowledged, saveStatus.text.toString())
+                }
+            }
+        }
     }
 
     private fun setDraftActivation(expected: PreviewStoredDraft, tier: OptionalTier, activation: Activation) {
@@ -538,11 +668,14 @@ class PreviewActivity : Activity() {
                     R.string.workload_classification to w.dataClassification?.encoded)
                     .joinToString("\n") { (label, input) -> "${getString(label)}: ${value(input)}" }
             }
+        val components = getString(R.string.domain_restore_components,
+            baseline.components.selections.size.toString(), content.components.selections.size.toString(),
+            baseline.components.links.size.toString(), content.components.links.size.toString())
         AlertDialog.Builder(this).setTitle(getString(R.string.history_revision, revision.revision.toString()))
-            .setMessage(getString(R.string.domain_restore_warning, summary))
+            .setMessage(getString(R.string.domain_restore_warning, summary + "\n\n" + components))
             .setNegativeButton(R.string.keep_edits, null)
-            .setPositiveButton(R.string.domain_restore_commit) { _, _ ->
-                if (!destroyed && storageReady && !storageBusy && savedRecord === baseline) restoreDomain(baseline, revision.revision)
+            .setPositiveButton(R.string.domain_restore_commit) { dialog, _ ->
+                if (historyDialogIsCurrent(dialog, baseline)) restoreDomain(baseline, revision.revision)
             }.show()
     }
 
@@ -894,6 +1027,7 @@ class PreviewActivity : Activity() {
 
     override fun onSaveInstanceState(outState: Bundle) {
         catalog.saveState(outState)
+        catalogComparison.save(outState)
         outState.putString("draftId", currentDraftId.value)
         outState.putBoolean("selectionResolved", selectionResolved)
         val checkpoint = PreviewDraftRestoration.capture(savedRecord, storageReady, storageBusy)
@@ -933,7 +1067,13 @@ class PreviewActivity : Activity() {
 
     override fun onDestroy() {
         destroyed = true
+        catalogDetailDialog?.dismiss()
+        catalogDetailDialog = null
+        catalogPriceBrowser?.retire()
+        catalogPriceBrowser = null
         if (::catalog.isInitialized) catalog.close()
+        if (::catalogComparison.isInitialized) catalogComparison.close()
+        if (::componentSection.isInitialized) componentSection.close()
         storageReady = false
         storageBusy = true
         if (::tierSection.isInitialized) tierSection.close()
