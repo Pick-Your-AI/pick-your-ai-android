@@ -1,5 +1,17 @@
 # JVM core implementation and acceptance limits
 
+The [frozen CostEstimate boundary](FROZEN_COST_ESTIMATE_BOUNDARY.md) preserves every
+recorded field, exact scalar string and ordered line as immutable Kotlin values.
+Its shared structural cases keep schema validity separate from the existing
+Build-bound cost inspector's stronger checks. No pricing calculation, evidence
+acceptance or budget verdict follows; broader #21/#32 acceptance remains separate.
+
+The [frozen Pricebook boundary](FROZEN_PRICEBOOK_BOUNDARY.md) retains every recorded
+rate/provenance field, exact scalar string and ordered duplicate as immutable
+Kotlin values. Shared structural cases preserve absence/empty distinctions and
+keep the existing recorded-price reader's stricter interval, money and revision
+checks intact. No screening or price/evidence acceptance follows; #21/#32 stay partial.
+
 The [frozen Ruleset boundary](FROZEN_RULESET_BOUNDARY.md) adds an immutable typed
 representation of every recorded rule, expression and operand. Shared reference
 cases retain closed shapes, exact opaque literal JSON and ordered duplicate rules.
