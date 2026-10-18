@@ -10,8 +10,7 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
-import ai.pickyour.core.drafts.Activation
-import ai.pickyour.core.drafts.OptionalTier
+import ai.pickyour.core.drafts.*
 import ai.pickyour.core.preview.*
 import ai.pickyour.core.navigation.ExternalLinkPolicy
 import ai.pickyour.core.pricing.RecordedPricebook
@@ -92,6 +91,32 @@ class PreviewActivityTest {
         await { !opened.isShowing }
     }
     private fun comparisonRemovals() = views().filterIsInstance<Button>().filter { it.text.toString().startsWith("Remove component ") }
+
+    private fun historyRevision(index: Int): AlertDialog {
+        val previous = ShadowAlertDialog.getLatestAlertDialog()
+        button(R.string.draft_history).performClick()
+        await { dialog() !== previous && dialog().isShowing }
+        val picker = dialog()
+        shadowOf(picker).clickOnItem(index)
+        await { dialog() !== picker && dialog().isShowing }
+        return dialog()
+    }
+
+    private fun restoreConfirmation(index: Int): AlertDialog {
+        val detail = historyRevision(index)
+        detail.getButton(AlertDialog.BUTTON_NEUTRAL).performClick()
+        await { dialog() !== detail && dialog().isShowing }
+        return dialog()
+    }
+
+    /** Settle the actual serial worker before asserting that a retired callback did no work. */
+    private fun finishActivityWork() {
+        shadowOf(Looper.getMainLooper()).idle()
+        val field = PreviewActivity::class.java.getDeclaredField("worker").apply { isAccessible = true }
+        val worker = field.get(activity) as java.util.concurrent.ExecutorService
+        worker.submit {}.get(15, java.util.concurrent.TimeUnit.SECONDS)
+        shadowOf(Looper.getMainLooper()).idle()
+    }
 
     private fun sourceDetails(vararg sources: String?): PreviewCatalogDetails {
         val root = activity.assets.open("catalog.json").bufferedReader(Charsets.UTF_8).use { org.json.JSONObject(it.readText()) }
@@ -189,6 +214,168 @@ class PreviewActivityTest {
         assertTrue(message.contains("Before: explicitly empty"))
         assertTrue(message.contains("After: text: \"explicitly empty\""))
         assertEquals(baseline, loaded().baselineIdentity)
+    }
+
+    @Test fun domainRestoreDisclosesTypedComponentsAndPreservesHistoryAndMetadata() {
+        save()
+        val store = LocalDraftStore(activity.noBackupFilesDir.toPath().resolve("guest-draft"))
+        val initial = (store.load() as DraftLoad.Available).draft
+        val fixture = activity.assets.open("build.json").bufferedReader(Charsets.UTF_8).use { org.json.JSONObject(it.readText()) }
+        val selections = fixture.getJSONArray("selections")
+        fun selection(kind: String) = (0 until selections.length()).map { selections.getJSONObject(it) }
+            .single { it.getString("kind") == kind }
+        fun parsed(value: org.json.JSONObject) = LocalSelection.fromJson(bytes = value.toString().toByteArray(Charsets.UTF_8))
+        val model = selection("model")
+        val provider = selection("model_provider")
+        val context = selection("context_policy")
+        val links = fixture.getJSONArray("links")
+        val providedBy = (0 until links.length()).map { links.getJSONObject(it) }
+            .single { it.getString("id") == "link.01" }
+        val usesContext = (0 until links.length()).map { links.getJSONObject(it) }
+            .single { it.getString("id") == "link.02" }
+        fun parsedLink(value: org.json.JSONObject) = LocalSelectionLink.fromJson(bytes = value.toString().toByteArray(Charsets.UTF_8))
+        val retainedComponents = DraftSelections(listOf(parsed(model), parsed(provider)), listOf(parsedLink(providedBy)))
+        val retained = (store.save(initial.version,
+            DraftContent(objective = "retained objective", components = retainedComponents),
+            (initial.metadata - "preview.format") + mapOf("preview.title" to "retained title", "test.lock" to "retained-lock")) as DraftSave.Saved).draft
+        val changedModel = org.json.JSONObject(model.toString()).put("role", "fallback").put("enabled", false).also {
+            it.getJSONObject("settings").put("max_output_tokens", 256)
+        }
+        val currentComponents = DraftSelections(listOf(parsed(changedModel), parsed(provider), parsed(context)),
+            listOf(parsedLink(org.json.JSONObject(providedBy.toString()).put("required", true)), parsedLink(usesContext)))
+        val current = (store.save(retained.version,
+            DraftContent(objective = "current objective", context = "current context", components = currentComponents),
+            initial.metadata + mapOf("preview.title" to "current title", "test.lock" to "current-lock")) as DraftSave.Saved).draft
+        controller.pause().stop().destroy()
+        controller = Robolectric.buildActivity(PreviewActivity::class.java).setup()
+        await { hasText(R.string.draft_saved) && field(R.string.draft_title).text.toString() == "current title" }
+
+        assertNull(loaded().history.single { it.revision == retained.version.number }.fields)
+        val unavailable = historyRevision(1)
+        assertEquals(activity.getString(R.string.history_unavailable_detail), shadowOf(unavailable).message.toString())
+        assertEquals(activity.getString(R.string.close), unavailable.getButton(AlertDialog.BUTTON_POSITIVE).text.toString())
+        val review = unavailable.getButton(AlertDialog.BUTTON_NEUTRAL)
+        assertEquals(activity.getString(R.string.domain_restore_preview), review.text.toString())
+        unavailable.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+        await { !unavailable.isShowing }
+        review.performClick()
+        finishActivityWork()
+        assertSame(unavailable, dialog())
+        assertFalse(unavailable.isShowing)
+        assertEquals(current.version.number, loaded().revision)
+
+        val confirmation = restoreConfirmation(1)
+        val message = shadowOf(confirmation).message.toString()
+        assertTrue(message.contains("Typed selections: 3 saved now, 2 in the retained revision."))
+        assertTrue(message.contains("Relationships: 2 saved now, 1 in the retained revision."))
+        assertTrue(message.contains("catalog versions, roles, enabled states, settings and recorded extra fields"))
+        assertTrue(message.contains("Matching counts do not mean matching content."))
+        assertTrue(message.contains("typed components and their relationships"))
+        assertEquals(current.version.number, loaded().revision)
+        val commit = confirmation.getButton(AlertDialog.BUTTON_POSITIVE)
+        commit.performClick()
+        await { hasText(R.string.draft_saved) && loaded().revision == current.version.number + 1 }
+        val restored = (store.load() as DraftLoad.Available).draft
+        assertEquals(retained.content, restored.content)
+        assertEquals(current.metadata, restored.metadata)
+        assertEquals(current.history.size + 1, restored.history.size)
+        assertEquals(StoredRevisionChange.RESTORE, restored.history.last().change)
+        assertEquals(retained.version.number, restored.history.last().restoredFrom)
+        for (old in listOf(initial, retained, current)) {
+            val unchanged = (store.revision(old.version.hash) as DraftLoad.Available).draft
+            assertEquals(old.version.hash, unchanged.version.hash)
+            assertEquals(old.content, unchanged.content)
+            assertEquals(old.metadata, unchanged.metadata)
+            assertEquals(old.history.map { it.number }, unchanged.history.map { it.number })
+        }
+        assertEquals("current title", field(R.string.draft_title).text.toString())
+        assertEquals("retained objective", field(R.string.context_objective).text.toString())
+        commit.performClick()
+        finishActivityWork()
+        assertEquals(restored.version.number, loaded().revision)
+        recreate()
+        await { hasText(R.string.draft_saved) }
+        assertEquals(restored.version.number, loaded().revision)
+        assertEquals(retainedComponents, loaded().components)
+        field(R.string.draft_title).setText("edit after restore")
+        save()
+        assertEquals(restored.version.number + 1, loaded().revision)
+        assertEquals(retainedComponents, loaded().components)
+        assertEquals(current.metadata, (store.revision(restored.version.hash) as DraftLoad.Available).draft.metadata)
+    }
+
+    @Test fun cancelledHistoryDialogsCannotReplaceFieldsOrReopenChildren() {
+        field(R.string.draft_title).setText("retained title")
+        save()
+        field(R.string.draft_title).setText("current title")
+        save()
+        val baseline = loaded().baselineIdentity
+        button(R.string.draft_history).performClick()
+        val canceledHistory = dialog()
+        val compare = canceledHistory.getButton(AlertDialog.BUTTON_POSITIVE)
+        canceledHistory.getButton(AlertDialog.BUTTON_NEGATIVE).performClick()
+        await { !canceledHistory.isShowing }
+        shadowOf(canceledHistory).clickOnItem(1)
+        compare.performClick()
+        finishActivityWork()
+        assertSame(canceledHistory, dialog())
+        assertFalse(canceledHistory.isShowing)
+
+        val canceledDetail = historyRevision(1)
+        val copy = canceledDetail.getButton(AlertDialog.BUTTON_POSITIVE)
+        val review = canceledDetail.getButton(AlertDialog.BUTTON_NEUTRAL)
+        canceledDetail.getButton(AlertDialog.BUTTON_NEGATIVE).performClick()
+        await { !canceledDetail.isShowing }
+        field(R.string.draft_title).setText("pending title")
+        copy.performClick()
+        review.performClick()
+        finishActivityWork()
+        assertSame(canceledDetail, dialog())
+        assertFalse(canceledDetail.isShowing)
+        assertEquals("pending title", field(R.string.draft_title).text.toString())
+
+        button(R.string.draft_history).performClick()
+        val history = dialog()
+        history.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+        await { dialog() !== history && dialog().isShowing }
+        val canceledPicker = dialog()
+        canceledPicker.getButton(AlertDialog.BUTTON_NEGATIVE).performClick()
+        await { !canceledPicker.isShowing }
+        shadowOf(canceledPicker).clickOnItem(1)
+        finishActivityWork()
+        assertSame(canceledPicker, dialog())
+        assertFalse(canceledPicker.isShowing)
+        assertEquals("pending title", field(R.string.draft_title).text.toString())
+        assertEquals(baseline, loaded().baselineIdentity)
+        assertTrue(hasText(R.string.draft_unsaved))
+    }
+
+    @Test fun cancelledDomainRestoreCannotCommitOrReplacePendingInputs() {
+        field(R.string.context_objective).setText("retained objective")
+        save()
+        field(R.string.context_objective).setText("current objective")
+        save()
+        val baseline = loaded().baselineIdentity
+        val confirmation = restoreConfirmation(1)
+        val commit = confirmation.getButton(AlertDialog.BUTTON_POSITIVE)
+        confirmation.getButton(AlertDialog.BUTTON_NEGATIVE).performClick()
+        await { !confirmation.isShowing }
+        field(R.string.draft_title).setText("pending title")
+        field(R.string.context_objective).setText("pending objective")
+        field(R.string.workload_requests).setText("17")
+        commit.performClick()
+        finishActivityWork()
+        assertEquals(baseline, loaded().baselineIdentity)
+        assertEquals("pending title", field(R.string.draft_title).text.toString())
+        assertEquals("pending objective", field(R.string.context_objective).text.toString())
+        assertEquals("17", field(R.string.workload_requests).text.toString())
+        assertTrue(hasText(R.string.draft_unsaved))
+        assertTrue(button(R.string.save_draft).isEnabled)
+        recreate()
+        await { hasText(R.string.draft_unsaved) && button(R.string.save_draft).isEnabled }
+        assertEquals(baseline, loaded().baselineIdentity)
+        assertEquals("pending objective", field(R.string.context_objective).text.toString())
+        assertEquals("17", field(R.string.workload_requests).text.toString())
     }
 
     @Test fun editorsExposeLabelsAndSavedStatusUsesTextAndLiveRegion() {
