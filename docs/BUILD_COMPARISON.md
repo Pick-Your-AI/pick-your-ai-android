@@ -25,6 +25,27 @@ Paths use JSON-Pointer-style escaping (`~0`, `~1`), but selection/link segments 
 
 An unchanged identity with substantive differences is flagged `SAME_IDENTITY_WITH_DIFFERENCES`, an integrity discrepancy rather than an ordinary new revision. Reordering selections or links alone produces no markers and does not trigger that discrepancy. Different explicit identities are disclosed even when other fields match.
 
+## Retained local revision comparison
+
+The [guest preview's retained-history comparison](ANDROID_PREVIEW.md#read-only-local-revision-comparison)
+uses the same exact JSON value comparison for its bounded, schema-valid selection
+and link payloads. Settings and namespaced extensions are compared before their
+stable display strings are rendered. Numerically equal spellings therefore do
+not create false setting changes when another edit creates a saved revision.
+The original retained numeric encodings, source history, metadata and durable
+head remain untouched. Workload decimal strings and other text still compare
+literally; booleans, missing values, nulls and array order remain distinct.
+
+The durable-history regression first failed on reviewed tree `640bd341`:
+an objective-only change also reported settings and extensions as changed for
+equivalent numeric values. With this change applied to merged main `404b4944`, the corrected consumer
+passed **413 JVM cases** in 45 reports, including three new durable-history
+regressions, with zero failures, errors or skipped cases under strict offline
+verification. Those cases also retain exact changes beyond binary floating-point
+precision and preserve source hashes after comparison. This local core evidence
+does not establish historical cost/finding comparison, installed Android
+accessibility or full #117 acceptance.
+
 ## Evidence and historical outputs
 
 Every recorded lock is retained on each side and every changed, added or removed lock appears in the diff. Frozen v1 includes catalog snapshot ID, ruleset ID/version, dependency-graph ID/revision and optional pricebook ID. It does **not** provide catalog/pricebook revision pins or cost/resource evidence identities in this lock set; the comparator does not fabricate them. Extensions are structurally compared as metadata without assigning an unreviewed evidence meaning.
