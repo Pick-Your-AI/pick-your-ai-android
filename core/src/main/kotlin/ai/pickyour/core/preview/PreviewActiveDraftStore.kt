@@ -1,6 +1,7 @@
 package ai.pickyour.core.preview
 
 import ai.pickyour.core.cache.*
+import java.io.IOException
 import java.nio.file.Path
 import java.nio.file.Files
 import java.nio.file.LinkOption.NOFOLLOW_LINKS
@@ -46,13 +47,18 @@ class PreviewActiveDraftStore internal constructor(root: Path, cacheFactory: (Pa
             } catch (_: IllegalArgumentException) { PreviewActiveRead.Failed(CacheFailure.CORRUPT) }
         }
     }
-    fun select(id: PreviewDraftId): PreviewActiveWrite = PreviewDraftLibrary(root).select(id) {
-        val bytes = "v1\n${id.value}\n".toByteArray(Charsets.US_ASCII)
-        val hash = ArtifactHash(MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it.toInt() and 255) })
-        when (val value = cache.install(hash, bytes.inputStream())) {
-            is CacheInstall.Activated -> PreviewActiveWrite.Saved
-            is CacheInstall.Failed -> PreviewActiveWrite.Failed(value.reason)
-            is CacheInstall.ActivationUncertain -> PreviewActiveWrite.Uncertain
+    fun select(id: PreviewDraftId): PreviewActiveWrite {
+        val library = try { PreviewDraftLibrary(root) }
+            catch (_: IllegalArgumentException) { return PreviewActiveWrite.Failed(CacheFailure.CORRUPT) }
+            catch (_: IOException) { return PreviewActiveWrite.Failed(CacheFailure.IO_FAILURE) }
+        return library.select(id) {
+            val bytes = "v1\n${id.value}\n".toByteArray(Charsets.US_ASCII)
+            val hash = ArtifactHash(MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it.toInt() and 255) })
+            when (val value = cache.install(hash, bytes.inputStream())) {
+                is CacheInstall.Activated -> PreviewActiveWrite.Saved
+                is CacheInstall.Failed -> PreviewActiveWrite.Failed(value.reason)
+                is CacheInstall.ActivationUncertain -> PreviewActiveWrite.Uncertain
+            }
         }
     }
 }

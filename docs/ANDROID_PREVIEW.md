@@ -456,6 +456,8 @@ Selection now rechecks directory and tombstone liveness under the same library
 lock before writing the pointer. A pending deletion cannot acquire a new selected
 acknowledgement, and a rejected same-process selector cannot release the deleting
 operation's OS lock. Errors after a pointer write was attempted remain uncertain.
+If the provisioned root disappears or becomes invalid before library initialization,
+selection returns a typed corrupt/IO failure without attempting a pointer write.
 Legacy bootstrap obeys the 64-entry capacity bound and requires a genuinely absent
 pointer when its directory is missing; a missing explicitly selected guest never
 becomes a fabricated empty replacement.
