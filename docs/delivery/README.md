@@ -1,5 +1,189 @@
 # Criterion evidence ledger
 
+## Current version 8: integrated foundation decision
+
+Version 8 records **25 reviewed design criteria and three reviewed implementation
+criteria complete, with 413 criteria incomplete**. Its only new accepted issue is
+Android #2, whose four literal criteria are the integrated product-scope and
+decision outcome. The existing #26 model implementation, explicit-save correction,
+all seven earlier design outcomes and their original evidence remain unchanged.
+
+The [01 epic record](android/epics/01.md) and its narrow
+[ADR 0006](../decisions/0006-android-2-acceptance-record.md) were delivered in the
+agreed nine-path [#412 receiver](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/412).
+The final signed commit is
+[c0278410](https://github.com/Pick-Your-AI/pick-your-ai-android/commit/c0278410f5a8a90776df9de2f466103cba48f9f1),
+exact tree `49fd5b522999f3042bfa5894320575b9ee96b144` and sole preceding accepted-main
+parent `ced002ddb32ceaad2a2a2dcdf4fb438f2a1c0bc9`. This places only the parent decision
+record in the Android repository; the original website coordinate stays in its
+historical acceptance metadata.
+
+| Literal criterion | Accepted decision evidence and boundary |
+| --- | --- |
+| 2.1 Child deliverables, owners, validation and review | Six exact delivered child records and their actual preparation/receiving evidence. Delegated in-session responsibility does not assign a GitHub user or create an ongoing operating commitment. |
+| 2.2 Integrated journey with failure/recovery | The completed D1–D8 desk traversal connects the six accepted decisions, supported local outcomes, interruption/recovery requirements and additional authority gates. It is a product-decision demonstration. |
+| 2.3 Conditional/deferred scope | Selected, optional, conditional and excluded capabilities retain explicit dispositions. Omitted implementations are not completed by this decision. |
+| 2.4 Accepted handoffs | The record consumes its exact Research, Apple and Android receiving inputs, preserving canonical shared-service, frozen-contract, pricing/evidence, lifecycle and rights authority. |
+
+The [actual product-decision and Android technical receiving review](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/404#pullrequestreview-5564615467)
+accepted all four criteria and the complete decision demonstration under the
+maintainer's delegation. The independent
+[joint receiving source/composition review](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/412#pullrequestreview-5564841847)
+verified all nine selected blobs and 353 unrelated accepted-main entries. These are
+disclosed in-session reviewers; they are not fabricated replies from a historical
+assignee, physical witnesses or new ongoing service owners.
+
+The separate [actual c027 default-main receipt](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/412#issuecomment-6255080145)
+qualifies 2,933 core and 265 simulated Android cases, 17 mandatory report programs,
+18 host policy methods, 12 compiled policy controls, strict 8/10-pin inventories,
+both real ignored-packaged-input rejections and the 167-commit zero-finding scanner.
+It verifies all four original ZIP identities, 221 member CRCs and original source,
+upload and output bindings. The APK is 2,931,697 bytes with SHA-256
+18e3483ff13736bcef1c493035454d5d5c74923ca25842ff77a99e247cfc92b6.
+Those are checks of the delivered composition. They do not turn D1–D8 into an
+installed product run, the scenario's RAM into fit evidence, or the service and
+device requirements into executed qualification.
+
+The fixed source allowlist binds both complete record blobs/lengths/hashes,
+the actual receiving roles/revisions, all six child inputs, the eight desk cases,
+each handoff/outcome limit and the distinct default-main receipt. Every observation
+retains its exact type; a boolean or floating-point alias is not an interchangeable
+receipt. The required ledger tests inspect both current canonical record files.
+
+All 128 other issue objects, 23 earlier evidence entries, 129 titles, 441 literal
+criterion texts/digests and prior partial history are preserved. The existing
+version-7 model reconstruction and all version-6 history digests stay intact:
+only the source-defined #2 placement/completion fields are reversed before those
+old checks. Its complete earlier issue object, including both different receiving
+prerequisites, must be recovered exactly. The 120 remaining ordinary acceptance
+coordinates stay at their unchanged website paths. Matching issue checkboxes,
+titles or arbitrary approval flags cannot authorize another completion.
+
+Run the same offline checker and named ledger suite; --issues additionally checks
+a fresh all-state issue capture. The CLI reports design and implementation totals
+separately and states whether live comparison occurred. Normal independent review,
+current-source delivery and exact live reconciliation precede the deliberate
+#2 checkbox/state update. Other issues, native relationships, Project fields and
+assignments are unchanged. Installed-device, participant, permitted-source,
+resource, accessibility, shared-service, operating and release work retain their
+own requirements.
+
+## Retained version 7 and earlier descriptions
+
+The complete previous text follows unchanged. Its version counts, current-state
+wording and preparation observations describe those historical versions; the
+version-8 rules above govern this amendment.
+
+## Current version 7: reviewed local-model implementation
+
+Version 7 records **21 reviewed design criteria and three reviewed implementation
+criteria complete, with 417 criteria incomplete**. Its only changed issue is
+Android #26, whose three literal criteria and four subtasks are accepted in the
+[delivered 03.02 record](android/work-packages/03.02.md). The separate
+[ADR 0007](../decisions/0007-android-26-acceptance-record.md) moves only that record
+from its historical website location. All seven previous design outcomes retain
+their exact evidence and classification.
+
+The implementation is signed
+[5cb0729](https://github.com/Pick-Your-AI/pick-your-ai-android/commit/5cb0729889dd56f8e14af356f0547683d1c511a2),
+tree 8db4534ce21d177540e83510cd5f343af712a5db, delivered in #407. Its
+[actual main receipt 6253592295](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/407#issuecomment-6253592295)
+retains 2,679 core and 222 simulated Android cases, the 50 focused model methods,
+every original archive identity and the earlier failed/corrected checkpoint history.
+The record and ADR are separately signed
+[785a9330](https://github.com/Pick-Your-AI/pick-your-ai-android/commit/785a9330f4260892ea28a9bc5045372b01ba6717),
+tree 02bd681dded3f1e21e5a3dbbe2a4d48a55ca6acf, delivered in #418. Their
+[actual main receipt 6254157043](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/418#issuecomment-6254157043)
+separately records 2,881 core and 222 simulated Android cases plus packaged-policy
+controls. Neither observation is relabelled as a new execution of this ledger.
+
+Actual receiving decisions are
+[affected iOS 6253612135](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/26#issuecomment-6253612135),
+[central contract/saved-build 6253664529](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/26#issuecomment-6253664529),
+and [coordinating/affected-web/Android 6253699903](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/26#issuecomment-6253699903).
+They accept the exact local model, private retention and narrow placement under
+delegated engineering authority. They do not become replies from absent named
+assignees, operating commitments or new native executions. The completed source
+and current-main preservation reviews are recorded alongside those decisions.
+
+The accepted outcome is nullable/partial durable editing, explicit frozen-v1
+projection with semantic/reference/pin checks and exact retained-only
+acknowledgment, followed by a separate immutable private archive transaction.
+Source edits, restore and deletion preserve the independently retained bundle.
+Unsupported, invalid, conflicting, missing and uncertain outcomes remain explicit.
+The retained subset is the exact current source envelope and represented typed
+history; a legacy predecessor hash is not a promise of that predecessor's bytes.
+Pending form text, creation/removal UI, shared wire/service, evaluation replay,
+source rights, physical power loss, installed-device qualification and release
+are outside this literal model acceptance.
+
+The exact available #21 outputs are consumed with their frozen manifest hashes,
+pattern/numeric correction revisions and scoped receiving receipt. That issue was
+still open at receiving; its edge and remaining model/API/import work are retained.
+Its whole completion is neither a new prerequisite claim nor implied here. The
+accepted #34 native/canonical-store decision remains the other named input.
+
+### Save-policy correction and unchanged historical observations
+
+The current 03.02 record corrects the earlier phrase “Existing preview autosave”
+following [the actual call-site finding](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/418#issuecomment-6254224564).
+The preview uses explicit guarded Save and confirmed domain commands. Pending
+field changes and Bundle/lifecycle checkpoints do not schedule or acknowledge a
+durable autosave. The definition subtask specifies the existing model contract
+for a later automatic caller; it does not claim an implemented scheduler.
+Integrated autosave timing, ordering, background completion, retries and feedback
+remain in [#122, Undo and revisions](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/122).
+Underlying storage #67 and every other work package retain their own scope.
+
+The fixed correction source is
+[945b6c51](https://github.com/Pick-Your-AI/pick-your-ai-android/commit/945b6c51a6ac0096594a6605ac770b0dea12ee09),
+tree 108a28444775908626b8f56ad163d5948e9133cb, record blob
+e0d2d13f63cbdb361c8fc8ee517d7d2faa1c5dc8. That identity is an unsigned reviewed
+documentation preparation, not a replacement signed model/record observation.
+Its actual bounded correction review identities are recorded separately in
+`save_policy_correction`; the original three receiving receipts remain unchanged.
+The fixed allowlist rejects absent or substituted correction/source/review scope,
+an invented scheduler or signature, and a wrong follow-up issue. The required
+ledger suite also checks the exact current record bytes against the correction
+blob/length/hash. This source has no new native execution to attribute to those
+receipts; normal configured and actual-main delivery checks remain distinct.
+
+### Strict classification and preserved history
+
+The source-defined #26 allowlist requires its distinct implementation outcome,
+the signed model and record revisions/trees/blobs, both exact merged #407/#418
+evidence entries, the three actual receiving dispositions, original artifact
+IDs/lengths/SHA-256, four literal subtasks and each explicit boundary. Every exact
+criterion ID/text/digest and each old pr-138 partial reference is preserved. An
+integer observation cannot silently become a floating-point or boolean alias.
+Design and implementation receipts cannot authorize each other's classifications
+or another issue; no generic approved flag is accepted.
+
+The previous v6 ledger at signed 785a has blob
+3b09af77f17b72785ec8aaef9e8fb38caedf09c8 and SHA-256
+28f2ecb0ff81d630cbfeca29b68d07b501719b5edcdac81e1aa3a4a9e54700f1.
+All 128 other issue objects, all 21 earlier evidence entries and historical
+metadata remain exact. Source-pinned canonical-JSON digests enforce that preserved
+scope, including the complete prior #26 object after removing only the allowed
+completion/placement delta. The remaining 121 ordinary acceptance coordinates
+stay at their original website paths. New partial observations or later completion
+need deliberate source/ledger review; an input file cannot grant that amendment.
+
+Run the existing offline CLI and named ledger suite, or supply a fresh all-state
+issue array with --issues for the exact title/criterion/path comparison. The CLI
+reports 21 design and three implementation criteria separately and states whether
+live comparison occurred. It certifies these exact recorded identities and scope;
+it does not authenticate remote reviews, re-execute CI, inspect hardware, close an
+issue or certify future UI/service behavior. Normal reviewed delivery and a fresh
+all-state reconciliation precede the separate #26 checkbox/state update.
+
+## Historical v1–v6 narrative and validation notes
+
+The following earlier narrative is retained verbatim. Its version counts,
+current-state wording and validation descriptions describe those historical
+versions; the version-7 rules immediately above govern the current index.
+
+
 [criterion-evidence.json](criterion-evidence.json) indexes all 129 Android issues
 and their 441 acceptance criteria, copied verbatim from a live GitHub read on
 2026-10-18. This is a living evidence index, not another issue inventory, a native
