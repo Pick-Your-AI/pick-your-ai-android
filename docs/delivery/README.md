@@ -7,7 +7,7 @@ dependency graph, receiving acceptance, or a replacement for GitHub status.
 The earlier [issue audit](../proposals/issues-snapshot.md) remains a historical
 snapshot; it is not rewritten to imply it observed later implementation.
 
-Every criterion is **incomplete**. References to merged PRs #131–#140 identify
+Every criterion is **incomplete**. References to merged PRs identify
 partial issue context, not an assertion that a linked artifact passes each
 criterion. Exact
 artifact revisions and limitations are in the top-level `evidence` catalog.
@@ -29,6 +29,13 @@ Both repairs are merged, with their final hosted checks recorded in the ledger.
 The local tests do not establish Android autosave, installed recreation, full
 library deletion/retention or device acceptance. Earlier in-memory-only history
 results remain historical rather than being rewritten as observations of later code.
+
+The workload/recovery receipts additionally link merged PRs #208, #218 and #222
+to five supported portions of #67, #83 and #125. Exact signed revisions, source
+reviews, core and simulated Activity test runs are recorded separately from
+remaining placement, remote reconciliation and installed-device work. The 129
+live issue criteria and canonical paths were rechecked on 2026-10-18 for this
+reconciliation; all 441 statuses and their original text remain unchanged.
 
 Each criterion retains its original text, stable issue/ordinal ID, digest,
 remaining engineering work and any concrete external prerequisites. An empty
