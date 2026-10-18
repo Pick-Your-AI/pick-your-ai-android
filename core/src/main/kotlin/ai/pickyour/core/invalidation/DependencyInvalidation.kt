@@ -1,5 +1,8 @@
 package ai.pickyour.core.invalidation
 
+import ai.pickyour.core.contracts.DependencyActivation
+import ai.pickyour.core.contracts.DependencyGraph
+
 /** Typed projection of an already validated frozen-v1 edge, not an alternate wire contract. */
 data class InvalidationEdge(
     val id: String,
@@ -47,6 +50,31 @@ data class InvalidationResult(
  * Input graph must be schema/version validated before projecting its edges into this API.
  */
 object DependencyInvalidation {
+    /**
+     * Explicit projection of a decoded graph into the existing direct-adjacency policy below.
+     * Structural decoding does not establish the graph's authority or its binding to a build.
+     * Relationship/rationale stay in the immutable graph; this policy already treats all relationships
+     * as recheck neighbours and does not reinterpret them as compatibility requirements.
+     */
+    fun affectedByChange(
+        graph: DependencyGraph,
+        changedKinds: Set<String>,
+        before: InvalidationContext,
+        after: InvalidationContext,
+    ): InvalidationResult = affectedByChange(graph.edges.map { edge ->
+        val activation = when (edge.activation) {
+            DependencyActivation.ALWAYS -> EdgeActivation.ALWAYS
+            DependencyActivation.SELF_HOSTED -> EdgeActivation.SELF_HOSTED
+            DependencyActivation.NON_API -> EdgeActivation.NON_API
+            DependencyActivation.RAG_ENABLED -> EdgeActivation.RAG_ENABLED
+            DependencyActivation.AGENTS_ENABLED -> EdgeActivation.AGENTS_ENABLED
+            DependencyActivation.FINE_TUNING_ENABLED -> EdgeActivation.FINE_TUNING_ENABLED
+            DependencyActivation.IF_SELECTED -> EdgeActivation.IF_SELECTED
+            DependencyActivation.PRODUCTION_ONLY -> EdgeActivation.PRODUCTION_ONLY
+        }
+        InvalidationEdge(edge.id, edge.dependentKind, edge.dependsOnKind, activation)
+    }, changedKinds, before, after)
+
     fun affectedByChange(
         edges: List<InvalidationEdge>,
         changedKinds: Set<String>,
