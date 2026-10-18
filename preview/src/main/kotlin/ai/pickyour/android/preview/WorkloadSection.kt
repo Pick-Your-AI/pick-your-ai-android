@@ -1,6 +1,5 @@
 package ai.pickyour.android.preview
 
-import android.app.AlertDialog
 import android.content.Context
 import android.os.Bundle
 import android.text.Editable
@@ -85,13 +84,11 @@ class WorkloadSection(context: Context, initial: PreviewWorkloadInputs,
                 if (!alive() || !editable) return@setOnClickListener
                 val expected = inputs
                 val choices = listOf<DraftDataClassification?>(null) + DraftDataClassification.entries
-                val labels = choices.map { classificationLabel(it) }.toTypedArray()
-                AlertDialog.Builder(context).setTitle(R.string.workload_classification)
-                    .setItems(labels) { picker, index ->
-                        if ((picker as? AlertDialog)?.isShowing == true && alive() && editable && inputs === expected) {
-                            inputs = inputs.copy(classification = choices[index]); updateState(); changed()
-                        }
-                    }.setNegativeButton(R.string.close, null).show()
+                showPreviewSingleChoiceDialog(context, R.string.workload_classification,
+                    choices.map { classificationLabel(it) }, choices.indexOf(inputs.classification),
+                    { alive() && editable && inputs === expected }) { index ->
+                    inputs = inputs.copy(classification = choices[index]); updateState(); changed()
+                }
             }
         }
         addView(classification)
