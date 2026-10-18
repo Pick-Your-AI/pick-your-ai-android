@@ -45,9 +45,12 @@ The latter never claims that no revision was committed.
 Dismissing or canceling a dialog revokes its callbacks. While a command is in
 flight, form fields, checkbox and cancellation are disabled so later user edits
 cannot be silently discarded by completion. Invalid/rejected outcomes restore
-the same form controls and raw input. Destroying the Activity terminally closes this section and its dialogs; retained
-buttons cannot dispatch to a closed worker. Transient uncommitted dialogs are
-canceled on recreation, not represented as durable pending settings.
+the same form controls and raw input. Destroying the Activity terminally closes
+this section and its dialogs; retained buttons cannot dispatch to a closed worker.
+The [bounded component checkpoint](COMPONENT_FORM_RECOVERY.md) retains unfinished
+add/configure input for explicit review after recreation. It supplies no command
+or save authority. Completed cancellation and explicit discard clear that pending
+input; destructive confirmations are never restored.
 
 Successful status means only local persistence. UI copy explicitly withholds
 compatibility, pricing, deployment requirements and readiness. Canonical v1,

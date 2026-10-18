@@ -113,6 +113,74 @@ REVIEWED_DESIGNS.update({
 })
 
 
+# Signed #322 delivers this applicability decision only. Account/service/runtime
+# implementation and every other literal criterion retain their own acceptance.
+DESIGN_25_REVISION = '68e52dd9c79cefe97af65e8fd1e86e4b72d2c42c'
+DESIGN_25_PATH = 'docs/delivery/android/work-packages/01.05.md'
+DESIGN_25_DECISION = f'{BASE}/blob/{DESIGN_25_REVISION}/docs/decisions/0003-android-25-acceptance-record.md'
+DESIGN_25_ACCEPTANCE = {
+    'scope': 'android_guest_accounts_revenue_and_optional_services_decision',
+    'evidence_ref': 'pr-322',
+    'decision_revision': DESIGN_25_REVISION,
+    'decision_url': DESIGN_25_DECISION,
+    'record_url': f'{BASE}/blob/{DESIGN_25_REVISION}/{DESIGN_25_PATH}',
+    'receiving_reviews': [
+        f'{BASE}/pull/313#pullrequestreview-5562991296',
+        f'{BASE}/pull/313#pullrequestreview-5562993559',
+        f'{BASE}/pull/322#pullrequestreview-5563048963',
+    ],
+    'source_review_revision': 'fb153a9a3be4b75e645fc231283632bb451ed171',
+    'historical_acceptance_record': {
+        'repository': 'Pick-Your-AI/pickyour.ai', 'path': DESIGN_25_PATH,
+    },
+}
+REVIEWED_DESIGNS[25] = {
+    'record': {'repository': REPOSITORY, 'path': DESIGN_25_PATH},
+    'acceptance': DESIGN_25_ACCEPTANCE,
+    'criteria': [
+        '53c649d8164864a7f4f58e65d3284a8578d4ac711bde3e0850d601694908b188',
+        'c8d1f07fa4680f4b3dfaedb5f4ad9256c7efafe56d7ac0ea724292e85410a54d',
+        '84bf23c76dd6c46f1ce3ddb371fd3aff625a46494c2825714738452cf78aa329',
+    ],
+    'artifact_url': DESIGN_25_DECISION,
+}
+
+
+# Signed #318 delivers selected qualification requirements and review methods.
+# Device, resource, source-rights, operating and release results remain separate.
+DESIGN_47_REVISION = 'b6935a8ee7843831f90b0219c8794071557c71d4'
+DESIGN_47_PATH = 'docs/delivery/android/work-packages/01.06.md'
+DESIGN_47_DECISION = f'{BASE}/blob/{DESIGN_47_REVISION}/docs/decisions/0004-android-47-acceptance-record.md'
+DESIGN_47_ACCEPTANCE = {
+    'scope': 'android_acceptance_and_ownership_baseline_decision',
+    'evidence_ref': 'pr-318',
+    'decision_revision': DESIGN_47_REVISION,
+    'decision_url': DESIGN_47_DECISION,
+    'record_url': f'{BASE}/blob/{DESIGN_47_REVISION}/{DESIGN_47_PATH}',
+    'baseline_url': f'{BASE}/blob/{DESIGN_47_REVISION}/docs/ACCEPTANCE_BASELINE.md',
+    'receiving_reviews': [
+        f'{BASE}/pull/318#pullrequestreview-5563013669',
+        f'{BASE}/pull/318#pullrequestreview-5563018910',
+        f'{BASE}/pull/318#pullrequestreview-5563074154',
+        f'{BASE}/pull/318#pullrequestreview-5563081505',
+    ],
+    'source_review_revision': '8800b02a8068902773652b553d52749ce8a8e167',
+    'historical_acceptance_record': {
+        'repository': 'Pick-Your-AI/pickyour.ai', 'path': DESIGN_47_PATH,
+    },
+}
+REVIEWED_DESIGNS[47] = {
+    'record': {'repository': REPOSITORY, 'path': DESIGN_47_PATH},
+    'acceptance': DESIGN_47_ACCEPTANCE,
+    'criteria': [
+        'a3a18d7099e6a93d467f427faa9c826c92dde14f7548a217cad5feb619afde8a',
+        '3a3c7a2613998f2bf036cf6cb1bed70fbfc0bc09e46a943bad682f218d6f4ea6',
+        '0b4be01e81cc371f7c8f6a8fc6245b0bde780d259700e11a23d8e97dd4a61b48',
+    ],
+    'artifact_url': DESIGN_47_DECISION,
+}
+
+
 def require(condition, message):
     if not condition:
         raise ValueError(message)
@@ -125,7 +193,7 @@ def source_criteria(body):
 
 
 def validate(ledger, source=None):
-    require(type(ledger['schema_version']) is int and ledger['schema_version'] == 3, 'unsupported schema version')
+    require(type(ledger['schema_version']) is int and ledger['schema_version'] == 5, 'unsupported schema version')
     require(ledger['repository'] == REPOSITORY, 'wrong repository')
     evidence = ledger['evidence']
     require(bool(evidence), 'missing evidence catalog')
@@ -217,7 +285,7 @@ def main():
     except (OSError, ValueError, KeyError, TypeError) as error:
         print(f'Delivery ledger check failed: {error}', file=sys.stderr)
         return 1
-    print('PASS: 129 unique issue URLs, 429 incomplete criteria, 12 reviewed design criteria, pinned evidence and canonical paths' +
+    print('PASS: 129 unique issue URLs, 423 incomplete criteria, 18 reviewed design criteria, pinned evidence and canonical paths' +
           ('; exact source criteria matched.' if source is not None else '; live source comparison NOT performed.'))
     return 0
 

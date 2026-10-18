@@ -564,16 +564,33 @@ installed lifecycle, TalkBack/font-scale/RTL/keyboard checks remain distinct gat
 ## Read-only local revision comparison
 
 Partial #117 integration lets history compare a chosen retained local revision to
-its captured saved head. The pure comparison preserves null versus empty versus
+its captured saved head. **Compare two retained revisions**, beside the history
+control, also lets the user choose both the before and after revision. Either side
+may precede the head; the chosen order is preserved rather than sorted by age.
+The after picker retains the chosen before identity and offers Back to choose it
+again. Wrapped picker headings retain both identity and action at large font sizes.
+The original history-to-saved-head shortcut remains available.
+
+The pure `compareRevisions(from, to)` API resolves both explicit revision numbers
+from one captured immutable local history, including each side's own guest metadata.
+A missing side returns unavailable; the saved head, another retained revision or
+current metadata is never substituted. Comparing captured history performs no storage
+read, creates no temporary head/save token and does not acquire a later writer's
+authority. `compareRevision(number)` retains its original saved-head behavior.
+The comparison preserves null versus empty versus
 literal `unknown`, identifies objective/context/model changes, per-tier activation,
 selection membership and settings-key changes, plus supported guest title/sample
 pins. It flags metadata divergence without exposing arbitrary metadata values.
-Missing historical guest metadata stays explicitly unavailable. Neither side is
+Missing guest metadata on either or both selected sides stays explicitly unavailable.
+Neither side is
 mutated and no save token is adopted; pending editor values are excluded.
 
 The UI computes on the shared worker under a captured draft identity, saved baseline,
 non-reusable storage authority and inspection request. A cancellable preparation
-dialog owns the response. Cancellation, a new history request, any storage-operation
+dialog owns the response. Each picker also requires its own current visible dialog;
+back navigation replaces that ownership before dismissing the old picker. A retired
+before or after control cannot resume or replace another pair. Cancellation, a new
+comparison/history request, any storage-operation
 start or Activity destruction retires that request; a late worker result cannot open
 an obsolete comparison even if a read finishes with the same saved baseline.
 
@@ -594,7 +611,7 @@ Comparison is within one retained history only: report, cost, rules and evidence
 comparison and cross-build semantics remain the separate accepted receiving work.
 It supplies no new evaluation, price or recommendation and is not full #117 closure.
 
-Four JVM cases cover exact missing/empty/opaque values, same-setting changes,
+JVM cases cover exact missing/empty/opaque values, same-setting changes,
 deterministic selection deltas, unchanged/unknown targets, unsupported guest
 metadata, read-only head identity and immutable output. Typed display separates absent/empty
 sentinels from quoted literals (also reused by domain-restore confirmation), escapes controls/format characters and bounds
@@ -603,6 +620,14 @@ native controls and serial-worker callbacks for complete paging, stable componen
 keys, literal parts, immutable saved/pending context, cancellation, storage changes,
 request replacement, recreation and measured narrow RTL/large-text targets. These
 are Robolectric simulations; the required workflow checks their named cases executed.
+Nine retained-pair JVM regressions additionally exercise older-to-older selection,
+reverse/same/missing pairs, unavailable metadata on either side, exact role/settings/
+relationship and workload changes, byte-identical durable history, stale write-token
+rejection and restoration without historical mutation. Ten paired-picker native
+regressions drive the actual control, both selections, back/cancel/replacement,
+same-baseline storage reads, delayed results, recreation and complete narrow RTL/
+large-text labels. Their named workflow guard rejects missing, duplicated or skipped
+cases without freezing the future suite size.
 Hosted Android compile/lint
 and installed dialog/accessibility/lifecycle behavior remain separate gates.
 

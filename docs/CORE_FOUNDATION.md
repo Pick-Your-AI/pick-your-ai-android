@@ -213,3 +213,8 @@ edge fields, order, duplicate/cyclic relationships and exact revisions as immuta
 values. Shared Python/Kotlin cases cover the structural boundary. An explicit
 overload projects those values into the existing direct-adjacency invalidation
 algorithm without changing its activation truth table or authorizing graph policy.
+
+The [frozen Event decoder](FROZEN_EVENT_BOUNDARY.md) retains every event and payload
+field as immutable typed values, with exact subject revisions and explicit optional
+presence. Shared Python/Kotlin cases exercise the unchanged schema. Decoding adds
+no event execution, actor authority, idempotency, synchronization or telemetry.
