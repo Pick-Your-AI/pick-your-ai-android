@@ -3,7 +3,12 @@
 Partial implementation for Android #26, #121 and #122. The Kotlin `drafts` package
 models incomplete client editing state; it is not a new shared Draft wire contract
 and is never presented as a valid frozen-v1 BuildSnapshot. Objective, context and
-primary model can remain unanswered. Opaque local selections/settings are not
+primary model can remain unanswered. The immutable workload fields (region, currency,
+budget, request/token counts, concurrency, latency and classification) also remain
+explicitly unanswered until entered. Counts use arbitrary-precision integers, budget
+retains its exact decimal spelling, and budget may precede currency. Field bounds
+align with existing frozen `Build.objectives`; no complete build or placement
+verdict is inferred. See [local storage and migrations](LOCAL_DRAFT_STORAGE.md). Opaque local selections/settings are not
 asserted to be accepted catalog references or contract extensions.
 
 T3, T4 and T5 activate independently. Disabling a tier preserves its selections and
