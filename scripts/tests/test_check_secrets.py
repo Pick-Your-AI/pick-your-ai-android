@@ -125,7 +125,7 @@ class SecretCheckTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             private = Path(temporary)
             def run(args, **kwargs):
-                self.assertIn("--log-opts=--full-history --diff-merges=separate --no-ext-diff --no-textconv HEAD", args)
+                self.assertIn("--log-opts=--full-history --diff-merges=separate --text --no-ext-diff --no-textconv HEAD", args)
                 self.assertIn("--redact=100", args)
                 self.assertIn("--log-level=error", args)
                 self.assertIn("--ignore-gitleaks-allow", args)

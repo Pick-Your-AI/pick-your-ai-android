@@ -42,9 +42,11 @@ Raw diagnostic content remains private and is replaced by a fixed failure messag
 changed tracked source, a driver not present at the recorded commit, or a mismatch
 between the workflow SHA and checkout. It records the exact source commit/tree and
 reachable commit count. Gitleaks receives `--full-history --diff-merges=separate
---no-ext-diff --no-textconv HEAD` as its Git log options. Explicit per-parent merge
+--text --no-ext-diff --no-textconv HEAD` as its Git log options. Explicit per-parent merge
 diffs include values introduced only by a merge resolution; the default Git patch
-log can omit them. External diff and text-conversion helpers are disabled. History
+log can omit them. Forced text patches prevent repository `-diff`/`binary`
+attributes or automatic binary classification from hiding contents behind a
+`Binary files ... differ` marker. External diff and text-conversion helpers are disabled. History
 unreachable from this checkout, other branches, developer-local untracked files
 and external services are outside the scan. A deletion from the latest file does
 not remove a finding in its reachable history.
@@ -84,6 +86,15 @@ no remote and are never published as project contributions. The pre-correction
 default patch log incorrectly returned no finding for this actual merge fixture;
 the corrected merge-diff command detects it. These are seeded pattern and history
 coverage checks, not a production credential-revocation exercise.
+
+Another private Git fixture has two token-bearing files: plain text explicitly
+marked `-diff` by its own `.gitattributes`, and a NUL-bearing file automatically
+classified as binary. The real scanner must find both at their exact commit,
+file and line. Independent reproduction without `--text` returned exit 0 with no
+findings; the corrected command returns exit 10 with both findings. No project
+attribute or binary is changed. The primary [Git attributes documentation](https://git-scm.com/docs/gitattributes/2.50.0)
+describes binary diff suppression and the textual override. This pattern check
+does not imply decryption, archive expansion or discovery of every encoded secret.
 
 The final real fixtures exercise execution failures. A nonrepository and a new
 two-commit bare repository whose clean tip has a missing reachable parent blob

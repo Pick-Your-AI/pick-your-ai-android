@@ -120,7 +120,7 @@ def scan(binary: Path, target: Path, directory: Path, name: str, *, history: boo
             "--gitleaks-ignore-path", str(ignore), "--ignore-gitleaks-allow",
             "--report-format=json", "--report-path", str(report)]
     if history:
-        args.append("--log-opts=--full-history --diff-merges=separate --no-ext-diff --no-textconv HEAD")
+        args.append("--log-opts=--full-history --diff-merges=separate --text --no-ext-diff --no-textconv HEAD")
     args.append(str(target))
     env = {key: value for key, value in os.environ.items()
            if key not in ("GITLEAKS_CONFIG", "GITLEAKS_CONFIG_TOML")}
@@ -205,6 +205,27 @@ def verify_detection_and_removal(binary: Path, directory: Path) -> dict:
             row == {"rule_id": "github-pat", "file": "fixture.txt", "line": 1, "commit": merge}
             for row in merged["findings"]), "Merge-only seeded credential was not detected")
 
+    # Force text patches for both contributor-controlled -diff attributes and
+    # Git's automatic binary classification; neither may conceal source bytes.
+    attributed = directory / "synthetic-binary-history"
+    attributed.mkdir()
+    fixture_git("init", "--quiet", repository=attributed)
+    token_line = 'synthetic_fixture = "' + token + '"\n'
+    (attributed / ".gitattributes").write_text("attribute.txt -diff\n", encoding="utf-8")
+    (attributed / "attribute.txt").write_text(token_line, encoding="utf-8")
+    (attributed / "binary.dat").write_bytes(b"\x00synthetic binary prefix\n" + token_line.encode("utf-8"))
+    fixture_git("add", "--", ".gitattributes", "attribute.txt", "binary.dat", repository=attributed)
+    binary_tree = fixture_git("write-tree", repository=attributed)
+    binary_commit = fixture_git("commit-tree", binary_tree, "-m", "Synthetic binary-history fixture", repository=attributed)
+    fixture_git("update-ref", "refs/heads/main", binary_commit, repository=attributed)
+    fixture_git("symbolic-ref", "HEAD", "refs/heads/main", repository=attributed)
+    binary_history = scan(binary, attributed, directory, "binary-history", history=True)
+    require(binary_history["exit_code"] == 10 and binary_history["finding_count"] == 2 and
+            sorted(binary_history["findings"], key=lambda row: row["file"]) == [
+                {"rule_id": "github-pat", "file": "attribute.txt", "line": 1, "commit": binary_commit},
+                {"rule_id": "github-pat", "file": "binary.dat", "line": 2, "commit": binary_commit}],
+            "Binary-classified historical fixtures were not detected")
+
     # A clean tip and a successful commit count cannot prove readable history.
     # Remove only the blob just created in this new private, remote-free fixture.
     damaged = directory / "synthetic-missing-object.git"
@@ -232,6 +253,8 @@ def verify_detection_and_removal(binary: Path, directory: Path) -> dict:
             "source_ignore_upstream_exit_code": 0, "source_ignore_upstream_findings": 0,
             "source_ignore_rejected": True, "nonrepository_rejected": True,
             "missing_history_object_rejected": True,
+            "binary_history_exit_code": 10, "binary_history_findings": 2,
+            "binary_fixture_commit": binary_commit,
             "merge_only_exit_code": 10, "merge_only_findings": 2, "merge_fixture_commit": merge}
 
 
