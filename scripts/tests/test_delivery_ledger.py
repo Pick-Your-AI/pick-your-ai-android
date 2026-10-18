@@ -138,7 +138,7 @@ class LedgerValidationTest(unittest.TestCase):
             module.validate(self.ledger, [issue for issue in source if issue['state'] == 'open'])
 
     def test_completion_requires_reviewed_schema_version(self):
-        for version in (1, 2, 3, 4, 5, 6, True, '2', '3', '4', '5', '6', '7', 4.0, 5.0, 6.0, 7.0):
+        for version in (1, 2, 3, 4, 5, 6, 7, True, '2', '3', '4', '5', '6', '7', '8', 4.0, 5.0, 6.0, 7.0, 8.0):
             ledger = copy.deepcopy(self.ledger)
             ledger['schema_version'] = version
             with self.assertRaisesRegex(ValueError, 'unsupported schema version'):
@@ -529,7 +529,9 @@ class LedgerValidationTest(unittest.TestCase):
                 target['criteria'][0].update(status='complete', completion_evidence=['pr-347'],
                                              remaining_engineering='', external_prerequisites=[],
                                              evidence_relation=module.COMPLETE_DESIGN_RELATION)
-                with self.assertRaisesRegex(ValueError, f'unsupported design acceptance: {number}'):
+                expected = ('reviewed design acceptance: 2' if number == 2 else
+                            f'unsupported design acceptance: {number}')
+                with self.assertRaisesRegex(ValueError, expected):
                     module.validate(ledger)
 
 
@@ -544,10 +546,10 @@ class LedgerImplementationAcceptanceTest(unittest.TestCase):
         module.validate(self.ledger)
         issues = self.ledger['issues']
         self.assertEqual([26], [x['number'] for x in issues if 'accepted_implementation_outcome' in x])
-        self.assertEqual([20, 23, 24, 25, 34, 35, 47], [x['number'] for x in issues if 'accepted_design_outcome' in x])
+        self.assertEqual([2, 20, 23, 24, 25, 34, 35, 47], [x['number'] for x in issues if 'accepted_design_outcome' in x])
         criteria = [c for issue in issues for c in issue['criteria']]
-        self.assertEqual(417, sum(c['status'] == 'incomplete' for c in criteria))
-        self.assertEqual(21, sum(c['evidence_relation'] == module.COMPLETE_DESIGN_RELATION for c in criteria))
+        self.assertEqual(413, sum(c['status'] == 'incomplete' for c in criteria))
+        self.assertEqual(25, sum(c['evidence_relation'] == module.COMPLETE_DESIGN_RELATION for c in criteria))
         self.assertEqual(3, sum(c['evidence_relation'] == module.COMPLETE_IMPLEMENTATION_RELATION for c in criteria))
         accepted = self.acceptance(self.ledger)
         self.assertNotEqual(accepted['implementation_revision'], accepted['record_revision'])
@@ -809,7 +811,7 @@ class LedgerImplementationAcceptanceTest(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, 'unreviewed change to another issue record'):
                     module.validate(ledger)
         for key in self.ledger['evidence']:
-            if key in ('pr-407', 'pr-418'):
+            if key in ('pr-407', 'pr-418', 'pr-412'):
                 continue
             with self.subTest(evidence=key):
                 ledger = copy.deepcopy(self.ledger)
@@ -839,6 +841,205 @@ class LedgerImplementationAcceptanceTest(unittest.TestCase):
                         value['model_cases'] = True
                     with self.assertRaisesRegex(ValueError, 'reviewed implementation acceptance: 26'):
                         module.validate(ledger)
+
+
+class IntegratedFoundationAcceptanceTest(unittest.TestCase):
+    def setUp(self):
+        self.ledger = module.read_json(ROOT / 'docs/delivery/criterion-evidence.json')
+
+    def accepted(self, ledger):
+        return ledger['issues'][1]['accepted_design_outcome']
+
+    def test_delivered_record_bytes_and_exact_decision_classification(self):
+        import hashlib
+        module.validate(self.ledger)
+        accepted = self.accepted(self.ledger)
+        self.assertEqual('reviewed_design_outcome', accepted['classification'])
+        self.assertEqual(['D1', 'D2', 'D3', 'D4', 'D5', 'D6', 'D7', 'D8'],
+                         accepted['decision_demonstration']['cases'])
+        self.assertEqual([20, 24, 34, 35, 25, 47],
+                         [child['issue'] for child in accepted['consumed_children']])
+        self.assertEqual('c0278410f5a8a90776df9de2f466103cba48f9f1',
+                         accepted['record_observation']['execution_revision'])
+        for key in ('record', 'decision'):
+            with self.subTest(artifact=key):
+                expected = accepted[key]
+                raw = (ROOT / expected['path']).read_bytes()
+                self.assertEqual(expected['bytes'], len(raw))
+                self.assertEqual(expected['sha256'], hashlib.sha256(raw).hexdigest())
+                self.assertEqual(expected['blob'], hashlib.sha1(
+                    b'blob ' + str(len(raw)).encode() + b'\0' + raw).hexdigest())
+        issue = self.ledger['issues'][1]
+        self.assertNotIn('accepted_implementation_outcome', issue)
+        self.assertEqual(4, len(issue['criteria']))
+        self.assertTrue(all(c['completion_evidence'] == ['pr-412'] for c in issue['criteria']))
+
+    def test_decision_receipt_requires_every_actual_pin_and_scope_field(self):
+        accepted = self.accepted(self.ledger)
+        for field in accepted:
+            for mutation in ('remove', 'replace'):
+                with self.subTest(field=field, mutation=mutation):
+                    ledger = copy.deepcopy(self.ledger)
+                    value = self.accepted(ledger)
+                    if mutation == 'remove':
+                        del value[field]
+                    else:
+                        value[field] = 'unreviewed receipt or broader outcome'
+                    with self.assertRaisesRegex(ValueError, 'reviewed design acceptance: 2'):
+                        module.validate(ledger)
+
+    def test_receiving_roles_revisions_and_real_review_identity_cannot_be_substituted(self):
+        for index, review in enumerate(self.accepted(self.ledger)['receiving_reviews']):
+            for field in review:
+                with self.subTest(review=index, field=field):
+                    ledger = copy.deepcopy(self.ledger)
+                    self.accepted(ledger)['receiving_reviews'][index][field] = 'historical_human_assignee_approved_everything'
+                    with self.assertRaisesRegex(ValueError, 'reviewed design acceptance: 2'):
+                        module.validate(ledger)
+
+    def test_every_child_and_accepted_handoff_retains_its_exact_input_scope(self):
+        accepted = self.accepted(self.ledger)
+        for index, child in enumerate(accepted['consumed_children']):
+            for field in child:
+                with self.subTest(child=index, field=field):
+                    ledger = copy.deepcopy(self.ledger)
+                    self.accepted(ledger)['consumed_children'][index][field] = 'unaccepted_new_child_or_implementation'
+                    with self.assertRaisesRegex(ValueError, 'reviewed design acceptance: 2'):
+                        module.validate(ledger)
+        for field in ('accepted_handoff_scope', 'outcome_boundaries'):
+            for index in range(len(accepted[field])):
+                with self.subTest(field=field, index=index):
+                    ledger = copy.deepcopy(self.ledger)
+                    self.accepted(ledger)[field][index] = 'All consumers and physical delivery are accepted.'
+                    with self.assertRaisesRegex(ValueError, 'reviewed design acceptance: 2'):
+                        module.validate(ledger)
+
+    def test_desk_demonstration_cannot_become_device_fit_or_operating_evidence(self):
+        for field in self.accepted(self.ledger)['decision_demonstration']:
+            with self.subTest(field=field):
+                ledger = copy.deepcopy(self.ledger)
+                self.accepted(ledger)['decision_demonstration'][field] = 'installed_product_fit_and_operations_passed'
+                with self.assertRaisesRegex(ValueError, 'reviewed design acceptance: 2'):
+                    module.validate(ledger)
+
+    def test_actual_main_observation_and_original_artifact_identities_are_not_substitutable(self):
+        observed = self.accepted(self.ledger)['record_observation']
+        for field in observed:
+            with self.subTest(field=field):
+                ledger = copy.deepcopy(self.ledger)
+                self.accepted(ledger)['record_observation'][field] = 'earlier_prepared_or_unexecuted_source'
+                with self.assertRaisesRegex(ValueError, 'reviewed design acceptance: 2'):
+                    module.validate(ledger)
+        for index, artifact in enumerate(observed['original_artifacts']):
+            for field in artifact:
+                with self.subTest(artifact=index, field=field):
+                    ledger = copy.deepcopy(self.ledger)
+                    self.accepted(ledger)['record_observation']['original_artifacts'][index][field] = 'unread_replacement'
+                    with self.assertRaisesRegex(ValueError, 'reviewed design acceptance: 2'):
+                        module.validate(ledger)
+
+    def test_boolean_and_float_aliases_cannot_relabel_exact_observations(self):
+        for mutation in ('signature', 'case-count', 'artifact-size', 'artifact-id',
+                         'child-number', 'no-device', 'no-operator', 'record-size'):
+            with self.subTest(mutation=mutation):
+                ledger = copy.deepcopy(self.ledger)
+                accepted = self.accepted(ledger)
+                observed = accepted['record_observation']
+                if mutation == 'signature':
+                    observed['signature_verified'] = 1
+                elif mutation == 'case-count':
+                    observed['core_cases'] = float(observed['core_cases'])
+                elif mutation in ('artifact-size', 'artifact-id'):
+                    field = 'bytes' if mutation == 'artifact-size' else 'id'
+                    observed['original_artifacts'][0][field] = float(observed['original_artifacts'][0][field])
+                elif mutation == 'child-number':
+                    accepted['consumed_children'][0]['issue'] = 20.0
+                elif mutation == 'record-size':
+                    accepted['record']['bytes'] = float(accepted['record']['bytes'])
+                else:
+                    field = 'installed_or_physical_execution_claimed' if mutation == 'no-device' else 'production_service_or_operating_acceptance_claimed'
+                    accepted['decision_demonstration'][field] = 0
+                with self.assertRaisesRegex(ValueError, 'reviewed design acceptance: 2'):
+                    module.validate(ledger)
+
+    def test_all_four_literal_criteria_reject_rewording_even_with_recomputed_digest(self):
+        import hashlib
+        for index in range(4):
+            with self.subTest(index=index):
+                ledger = copy.deepcopy(self.ledger)
+                criterion = ledger['issues'][1]['criteria'][index]
+                criterion['text'] = 'Every runtime and release is accepted after a document merge.'
+                criterion['text_sha256'] = hashlib.sha256(criterion['text'].encode()).hexdigest()
+                with self.assertRaisesRegex(ValueError, 'reviewed design criterion set changed: 2'):
+                    module.validate(ledger)
+
+    def test_all_four_criteria_require_complete_reviewed_decision_evidence(self):
+        for index in range(4):
+            for field, value in (
+                ('status', 'incomplete'), ('completion_evidence', []),
+                ('completion_evidence', ['pr-418']), ('completion_evidence', ['pr-412', 'pr-418']),
+                ('remaining_engineering', 'Selected decision integration remains unperformed.'),
+                ('external_prerequisites', [{'kind': 'owner_acceptance', 'requirement': 'Receiving review absent.'}]),
+                ('evidence_relation', module.COMPLETE_IMPLEMENTATION_RELATION),
+            ):
+                with self.subTest(index=index, field=field):
+                    ledger = copy.deepcopy(self.ledger)
+                    ledger['issues'][1]['criteria'][index][field] = value
+                    with self.assertRaises(ValueError):
+                        module.validate(ledger)
+
+    def test_entire_new_evidence_entry_requires_the_exact_merged_delivery(self):
+        for field in self.ledger['evidence']['pr-412']:
+            with self.subTest(field=field):
+                ledger = copy.deepcopy(self.ledger)
+                receipt = ledger['evidence']['pr-412']
+                receipt[field] = 'unreviewed substitute'
+                with self.assertRaises(ValueError):
+                    module.validate(ledger)
+        ledger = copy.deepcopy(self.ledger)
+        ledger['evidence']['pr-412']['scope_limit'] += ' All scanner, device and release work is complete.'
+        with self.assertRaisesRegex(ValueError, 'integrated foundation receipt'):
+            module.validate(ledger)
+
+    def test_prior_foundation_context_and_all_other_objects_are_preserved(self):
+        for mutation in ('title', 'new-issue-field', 'partial-reference', 'partial-result',
+                         'new-criterion-field', 'historical-placement'):
+            with self.subTest(mutation=mutation):
+                ledger = copy.deepcopy(self.ledger)
+                issue = ledger['issues'][1]
+                if mutation == 'title':
+                    issue['title'] += ' Production accepted'
+                elif mutation == 'new-issue-field':
+                    issue['invented_previous_success'] = True
+                elif mutation == 'partial-reference':
+                    issue['criteria'][0]['partial_evidence_refs'] = ['pr-132']
+                elif mutation == 'partial-result':
+                    issue['criteria'][0]['partial_results'] = []
+                elif mutation == 'new-criterion-field':
+                    issue['criteria'][0]['invented_historical_approval'] = True
+                else:
+                    issue['accepted_design_outcome']['historical_acceptance_record']['repository'] = module.REPOSITORY
+                with self.assertRaises(ValueError):
+                    module.validate(ledger)
+        other_issues = [i for i in self.ledger['issues'] if i['number'] != 2]
+        old_evidence = {k:v for k,v in self.ledger['evidence'].items() if k != 'pr-412'}
+        self.assertEqual('5f07f02f18bff26269edf31a221f4cbd97438f146a7179a230a18e54316b25f0',
+                         module.json_digest(other_issues))
+        self.assertEqual('51d457fcdd9dfae6d4fecb562173d176d9754cfeffa807e905acdbda0bf201ed',
+                         module.json_digest(old_evidence))
+
+    def test_foundation_receipt_cannot_complete_any_other_issue_or_model(self):
+        for number in (1, 21, 26, 34, 47, 67, 83, 89, 122):
+            with self.subTest(number=number):
+                ledger = copy.deepcopy(self.ledger)
+                issue = ledger['issues'][number - 1]
+                issue['accepted_design_outcome'] = copy.deepcopy(self.accepted(ledger))
+                issue['canonical_acceptance_record'] = copy.deepcopy(ledger['issues'][1]['canonical_acceptance_record'])
+                issue['criteria'][0].update(status='complete', completion_evidence=['pr-412'],
+                    remaining_engineering='', external_prerequisites=[],
+                    evidence_relation=module.COMPLETE_DESIGN_RELATION)
+                with self.assertRaises(ValueError):
+                    module.validate(ledger)
 
 
 class LedgerInputIntegrityTest(unittest.TestCase):
@@ -883,7 +1084,7 @@ class LedgerInputIntegrityTest(unittest.TestCase):
 
     def test_duplicate_schema_and_source_identity_members_fail_at_cli(self):
         self.assert_rejected('duplicate JSON member', ledger_text=self.raw_ledger.replace(
-            '"schema_version": 7', '"schema_version": 5, "schema_version": 7', 1))
+            '"schema_version": 8', '"schema_version": 5, "schema_version": 8', 1))
         self.assert_rejected('duplicate JSON member', source_text=self.raw_source.replace(
             '"number": 1', '"number": 999, "number": 1', 1))
 
@@ -895,7 +1096,7 @@ class LedgerInputIntegrityTest(unittest.TestCase):
 
     def test_escaped_duplicate_members_fail_at_both_cli_inputs(self):
         self.assert_rejected('duplicate JSON member', ledger_text=self.raw_ledger.replace(
-            '"schema_version": 7', r'"\u0073chema_version": 5, "schema_version": 7', 1))
+            '"schema_version": 8', r'"\u0073chema_version": 5, "schema_version": 8', 1))
         self.assert_rejected('duplicate JSON member', source_text=self.raw_source.replace(
             '"number": 1', r'"\u006eumber": 999, "number": 1', 1))
         for location, raw in (('ledger_text', self.raw_ledger), ('source_text', self.raw_source)):
@@ -926,7 +1127,7 @@ class LedgerInputIntegrityTest(unittest.TestCase):
             with self.subTest(optimized=optimized):
                 result = self.run_cli(ledger_text, source_text, optimized)
                 self.assertEqual(result.returncode, 0, result.stderr)
-                self.assertIn('417 incomplete criteria, 21 reviewed design criteria, 3 reviewed implementation criteria', result.stdout)
+                self.assertIn('413 incomplete criteria, 25 reviewed design criteria, 3 reviewed implementation criteria', result.stdout)
                 self.assertIn('exact source criteria matched.', result.stdout)
                 self.assertEqual(result.stderr, '')
         changed = copy.deepcopy(self.source)
