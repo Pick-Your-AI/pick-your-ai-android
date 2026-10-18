@@ -16,9 +16,19 @@ source rights, store distribution or operational acceptance.
 
 Selected criteria additionally have `partial_results` with precise supported
 behavior, pinned evidence references and reproduction commands. Run commands from
-the relevant pinned implementation checkout with its documented toolchain; this
-ledger refresh itself did not rerun those application tests. Context references
-remain broader than criterion-specific results, and neither implies completion.
+the relevant pinned implementation checkout with its documented toolchain.
+Each observation states whether it comes from a recorded artifact or an observed
+test run. Context references remain broader than criterion-specific results, and
+neither implies completion.
+
+The durable repair receipts additionally link PR #165 (unchanged-save
+deduplication) and PR #168 (library process-lock preservation) to the exact
+supported portions of #67, #86 and #122. These entries identify the signed source
+revisions, observed local tests, failure reproducer and scoped review/CI receipts.
+Both repairs are merged, with their final hosted checks recorded in the ledger.
+The local tests do not establish Android autosave, installed recreation, full
+library deletion/retention or device acceptance. Earlier in-memory-only history
+results remain historical rather than being rewritten as observations of later code.
 
 Each criterion retains its original text, stable issue/ordinal ID, digest,
 remaining engineering work and any concrete external prerequisites. An empty
