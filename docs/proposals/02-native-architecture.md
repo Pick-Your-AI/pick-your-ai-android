@@ -19,7 +19,7 @@ separate. The canonical acceptance-record path is unchanged. Read the
 | Module boundary | `:core` remains SDK-independent; `:preview` depends on core and is included only with `-PandroidPreview=true` | [Settings](../../settings.gradle.kts); production `:data`/`:app` modules are not implemented |
 | Toolchain | JDK 21 build, Java 17 bytecode, Gradle 8.11.1, Kotlin 2.1.20, AGP 8.9.2 | [Root build](../../build.gradle.kts), [core build](../../core/build.gradle.kts), pinned wrapper and dependency verification; current reproducible experiment |
 | SDK bounds | compile/target 35, minSdk 26, build-tools 35.0.0 | [Preview reproduction](../ANDROID_PREVIEW.md); these are compile/runtime bounds, not evidence that devices or current Play submission requirements are satisfied |
-| Storage boundary | Pure-core local filesystem/revision primitives; preview edits remain temporary until the Android storage adapter is integrated | [Draft history](../DRAFT_HISTORY.md); no Room adoption or preview process-death durability is implied |
+| Storage boundary | Canonical local filesystem/revision primitives now back explicit guest-preview save/reopen; autosave and a full library remain separate | [Draft history](../DRAFT_HISTORY.md); no Room adoption or installed-device process-death qualification is implied |
 
 The implementation choice of platform Views is bounded to this diagnostic. It does
 not claim to implement the earlier Compose/Room recommendation. Retain native Kotlin

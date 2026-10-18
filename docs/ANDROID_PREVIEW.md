@@ -2,21 +2,20 @@
 
 The `preview` module is an engineering experiment using platform Android Views,
 not an approved product UI/framework, production package registration, support
-matrix or release policy. It browses the unmodified frozen-v1 `catalog.json` fixture and offers a temporary
-guest title and one sample selection. A separate diagnostic validates the original
+matrix or release policy. It browses the unmodified frozen-v1 `catalog.json` fixture and offers a guest title and one sample selection with explicit local save/reopen. A separate diagnostic validates the original
 `build.json`, not the edited guest draft. All verdicts stay **unknown**. Fixtures
 are bundled directly from the verified import, never copied into a real catalog.
-There is no real-data mode or promotion path, account, network, import, telemetry
-or durable draft storage. Release variants are disabled.
+There is no real-data mode or promotion path, account, network, import or telemetry.
+Release variants are disabled. Explicit local save/reopen is described below.
 
 The launcher is the only exported component. The manifest requests no permissions,
 disables backup and cleartext traffic. Catalog and build structural validation run on a worker thread. A destroyed
 Activity discards worker results. A small saved-state Bundle carries only the
-bounded title and selected fixture ID; the catalog is reloaded and validated after
-recreation. A missing selected ID is shown as unavailable, never silently replaced.
-This is temporary Android restoration, not durable storage: no saved acknowledgement,
-revision, library, database, autosave or process-death test is claimed. The app does
-not use the core revision repository until its Android storage adapter is accepted.
+bounded title, selected fixture ID/version and catalog hash; the catalog is reloaded
+and validated after recreation. A missing exact selection is shown as unavailable,
+never silently replaced. Bundle restoration does not acknowledge persistence. The
+explicit local Save path now uses the canonical revision store; full library,
+autosave and installed process-death qualification remain separate.
 
 ## Reproduce
 
@@ -54,7 +53,7 @@ alone does not establish those results.
 | #48: Pinned compatible JDK/Gradle/Android/Kotlin dependencies, package ID decision, modular build, documented developer setup and clean-checkout build | Pinned opt-in experimental module, setup, bytecode compatibility and build evidence | #34 receiving acceptance must select product framework/package/support policy; this diagnostic cannot claim that stakeholder decision |
 | #48: A fresh checkout builds with the documented pinned toolchain and installs/launches under the approved package identity | Debug build can be independently reproduced with the documented SDK | Approved production identity is absent; actual emulator/device installation and launch evidence must be collected rather than inferred |
 | #48: Existing website checks remain independently runnable; no developer-specific configuration is required in source | No website edits; SDK opt-in and environment-only local configuration | Website CI remains separate; no website checks are claimed by this Android run |
-| #77: Each preview visibly identifies synthetic data and validates against its version or is marked as a negative test | Persistent synthetic notice, schema-validated catalog browse/detail, temporary empty/incomplete draft and explicit unknown compatibility | Failed-rule and partial-quote product previews are not implemented; #58 product UI/repository integration remains pending |
+| #77: Each preview visibly identifies synthetic data and validates against its version or is marked as a negative test | Persistent synthetic notice, schema-validated catalog browse/detail, empty/incomplete guest draft and explicit unknown compatibility | Failed-rule and partial-quote product previews are not implemented; #58 product UI/repository integration remains pending |
 | #77: Explicitly synthetic sample data, isolated test contracts, no accidental promotion of fictional prices/components into real-data mode | Only bundled fixture assets, no real-data or publication path | Production catalog/promotion adapter must enforce contamination rejection when implemented; absence of a path is not a tested rejection at a real boundary |
 | #77: Real-data mode rejects fixture contamination rather than displaying it as vendor evidence | No real-data mode exists | Actual real-data publication contract/adapter and #58 integrated architecture are required for a meaningful promotion test |
 
@@ -102,7 +101,7 @@ bundled assets, capped at 1 MiB and schema-validated before display. Only identi
 name, kind and version are displayed. No fictional price, quality or capacity becomes
 a real vendor claim. Details require explicit selection; selection does not trigger
 analysis. A separate build diagnostic clearly labels that it checks the original
-fixture rather than the current temporary draft.
+fixture rather than the current guest form.
 
 The guest form bounds the title to 120 UTF-16 units and disables personalized IME
 learning as a best-effort keyboard request, not a privacy guarantee. Users are told
@@ -187,3 +186,71 @@ Evidence-detail validation: strict unsigned assembly, lint and the JVM suite
 passed locally (49 tasks; 66 JVM tests including the five new projection tests).
 Lint reported no issues. The frozen hash verifier and 21 Python reference tests
 also passed. No rendered-device, TalkBack or installation result is claimed.
+
+
+## Explicit local guest save and reopen
+
+The guest form now uses [PreviewDraftPersistence](../core/src/main/kotlin/ai/pickyour/core/preview/PreviewDraftPersistence.kt)
+over the canonical `LocalDraftStore`; no second persistence engine, shared Draft
+contract, database framework or account service is introduced. A dedicated
+`noBackupFilesDir/guest-draft` directory holds private preview metadata: format,
+title, opaque selected item ID, exact item version and SHA-256 of the selected
+bundled catalog bytes. Domain content and unrelated metadata survive edits.
+Missing version/hash stays unresolved, and catalog replacement never silently
+selects a new version. The sample is displayed as unavailable until the user
+explicitly selects a current sample or clears the form.
+
+Save is explicit, not autosave. The UI displays saving only during the worker
+transaction and saved only after `PreviewDraftSave.Saved`. All edits/selection
+controls are temporarily disabled during load/save; duplicate saves are disabled.
+The single worker serializes IO. Failure preserves visible fields; stale tokens
+block saving until explicit reopen, and uncertain outcomes require reread before
+retry. Reopen requires confirmation before replacing the visible unsaved form.
+Clear modifies the form only; a later Save commits an empty form as a new revision
+and retains old history. Unsupported/corrupt persisted formats are never reset.
+History/size exhaustion has distinct feedback and never trims revisions silently.
+
+On recreation the form's small Bundle preserves pending fields; disk load establishes
+which fields are actually acknowledged. Bundle restoration is never itself a saved
+acknowledgment. Destroyed activities ignore worker callbacks. Interrupted storage
+may return failure/uncertainty; the next load reopens the canonical head. Unsaved
+edits can still be lost if Android stops the app without saved-instance restoration;
+this limitation is visible. Rapid editing, autosave and full draft-library workflow
+remain separate acceptance work rather than a promised no-loss property.
+
+Root initialization runs off the UI thread. It synchronizes the platform-managed
+app-data parent after requesting the no-backup directory, creates the dedicated
+child, then synchronizes its parent on every initialization/retry. The canonical
+store subsequently creates/syncs its revisions child. Any unsupported directory
+sync or filesystem error fails closed without a saved acknowledgment. The existing
+manifest has backup disabled, no new permissions, and no new exported component.
+The private metadata is neither a public export nor cloud synchronization.
+
+Primary Android references checked 2026-10-18:
+[Context.getNoBackupFilesDir](https://developer.android.com/reference/android/content/Context#getNoBackupFilesDir())
+for app-private no-backup storage and
+[FileChannel.force](https://developer.android.com/reference/java/nio/channels/FileChannel#force(boolean))
+for local-device force limitations. These API contracts do not establish actual
+power-loss recovery or directory-channel support on every supported device.
+
+Eleven new JVM adapter/lifecycle-guard tests exercise empty/incomplete/pinned-selection round trips,
+clear-as-revision, stale token conflicts, content/metadata preservation, unsupported
+private formats, pre/postactivation failure and form limits. They reuse the real
+canonical cache/store and injected failures. The lifecycle guard persists the exact
+revision/hash baseline and a reconciliation-required marker through Bundle state.
+A changed disk baseline, conflicted/uncertain state or in-flight I/O cannot silently
+acquire newer save authority during recreation; pending fields remain visible and
+explicit Reopen is required. Missing checkpoint metadata also fails closed. Four
+regressions exercise these restoration decisions without claiming an Android run.
+Core JVM tests are not Android
+filesystem or UI lifecycle evidence. Hosted unsigned build/lint must pass the final
+PR head; emulator/device, TalkBack, rotation and process-termination flows remain
+unexecuted until an instrumented installation is actually tested. This change does
+not generate a signing key or install/release an app.
+
+Partial criteria: #86 local open/save and recovery; #67 canonical storage integration;
+#122 acknowledgment and retained pending fields; #76 lifecycle restoration. Still
+missing are multiple-draft list/create/duplicate/delete, autosave/revision UI,
+retention UX, installed-process-death evidence and receiving acceptance. Canonical
+records remain `11.01.md`, `12.01.md`, `08.06.md` and `02.03.md` under the existing
+website Android work-package path. No issue closes.
