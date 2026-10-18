@@ -13,7 +13,12 @@ import ai.pickyour.core.preview.*
 import ai.pickyour.core.pricing.RecordedPricebook
 
 /** Read-only transient comparison. It never receives an editor save token or worker. */
-class CatalogComparisonSection(private val activity: Activity, saved: Bundle?) : LinearLayout(activity) {
+class CatalogComparisonSection(
+    private val activity: Activity,
+    saved: Bundle?,
+    private val inspectPin: (PreviewCatalogPin, PreviewCatalogBrowser?, () -> Boolean) -> Unit,
+    private val dismissPinInspection: () -> Unit,
+) : LinearLayout(activity) {
     private var resetState = false
     private var tray = try {
         // The Bundle getter validates the outer ArrayList only; elements remain untrusted.
@@ -89,6 +94,7 @@ class CatalogComparisonSection(private val activity: Activity, saved: Bundle?) :
 
     private fun render() {
         if (!active()) return
+        dismissPinInspection()
         val current = tray.entries(browser)
         status.text = listOfNotNull(
             if (resetState) activity.getString(R.string.catalog_compare_reset) else null,
@@ -99,6 +105,22 @@ class CatalogComparisonSection(private val activity: Activity, saved: Bundle?) :
         current.forEachIndexed { index, entry ->
             caption(entries, identity(index, entry), true)
             if (entry.detail == null) caption(entries, activity.getString(R.string.catalog_compare_unavailable))
+            entries.addView(Button(activity).apply {
+                text = activity.getString(R.string.catalog_pin_inspect, index + 1)
+                setSingleLine(false)
+                minHeight = kotlin.math.ceil(48 * resources.displayMetrics.density.toDouble()).toInt()
+                minWidth = minHeight
+                val originTray = tray
+                val originBrowser = browser
+                setOnClickListener { control ->
+                    val isCurrent = { active() && control.parent === entries && tray === originTray && browser === originBrowser }
+                    if (isCurrent()) {
+                        comparisonDialog?.dismiss()
+                        comparisonDialog = null
+                        inspectPin.invoke(entry.pin, originBrowser, isCurrent)
+                    }
+                }
+            }, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
             entries.addView(Button(activity).apply {
                 text = activity.getString(R.string.catalog_compare_remove, index + 1, literal(entry.pin.version))
                 setOnClickListener { control ->
@@ -114,6 +136,7 @@ class CatalogComparisonSection(private val activity: Activity, saved: Bundle?) :
 
     private fun openComparison() {
         if (!active()) return
+        dismissPinInspection()
         val current = tray.entries(browser)
         if (current.size != PreviewCatalogTray.LIMIT || current.any { it.detail == null }) return
         val comparison = PreviewCatalogComparison(requireNotNull(current[0].detail), requireNotNull(current[1].detail))
@@ -190,7 +213,7 @@ class CatalogComparisonSection(private val activity: Activity, saved: Bundle?) :
         out.putBoolean("comparisonDifferencesOnly", differencesOnly)
     }
 
-    fun close() { closed = true; comparisonDialog?.dismiss(); comparisonDialog = null }
+    fun close() { closed = true; dismissPinInspection(); comparisonDialog?.dismiss(); comparisonDialog = null }
 
     companion object {
         // Frozen v1 condition/reference fields stay visible even when matching values are hidden.

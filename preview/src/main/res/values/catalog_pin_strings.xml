@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="catalog_pin_inspect">Inspect pinned component %1$d</string>
+    <string name="catalog_pin_title">Exact pinned component</string>
+    <string name="catalog_pin_retry">Retry this exact pin</string>
+    <string name="catalog_pin_browse">Browse the current catalog</string>
+    <string name="catalog_pin_identity">Requested item ID: %1$s\nRequested version: %2$s\nRequested snapshot SHA-256: %3$s</string>
+    <string name="catalog_pin_notice">Inspection keeps your draft, comparison pins and current catalog unchanged. Retry reads this same snapshot and exact item version. Returning to current browsing does not replace the pin.</string>
+    <string name="catalog_pin_loading">Reading the exact local snapshot…</string>
+    <string name="catalog_pin_captured">The exact pin was found in the captured current catalog.</string>
+    <string name="catalog_pin_retained">The exact pin was found in a retained local snapshot. The current catalog was not changed.</string>
+    <string name="catalog_pin_recorded_status">The status and dates below are recorded in this snapshot. They do not establish current availability or a publisher withdrawal.</string>
+    <string name="catalog_pin_prices">No pricebook is attached to this pinned inspection. The current pricebook is not substituted; a price for this pin remains unknown.</string>
+    <string name="catalog_pin_missing">The requested snapshot bytes are not available locally. Retry the exact pin if those bytes become available, or return to current browsing. No newer snapshot was substituted.</string>
+    <string name="catalog_pin_hash_mismatch">The supplied snapshot does not match the requested SHA-256. Its fields were not used. Retry this exact pin or return to current browsing.</string>
+    <string name="catalog_pin_invalid">The exact bytes could not be read as a valid supported catalog snapshot. They were preserved without repair or replacement.</string>
+    <string name="catalog_pin_unsupported">This reader does not support the schema version recorded in the exact snapshot. The bytes remain unchanged; no migration or newer snapshot was substituted.</string>
+    <string name="catalog_pin_limit">The exact snapshot exceeds this preview reader’s bounds. No partial component was used and the pin remains unchanged.</string>
+    <string name="catalog_pin_version_missing">The exact snapshot does not contain this item ID and version. Another version was not substituted. Absence does not establish retirement or withdrawal.</string>
+    <string name="catalog_pin_detail_missing">Recorded details are unavailable for this exact item version. Browse-only labels were not treated as evidence.</string>
+    <string name="catalog_pin_busy">The retained snapshot is currently being accessed. Retry this same pin after the other local operation completes.</string>
+    <string name="catalog_pin_read_failed">The retained snapshot could not be read. Retry this exact pin or return to current browsing.</string>
+    <string name="catalog_pin_corrupt">The retained snapshot failed a local integrity check. Its contents were not used, and no active snapshot was substituted.</string>
+    <string name="catalog_pin_cancelled">The exact snapshot read was cancelled. The pin and current catalog remain unchanged.</string>
+</resources>

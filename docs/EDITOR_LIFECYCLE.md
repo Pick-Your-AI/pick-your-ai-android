@@ -31,6 +31,18 @@ Catalog, findings and cost sections have their own terminal guards in the accept
 catalog lifecycle delivery; this slice does not replace or duplicate those controllers.
 No schema, persistence transaction, analysis semantics or issue status changes here.
 
+## Unfinished component input (#76 / #98 / #112, partial)
+
+The [component form recovery](COMPONENT_FORM_RECOVERY.md) checkpoint carries a
+bounded set of raw add/configure inputs and their original identities through the
+Activity saved-state callback. Recreation retires the original dialog and exposes
+an explicit review action. A matching, clean current draft can open a new form;
+stale identity, revision or catalog state remains read-only. A checkpoint captured
+during a component write never replays that write, including after explicit
+reopen. This is transient UI state, separate from the existing acknowledged draft
+and pending-draft recovery-copy transaction. Simulated Parcel round-trips and
+Activity recreation do not qualify installed system process death or power loss.
+
 ## Canceled local library and reopen dialogs (#86 / #76, partial)
 
 Cancellation or dismissal also ends the authority of a dialog in a live Activity.

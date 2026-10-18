@@ -142,6 +142,90 @@ class FindingsSelectionActivityTest {
     private fun show(report: ReferenceReportView, current: () -> Boolean = { true }): FindingsSelectionNavigator =
         FindingsSelectionNavigator(activity, report, 0, current).also { navigators += it; it.show(); idle() }
 
+    private fun countReport(count: Int): ReferenceReportView = accepted { build, _ ->
+        val template = JSONObject(model(build).toString())
+        val selections = build.getJSONArray("selections")
+        repeat(selections.length()) { selections.getJSONObject(it).put("enabled", false) }
+        repeat(count) { index ->
+            selections.put(JSONObject(template.toString()).put("enabled", true)
+                .put("id", "sel_count_" + index.toString().padStart(2, '0'))
+                .put("role", "recorded_" + index))
+        }
+    }.also { assertEquals(count, it.findings.first().selectionContexts.size) }
+
+    private fun pageHeader(): TextView = views(dialog().window!!.decorView).filterIsInstance<TextView>()
+        .single { it.text.toString().startsWith("Page ") }
+
+    @Test fun selectionPageCountsRetainEmptySingleAndWholePagedTotals() {
+        title().setText("pending count inspection")
+        for (count in listOf(1, 0, 2, 17)) {
+            val report = countReport(count)
+            val navigation = show(report)
+            val pages = if (count > 16) 2 else 1
+            val first = if (count == 0) 0 else 1
+            val last = minOf(count, 16)
+            val noun = if (count == 1) "selection" else "selections"
+            assertEquals("Page 1 of $pages · $count $noun · $first–$last displayed", pageHeader().text.toString())
+            val rows = controls().filter { it.text.toString().startsWith("Inspect selection ") }
+            assertEquals(last, rows.size)
+            assertEquals(count == 0, text().contains(activity.getString(R.string.findings_context_none)))
+            if (count == 17) {
+                click(R.string.findings_context_next)
+                assertEquals("Page 2 of 2 · 17 selections · 17–17 displayed", pageHeader().text.toString())
+                assertEquals(1, controls().count { it.text.toString().startsWith("Inspect selection ") })
+                inspectSelection(17)
+                assertTrue(text().contains("Recorded selection ID: \"sel_count_16\""))
+                assertTrue(text().contains("Recorded role: \"recorded_16\""))
+                click(R.string.findings_context_back)
+                assertEquals("Page 2 of 2 · 17 selections · 17–17 displayed", pageHeader().text.toString())
+                click(R.string.findings_context_previous)
+                assertEquals("Page 1 of 2 · 17 selections · 1–16 displayed", pageHeader().text.toString())
+            }
+            assertEquals(count, report.findings.first().selectionContexts.size)
+            navigation.retire()
+        }
+        assertEquals("pending count inspection", title().text.toString())
+        assertNoDraftWrite()
+    }
+
+    @Test
+    @Config(qualifiers = "ar-rEG-ldrtl-w320dp-h640dp")
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun selectionPageCountsKeepResourceLocaleAndExpandedRtlNavigation() {
+        RuntimeEnvironment.setFontScale(2f)
+        recreate()
+        title().setText("pending localized inspection")
+        val single = show(countReport(1))
+        assertEquals("Page ١ of ١ · ١ selection · ١–١ displayed", pageHeader().text.toString())
+        single.retire()
+        val report = countReport(17)
+        show(report)
+        assertEquals("Page ١ of ٢ · ١٧ selections · ١–١٦ displayed", pageHeader().text.toString())
+        measure(dialog())
+        assertEquals(View.LAYOUT_DIRECTION_RTL, dialog().window!!.decorView.layoutDirection)
+        val header = pageHeader()
+        val layout = requireNotNull(header.layout)
+        repeat(layout.lineCount) { assertEquals(0, layout.getEllipsisCount(it)) }
+        assertTrue(header.height - header.compoundPaddingTop - header.compoundPaddingBottom >= layout.height)
+        for (control in controls()) {
+            assertLabelFits(control)
+            control.requestRectangleOnScreen(Rect(0, 0, control.width, control.height), true)
+            val visible = Rect()
+            assertTrue(control.getGlobalVisibleRect(visible))
+            assertTrue(visible.height() >= control.height)
+        }
+        click(R.string.findings_context_next)
+        assertEquals("Page ٢ of ٢ · ١٧ selections · ١٧–١٧ displayed", pageHeader().text.toString())
+        measure(dialog())
+        controls().forEach(::assertLabelFits)
+        inspectSelection(17)
+        assertTrue(text().contains("Recorded selection ID: \"sel_count_16\""))
+        assertTrue(text().contains("Recorded role: \"recorded_16\""))
+        assertEquals("sel_count_16", report.findings.first().selectionContexts.last().selectionId)
+        assertEquals("pending localized inspection", title().text.toString())
+        assertNoDraftWrite()
+    }
+
     @Test fun actualSelectionContextKeepsRecordedRoleVersionAndDraftAuthority() {
         title().setText("pending local title")
         openActualContext()
