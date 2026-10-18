@@ -60,13 +60,16 @@ must be recorded; role labels do not assign a person, support obligation or date
 Before closing an issue, confirm the complete literal criterion mapping, explicit
 receiving acceptance and normal delivery of the same artifact version. Record
 exact accepted artifact, placement, PR and review URLs from that delivery in the
-issue and a separately versioned current acceptance index. A proposed record or
+issue and a separately reviewed version of the canonical acceptance index. A proposed record or
 green syntax check alone cannot support completion.
 
-Preserve the v1 partial-evidence ledger and its literal criterion hashes. Its
-initial canonical paths and deliberately incomplete statuses are historical
-baseline data once a reviewed current acceptance overlay is introduced; do not
-silently switch those fields or relax its validator. Any current-record schema and
-criterion-level receipts require their own review. No conditional feature,
+Preserve the literal criterion IDs, texts and hashes and the v1 historical state
+at [accepted baseline `8162a557`](https://github.com/Pick-Your-AI/pick-your-ai-android/blob/8162a5571147874635d3139e73a171a1077a6d2b/docs/delivery/criterion-evidence.json),
+including its original paths and incomplete dispositions. This delivery changes
+neither the ledger nor its validator or tests. Reuse the canonical ledger's
+delivered, independently reviewed versioned current schema; do not create a
+competing current index. Every completion or placement extension requires its own
+review and exact criterion-level receipts, while preserving history and strict
+validation. No conditional feature,
 parent/epic, research issue, production source, installed device or release is
 accepted by closing these three decision tasks.
