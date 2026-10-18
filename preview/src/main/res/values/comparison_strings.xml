@@ -4,7 +4,7 @@
     <string name="revision_compare_open">Compare a revision with saved head</string>
     <string name="revision_compare_title">Local revision %1$s → %2$s</string>
     <string name="revision_compare_scope">Read-only local editing comparison, from the chosen retained revision to this saved head. Pending form edits are excluded. Values are opaque editing inputs, not verified facts. No evaluation, price, report, evidence or cross-build equivalence is inferred.</string>
-    <string name="revision_compare_count">Showing %1$s of %2$s changed fields (maximum 100). Long values are explicitly truncated.</string>
+    <string name="revision_compare_page">Page %1$d of %2$d · changed fields %3$d–%4$d of %5$d. Open a field to inspect complete stored keys and values. Long previews are explicitly truncated.</string>
     <string name="revision_compare_row">%1$s%2$s\nBefore: %3$s\nAfter: %4$s</string>
     <string name="revision_compare_truncated">%1$s… [truncated]</string>
     <string name="revision_compare_guest_known">Guest title/sample fields are comparable.</string>
@@ -12,4 +12,25 @@
     <string name="revision_compare_metadata_changed">Retained metadata differs. Only supported guest fields are detailed here; other metadata values are not displayed.</string>
     <string name="revision_compare_metadata_same">Retained metadata is unchanged.</string>
     <string name="revision_compare_changed">The saved draft changed while preparing this view. Open history again to compare its current saved head.</string>
+    <string name="revision_compare_preparing">Preparing local revision %1$s → %2$s. Closing this view cancels the inspection.</string>
+    <string name="revision_compare_no_fields">No supported local fields changed. The metadata and historical availability statements above still apply.</string>
+    <string name="revision_compare_inspect">Inspect change %1$d: %2$s</string>
+    <string name="revision_compare_change">Change %1$d of %2$d: %3$s</string>
+    <string name="revision_compare_next_changes">Next changes</string>
+    <string name="revision_compare_previous_changes">Previous changes</string>
+    <string name="revision_compare_back_changes">Back to changes</string>
+    <string name="revision_compare_inspection_hint">Inspect the complete stored key or a before/after value in ordered literal parts. This does not apply the change.</string>
+    <string name="revision_compare_no_key">This field has no component or setting key.</string>
+    <string name="revision_compare_key">Stable component or setting key</string>
+    <string name="revision_compare_before">Before value</string>
+    <string name="revision_compare_after">After value</string>
+    <string name="revision_compare_inspect_key">Inspect full key</string>
+    <string name="revision_compare_inspect_before">Inspect full before value</string>
+    <string name="revision_compare_inspect_after">Inspect full after value</string>
+    <string name="revision_compare_value_part">Value part %1$d of %2$d · code units %3$d–%4$d of %5$d</string>
+    <string name="revision_compare_literal_parts">Every part is complete. Parts preserve the stored UTF16 code units in order; quotes, controls and surrogate code units are escaped. Text and URLs remain opaque local inputs. No historical evidence, price or evaluation is reconstructed.</string>
+    <string name="revision_compare_next_part">Next value part</string>
+    <string name="revision_compare_previous_part">Previous value part</string>
+    <string name="revision_compare_back_field">Back to changed field</string>
+    <string name="revision_compare_close">Close comparison</string>
 </resources>
