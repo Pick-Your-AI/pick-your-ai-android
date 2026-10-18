@@ -1,5 +1,10 @@
 # Frozen v1 consumer baseline
 
+The [Android API consumer intake](API_CONSUMER_INTAKE.md) inventories the exact
+transport and proposed #36 requirements with executable synthetic reference
+cases. It preserves this frozen baseline and records missing governance/adapter
+decisions; it does not adopt an extension or complete API conformance.
+
 This Android repository imports the complete 43-file `ai-builder-contract-v1`
 package, version `1.0.0`, from research commit
 `9769fcd9ea380b1211669b2753181c7782444178`, accepted through

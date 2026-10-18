@@ -1,0 +1,626 @@
+{
+  "case_format": "android-api-consumer-intake-1",
+  "contract_version": "1.0.0",
+  "upstream_revision": "9769fcd9ea380b1211669b2753181c7782444178",
+  "openapi_sha256": "6a08d7230c23576889167da6cff48d95093da9dc04d4bfa6ece443ff35089a79",
+  "cases": [
+    {
+      "id": "B01",
+      "target": "build",
+      "schema_valid": true,
+      "observation": "Frozen synthetic baseline has a complete BuildSnapshot shape.",
+      "example": "examples/build.json"
+    },
+    {
+      "id": "B02",
+      "target": "build",
+      "schema_valid": false,
+      "observation": "An empty local editor is not a frozen BuildSnapshot.",
+      "payload": {}
+    },
+    {
+      "id": "B03",
+      "target": "build",
+      "schema_valid": false,
+      "observation": "Unsupported artifact version is rejected without migrating its fields.",
+      "example": "examples/build.json",
+      "set": {
+        "/schema_version": "2.0.0"
+      }
+    },
+    {
+      "id": "B04",
+      "target": "build",
+      "schema_valid": false,
+      "observation": "A Boolean is not a revision.",
+      "example": "examples/build.json",
+      "set": {
+        "/revision": true
+      }
+    },
+    {
+      "id": "B05",
+      "target": "build",
+      "schema_valid": false,
+      "observation": "Money remains a decimal string, not a JSON number.",
+      "example": "examples/build.json",
+      "set": {
+        "/objectives/monthly_budget_amount": 10.25
+      }
+    },
+    {
+      "id": "B06",
+      "target": "build",
+      "schema_valid": true,
+      "observation": "The exact wide decimal string is structurally valid; no conversion is performed.",
+      "example": "examples/build.json",
+      "set": {
+        "/objectives/monthly_budget_amount": "9007199254740993.123456789012"
+      }
+    },
+    {
+      "id": "B07",
+      "target": "build",
+      "schema_valid": false,
+      "observation": "A complete snapshot cannot omit its catalog pin.",
+      "example": "examples/build.json",
+      "remove": [
+        "/locks/catalog_snapshot_id"
+      ]
+    },
+    {
+      "id": "B08",
+      "target": "build",
+      "schema_valid": false,
+      "observation": "A fractional revision is invalid.",
+      "example": "examples/build.json",
+      "set": {
+        "/revision": 1.5
+      }
+    },
+    {
+      "id": "B09",
+      "target": "build",
+      "schema_valid": true,
+      "observation": "Changing an owner string can pass the schema; this establishes no authority.",
+      "example": "examples/build.json",
+      "set": {
+        "/owner_ref": "synthetic.other.owner"
+      }
+    },
+    {
+      "id": "B10",
+      "target": "build",
+      "schema_valid": false,
+      "observation": "An unregistered selection kind is rejected.",
+      "example": "examples/build.json",
+      "set": {
+        "/selections/0/kind": "synthetic_unregistered_kind"
+      }
+    },
+    {
+      "id": "B11",
+      "target": "build",
+      "schema_valid": true,
+      "observation": "Wide integer tokens remain Python integers in this reference; no web/native round-trip is claimed.",
+      "example": "examples/build.json",
+      "set": {
+        "/revision": 9007199254740993
+      }
+    },
+    {
+      "id": "C01",
+      "target": "catalog",
+      "schema_valid": true,
+      "observation": "A complete immutable catalog has the frozen shape.",
+      "example": "examples/catalog.json"
+    },
+    {
+      "id": "C02",
+      "target": "catalog",
+      "schema_valid": false,
+      "observation": "A paging cursor cannot be inserted into the closed v1 catalog envelope.",
+      "example": "examples/catalog.json",
+      "set": {
+        "/next_cursor": "synthetic-continuation"
+      }
+    },
+    {
+      "id": "C03",
+      "target": "catalog",
+      "schema_valid": false,
+      "observation": "An empty discovery result cannot masquerade as the nonempty frozen CatalogSnapshot.",
+      "example": "examples/catalog.json",
+      "set": {
+        "/items": []
+      }
+    },
+    {
+      "id": "C04",
+      "target": "catalog",
+      "schema_valid": false,
+      "observation": "A future catalog schema version is unsupported.",
+      "example": "examples/catalog.json",
+      "set": {
+        "/schema_version": "2.0.0"
+      }
+    },
+    {
+      "id": "R01",
+      "target": "resources",
+      "schema_valid": true,
+      "observation": "The original synthetic resource evidence has the frozen shape.",
+      "example": "examples/resource-estimate.json"
+    },
+    {
+      "id": "R02",
+      "target": "resources",
+      "schema_valid": true,
+      "observation": "A different build identity remains schema-valid; exact tuple acceptance is a separate requirement.",
+      "example": "examples/resource-estimate.json",
+      "set": {
+        "/build_id": "build.synthetic.other"
+      }
+    },
+    {
+      "id": "R03",
+      "target": "resources",
+      "schema_valid": false,
+      "observation": "An estimated value is encoded as decimal text.",
+      "example": "examples/resource-estimate.json",
+      "set": {
+        "/estimates/0/value": 20
+      }
+    },
+    {
+      "id": "R04",
+      "target": "resources",
+      "schema_valid": false,
+      "observation": "A new metric requires governed representation.",
+      "example": "examples/resource-estimate.json",
+      "set": {
+        "/estimates/0/metric": "inference.synthetic_unadopted"
+      }
+    },
+    {
+      "id": "R05",
+      "target": "resources",
+      "schema_valid": false,
+      "observation": "Literal unknown cannot replace a required numeric estimate value.",
+      "example": "examples/resource-estimate.json",
+      "set": {
+        "/estimates/0/value": "unknown"
+      }
+    },
+    {
+      "id": "R06",
+      "target": "resources",
+      "schema_valid": false,
+      "observation": "Malformed timestamps are rejected with the required format checker.",
+      "example": "examples/resource-estimate.json",
+      "set": {
+        "/generated_at": "not-a-timestamp"
+      }
+    },
+    {
+      "id": "R07",
+      "target": "resources",
+      "schema_valid": false,
+      "observation": "A build revision must be positive.",
+      "example": "examples/resource-estimate.json",
+      "set": {
+        "/build_revision": 0
+      }
+    },
+    {
+      "id": "R08",
+      "target": "resources",
+      "schema_valid": false,
+      "observation": "An extra top-level catalog pin is not silently added to frozen ResourceEstimate.",
+      "example": "examples/resource-estimate.json",
+      "set": {
+        "/catalog_snapshot_id": "catalog.synthetic.other"
+      }
+    },
+    {
+      "id": "F01",
+      "target": "report",
+      "schema_valid": true,
+      "observation": "The original synthetic evaluation report has the frozen shape.",
+      "example": "examples/evaluation-report.json"
+    },
+    {
+      "id": "F02",
+      "target": "report",
+      "schema_valid": true,
+      "observation": "A different positive revision is schema-valid; it cannot be accepted as the requested revision by shape alone.",
+      "example": "examples/evaluation-report.json",
+      "set": {
+        "/build_revision": 2
+      }
+    },
+    {
+      "id": "F03",
+      "target": "report",
+      "schema_valid": false,
+      "observation": "Outcome vocabulary cannot be substituted for severity.",
+      "example": "examples/evaluation-report.json",
+      "set": {
+        "/findings/0/severity": "unknown"
+      }
+    },
+    {
+      "id": "F04",
+      "target": "report",
+      "schema_valid": true,
+      "observation": "An unknown outcome has a valid shape; aggregate/reproduction semantics remain separate.",
+      "example": "examples/evaluation-report.json",
+      "set": {
+        "/findings/0/outcome": "unknown"
+      }
+    },
+    {
+      "id": "K01",
+      "target": "cost",
+      "schema_valid": true,
+      "observation": "The original synthetic cost estimate has the frozen shape.",
+      "example": "examples/cost-estimate.json"
+    },
+    {
+      "id": "K02",
+      "target": "cost",
+      "schema_valid": true,
+      "observation": "Partial coverage is a schema value, not a complete total or independent calculation proof.",
+      "example": "examples/cost-estimate.json",
+      "set": {
+        "/coverage": "partial"
+      }
+    },
+    {
+      "id": "K03",
+      "target": "cost",
+      "schema_valid": false,
+      "observation": "Total money cannot become a JSON number.",
+      "example": "examples/cost-estimate.json",
+      "set": {
+        "/total/amount": 0
+      }
+    },
+    {
+      "id": "K04",
+      "target": "cost",
+      "schema_valid": false,
+      "observation": "Thirteen fractional digits exceed the frozen decimal pattern.",
+      "example": "examples/cost-estimate.json",
+      "set": {
+        "/total/amount": "1.1234567890123"
+      }
+    },
+    {
+      "id": "K05",
+      "target": "cost",
+      "schema_valid": false,
+      "observation": "The currency spelling must match the frozen uppercase pattern.",
+      "example": "examples/cost-estimate.json",
+      "set": {
+        "/currency": "usd"
+      }
+    },
+    {
+      "id": "E01",
+      "target": "evaluate_request",
+      "schema_valid": true,
+      "observation": "The existing request binds a positive revision.",
+      "payload": {
+        "build_revision": 3
+      }
+    },
+    {
+      "id": "E02",
+      "target": "evaluate_request",
+      "schema_valid": false,
+      "observation": "Boolean revision is invalid.",
+      "payload": {
+        "build_revision": true
+      }
+    },
+    {
+      "id": "E03",
+      "target": "evaluate_request",
+      "schema_valid": false,
+      "observation": "Missing requested revision is invalid.",
+      "payload": {}
+    },
+    {
+      "id": "E04",
+      "target": "evaluate_request",
+      "schema_valid": false,
+      "observation": "An unpublished request cursor is rejected.",
+      "payload": {
+        "build_revision": 3,
+        "cursor": "synthetic-continuation"
+      }
+    },
+    {
+      "id": "E05",
+      "target": "evaluate_request",
+      "schema_valid": false,
+      "observation": "Fractional revision is invalid.",
+      "payload": {
+        "build_revision": 1.5
+      }
+    },
+    {
+      "id": "E06",
+      "target": "evaluate_request",
+      "schema_valid": true,
+      "observation": "The inline schema admits an empty estimate ID; resolvability and identity remain unproved.",
+      "payload": {
+        "build_revision": 3,
+        "resource_estimate_id": ""
+      }
+    },
+    {
+      "id": "P01",
+      "target": "cost_request",
+      "schema_valid": true,
+      "observation": "The existing cost request binds revision, pricebook and positive period.",
+      "payload": {
+        "build_revision": 3,
+        "pricebook_id": "prices.synthetic.1",
+        "period_days": 30
+      }
+    },
+    {
+      "id": "P02",
+      "target": "cost_request",
+      "schema_valid": false,
+      "observation": "Boolean period is invalid.",
+      "payload": {
+        "build_revision": 3,
+        "pricebook_id": "prices.synthetic.1",
+        "period_days": true
+      }
+    },
+    {
+      "id": "P03",
+      "target": "cost_request",
+      "schema_valid": false,
+      "observation": "Zero period is invalid.",
+      "payload": {
+        "build_revision": 3,
+        "pricebook_id": "prices.synthetic.1",
+        "period_days": 0
+      }
+    },
+    {
+      "id": "P04",
+      "target": "cost_request",
+      "schema_valid": false,
+      "observation": "Missing pricebook selector is invalid.",
+      "payload": {
+        "build_revision": 3,
+        "period_days": 30
+      }
+    },
+    {
+      "id": "O01",
+      "target": "options",
+      "schema_valid": true,
+      "observation": "Unknown is an explicit option verdict, never a compatibility pass.",
+      "payload": {
+        "build_id": "build.synthetic.1",
+        "build_revision": 3,
+        "kind": "model",
+        "options": [
+          {
+            "catalog_item_id": "model.synthetic.1",
+            "catalog_item_version": "1.0.0",
+            "verdict": "unknown",
+            "rule_ids": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "O02",
+      "target": "options",
+      "schema_valid": false,
+      "observation": "Rule outcome pass is not an option verdict.",
+      "payload": {
+        "build_id": "build.synthetic.1",
+        "build_revision": 3,
+        "kind": "model",
+        "options": [
+          {
+            "catalog_item_id": "model.synthetic.1",
+            "catalog_item_version": "1.0.0",
+            "verdict": "unknown",
+            "rule_ids": []
+          }
+        ]
+      },
+      "set": {
+        "/options/0/verdict": "pass"
+      }
+    },
+    {
+      "id": "O03",
+      "target": "options",
+      "schema_valid": false,
+      "observation": "Each option must retain its rule references.",
+      "payload": {
+        "build_id": "build.synthetic.1",
+        "build_revision": 3,
+        "kind": "model",
+        "options": [
+          {
+            "catalog_item_id": "model.synthetic.1",
+            "catalog_item_version": "1.0.0",
+            "verdict": "unknown",
+            "rule_ids": []
+          }
+        ]
+      },
+      "remove": [
+        "/options/0/rule_ids"
+      ]
+    },
+    {
+      "id": "O04",
+      "target": "options",
+      "schema_valid": false,
+      "observation": "The closed options response has no paging cursor field.",
+      "payload": {
+        "build_id": "build.synthetic.1",
+        "build_revision": 3,
+        "kind": "model",
+        "options": [
+          {
+            "catalog_item_id": "model.synthetic.1",
+            "catalog_item_version": "1.0.0",
+            "verdict": "unknown",
+            "rule_ids": []
+          }
+        ]
+      },
+      "set": {
+        "/next_cursor": "synthetic-continuation"
+      }
+    },
+    {
+      "id": "O05",
+      "target": "options",
+      "schema_valid": false,
+      "observation": "Boolean response revision is invalid.",
+      "payload": {
+        "build_id": "build.synthetic.1",
+        "build_revision": 3,
+        "kind": "model",
+        "options": [
+          {
+            "catalog_item_id": "model.synthetic.1",
+            "catalog_item_version": "1.0.0",
+            "verdict": "unknown",
+            "rule_ids": []
+          }
+        ]
+      },
+      "set": {
+        "/build_revision": true
+      }
+    },
+    {
+      "id": "O06",
+      "target": "options",
+      "schema_valid": true,
+      "observation": "The inline kind is only a string; canonical-kind validation is a separate requirement.",
+      "payload": {
+        "build_id": "build.synthetic.1",
+        "build_revision": 3,
+        "kind": "model",
+        "options": [
+          {
+            "catalog_item_id": "model.synthetic.1",
+            "catalog_item_version": "1.0.0",
+            "verdict": "unknown",
+            "rule_ids": []
+          }
+        ]
+      },
+      "set": {
+        "/kind": "synthetic_unregistered_kind"
+      }
+    },
+    {
+      "id": "H01",
+      "target": "idempotency_key",
+      "schema_valid": false,
+      "observation": "The declared idempotency header cannot be empty.",
+      "payload": ""
+    },
+    {
+      "id": "H02",
+      "target": "idempotency_key",
+      "schema_valid": true,
+      "observation": "A nonempty synthetic key has the declared shape, without issuance or retry policy.",
+      "payload": "synthetic-operation-1"
+    },
+    {
+      "id": "H03",
+      "target": "if_match",
+      "schema_valid": true,
+      "observation": "Quoted revision text follows the described If-Match form; no server race is executed.",
+      "payload": "\"3\""
+    },
+    {
+      "id": "H04",
+      "target": "if_match",
+      "schema_valid": true,
+      "observation": "The string schema alone admits nonrevision text; the descriptive current-revision invariant still applies.",
+      "payload": "not-a-revision"
+    },
+    {
+      "id": "X01",
+      "target": "error",
+      "schema_valid": true,
+      "observation": "Synthetic stale-write body has the declared Error shape; PUT declares409 but this code is not an adopted enum.",
+      "payload": {
+        "code": "synthetic_stale_revision",
+        "message": "Synthetic stale write; original state retained."
+      }
+    },
+    {
+      "id": "X02",
+      "target": "error",
+      "schema_valid": true,
+      "observation": "Synthetic missing-authority body has Error shape; v1 declares no401/403 response mapping or token lifecycle.",
+      "payload": {
+        "code": "synthetic_authority_unavailable",
+        "message": "Synthetic authority unavailable."
+      }
+    },
+    {
+      "id": "X03",
+      "target": "error",
+      "schema_valid": true,
+      "observation": "Synthetic unsupported-version body has Error shape; no version-negotiation route/status is adopted.",
+      "payload": {
+        "code": "synthetic_unsupported_version",
+        "message": "Synthetic artifact version unsupported.",
+        "field_path": "/schema_version"
+      }
+    },
+    {
+      "id": "X04",
+      "target": "error",
+      "schema_valid": false,
+      "observation": "An Error requires its code.",
+      "payload": {
+        "message": "Synthetic failure."
+      }
+    },
+    {
+      "id": "X05",
+      "target": "error",
+      "schema_valid": false,
+      "observation": "A retry field is not silently added to the closed Error shape.",
+      "payload": {
+        "code": "synthetic_failure",
+        "message": "Synthetic failure.",
+        "retry_after_seconds": 1
+      }
+    },
+    {
+      "id": "X06",
+      "target": "error",
+      "schema_valid": false,
+      "observation": "A raw private-record field is rejected by the closed Error shape.",
+      "payload": {
+        "code": "synthetic_failure",
+        "message": "Synthetic failure.",
+        "private_build": {}
+      }
+    }
+  ]
+}
