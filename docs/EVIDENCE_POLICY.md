@@ -37,3 +37,16 @@ The unit tests cover every raw status, source-check versus independent support, 
 The current slice supplies the testable policy only. A UI adapter still needs accessible localized labels, a reviewed evidence-assessment source, explicit upstream validation and rights authorization, and canonical receiving acceptance. Compatibility, capacity eligibility, disputed-conflict resolution, source correction workflows and historical/shared-view rights enforcement remain separate work.
 
 Local validation on 2026-10-18: JDK 21.0.12.1 and the pinned Gradle 8.11.1 toolchain passed `:core:test --offline`: **57 tests, zero failures**, including 10 evidence-policy tests. `git diff --check` also passed. This is JVM unit evidence, not emulator or physical-device validation. The first run inherited `JAVA_TOOL_OPTIONS`; its JVM startup banner broke an existing subprocess test's exact-output assertion. The subprocess regression test now separates stdout protocol responses from stderr diagnostics while retaining timeout and exit assertions. All 14 cache tests also passed with the environment option set, and the complete 57-test suite passed without it.
+
+## Criterion handoff
+
+Canonical receiving records remain in `Pick-Your-AI/pickyour.ai`; this implementation does not replace them or claim receiving approval.
+
+| Issue and canonical record | Criterion | Result in this slice |
+| --- | --- | --- |
+| #27, `docs/delivery/android/work-packages/03.05.md` | Checked versus independently verified claims, unknown/list and memory-field semantics | Partial: reviewed checked/verified projection only; unknown/list normalization and memory-field execution remain outside this policy. |
+| #27 | Unknown/unanswered cannot pass; incomplete-list omission stays unknown | Unexecuted: this policy produces no rule pass/fail result. |
+| #27 | Evidence grade, candidate verdict, outcome and severity independent; rules reference defined fields | Partial: evidence grade is independent; executable rule and field acceptance remains upstream. |
+| #39, `docs/delivery/android/work-packages/04.05.md` | Differentiate pinned/current facts; approved freshness, retractions, supersession and notifications | Partial: pinned/current projection with no TTL; correction and notification workflows remain. |
+| #39 | New component release cannot silently rewrite pinned historical facts | Unit evidence: immutable identity-bound projections and mismatch rejection retain the earlier presentation. Product persistence and UI integration remain unexecuted. |
+| #39 | Current facts expose dates; corrections retain original and replacement dispositions | Partial: capture-date or explicit missing-date projection; correction history and receiving acceptance remain. |
