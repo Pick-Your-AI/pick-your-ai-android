@@ -30,6 +30,11 @@ restoration clears the comparison tray visibly and preserves pending editor
 inputs. The tray does not establish durable draft storage or a historical catalog
 download facility.
 
+Restoration treats each saved list as untyped parcel data, bounds its length and
+requires every ID, version and hash element to actually be a string. A non-string
+element, wrong container or partial set of keys reaches the same visible reset;
+it is never coerced into an item identity or allowed to crash restoration.
+
 A different snapshot hash makes the existing pin unavailable even when its item
 ID, version and display name are unchanged. The row remains visible with its exact
 identity and an explicit remove/reload recovery explanation. Only that original
@@ -85,6 +90,10 @@ heading semantics where supported. The differences control is a labeled native
 check box with a minimum 48 dp target. The custom dialog carries the Activity's
 resolved layout direction. Text uses the existing bounded literal formatter;
 control/format characters are escaped and truncation is visible.
+The specification/license JSON display also escapes Unicode line and paragraph
+separators (`U+2028` and `U+2029`). Both the detail and comparison show their visible
+escape spellings while the immutable recorded JSON and comparison classification
+remain unchanged.
 
 The add action shares the themed vertical detail header with **Review all recorded
 prices**, above the independently scrolling native message. Both entries retain
@@ -119,6 +128,30 @@ combines real compute/storage detail controls with the tray, verifies their
 separate exact recorded price contexts above the differences filter, clears
 unavailable pricing without reusing stale rates, and restores it after recovery
 and Activity recreation without writing a draft or changing its pending fields.
+
+Two additional boundary regressions recreate the Activity with a non-string
+element in each saved pin list, preserving pending title/objective/workload and
+the acknowledged durable baseline, and open actual detail/comparison controls
+over schema-valid specification and license strings containing both Unicode
+separators. They require the visible escapes before and after filtering and retain
+the exact source projection and snapshot pins. All 61 Activity cases, seven cost
+presentation cases and the separate saved-snapshot callback case remain mandatory
+in the receiving source based on main `526c05c6528be1313bb8b1bf71b89cc131eb2d75`.
+
+Local negative verification on 2026-10-18 used test-only tree
+`4075aae590eff0b9972f277aa8642b9a33501d36`, preserved in
+[commit f9507c4](https://github.com/Pick-Your-AI/pick-your-ai-android/commit/f9507c4292d5abf68bb8a74fca55ffe3bb423fc7).
+Strict native compilation succeeded and exactly these two tests executed with
+two failures: an integer element threw `ClassCastException` in the comparison
+constructor, and the real detail renderer failed the visible-separator assertion.
+Applying the reviewed correction produced locally tested tree
+`901db5247fc9a957c1bf11eb181b7b641efd2ac0`; unsigned preview assembly, lint and the
+complete simulated suite passed with strict dependency verification: 61 Activity,
+seven cost presentation and one saved-snapshot case, with zero failures, errors or
+skips. The workflow's actual required-name gate also passed against those XML
+results. This subsequent receipt change affects documentation only. Fresh
+published-head hosted checks, runtime inventory and final independent receiving
+review remain required; no installed-device execution is claimed.
 
 The combined local strict gate includes core checks and
 assembly, unsigned preview assembly, lint and all Activity simulations. Exact
