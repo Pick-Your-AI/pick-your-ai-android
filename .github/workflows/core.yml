@@ -112,6 +112,8 @@ jobs:
               "retiredEditorButtonsCannotDispatchWorkOrOpenDialogs",
               "retiredComparisonPickerCannotSubmitToClosedWorker",
               "retiredTierConfirmationCannotCommitAfterRecreation",
+              "conflictingPendingInputsCanBeCopiedWithoutChangingNewerOriginal",
+              "invalidOrChangedPendingInputsAndRetiredConfirmationCannotCreateRecovery",
               "retiredContextEditorsCannotChangeCapturedDomainState",
           }
           cases = suite.findall("testcase")

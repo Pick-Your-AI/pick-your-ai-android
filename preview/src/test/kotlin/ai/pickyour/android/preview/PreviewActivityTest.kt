@@ -648,7 +648,7 @@ class PreviewActivityTest {
         val baseline = loaded().baselineIdentity
         field(R.string.draft_title).setText("pending survives")
         val retired = listOf(R.string.save_draft, R.string.reopen_draft, R.string.clear_draft,
-            R.string.draft_history, R.string.library_open, R.string.library_new, R.string.library_duplicate,
+            R.string.draft_history, R.string.library_open, R.string.library_new, R.string.library_duplicate, R.string.recovery_copy,
             R.string.retry_catalog, R.string.run).map(::button) +
             views().filterIsInstance<Button>().filter { it.text.toString().startsWith("T3:") }
         recreate()
@@ -691,6 +691,68 @@ class PreviewActivityTest {
         shadowOf(Looper.getMainLooper()).idle()
         assertEquals(baseline, loaded().baselineIdentity)
         assertEquals(Activation.DISABLED, loaded().optionalTiers.getValue(OptionalTier.T3).activation)
+    }
+
+    @Test fun conflictingPendingInputsCanBeCopiedWithoutChangingNewerOriginal() {
+        save()
+        val baseline = loaded()
+        field(R.string.draft_title).setText("pending recovery")
+        field(R.string.workload_budget).setText("12.3400")
+        field(R.string.workload_requests).setText("0")
+        val newer = (adapter().save(baseline, PreviewDraftFields("other writer")) as PreviewDraftSave.Saved).record
+        button(R.string.save_draft).performClick()
+        await { hasText(R.string.draft_conflict) && button(R.string.recovery_copy).isEnabled }
+        recreate()
+        await { hasText(R.string.draft_reconcile) && button(R.string.recovery_copy).isEnabled }
+        assertFalse(button(R.string.save_draft).isEnabled)
+        button(R.string.recovery_copy).performClick()
+        val canceled = dialog()
+        canceled.getButton(AlertDialog.BUTTON_NEGATIVE).performClick()
+        await { !canceled.isShowing && button(R.string.recovery_copy).isEnabled }
+        val library = PreviewDraftLibrary(activity.noBackupFilesDir.toPath())
+        assertEquals(1, (library.list() as PreviewLibraryRead.Available).entries.size)
+        assertEquals("pending recovery", field(R.string.draft_title).text.toString())
+        button(R.string.recovery_copy).performClick()
+        dialog().getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+        await { hasText(R.string.draft_saved) && !button(R.string.save_draft).isEnabled &&
+            (PreviewActiveDraftStore(activity.noBackupFilesDir.toPath()).read() as? PreviewActiveRead.Selected)?.id?.let { it != PreviewDraftId("guest-draft") } == true }
+        val selected = PreviewActiveDraftStore(activity.noBackupFilesDir.toPath()).read() as PreviewActiveRead.Selected
+        val recovered = (library.open(selected.id).load() as PreviewDraftLoad.Available).record
+        assertEquals("pending recovery", recovered.fields.title)
+        assertEquals("12.3400", recovered.workloadInput.monthlyBudgetAmount!!.encoded)
+        assertEquals(java.math.BigInteger.ZERO, recovered.workloadInput.requestsPerDay)
+        assertEquals(0L, recovered.revision)
+        assertEquals(newer.baselineIdentity, loaded().baselineIdentity)
+        recreate()
+        await { hasText(R.string.draft_saved) }
+        assertEquals("pending recovery", field(R.string.draft_title).text.toString())
+        assertEquals("12.3400", field(R.string.workload_budget).text.toString())
+    }
+
+    @Test fun invalidOrChangedPendingInputsAndRetiredConfirmationCannotCreateRecovery() {
+        save()
+        field(R.string.draft_title).setText("pending")
+        field(R.string.workload_currency).setText("USDD")
+        assertFalse(button(R.string.recovery_copy).isEnabled)
+        field(R.string.workload_currency).setText("USD")
+        button(R.string.recovery_copy).performClick()
+        val stale = dialog()
+        field(R.string.workload_requests).setText("1".repeat(129))
+        stale.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+        await { !stale.isShowing && button(R.string.library_open).isEnabled }
+        assertFalse(button(R.string.recovery_copy).isEnabled)
+        assertEquals("1".repeat(129), field(R.string.workload_requests).text.toString())
+        field(R.string.workload_requests).setText("0")
+        button(R.string.recovery_copy).performClick()
+        val retired = dialog()
+        recreate()
+        await { hasText(R.string.draft_unsaved) }
+        retired.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+        val library = PreviewDraftLibrary(activity.noBackupFilesDir.toPath())
+        assertEquals(1, (library.list() as PreviewLibraryRead.Available).entries.size)
+        assertEquals("pending", field(R.string.draft_title).text.toString())
+        assertEquals("", loaded().fields.title)
     }
 
     @Test fun retiredContextEditorsCannotChangeCapturedDomainState() {
