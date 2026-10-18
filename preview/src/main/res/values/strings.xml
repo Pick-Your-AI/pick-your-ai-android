@@ -1,10 +1,28 @@
 <resources>
     <string name="app_name">Synthetic contract preview</string>
-    <string name="notice">SYNTHETIC DATA — developer diagnostic only. Frozen-v1 structural validation does not establish compatibility, capacity, quality, or price accuracy. No real-data mode.</string>
+    <string name="notice">SYNTHETIC DATA — guest preview only. Frozen-v1 structural validation does not establish compatibility, capacity, quality, or price accuracy. No real-data mode.</string>
     <string name="run">Validate bundled synthetic build</string>
-    <string name="ready">Ready. No user data is collected or stored.</string>
+    <string name="ready">Bundled build diagnostic. This validates the original fixture, not your temporary draft.</string>
     <string name="working">Validating bundled synthetic fixture…</string>
     <string name="valid">Synthetic build matches the frozen-v1 schema. Compatibility verdict: unknown.</string>
     <string name="invalid">Synthetic fixture failed structural validation. No compatibility verdict is available.</string>
     <string name="unavailable">Validation is unavailable. Bundled resources could not be checked. Retry validation.</string>
+    <string name="guest_draft">Guest draft · temporary</string>
+    <string name="temporary">Try a title and one sample component. This incomplete draft is not saved to a library. Android may restore this small temporary state after recreation; closing the task or clearing app data can discard it. Do not enter sensitive information.</string>
+    <string name="draft_title">Draft title (up to 120 characters)</string>
+    <string name="title_hint">For example: My synthetic comparison</string>
+    <string name="no_selection">Incomplete: no sample selected.</string>
+    <string name="unknown">Compatibility, capacity, quality and price: unknown. No evaluation or quote has run for this draft. This is not a deployable plan.</string>
+    <string name="clear_draft">Clear temporary draft</string>
+    <string name="catalog_heading">Browse synthetic samples</string>
+    <string name="catalog_explanation">Bundled frozen-v1 catalog fixture. Every entry is fictional, not vendor evidence. Open a sample to inspect its identity before selecting it.</string>
+    <string name="retry_catalog">Reload bundled catalog</string>
+    <string name="catalog_unavailable">Catalog unavailable: the bundled fixture could not be validated or read. Retry loading. Existing temporary selection is retained but cannot be verified.</string>
+    <string name="catalog_ready">Synthetic catalog passed structural validation. This does not establish compatibility.</string>
+    <string name="item_button">Open %1$s · %2$s</string>
+    <string name="item_details">SYNTHETIC FIXTURE\nID: %1$s\nKind: %2$s\nVersion: %3$s\n\nCompatibility, capacity, quality and price are unknown. Selecting a sample only changes the temporary draft; it does not run analysis or authorize deployment.</string>
+    <string name="close">Close</string>
+    <string name="select_sample">Select sample</string>
+    <string name="selection_unavailable">Incomplete: selected sample is unavailable in the currently loaded catalog. Reload or clear the temporary draft.</string>
+    <string name="selected_sample">Incomplete draft · selected synthetic sample: %1$s</string>
 </resources>
