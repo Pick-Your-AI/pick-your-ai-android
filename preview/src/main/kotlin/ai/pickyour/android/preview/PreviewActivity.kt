@@ -3,6 +3,7 @@ package ai.pickyour.android.preview
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.DialogInterface
+import android.content.Intent
 import android.os.Bundle
 import android.text.InputFilter
 import android.text.Editable
@@ -84,13 +85,20 @@ class PreviewActivity : Activity() {
     private var restoration: PreviewDraftRestoration? = null
     private lateinit var diagnostics: LocalDiagnostics
     private var diagnosticsResumed = false
+    private var entryBlocked = false
+    private var unsupportedEntry = false
+    private lateinit var entryNotice: TextView
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // The checkpoint records a deliberate local recovery; it contains no incoming URI or payload.
+        entryBlocked = if (savedInstanceState?.containsKey("entryBlocked") == true)
+            savedInstanceState.getBoolean("entryBlocked") else !isLocalEntry(intent)
+        unsupportedEntry = entryBlocked || savedInstanceState?.getBoolean("unsupportedEntry", false) == true
         currentDraftId = PreviewDraftId(savedInstanceState?.getString("draftId") ?: "guest-draft")
         pendingDeleteId = savedInstanceState?.getString("pendingDeleteId")?.let(::PreviewDraftId)
-        selectionResolved = savedInstanceState != null && savedInstanceState.getBoolean("selectionResolved", true)
+        selectionResolved = !entryBlocked && savedInstanceState != null && savedInstanceState.getBoolean("selectionResolved", true)
         restoration = savedInstanceState?.let {
             PreviewDraftRestoration(it.getString("draftBaseline"), it.getBoolean("draftRequiresReopen", true))
         }
@@ -107,6 +115,10 @@ class PreviewActivity : Activity() {
             textSize = size
         }.also(content::addView)
         text(R.string.notice, 20f)
+        entryNotice = text(R.string.entry_unsupported).apply {
+            accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
+            visibility = if (unsupportedEntry) View.VISIBLE else View.GONE
+        }
         text(R.string.guest_draft, 22f).apply { if (android.os.Build.VERSION.SDK_INT >= 28) isAccessibilityHeading = true }
         text(R.string.temporary)
         activeDraft = text(R.string.library_active).apply {
@@ -308,7 +320,24 @@ class PreviewActivity : Activity() {
         content.setPadding(padding, padding, padding, padding)
         updateEditingEnabled()
         loadCatalog()
-        if (selectionResolved) loadDraft(true) else restoreActiveDraft(savedInstanceState != null)
+        if (entryBlocked) {
+            storageBusy = false
+            saveStatus.setText(R.string.entry_choose_local)
+            updateEditingEnabled()
+        } else if (selectionResolved) loadDraft(true) else restoreActiveDraft(savedInstanceState != null)
+    }
+
+    private fun isLocalEntry(value: Intent?): Boolean = value == null ||
+        (value.action == null || value.action == Intent.ACTION_MAIN) && value.data == null &&
+            value.type == null && value.clipData == null && value.selector == null
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        if (destroyed) return
+        // A new entry never replaces an already open editor, its pending fields or its save authority.
+        if (!isLocalEntry(intent)) unsupportedEntry = true
+        else if (!entryBlocked) unsupportedEntry = false
+        entryNotice.visibility = if (unsupportedEntry) View.VISIBLE else View.GONE
     }
 
     private fun readCatalogFixture(): ByteArray = assets.open("catalog.json").use { stream ->
@@ -921,6 +950,9 @@ class PreviewActivity : Activity() {
                             R.string.active_write_failed else R.string.library_switch_failed)
                             .setPositiveButton(R.string.close, null).show()
                     } else {
+                        entryBlocked = false
+                        unsupportedEntry = false
+                        entryNotice.visibility = View.GONE
                         currentDraftId = next.id
                         selectionResolved = true
                         savedRecord = next.record
@@ -1088,6 +1120,8 @@ class PreviewActivity : Activity() {
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
+        outState.putBoolean("entryBlocked", entryBlocked)
+        outState.putBoolean("unsupportedEntry", unsupportedEntry)
         catalog.saveState(outState)
         catalogComparison.save(outState)
         outState.putString("pendingDeleteId", pendingDeleteId?.value)
