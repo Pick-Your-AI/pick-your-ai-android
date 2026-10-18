@@ -361,6 +361,26 @@ jobs:
               raise SystemExit("Diagnostic preview result count does not match executed cases")
           print(f"Verified {len(cases)} simulated diagnostic preview tests; no installed or delivery claim")
           PYTEST
+      - name: Require current-choice accessibility regressions
+        run: |
+          python - <<'PYTEST'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          report = pathlib.Path("preview/build/test-results/testDebugUnitTest/TEST-ai.pickyour.android.preview.PreviewChoiceAccessibilityTest.xml")
+          suite = ET.parse(report).getroot()
+          expected = {
+              "catalogPickersExposeCurrentCheckedChoicesWithoutSaving",
+              "workloadPickerExposesUnansweredAndCurrentClassificationWithoutSaving",
+              "cancelledAndRepeatedPickerCallbacksCannotApplyAnotherChoice",
+              "changedWorkloadInputsRetireAnOpenPickerWithoutApplyingItsCheckedRow",
+              "recreationPreservesCheckedChoicesAndRetiresOldPickerCallbacks",
+          }
+          cases = suite.findall("testcase")
+          assert expected <= {case.attrib["name"] for case in cases}, "Missing current-choice accessibility regression"
+          assert all(not case.findall("failure") and not case.findall("error") and not case.findall("skipped") for case in cases), "Current-choice accessibility regression did not pass"
+          assert int(suite.attrib["tests"]) >= len(expected)
+          print(f"Verified {len(cases)} simulated current-choice accessibility tests; no installed TalkBack claim")
+          PYTEST
       - name: Retain unsigned diagnostic and lint reports
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
