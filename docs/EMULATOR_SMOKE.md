@@ -713,6 +713,94 @@ boundaries also passes. These are mocked host checks; installed execution remain
 pending. The command sequence, shared readiness deadline, original nine checks,
 four app cases, launch predicate, host configuration and budgets are unchanged.
 
+## Startup display experiment: smaller raster, same logical phone dimensions
+
+This source prepares one explicitly selected diagnostic variation; it has no
+installed result yet. The baseline remains relevant: [run 39123226538](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39123226538)
+at `f180a53228b3206445328685c5011ccfd77f921d` used synthetic checkout
+`cf26f89c749373ccdb3976bcc7bfb48ddb976e72`, tree
+`77bcced552386e2c496ac7f12816194519eae4d6`. Its artifact `12136125002` has
+verified ZIP SHA-256 `5f8853b84b7680385b1e85046424c6c6a74210b25f6153f36a5a6e8fec1f0079`.
+The guest booted in 569.39 seconds and passed all nine user/storage checks.
+The following framework command returned zero but gave up at 22 of 23 application
+barriers; setup correctly failed and all four app cases remained `not_run`.
+
+The later diagnostic capture showed Launcher3 resumed while both current/focused
+window fields named a SystemUI ANR dialog. This is a post-failure observation,
+not the focus at the failed barrier. The retained latest full ANR trace describes
+the phone process during startup, with a runnable main thread in APN database
+initialization; its critical-event history also records earlier SystemUI startup
+failure. It is not a complete SystemUI stack. The available framework samples
+record sustained CPU contention and graphics activity. These observations support
+testing a smaller raster workload; they establish neither a unique cause nor a
+proven cure. No ANR is dismissed and no failing qualification is removed.
+
+The workflow explicitly selects `PYAI_EMULATOR_DISPLAY_PROFILE=raster-720x1280-280`.
+The harness default, `pixel-2`, preserves the original configuration bytes.
+The experimental profile is accepted only with explicit HVF mode. Immediately
+after creating its own fresh Pixel 2 AVD, before starting the emulator, the harness
+changes only these three values in that AVD's `config.ini`:
+
+| Startup property | Baseline | Experiment |
+| --- | --- | --- |
+| `hw.lcd.width` | 1080 | 720 |
+| `hw.lcd.height` | 1920 | 1280 |
+| `hw.lcd.density` | 420 | 280 |
+
+Both full displays have the same exact logical width/height, `2880/7` by `5120/7`
+dp. The experiment requests four ninths as many display pixels. This preserves
+the logical phone dimensions, not identical rasterization or resource selection:
+Android can select different density assets. Insets, keyboard behavior, usable
+content bounds and app correctness still require observations. The existing
+selectors derive taps from actual hierarchy bounds; all case bodies stay intact.
+
+Missing, duplicate, changed or invalid baseline keys fail before launch. The edit
+rejects linked/shared or unexpected configuration paths and retains before/after
+hashes, byte counts, exact display values and a hash of every untouched line. After
+boot it also reads the emulator-generated `hardware-qemu.ini` in the same owned
+AVD and requires its three display values to match. The existing read-only
+`wm size` and `wm density` observations keep their 30-second command limits, now
+with complete bounded output and stream-consistency validation. They must report
+exactly the selected physical dimensions and density; overrides, mismatches,
+extra output, missing files, timeout, nonzero status or stderr fail. No postboot
+`wm` size/density mutation is used. Configuration hashes identify retained inputs;
+they do not establish renderer performance or a complete hardware qualification.
+
+The final workflow receipt explicitly requires this selected profile and its
+owned AVD identity, as well as every original gate and all four successful cases.
+Historical receipts without this field cannot satisfy the selected experiment.
+The API 35 revision-2 image, emulator version, Intel macOS/HVF host, renderer,
+requested two CPU cores/2048 MiB, fresh boot/no snapshots, 600-second boot,
+180-second shared readiness and 25-minute job limits remain unchanged. The
+baseline emulator itself reported one effective guest CPU and increased RAM to
+2560 MiB; unchanged requests do not assert a future emulator's effective allocation.
+Inspect its actual log when comparing the experiment. There is no service
+disabling, warm reuse, host-permission change, larger runner or timeout extension.
+
+Ten added host methods cover the explicit selector, private-file boundaries,
+unchanged baseline bytes, three-value edit/readback, generated hardware, exact
+physical observations, timeout/error retention and final receipt binding. One
+method reproduced 12 assertion failures against the unchanged receipt-corrected
+`36093d912334c7bbcfa0bf2aea016cba4a6bf875` source; that source did not yet validate
+startup-display claims. All 73 inherited methods and ten additions pass locally
+under normal and optimized Python. These synthetic file/mocked-device tests do
+not start an emulator or establish startup, installed-case or performance results.
+
+Primary Android sources checked 2026-10-18: [AVD hardware properties](https://developer.android.com/studio/run/managing-avds#hardware-profile)
+describe startup profile/configuration overrides; the official emulator
+[configuration loader](https://android.googlesource.com/platform/external/qemu/+/refs/heads/emu-master-dev/android/emu/avd/src/android/avd/info.c)
+reads `config.ini` after skin hardware values during startup, and the published
+[hardware property definitions](https://android.googlesource.com/platform/prebuilts/android-emulator/+/refs/heads/main/darwin-x86_64/lib/hardware-properties.ini)
+identify the pixel and density keys. These published source snapshots are mechanism
+references, not a verified build identity for the pinned emulator 37.1.11.
+The [CLI reference](https://developer.android.com/studio/run/emulator-commandline#deprecated-options)
+lists `-skin` and `-dpi-device` as deprecated; this experiment uses neither.
+Android's [density guidance](https://developer.android.com/training/multiscreen/screendensities#dp-pixels)
+defines the dp/pixel relationship, and [`DENSITY_280`](https://developer.android.com/reference/android/util/DisplayMetrics#DENSITY_280)
+documents this intermediate density. Actual startup and app results remain a
+separate hosted experiment after independent source review and coordination with
+the existing installed-lane owner.
+
 ## Inputs and provenance
 
 The application keeps its existing JDK 21, Gradle 8.11.1, Kotlin 2.1.20, AGP 8.9.2,
