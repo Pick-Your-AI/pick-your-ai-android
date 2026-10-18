@@ -19,6 +19,47 @@ class PreviewDraftDeletionTest {
     private fun created() = library().create() as PreviewLibraryCreate.Saved
     private fun entries() = (library().list() as PreviewLibraryRead.Available).entries
 
+    @Test fun `cleanup retry never starts deletion of a still active readable corrupt or incomplete row`() {
+        val draft = created()
+        assertEquals(PreviewLibraryDelete.Conflict, library().retryDeletion(draft.id))
+        val pointer = root.resolve(draft.id.value).resolve("revisions/active")
+        Files.writeString(pointer, "preserve unreadable bytes")
+        assertEquals(PreviewLibraryDelete.Conflict, library().retryDeletion(draft.id))
+        assertEquals("preserve unreadable bytes", Files.readString(pointer))
+        val incomplete = PreviewDraftId("draft-11111111-1111-1111-1111-111111111111")
+        val directory = Files.createDirectory(root.resolve(incomplete.value))
+        assertEquals(PreviewLibraryDelete.Conflict, library().retryDeletion(incomplete))
+        assertEquals(0L, Files.list(directory).use { it.count() })
+        assertFalse(Files.exists(root.resolve(".preview-deletions")))
+    }
+
+    @Test fun `explicit retry reconciles both retained and already removed final intent markers`() {
+        for (point in listOf(LibraryDeleteCheckpoint.TOMBSTONE_DURABLE, LibraryDeleteCheckpoint.TOMBSTONE_REMOVED)) {
+            val draft = created()
+            val fault = PreviewDraftLibrary(root, {}, { if (it == point) throw IOException("injected") })
+            assertTrue(fault.delete(draft.id, draft.record) is PreviewLibraryDelete.Unconfirmed)
+            assertEquals(point != LibraryDeleteCheckpoint.TOMBSTONE_REMOVED, entries().any { it.id == draft.id })
+            assertEquals(PreviewLibraryDelete.Deleted, library().retryDeletion(draft.id))
+            assertEquals(PreviewLibraryDelete.Deleted, library().retryDeletion(draft.id))
+            assertFalse(Files.exists(root.resolve(draft.id.value)))
+            assertFalse(entries().any { it.id == draft.id })
+        }
+    }
+
+    @Test fun `reconciling completed removal cannot add an extra pending row to a full library`() {
+        val removed = created()
+        library().delete(removed.id, removed.record)
+        repeat(PreviewDraftLibrary.MAX_DRAFTS) { index ->
+            Files.createDirectory(root.resolve("draft-00000000-0000-0000-0000-${index.toString().padStart(12, '0')}"))
+        }
+        val retry = PreviewDraftLibrary(root, {}, { throw IOException("Retry must not create fresh cleanup intent") })
+        assertEquals(PreviewLibraryDelete.Deleted, retry.retryDeletion(removed.id))
+        assertEquals(PreviewLibraryDelete.Deleted, retry.retryDeletion(PreviewDraftId("guest-draft")))
+        assertEquals(PreviewDraftLibrary.MAX_DRAFTS, entries().size)
+        assertEquals(0L, Files.list(root.resolve(".preview-deletions")).use { it.count() })
+        assertTrue(Files.isRegularFile(root.resolve(".preview-guest-deleted")))
+    }
+
     @Test fun `held adapter cannot activate any tier after deletion or interrupted cleanup`() {
         for (interrupted in listOf(false, true)) {
             val item = created()
