@@ -15,6 +15,52 @@ class PreviewDraftPersistenceTest {
     private fun loaded() = (adapter().load() as PreviewDraftLoad.Available).record
     private fun saved(result: PreviewDraftSave) = (result as PreviewDraftSave.Saved).record
 
+    @Test fun `domain restore appends exact retained content and preserves current guest metadata`() {
+        val initial = DraftContent("old", null, "model", mapOf(OptionalTier.T3 to
+            TierDraft(Activation.UNKNOWN, setOf("opaque"), mapOf("setting" to "value"))))
+        store().save(null, initial, mapOf("preview.format" to "1", "preview.title" to "old title", "lock" to "current"))
+        val first = loaded()
+        val next = saved(adapter().save(first, PreviewDraftFields("current title", "id", "v1", "a".repeat(64)),
+            PreviewDraftContext("new", "context")))
+        val prior = next.draft.history
+        val restored = saved(adapter().restore(next, first.revision))
+        assertEquals(initial, restored.draft.content)
+        assertEquals(next.draft.metadata, restored.draft.metadata)
+        assertEquals(next.fields, restored.fields)
+        assertEquals(next.revision + 1, restored.revision)
+        assertEquals(prior.map { it.content }, restored.draft.history.dropLast(1).map { it.content })
+        assertEquals(StoredRevisionChange.RESTORE, restored.history.last().change)
+        assertEquals(first.revision, restored.history.last().restoredFrom)
+        assertEquals(initial, loaded().history.last().content)
+        val edited = saved(adapter().save(restored, restored.fields, PreviewDraftContext("after restore", "")))
+        assertEquals(StoredRevisionChange.EDIT, edited.history.last().change)
+        assertEquals(initial, edited.history.dropLast(1).last().content)
+    }
+    @Test fun `restore same content appends but stale foreign and unknown targets cannot change head`() {
+        val first = saved(adapter().save(null, PreviewDraftFields(), PreviewDraftContext("objective", null)))
+        val next = saved(adapter().restore(first, first.revision))
+        assertEquals(first.revision + 1, next.revision)
+        assertEquals(PreviewDraftSave.Conflict, adapter().restore(first, first.revision))
+        assertEquals(PreviewDraftSave.Failed(DraftStorageFailure.CORRUPT), adapter().restore(next, 1000))
+        val foreign = PreviewDraftPersistence(LocalDraftStore(java.nio.file.Files.createDirectory(root.resolve("other"))))
+        assertEquals(PreviewDraftSave.Conflict, foreign.restore(next, first.revision))
+        assertEquals(next.baselineIdentity, loaded().baselineIdentity)
+    }
+    @Test fun `restore failure preserves prior baseline and uncertainty requires reconciliation`() {
+        val first = saved(adapter().save(null, PreviewDraftFields(), PreviewDraftContext("old", null)))
+        val current = saved(adapter().save(first, first.fields, PreviewDraftContext("new", "pending")))
+        fun failing(point: CacheWritePoint) = PreviewDraftPersistence(LocalDraftStore(root) { path ->
+            VerifiedArtifactCache(path, LocalDraftStore.MAX_BYTES) { if (it == point) throw IOException("injected") }
+        })
+        assertEquals(PreviewDraftSave.Failed(DraftStorageFailure.IO_FAILURE), failing(CacheWritePoint.POINTER_STAGED).restore(current, first.revision))
+        assertEquals(current.baselineIdentity, loaded().baselineIdentity)
+        assertEquals(PreviewDraftSave.Uncertain, failing(CacheWritePoint.POINTER_ACTIVATED).restore(current, first.revision))
+        assertEquals(first.contextInput, loaded().contextInput)
+        assertEquals(PreviewDraftSave.Conflict, adapter().restore(current, first.revision))
+        assertFalse(PreviewDraftRestoration.capture(current, false, false).canResume(loaded()))
+        assertFalse(PreviewDraftRestoration.capture(current, true, true).canResume(loaded()))
+    }
+
     @Test fun `older saved state without context keys hydrates baseline while explicit pending null stays unanswered`() {
         val baseline = PreviewDraftContext("saved objective", "saved context")
         assertEquals(baseline, PreviewContextCheckpoint(false, PreviewDraftContext()).forLoad(true, baseline))
