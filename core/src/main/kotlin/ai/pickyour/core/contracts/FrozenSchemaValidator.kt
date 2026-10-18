@@ -3,12 +3,15 @@ package ai.pickyour.core.contracts
 import ai.pickyour.core.importing.BoundedJsonReader
 import ai.pickyour.core.importing.JsonInputResult
 import ai.pickyour.core.importing.JsonRejection
+import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.networknt.schema.JsonSchemaFactory
 import com.networknt.schema.SchemaLocation
 import com.networknt.schema.SchemaValidatorsConfig
 import com.networknt.schema.SpecVersion.VersionFlag
 import com.networknt.schema.resource.InputStreamSource
+import com.networknt.schema.serialization.JsonNodeReader
 import java.io.InputStream
 
 /** An explicit expected document type; untrusted input cannot select its own schema or dialect. */
@@ -37,6 +40,12 @@ class FrozenSchemaValidator {
     private val reader = BoundedJsonReader()
     private val config = SchemaValidatorsConfig.builder().formatAssertionsEnabled(true).build()
     private val factory = JsonSchemaFactory.getInstance(VersionFlag.V202012) { builder ->
+        // Read only bundled schema integers at arbitrary precision. networknt 1.5.6's
+        // IntNode/LongNode threshold shortcut narrows integral DecimalNode inputs through
+        // asLong(), reversing some wide/exponent bounds. BigInteger schema bounds select
+        // its exact comparison path. Frozen bytes and the bounded input reader stay intact.
+        builder.jsonNodeReader(JsonNodeReader.builder().jsonMapper(ObjectMapper()
+            .enable(DeserializationFeature.USE_BIG_INTEGER_FOR_INTS)).build())
         builder.schemaLoaders { loaders ->
             loaders.add { iri -> bundledSchema(iri.toString()) }
         }
