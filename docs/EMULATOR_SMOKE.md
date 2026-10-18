@@ -2,13 +2,14 @@
 
 The existing **Unsigned synthetic Android preview** CI job builds, lints and runs
 the named Robolectric regressions on Linux. After that job succeeds, **Installed
-synthetic Android preview (Intel HVF)** verifies the exact unsigned APK handoff and
-runs the same smoke harness on the existing explicitly selected Intel macOS runner.
-The current source selects a smaller startup raster on one fresh AOSP API 35
-x86_64 AVD, with actual configuration and physical-display verification. The
-earlier Intel macOS failures and the terminal KVM policy denial remain recorded
-below. This distinct nonprivileged experiment does not retry or alter the denied
-KVM command tuple. The workflow
+synthetic Android preview (hosted KVM)** verifies the exact unsigned APK handoff and
+runs the same smoke harness on an explicitly selected Ubuntu 24.04 runner. The
+new provisioning proposal retains the original non-root UID, GID and groups,
+and uses the existing privileged-tooling policy for one temporary named-user KVM
+ACL and its exact restoration. It uses one fresh AOSP API 35 x86_64 AVD. The
+explicit 720×1280/280-dpi startup profile from the preceding HVF experiment is
+retained and bound across the workflow, unprivileged child and final receipts.
+The earlier RunAs-group denial and Intel macOS failures remain recorded below. The workflow
 definition and host-side harness tests are preparation; only an observed passing
 run and its exact receipt establish installed-emulator evidence.
 
@@ -72,10 +73,9 @@ launch timeout or relax any installed assertion; another observed run is require
 ## Isolation and diagnostic signing
 
 Provisioning is restricted to a standard disposable GitHub-hosted runner; the
-current installed job explicitly selects `macos-15-intel` and requires observed
-Darwin/x86_64 with hosted macOS/X64 identity and existing Hypervisor.Framework
-support. It invokes no sudo or KVM process-boundary command. The separately
-preserved KVM source and its actual denied experiment are described below.
+current installed job explicitly selects `ubuntu-24.04` and requires observed
+Ubuntu 24.04/Linux/x86_64 with hosted Linux/X64 identity. The explicit provisioning
+boundary described below must pass before the unchanged read-only KVM access gate.
 The workflow retains `contents: read`, checkout credential persistence stays off,
 and no production, publisher, signing or deployment secret is supplied. This uses
 the existing standard runner, not a larger paid runner or external coding job.
@@ -103,14 +103,17 @@ camera, and disabled emulator metrics. Only this job's process group is terminat
 during normal completion or failure, and its AVD/key/copy are removed with the
 temporary directory. Hard job cancellation additionally relies on disposal of the
 hosted VM. Artifact retention never includes AVD userdata or the temporary signing
-directory. In the separately preserved KVM source, the outer policy preflight
-records real/effective UID/GID,
-supplementary groups, the existing named `kvm` group and device identity/access
-before SDK provisioning. The selected same-user process repeats those observations
-and requires read/write access; the harness's unchanged read-only KVM access guard
-runs again before its acceleration probe. Missing devices, symbolic links, an
-unexpected device group, denied policy or unavailable access fail. No device
-ownership/mode, group membership, ACL, udev or sudoers configuration is changed.
+directory. The outer ACL policy preflight records real/effective UID/GID,
+supplementary groups, the existing named `kvm` group, device identity/access and
+exact original ACL before SDK provisioning. The same-user process repeats those
+observations after the named-user grant and requires read/write access. The
+harness's existing read-only access predicates run again before acceleration.
+Missing devices, symbolic links, unexpected groups, denied policy or unavailable
+access fail. The explicit temporary ACL is the only device-access mutation;
+device ownership/mode and process credentials stay unchanged. Normal finally
+cleanup and the always-run step require exact restoration. Unproved command
+termination or a foreign device/ACL change fails without a racing or unrelated
+restoration. Group membership, udev and sudoers configuration are not changed.
 
 The preceding Linux workflow explicitly selected `PYAI_EMULATOR_MODE=software`.
 That remains an opt-in experimental diagnostic setting, not an automatic fallback or a vendor-supported
@@ -131,8 +134,9 @@ opt-in alongside the actual tool/platform versions and case results. Feasible
 execution has not been established by this configuration or its host guard tests.
 When `PYAI_EMULATOR_MODE` is absent, KVM mode remains the settings helper's default.
 The historical KVM lane supplied its explicit mode, pinned binary path and exact
-APK digest through the boundary; the current workflow explicitly selects HVF.
-The retained KVM path still requires its read-only preflight and complete emulator
+APK digest through the boundary; the preceding `9ffd` workflow explicitly selected
+HVF. The current ACL/KVM candidate explicitly selects KVM and still requires its
+read-only preflight and complete emulator
 `-accel-check`, with the unchanged 300-second boot deadline. Unknown mode names
 fail and hardware failure never switches modes.
 
@@ -144,7 +148,7 @@ passed compilation/lint and all 11 simulated cases, then failed loading
 marks all four installed cases unexecuted and the original APK unchanged. This
 failure is setup evidence; a later passing installed receipt is still required.
 
-### Observed Intel HVF capability and selected raster lane
+### Observed Intel HVF capability and preceding raster lane
 
 The read-only diagnostic [#244](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/244)
 ran on the existing `macos-15-intel` label in
@@ -155,19 +159,20 @@ the preinstalled emulator 37.1.11.0 returned exit 0 with
 without stderr or timeout. That diagnostic was closed without merging its temporary
 workflow. It establishes capability on that observed host only; it booted no AVD.
 
-The current raster experiment explicitly selects `PYAI_EMULATOR_MODE=hvf` and
-preserves its earlier 600-second boot deadline and 25-minute job budget. Both
-preparation and harness check the
+The preceding `9ffd` raster experiment explicitly selected `PYAI_EMULATOR_MODE=hvf`
+and preserved its earlier 600-second boot deadline and 25-minute job budget. Its
+preparation and harness checked the
 hosted Intel platform and read-only `/usr/sbin/sysctl -n kern.hv_support` result.
-The harness also requires a complete successful `emulator -accel-check` result
-identifying Hypervisor.Framework, uses `-accel on`, and records the actual host and
-acceleration observations. Missing, failed, truncated, contradictory or timed-out
-observations fail; neither KVM probing nor software fallback follows an HVF failure.
-The preinstalled emulator version is pinned to 37.1.11.0 for this bounded adaptation;
-runner version drift requires a reviewed pin update. The workflow installs only the
-selected AOSP image through the existing SDK manager and verifies existing adb and
-build-tools 35.0.0. It changes no host permission, group, driver, hypervisor or SDK
-emulator binary. Linux-specific `dpkg-query` is not used on macOS.
+The retained HVF mode also requires a complete successful `emulator -accel-check`
+result identifying Hypervisor.Framework, uses `-accel on`, and records the actual
+host and acceleration observations. Missing, failed, truncated, contradictory or
+timed-out observations fail; neither KVM probing nor software fallback follows an
+HVF failure. That preceding workflow pinned the preinstalled emulator to 37.1.11.0,
+installed only the selected AOSP image through the existing SDK manager and
+verified existing adb and build-tools 35.0.0. It changed no host permission, group,
+driver, hypervisor or SDK emulator binary. Linux-specific `dpkg-query` was not used
+on macOS. The current ACL/KVM candidate has the separate Linux archive and
+explicit temporary device-access boundary described above.
 
 The successful Linux job exposes the unsigned APK's SHA-256 and its immutable
 uploaded artifact ID as job outputs. The installed job requires a single nonempty
@@ -238,7 +243,7 @@ predicate, and must arrive before the deadline. Every command and sleep is cappe
 by the remaining budget. These observations do not replace the subsequent full
 guest-readiness or installed-case gates.
 
-After a failed boot, `boot_failure_observations` records only the owned serial's
+At that diagnostic checkpoint, `boot_failure_observations` recorded only the owned serial's
 ADB state, reported AVD name, emulator property and boot-animation property. These
 read-only queries have a separate 20-second total budget and at most five seconds
 per command. Missing, failed or timed-out diagnostics are retained and cannot
@@ -726,7 +731,7 @@ boundaries also passes. These are mocked host checks; installed execution remain
 pending. The command sequence, shared readiness deadline, original nine checks,
 four app cases, launch predicate, host configuration and budgets are unchanged.
 
-### Observed global ANR trace and one explicit hosted KVM experiment
+### Observed global ANR trace and the terminal RunAs-group experiment
 
 The actual [run 39123226538](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39123226538)
 checked out `cf26f89c749373ccdb3976bcc7bfb48ddb976e72`, tree
@@ -766,7 +771,7 @@ not establish a complete process inventory. These observations support one bound
 host-capacity experiment; they do not identify an app defect, OOM kill, renderer
 failure or a single proven cause of the SystemUI ANR.
 
-That reviewed KVM candidate selected the ordinary `ubuntu-24.04` GitHub-hosted VM,
+The `89585ee` candidate selected the ordinary `ubuntu-24.04` GitHub-hosted VM,
 retaining the same image, renderer, requested two cores, memory argument, guest
 readiness predicates, exact launch/XML/case assertions and cleanup. KVM keeps its
 existing 300-second boot limit and readiness keeps its shared 180-second deadline;
@@ -775,8 +780,8 @@ software fallback or macOS core-clamp bypass is included. The receipt adds the
 guest's actual `/sys/devices/system/cpu/online` value after boot, alongside the
 existing kernel log; host CPU count is observed at the process boundary.
 
-That explicit CI credential boundary received independent source and receiving
-review before its one actual attempt; its policy denial is recorded below. The earlier [scoped review](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/206#pullrequestreview-5561485748)
+That source introduced an explicit CI credential boundary with independent source
+and receiving review. The earlier [scoped review](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/206#pullrequestreview-5561485748)
 correctly rejected silently changing `/dev/kvm` ownership. The new wrapper makes
 the process selection explicit and retains that device/configuration restriction.
 It does not operate on a shared machine or select a larger paid host.
@@ -845,41 +850,219 @@ and Linux's [schedstat field definitions](https://docs.kernel.org/scheduler/sche
 and [pressure definitions](https://docs.kernel.org/accounting/psi.html), plus the
 [online CPU sysfs definition](https://docs.kernel.org/admin-guide/cputopology.html).
 
-### Actual KVM policy denial and current-source preservation
+### Observed terminal command-policy denial
 
-The [actual negative receipt](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/255#issuecomment-6250555264)
-for source `89585ee44c04bd77d187a0b771b8ba3c87be4f40` records
-[run 39131251455 / job 117687639740](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39131251455/job/117687639740),
-prepared checkout `f85b9bde8e25bdbac8356b85bd180d94995ca55d`, exact source tree
-`031f625a2cf07cd30030257b028ae3bbb7ba317a`. The exact existing-policy listing
-for the same non-root UID, named KVM GID and absolute Python child command returned
-integer exit 1 with empty stdout and stderr. The boundary recorded `policy_failed`
-and stopped before provisioning. It produced no inside/after identity, emulator
-or SDK preparation, guest execution, installation, app case, installed receipt or
-installed JUnit. This terminal result remains distinct from f180's earlier guest
-readiness failure.
+The actual [run 39131251455](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39131251455)
+checked out signed merge `f85b9bde8e25bdbac8356b85bd180d94995ca55d`, exact tree
+`031f625a2cf07cd30030257b028ae3bbb7ba317a`, carrying candidate
+`89585ee44c04bd77d187a0b771b8ba3c87be4f40`. The
+[consolidated, independently checked result](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/255#issuecomment-6250555264)
+records **589 core cases, 161 simulated native cases and 100 host guards passing**.
+All eight mandatory native admission scripts matched their actual reports. Lint
+reported zero errors and 15 warnings. The unsigned APK was 2,746,845 bytes with
+SHA-256 `08bb1116d0738b3bd4817d27d209c1b3f9e60f7e1872205eebb2039c13a679d6`.
+The separate runtime inventory matched the same source, ten source pins and both
+actual archive outputs. Those producer results remain separate from installation.
 
-Its original boundary artifact `12137842592` is 1,275 ZIP bytes, SHA-256
-`841e058627fe0e62e2d278a2c4f52bd0f87630ce36f3e8b9281b288542087637`;
-the sole retained `kvm-boundary/receipt.json` identifies the failed attempt.
-The separately successful 589 core, 161 simulated native and 100 mocked host
-cases retain only their respective producer/host scopes. The policy denial is
-not retried, changed to another credential tuple or addressed by device, group,
-ACL, udev or sudoers changes.
+At 13:26:56 UTC, the exact command listing for non-root UID 1001 and existing
+device GID 993 returned integer **1**, complete empty stdout and empty stderr.
+The wrapper retained `status: policy_failed` and stopped before its child,
+emulator download, SDK provisioning or guest execution. There is no installed
+receipt, installed JUnit, APK installation, launch or case result for this run.
+Its observed Ubuntu 24.04 host had four CPUs; the unchanged root:kvm character
+device was mode 0660 and inaccessible to the original runner credentials.
 
-The current composition carries the reviewed raster source into 895 while
-preserving all newer app, domain, test and receipt code. Both KVM process-boundary
-files and their tests remain unchanged, along with all current producer test gates
-and the exact APK handoff. The installed job explicitly selects the already
-reviewed standard Intel macOS/HVF path for this distinct raster experiment; it
-contains no privileged KVM invocation or automatic fallback. Actual source/head
-and receiving review precede any hosted result, and an installed pass still needs
-all original gates and four cases on that exact source.
+The sole `kvm-boundary/receipt.json` member is 2,742 bytes with SHA-256
+`14047b4cd6814c4f0e5e85e44ac9796389c50e5a6a797ac1b5cd8d4f90e0766b`.
+Artifact `12137842592` is 1,275 ZIP bytes with SHA-256
+`841e058627fe0e62e2d278a2c4f52bd0f87630ce36f3e8b9281b288542087637`.
+That denial is terminal for the tested RunAs-group experiment. It identifies the
+denied command/user/group tuple; it does not reveal an unobserved sudoers rule or
+establish that every privileged-tooling command is prohibited.
 
-## Startup display experiment: smaller raster, same logical phone dimensions
+### Separate proposal: temporary named-user KVM ACL
 
-This source prepares one explicitly selected diagnostic variation; it has no
-installed result yet. The baseline remains relevant: [run 39123226538](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39123226538)
+The next source proposes one explicitly reviewed provisioning experiment on the
+same fresh standard `ubuntu-24.04` job. It deliberately grants temporary access
+to the existing KVM device through a named ACL for the original non-root job UID.
+This is a new project engineering decision under the owner's mandate, requiring
+independent source and concrete-scope review before publication or execution.
+It is not a retry, permission inference or automatic fallback from the denied
+RunAs-group command above. `android_kvm_process.py` and its old receipt semantics
+remain unchanged; the workflow selects `android_kvm_acl.py` explicitly.
+
+The current proposal preserves the original process's real/effective UID, GID and
+supplementary groups. Only the fixed system `setfacl` tool runs through the
+runner's existing privileged-tooling sudo policy. Python, SDK tools, emulator,
+adb and the unchanged harness retain the original non-root identity. There is no
+root Python/wrapper, RunAs-group substitution, privileged kill, device ownership
+change, world-writable udev rule, persistent group membership or sudoers change.
+The previously observed host/device-access restrictions are not silently edited.
+
+Before any SDK provisioning, the new wrapper checks the same exact source, APK,
+host, interpreter and allowlisted environment. It verifies root-owned, unlinked,
+non-writable absolute `/usr/bin/sudo`, `/usr/bin/getfacl` and `/usr/bin/setfacl`,
+including their directory ancestry, and records their hashes and ACL tool
+versions. The observed image tag `ubuntu24/20261012.334` resolves to
+`7e7dc1bcc0ef464e5e315a2b4c33609590c6cffe`; its official
+[Ubuntu inventory](https://github.com/actions/runner-images/blob/7e7dc1bcc0ef464e5e315a2b4c33609590c6cffe/images/ubuntu/Ubuntu2404-Readme.md)
+lists `acl 2.3.2-1build1.1`. This establishes an image input, not a claim that
+getfacl or setfacl ran in the failed experiment. The new runtime must still find
+both exact tools and confirm their `2.3.2` output.
+
+The only admitted original ACL is the numeric three-entry base:
+
+```text
+user::rw-
+group::rw-
+other::---
+```
+
+The target must also be the same nonsymlink character device, owned by root with
+the existing positive numeric group named `kvm`, mode 0660, and no original
+runner read/write access. An existing named entry, mask, different permissions,
+linked/replaced device or changed credential fails before a privileged mutation.
+The normal numeric `getfacl --access --omit-header --no-effective --numeric
+--absolute-names -- /dev/kvm` read is unprivileged. Its base output alone is not
+proof of filesystem ACL support; the actual grant and exact readback must prove
+that support.
+
+Both exact commands must pass separate bounded `sudo --non-interactive
+--user=#0 --list --` checks before provisioning. The grant uses fixed arguments
+`/usr/bin/setfacl --no-mask --modify=user:UID:rw-,mask::rw- -- /dev/kvm`.
+Restoration uses `/usr/bin/setfacl --no-mask
+--set=user::rw-,group::rw-,other::--- -- /dev/kvm`. The UID comes only from the
+validated original numeric non-root identity. `--no-mask` prevents implicit mask
+recalculation. The explicit rw mask preserves the existing group rights and mode
+0660 while allowing only that named user additional read/write access. Exact
+ACL readback is mandatory: **mode 0660 can look the same with or without the
+named grant**. The proposal does not use `--restore`, whose input comments can
+also request owner/group and special-bit changes.
+
+A denied, timed-out, diagnostic or truncated policy listing fails without an
+alternate command. Policy listing does not guarantee a later grant or restore
+will succeed. The actual tool invocations retain the same fixed arguments and a
+minimal PATH/locale environment; they do not preserve tokens, loader/Python
+controls, `POSIXLY_CORRECT` or arbitrary inherited variables. The unchanged,
+checksum-pinned Linux emulator preparation happens only after both policies and
+the exact original state pass, and before any ACL grant.
+
+#### Proving that a permission command has finished
+
+Killing only Python's immediate sudo child after a timeout cannot prove that its
+privileged command has stopped. Also, sudo can return a nonzero frontend error
+without that status alone proving its descendant has ended. The proposal keeps
+command success and command-subtree termination as separate observations.
+
+`android_acl_lifecycle.py` creates a dedicated child with the same non-root
+credentials, separate from every harness/ADB/emulator process. The child enables
+only its own Linux `PR_SET_CHILD_SUBREAPER` attribute and confirms it using
+`PR_GET_CHILD_SUBREAPER` before starting the fixed sudo/setfacl command. It uses
+one owner of wait status: `waitpid(-1, WNOHANG | __WALL)` records the direct command
+and any adopted orphan descendants. A zero nonblocking result means a child is
+still alive. Only a final kernel `ECHILD`, after all recorded children are reaped,
+provides positive absence evidence; an exit code of zero is insufficient.
+
+The command gets a ten-second completion budget and at most two further seconds
+to establish termination. On timeout/interruption the supervisor may send an
+ordinary SIGTERM only to its unreaped direct child, whose PID cannot be reused
+while this sole waiter still owns it. It issues no privileged kill and does not
+assume that a denied signal or dead sudo frontend killed another process. The
+parent allows 15 seconds for this dedicated supervisor. Only the waiter's own
+deadline exception, raised after a non-reaping wait result, permits SIGTERM to
+that still-owned child and one bounded three-second join. A generic timeout or
+asynchronous interruption may occur after the child was reaped but before its
+status reached the caller; its numeric PID may then be reused. Such failures
+retain uncertainty and the original exception without sending any signal or
+performing an additional wait. The parent never uses SIGKILL on the supervisor
+to manufacture completion evidence.
+
+If the supervisor dies, output is missing, wait status is lost, the kernel
+setting/readback fails or a descendant remains at the deadline, the boundary
+records failed/uncertain cleanup and **refuses every later device mutation**.
+No automatic restoration can race a grant whose termination is unproved. An
+ordinary failed or timed-out grant may already have changed the ACL; when its
+whole subtree is positively reaped, the normal cleanup can safely examine and
+restore the exact owned state. A hard job/process kill can prevent further
+receipts or cleanup altogether. The fresh VM's disposal is the remaining
+containment in that case; it is not recorded as successful ACL restoration.
+
+The supervisor captures tool streams into owned temporary files and retains at
+most 8,192 bytes from each stream, decoded with replacement for invalid UTF-8.
+Truncation blocks success; these files are not a claim of a disk-usage limit.
+Read-only metadata/policy queries retain bounded decoded tails from ordinary
+subprocess capture; that retention bound is not a process-memory bound. The
+subtree receipt separately records the direct command's status, bounded reaped
+PID/status inventory, subreaper readback and final absence result.
+
+#### Exact restoration and receiving evidence
+
+Before the grant can start, the wrapper atomically writes and fsyncs its own
+receipt checkpoint. It verifies the exact named-user ACL, unchanged device
+inode/device number/owner/group/mode and original credentials after the grant
+and again in the ordinary workload child. Only then can that child exec the
+unchanged harness. Success still requires real KVM access and acceleration,
+the exact source/APK/emulator identities, the pinned image, 300-second boot
+budget, shared 180-second readiness deadline, both barrier markers, functional
+HOME focus, strict first launch/XML assertions and all four actual cases.
+Two access-failure messages now describe only the read-only check, so they cannot
+erase the outer receipt's explicit ACL change. Their access predicates and all
+installed behavior remain unchanged.
+
+The wrapper's finally path restores only the same owned device with either the
+exact original base ACL or exactly this job's named-user ACL. A replaced device
+or unrelated ACL change is retained as a cleanup failure and is never overwritten.
+Restoration also requires proof that every preceding permission-command subtree
+has ended. It then replaces the ACL with the original three entries, removing
+the named grant and mask, and requires full original identity/device/ACL/access
+equality after the command has finished.
+
+An `always()` workflow step independently reads the restored state, or allows
+one bounded recovery of a recorded interrupted restoration whose preceding
+command is proved quiescent. Recovery never turns the interrupted or failed
+run into a pass. It retains the earlier failed attempt and original error;
+another cleanup or receipt error cannot replace an earlier harness failure.
+The final receiving gate requires both the complete `kvm-acl/receipt.json` and
+the unchanged installed receipt. A failed cleanup, missing proof, stale context,
+remaining named ACL or missing case fails the job. The full job remains limited
+to 25 minutes; this limit does not guarantee cleanup after forced cancellation.
+
+Host verification includes actual harmless Python process trees for delayed
+orphans after exit 1, double-fork descendants, direct-child termination and a
+self-limiting lingering orphan. Those tests use only the test runner's existing
+identity and temporary files; they do not invoke the production ACL entry or
+establish KVM access. Separate mocked boundary tests cover strict policy/device
+admission, partial grants, original identity, foreign changes, exact cleanup,
+interruption, missing subtree proof and receipt contradictions. No new installed
+result or successful ACL change is claimed by this proposal.
+
+Independent review found that the original local proposal could signal the
+supervisor's numeric PID after a post-reap interruption. Two mocked negative
+replays against that unchanged proposal each observed the forbidden SIGTERM.
+The correction distinguishes the waiter's explicit unreaped deadline from an
+unclassified failure, preserves the same original exception and failed proof,
+and includes both post-reap and ordinary-timeout rejection plus the owned-deadline
+path. These are local process-control tests, not a privileged command or device
+operation; the complete ACL proposal still requires independent source and
+receiving review before any hosted provisioning experiment.
+
+Primary semantics: Ubuntu's [`setfacl`](https://manpages.ubuntu.com/manpages/noble/man1/setfacl.1.html),
+[`getfacl`](https://manpages.ubuntu.com/manpages/noble/man1/getfacl.1.html) and
+[`ACL`](https://manpages.ubuntu.com/manpages/noble/man5/acl.5.html) manuals;
+the Linux [subreaper](https://man7.org/linux/man-pages/man2/PR_SET_CHILD_SUBREAPER.2const.html)
+and [wait](https://man7.org/linux/man-pages/man2/wait.2.html) definitions;
+and [sudo 1.9.15p5's exact executor sources](https://github.com/sudo-project/sudo/tree/fc9369cb442c8c5f6612d1831294569f1db75028/src).
+The reviewed [Ubuntu ACL 2.3.2 source](https://archive.ubuntu.com/ubuntu/pool/main/a/acl/acl_2.3.2-1build1.1.dsc)
+performs the fixed-file update synchronously
+without spawning children. The supervisor still verifies the whole subtree
+instead of using that implementation detail as a substitute for actual completion.
+
+## Retained startup display experiment and its actual HVF failure
+
+The independently reviewed `9ffd094819d282d10a5c3d14c1f0d9d0e63e6d07`
+source selected one startup-display variation on Intel HVF. Its actual result is
+recorded below and failed before installation. The earlier baseline remains
+relevant: [run 39123226538](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39123226538)
 at `f180a53228b3206445328685c5011ccfd77f921d` used synthetic checkout
 `cf26f89c749373ccdb3976bcc7bfb48ddb976e72`, tree
 `77bcced552386e2c496ac7f12816194519eae4d6`. Its artifact `12136125002` has
@@ -900,7 +1083,10 @@ proven cure. No ANR is dismissed and no failing qualification is removed.
 
 The workflow explicitly selects `PYAI_EMULATOR_DISPLAY_PROFILE=raster-720x1280-280`.
 The harness default, `pixel-2`, preserves the original configuration bytes.
-The experimental profile is accepted only with explicit HVF mode. Immediately
+The original raster source admitted only explicit HVF mode. The combined ACL
+candidate now admits that same profile under explicit HVF or KVM mode; software
+and unknown modes still reject it. This source admission is not evidence that
+the profile has booted or passed on KVM. Immediately
 after creating its own fresh Pixel 2 AVD, before starting the emulator, the harness
 changes only these three values in that AVD's `config.ini`:
 
@@ -932,13 +1118,17 @@ they do not establish renderer performance or a complete hardware qualification.
 The final workflow receipt explicitly requires this selected profile and its
 owned AVD identity, as well as every original gate and all four successful cases.
 Historical receipts without this field cannot satisfy the selected experiment.
-The API 35 revision-2 image, emulator version, Intel macOS/HVF host, renderer,
-requested two CPU cores/2048 MiB, fresh boot/no snapshots, 600-second boot,
-180-second shared readiness and 25-minute job limits remain unchanged. The
+In the original `9ffd` raster experiment, the API 35 revision-2 image, emulator
+version, Intel macOS/HVF host, renderer, requested two CPU cores/2048 MiB,
+fresh boot/no snapshots, 600-second boot, 180-second shared readiness and
+25-minute job limits were unchanged. The
 baseline emulator itself reported one effective guest CPU and increased RAM to
 2560 MiB; unchanged requests do not assert a future emulator's effective allocation.
-Inspect its actual log when comparing the experiment. There is no service
-disabling, warm reuse, host-permission change, larger runner or timeout extension.
+Inspect its actual log when comparing the experiment. That original `9ffd` raster
+experiment did not disable services, reuse a warm guest, change host permissions,
+select a larger runner or extend timeouts. The current ACL/KVM candidate
+deliberately changes device access through its temporary named ACL and retains
+KVM's 300-second budget.
 
 Ten added host methods cover the explicit selector, private-file boundaries,
 unchanged baseline bytes, three-value edit/readback, generated hardware, exact
@@ -947,9 +1137,9 @@ method reproduced 12 assertion failures against the unchanged receipt-corrected
 `36093d912334c7bbcfa0bf2aea016cba4a6bf875` source; that source did not yet validate
 startup-display claims. The isolated raster checkpoint at `8e757e36e2db16ec30bd7c33a4bdc803f1c7a2e4`
 retains 73 inherited methods plus those ten additions; its normal and optimized
-Python runs both passed. The composition with current source `89585ee` separately
-preserves all 76 current harness methods and 24 KVM boundary methods, and adds the
-same ten raster cases. All 110 host methods passed under both normal and optimized
+Python runs both passed. The original composition with source `89585ee` separately
+preserved its 76 harness methods and 24 KVM boundary methods, and added the same
+ten raster cases. All 110 host methods passed under both normal and optimized
 Python, with zero failures, errors or skips. These synthetic file/mocked-device
 tests do not start an emulator or establish startup, installed-case or performance
 results.
@@ -969,6 +1159,122 @@ documents this intermediate density. Actual startup and app results remain a
 separate hosted experiment after independent source review and coordination with
 the existing installed-lane owner.
 
+### Actual raster boot failure and framework capture gap
+
+The raster experiment's [run 39136743463, attempt 1 / installed job 117703746313](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39136743463/job/117703746313)
+executed signed prepared checkout `1505ed0b69fcc72b75eab1e1d14d920a50ac3aa7`,
+tree `fcf41c02ba51fa38748698dc8fbba654d5994147`, from source
+`9ffd094819d282d10a5c3d14c1f0d9d0e63e6d07`. The original installed artifact
+`12140024756` is 54,797 ZIP bytes, SHA-256
+`a0bf12b012d9011a8d6b790d77146d784080b76ebf4895d06f494a4b7f9eb6d7`.
+Its receipt, JUnit and emulator log were independently downloaded and inspected;
+the [canonical actual-result review](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/255#pullrequestreview-5563604391)
+also preserves the separate producer artifacts and successful host checks.
+
+The actual Intel macOS/HVF host and immutable APK handoff passed their existing
+checks. Boot completion was not observed: the receipt records 400 probes over
+600.019 seconds, `completed: false`, with the final command capped at the
+remaining 2.023928962 seconds and then timing out. Recent complete probes returned
+an empty boot property. The four post-failure queries observed ADB `device`, the
+exact owned AVD name, emulator property `1` and stopped boot animation in 1.517
+seconds. None of those observations replaces `sys.boot_completed=1`.
+
+All four installed cases remain `not_run`; JUnit contains one environment failure
+and four skipped cases. The script did not reach guest readiness, installation or
+launch. The separately prepared signed-copy hash is not installation evidence.
+The edited startup configuration and emulator log show 720 by 1280 pixels at 280
+dpi, but `startup_display.verified` is false: the later generated-hardware and
+physical `wm` checks did not execute. The emulator reported increasing guest memory
+to 2560 MiB and reducing the requested CPU count to one; the retained kernel log
+also reports one initialized CPU. Slow startup messages and later service records
+do not establish the boot failure's cause or a performance benefit or harm from
+the raster change. The earlier KVM policy-denial receipt remains a separate result.
+
+The original boot-failure path retained only the four property/device observations
+above, so it supplied no framework logcat before cleanup. The bounded diagnostic
+follow-up adds two observations under `boot_failure_observations.framework`:
+
+| Observation | Read-only command after the same owned identity is confirmed | Retained stdout tail |
+| --- | --- | --- |
+| Existing framework log | `logcat -b main -b system -b crash -b events -d -v threadtime -t 2000 SystemServer:V SystemServerTiming:V *:I` | At most 131,072 decoded characters |
+| Existing service names | `shell dumpsys -l` | At most 32,768 decoded characters |
+
+Both commands use the same fixed owned serial. They run only if the original ADB
+state, generated AVD name and emulator-property observations all have successful,
+complete, untruncated results with empty stderr and match the existing target
+validator. An incomplete, failed, noisy or foreign identity leaves both commands
+explicitly unattempted. Each attempted command receives at most five seconds and
+no more than the time remaining in the original **20-second total diagnostic
+budget**, including all four earlier queries. Exhausted time is recorded; no new
+deadline, reconnect, retry or fallback is introduced.
+
+Each new observation retains exact arguments, command timeout and elapsed time,
+integer exit status or timeout/error, and separate stdout/stderr availability,
+decoded-character count, decoded-text SHA-256, first/last 1200 characters and edge
+truncation flags. The larger stdout tail has its own retention limit/truncation
+flag. Timeout partials stay distinct from complete results; missing streams stay
+unavailable, and every unattempted command remains named. Byte-valued partials
+are decoded as UTF-8 with replacement before these text hashes are computed, so
+the hashes do not assert original byte identity. These bounds limit retained
+receipt text, not subprocess capture memory or total log history. The logs describe
+existing global framework records and are not automatically bound to the preview
+package, which was not installed in the failed run.
+
+In the isolated `9ffd` to `24d0edc7` diagnostic delta, the original HVF
+600-second boot poll, four observation records and readiness/install checks, all four installed case bodies, selected display/renderer/resource inputs,
+workflow and cleanup remain unchanged. A diagnostic result cannot rescue boot or
+replace the original failure. Eight added host tests cover the exact command
+boundary, rejected identities, complete and partial stream retention, one shared
+deadline, exhausted/unattempted work, owned-process exit, absent versus empty
+streams and the actual main handler's original-exception propagation. The original
+source failed the new six-command expectation before the implementation. All 118
+focused Android host methods in that isolated diagnostic source then passed under both normal and optimized Python, with zero
+failures, errors or skips. These fake-device/time tests do not run an emulator or
+establish that a future guest will answer either diagnostic command. Native
+execution remains coordinated through the existing #255 owner and normal gates.
+
+Primary mechanism references checked on 2026-10-18: the pinned Android 15
+[`logcat` implementation](https://android.googlesource.com/platform/system/logging/+/android-15.0.0_r1/logcat/logcat.cpp)
+makes `-d`/numeric `-t` a nonblocking read of existing records; the tag filters
+select recorded priorities without changing system logging. The pinned
+[`dumpsys` implementation](https://android.googlesource.com/platform/frameworks/native/+/android-15.0.0_r1/cmds/dumpsys/dumpsys.cpp)
+lists/checks existing services for `-l` and returns before starting service-dump
+threads. The subprocess deadline still bounds an unresponsive service manager.
+Neither command clears logs, starts a service or changes a host/guest permission.
+
+### Explicit profile handoff for the new ACL candidate
+
+The new standard-Ubuntu/KVM candidate keeps the same requested 720×1280/280
+startup profile while changing the explicitly reviewed host/access boundary. It
+retains the exact image and emulator pins, renderer, requested CPU/RAM, strict
+readiness/launch/XML/four-case checks and cleanup. KVM retains its existing
+300-second boot budget; the earlier HVF600 result is not used as a KVM success
+or as authority to increase this budget.
+
+The earlier shared environment selector did not preserve
+`PYAI_EMULATOR_DISPLAY_PROFILE`. The ACL wrapper now requires the exact explicit
+`raster-720x1280-280` value before any policy or device mutation and adds only
+that reviewed variable to the existing narrow child environment. The retired
+RunAs-group wrapper and its environment policy remain byte-for-byte unchanged.
+The unprivileged child recomputes the complete context from the environment it
+actually received; a missing, default, unknown or mismatched profile fails before
+the device observation or harness exec. The final ACL validator requires the
+same explicit profile even when given a self-consistent receipt/context pair.
+The workflow then passes that bound profile to the installed-receipt validator,
+which still requires the actual owned configuration, generated hardware,
+physical-display observations, exact KVM acceleration/binary/APK and all cases.
+
+The narrow integration changes only the hardware-mode admission for this profile,
+its allowlisted handoff and receipt checks. It does not change the three-value
+configuration edit, any display observation, boot polling, readiness, installed
+case, process-lifecycle proof or restoration operation. Focused mocked tests
+cover missing/wrong values at entry, actual child reception and final acceptance,
+plus a valid KVM display receipt that still rejects missing hardware/readiness
+or installed results. Neither these guards nor the prior HVF configuration
+observation establish an actual ACL grant, KVM boot, performance improvement or
+installed pass. The whole current-main composition requires independent review
+before the one new hosted attempt.
+
 ## Inputs and provenance
 
 The application keeps its existing JDK 21, Gradle 8.11.1, Kotlin 2.1.20, AGP 8.9.2,
@@ -977,10 +1283,10 @@ build-tools 35.0.0, compile/target 35 and minSdk 26 pins. This lane selects
 The upstream SDK manager resolves that package through the official SDK repository;
 the AOSP image needs no Google account or Google Play image.
 
-The runner's binaries can change independently of the image pin. The selected
-HVF mode rejects a preinstalled emulator outside its version pin. The retained
-KVM source separately verifies its dedicated Linux archive and version/build; it
-is not invoked by this experiment. Adb remains an
+The runner's binaries can change independently of the image pin. The preceding
+`9ffd` HVF workflow rejected a preinstalled emulator outside its version pin.
+The current ACL/KVM workflow verifies its dedicated Linux archive and version/build
+and binds that binary to the boundary and installed receipts. Adb remains an
 observed runner input. The receipt records the actual emulator and adb versions,
 emulator binary hash, image package metadata hash, `system.img` hash, runtime API,
 ABI, build fingerprint, persisted/default locale properties, display size and density. The runner image and
@@ -998,15 +1304,15 @@ Setup failure is an explicit JUnit failure with the four cases unexecuted.
 
 The existing seven-day `android-preview-<workflow commit>` artifact retains the
 unsigned APK, lint reports and simulated-test reports from Linux. The separate
-`android-installed-hvf-<workflow commit>` artifact retains the JSON receipt,
-JUnit, bounded emulator log, synthetic UI XML/PNG checkpoints and failure logcat
-when available from `preview/build/reports/emulator-smoke/`. The final gate
-requires the selected HVF mode and raster profile, owned AVD configuration and
-physical-display agreement, observed host/acceleration and producer APK digest,
-in addition to guest readiness and all four actual cases. The historical KVM
-artifact used the common `preview/build/reports/` archive root and retains its
-actual `kvm-boundary/receipt.json` failure. No KVM boundary pass is claimed by an
-HVF receipt. Link the exact
+`android-installed-kvm-<workflow commit>` artifact retains the `emulator-smoke/`
+JSON/JUnit, bounded emulator log, synthetic UI XML/PNG checkpoints and failure
+logcat when available, plus `kvm-acl/receipt.json`. Both directories are
+relative to the common `preview/build/reports/` archive root. The final gate
+requires the complete original-user ACL grant/restoration boundary, selected KVM
+mode and exact raster profile, actual owned-AVD/physical-display agreement, observed
+acceleration, exact emulator binary and producer APK digest in addition to guest
+readiness and all four actual cases. Earlier HVF artifact names and failed
+receipts remain historical evidence. Link the exact
 run, commit and artifact before treating it as receiving evidence; artifact expiry
 does not create a permanent acceptance record.
 
@@ -1020,13 +1326,13 @@ python -B -m unittest discover -s scripts/tests -p 'test_android*.py' -v
 ```
 
 This command validates target, selector, policy-boundary and receipt rejection
-with local fixtures/mocks. It executes no sudo command, SDK provisioning or emulator.
-The current hosted workflow runs `python scripts/android_emulator_smoke.py`
-with its explicit HVF mode and raster profile; it refuses a local/self-hosted
-environment and requires the exact workflow source, SDK inputs and producer APK.
-The KVM wrapper and its mocked guards remain unchanged in source, but its denied
-policy tuple is not retried or replaced by a different privilege route. Use the
-ordinary independently reviewed PR workflow for the coordinated experiment. Keep the required
+with local fixtures/mocks plus harmless Python subtree lifecycle tests. It executes
+no sudo or ACL tool command, SDK provisioning or emulator. The hosted workflow
+separately runs the ACL wrapper's `--check-policy`, `--prepare-emulator`, `--run`
+and always-run `--restore` phases through the absolute Ubuntu Python 3.12
+interpreter. Those phases reject local/self-hosted identity and expect the exact
+workflow source, SDK paths and producer artifact. Use the ordinary independently
+reviewed PR workflow to obtain one actual installed run. Keep the required
 contract/domain failure gates in the independent core lane; do not turn a missing
 emulator, image download, install or case result into a skipped-success job.
 

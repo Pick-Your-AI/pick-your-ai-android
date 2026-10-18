@@ -1725,8 +1725,9 @@ class StartupDisplayGuardTest(unittest.TestCase):
             for mode in ("kvm", "hvf", "software"):
                 self.assertEqual("pixel-2", smoke.display_profile_setting(mode))
             with patch.dict(os.environ, {"PYAI_EMULATOR_DISPLAY_PROFILE": "raster-720x1280-280"}):
-                self.assertEqual("raster-720x1280-280", smoke.display_profile_setting("hvf"))
-                for mode in ("kvm", "software"):
+                for mode in ("hvf", "kvm"):
+                    self.assertEqual("raster-720x1280-280", smoke.display_profile_setting(mode))
+                for mode in ("software", "automatic", "HVF", ""):
                     with self.assertRaises(smoke.SmokeFailure):
                         smoke.display_profile_setting(mode)
             for value in ("", "automatic", "1080x1920", "raster-720x1280-280 "):
@@ -1982,6 +1983,36 @@ class StartupDisplayGuardTest(unittest.TestCase):
         for changed in invalid:
             with self.assertRaises(smoke.SmokeFailure):
                 smoke.complete_receipt(changed, "a" * 40, expected_display_profile="raster-720x1280-280")
+
+    def test_kvm_raster_requires_its_own_hardware_profile_and_all_installed_results(self):
+        receipt = complete_startup_display_fixture()
+        receipt["emulation"] = {"mode": "kvm", "accel_argument": "on", "boot_timeout_seconds": 300,
+                                "unsupported_software_opt_in": False}
+        receipt["host_acceleration"] = {"exit_code": 0, "stderr": "", "output_truncated": False,
+                                        "stdout": "accel:\n0\nKVM (version 12) is installed and usable.\naccel\n"}
+        receipt["emulator_version"] = "Android emulator version 37.1.11.0 (build_id 15917651) (CL:N/A)"
+        smoke.complete_receipt(receipt, "a" * 40, expected_mode="kvm",
+                               expected_display_profile="raster-720x1280-280")
+        invalid = []
+        for key in ("startup_display", "host_acceleration", "emulator_version", "guest_readiness", "cases"):
+            changed = copy.deepcopy(receipt)
+            changed.pop(key)
+            invalid.append(changed)
+        for profile in ("pixel-2", "unknown"):
+            changed = copy.deepcopy(receipt)
+            changed["startup_display"] = startup_display_fixture(profile) if profile == "pixel-2" else {}
+            invalid.append(changed)
+        changed = copy.deepcopy(receipt)
+        changed["emulation"]["boot_timeout_seconds"] = 600
+        invalid.append(changed)
+        for case in range(4):
+            changed = copy.deepcopy(receipt)
+            changed["cases"][case]["status"] = "not_run"
+            invalid.append(changed)
+        for changed in invalid:
+            with self.assertRaises(smoke.SmokeFailure):
+                smoke.complete_receipt(changed, "a" * 40, expected_mode="kvm",
+                                       expected_display_profile="raster-720x1280-280")
 
 
 if __name__ == "__main__":

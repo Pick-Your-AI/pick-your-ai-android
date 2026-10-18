@@ -1,0 +1,587 @@
+{
+  "profile": "android-frozen-event-wire/v1",
+  "schema_sha256": "e169ad8d2f7417580ef63a5098f8ec54dd514af3ce609c59bdb7780b89d6039a",
+  "example_sha256": "ed0a9e96da773bc74bceb774f576971275f6da525fa9b425c3b8d6e5f7406068",
+  "cases": [
+    {
+      "name": "canonical synthetic event",
+      "expected": "decoded"
+    },
+    {
+      "name": "required payload may be empty",
+      "expected": "decoded",
+      "set": {
+        "payload": {}
+      }
+    },
+    {
+      "name": "all optional fields retain supplied values",
+      "expected": "decoded",
+      "set": {
+        "subject_version": "any version text",
+        "causation_id": "cause.fixture"
+      },
+      "payload_set": {
+        "catalog_item_id": "catalog.item.fixture",
+        "evaluation_report_id": "report.fixture",
+        "cost_estimate_id": "cost.fixture",
+        "note": "synthetic-private-event"
+      }
+    },
+    {
+      "name": "optional empty strings and affected kinds remain present",
+      "expected": "decoded",
+      "set": {
+        "subject_version": "",
+        "causation_id": ""
+      },
+      "payload_set": {
+        "note": "",
+        "affected_kinds": []
+      }
+    },
+    {
+      "name": "event subject and payload have no added semantic coupling",
+      "expected": "decoded",
+      "set": {
+        "type": "pricebook.published",
+        "subject_type": "catalog_item"
+      }
+    },
+    {
+      "name": "opaque references use length only",
+      "expected": "decoded",
+      "set": {
+        "actor_ref": " ",
+        "correlation_id": "\t",
+        "idempotency_key": "\n"
+      }
+    },
+    {
+      "name": "timestamp retains offset spelling",
+      "expected": "decoded",
+      "set": {
+        "occurred_at": "2026-10-16T10:30:00+01:30"
+      }
+    },
+    {
+      "name": "terminal LF keeps frozen identifier behavior",
+      "expected": "decoded",
+      "set": {
+        "id": "evt.fixture.1\n",
+        "subject_id": "build.fixture.1\n"
+      },
+      "payload_set": {
+        "selection_id": "sel_model\n",
+        "catalog_item_id": "catalog.fixture\n"
+      }
+    },
+    {
+      "name": "event type build.created",
+      "expected": "decoded",
+      "set": {
+        "type": "build.created"
+      }
+    },
+    {
+      "name": "event type build.selection.upserted",
+      "expected": "decoded",
+      "set": {
+        "type": "build.selection.upserted"
+      }
+    },
+    {
+      "name": "event type build.selection.removed",
+      "expected": "decoded",
+      "set": {
+        "type": "build.selection.removed"
+      }
+    },
+    {
+      "name": "event type build.link.upserted",
+      "expected": "decoded",
+      "set": {
+        "type": "build.link.upserted"
+      }
+    },
+    {
+      "name": "event type build.objectives.updated",
+      "expected": "decoded",
+      "set": {
+        "type": "build.objectives.updated"
+      }
+    },
+    {
+      "name": "event type build.validation.completed",
+      "expected": "decoded",
+      "set": {
+        "type": "build.validation.completed"
+      }
+    },
+    {
+      "name": "event type build.cost.estimated",
+      "expected": "decoded",
+      "set": {
+        "type": "build.cost.estimated"
+      }
+    },
+    {
+      "name": "event type build.deployment.requested",
+      "expected": "decoded",
+      "set": {
+        "type": "build.deployment.requested"
+      }
+    },
+    {
+      "name": "event type build.deployed",
+      "expected": "decoded",
+      "set": {
+        "type": "build.deployed"
+      }
+    },
+    {
+      "name": "event type catalog.item.published",
+      "expected": "decoded",
+      "set": {
+        "type": "catalog.item.published"
+      }
+    },
+    {
+      "name": "event type catalog.snapshot.published",
+      "expected": "decoded",
+      "set": {
+        "type": "catalog.snapshot.published"
+      }
+    },
+    {
+      "name": "event type ruleset.published",
+      "expected": "decoded",
+      "set": {
+        "type": "ruleset.published"
+      }
+    },
+    {
+      "name": "event type pricebook.published",
+      "expected": "decoded",
+      "set": {
+        "type": "pricebook.published"
+      }
+    },
+    {
+      "name": "subject type build",
+      "expected": "decoded",
+      "set": {
+        "subject_type": "build"
+      }
+    },
+    {
+      "name": "subject type catalog_item",
+      "expected": "decoded",
+      "set": {
+        "subject_type": "catalog_item"
+      }
+    },
+    {
+      "name": "subject type catalog_snapshot",
+      "expected": "decoded",
+      "set": {
+        "subject_type": "catalog_snapshot"
+      }
+    },
+    {
+      "name": "subject type ruleset",
+      "expected": "decoded",
+      "set": {
+        "subject_type": "ruleset"
+      }
+    },
+    {
+      "name": "subject type pricebook",
+      "expected": "decoded",
+      "set": {
+        "subject_type": "pricebook"
+      }
+    },
+    {
+      "name": "all frozen affected kinds preserve order",
+      "expected": "decoded",
+      "payload_set": {
+        "affected_kinds": [
+          "cost_policy",
+          "monitoring_stack",
+          "deployment_target",
+          "evaluation_suite",
+          "guardrail",
+          "fine_tuned_model",
+          "training_dataset",
+          "training_compute",
+          "training_framework",
+          "integration",
+          "memory_store",
+          "mcp_server",
+          "tool",
+          "agent_framework",
+          "rag_pipeline",
+          "vector_database",
+          "embedding_model",
+          "knowledge_base",
+          "data_source",
+          "storage",
+          "inference_engine",
+          "compute_profile",
+          "accelerator",
+          "hosting_platform",
+          "context_policy",
+          "model",
+          "model_provider",
+          "deployment_mode",
+          "workload"
+        ]
+      }
+    },
+    {
+      "name": "wide integral revision remains exact",
+      "expected": "decoded",
+      "set": {
+        "subject_revision": 123456789012345678901234567890
+      }
+    },
+    {
+      "name": "missing required schema_version",
+      "expected": "unsupported_version",
+      "remove": [
+        "schema_version"
+      ]
+    },
+    {
+      "name": "missing required id",
+      "expected": "schema_mismatch",
+      "remove": [
+        "id"
+      ]
+    },
+    {
+      "name": "missing required type",
+      "expected": "schema_mismatch",
+      "remove": [
+        "type"
+      ]
+    },
+    {
+      "name": "missing required occurred_at",
+      "expected": "schema_mismatch",
+      "remove": [
+        "occurred_at"
+      ]
+    },
+    {
+      "name": "missing required subject_type",
+      "expected": "schema_mismatch",
+      "remove": [
+        "subject_type"
+      ]
+    },
+    {
+      "name": "missing required subject_id",
+      "expected": "schema_mismatch",
+      "remove": [
+        "subject_id"
+      ]
+    },
+    {
+      "name": "missing required subject_revision",
+      "expected": "schema_mismatch",
+      "remove": [
+        "subject_revision"
+      ]
+    },
+    {
+      "name": "missing required actor_ref",
+      "expected": "schema_mismatch",
+      "remove": [
+        "actor_ref"
+      ]
+    },
+    {
+      "name": "missing required correlation_id",
+      "expected": "schema_mismatch",
+      "remove": [
+        "correlation_id"
+      ]
+    },
+    {
+      "name": "missing required idempotency_key",
+      "expected": "schema_mismatch",
+      "remove": [
+        "idempotency_key"
+      ]
+    },
+    {
+      "name": "missing required payload",
+      "expected": "schema_mismatch",
+      "remove": [
+        "payload"
+      ]
+    },
+    {
+      "name": "future version",
+      "expected": "unsupported_version",
+      "set": {
+        "schema_version": "2.0.0"
+      }
+    },
+    {
+      "name": "numeric version",
+      "expected": "unsupported_version",
+      "set": {
+        "schema_version": 1
+      }
+    },
+    {
+      "name": "null version",
+      "expected": "unsupported_version",
+      "set": {
+        "schema_version": null
+      }
+    },
+    {
+      "name": "invalid type \"synthetic-private-event\"",
+      "expected": "schema_mismatch",
+      "set": {
+        "type": "synthetic-private-event"
+      }
+    },
+    {
+      "name": "invalid subject_type \"account\"",
+      "expected": "schema_mismatch",
+      "set": {
+        "subject_type": "account"
+      }
+    },
+    {
+      "name": "invalid occurred_at \"not a timestamp\"",
+      "expected": "schema_mismatch",
+      "set": {
+        "occurred_at": "not a timestamp"
+      }
+    },
+    {
+      "name": "invalid id \"x\"",
+      "expected": "schema_mismatch",
+      "set": {
+        "id": "x"
+      }
+    },
+    {
+      "name": "invalid subject_id \"x\"",
+      "expected": "schema_mismatch",
+      "set": {
+        "subject_id": "x"
+      }
+    },
+    {
+      "name": "invalid actor_ref \"\"",
+      "expected": "schema_mismatch",
+      "set": {
+        "actor_ref": ""
+      }
+    },
+    {
+      "name": "invalid correlation_id \"\"",
+      "expected": "schema_mismatch",
+      "set": {
+        "correlation_id": ""
+      }
+    },
+    {
+      "name": "invalid idempotency_key \"\"",
+      "expected": "schema_mismatch",
+      "set": {
+        "idempotency_key": ""
+      }
+    },
+    {
+      "name": "invalid payload null",
+      "expected": "schema_mismatch",
+      "set": {
+        "payload": null
+      }
+    },
+    {
+      "name": "invalid payload []",
+      "expected": "schema_mismatch",
+      "set": {
+        "payload": []
+      }
+    },
+    {
+      "name": "null optional subject_version",
+      "expected": "schema_mismatch",
+      "set": {
+        "subject_version": null
+      }
+    },
+    {
+      "name": "null optional causation_id",
+      "expected": "schema_mismatch",
+      "set": {
+        "causation_id": null
+      }
+    },
+    {
+      "name": "null payload selection_id",
+      "expected": "schema_mismatch",
+      "payload_set": {
+        "selection_id": null
+      }
+    },
+    {
+      "name": "null payload catalog_item_id",
+      "expected": "schema_mismatch",
+      "payload_set": {
+        "catalog_item_id": null
+      }
+    },
+    {
+      "name": "null payload affected_kinds",
+      "expected": "schema_mismatch",
+      "payload_set": {
+        "affected_kinds": null
+      }
+    },
+    {
+      "name": "null payload evaluation_report_id",
+      "expected": "schema_mismatch",
+      "payload_set": {
+        "evaluation_report_id": null
+      }
+    },
+    {
+      "name": "null payload cost_estimate_id",
+      "expected": "schema_mismatch",
+      "payload_set": {
+        "cost_estimate_id": null
+      }
+    },
+    {
+      "name": "null payload note",
+      "expected": "schema_mismatch",
+      "payload_set": {
+        "note": null
+      }
+    },
+    {
+      "name": "zero revision",
+      "expected": "schema_mismatch",
+      "set": {
+        "subject_revision": 0
+      }
+    },
+    {
+      "name": "negative revision",
+      "expected": "schema_mismatch",
+      "set": {
+        "subject_revision": -1
+      }
+    },
+    {
+      "name": "wide negative revision",
+      "expected": "schema_mismatch",
+      "set": {
+        "subject_revision": -123456789012345678901234567890
+      }
+    },
+    {
+      "name": "fraction revision",
+      "expected": "schema_mismatch",
+      "set": {
+        "subject_revision": 1.5
+      }
+    },
+    {
+      "name": "string revision",
+      "expected": "schema_mismatch",
+      "set": {
+        "subject_revision": "1"
+      }
+    },
+    {
+      "name": "boolean revision",
+      "expected": "schema_mismatch",
+      "set": {
+        "subject_revision": true
+      }
+    },
+    {
+      "name": "null revision",
+      "expected": "schema_mismatch",
+      "set": {
+        "subject_revision": null
+      }
+    },
+    {
+      "name": "unknown envelope field",
+      "expected": "schema_mismatch",
+      "set": {
+        "synthetic-private-event": "value"
+      }
+    },
+    {
+      "name": "input cannot choose schema",
+      "expected": "schema_mismatch",
+      "set": {
+        "$schema": "https://example.invalid/remote-schema"
+      }
+    },
+    {
+      "name": "unknown payload field",
+      "expected": "schema_mismatch",
+      "payload_set": {
+        "synthetic-private-event": "value"
+      }
+    },
+    {
+      "name": "unknown affected kind",
+      "expected": "schema_mismatch",
+      "payload_set": {
+        "affected_kinds": [
+          "model",
+          "synthetic-private-event"
+        ]
+      }
+    },
+    {
+      "name": "duplicate affected kind",
+      "expected": "schema_mismatch",
+      "payload_set": {
+        "affected_kinds": [
+          "model",
+          "model"
+        ]
+      }
+    },
+    {
+      "name": "wrong affected collection type",
+      "expected": "schema_mismatch",
+      "payload_set": {
+        "affected_kinds": "model"
+      }
+    },
+    {
+      "name": "selection id uses its own grammar",
+      "expected": "schema_mismatch",
+      "payload_set": {
+        "selection_id": "selection.with.dots"
+      }
+    },
+    {
+      "name": "note is text only",
+      "expected": "schema_mismatch",
+      "payload_set": {
+        "note": {
+          "synthetic-private-event": "value"
+        }
+      }
+    }
+  ]
+}

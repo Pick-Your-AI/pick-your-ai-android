@@ -2494,10 +2494,10 @@ class PreviewActivityTest {
         await { !settings.isShowing && loaded().revision == current.revision + 1 }
         current = loaded()
         assertTrue(PreviewSelectionForms.settingsText(current.components.selections.single()).contains("0.25"))
-        val toggle = componentAction(1)
+        val toggle = componentAction(2)
         toggle.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
         await { !toggle.isShowing && loaded().components.selections.single().enabled }
-        val remove = componentAction(2)
+        val remove = componentAction(3)
         remove.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
         await { !remove.isShowing && loaded().components.selections.isEmpty() }
         assertEquals(before.fields, loaded().fields)
@@ -2612,7 +2612,7 @@ class PreviewActivityTest {
         assertEquals(initial, loaded().baselineIdentity)
         addModel()
         val baseline = loaded().baselineIdentity
-        for (index in listOf(0, 1, 2)) {
+        for (index in listOf(0, 1, 2, 3)) {
             val canceled = componentAction(index)
             val positive = canceled.getButton(AlertDialog.BUTTON_POSITIVE)
             canceled.getButton(AlertDialog.BUTTON_NEGATIVE).performClick()

@@ -1,5 +1,11 @@
 # JVM core implementation and acceptance limits
 
+The [frozen Ruleset boundary](FROZEN_RULESET_BOUNDARY.md) adds an immutable typed
+representation of every recorded rule, expression and operand. Shared reference
+cases retain closed shapes, exact opaque literal JSON and ordered duplicate rules.
+This structural reader performs no evaluation, reference resolution, metric
+calculation or baseline activation; broader #21/#32 acceptance remains separate.
+
 This is an executable, platform-independent Kotlin foundation for the Android
 client. It does not select a publisher identity, commit a production hosting
 architecture, or claim an installed Android application. The maintainer's current
@@ -51,6 +57,9 @@ paths. Dependency download requires network on the first run; subsequent cached
   not a cross-document compatibility verdict. The finite frozen pattern set uses
   [LF-only anchor handling](FROZEN_PATTERN_PARITY.md) to preserve the pinned Python
   reference outcomes without trimming input or changing prefix-only matching.
+  Bundled schema integers load at arbitrary precision so wide integral
+  decimal/exponent inputs receive exact minimum checks; the input reader and
+  original bytes remain unchanged.
 - Contract money values retain decimal strings exactly and use `BigDecimal` only
   for exact numeric access. Missing or malformed values never become zero. This
   does not implement rate selection, aggregation, billing rounding or a full quote.
@@ -99,6 +108,55 @@ The full JDK21 build ran 33 JVM tests with zero failures/errors and produced the
 core JAR. The hash-first Python runner passed all 21 unmodified reference tests.
 Wrapper JAR and distribution matched official SHA-256 checksums. This does not
 prove Android install, lifecycle, emulator, device or release behavior.
+
+## Exact numeric schema bounds (2026-10-18)
+
+The #26 projection work reproduced a distinct #21 receiving defect on accepted
+main `a037d2b94ed55c0946cd04383b68a3f1dc25875a`: changing only the original Catalog
+fixture's revision to raw `1e19` failed `minimum: 1`, while `-1e19` incorrectly
+passed. The equivalent plain negative integer rejected correctly. The strict
+reader retained the exact `DecimalNode`; narrowing occurred later in the pinned
+networknt 1.5.6 integer-schema minimum shortcut, which calls `asLong()` for that
+input representation. A wrapped machine integer could reverse the decision.
+
+The supported schema-reader configuration now loads integer constants from the
+unchanged bundled schemas as `BigIntegerNode`. That selects the library's existing
+exact numeric comparison path. No schema, dependency, parser budget, input value,
+original byte spelling or validation keyword is replaced. In particular this
+does not rewrite user JSON, weaken integer typing, normalize decimal strings or
+choose a different shared contract. The separately owned #287 regex/money work
+retains its own source and review.
+
+`FrozenIntegerBoundsTest` enumerates all 74 integer-minimum locations in the frozen
+document and kind-specific schemas and requires exact set equality with the
+unchanged schema inventory. Each location executes 23 actual raw-number/type
+cases: ordinary and integral decimal/exponent spellings, positive values beyond
+machine width, negative counterparts, zero boundaries, fractional values, boolean
+and string controls. Two further methods exercise the nested Build and actual
+selection/catalog receivers, ordinary fractional bounds, strict syntax failures
+and input-byte preservation. The focused matrix therefore executes **1,704 actual
+cases**, rather than reporting only the dynamic-test factory invocation.
+
+The unchanged focused suite had **327 failures before** the configuration fix and
+**zero failures, errors or skips after** it on the original a037 base. Retained
+XML identifies both executions. The 17 accepted incoming paths through
+`f4d1487cb82921e8418d4474cc373c2b817e0a59` are then preserved before final core,
+reference and unsigned-preview gates; their final exact-tree results belong in
+the reviewed delivery receipt. This narrow correction supplies no complete #21
+or #26 acceptance, installed-device result, compatibility verdict or release.
+
+The first complete unsigned-preview run found a separate consumer dependency on
+that schema defect: the existing catalog/pricebook expanded-revision-budget test
+failed once `1e128` became correctly schema-valid. The catalog browser and recorded
+pricebook now explicitly enforce their existing local limit of 128 expanded
+decimal digits before materializing/displaying a revision. This limit remains a
+local receiving policy; the general frozen validator still accepts valid larger
+bounded raw integers. The original Activity regression is unchanged, and one
+additional core method checks accepted `1e19`, the exact 128-digit boundary,
+original pricebook hash and schema-valid but locally unsupported exponents. The
+final numeric suite therefore contains **1,705 actual cases**. All other typed
+core revision consumers retain their arbitrary-precision values and existing
+identity/reference checks.
 
 ## Offline artifact primitive (#87 / #104, partial)
 
@@ -155,3 +213,8 @@ measured-run wire fields as immutable Kotlin values, including exact numbers and
 optional absence. Shared Python/Kotlin mutation cases and malformed-input tests
 cover this structural boundary; decoding does not authenticate or execute an
 evaluation, bind it to the current build, or certify its reported result.
+
+The [frozen Event decoder](FROZEN_EVENT_BOUNDARY.md) retains every event and payload
+field as immutable typed values, with exact subject revisions and explicit optional
+presence. Shared Python/Kotlin cases exercise the unchanged schema. Decoding adds
+no event execution, actor authority, idempotency, synchronization or telemetry.

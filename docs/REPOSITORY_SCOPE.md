@@ -40,7 +40,30 @@ bind exact delivered artifacts and reviews before issue completion, preserving
 all original criteria, prior evidence and immutable ledger-version history.
 This document delivery changes no ledger, validator or test.
 
-The existing website remains static. Shared-service placement requires [Pick-Your-AI/pick-your-ai-android#35](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/35) and Apple integration requires [Pick-Your-AI/pick-your-ai-apple#23](https://github.com/Pick-Your-AI/pick-your-ai-apple/issues/23). Canonical website inputs remain [Pick-Your-AI/pickyour.ai#15](https://github.com/Pick-Your-AI/pickyour.ai/issues/15), [Pick-Your-AI/pickyour.ai#16](https://github.com/Pick-Your-AI/pickyour.ai/issues/16), [Pick-Your-AI/pickyour.ai#17](https://github.com/Pick-Your-AI/pickyour.ai/issues/17) and [Pick-Your-AI/pickyour.ai#18](https://github.com/Pick-Your-AI/pickyour.ai/issues/18). Reuse those outputs and Android/shared-service work; do not independently assign the same backend work twice. No runtime code belongs in the research repository.
+[ADR 0004](decisions/0004-android-47-acceptance-record.md) separately adds only
+#47's [01.06](delivery/android/work-packages/01.06.md) acceptance-baseline record
+after its independent review and normal merge. Its
+[selected device/quality requirements](ACCEPTANCE_BASELINE.md) are qualification
+targets, not observed device or release results. The original intended website
+path remains history.
+
+[ADR 0005](decisions/0005-android-35-acceptance-record.md) separately places only
+#35's [01.04 receiving record](delivery/android/work-packages/01.04.md) here after
+its independent review and normal merge. The [service decision](SERVICE_BASELINE.md)
+selects a future separately deployed TypeScript/Node API and paid PostgreSQL on
+Render, with one canonical server package under the existing website service
+lanes. Its named operating/recovery roles retain an explicit unfilled acceptance
+gate; no account, deployment, person or ongoing commitment is supplied by the
+decision. Android's guest-local first-slice scope and conditional remote features
+remain; Apple and website activation follows their own accepted scope, without
+waiting for Android feature or product completion.
+
+The existing website remains static. The selected future server package is
+separately built/deployed at `Pick-Your-AI/pickyour.ai/services/planner-api` only
+through canonical owner/coordinator and operations review before dependent code;
+this document creates no directory or website deployment. Apple integration
+requires [Pick-Your-AI/pick-your-ai-apple#23](https://github.com/Pick-Your-AI/pick-your-ai-apple/issues/23).
+Canonical website inputs remain [Pick-Your-AI/pickyour.ai#15](https://github.com/Pick-Your-AI/pickyour.ai/issues/15), [Pick-Your-AI/pickyour.ai#16](https://github.com/Pick-Your-AI/pickyour.ai/issues/16), [Pick-Your-AI/pickyour.ai#17](https://github.com/Pick-Your-AI/pickyour.ai/issues/17) and [Pick-Your-AI/pickyour.ai#18](https://github.com/Pick-Your-AI/pickyour.ai/issues/18). Reuse those outputs and Android/shared-service work; do not independently assign the same backend work twice. No runtime code belongs in the research repository.
 
 Preserve frozen v1. Research authorities are [Pick-Your-AI/pick-your-ai-research#40](https://github.com/Pick-Your-AI/pick-your-ai-research/issues/40) for versioned contracts/compatibility, [Pick-Your-AI/pick-your-ai-research#41](https://github.com/Pick-Your-AI/pick-your-ai-research/issues/41) for evidence/freshness, [Pick-Your-AI/pick-your-ai-research#39](https://github.com/Pick-Your-AI/pick-your-ai-research/issues/39) for pricing, [Pick-Your-AI/pick-your-ai-research#42](https://github.com/Pick-Your-AI/pick-your-ai-research/issues/42) for saved-build semantics and [Pick-Your-AI/pick-your-ai-research#60](https://github.com/Pick-Your-AI/pick-your-ai-research/issues/60) for source-use rights. Refresh these authorities before changing their outputs.
 
