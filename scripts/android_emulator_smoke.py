@@ -51,6 +51,8 @@ HOME_PACKAGE = "com.android.launcher3"
 HOME_WINDOW = HOME_PACKAGE + "/" + HOME_PACKAGE + ".uioverrides.QuickstepLauncher"
 FRAMEWORK_BARRIER = ("shell", "am", "wait-for-broadcast-barrier", "--flush-application-threads")
 HOME_FOCUS_QUERY = ("shell", "dumpsys", "-t", "3", "activity", "activities")
+HOME_ROOT_ATTEMPT_LIMIT = 3
+HOME_ROOT_UNAVAILABLE = "ERROR: null root node returned by UiTestAutomationBridge.\n"
 GUEST_READINESS_COMMANDS = (
     ("boot_completed", ("getprop", "sys.boot_completed"), ("1",)),
     ("boot_animation", ("getprop", "init.svc.bootanim"), ("", "stopped")),
@@ -892,11 +894,68 @@ def home_hierarchy_summary(root: ET.Element, read_observation: dict) -> dict:
             "read_text_sha256": read_observation["stdout"].get("text_sha256")}
 
 
+def home_root_unavailable_passes(attempt: dict) -> bool:
+    """Recognize only the observed pre-installation null-root response for retry."""
+    if not (isinstance(attempt, dict) and attempt.get("stage") == "dump"
+            and attempt.get("completed") is False and attempt.get("dump_completion_passed") is False
+            and attempt.get("ui_dump_path") == UI_DUMP_PATH
+            and attempt.get("error") == {"type": "SmokeFailure",
+                                        "message": "UI hierarchy dump failed (0): " + HOME_ROOT_UNAVAILABLE}
+            and isinstance(attempt.get("commands"), dict)
+            and set(attempt["commands"]) == {"remove", "dump"}):
+        return False
+    for name, arguments, stderr in (
+            ("remove", ("shell", "rm", "-f", UI_DUMP_PATH), ""),
+            ("dump", ("shell", "uiautomator", "dump", UI_DUMP_PATH), HOME_ROOT_UNAVAILABLE)):
+        observed = attempt["commands"][name]
+        if not (isinstance(observed, dict) and observed.get("arguments") == list(arguments)
+                and type(observed.get("exit_code")) is int and observed["exit_code"] == 0
+                and "command_timeout_seconds" not in observed and "error" not in observed
+                and ui_stream_matches_text(observed.get("stdout"), "")
+                and ui_stream_matches_text(observed.get("stderr"), stderr)):
+            return False
+    return True
+
+
+def home_attempt_sequence_passes(state: dict) -> bool:
+    if not isinstance(state, dict):
+        return False
+    observations = state.get("ui_hierarchy_observations", {})
+    dumps = state.get("ui_hierarchy_dumps", {})
+    if not (isinstance(observations, dict) and isinstance(dumps, dict)
+            and type(observations.get("attempted")) is int
+            and 1 <= observations["attempted"] <= HOME_ROOT_ATTEMPT_LIMIT
+            and isinstance(observations.get("recent_attempts"), list)
+            and len(observations["recent_attempts"]) == observations["attempted"]):
+        return False
+    attempts = observations["recent_attempts"]
+    if not all(isinstance(attempt, dict) and type(attempt.get("sequence")) is int
+               and attempt["sequence"] == index + 1 for index, attempt in enumerate(attempts)):
+        return False
+    if observations.get("last_attempt") != attempts[-1]:
+        return False
+    if len(attempts) == 1:
+        if "first_failed_attempt" in observations:
+            return False
+    elif (observations.get("first_failed_attempt") != attempts[0]
+          or not all(home_root_unavailable_passes(attempt) for attempt in attempts[:-1])):
+        return False
+    commands = attempts[-1].get("commands")
+    if not isinstance(commands, dict) or not isinstance(commands.get("dump"), dict):
+        return False
+    final_dump = commands["dump"]
+    return (type(dumps.get("attempted")) is int and dumps["attempted"] == len(attempts)
+            and type(dumps.get("completed")) is int and dumps["completed"] == 1
+            and type(dumps.get("exit_137")) is int
+            and dumps["exit_137"] == (1 if final_dump.get("exit_code") == 137 else 0))
+
+
 def interactive_readiness_passes(state: dict) -> bool:
     if not (isinstance(state, dict) and state.get("ready") is True
             and state.get("phase") == "before_installation" and state.get("serial") == SERIAL
             and state.get("home_package") == HOME_PACKAGE and "error" not in state
-            and framework_barrier_passes(state.get("barrier")) and home_focus_passes(state.get("focus"))):
+            and framework_barrier_passes(state.get("barrier")) and home_focus_passes(state.get("focus"))
+            and home_attempt_sequence_passes(state)):
         return False
     hierarchy = state.get("home_hierarchy", {})
     observations = state.get("ui_hierarchy_observations", {})
@@ -926,9 +985,8 @@ def interactive_readiness_passes(state: dict) -> bool:
             and type(hierarchy.get("visible_home_nodes")) is int and hierarchy["visible_home_nodes"] > 0
             and isinstance(hierarchy.get("read_text_sha256"), str)
             and re.fullmatch(r"[0-9a-f]{64}", hierarchy["read_text_sha256"]) is not None
-            and type(observations.get("attempted")) is int and observations["attempted"] == 1
-            and "first_failed_attempt" not in observations
-            and type(attempt.get("sequence")) is int and attempt["sequence"] == 1 and "error" not in attempt
+            and type(attempt.get("sequence")) is int and attempt["sequence"] == observations["attempted"]
+            and "error" not in attempt
             and attempt.get("completed") is True and attempt.get("dump_completion_passed") is True
             and attempt.get("ui_dump_path") == UI_DUMP_PATH and attempt.get("stage") == "parse"
             and ui_read_observation_passes(read.get("stdout"))
@@ -946,7 +1004,17 @@ def establish_interactive_readiness(device: Device, readiness: dict, deadline: f
                                     timeout=command_budget(deadline, 120), retained_limit=16384)
         require(framework_barrier_passes(state["barrier"]),
                 "Owned framework broadcast/application barriers did not complete")
-        root = Ui(device, Path("."), state).snapshot(deadline=deadline)
+        ui = Ui(device, Path("."), state)
+        for index in range(HOME_ROOT_ATTEMPT_LIMIT):
+            try:
+                root = ui.snapshot(deadline=deadline)
+                break
+            except SmokeFailure:
+                # This is a HOME precondition only. Each failed response remains
+                # in the receipt; installed snapshots and app cases never retry it.
+                if (index + 1 == HOME_ROOT_ATTEMPT_LIMIT or time.monotonic() >= deadline
+                        or not home_root_unavailable_passes(ui.observations.get("last_attempt"))):
+                    raise
         state["home_hierarchy"] = home_hierarchy_summary(
             root, state["ui_hierarchy_observations"]["last_attempt"]["commands"]["read"])
         observe_interactive_command(device, HOME_FOCUS_QUERY, state["focus"],

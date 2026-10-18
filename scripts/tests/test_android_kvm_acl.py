@@ -27,6 +27,7 @@ boundary = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(boundary)
 REAL_TOOL_IDENTITY = boundary.tool_identity
 REAL_CURRENT_CONTEXT = boundary.current_context
+REDUNDANT_MASK_ACL = ("user::rw-", "group::rw-", "mask::rw-", "other::---")
 
 
 def original_identity():
@@ -369,6 +370,183 @@ class KvmAclBoundaryTest(unittest.TestCase):
         self.assertEqual("restored", receipt["cleanup"]["status"])
         self.assertEqual(receipt["before"], receipt["cleanup"]["after"])
         self.assertEqual(boundary.BASE_ACL, self.acl)
+
+    def test_redundant_mask_cleanup_preserves_the_failed_child_result(self):
+        self.prepare_receipt()
+        def failed_child(receipt):
+            self.successful_child(receipt)
+            self.acl = REDUNDANT_MASK_ACL
+            return 1
+        with patch.object(boundary, "wait_for_child", side_effect=failed_child), \
+                self.assertRaisesRegex(boundary.BoundaryFailure, "original-user child"):
+            boundary.run_harness()
+        receipt = boundary.read_receipt()
+        self.assertEqual("failed", receipt["status"])
+        self.assertEqual(1, receipt["child_exit_code"])
+        self.assertEqual("The original-user child or installed harness failed", receipt["error"])
+        self.assertNotIn("cleanup_error", receipt)
+        self.assertEqual("restored", receipt["cleanup"]["status"])
+        self.assertEqual(REDUNDANT_MASK_ACL, boundary.acl_entries(receipt["cleanup"]["before"]["acl"]))
+        self.assertIs(False, receipt["cleanup"]["before"]["read_write_access"])
+        self.assertEqual(receipt["before"], receipt["cleanup"]["after"])
+        self.assertEqual([boundary.acl_command(1001, restore=False), boundary.acl_command(1001, restore=True)],
+                         self.mutation_calls())
+        self.events.clear()
+        boundary.cleanup_after_step()
+        self.assertEqual([], self.mutation_calls())
+        with self.assertRaises(boundary.BoundaryFailure):
+            boundary.complete_boundary(boundary.read_receipt(), context())
+
+    def test_redundant_mask_cleanup_and_complete_receipt_use_the_same_admission(self):
+        self.prepare_receipt()
+        def completed_child(receipt):
+            self.successful_child(receipt)
+            self.acl = REDUNDANT_MASK_ACL
+            return 0
+        with patch.object(boundary, "wait_for_child", side_effect=completed_child):
+            boundary.run_harness()
+        receipt = boundary.read_receipt()
+        boundary.complete_boundary(receipt, context())
+        self.assertEqual("passed", receipt["status"])
+        self.assertEqual("restored", receipt["cleanup"]["status"])
+        self.assertEqual(receipt["before"], receipt["cleanup"]["after"])
+        for access in (True, 0, None, "false"):
+            changed = copy.deepcopy(receipt)
+            changed["cleanup"]["before"]["read_write_access"] = access
+            with self.subTest(access=access), self.assertRaises(boundary.BoundaryFailure):
+                boundary.complete_boundary(changed, context())
+        changed = copy.deepcopy(receipt)
+        changed["cleanup"]["after"] = copy.deepcopy(changed["cleanup"]["before"])
+        with self.assertRaises(boundary.BoundaryFailure):
+            boundary.complete_boundary(changed, context())
+
+    def test_always_cleanup_normalizes_mask_without_erasing_the_prior_failed_attempt(self):
+        receipt = self.prepare_receipt()
+        receipt.update(status="failed", error="original null-root setup failure", grant_attempted=True, grant={})
+        boundary.observe_acl_command(receipt, receipt["grant"], restore=False)
+        self.acl = REDUNDANT_MASK_ACL
+        original_cleanup = {"status": "failed", "before": {}, "after": {},
+                            "error": "The device has an unrelated ACL; refusing to replace another change"}
+        boundary.observe_state(original_cleanup["before"])
+        receipt["cleanup"] = copy.deepcopy(original_cleanup)
+        receipt["cleanup_error"] = original_cleanup["error"]
+        boundary.write_receipt(receipt)
+        boundary.cleanup_after_step()
+        result = boundary.read_receipt()
+        self.assertEqual("failed", result["status"])
+        self.assertEqual("original null-root setup failure", result["error"])
+        self.assertEqual(original_cleanup["error"], result["cleanup_error"])
+        self.assertEqual([original_cleanup], result["cleanup_attempts"])
+        self.assertEqual("restored", result["cleanup"]["status"])
+        self.assertEqual(result["before"], result["cleanup"]["after"])
+        self.assertEqual(boundary.BASE_ACL, self.acl)
+        with self.assertRaises(boundary.BoundaryFailure):
+            boundary.complete_boundary(result, context())
+
+    def test_redundant_mask_cleanup_keeps_the_original_exception_identity(self):
+        self.prepare_receipt()
+        failure = RuntimeError("original interrupted harness failure")
+        def failed_child(receipt):
+            self.successful_child(receipt)
+            self.acl = REDUNDANT_MASK_ACL
+            raise failure
+        with patch.object(boundary, "wait_for_child", side_effect=failed_child), \
+                self.assertRaises(RuntimeError) as raised:
+            boundary.run_harness()
+        self.assertIs(failure, raised.exception)
+        receipt = boundary.read_receipt()
+        self.assertEqual("failed", receipt["status"])
+        self.assertEqual(str(failure), receipt["error"])
+        self.assertEqual("restored", receipt["cleanup"]["status"])
+        self.assertNotIn("cleanup_error", receipt)
+
+    def test_cleanup_rejects_nearby_acl_and_access_changes_without_a_restore_command(self):
+        variants = {
+            "named-user": ("user::rw-", "user:2222:rw-", "group::rw-", "mask::rw-", "other::---"),
+            "named-group": ("user::rw-", "group::rw-", "group:2222:rw-", "mask::rw-", "other::---"),
+            "narrow-mask": ("user::rw-", "group::rw-", "mask::r--", "other::---"),
+            "execute-mask": ("user::rw-", "group::rw-", "mask::rwx", "other::---"),
+            "owner": ("user::r--", "group::rw-", "mask::rw-", "other::---"),
+            "group": ("user::rw-", "group::r--", "mask::rw-", "other::---"),
+            "other": ("user::rw-", "group::rw-", "mask::rw-", "other::r--"),
+            "duplicate-mask": (*REDUNDANT_MASK_ACL, "mask::rw-"),
+            "duplicate-owner": ("user::rw-", *REDUNDANT_MASK_ACL),
+            "unknown-entry": (*REDUNDANT_MASK_ACL, "default:mask::rw-"),
+        }
+        for label, acl in variants.items():
+            with self.subTest(label=label), tempfile.TemporaryDirectory() as temporary, \
+                    patch.object(boundary, "REPORT", Path(temporary) / "acl/receipt.json"):
+                self.acl = boundary.BASE_ACL
+                self.prepare_receipt()
+                def altered_after_child(receipt):
+                    self.successful_child(receipt)
+                    self.acl = acl
+                    return 0
+                with patch.object(boundary, "wait_for_child", side_effect=altered_after_child), \
+                        self.assertRaisesRegex(boundary.BoundaryFailure, "unrelated ACL"):
+                    boundary.run_harness()
+                result = boundary.read_receipt()
+                self.assertNotIn("command", result["cleanup"])
+                self.assertEqual([boundary.acl_command(1001, restore=False)], self.mutation_calls())
+        for access in (True, 0, None, "false"):
+            with self.subTest(access=access), tempfile.TemporaryDirectory() as temporary, \
+                    patch.object(boundary, "REPORT", Path(temporary) / "acl/receipt.json"):
+                self.acl = boundary.BASE_ACL
+                self.prepare_receipt()
+                def altered_after_child(receipt):
+                    self.successful_child(receipt)
+                    self.acl = REDUNDANT_MASK_ACL
+                    return 0
+                def inconsistent_access(observed):
+                    self.observe_identity(observed)
+                    if self.acl == REDUNDANT_MASK_ACL:
+                        observed["read_write_access"] = access
+                with patch.object(boundary.shared, "observe_identity", side_effect=inconsistent_access), \
+                        patch.object(boundary, "wait_for_child", side_effect=altered_after_child), \
+                        self.assertRaisesRegex(boundary.BoundaryFailure, "unrelated ACL"):
+                    boundary.run_harness()
+                result = boundary.read_receipt()
+                self.assertNotIn("command", result["cleanup"])
+                self.assertEqual([boundary.acl_command(1001, restore=False)], self.mutation_calls())
+
+    def test_redundant_mask_is_not_an_initial_or_inside_grant(self):
+        receipt = self.prepare_receipt()
+        original = copy.deepcopy(receipt["before"])
+        original["acl"]["stdout"] = "\n".join(REDUNDANT_MASK_ACL) + "\n\n"
+        with self.assertRaises(boundary.BoundaryFailure):
+            boundary.require_original(original)
+        self.acl = REDUNDANT_MASK_ACL
+        receipt["status"] = "invoking"
+        boundary.write_receipt(receipt)
+        with patch.dict(os.environ, context()["environment"], clear=True), \
+                patch.object(os, "execve") as execute, self.assertRaises(boundary.BoundaryFailure):
+            boundary.enter_child()
+        execute.assert_not_called()
+        self.assertEqual([], self.mutation_calls())
+
+    def test_redundant_mask_does_not_relax_identity_or_quiescence(self):
+        for change in ("device", "credentials", "grant", "restore"):
+            with self.subTest(change=change), tempfile.TemporaryDirectory() as temporary, \
+                    patch.object(boundary, "REPORT", Path(temporary) / "acl/receipt.json"):
+                self.identity = original_identity()
+                self.acl = boundary.BASE_ACL
+                receipt = self.prepare_receipt()
+                receipt.update(status="failed", grant_attempted=True, grant={})
+                boundary.observe_acl_command(receipt, receipt["grant"], restore=False)
+                self.acl = REDUNDANT_MASK_ACL
+                if change == "device":
+                    self.identity["device"]["inode"] += 1
+                elif change == "credentials":
+                    self.identity["supplementary_groups"].append(2222)
+                elif change == "grant":
+                    receipt["grant"]["quiescent"] = False
+                else:
+                    receipt["cleanup"] = {"status": "failed", "command": copy.deepcopy(receipt["grant"])}
+                    receipt["cleanup"]["command"]["quiescent"] = False
+                with self.assertRaises(boundary.BoundaryFailure):
+                    boundary.restore_acl(receipt)
+                self.assertNotIn("command", receipt["cleanup"])
+                self.assertEqual([boundary.acl_command(1001, restore=False)], self.mutation_calls())
 
     def test_timed_out_partial_grant_restores_only_after_subtree_is_proved_reaped(self):
         self.prepare_receipt()

@@ -609,8 +609,13 @@ One scrollable column keeps complete labels and controls reachable at narrow wid
 and large text sizes. Dismissed, replaced and retired controls cannot navigate again.
 A same-revision comparison explicitly shows no supported-field changes while retaining
 the separate metadata and historical-availability disclosures.
-Comparison is within one retained history only: report, cost, rules and evidence
-comparison and cross-build semantics remain the separate accepted receiving work.
+These two entry points compare one retained history. The separate
+**Compare saved local drafts** action now supports explicitly choosing a local
+draft and retained revision for each side, while keeping both identities and
+historical titles on every field/value page. It leaves the active editor and
+pending inputs untouched. See [saved-library comparison](LOCAL_LIBRARY_COMPARISON.md)
+for capture, unavailable-source and lifetime boundaries. Report, cost, rules and
+evidence comparison and shared cross-build semantics remain separate receiving work.
 It supplies no new evaluation, price or recommendation and is not full #117 closure.
 
 JVM cases cover exact missing/empty/opaque values, same-setting changes,

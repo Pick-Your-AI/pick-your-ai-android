@@ -59,6 +59,200 @@ class ReadinessClock:
         self.now += seconds
 
 
+class HomeRootRetryGuardTest(unittest.TestCase):
+    NULL_ROOT = "ERROR: null root node returned by UiTestAutomationBridge.\n"
+
+    @classmethod
+    def answers(cls, failures=1):
+        clean = interactive_answers()
+        return (clean[:1] + [item for _ in range(failures) for item in (
+            subprocess.CompletedProcess([], 0, "", ""),
+            subprocess.CompletedProcess([], 0, "", cls.NULL_ROOT))] + clean[1:])
+
+    def completed_state(self):
+        device, readiness = Mock(spec=smoke.Device), {}
+        device.adb.side_effect = self.answers()
+        with patch.object(smoke.time, "monotonic", return_value=0):
+            smoke.establish_interactive_readiness(device, readiness, 180)
+        return readiness["interactive"]
+
+    def test_home_null_root_can_precede_fresh_complete_xml_with_every_failure_retained(self):
+        for failures in (1, 2):
+            device, readiness = Mock(spec=smoke.Device), {}
+            device.adb.side_effect = self.answers(failures)
+            with self.subTest(failures=failures), patch.object(smoke.time, "monotonic", return_value=0):
+                smoke.establish_interactive_readiness(device, readiness, 180)
+            state = readiness["interactive"]
+            self.assertTrue(smoke.interactive_readiness_passes(state))
+            attempts = state["ui_hierarchy_observations"]["recent_attempts"]
+            self.assertEqual(list(range(1, failures + 2)), [a["sequence"] for a in attempts])
+            self.assertEqual(attempts[0], state["ui_hierarchy_observations"]["first_failed_attempt"])
+            for attempt in attempts[:-1]:
+                self.assertFalse(attempt["completed"])
+                self.assertEqual("dump", attempt["stage"])
+                self.assertEqual(self.NULL_ROOT, attempt["commands"]["dump"]["stderr"]["prefix"])
+                self.assertEqual(hashlib.sha256(self.NULL_ROOT.encode()).hexdigest(),
+                                 attempt["commands"]["dump"]["stderr"]["text_sha256"])
+                self.assertNotIn("read", attempt["commands"])
+            self.assertEqual({"attempted": failures + 1, "completed": 1, "exit_137": 0},
+                             state["ui_hierarchy_dumps"])
+            self.assertEqual(5 + 2 * failures, device.adb.call_count)
+            self.assertEqual(1, sum(c.args == smoke.FRAMEWORK_BARRIER for c in device.adb.call_args_list))
+            self.assertEqual(failures + 1, sum(c.args == ("shell", "rm", "-f", smoke.UI_DUMP_PATH)
+                                              for c in device.adb.call_args_list))
+            device.launch.assert_not_called()
+            device.shell.assert_not_called()
+
+    def test_home_persistent_null_root_stops_after_three_and_preserves_unrun_app_cases(self):
+        device, receipt = Mock(spec=smoke.Device), {"cases": [{"id": name, "status": "not_run"}
+                                                             for name in smoke.CASE_IDS]}
+        checks = [subprocess.CompletedProcess([], 0, expected[-1], "")
+                  for _, _, expected in smoke.GUEST_READINESS_COMMANDS]
+        device.adb.side_effect = checks + self.answers(3)[:-4]
+        with patch.object(smoke.time, "monotonic", return_value=0), self.assertRaises(smoke.SmokeFailure):
+            smoke.wait_for_guest_ready(device, receipt)
+        self.assertFalse(receipt["guest_readiness"]["ready"])
+        state = receipt["guest_readiness"]["interactive"]
+        self.assertFalse(smoke.interactive_readiness_passes(state))
+        self.assertEqual(3, state["ui_hierarchy_observations"]["attempted"])
+        self.assertEqual(3, len(state["ui_hierarchy_observations"]["recent_attempts"]))
+        self.assertEqual({"attempted": 3, "completed": 0, "exit_137": 0}, state["ui_hierarchy_dumps"])
+        self.assertEqual(16, device.adb.call_count)
+        self.assertEqual({}, state["focus"])
+        self.assertTrue(all(c["status"] == "not_run" for c in receipt["cases"]))
+        device.launch.assert_not_called()
+
+    def test_home_retry_keeps_original_absolute_deadline_and_each_existing_command_cap(self):
+        device, readiness, clock = Mock(spec=smoke.Device), {}, ReadinessClock()
+        answers = iter(zip(self.answers(), (120, 150, 170, 171, 172, 178, 179)))
+
+        def answer(*args, **kwargs):
+            result, clock.now = next(answers)
+            return result
+
+        device.adb.side_effect = answer
+        with patch.object(smoke.time, "monotonic", clock.monotonic):
+            smoke.establish_interactive_readiness(device, readiness, 180)
+        self.assertEqual([120, 30, 20, 10, 9, 8, 2], [c.kwargs["timeout"] for c in device.adb.call_args_list])
+        self.assertEqual(179, readiness["interactive"]["seconds"])
+        self.assertTrue(smoke.interactive_readiness_passes(readiness["interactive"]))
+
+    def test_home_null_root_arriving_at_deadline_never_starts_another_attempt(self):
+        device, readiness, clock = Mock(spec=smoke.Device), {}, ReadinessClock()
+        answers = iter(enumerate(self.answers()))
+
+        def answer(*args, **kwargs):
+            index, result = next(answers)
+            if index == 2:
+                clock.now = 1
+            return result
+
+        device.adb.side_effect = answer
+        with patch.object(smoke.time, "monotonic", clock.monotonic), self.assertRaises(smoke.SmokeFailure):
+            smoke.establish_interactive_readiness(device, readiness, 1)
+        self.assertEqual(3, device.adb.call_count)
+        state = readiness["interactive"]
+        self.assertFalse(state["ready"])
+        self.assertEqual(1, state["ui_hierarchy_observations"]["attempted"])
+        self.assertEqual(self.NULL_ROOT, state["ui_hierarchy_observations"]["first_failed_attempt"]
+                         ["commands"]["dump"]["stderr"]["prefix"])
+
+    def test_home_only_exact_complete_null_root_response_is_retryable(self):
+        variants = [(1, "", self.NULL_ROOT), (137, "", self.NULL_ROOT), (False, "", self.NULL_ROOT),
+                    (0, "unexpected", self.NULL_ROOT), (0, "", self.NULL_ROOT.rstrip()),
+                    (0, "", self.NULL_ROOT + "another diagnostic\n"), (0, "", ""),
+                    (0, "", "ERROR: could not get idle state.\n")]
+        for code, stdout, stderr in variants:
+            device, readiness = Mock(spec=smoke.Device), {}
+            answers = self.answers()
+            answers[2] = subprocess.CompletedProcess([], code, stdout, stderr)
+            device.adb.side_effect = answers
+            with self.subTest(code=code, stdout=stdout, stderr=stderr), \
+                    patch.object(smoke.time, "monotonic", return_value=0), self.assertRaises(smoke.SmokeFailure):
+                smoke.establish_interactive_readiness(device, readiness, 180)
+            self.assertEqual(3, device.adb.call_count)
+            self.assertFalse(readiness["interactive"]["ready"])
+            self.assertEqual(1, readiness["interactive"]["ui_hierarchy_observations"]["attempted"])
+
+    def test_home_retry_does_not_retry_or_replace_timeout_or_owned_process_failure(self):
+        for original in (subprocess.TimeoutExpired(["adb"], 7, output=b"partial", stderr=b"error"),
+                         smoke.SmokeFailure("Owned emulator process exited"), OSError("transport closed")):
+            device, readiness = Mock(spec=smoke.Device), {}
+            device.adb.side_effect = self.answers()[:4] + [original]
+            with self.subTest(error=type(original).__name__), patch.object(smoke.time, "monotonic", return_value=0), \
+                    self.assertRaises(type(original)) as raised:
+                smoke.establish_interactive_readiness(device, readiness, 180)
+            self.assertIs(original, raised.exception)
+            self.assertEqual(5, device.adb.call_count)
+            state = readiness["interactive"]
+            self.assertFalse(state["ready"])
+            self.assertEqual(2, state["ui_hierarchy_observations"]["attempted"])
+            self.assertEqual(self.NULL_ROOT, state["ui_hierarchy_observations"]["first_failed_attempt"]
+                             ["commands"]["dump"]["stderr"]["prefix"])
+
+    def test_home_retry_cannot_rescue_invalid_xml_read_diagnostic_or_anr_focus(self):
+        for kind in ("xml", "read_stderr", "missing_home", "anr"):
+            device, readiness = Mock(spec=smoke.Device), {}
+            answers = self.answers()
+            if kind == "xml":
+                answers[5].stdout = "not XML"
+            elif kind == "read_stderr":
+                answers[5].stderr = "read diagnostic"
+            elif kind == "missing_home":
+                answers[5].stdout = answers[5].stdout.replace("com.android.launcher3", "android")
+            else:
+                answers[6].stdout = answers[6].stdout.replace(smoke.HOME_WINDOW,
+                                                            "Application Not Responding: com.android.systemui")
+            device.adb.side_effect = answers
+            expected = ET.ParseError if kind == "xml" else smoke.SmokeFailure
+            with self.subTest(kind=kind), patch.object(smoke.time, "monotonic", return_value=0), \
+                    self.assertRaises(expected):
+                smoke.establish_interactive_readiness(device, readiness, 180)
+            self.assertEqual(6 if kind in ("xml", "read_stderr") else 7, device.adb.call_count)
+            self.assertFalse(readiness["interactive"]["ready"])
+            self.assertEqual(2, readiness["interactive"]["ui_hierarchy_observations"]["attempted"])
+            device.launch.assert_not_called()
+
+    def test_home_retry_receipt_requires_every_exact_failed_attempt_and_consistent_counts(self):
+        valid = self.completed_state()
+        self.assertTrue(smoke.interactive_readiness_passes(valid))
+        mutations = [
+            (("ui_hierarchy_observations", "attempted"), True),
+            (("ui_hierarchy_observations", "attempted"), 4),
+            (("ui_hierarchy_observations", "first_failed_attempt"), None),
+            (("ui_hierarchy_observations", "recent_attempts"), []),
+            (("ui_hierarchy_observations", "last_attempt"), {}),
+            (("ui_hierarchy_dumps", "attempted"), 1),
+            (("ui_hierarchy_dumps", "completed"), True),
+            (("ui_hierarchy_dumps", "exit_137"), 1),
+            (("ui_hierarchy_observations", "first_failed_attempt", "sequence"), 2),
+            (("ui_hierarchy_observations", "first_failed_attempt", "stage"), "parse"),
+            (("ui_hierarchy_observations", "first_failed_attempt", "commands", "dump", "exit_code"), 137),
+            (("ui_hierarchy_observations", "first_failed_attempt", "commands", "dump", "command_timeout_seconds"), 20),
+            (("ui_hierarchy_observations", "first_failed_attempt", "commands", "dump", "stderr", "text_sha256"), "0" * 64),
+            (("ui_hierarchy_observations", "first_failed_attempt", "commands", "remove", "stderr"),
+             smoke.ui_stream_observation("remove diagnostic")),
+        ]
+        for path, value in mutations:
+            changed = copy.deepcopy(valid)
+            target = changed
+            for key in path[:-1]:
+                target = target[key]
+            target[path[-1]] = value
+            with self.subTest(path=path, value=value):
+                self.assertFalse(smoke.interactive_readiness_passes(changed))
+
+    def test_installed_snapshot_still_fails_exact_null_root_without_retry(self):
+        device, receipt = Mock(spec=smoke.Device), {}
+        device.adb.side_effect = self.answers()[1:3]
+        with patch.object(smoke.time, "monotonic", return_value=0), self.assertRaises(smoke.SmokeFailure):
+            smoke.Ui(device, Path("unused"), receipt).snapshot()
+        self.assertEqual(2, device.adb.call_count)
+        self.assertEqual(1, receipt["ui_hierarchy_observations"]["attempted"])
+        self.assertEqual(self.NULL_ROOT, receipt["ui_hierarchy_observations"]["first_failed_attempt"]
+                         ["commands"]["dump"]["stderr"]["prefix"])
+
+
 class EmulatorSmokeGuardTest(unittest.TestCase):
     def test_boot_poll_retains_transport_failure_then_completed_property(self):
         receipt, clock = {}, ReadinessClock()

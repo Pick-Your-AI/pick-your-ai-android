@@ -9,6 +9,8 @@ and uses the existing privileged-tooling policy for one temporary named-user KVM
 ACL and its exact restoration. It uses one fresh AOSP API 35 x86_64 AVD. The
 explicit 720×1280/280-dpi startup profile from the preceding HVF experiment is
 retained and bound across the workflow, unprivileged child and final receipts.
+The first ACL/KVM attempt booted and verified that display, then failed its HOME
+root acquisition and exact cleanup check; both failures are recorded below.
 The earlier RunAs-group denial and Intel macOS failures remain recorded below. The workflow
 definition and host-side harness tests are preparation; only an observed passing
 run and its exact receipt establish installed-emulator evidence.
@@ -599,8 +601,10 @@ observation necessary. The queue wait has no internal deadline, and ending a
 timed-out shell does not guarantee cancellation of server work; a failed setup
 still terminates only this job's owned emulator through its existing cleanup.
 
-After the barrier, exactly one fresh home hierarchy must pass the existing prior
-file removal, exact dump completion, clean read and XML requirements. The same
+After the barrier, a fresh home hierarchy must pass the existing prior
+file removal, exact dump completion, clean read and XML requirements. Only the
+exact observed null-root response described below permits another HOME attempt;
+at most three attempts share the original readiness deadline. The same
 30/20/30-second command maxima are clamped to the remaining readiness deadline.
 No application is launched to warm it up. The hierarchy must be in the configured
 portrait rotation, contain a launcher node with positive visible bounds, and
@@ -627,7 +631,7 @@ under `guest_readiness_failure_observations`, explicitly before any app case;
 diagnostic failure preserves the original setup exception and all four `not_run`
 rows. These are retained-text limits, not subprocess capture-memory limits.
 
-All 69 host guards pass locally, including deadline-boundary results, exact
+At the original synchronization checkpoint, all 69 host guards passed locally, including deadline-boundary results, exact
 completion versus terminal failure, partial timeout output, the observed empty
 137 dump, ANR focus despite valid home XML, wrong or invisible home nodes,
 incomplete receipt evidence and original-error preservation. The ordinary
@@ -637,6 +641,71 @@ image/emulator/graphics, APK handoff and owned-process cleanup are unchanged.
 This is one measurable startup-synchronization experiment, with no passing
 installed result yet. A new exact-source hosted run must still pass all four
 installed cases before the lane can be accepted.
+
+### Observed KVM HOME-root absence and bounded acquisition
+
+[Run `39146579521`](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39146579521)
+executed signed checkout `5b6274b826c60c45b730d80e98776c5a86bb03cc`, tree
+`8af9ad75108d206a1179c4f483f3629e3a6e900f`, from preparation
+`2b04d2ef258dc0f5d958f9dd2c52e54e35767e9b`. Its original installed artifact
+`12143473819` contains 66,125 ZIP bytes with verified SHA-256
+`a14c88b89dea5a4988c1f77e2444d5c8890efa4e82cc47a19481c6a5709dbc2c`.
+The named-user ACL was observed present before and inside the unchanged non-root
+workload. The selected emulator reported usable KVM, and the guest kernel
+recorded two CPUs. Boot completed in 25.301 seconds after 26 probes; the physical
+720×1280 display and 280-dpi density were positively verified. These observations
+do not by themselves establish an installed-case result or a causal speedup.
+
+All nine initial user/storage predicates passed. The one framework barrier
+completed in 1.338 seconds with both required positive markers. The first HOME
+dump then returned integer exit 0, empty stdout and exactly
+`ERROR: null root node returned by UiTestAutomationBridge.` followed by a newline,
+after 2.117 seconds. No dump-completion marker, XML read or functional focus gate
+passed. Readiness failed in 3.652 seconds, before installation, and all four app
+cases remained `not_run`. The separate cleanup failure is described in the ACL
+section; neither failure is reclassified by a later source change.
+
+The later diagnostic Activity dump records Launcher3 resumed, drawn and holding
+current focus. The retained framework log records its first draw in 2.588 seconds;
+the global ANR reports say no ANR since boot, and LMK counters are zero. These are
+later observations. The receipt does not give the failed dump an absolute wall
+timestamp, so it does not establish the exact ordering of root acquisition and
+first draw, or prove why the accessibility root was absent.
+
+The [Android 15 dump implementation](https://github.com/aosp-mirror/platform_frameworks_base/blob/android-15.0.0_r1/cmds/uiautomator/cmds/uiautomator/src/com/android/commands/uiautomator/DumpCommand.java)
+connects its automation service, calls `waitForIdle(1000, 10000)`, and then queries
+the active root once. Its null branch prints that exact diagnostic and returns
+before the success marker. [UiAutomation](https://github.com/aosp-mirror/platform_frameworks_base/blob/android-15.0.0_r1/core/java/android/app/UiAutomation.java)
+defines idle as a quiet accessibility event stream; its root query is nullable.
+This source explains the observed failed command path without proving the exact
+system-image binary/source binding or that another acquisition will succeed.
+
+The follow-up permits at most three HOME acquisition attempts within the same
+original 180-second user/storage/framework/HOME deadline. The existing per-command
+30/20/30-second remove/dump/read caps remain clamped to that deadline. There is no
+new timer, added sleep, repeated barrier or app warmup. Only a complete exit-zero
+dump with empty stdout and the exact null-root stderr, following a clean successful
+prior-file removal, permits another attempt. Any other failed response, including
+timeout, transport/process failure, exit 137 without its original completion
+proof, another diagnostic, malformed XML or a read error, stops immediately.
+Each new attempt removes the previous dump before writing and reading fresh XML.
+All attempted sequences and each failed decoded stderr remain in the receipt,
+including `first_failed_attempt`; the three-attempt limit fits within its existing
+eight-entry retention bound. The receiving validator requires every earlier
+attempt to match that exact failed path and the final attempt to satisfy all
+original XML, visible HOME, focus and barrier requirements. A failed-only or
+inconsistently counted sequence cannot pass.
+
+The generic `Ui.snapshot` implementation and all four installed cases are
+unchanged; installed snapshots still fail this response without retry. Nine
+focused host methods cover one/two unavailable roots followed by fresh evidence,
+three persistent failures, unchanged deadline/caps, exact diagnostic admission,
+original timeout/process errors, malformed XML/read errors/ANR focus, inconsistent
+receipts and unchanged installed behavior. These mocked host results establish
+source behavior only. The original producer artifacts independently contain
+2,627 core and 211 simulated native cases with zero failures/errors/skips, but
+the installed run above remains failed and the revised source needs its own
+reviewed hosted result.
 
 ### Observed pre-installation SystemUI ANR and retained global ANR records
 
@@ -1009,9 +1078,13 @@ Two access-failure messages now describe only the read-only check, so they canno
 erase the outer receipt's explicit ACL change. Their access predicates and all
 installed behavior remain unchanged.
 
-The wrapper's finally path restores only the same owned device with either the
-exact original base ACL or exactly this job's named-user ACL. A replaced device
-or unrelated ACL change is retained as a cleanup failure and is never overwritten.
+The wrapper's finally path restores only the same owned device with the exact
+original base ACL, exactly this job's named-user ACL, or the exact base entries
+plus a sole `mask::rw-` and observed original-user access `false`. That third state
+contains no named user or group entry and grants exactly the original rights;
+it is accepted only for cleanup, never for initial provisioning or child entry.
+A replaced device, any other ACL or contradictory access observation is retained
+as a cleanup failure and is never overwritten.
 Restoration also requires proof that every preceding permission-command subtree
 has ended. It then replaces the ACL with the original three entries, removing
 the named grant and mask, and requires full original identity/device/ACL/access
@@ -1057,6 +1130,40 @@ performs the fixed-file update synchronously
 without spawning children. The supervisor still verifies the whole subtree
 instead of using that implementation detail as a substitute for actual completion.
 
+#### Observed redundant-mask cleanup state
+
+The first ACL/KVM [run 39146579521](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39146579521)
+used source `2b04d2ef258dc0f5d958f9dd2c52e54e35767e9b`, actual signed checkout
+`5b6274b826c60c45b730d80e98776c5a86bb03cc`, tree
+`8af9ad75108d206a1179c4f483f3629e3a6e900f`. Original artifact `12143473819`
+is 66,125 bytes with ZIP SHA-256
+`a14c88b89dea5a4988c1f77e2444d5c8890efa4e82cc47a19481c6a5709dbc2c`.
+Both exact policy checks and the supervised grant passed. The named UID 1001 ACL
+was present with access `true` after the grant and inside the unchanged non-root
+child. KVM activated two guest CPUs and boot completed in 25.301 seconds. The
+first HOME dump then returned exit 0 with the exact null-root diagnostic on stderr;
+no hierarchy completed, installation did not run and all four cases were `not_run`.
+
+Before either cleanup attempt could execute its restore command, readback showed
+the same device and process identities but no named entry: `user::rw-`,
+`group::rw-`, `mask::rw-`, `other::---`, with access `false`. Both attempts stopped
+at the previous two-state precondition; neither contains a restore command result.
+The receipt therefore does not show that our restore removed the named entry or
+left the mask. The actor and timing of that intervening ACL change are unknown.
+
+The Linux ACL project's [validity and access algorithm](https://man7.org/linux/man-pages/man5/acl.5.html),
+checked 2026-10-18, permits an optional mask when no named entries exist. The mask
+does not restrict the owner or other entry; group `rw-` intersected with mask
+`rw-` is still `rw-`. This exact third state is permission-equivalent to the
+original three entries for every user/group identity. The existing fixed restore
+can remove only that redundant mask, subject to unchanged device/credential,
+original-state, trusted-tool and completed-command checks, followed by exact
+original-state readback. It does not regrant access or identify the unknown writer.
+A read followed by `setfacl` is not an atomic comparison with a concurrent writer.
+Every different mask, permission, named entry or device identity still rejects.
+The actual failed run remains failed; cleanup normalization does not supply HOME
+readiness or rescue an interrupted, failed or incomplete installed receipt.
+
 ## Retained startup display experiment and its actual HVF failure
 
 The independently reviewed `9ffd094819d282d10a5c3d14c1f0d9d0e63e6d07`
@@ -1085,8 +1192,9 @@ The workflow explicitly selects `PYAI_EMULATOR_DISPLAY_PROFILE=raster-720x1280-2
 The harness default, `pixel-2`, preserves the original configuration bytes.
 The original raster source admitted only explicit HVF mode. The combined ACL
 candidate now admits that same profile under explicit HVF or KVM mode; software
-and unknown modes still reject it. This source admission is not evidence that
-the profile has booted or passed on KVM. Immediately
+and unknown modes still reject it. Source admission alone supplies no runtime
+qualification; the first actual ACL/KVM attempt above verified the display but
+failed before any installed case. Immediately
 after creating its own fresh Pixel 2 AVD, before starting the emulator, the harness
 changes only these three values in that AVD's `config.ini`:
 

@@ -35,6 +35,7 @@ SUDO = "/usr/bin/sudo"
 MARKER = "same-uid-temporary-device-acl-v1"
 DISPLAY_PROFILE = "raster-720x1280-280"
 BASE_ACL = ("user::rw-", "group::rw-", "other::---")
+BASE_ACL_WITH_MASK = ("user::rw-", "group::rw-", "mask::rw-", "other::---")
 COMMAND_ENVIRONMENT = {"PATH": "/usr/bin:/bin", "LANG": "C.UTF-8", "LC_ALL": "C.UTF-8"}
 ACL_ARGUMENTS = [GETFACL, "--access", "--omit-header", "--no-effective", "--numeric",
                  "--absolute-names", "--", str(DEVICE)]
@@ -146,6 +147,15 @@ def acl_entries(observed: dict) -> tuple[str, ...]:
 def granted_acl(uid: int) -> tuple[str, ...]:
     require(type(uid) is int and uid > 0, "Only the original non-root numeric UID may receive access")
     return ("user::rw-", f"user:{uid}:rw-", "group::rw-", "mask::rw-", "other::---")
+
+
+def restorable_acl(state: dict, before: dict) -> bool:
+    entries = acl_entries(state.get("acl"))
+    if entries in (BASE_ACL, granted_acl(before["uid"])):
+        return True
+    # With no named entries, this exact rw mask leaves the base group rights
+    # unchanged. It is a cleanup input only, never an original or granted ACL.
+    return entries == BASE_ACL_WITH_MASK and state.get("read_write_access") is False
 
 
 def observe_state(destination: dict) -> None:
@@ -329,7 +339,7 @@ def restore_acl(receipt: dict) -> None:
         observe_state(cleanup["before"])
         require(identity_without_access(cleanup["before"]) == identity_without_access(receipt["before"]),
                 "The device or process identity changed; refusing an unrelated restoration target")
-        require(acl_entries(cleanup["before"]["acl"]) in (BASE_ACL, granted_acl(receipt["before"]["uid"])),
+        require(restorable_acl(cleanup["before"], receipt["before"]),
                 "The device has an unrelated ACL; refusing to replace another change")
         cleanup["command"] = {}
         observe_acl_command(receipt, cleanup["command"], restore=True)
@@ -417,7 +427,7 @@ def complete_boundary(receipt: dict, context: dict) -> None:
     cleanup_before = cleanup.get("before", {})
     require(cleanup.get("status") == "restored" and "error" not in cleanup and
             identity_without_access(cleanup_before) == identity_without_access(receipt["before"]) and
-            acl_entries(cleanup_before.get("acl")) in (BASE_ACL, granted_acl(receipt["before"]["uid"])) and
+            restorable_acl(cleanup_before, receipt["before"]) and
             command_passes(restored) and restored.get("arguments") ==
             acl_command(receipt["before"]["uid"], restore=True) and
             lifecycle.quiescence_passes(restored, process_credentials(receipt["before"])) and
