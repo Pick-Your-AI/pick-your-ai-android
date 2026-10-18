@@ -67,14 +67,17 @@ sealed interface PreviewDraftSave {
  * Existing unknown metadata and all domain content are preserved. Unknown preview format blocks edits.
  * The caller must keep pending fields on conflict/failure and never silently retry with a newer token.
  */
-class PreviewDraftPersistence(private val store: LocalDraftStore) {
-    fun load(): PreviewDraftLoad = when (val result = store.load()) {
+class PreviewDraftPersistence internal constructor(private val store: LocalDraftStore,
+    private val access: PreviewDraftAccess?) {
+    constructor(store: LocalDraftStore) : this(store, null)
+
+    fun load(): PreviewDraftLoad = guarded({ PreviewDraftLoad.Failed(it) }) { when (val result = store.load()) {
         DraftLoad.Missing -> PreviewDraftLoad.Missing
         is DraftLoad.Failed -> PreviewDraftLoad.Failed(result.reason)
         is DraftLoad.Available -> decode(result.draft)
-    }
+    } }
 
-    fun save(expected: PreviewStoredDraft?, fields: PreviewDraftFields, contextInput: PreviewDraftContext? = null): PreviewDraftSave {
+    fun save(expected: PreviewStoredDraft?, fields: PreviewDraftFields, contextInput: PreviewDraftContext? = null): PreviewDraftSave = write {
         val previous = expected?.draft?.content ?: DraftContent()
         val content = if (contextInput == null) previous else
             DraftContent(contextInput.objective, contextInput.context, previous.primaryModel, previous.optional)
@@ -84,7 +87,7 @@ class PreviewDraftPersistence(private val store: LocalDraftStore) {
         if (fields.selectedId == null) metadata.remove(SELECTION) else metadata[SELECTION] = fields.selectedId
         if (fields.selectedVersion == null) metadata.remove(VERSION) else metadata[VERSION] = fields.selectedVersion
         if (fields.catalogHash == null) metadata.remove(CATALOG) else metadata[CATALOG] = fields.catalogHash
-        return when (val result = store.save(expected?.draft?.version, content, metadata)) {
+        when (val result = store.save(expected?.draft?.version, content, metadata)) {
             is DraftSave.Saved -> PreviewDraftSave.Saved(PreviewStoredDraft(result.draft, fields))
             DraftSave.Conflict -> PreviewDraftSave.Conflict
             is DraftSave.Failed -> PreviewDraftSave.Failed(result.reason)
@@ -94,7 +97,7 @@ class PreviewDraftPersistence(private val store: LocalDraftStore) {
     }
 
     /** Explicit domain restore; current guest metadata is retained by the canonical store. */
-    fun restore(expected: PreviewStoredDraft, revision: Long): PreviewDraftSave =
+    fun restore(expected: PreviewStoredDraft, revision: Long): PreviewDraftSave = write {
         when (val result = store.restore(expected.draft.version, revision)) {
             is DraftSave.Saved -> when (val decoded = decode(result.draft)) {
                 is PreviewDraftLoad.Available -> PreviewDraftSave.Saved(decoded.record)
@@ -106,9 +109,10 @@ class PreviewDraftPersistence(private val store: LocalDraftStore) {
             is DraftSave.Uncertain -> PreviewDraftSave.Uncertain
             DraftSave.UnknownRevision -> PreviewDraftSave.Failed(DraftStorageFailure.CORRUPT)
         }
+    }
 
     /** New library identity; copy content/metadata, never source history or its save authority. */
-    internal fun copySavedSnapshot(source: PreviewStoredDraft): PreviewDraftSave =
+    internal fun copySavedSnapshot(source: PreviewStoredDraft): PreviewDraftSave = write {
         when (val result = store.save(null, source.draft.content, source.draft.metadata + mapOf(
             "preview.duplicateSourceId" to source.draft.version.store.fileName.toString(),
             "preview.duplicateSourceRevision" to source.revision.toString(),
@@ -120,6 +124,19 @@ class PreviewDraftPersistence(private val store: LocalDraftStore) {
             is DraftSave.Uncertain -> PreviewDraftSave.Uncertain
             DraftSave.UnknownRevision -> PreviewDraftSave.Failed(DraftStorageFailure.CORRUPT)
         }
+    }
+
+    private fun write(action: () -> PreviewDraftSave): PreviewDraftSave {
+        var started = false
+        return guarded({ if (started) PreviewDraftSave.Uncertain else PreviewDraftSave.Failed(it) }) {
+            // The outer library lock may fail to close after the store has acknowledged a save.
+            started = true
+            action()
+        }
+    }
+
+    private fun <T> guarded(failed: (DraftStorageFailure) -> T, action: () -> T): T =
+        if (access == null) action() else access.run(failed, action)
 
     private fun decode(draft: StoredDraft): PreviewDraftLoad {
         if (draft.metadata[FORMAT] != "1") return PreviewDraftLoad.Failed(DraftStorageFailure.UNSUPPORTED_VERSION)
@@ -134,6 +151,11 @@ class PreviewDraftPersistence(private val store: LocalDraftStore) {
         const val VERSION = "preview.selectedVersion"
         const val CATALOG = "preview.catalogHash"
     }
+}
+
+/** Library-bound adapters recheck identity liveness while holding the library transaction lock. */
+internal interface PreviewDraftAccess {
+    fun <T> run(failed: (DraftStorageFailure) -> T, action: () -> T): T
 }
 
 /** Lifecycle state is not a save acknowledgement. A changed baseline always needs explicit reopen. */

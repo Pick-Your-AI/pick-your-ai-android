@@ -1,18 +1,29 @@
 <resources>
     <string name="library_active">Active local draft ID: %1$s</string>
-    <string name="library_open">Open local draft</string>
+    <string name="library_open">Manage local drafts</string>
+    <string name="library_open_selected">Open selected draft</string>
     <string name="library_new">Create local draft</string>
     <string name="library_duplicate">Duplicate saved draft</string>
     <string name="library_continue">Continue</string>
     <string name="library_empty">No local draft directories found.</string>
-    <string name="library_failed">Local draft list unavailable. Existing data and visible edits are retained. Retry Open local draft.</string>
+    <string name="library_failed">Local draft list unavailable. Existing data and visible edits are retained. Retry Manage local drafts.</string>
     <string name="library_entry">%1$s\nLocal ID: %2$s</string>
     <string name="library_untitled">Untitled draft</string>
     <string name="library_unavailable">Unavailable or incomplete draft</string>
     <string name="library_switch_warning">Open this local draft? Your unsaved form edits will be discarded. The selected saved copy will be read from disk; unavailable data will not be reset.</string>
     <string name="library_new_warning">Create and open a new empty local draft? Your current unsaved form edits will be discarded only after successful creation. Existing saved drafts remain unchanged.</string>
     <string name="library_duplicate_warning">Duplicate the current saved snapshot into a new local draft? Pending form edits are not included and will be discarded only after successful creation. Saved content and pins are copied; prior history is not copied. The original draft stays unchanged.</string>
-    <string name="library_create_failed">New draft could not be created. Your current form is retained. The library has a 64-draft limit and this preview cannot trim or delete drafts. Refresh the local list before retrying.</string>
-    <string name="library_unconfirmed">Creation could not be confirmed for local ID %1$s. Your current form is retained. A new directory or saved copy may exist. Refresh Open local draft and inspect that ID before creating another copy.</string>
+    <string name="library_create_failed">New draft could not be created. Your current form is retained. The library has a 64-draft limit including pending cleanup. Refresh the local list before retrying; delete unneeded drafts explicitly to make room.</string>
+    <string name="library_unconfirmed">Creation could not be confirmed for local ID %1$s. Your current form is retained. A new directory or saved copy may exist. Refresh Manage local drafts and inspect that ID before creating another copy.</string>
     <string name="library_switch_failed">The selected draft could not be opened. Your original draft identity, pending edits and save state are retained. A newly created draft remains in the local list for inspection.</string>
+    <string name="library_local_id">Local ID: %1$s</string>
+    <string name="library_delete">Delete local draft</string>
+    <string name="library_retry_delete">Retry local cleanup</string>
+    <string name="library_delete_pending">Deletion started; cleanup needs review</string>
+    <string name="library_delete_warning">Permanently delete local ID %1$s, its retained revisions and its cached revision files? This cannot be undone. Other drafts stay available. If this is the current draft, the visible unsaved form will remain, but saving to this deleted ID will be disabled. Interrupted cleanup must be retried from Manage local drafts.</string>
+    <string name="library_deleted">The selected local draft and its retained revision files have been removed. Other drafts remain available. This is local file removal, not a claim of secure erasure from the device.</string>
+    <string name="library_deleted_editor">This local draft was deleted or cleanup started. Your visible unsaved form remains, but saving to this ID is disabled. Manage local drafts to inspect cleanup or explicitly open or create another draft.</string>
+    <string name="library_delete_conflict">The selected saved draft changed after this list was read. Nothing was deleted. Refresh Manage local drafts and review the current record before deleting.</string>
+    <string name="library_delete_failed">Deletion could not start. The current form is retained. Refresh Manage local drafts and retry after the storage problem is resolved.</string>
+    <string name="library_delete_unconfirmed">Deletion could not be fully confirmed. Some local files may remain. Refresh Manage local drafts; if the ID is listed as pending cleanup, select it and retry cleanup. A completed removal may already be absent from the list.</string>
 </resources>
