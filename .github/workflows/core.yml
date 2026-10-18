@@ -98,6 +98,7 @@ jobs:
               "catalogQuerySortAndPageSurviveDetailsAndRecreationWithoutChangingDraft",
               "catalogFacetsExposeEveryKindAndEmptyMatchesWithoutReplacingSavedSelection",
               "catalogDetailsCannotApplySelectionAfterEditorBaselineChanges",
+              "destroyedCatalogIgnoresRetainedEditorsDialogsAndRows",
           }
           cases = suite.findall("testcase")
           assert expected <= {case.attrib["name"] for case in cases}, "Missing UI regression"

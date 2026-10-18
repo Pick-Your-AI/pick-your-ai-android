@@ -841,6 +841,7 @@ class PreviewActivity : Activity() {
 
     override fun onDestroy() {
         destroyed = true
+        if (::catalog.isInitialized) catalog.close()
         worker.shutdownNow()
         super.onDestroy()
     }
