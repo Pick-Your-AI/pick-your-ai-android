@@ -19,4 +19,5 @@ tasks.processResources {
 }
 tasks.processTestResources {
     from(rootProject.file("contracts/v1/examples")) { into("contracts/v1/examples") }
+    from(rootProject.file("contracts/v1/baseline/core-ruleset.json")) { into("contracts/v1/baseline") }
 }
