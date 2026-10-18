@@ -102,6 +102,16 @@ jobs:
               "destroyedCatalogIgnoresRetainedEditorsDialogsAndRows",
               "destroyedFindingsIgnoreRetainedInspectBrowseAndPickerCallbacks",
               "destroyedCostIgnoresRetainedInspectControl",
+              "workloadInputsRetainExactValuesAndInvalidPendingTextAcrossRecreation",
+              "workloadRecreationRetainsStalePendingInputUntilExplicitReopen",
+              "classificationIsExplicitAndClearRemainsAnUnsavedWorkloadEdit",
+              "oversizedWorkloadPastesNeverSaveAValidPrefix",
+              "retiredWorkloadClassificationCallbackCannotOpenAnotherDialog",
+              "retiredWorkloadTextEditsCannotMutateItsModelOrCurrentDraft",
+              "retiredWorkloadOversizedPasteCannotRejectItsModelOrCurrentDraft",
+              "retiredEditorButtonsCannotDispatchWorkOrOpenDialogs",
+              "retiredComparisonPickerCannotSubmitToClosedWorker",
+              "retiredTierConfirmationCannotCommitAfterRecreation",
           }
           cases = suite.findall("testcase")
           assert expected <= {case.attrib["name"] for case in cases}, "Missing UI regression"
