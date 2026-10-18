@@ -1,6 +1,8 @@
 package ai.pickyour.android.preview
 
 import android.app.AlertDialog
+import android.content.ActivityNotFoundException
+import android.content.Intent
 import android.os.Bundle
 import android.os.Looper
 import android.view.View
@@ -11,6 +13,7 @@ import android.widget.TextView
 import ai.pickyour.core.drafts.Activation
 import ai.pickyour.core.drafts.OptionalTier
 import ai.pickyour.core.preview.*
+import ai.pickyour.core.navigation.ExternalLinkPolicy
 import org.junit.After
 import org.junit.Assert.*
 import org.junit.Before
@@ -75,6 +78,22 @@ class PreviewActivityTest {
     private fun loaded() = (adapter().load() as PreviewDraftLoad.Available).record
     private fun dialog() = ShadowAlertDialog.getLatestAlertDialog()!!
     private fun samples() = views().filterIsInstance<Button>().filter { it.text.toString().startsWith("Open FICTIONAL") }
+
+    private fun sourceDetails(vararg sources: String?): PreviewCatalogDetails {
+        val root = activity.assets.open("catalog.json").bufferedReader(Charsets.UTF_8).use { org.json.JSONObject(it.readText()) }
+        val items = root.getJSONArray("items")
+        val model = (0 until items.length()).map { items.getJSONObject(it) }.single { it.getString("kind") == "model" }
+        val provenance = org.json.JSONArray()
+        sources.forEach { uri ->
+            val source = org.json.JSONObject().put("checked_at", "2026-10-16T09:00:00Z")
+                .put("verification_status", "user_supplied")
+            if (uri != null) source.put("source_uri", uri)
+            provenance.put(source)
+        }
+        model.put("provenance", provenance)
+        val browser = requireNotNull(PreviewCatalogBrowser.read(root.toString().toByteArray(Charsets.UTF_8)))
+        return requireNotNull(browser.details(browser.items.single { it.kind == "model" }, browser.hash))
+    }
 
     @Test fun acknowledgedFieldsAndExplicitEmptySurviveRecreation() {
         field(R.string.draft_title).setText("saved title")
@@ -481,6 +500,223 @@ class PreviewActivityTest {
         assertEquals("cat.model.fixture", field(R.string.catalog_search).text.toString())
         assertTrue(adapter().load() is PreviewDraftLoad.Missing)
     }
+
+    @Test fun catalogSourceChooserIsExplicitAndMissingUriCannotDispatch() {
+        field(R.string.draft_title).setText("pending source review")
+        field(R.string.context_objective).setText("pending source objective")
+        field(R.string.context_context).setText("pending source context")
+        field(R.string.catalog_search).setText("cat.model.fixture")
+        await { samples().size == 1 }
+        samples().single().performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+        val details = dialog()
+        assertNull(shadowOf(activity).nextStartedActivity)
+        details.getButton(AlertDialog.BUTTON_NEUTRAL).performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+        val sources = dialog()
+        assertNotSame(details, sources)
+        // The old detail dialog no longer authorizes another source flow.
+        details.getButton(AlertDialog.BUTTON_NEUTRAL).performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+        assertSame(sources, dialog())
+        val before = Bundle().also { controller.saveInstanceState(it) }
+        details.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+        val after = Bundle().also { controller.saveInstanceState(it) }
+        for (key in listOf("title", "objective", "contextInput", "selectedId", "selectedVersion",
+            "selectedCatalogHash", "draftId", "draftBaseline", "catalogSnapshot")) {
+            assertEquals(key, before.getString(key), after.getString(key))
+        }
+        assertSame(sources, dialog())
+        assertTrue(hasText(R.string.no_selection))
+        assertEquals(1, sources.listView.adapter.count)
+        assertNull(shadowOf(activity).nextStartedActivity)
+        shadowOf(sources).clickOnItem(0)
+        assertEquals(activity.getString(R.string.catalog_source_missing), shadowOf(dialog()).message.toString())
+        assertNull(shadowOf(activity).nextStartedActivity)
+        assertEquals("pending source review", field(R.string.draft_title).text.toString())
+        assertEquals("cat.model.fixture", field(R.string.catalog_search).text.toString())
+        assertTrue(adapter().load() is PreviewDraftLoad.Missing)
+    }
+
+    @Test fun catalogSourceConfirmationDispatchesOnlyExactUriAndNoDraftData() {
+        field(R.string.draft_title).setText("PRIVATE_DRAFT_SENTINEL")
+        field(R.string.context_objective).setText("PRIVATE_OBJECTIVE_SENTINEL")
+        save()
+        val baseline = loaded().baselineIdentity
+        field(R.string.context_context).setText("PRIVATE_PENDING_SENTINEL")
+        val uri = "https://docs.example.com/path?q=one%20two#source"
+        val navigation = CatalogSourceNavigation(activity, sourceDetails(uri),
+            ExternalLinkPolicy(setOf("docs.example.com")), isCurrent = { true })
+        navigation.show()
+        shadowOf(dialog()).clickOnItem(0)
+        val confirmation = dialog()
+        assertTrue(shadowOf(confirmation).message.toString().contains("Host: docs.example.com"))
+        assertTrue(shadowOf(confirmation).message.toString().contains(uri))
+        assertNull(shadowOf(activity).nextStartedActivity)
+        val open = confirmation.getButton(AlertDialog.BUTTON_POSITIVE)
+        open.performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+        val intent = requireNotNull(shadowOf(activity).nextStartedActivity)
+        assertEquals(Intent.ACTION_VIEW, intent.action)
+        assertEquals(uri, intent.dataString)
+        assertEquals(setOf(Intent.CATEGORY_BROWSABLE), intent.categories)
+        assertNull(intent.extras)
+        assertNull(intent.clipData)
+        assertNull(intent.selector)
+        assertNull(intent.component)
+        assertEquals(0, intent.flags)
+        assertFalse(intent.toUri(0).contains("PRIVATE_"))
+        open.performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+        assertNull(shadowOf(activity).nextStartedActivity)
+        assertEquals("PRIVATE_PENDING_SENTINEL", field(R.string.context_context).text.toString())
+        assertEquals(baseline, loaded().baselineIdentity)
+        assertTrue(button(R.string.save_draft).isEnabled)
+    }
+
+    @Test fun cancelledSourceConfirmationAndRetiredChooserCannotDispatch() {
+        val navigation = CatalogSourceNavigation(activity, sourceDetails("https://docs.example.com/source"),
+            ExternalLinkPolicy(setOf("docs.example.com")), isCurrent = { true })
+        navigation.show()
+        val retiredChooser = dialog()
+        shadowOf(retiredChooser).clickOnItem(0)
+        val confirmation = dialog()
+        val open = confirmation.getButton(AlertDialog.BUTTON_POSITIVE)
+        confirmation.getButton(AlertDialog.BUTTON_NEGATIVE).performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+        open.performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+        shadowOf(retiredChooser).clickOnItem(0)
+        assertSame(confirmation, dialog())
+        assertFalse(confirmation.isShowing)
+        assertNull(shadowOf(activity).nextStartedActivity)
+        assertTrue(adapter().load() is PreviewDraftLoad.Missing)
+    }
+
+    @Test fun catalogSourcePolicyRejectsHostileAndUnconfiguredUris() {
+        val policy = ExternalLinkPolicy(setOf("docs.example.com"))
+        for (uri in listOf("https://docs.example.com.attacker.test/", "https://user:secret@docs.example.com/",
+            "https://docs.example.com:444/", "file:///private/draft", "content://private/draft",
+            "javascript:alert(1)", "intent://docs.example.com/", "https://docs.example.com/" + "a".repeat(4096))) {
+            CatalogSourceNavigation(activity, sourceDetails(uri), policy, isCurrent = { true }).show()
+            shadowOf(dialog()).clickOnItem(0)
+            assertEquals(activity.getString(R.string.catalog_source_blocked), shadowOf(dialog()).message.toString())
+            assertNull(shadowOf(activity).nextStartedActivity)
+            dialog().dismiss()
+        }
+        CatalogSourceNavigation(activity, sourceDetails("https://docs.example.com/source"), isCurrent = { true }).show()
+        shadowOf(dialog()).clickOnItem(0)
+        assertEquals(activity.getString(R.string.catalog_source_blocked), shadowOf(dialog()).message.toString())
+        assertNull(shadowOf(activity).nextStartedActivity)
+        assertTrue(adapter().load() is PreviewDraftLoad.Missing)
+    }
+
+    @Test fun catalogSourcePagingRetainsEveryExactProvenanceIndex() {
+        val sources = (1..10).map { "https://docs.example.com/source-$it" }.toTypedArray()
+        val navigation = CatalogSourceNavigation(activity, sourceDetails(*sources),
+            ExternalLinkPolicy(setOf("docs.example.com")), isCurrent = { true })
+        navigation.show()
+        assertEquals(8, dialog().listView.adapter.count)
+        assertEquals(activity.getString(R.string.catalog_source_page, 1, 2, 10), shadowOf(dialog()).title.toString())
+        dialog().getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+        assertEquals(2, dialog().listView.adapter.count)
+        assertEquals(activity.getString(R.string.catalog_source_page, 2, 2, 10), shadowOf(dialog()).title.toString())
+        dialog().getButton(AlertDialog.BUTTON_NEUTRAL).performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+        assertEquals(8, dialog().listView.adapter.count)
+        dialog().getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+        shadowOf(dialog()).clickOnItem(1)
+        assertTrue(shadowOf(dialog()).message.toString().startsWith("Source 10\n"))
+        assertTrue(shadowOf(dialog()).message.toString().contains(sources.last()))
+        assertNull(shadowOf(activity).nextStartedActivity)
+        dialog().getButton(AlertDialog.BUTTON_NEGATIVE).performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+        assertTrue(adapter().load() is PreviewDraftLoad.Missing)
+    }
+
+    @Test fun unavailableSourceHandlerPreservesDraftAndRequiresNewConfirmation() {
+        field(R.string.draft_title).setText("saved source draft")
+        save()
+        val baseline = loaded().baselineIdentity
+        field(R.string.draft_title).setText("pending source draft")
+        var calls = 0
+        val navigation = CatalogSourceNavigation(activity, sourceDetails("https://docs.example.com/source"),
+            ExternalLinkPolicy(setOf("docs.example.com")), isCurrent = { true }, launch = { intent ->
+                calls++
+                when (calls) {
+                    1 -> throw ActivityNotFoundException("private platform detail")
+                    2 -> throw SecurityException("private restriction detail")
+                    else -> activity.startActivity(intent)
+                }
+            })
+        navigation.show()
+        repeat(2) {
+            shadowOf(dialog()).clickOnItem(0)
+            dialog().getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+            shadowOf(Looper.getMainLooper()).idle()
+            val unavailable = dialog()
+            assertEquals(activity.getString(R.string.catalog_source_unavailable), shadowOf(unavailable).message.toString())
+            assertFalse(shadowOf(unavailable).message.toString().contains("private"))
+            assertNull(shadowOf(activity).nextStartedActivity)
+            assertEquals("pending source draft", field(R.string.draft_title).text.toString())
+            assertEquals(baseline, loaded().baselineIdentity)
+            unavailable.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+            shadowOf(Looper.getMainLooper()).idle()
+        }
+        shadowOf(dialog()).clickOnItem(0)
+        assertEquals(2, calls)
+        dialog().getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+        assertEquals(3, calls)
+        assertEquals("https://docs.example.com/source", shadowOf(activity).nextStartedActivity?.dataString)
+        assertEquals(baseline, loaded().baselineIdentity)
+    }
+
+    @Test fun catalogSourceCallbackCannotDispatchAfterAuthorityChangeOrRecreation() {
+        var authority = true
+        val detail = sourceDetails("https://docs.example.com/source")
+        val navigation = CatalogSourceNavigation(activity, detail,
+            ExternalLinkPolicy(setOf("docs.example.com")), isCurrent = { authority })
+        navigation.show()
+        shadowOf(dialog()).clickOnItem(0)
+        authority = false
+        dialog().getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+        assertNull(shadowOf(activity).nextStartedActivity)
+        authority = true
+        navigation.show()
+        shadowOf(dialog()).clickOnItem(0)
+        val retiredOpen = dialog().getButton(AlertDialog.BUTTON_POSITIVE)
+        val retiredActivity = activity
+        recreate()
+        await { button(R.string.save_draft).isEnabled }
+        retiredOpen.performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+        assertNull(shadowOf(retiredActivity).nextStartedActivity)
+        assertNull(shadowOf(activity).nextStartedActivity)
+        assertTrue(adapter().load() is PreviewDraftLoad.Missing)
+    }
+
+    @Test fun catalogSourceConfirmationShowsCompleteBoundedUri() {
+        val uri = "HTTPS://docs.example.com/source?q=" + "a".repeat(3000) + "#retained-end"
+        val detail = sourceDetails(uri)
+        CatalogSourceNavigation(activity, detail, ExternalLinkPolicy(setOf("docs.example.com")),
+            isCurrent = { true }).show()
+        assertTrue(dialog().listView.adapter.getItem(0).toString().contains("[display truncated]"))
+        shadowOf(dialog()).clickOnItem(0)
+        val dispatchedUri = "https" + uri.removePrefix("HTTPS")
+        assertTrue(shadowOf(dialog()).message.toString().contains(dispatchedUri))
+        assertFalse(shadowOf(dialog()).message.toString().contains("[display truncated]"))
+        assertNull(shadowOf(activity).nextStartedActivity)
+        dialog().getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+        assertEquals(dispatchedUri, shadowOf(activity).nextStartedActivity?.dataString)
+        assertEquals(uri, detail.provenance.single().sourceUri)
+    }
+
 
     @Test fun catalogDetailKeepsLiteralUnknownIdentitySeparateFromUnknownSpec() {
         val root = activity.assets.open("catalog.json").bufferedReader(Charsets.UTF_8).use { org.json.JSONObject(it.readText()) }

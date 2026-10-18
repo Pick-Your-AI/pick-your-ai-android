@@ -120,6 +120,14 @@ jobs:
               "catalogDetailKeepsLiteralUnknownIdentitySeparateFromUnknownSpec",
               "catalogDetailRenderingKeepsUnknownAndBoundedLiteralSourceValues",
               "retiredContextEditorsCannotChangeCapturedDomainState",
+              "catalogSourceChooserIsExplicitAndMissingUriCannotDispatch",
+              "catalogSourceConfirmationDispatchesOnlyExactUriAndNoDraftData",
+              "cancelledSourceConfirmationAndRetiredChooserCannotDispatch",
+              "catalogSourcePolicyRejectsHostileAndUnconfiguredUris",
+              "catalogSourcePagingRetainsEveryExactProvenanceIndex",
+              "unavailableSourceHandlerPreservesDraftAndRequiresNewConfirmation",
+              "catalogSourceCallbackCannotDispatchAfterAuthorityChangeOrRecreation",
+              "catalogSourceConfirmationShowsCompleteBoundedUri",
           }
           cases = suite.findall("testcase")
           assert expected <= {case.attrib["name"] for case in cases}, "Missing UI regression"

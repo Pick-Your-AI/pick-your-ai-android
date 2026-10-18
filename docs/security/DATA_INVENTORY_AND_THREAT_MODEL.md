@@ -66,6 +66,15 @@ Observed validation:
 
 These commands ran against local/JVM or hosted SDK environments. Installed recreation/termination, full-disk behavior, physical power loss, backup/device transfer, accessibility and release qualification remain the required tests in the table below and the linked work packages. No whole #23 criterion is marked complete by this receipt.
 
+Subsequent partial F11/T02/T07 integration adds the [explicit source-navigation
+adapter](../NAVIGATION_BOUNDARY.md#android-source-navigation-adapter). It reuses the
+exact-host policy, requires full-URL confirmation under the captured Activity/draft/
+snapshot authority, and sends only a fresh browsable HTTPS Intent without draft
+fields or URI grants. The synthetic application still trusts no source hosts.
+Configured-path tests use an explicit synthetic policy, and installed external
+handler behavior remains unverified. The earlier no-dispatch observation above
+describes its pinned source baseline, not this later adapter code.
+
 ## Abuse cases, controls and verification requirements
 
 IDs below form the full handoff checklist. The receipt above records executed checks for specific local components; the broader negative/recovery journeys remain outstanding where no exact result is recorded. Document validation does not execute those journeys. Preview input/history/catalog/cleanup bounds are now recorded in source; future import transport limits, total storage quotas, service rate limits and remote retention periods still require decisions and boundary tests before enablement.

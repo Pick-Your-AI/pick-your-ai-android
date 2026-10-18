@@ -301,13 +301,21 @@ class PreviewActivity : Activity() {
         if (destroyed) return
         val baseline = savedRecord
         val draftId = currentDraftId
-        AlertDialog.Builder(this)
+        val detail = catalog.details(item, catalogHash)
+        lateinit var dialog: AlertDialog
+        dialog = AlertDialog.Builder(this)
             .setTitle(item.name)
-            .setMessage(catalog.details(item, catalogHash)?.let { CatalogDetailText.describe(this, it) }
+            .setMessage(detail?.let { CatalogDetailText.describe(this, it) }
                 ?: getString(R.string.catalog_detail_unavailable))
             .setNegativeButton(R.string.close, null)
+            .setNeutralButton(R.string.catalog_sources) { _, _ ->
+                if (dialog.isShowing && detail != null) CatalogSourceNavigation(this, detail, isCurrent = {
+                    !destroyed && !storageBusy && savedRecord === baseline && currentDraftId == draftId &&
+                        catalog.contains(item, catalogHash)
+                }).show()
+            }
             .setPositiveButton(R.string.select_sample) { _, _ ->
-                if (!destroyed && !storageBusy && savedRecord === baseline && currentDraftId == draftId &&
+                if (dialog.isShowing && !destroyed && !storageBusy && savedRecord === baseline && currentDraftId == draftId &&
                     catalog.contains(item, catalogHash)) {
                     selectedId = item.id
                     selectedVersion = item.version
@@ -316,7 +324,8 @@ class PreviewActivity : Activity() {
                     formChanged()
                 }
             }
-            .show()
+            .create()
+        dialog.show()
     }
 
     private fun showSelection() {
