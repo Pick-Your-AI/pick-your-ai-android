@@ -4,7 +4,7 @@ This is a bounded native-preview continuation of
 [#76](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/76),
 [#98](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/98) and
 [#112](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/112).
-It preserves unfinished local add/configure input when Android supplies saved
+It preserves unfinished local add/settings/role input when Android supplies saved
 Activity state. Canonical receiving paths and the broader work-package criteria
 remain unchanged. The catalog is still synthetic, and a locally saved component
 does not establish compatibility, pricing, deployment requirements or readiness.
@@ -45,9 +45,20 @@ or Serializable object. Raw role and settings text share a **20,000 UTF-16
 character** budget; the small identity fields have separate bounds. This includes
 invalid settings somewhat beyond the existing 16,384-character parser limit so
 the user can correct the original input. The parser and frozen schema limits do
-not change. Both forms disclose the recovery limit before the input fields.
+not change. All three forms disclose the recovery limit before the input fields.
 Framework automatic saving is disabled for these dialog fields so
 the explicit checkpoint remains their retention path.
+
+Bundle version 2 adds a dedicated `ROLE` mode for
+[editing an existing selection role](LOCAL_SELECTION_ROLES.md). It stores only
+the exact entered role and the original draft/baseline/selection identity with
+in-flight state; settings are empty and no catalog choice or enabled state is
+adopted. Version-1 add and settings checkpoints keep their original meaning and
+may still be reviewed. A version-1 checkpoint cannot introduce `ROLE`, and a
+settings checkpoint cannot smuggle an entered role. Resaving a supported
+checkpoint uses version 2 without changing its exact input. Version 3 and malformed
+mode-specific shapes remain unavailable. The durable draft's format 5 is a separate
+version boundary, not a Bundle migration or recovered save token.
 
 Oversized input is never prefix-truncated into apparently valid JSON. Unsupported
 versions, shapes or primitive types and over-budget state produce a small

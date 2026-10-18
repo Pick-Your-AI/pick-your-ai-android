@@ -203,7 +203,7 @@ class LocalDraftWorkloadStorageTest {
 
     @Test fun `old format cannot smuggle new fields and future version remains intact`() {
         val original = v2()
-        val futureVersion = (mapper.readTree(original) as ObjectNode).put("local_format_version", 5)
+        val futureVersion = (mapper.readTree(original) as ObjectNode).put("local_format_version", 6)
         val extra = mapper.readTree(original) as ObjectNode
         (extra["history"][0]["content"] as ObjectNode).putObject("workload")
         for ((node, failure) in listOf(futureVersion to DraftStorageFailure.UNSUPPORTED_VERSION, extra to DraftStorageFailure.CORRUPT)) {
