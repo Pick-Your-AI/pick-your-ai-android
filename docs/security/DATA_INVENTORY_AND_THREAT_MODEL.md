@@ -77,7 +77,7 @@ Configured-path tests use an explicit synthetic policy, and installed external
 handler behavior remains unverified. The earlier no-dispatch observation above
 describes its pinned source baseline, not this later adapter code.
 
-Subsequent partial F12/T08 source adds the [local diagnostic preview](../LOCAL_DIAGNOSTICS.md).
+Subsequent partial F10/T08 source adds the [local diagnostic preview](../LOCAL_DIAGNOSTICS.md).
 Only compiled app metadata, the OS API integer and finite UI states enter its
 immutable allowlisted report; draft fields, URLs, paths, files and raw logs do not.
 An explicit action opens the system text Sharesheet with exactly the reviewed
