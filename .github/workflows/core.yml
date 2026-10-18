@@ -134,6 +134,22 @@ jobs:
           assert all(not case.findall("failure") and not case.findall("error") and not case.findall("skipped") for case in cases), "UI regression did not pass"
           assert int(suite.attrib["tests"]) >= len(expected)
           print(f"Verified {len(cases)} simulated Activity tests; no installed-device claim")
+          cost_report = pathlib.Path("preview/build/test-results/testDebugUnitTest/TEST-ai.pickyour.android.preview.CostInspectionTextTest.xml")
+          cost_suite = ET.parse(cost_report).getroot()
+          expected_cost = {
+              "localizesWideDecimalsWithoutRoundingAndKeepsCanonicalLexeme",
+              "preservesTrailingZerosAndSmallNonzeroAmountsAcrossCurrencyConventions",
+              "screenLocaleControlsDisplayIndependentlyOfProcessDefault",
+              "hostileLiteralTextCannotReplaceLabelsAndLongTextIsExplicitlyTruncated",
+              "boundedLinesAndListsDiscloseCountsWhileTotalsRetainEveryLine",
+              "oversizedDecimalUsesBoundedCanonicalDisclosureWithoutAFalseRoundedAmount",
+              "absentLinesAndUnknownCoverageStayUnpricedWithoutManufacturedCompleteness",
+          }
+          cost_cases = cost_suite.findall("testcase")
+          assert expected_cost <= {case.attrib["name"] for case in cost_cases}, "Missing cost presentation regression"
+          assert all(not case.findall("failure") and not case.findall("error") and not case.findall("skipped") for case in cost_cases), "Cost presentation regression did not pass"
+          assert int(cost_suite.attrib["tests"]) >= len(expected_cost)
+          print(f"Verified {len(cost_cases)} simulated cost presentation tests; no installed-device claim")
           PYTEST
       - name: Retain unsigned diagnostic and lint reports
         if: always()
