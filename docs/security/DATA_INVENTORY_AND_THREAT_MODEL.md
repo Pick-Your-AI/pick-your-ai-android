@@ -4,7 +4,7 @@ Status: living design and bounded implementation inventory for [Android #23](htt
 
 The implemented slice is a guest-only local preview with explicitly labeled synthetic inputs. The maintainer delegated its engineering choices: native Kotlin `:core` and opt-in platform Views `:preview`, using experimental identity `ai.pickyour.android.preview`. Its manifest and runtime dependency declaration expose no network permission, remote-write client, analytics SDK or inference execution. Later real-data and service flows remain in the inventory with their own enablement requirements. See [repository scope](../REPOSITORY_SCOPE.md), the [architecture record](../proposals/02-native-architecture.md) and the [product/scope proposal](../proposals/01-product-scope.md) for the bounded decision and outstanding product acceptance.
 
-The canonical acceptance record remains `docs/delivery/android/work-packages/14.01.md` in `Pick-Your-AI/pickyour.ai`. This proposal is an Android implementation input, not a replacement acceptance record. Security/privacy reviewer and affected service owner must review it; those are roles requiring named intake, not assigned people. The Android technical lead must receive device controls. No external repository was changed.
+At the implementation receipt's baseline above, the intended canonical acceptance record was `docs/delivery/android/work-packages/14.01.md` in `Pick-Your-AI/pickyour.ai`. [ADR 0001](../decisions/0001-android-23-acceptance-record.md) explicitly adopts that previously nonexistent record in this Android repository after independent review and normal merge. The [14.01 receiving record](../delivery/android/work-packages/14.01.md) reconciles all three criteria with a later exact source version and identifies the actual agent review. This inventory remains the living implementation input; the historical receipt and pending-review statements below retain their original observation scope. External service and installed-device acceptance retain their own receiving gates. No external repository was changed.
 
 ## Security objectives and boundaries
 
@@ -65,6 +65,15 @@ Observed validation:
 - Activity candidate `d068fad376eb799a7d731f2346130e6422665c63` passed [run 39094371423](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39094371423). Its Android job executed `:preview:testDebugUnitTest`; the XML gate verified all **six named cases** with no skips, failures or errors. The [independent review receipt](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/181#pullrequestreview-5561301709) records the source and observed log. [PR #185](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/185) is merged at the source baseline above. Its six test/workflow/dependency files match the reviewed signed candidate byte-for-byte; that integration also preserves the root-failure repair. This runtime receipt remains for the exact tested candidate; later integration checks must retain their own run identity.
 
 These commands ran against local/JVM or hosted SDK environments. Installed recreation/termination, full-disk behavior, physical power loss, backup/device transfer, accessibility and release qualification remain the required tests in the table below and the linked work packages. No whole #23 criterion is marked complete by this receipt.
+
+Subsequent partial F11/T02/T07 integration adds the [explicit source-navigation
+adapter](../NAVIGATION_BOUNDARY.md#android-source-navigation-adapter). It reuses the
+exact-host policy, requires full-URL confirmation under the captured Activity/draft/
+snapshot authority, and sends only a fresh browsable HTTPS Intent without draft
+fields or URI grants. The synthetic application still trusts no source hosts.
+Configured-path tests use an explicit synthetic policy, and installed external
+handler behavior remains unverified. The earlier no-dispatch observation above
+describes its pinned source baseline, not this later adapter code.
 
 ## Abuse cases, controls and verification requirements
 

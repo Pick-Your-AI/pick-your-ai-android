@@ -51,6 +51,17 @@ class FrozenSchemaValidator {
             is JsonInputResult.Parsed -> validateParsed(document, parsed.value)
         }
 
+    /** Fixed frozen fragment; incomplete local drafts require no fabricated Build envelope. */
+    fun validateSelectionLink(input: InputStream): FrozenValidation = when (val parsed = reader.read(input)) {
+        is JsonInputResult.Rejected -> FrozenValidation.InvalidInput(parsed.reason)
+        is JsonInputResult.Parsed -> if (selectionLinkSchema.validate(parsed.value).isEmpty()) FrozenValidation.Valid
+            else FrozenValidation.SchemaMismatch
+    }
+
+    private val selectionLinkSchema by lazy {
+        factory.getSchema(SchemaLocation.of("${BASE}build.schema.json#/properties/links/items"), config)
+    }
+
     private fun validateParsed(document: FrozenDocument, value: JsonNode): FrozenValidation =
         if (schemas.getValue(document).validate(value).isEmpty()) FrozenValidation.Valid
         else FrozenValidation.SchemaMismatch

@@ -25,6 +25,7 @@ class PreviewContextCheckpoint(val hasInputs: Boolean, val inputs: PreviewDraftC
         if (preservePending && hasInputs) inputs else baseline
 }
 class PreviewStoredDraft internal constructor(internal val draft: StoredDraft, val fields: PreviewDraftFields) {
+    val components: DraftSelections get() = draft.content.components
     val workloadInput: DraftWorkload get() = draft.content.workload
     val contextInput: PreviewDraftContext get() = PreviewDraftContext(draft.content.objective, draft.content.context)
     val optionalTiers: Map<OptionalTier, TierDraft> get() = draft.content.optional
@@ -32,14 +33,14 @@ class PreviewStoredDraft internal constructor(internal val draft: StoredDraft, v
     val baselineIdentity: String get() = "${draft.version.number}:${draft.version.hash.hex}"
     /** Retained guest forms only; unavailable metadata is never reconstructed or replaced. */
     val history: List<PreviewDraftRevision> get() = java.util.Collections.unmodifiableList(draft.history.map {
-        PreviewDraftRevision(it.number, decodePreviewFields(it.metadata), it.content, it.change, it.restoredFrom)
+        PreviewDraftRevision(it.number, decodePreviewFields(it.metadata), it.content, it.change, it.restoredFrom, it.selectionChange)
     })
     val earlierHistoryUnavailable: Boolean get() = draft.earlierHistoryUnavailable
     override fun toString() = "PreviewStoredDraft"
 }
 /** Retained local content and guest metadata, never an evaluation or price result. */
 class PreviewDraftRevision internal constructor(val revision: Long, val fields: PreviewDraftFields?,
-    val content: DraftContent, val change: StoredRevisionChange, val restoredFrom: Long?) {
+    val content: DraftContent, val change: StoredRevisionChange, val restoredFrom: Long?, val selectionChange: SelectionChange? = null) {
     override fun toString() = "PreviewDraftRevision"
 }
 
@@ -68,6 +69,16 @@ sealed interface PreviewDraftSave {
     data object Uncertain : PreviewDraftSave
 }
 
+/** A command result acknowledges only local persistence, never compatibility or pricing. */
+sealed interface PreviewSelectionSave {
+    class Saved(val record: PreviewStoredDraft, val change: SelectionChange?) : PreviewSelectionSave
+    data object Conflict : PreviewSelectionSave
+    data class Rejected(val reason: SelectionRejection) : PreviewSelectionSave
+    data class Failed(val reason: DraftStorageFailure) : PreviewSelectionSave
+    /** Reopen before another command; a dispatched write may already be durable. */
+    data object Uncertain : PreviewSelectionSave
+}
+
 /**
  * Synchronous adapter over the canonical durable store. Call off the UI thread.
  * Private preview metadata retains opaque catalog selection IDs; no catalog facts are invented.
@@ -90,7 +101,7 @@ class PreviewDraftPersistence internal constructor(private val store: LocalDraft
         val content = DraftContent(
             if (contextInput == null) previous.objective else contextInput.objective,
             if (contextInput == null) previous.context else contextInput.context,
-            previous.primaryModel, previous.optional, workloadInput ?: previous.workload)
+            previous.primaryModel, previous.optional, workloadInput ?: previous.workload, previous.components)
         val metadata = previewMetadata(expected?.draft?.metadata.orEmpty(), fields)
         when (val result = store.save(expected?.draft?.version, content, metadata)) {
             is DraftSave.Saved -> PreviewDraftSave.Saved(PreviewStoredDraft(result.draft, fields))
@@ -98,6 +109,26 @@ class PreviewDraftPersistence internal constructor(private val store: LocalDraft
             is DraftSave.Failed -> PreviewDraftSave.Failed(result.reason)
             is DraftSave.Uncertain -> PreviewDraftSave.Uncertain
             DraftSave.UnknownRevision -> PreviewDraftSave.Failed(DraftStorageFailure.CORRUPT)
+        }
+    }
+
+    /** Original baseline authority and library liveness stay locked across the canonical command. */
+    fun applySelection(expected: PreviewStoredDraft, command: SelectionCommand,
+        catalog: SelectionCatalogSnapshot? = null): PreviewSelectionSave {
+        var started = false
+        return guarded({ if (started) PreviewSelectionSave.Uncertain else PreviewSelectionSave.Failed(it) }) {
+            started = true
+            when (val result = store.applySelection(DraftSelectionIntent(expected.draft.version, command), catalog)) {
+                is DraftSelectionSave.Saved -> when (val decoded = decode(result.draft)) {
+                    is PreviewDraftLoad.Available -> PreviewSelectionSave.Saved(decoded.record, result.change)
+                    is PreviewDraftLoad.Failed -> PreviewSelectionSave.Failed(decoded.reason)
+                    PreviewDraftLoad.Missing -> PreviewSelectionSave.Failed(DraftStorageFailure.CORRUPT)
+                }
+                DraftSelectionSave.Conflict -> PreviewSelectionSave.Conflict
+                is DraftSelectionSave.Rejected -> PreviewSelectionSave.Rejected(result.reason)
+                is DraftSelectionSave.Failed -> PreviewSelectionSave.Failed(result.reason)
+                is DraftSelectionSave.Uncertain -> PreviewSelectionSave.Uncertain
+            }
         }
     }
 
@@ -148,7 +179,7 @@ class PreviewDraftPersistence internal constructor(private val store: LocalDraft
     internal fun copyPendingSnapshot(source: PreviewStoredDraft, pending: PreviewPendingDraft): PreviewDraftSave = write {
         val previous = source.draft.content
         val content = DraftContent(pending.context.objective, pending.context.context, previous.primaryModel,
-            previous.optional, pending.workload)
+            previous.optional, pending.workload, previous.components)
         val metadata = previewMetadata(source.draft.metadata, pending.fields) + mapOf(
             "preview.recoverySourceId" to source.draft.version.store.fileName.toString(),
             "preview.recoverySourceRevision" to source.revision.toString(),

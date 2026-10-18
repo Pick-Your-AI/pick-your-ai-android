@@ -1,0 +1,20 @@
+<resources>
+    <string name="catalog_price_browse">Review all recorded prices</string>
+    <string name="catalog_price_browser_page">Fictional recorded rates · page %1$d of %2$d · %3$d records</string>
+    <string name="catalog_price_browser_row">Rate %1$d: %2$s\n%3$s · %4$s %5$s · recorded %6$s</string>
+    <string name="catalog_price_fields_page">Recorded rate %1$d of %2$d · fields page %3$d of %4$d</string>
+    <string name="catalog_price_field_row">%1$s\n%2$s</string>
+    <string name="catalog_price_value_part">Recorded rate %1$d of %2$d · value part %3$d of %4$d\n\n%5$s\n\n%6$s</string>
+    <string name="catalog_price_browser_limits">Read-only recorded metadata. Eligibility, source checks and current pricing are not established. Long literal values have numbered parts; displayed quotes and part labels are not stored content. Source URIs remain plain text.</string>
+    <string name="catalog_price_unassessed_label">Unassessed display label</string>
+    <string name="catalog_price_conditions_state">Recorded conditions state</string>
+    <string name="catalog_price_all_conditions">%1$d literal conditions retained in stored order. Each following condition can be inspected; eligibility is not established.</string>
+    <string name="catalog_price_next_rates">Next rates</string>
+    <string name="catalog_price_previous_rates">Previous rates</string>
+    <string name="catalog_price_back_rates">Back to rates</string>
+    <string name="catalog_price_next_fields">Next fields</string>
+    <string name="catalog_price_previous_fields">Previous fields</string>
+    <string name="catalog_price_back_fields">Back to fields</string>
+    <string name="catalog_price_next_part">Next part</string>
+    <string name="catalog_price_previous_part">Previous part</string>
+</resources>

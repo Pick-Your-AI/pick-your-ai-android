@@ -32,6 +32,7 @@ class StoredRevision internal constructor(
     val restoredFrom: Long?,
     val content: DraftContent,
     metadata: Map<String, String>,
+    val selectionChange: SelectionChange? = null,
 ) {
     val metadata: Map<String, String> = Collections.unmodifiableMap(LinkedHashMap(metadata))
 }
@@ -62,6 +63,22 @@ sealed interface DraftSave {
     data class Uncertain(val hash: ArtifactHash) : DraftSave
 }
 
+/** Capture once when editing starts; replay retains the original draft identity and expected revision. */
+class DraftSelectionIntent(val expected: DraftVersion, val command: SelectionCommand) {
+    override fun toString() = "DraftSelectionIntent"
+}
+
+/** Uncertain requires reopen; a pure command disclosure is never a save acknowledgement. */
+sealed interface DraftSelectionSave {
+    class Saved(val draft: StoredDraft, val change: SelectionChange?) : DraftSelectionSave
+    data object Conflict : DraftSelectionSave
+    data class Rejected(val reason: SelectionRejection) : DraftSelectionSave
+    data class Failed(val reason: DraftStorageFailure) : DraftSelectionSave
+    class Uncertain(val hash: ArtifactHash) : DraftSelectionSave
+}
+
+private class CommandRejected(val reason: SelectionRejection) : RuntimeException()
+
 /**
  * One local draft per existing, durably provisioned app-private directory.
  * The caller must make the root and its ancestor entries durable. All writers use this adapter.
@@ -77,6 +94,8 @@ class LocalDraftStore internal constructor(
 ) {
     internal constructor(directory: Path, cacheFactory: (Path) -> VerifiedArtifactCache) : this(directory, cacheFactory, {})
     constructor(directory: Path) : this(directory, { VerifiedArtifactCache(it, MAX_BYTES) }, {})
+    constructor(directory: Path, retention: CacheRetentionLimits) :
+        this(directory, { VerifiedArtifactCache(it, MAX_BYTES, retention) }, {})
     private val root: Path
     private val cache: VerifiedArtifactCache
     init {
@@ -99,7 +118,7 @@ class LocalDraftStore internal constructor(
 
     /**
      * Omitted metadata preserves the current map; an explicit empty map clears it.
-     * A current format-2/3 token with unchanged content/metadata reuses its durable revision.
+     * A current format-2/3/4 token with unchanged content/metadata reuses its durable revision.
      * Token validation precedes deduplication; a stale retry never acknowledges another writer.
      */
     fun save(expected: DraftVersion?, content: DraftContent, metadata: Map<String, String>? = null): DraftSave =
@@ -108,7 +127,21 @@ class LocalDraftStore internal constructor(
     /** Restore retained content as a new revision, preserving current metadata and all prior entries. */
     fun restore(expected: DraftVersion, revision: Long): DraftSave = update(expected, null, null, revision)
 
-    private fun update(expected: DraftVersion?, content: DraftContent?, metadata: Map<String, String>?, restore: Long?): DraftSave {
+    /** Same canonical transaction, token, history and failure semantics as ordinary edits. */
+    fun applySelection(intent: DraftSelectionIntent, catalog: SelectionCatalogSnapshot? = null): DraftSelectionSave =
+        try {
+            when (val result = update(intent.expected, null, null, null, intent.command, catalog)) {
+                is DraftSave.Saved -> DraftSelectionSave.Saved(result.draft,
+                    if (result.draft.version.hash == intent.expected.hash) null else result.draft.history.last().selectionChange)
+                DraftSave.Conflict -> DraftSelectionSave.Conflict
+                is DraftSave.Failed -> DraftSelectionSave.Failed(result.reason)
+                is DraftSave.Uncertain -> DraftSelectionSave.Uncertain(result.hash)
+                DraftSave.UnknownRevision -> error("Selection command cannot restore history")
+            }
+        } catch (failure: CommandRejected) { DraftSelectionSave.Rejected(failure.reason) }
+
+    private fun update(expected: DraftVersion?, content: DraftContent?, metadata: Map<String, String>?, restore: Long?,
+        command: SelectionCommand? = null, catalog: SelectionCatalogSnapshot? = null): DraftSave {
         var attemptedHash: ArtifactHash? = null
         return guarded({ reason -> attemptedHash?.let { DraftSave.Uncertain(it) } ?: DraftSave.Failed(reason) }) {
             val current = when (val loaded = decode(cache.active())) {
@@ -120,9 +153,15 @@ class LocalDraftStore internal constructor(
                 (expected == null || expected.store != root || expected.hash != current.version.hash || expected.number != current.version.number)) {
                 return@guarded DraftSave.Conflict
             }
+            // Reduce only after validating the live token, inside the existing transaction lock.
+            val selectionEdit = if (command == null) null else when (val edit = DraftSelectionCommands.apply(requireNotNull(current).content, command, catalog)) {
+                is SelectionEdit.Ready -> edit
+                is SelectionEdit.Rejected -> throw CommandRejected(edit.reason)
+            }
+            val nextContent = selectionEdit?.content ?: content
             // Repeated save events must not consume bounded history. Legacy saves still perform
-            // their explicit v1 -> v3 migration, and restore remains an intentional new revision.
-            if (restore == null && current != null && current.localFormatVersion >= 2 && current.content == content &&
+            // their explicit v1 -> v4 migration, and restore remains an intentional new revision.
+            if (restore == null && current != null && current.localFormatVersion >= 2 && current.content == nextContent &&
                 current.metadata == (metadata ?: current.metadata)) {
                 return@guarded DraftSave.Saved(current)
             }
@@ -137,7 +176,7 @@ class LocalDraftStore internal constructor(
                 restore != null -> StoredRevisionChange.RESTORE
                 current == null -> StoredRevisionChange.INITIAL
                 else -> StoredRevisionChange.EDIT
-            }, restore, restored?.content ?: requireNotNull(content), metadata ?: current?.metadata ?: emptyMap())
+            }, restore, restored?.content ?: requireNotNull(nextContent), metadata ?: current?.metadata ?: emptyMap(), selectionEdit?.change)
             val bytes = try { DraftEnvelope.encode(previous + next, current?.legacySourceHash) } catch (_: EnvelopeFailure) {
                 return@guarded DraftSave.Failed(DraftStorageFailure.LIMIT_EXCEEDED)
             }
@@ -194,7 +233,7 @@ class LocalDraftStore internal constructor(
         private fun mapFailure(reason: CacheFailure): DraftStorageFailure = when (reason) {
             CacheFailure.BUSY -> DraftStorageFailure.BUSY
             CacheFailure.CANCELLED -> DraftStorageFailure.CANCELLED
-            CacheFailure.TOO_LARGE -> DraftStorageFailure.LIMIT_EXCEEDED
+            CacheFailure.TOO_LARGE, CacheFailure.RETENTION_LIMIT -> DraftStorageFailure.LIMIT_EXCEEDED
             CacheFailure.CORRUPT, CacheFailure.HASH_MISMATCH -> DraftStorageFailure.CORRUPT
             CacheFailure.IO_FAILURE -> DraftStorageFailure.IO_FAILURE
         }
@@ -219,7 +258,7 @@ private object DraftEnvelope {
                 null, content(node["content"], 1), strings(node["metadata"]))), null)
         }
         val format = version.intValue()
-        if (format != 2 && format != 3) throw EnvelopeFailure(DraftStorageFailure.UNSUPPORTED_VERSION)
+        if (format !in 2..4) throw EnvelopeFailure(DraftStorageFailure.UNSUPPORTED_VERSION)
         fields(node, setOf("local_format_version", "revision", "legacy_source_hash", "history"))
         val head = number(node["revision"])
         val legacy = node["legacy_source_hash"].let {
@@ -228,11 +267,12 @@ private object DraftEnvelope {
         val entries = node["history"]
         if (!entries.isArray || entries.isEmpty || entries.size() > LocalDraftStore.MAX_HISTORY) bad()
         val history = entries.map { entry ->
-            fields(entry, setOf("number", "change", "restored_from", "content", "metadata"))
+            fields(entry, setOf("number", "change", "restored_from", "content", "metadata") + if (format >= 4) setOf("selection_change") else emptySet())
             val change = StoredRevisionChange.entries.find { it.name == text(entry["change"]) } ?: bad()
             StoredRevision(number(entry["number"]), change,
                 if (entry["restored_from"].isNull) null else number(entry["restored_from"]),
-                content(entry["content"], format), strings(entry["metadata"]))
+                content(entry["content"], format), strings(entry["metadata"]),
+                if (format >= 4) selectionChange(entry["selection_change"]) else null)
         }
         val first = history.first()
         if (legacy == null) {
@@ -244,6 +284,8 @@ private object DraftEnvelope {
                 if (prior.number == Long.MAX_VALUE || entry.number != prior.number + 1) bad()
                 if (entry.change != StoredRevisionChange.EDIT && entry.change != StoredRevisionChange.RESTORE) bad()
             }
+            if (entry.selectionChange != null && (entry.change != StoredRevisionChange.EDIT || index == 0 ||
+                entry.metadata != history[index - 1].metadata || !validChange(history[index - 1].content, entry.content, entry.selectionChange))) bad()
             if (entry.change == StoredRevisionChange.RESTORE) {
                 val target = history.take(index).find { it.number == entry.restoredFrom } ?: bad()
                 if (entry.content != target.content || entry.metadata != history[index - 1].metadata) bad()
@@ -254,7 +296,8 @@ private object DraftEnvelope {
     }
     private fun content(content: JsonNode, format: Int): DraftContent {
         val expected = setOf("objective", "context", "primaryModel", "optional")
-        fields(content, if (format == 3) expected + "workload" else expected)
+        fields(content, expected + (if (format >= 3) setOf("workload") else emptySet()) +
+            (if (format >= 4) setOf("components") else emptySet()))
         val optional = content["optional"]
         fields(optional, OptionalTier.entries.map { it.name }.toSet())
         val tiers = OptionalTier.entries.associateWith { tier ->
@@ -269,7 +312,61 @@ private object DraftEnvelope {
         }
         fun nullable(name: String): String? = content[name].let { if (it.isNull) null else text(it) }
         return DraftContent(nullable("objective"), nullable("context"), nullable("primaryModel"), tiers,
-            if (format == 3) workload(content["workload"]) else DraftWorkload())
+            if (format >= 3) workload(content["workload"]) else DraftWorkload(),
+            if (format >= 4) components(content["components"]) else DraftSelections())
+    }
+    private fun components(node: JsonNode): DraftSelections {
+        fields(node, setOf("selections", "links"))
+        if (!node["selections"].isArray || !node["links"].isArray || node["selections"].size() > DraftSelections.MAX_SELECTIONS ||
+            node["links"].size() > DraftSelections.MAX_LINKS) bad()
+        return try {
+            DraftSelections(node["selections"].map { LocalSelection.fromJson(it as? ObjectNode ?: bad()) },
+                node["links"].map { LocalSelectionLink.fromJson(it as? ObjectNode ?: bad()) })
+        } catch (_: IllegalArgumentException) { bad() }
+    }
+    private fun selectionChange(node: JsonNode): SelectionChange? {
+        if (node.isNull) return null
+        fields(node, setOf("action", "selection_id", "removed_link_ids", "affected_link_ids"))
+        val action = SelectionAction.entries.find { it.name == text(node["action"]) } ?: bad()
+        val id = text(node["selection_id"])
+        if (!Regex("^[a-z][a-z0-9_-]{2,79}$").matches(id)) bad()
+        fun ids(name: String): List<String> {
+            val value = node[name]
+            if (!value.isArray || value.size() > DraftSelections.MAX_LINKS || value.any { !it.isTextual ||
+                !Regex("^[a-z][a-z0-9._:-]{2,119}$").matches(it.textValue()) }) bad()
+            return value.map { it.textValue() }.also { if (it != it.distinct().sorted()) bad() }
+        }
+        val removed = ids("removed_link_ids")
+        val affected = ids("affected_link_ids")
+        if (action != SelectionAction.REMOVE && removed.isNotEmpty() || action == SelectionAction.REMOVE && removed != affected ||
+            action == SelectionAction.ADD && affected.isNotEmpty()) bad()
+        return SelectionChange(action, id, removed, affected)
+    }
+    /** Private descriptions cannot contradict retained content or invent relationship cleanup. */
+    private fun validChange(before: DraftContent, after: DraftContent, change: SelectionChange): Boolean {
+        if (before.withComponents(after.components) != after || before == after) return false
+        val old = before.components.selections.find { it.id == change.selectionId }
+        val new = after.components.selections.find { it.id == change.selectionId }
+        val incident = before.components.links.filter { it.fromSelectionId == change.selectionId || it.toSelectionId == change.selectionId }
+        if (change.affectedLinkIds != incident.map { it.id }.sorted()) return false
+        val remaining = before.components.links - if (change.action == SelectionAction.REMOVE) incident.toSet() else emptySet()
+        if (after.components.links != remaining) return false
+        if (change.action == SelectionAction.ADD) return old == null && new != null && after.components.selections == before.components.selections + new
+        if (old == null) return false
+        if (change.action == SelectionAction.REMOVE) return new == null && after.components.selections == before.components.selections.filter { it.id != old.id }
+        if (new == null || after.components.selections != before.components.selections.map { if (it.id == old.id) new else it }) return false
+        val expected = old.toJson()
+        when (change.action) {
+            SelectionAction.REPLACE -> {
+                expected.put("catalog_item_id", new.catalogItemId).put("catalog_item_version", new.catalogItemVersion)
+                expected.set<JsonNode>("settings", new.settings)
+            }
+            SelectionAction.CONFIGURE -> expected.set<JsonNode>("settings", new.settings)
+            SelectionAction.ENABLE -> expected.put("enabled", true)
+            SelectionAction.DISABLE -> expected.put("enabled", false)
+            else -> return false
+        }
+        return expected == new.toJson()
     }
     private fun workload(node: JsonNode): DraftWorkload {
         fields(node, setOf("region", "currency", "monthly_budget_amount", "requests_per_day",
@@ -301,12 +398,20 @@ private object DraftEnvelope {
         return node.properties().associate { it.key to it.value.textValue() }
     }
     fun encode(history: List<StoredRevision>, legacy: ArtifactHash?): ByteArray {
-        val node = mapper.createObjectNode().put("local_format_version", 3).put("revision", history.last().number)
+        val node = mapper.createObjectNode().put("local_format_version", 4).put("revision", history.last().number)
         node.put("legacy_source_hash", legacy?.hex)
         val entries = node.putArray("history")
         history.forEach { entry ->
             val target = entries.addObject().put("number", entry.number).put("change", entry.change.name)
             if (entry.restoredFrom == null) target.putNull("restored_from") else target.put("restored_from", entry.restoredFrom)
+            val change = entry.selectionChange
+            if (change == null) target.putNull("selection_change") else {
+                val description = target.putObject("selection_change").put("action", change.action.name).put("selection_id", change.selectionId)
+                val removed = description.putArray("removed_link_ids")
+                change.removedLinkIds.forEach { removed.add(it) }
+                val affected = description.putArray("affected_link_ids")
+                change.affectedLinkIds.forEach { affected.add(it) }
+            }
             encodeContent(target.putObject("content"), entry.content)
             stringMap(target.putObject("metadata"), entry.metadata)
         }
@@ -332,6 +437,11 @@ private object DraftEnvelope {
     }
     private fun encodeContent(body: ObjectNode, content: DraftContent) {
         body.put("objective", content.objective).put("context", content.context).put("primaryModel", content.primaryModel)
+        val components = body.putObject("components")
+        val selections = components.putArray("selections")
+        content.components.selections.forEach { selections.add(it.toJson()) }
+        val links = components.putArray("links")
+        content.components.links.forEach { links.add(it.toJson()) }
         val workload = content.workload
         body.putObject("workload")
             .put("region", workload.region).put("currency", workload.currency)

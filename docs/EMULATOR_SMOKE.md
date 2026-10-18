@@ -416,6 +416,89 @@ UI selectors, all four installed case bodies and cleanup are unchanged. An actua
 changed-source run must still execute and pass all four cases before the installed
 lane can be accepted.
 
+### Observed framework launch timeout and separate empty dump exit
+
+The [changed capture-source run 39114550191](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39114550191)
+checked out `b62bbca8a7a54313d00e4c9a3a42ee28c6a9f8d3`, exact reviewed tree
+`34c15fdd0b5258e01db0e14011fba3a6e77d6162`, with parents `899e9178` and `b6ceb598`.
+Core and native jobs passed, including all 52 host guards; downloaded reports
+contain 260 core and 29 simulated Activity cases with no failures, errors or skips
+on that older canonical baseline. Installed artifact `12132028568` has verified
+ZIP SHA-256 `56273d6c16e93ab4e028c1edccd741ae84028843824d51267c4659d2a3cc9602`.
+Its exact unsigned APK still matches
+`c3e99c4783b5b71da2df1d6e665c9f6129509f5978f40de46075fe68dfc4449f`.
+
+Boot completed after 343.879 seconds and 272 probes. All nine readiness checks
+passed together after 9.628 seconds, and installation proceeded. The original
+failure is the subsequent Activity launch: Android returned exit 0 and empty
+stderr, but reported `Status: timeout`, `LaunchState: UNKNOWN (-1)` and
+`WaitTime: 18546` after 18.819 seconds. The unchanged launch predicate rejected
+that response. The first case failed; the remaining three are `not_run`.
+
+The separate failure checkpoint removed the old dump file successfully, then
+received dump exit 137 after 7.585 seconds with both stdout and stderr exactly
+empty. The new observations retain that complete result. The completion marker
+was absent, so no read or parser step ran and no XML or screenshot was accepted.
+This checkpoint failure did not replace the original launch timeout. It is a
+different boundary from the discarded first XML input in run 39112194859.
+
+The retained framework log shows process/provider startup delays and a contacts
+provider explicitly killed for timing out while publishing providers. It does not
+identify a memory kill. The kernel log has no explicit OOM/LMKD kill record;
+unrelated service-cleanup signal 9 entries do not establish why the dump exited
+137. No retained process binding establishes an app crash or an app ANR. The
+emulator also reports overriding the requested two cores to one and increasing
+guest RAM from 2048 to 2560 MB, but those observations do not establish a CPU,
+RAM, renderer or image correction. Both commands returned before their existing
+Python deadlines. The original logcat is collected before the failure checkpoint,
+so that log alone cannot explain its later dump exit.
+
+### Bounded state after a failed case checkpoint
+
+After preserving the initial `failure-logcat.txt` and attempting the existing
+failure checkpoint, the harness now retains a separate
+`case_failure_observations` section in the receipt. It identifies the exact owned
+serial, preview package and `after_failure_checkpoint` phase. It attempts six
+read-only observations in order: a later filtered framework/event log, the package
+PID, package exit history, server-side Activity stacks, package process state and
+low-memory-killer statistics. These are observations, not additional case
+acceptance predicates. A missing PID or empty exit history cannot prove that a
+process never ran or never failed, and unrelated process events need an explicit
+package/PID binding before attribution.
+
+All six calls share one 20-second diagnostic deadline; each ADB call receives at
+most five seconds and is clamped to the remaining time. Each `dumpsys` also uses
+its documented three-second service timeout. Commands not attempted before the
+deadline are named in the receipt. Each attempted command retains its arguments,
+start offset, elapsed time, exit code or timeout/error, and the same bounded,
+explicitly decoded stream observations used for UI capture. The receipt also
+retains at most 131,072 characters of the later log and 32,768 characters of each
+other stdout, with separate truncation flags. Partial timeout text remains marked
+as a timeout. These limits bound retained text, not subprocess capture memory.
+
+The later log requests a 2,000-record tail from the main, system, crash and
+events buffers, using an explicit allowlist for Activity/process lifecycle,
+Android runtime errors and LMKD events with `*:S` for other tags. Activity stacks
+and LMK statistics describe this fresh owned guest; PID, exit-history and process
+queries name the exact package. The Activity-stack query omits client-side dump
+flags. The [Android dumpsys documentation](https://developer.android.com/tools/dumpsys)
+defines the service timeout, and the
+[Android 15 ActivityManager dump dispatch](https://android.googlesource.com/platform/frameworks/base/+/refs/heads/android15-release/services/core/java/com/android/server/am/ActivityManagerService.java)
+defines the read-only `activities`, `processes`, `exit-info` and `lmk` queries.
+The [logcat documentation](https://developer.android.com/tools/logcat) describes
+the buffers and tag/priority filtering. These source references establish command
+syntax, not a diagnosis of the observed guest failure.
+
+Host regressions check finite deadline clamping, omitted observations, partial
+timeout text, bounded retention, process errors and the actual exception-handler
+ordering. They verify that the initial log and original failed case survive both
+checkpoint and diagnostic failures. All 58 host tests pass locally; no host test
+executes a device. The new evidence collection does not retry launch or capture,
+change any of the four case bodies, raise their command limits, or change the
+boot/readiness/image/renderer requirements. The installed job remains 25 minutes,
+including this bounded failure-only collection and owned-process cleanup. A
+reviewed changed-source run must still pass all four actual installed cases.
+
 ## Inputs and provenance
 
 The application keeps its existing JDK 21, Gradle 8.11.1, Kotlin 2.1.20, AGP 8.9.2,

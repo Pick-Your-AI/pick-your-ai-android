@@ -132,8 +132,11 @@ rights/freshness acceptance, configured total retention and UI degraded states.
 Remaining #104 criteria: integrated browse/edit/save behavior, reconciliation and
 current-versus-cached display. This primitive does not supply network transport,
 authenticity, rights, catalog semantics or a production retention policy. Retained
-total bytes can grow; continuous refresh is not ready until retention and pinned
-reference handling are implemented/reviewed. A checksum alone proves no publisher
+total bytes can grow with the original constructors. Explicit optional
+[artifact retention budgets](CACHE_RETENTION_LIMITS.md) now refuse new payloads
+before activation without eviction, and the preview library applies derived
+128-artifact/128-MiB limits to each draft's revisions. Continuous catalog refresh
+still needs configured product limits and pinned-reference handling. A checksum alone proves no publisher
 identity or vendor compatibility.
 
 Parent handoff records: `12.03.md` (#87) and `12.02.md` (#104) under the canonical
@@ -144,3 +147,9 @@ The [reference report receiving boundary](REFERENCE_REPORT_BOUNDARY.md) adds
 structural and cross-document checks before accepting frozen reference reports.
 Its Python-generated cases and Kotlin negative tests are partial #32/#49/#84
 evidence, not a local evaluator or deployment approval.
+
+The [quality-run decoder](QUALITY_RUN_BOUNDARY.md) preserves the separate frozen
+measured-run wire fields as immutable Kotlin values, including exact numbers and
+optional absence. Shared Python/Kotlin mutation cases and malformed-input tests
+cover this structural boundary; decoding does not authenticate or execute an
+evaluation, bind it to the current build, or certify its reported result.

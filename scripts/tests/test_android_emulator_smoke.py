@@ -802,9 +802,11 @@ class EmulatorSmokeGuardTest(unittest.TestCase):
                 device.launch.side_effect = original
                 device.adb.side_effect = ([log_result] if isinstance(log_result, Exception) else None)
                 device.adb.return_value = log_result
-                with patch.object(smoke.Ui, "checkpoint", side_effect=smoke.SmokeFailure("Capture failed")):
+                with patch.object(smoke.Ui, "checkpoint", side_effect=smoke.SmokeFailure("Capture failed")), \
+                        patch.object(smoke, "retain_case_failure_state") as state:
                     with self.assertRaises(smoke.SmokeFailure) as raised:
                         smoke.exercise(device, Path(temporary), receipt)
+                state.assert_called_once_with(device, receipt)
                 self.assertIs(original, raised.exception)
                 self.assertEqual("failed", receipt["cases"][0]["status"])
                 self.assertTrue(all(row["status"] == "not_run" for row in receipt["cases"][1:]))
@@ -820,6 +822,153 @@ class EmulatorSmokeGuardTest(unittest.TestCase):
                     self.assertEqual("x" * 131072, (Path(temporary) / "failure-logcat.txt").read_text())
                     self.assertEqual(1, receipt["failure_logcat"]["exit_code"])
                     self.assertEqual("log failed", receipt["failure_logcat"]["stderr_tail"])
+
+    def test_failed_case_observations_read_only_owned_package_and_framework_state(self):
+        receipt = {"status": "failed", "error": "original launch timeout"}
+        device = Mock(spec=smoke.Device)
+        device.adb.return_value = subprocess.CompletedProcess([], 1, "diagnostic output", "unavailable")
+        smoke.retain_case_failure_state(device, receipt)
+        calls = device.adb.call_args_list
+        self.assertEqual(6, len(calls))
+        log_args = calls[0].args
+        self.assertEqual(("logcat", "-b", "main", "-b", "system", "-b", "crash", "-b", "events",
+                          "-d", "-v", "threadtime", "-t", "2000"), log_args[:14])
+        self.assertEqual("*:S", log_args[-1])
+        for tag in ("lowmemorykiller:I", "am_proc_start:I", "am_proc_died:I", "am_kill:I", "am_anr:I"):
+            self.assertIn(tag, log_args)
+        self.assertEqual([
+            call("shell", "pidof", smoke.PACKAGE, timeout=5, check=False),
+            call("shell", "dumpsys", "-t", "3", "activity", "exit-info", smoke.PACKAGE,
+                 timeout=5, check=False),
+            call("shell", "dumpsys", "-t", "3", "activity", "activities", timeout=5, check=False),
+            call("shell", "dumpsys", "-t", "3", "activity", "processes", smoke.PACKAGE,
+                 timeout=5, check=False),
+            call("shell", "dumpsys", "-t", "3", "activity", "lmk", timeout=5, check=False),
+        ], calls[1:])
+        self.assertEqual({"timeout": 5, "check": False}, calls[0].kwargs)
+        state = receipt["case_failure_observations"]
+        self.assertEqual("after_failure_checkpoint", state["phase"])
+        self.assertEqual(smoke.SERIAL, state["serial"])
+        self.assertEqual(smoke.PACKAGE, state["package"])
+        self.assertEqual("original launch timeout", receipt["error"])
+        self.assertEqual("failed", receipt["status"])
+        for observed in state["checks"].values():
+            self.assertEqual(1, observed["exit_code"])
+            self.assertEqual("diagnostic output", observed["stdout_tail"])
+            self.assertEqual("unavailable", observed["stderr"]["prefix"])
+            self.assertFalse(observed["stdout_tail_truncated"])
+        device.launch.assert_not_called()
+        device.shell.assert_not_called()
+
+    def test_failed_case_observations_bound_text_and_keep_timeout_partials(self):
+        receipt = {}
+        device = Mock(spec=smoke.Device)
+        partial = b"x" * 140000 + b"\xfflast"
+        error = subprocess.TimeoutExpired("logcat", 5, output=partial, stderr=b"partial error")
+        device.adb.side_effect = [error] + [subprocess.CompletedProcess([], 0, "y" * 40000, "")] * 5
+        smoke.retain_case_failure_state(device, receipt)
+        observed = receipt["case_failure_observations"]["checks"]["framework_log"]
+        decoded = partial.decode("utf-8", errors="replace")
+        self.assertEqual(5, observed["command_timeout_seconds"])
+        self.assertNotIn("exit_code", observed)
+        self.assertEqual(decoded[-131072:], observed["stdout_tail"])
+        self.assertTrue(observed["stdout_tail_truncated"])
+        self.assertTrue(observed["stdout"]["decoded_from_bytes"])
+        self.assertEqual(hashlib.sha256(decoded.encode("utf-8")).hexdigest(), observed["stdout"]["text_sha256"])
+        self.assertEqual("partial error", observed["stderr"]["prefix"])
+        for name, check in receipt["case_failure_observations"]["checks"].items():
+            if name != "framework_log":
+                self.assertEqual("y" * 32768, check["stdout_tail"])
+                self.assertTrue(check["stdout_tail_truncated"])
+
+    def test_failed_case_observations_share_one_deadline_and_list_unattempted_reads(self):
+        for delay, expected_timeouts, skipped in (
+                (5, [5, 5, 5, 5], ["package_processes", "low_memory_killer"]),
+                (4.5, [5, 5, 5, 5, 2], ["low_memory_killer"])):
+            with self.subTest(delay=delay):
+                receipt, clock = {"status": "failed", "error": "original"}, ReadinessClock()
+                device = Mock(spec=smoke.Device)
+
+                def timeout(*args, **kwargs):
+                    clock.now += min(delay, kwargs["timeout"])
+                    raise subprocess.TimeoutExpired(args, kwargs["timeout"], output=b"partial", stderr=b"offline")
+
+                device.adb.side_effect = timeout
+                with patch.object(smoke.time, "monotonic", clock.monotonic):
+                    smoke.retain_case_failure_state(device, receipt)
+                state = receipt["case_failure_observations"]
+                self.assertEqual(20, state["seconds"])
+                self.assertTrue(state["deadline_reached"])
+                self.assertEqual(skipped, state["unattempted_checks"])
+                self.assertEqual(expected_timeouts, [item.kwargs["timeout"] for item in device.adb.call_args_list])
+                self.assertEqual("original", receipt["error"])
+                for observed in state["checks"].values():
+                    self.assertEqual("partial", observed["stdout_tail"])
+                    self.assertEqual("offline", observed["stderr"]["prefix"])
+                    self.assertNotIn("exit_code", observed)
+
+    def test_failed_case_observations_keep_owned_process_errors_without_retries(self):
+        receipt = {"status": "failed", "error": "original"}
+        device = Mock(spec=smoke.Device)
+        device.adb.side_effect = smoke.SmokeFailure("Owned emulator process exited")
+        smoke.retain_case_failure_state(device, receipt)
+        self.assertEqual(6, device.adb.call_count)
+        self.assertEqual(6, len({item.args for item in device.adb.call_args_list}))
+        self.assertTrue(all(item["error"] == "Owned emulator process exited"
+                            for item in receipt["case_failure_observations"]["checks"].values()))
+        self.assertEqual("original", receipt["error"])
+        device.launch.assert_not_called()
+
+    def test_case_state_follows_failed_checkpoint_without_replacing_initial_log_or_failure(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            receipt = {"cases": [{"id": name, "status": "not_run"} for name in smoke.CASE_IDS]}
+            device = Mock(spec=smoke.Device)
+            original = smoke.SmokeFailure("Original launch timeout")
+            device.launch.side_effect = original
+            phases = []
+
+            def read(*args, **kwargs):
+                if args[0] == "logcat":
+                    phases.append("initial_log" if "400" in args else "later_log")
+                return subprocess.CompletedProcess([], 0, phases[-1], "")
+
+            def checkpoint(name):
+                self.assertEqual("failure", name)
+                self.assertEqual("initial_log", (Path(temporary) / "failure-logcat.txt").read_text())
+                phases.append("checkpoint")
+                raise smoke.SmokeFailure("Empty dump 137")
+
+            device.adb.side_effect = read
+            with patch.object(smoke.Ui, "checkpoint", side_effect=checkpoint):
+                with self.assertRaises(smoke.SmokeFailure) as raised:
+                    smoke.exercise(device, Path(temporary), receipt)
+            self.assertIs(original, raised.exception)
+            self.assertEqual(["initial_log", "checkpoint", "later_log"], phases)
+            self.assertEqual("initial_log", (Path(temporary) / "failure-logcat.txt").read_text())
+            self.assertEqual("later_log", receipt["case_failure_observations"]["checks"]["framework_log"]["stdout_tail"])
+            self.assertEqual("Empty dump 137", receipt["failure_checkpoint_error"])
+            self.assertEqual("failed", receipt["cases"][0]["status"])
+            self.assertTrue(all(row["status"] == "not_run" for row in receipt["cases"][1:]))
+
+    def test_unexpected_case_state_error_cannot_mask_original_case_failure(self):
+        receipt = {"cases": [{"id": name, "status": "not_run"} for name in smoke.CASE_IDS]}
+        device = Mock(spec=smoke.Device)
+        original = smoke.SmokeFailure("Original launch timeout")
+        device.launch.side_effect = original
+
+        def fail_after_observation(device, receipt):
+            receipt["case_failure_observations"] = {"phase": "after_failure_checkpoint"}
+            raise OSError("Unexpected diagnostic error")
+
+        with patch.object(smoke, "retain_failure_log"), patch.object(smoke.Ui, "checkpoint"), \
+                patch.object(smoke, "retain_case_failure_state", side_effect=fail_after_observation):
+            with self.assertRaises(smoke.SmokeFailure) as raised:
+                smoke.exercise(device, Path("unused"), receipt)
+        self.assertIs(original, raised.exception)
+        self.assertEqual("Unexpected diagnostic error", receipt["case_failure_observations"]["error"])
+        self.assertEqual("after_failure_checkpoint", receipt["case_failure_observations"]["phase"])
+        self.assertEqual("failed", receipt["cases"][0]["status"])
+        self.assertTrue(all(row["status"] == "not_run" for row in receipt["cases"][1:]))
 
     def test_ambiguous_controls_are_not_guessed(self):
         root = ET.Element("hierarchy")

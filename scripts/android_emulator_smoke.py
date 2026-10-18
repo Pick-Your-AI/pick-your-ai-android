@@ -59,6 +59,19 @@ BOOT_FAILURE_COMMANDS = (
     ("emulator_property", ("shell", "getprop", "ro.kernel.qemu")),
     ("boot_animation", ("shell", "getprop", "init.svc.bootanim")),
 )
+CASE_FAILURE_COMMANDS = (
+    ("framework_log", ("logcat", "-b", "main", "-b", "system", "-b", "crash", "-b", "events",
+                       "-d", "-v", "threadtime", "-t", "2000", "ActivityManager:I",
+                       "ActivityTaskManager:I", "AndroidRuntime:E", "System.err:W", "lmkd:I",
+                       "lowmemorykiller:I", "am_proc_start:I", "am_proc_bound:I", "am_proc_died:I",
+                       "am_kill:I", "am_crash:I", "am_anr:I", "am_low_memory:I",
+                       "wm_activity_launch_time:I", "*:S"), 131072),
+    ("package_pid", ("shell", "pidof", PACKAGE), 32768),
+    ("package_exit_history", ("shell", "dumpsys", "-t", "3", "activity", "exit-info", PACKAGE), 32768),
+    ("activity_stack", ("shell", "dumpsys", "-t", "3", "activity", "activities"), 32768),
+    ("package_processes", ("shell", "dumpsys", "-t", "3", "activity", "processes", PACKAGE), 32768),
+    ("low_memory_killer", ("shell", "dumpsys", "-t", "3", "activity", "lmk"), 32768),
+)
 
 
 class SmokeFailure(RuntimeError):
@@ -716,6 +729,36 @@ def retain_failure_log(device: Device, output: Path, receipt: dict):
         receipt["failure_logcat"] = {"error": bounded_text(str(error))}
 
 
+def retain_case_failure_state(device: Device, receipt: dict):
+    """Read owned guest state after the checkpoint; it cannot rescue the failed case."""
+    state = {"phase": "after_failure_checkpoint", "serial": SERIAL, "package": PACKAGE,
+             "timeout_seconds": 20, "checks": {}}
+    receipt["case_failure_observations"] = state
+    started = time.monotonic()
+    deadline = started + state["timeout_seconds"]
+    try:
+        for index, (name, arguments, retained_limit) in enumerate(CASE_FAILURE_COMMANDS):
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                state["deadline_reached"] = True
+                state["unattempted_checks"] = [item[0] for item in CASE_FAILURE_COMMANDS[index:]]
+                break
+            observed = {"started_seconds": round(time.monotonic() - started, 3),
+                        "stdout_retained_character_limit": retained_limit}
+            state["checks"][name] = observed
+            try:
+                result = observe_ui_command(device, arguments, observed, timeout=min(5, remaining))
+                stdout = result.stdout
+            except subprocess.TimeoutExpired as error:
+                stdout = error.stdout
+            except Exception:
+                continue  # The command's original error is already retained by observe_ui_command.
+            observed["stdout_tail"] = bounded_text(stdout, retained_limit)
+            observed["stdout_tail_truncated"] = observed["stdout"].get("text_characters", 0) > retained_limit
+    finally:
+        state["seconds"] = round(time.monotonic() - started, 3)
+
+
 def exercise(device: Device, output: Path, receipt: dict):
     ui = Ui(device, output, receipt)
     try:
@@ -789,6 +832,10 @@ def exercise(device: Device, output: Path, receipt: dict):
             ui.checkpoint("failure")
         except Exception as error:
             receipt["failure_checkpoint_error"] = bounded_text(str(error))
+        try:
+            retain_case_failure_state(device, receipt)
+        except Exception as error:
+            receipt.setdefault("case_failure_observations", {})["error"] = bounded_text(str(error), 1200)
         raise
 
 
