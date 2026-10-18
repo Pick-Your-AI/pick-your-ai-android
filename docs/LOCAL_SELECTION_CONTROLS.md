@@ -64,7 +64,12 @@ replacement preservation. Seven mandatory paused-looper Activity simulations cov
 add/configure/toggle/remove, invalid input retention, concurrent-head conflict,
 repeated/retired and canceled callbacks, in-flight field freezing and exact
 replacement no-op with dirty-form blocking.
-The existing 43 simulations remain mandatory alongside these seven additions.
-Hosted strict unsigned build/lint and all 50 cases must actually pass before this
-UI slice is accepted for merge. Local core tests do not establish Android build,
-installed/emulated runtime, physical-device or release evidence.
+The original source checkpoint's 43 existing Activity simulations and 50-case
+Activity total are historical counts. Current-main receiving retains every named
+Activity, cost-presentation, catalog-snapshot and complete recorded-price-browser
+regression in the current workflow, alongside these seven component-control
+additions. Hosted strict unsigned build/lint, all current named report guards and
+artifact-linked inventory/source-input checks must pass on the reviewed receiving
+source before this UI slice is accepted for merge. Local core tests do not
+establish Android build, installed/emulated runtime, physical-device or release
+evidence.
