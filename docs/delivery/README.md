@@ -49,6 +49,31 @@ still open at receiving; its edge and remaining model/API/import work are retain
 Its whole completion is neither a new prerequisite claim nor implied here. The
 accepted #34 native/canonical-store decision remains the other named input.
 
+### Save-policy correction and unchanged historical observations
+
+The current 03.02 record corrects the earlier phrase “Existing preview autosave”
+following [the actual call-site finding](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/418#issuecomment-6254224564).
+The preview uses explicit guarded Save and confirmed domain commands. Pending
+field changes and Bundle/lifecycle checkpoints do not schedule or acknowledge a
+durable autosave. The definition subtask specifies the existing model contract
+for a later automatic caller; it does not claim an implemented scheduler.
+Integrated autosave timing, ordering, background completion, retries and feedback
+remain in [#122, Undo and revisions](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/122).
+Underlying storage #67 and every other work package retain their own scope.
+
+The fixed correction source is
+[945b6c51](https://github.com/Pick-Your-AI/pick-your-ai-android/commit/945b6c51a6ac0096594a6605ac770b0dea12ee09),
+tree 108a28444775908626b8f56ad163d5948e9133cb, record blob
+e0d2d13f63cbdb361c8fc8ee517d7d2faa1c5dc8. That identity is an unsigned reviewed
+documentation preparation, not a replacement signed model/record observation.
+Its actual bounded correction review identities are recorded separately in
+`save_policy_correction`; the original three receiving receipts remain unchanged.
+The fixed allowlist rejects absent or substituted correction/source/review scope,
+an invented scheduler or signature, and a wrong follow-up issue. The required
+ledger suite also checks the exact current record bytes against the correction
+blob/length/hash. This source has no new native execution to attribute to those
+receipts; normal configured and actual-main delivery checks remain distinct.
+
 ### Strict classification and preserved history
 
 The source-defined #26 allowlist requires its distinct implementation outcome,

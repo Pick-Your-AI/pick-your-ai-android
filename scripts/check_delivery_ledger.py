@@ -370,6 +370,42 @@ IMPLEMENTATION_26_ACCEPTANCE = {'scope': 'android_local_draft_projection_and_pri
                             'sha256': '28f2ecb0ff81d630cbfeca29b68d07b501719b5edcdac81e1aa3a4a9e54700f1',
                             'other_issue_records_sha256': 'b865df9204bf36788c3304750f21b6211b9eca048f1c4f818b5a4aee08afa338',
                             'earlier_evidence_sha256': '097b08ba3e346eda96f21010314321d22f6145c21169b27bc7b8034cfa9e6cf6'}}
+# The save-policy correction supplements, without relabeling, the signed historical record.
+IMPLEMENTATION_26_SAVE_POLICY_CORRECTION = {'source_revision': '945b6c51a6ac0096594a6605ac770b0dea12ee09',
+ 'source_tree': '108a28444775908626b8f56ad163d5948e9133cb',
+ 'source_url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/commit/945b6c51a6ac0096594a6605ac770b0dea12ee09',
+ 'source_observed_state': 'unsigned_review_preparation',
+ 'record_path': 'docs/delivery/android/work-packages/03.02.md',
+ 'record_blob': 'e0d2d13f63cbdb361c8fc8ee517d7d2faa1c5dc8',
+ 'finding_url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/pull/418#issuecomment-6254224564',
+ 'disposition': 'accept_model_definition_without_claiming_an_implemented_autosave_scheduler',
+ 'current_preview_policy': 'explicit_guarded_Save_and_confirmed_domain_commands; '
+                           'field_changes_and_Bundle_lifecycle_checkpoints_are_not_durable_autosave',
+ 'automatic_caller_contract': 'captured_complete_input_and_exact_current_source_authority; managed_liveness; '
+                              'format_2_to_5_noop_and_declared_format_1_migration; append_only_edit_restore; '
+                              'retain_pending_on_conflict_failure; '
+                              'reconcile_uncertainty_before_retry_or_acknowledgment; '
+                              'no_archived_write_authority',
+ 'scheduler_implementation': 'not_implemented_or_accepted',
+ 'remaining_interaction_issue': 'https://github.com/Pick-Your-AI/pick-your-ai-android/issues/122',
+ 'remaining_interaction_scope': 'automatic_timing_queue_order_background_completion_retries_lifecycle_triggering_and_autosave_feedback_remain_separate; '
+                                'no_scope_or_completion_change_to_122_or_storage_67',
+ 'historical_execution_relabelled': False,
+ 'new_native_execution_claimed': False,
+ 'receiving_reviews': [{'role': 'central_contract_and_saved_build',
+                        'url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/issues/26#issuecomment-6254828125',
+                        'created_at': '2026-10-18T20:34:38Z',
+                        'reviewed_revision': '945b6c51a6ac0096594a6605ac770b0dea12ee09',
+                        'disposition': 'accept_bounded_model_policy_correction_and_exact_source_preservation_without_scheduler_or_new_execution'},
+                       {'role': 'coordinating_affected_web_and_Android_model',
+                        'url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/issues/26#issuecomment-6254901761',
+                        'created_at': '2026-10-18T20:41:47Z',
+                        'reviewed_revision': '945b6c51a6ac0096594a6605ac770b0dea12ee09',
+                        'disposition': 'accept_literal_model_definition_with_explicit_current_saves_and_scheduler_feedback_retained_under_122'}],
+ 'record_bytes': 30346,
+ 'record_sha256': 'aa65256ffb0968eefef449f702c0ac8022d316d946e93e0a605806c1045d9af5'}
+IMPLEMENTATION_26_ACCEPTANCE['save_policy_correction'] = IMPLEMENTATION_26_SAVE_POLICY_CORRECTION
+
 REVIEWED_IMPLEMENTATIONS = {
     26: {
         'record': {'repository': 'Pick-Your-AI/pick-your-ai-android', 'path': 'docs/delivery/android/work-packages/03.02.md'},
