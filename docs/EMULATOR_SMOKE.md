@@ -10,7 +10,9 @@ ACL and its exact restoration. It uses one fresh AOSP API 35 x86_64 AVD. The
 explicit 720×1280/280-dpi startup profile from the preceding HVF experiment is
 retained and bound across the workflow, unprivileged child and final receipts.
 The first ACL/KVM attempt booted and verified that display, then failed its HOME
-root acquisition and exact cleanup check; both failures are recorded below.
+root acquisition and exact cleanup check. The second acquired fresh HOME XML and
+focus but rejected its embedded search package; that attempt restored the exact
+original ACL. Both failed installed results are recorded below.
 The earlier RunAs-group denial and Intel macOS failures remain recorded below. The workflow
 definition and host-side harness tests are preparation; only an observed passing
 run and its exact receipt establish installed-emulator evidence.
@@ -706,6 +708,86 @@ source behavior only. The original producer artifacts independently contain
 2,627 core and 211 simulated native cases with zero failures/errors/skips, but
 the installed run above remains failed and the revised source needs its own
 reviewed hosted result.
+
+### Observed embedded HOME search package and exact ACL restoration
+
+[Run 39151071213](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39151071213),
+attempt 1 / installed job `117745927337`, used signed prepared checkout
+`2dcc12c8756b3bba2c5ab71d5b86cf8101c3b4b0`, exact source tree
+`e9e1b084054557c7d1a6e5aef6a7adaefd332437`, from preparation head
+`b7641b5d229f2369e1712182615eec9a015d2251`. The original installed artifact
+`12145128712` is 72,295 bytes with verified ZIP SHA-256
+`34a3649981e06be8c594062d6a8390c8b9786252c677983cf39893353d565672`.
+Its receipt and JUnit remain failed, with all four installed cases `not_run`.
+
+All nine basic readiness observations and the one complete framework barrier
+passed. The first HOME snapshot also completed its remove, dump, read and XML
+parse. The retained hierarchy summary records rotation `0`, 22 positive-bounds
+Launcher3 nodes and the sorted packages `com.android.launcher3` and
+`com.android.quicksearchbox`. The read contained 9,261 decoded characters, with
+SHA-256 `37a0cfa9cc77d7b88053c69e08049bff7f2191a31b9457679447fb313ef9a7b0`.
+Both required focus entries named the exact user-0 Quickstep HOME window. The
+24,885-character focus result was fully retained below its 65,536-character bound;
+its smaller prefix/suffix summaries do not mean that the retained focus was
+truncated.
+
+The previous final package-list predicate admitted Launcher3 alone or with System
+UI, so it rejected this HOME summary. A read-only reconstruction of the exact
+pre-guard state confirms that every other final predicate passes; changing only
+that package-list input to the formerly admitted HOME-only list makes the old
+predicate pass. This is a counterfactual source diagnosis, not a change to the
+original receipt. Readiness ended after 9.298 seconds, not exhaustion of its
+180-second deadline. The generic failure message combines readiness and deadline
+requirements and does not itself identify a timeout. There was only one HOME
+attempt; this run did not exercise the null-root retry, and it never reached APK
+installation or an installed application case.
+
+The independently read Android 15 release-tag
+[Launcher3 QsbContainerView](https://android.googlesource.com/platform/packages/apps/Launcher3/+/refs/tags/android-15.0.0_r1/src/com/android/launcher3/qsb/QsbContainerView.java)
+resolves the configured or global-search package, binds its search AppWidget and
+adds that provider view inside HOME. The same tag's
+[QuickSearchBox manifest](https://android.googlesource.com/platform/packages/apps/QuickSearchBox/+/refs/tags/android-15.0.0_r1/AndroidManifest.xml)
+declares the exact `com.android.quicksearchbox` package and its
+`SearchWidgetProvider`. These primary sources support the observed package set
+as compatible with an embedded HOME search widget; they do not establish an
+exact source/binary match for the installed system image or reconstruct XML
+characters omitted from the bounded read summaries.
+
+The admission correction adds only this known package to the two existing HOME
+forms: each of the four explicit sorted, unique package lists still contains
+Launcher3, with optional `com.android.quicksearchbox` and `com.android.systemui`.
+Any other package, missing Launcher3, duplicate or unordered receipt list fails.
+Positive-bounds HOME nodes, rotation zero, fresh exact-path XML, both exact HOME
+focus entries, the complete framework barrier and the original deadline remain
+mandatory. The search app itself in the foreground and any ANR/dialog focus
+still fail. No installed snapshot, case, retry limit, timer, image, renderer or
+permission operation changes. Six focused host methods cover both embedded-widget
+forms, exact 0/137 dump completion, retained null-root history, foreign or missing
+HOME content, foreground/ANR focus, malformed package lists, read stderr and the
+unchanged deadline. Host tests do not establish a new installed result.
+
+The same original artifact also supplies a separate successful cleanup
+observation. Before cleanup, the original device had the exact three base ACL
+entries plus the sole `mask::rw-`, no named entries and no runner read/write
+access. The reviewed fixed BASE restoration command returned integer zero with
+complete empty streams, proven permission-command subtree quiescence and final
+`ECHILD`. Its entire final observation equals the original before observation:
+device identity, root ownership, existing KVM group, mode, original non-root
+UID/GID/supplementary groups, exact three-entry ACL and denied access. The boundary
+still records failed child exit 1 and the original HOME failure. This observes
+the bounded cleanup normalization working in that run; it does not identify the
+actor that previously removed the temporary named entry or turn the failed
+installed attempt into a pass.
+
+The four original producer archives for the same signed checkout independently
+verify 2,635 core cases in 59 JUnit reports and 222 simulated native cases in 16
+reports, with no failures, errors or skipped cases. Their 8 core and 10 preview
+source pins and output hashes match the exact tree. Both APK copies are identical
+at 2,859,217 bytes / SHA-256
+`dd3b533ed79ddbffeee1ea2b6eac580e8b5c88f463c9eee884b65cc897081d69`.
+Lint reports 15 warnings and no errors; the pinned scanner inspects 173 reachable
+commits with no findings. These passing producer results are distinct from the
+failed installed job and every physical-device or release requirement.
 
 ### Observed pre-installation SystemUI ANR and retained global ANR records
 

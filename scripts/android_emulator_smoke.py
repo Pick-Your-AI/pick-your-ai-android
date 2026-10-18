@@ -981,7 +981,10 @@ def interactive_readiness_passes(state: dict) -> bool:
                                     and command["stdout"]["prefix"].strip() == "UI hierchary dumped to: " + UI_DUMP_PATH):
             return False
     return (isinstance(hierarchy, dict) and hierarchy.get("rotation") == "0"
-            and hierarchy.get("packages") in ([HOME_PACKAGE], [HOME_PACKAGE, "com.android.systemui"])
+            and hierarchy.get("packages") in (
+                [HOME_PACKAGE], [HOME_PACKAGE, "com.android.systemui"],
+                [HOME_PACKAGE, "com.android.quicksearchbox"],
+                [HOME_PACKAGE, "com.android.quicksearchbox", "com.android.systemui"])
             and type(hierarchy.get("visible_home_nodes")) is int and hierarchy["visible_home_nodes"] > 0
             and isinstance(hierarchy.get("read_text_sha256"), str)
             and re.fullmatch(r"[0-9a-f]{64}", hierarchy["read_text_sha256"]) is not None

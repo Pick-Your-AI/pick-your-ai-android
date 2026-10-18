@@ -59,6 +59,144 @@ class ReadinessClock:
         self.now += seconds
 
 
+class HomeSearchWidgetGuardTest(unittest.TestCase):
+    QSB_PACKAGE = "com.android.quicksearchbox"
+
+    @classmethod
+    def answers(cls, system_ui=False):
+        answers = interactive_answers()
+        root = ET.fromstring(answers[3].stdout)
+        root.find("node").append(node(package=cls.QSB_PACKAGE, box="[8,8][92,24]"))
+        if system_ui:
+            root.append(node(package="com.android.systemui"))
+        answers[3].stdout = ET.tostring(root, encoding="unicode")
+        return answers
+
+    def test_embedded_search_widget_retains_complete_home_evidence_and_command_sequence(self):
+        for system_ui in (False, True):
+            for dump_status in (0, 137):
+                device, readiness = Mock(spec=smoke.Device), {}
+                answers = self.answers(system_ui)
+                answers[2].returncode = dump_status
+                device.adb.side_effect = answers
+                with self.subTest(system_ui=system_ui, dump_status=dump_status), \
+                        patch.object(smoke.time, "monotonic", return_value=0):
+                    smoke.establish_interactive_readiness(device, readiness, 180)
+                state = readiness["interactive"]
+                self.assertTrue(smoke.interactive_readiness_passes(state))
+                self.assertTrue(smoke.framework_barrier_passes(state["barrier"]))
+                self.assertTrue(smoke.home_focus_passes(state["focus"]))
+                expected_packages = [smoke.HOME_PACKAGE, self.QSB_PACKAGE]
+                if system_ui:
+                    expected_packages.append("com.android.systemui")
+                self.assertEqual(expected_packages, state["home_hierarchy"]["packages"])
+                self.assertEqual(1, state["home_hierarchy"]["visible_home_nodes"])
+                self.assertEqual(hashlib.sha256(answers[3].stdout.encode()).hexdigest(),
+                                 state["home_hierarchy"]["read_text_sha256"])
+                self.assertEqual({"attempted": 1, "completed": 1, "exit_137": int(dump_status == 137)},
+                                 state["ui_hierarchy_dumps"])
+                self.assertEqual(5, device.adb.call_count)
+                self.assertEqual([120, 30, 20, 30, 5],
+                                 [item.kwargs["timeout"] for item in device.adb.call_args_list])
+                self.assertNotIn("first_failed_attempt", state["ui_hierarchy_observations"])
+                device.launch.assert_not_called()
+
+    def test_exact_null_root_then_search_widget_retains_the_failed_home_attempt(self):
+        clean = self.answers()
+        answers = clean[:1] + [subprocess.CompletedProcess([], 0, "", ""),
+                              subprocess.CompletedProcess([], 0, "", smoke.HOME_ROOT_UNAVAILABLE)] + clean[1:]
+        device, readiness = Mock(spec=smoke.Device), {}
+        device.adb.side_effect = answers
+        with patch.object(smoke.time, "monotonic", return_value=0):
+            smoke.establish_interactive_readiness(device, readiness, 180)
+        state = readiness["interactive"]
+        self.assertTrue(smoke.interactive_readiness_passes(state))
+        self.assertEqual(7, device.adb.call_count)
+        self.assertEqual(2, state["ui_hierarchy_observations"]["attempted"])
+        first = state["ui_hierarchy_observations"]["first_failed_attempt"]
+        self.assertTrue(smoke.home_root_unavailable_passes(first))
+        self.assertEqual(smoke.HOME_ROOT_UNAVAILABLE, first["commands"]["dump"]["stderr"]["prefix"])
+        device.launch.assert_not_called()
+
+    def test_search_widget_cannot_supply_missing_home_or_admit_an_unexpected_package(self):
+        clean = self.answers()[3].stdout
+        invalid = [clean.replace(smoke.HOME_PACKAGE, self.QSB_PACKAGE),
+                   clean.replace("[0,0][100,100]", "[0,0][0,0]"),
+                   clean.replace('rotation="0"', 'rotation="1"')]
+        for package in ("android", smoke.PACKAGE, "example.foreign.widget", self.QSB_PACKAGE + ".other"):
+            root = ET.fromstring(clean)
+            root.append(node(package=package))
+            invalid.append(ET.tostring(root, encoding="unicode"))
+        for raw in invalid:
+            device, readiness = Mock(spec=smoke.Device), {}
+            answers = self.answers()
+            answers[3].stdout = raw
+            device.adb.side_effect = answers
+            with self.subTest(xml=raw), patch.object(smoke.time, "monotonic", return_value=0), \
+                    self.assertRaises(smoke.SmokeFailure):
+                smoke.establish_interactive_readiness(device, readiness, 180)
+            self.assertFalse(readiness["interactive"]["ready"])
+            self.assertEqual(5, device.adb.call_count)
+            device.launch.assert_not_called()
+
+    def test_embedded_search_package_never_accepts_search_activity_or_anr_focus(self):
+        for focused_window in (
+                self.QSB_PACKAGE + "/" + self.QSB_PACKAGE + ".SearchActivity",
+                "Application Not Responding: com.android.systemui"):
+            device, readiness = Mock(spec=smoke.Device), {}
+            answers = self.answers()
+            answers[4].stdout = answers[4].stdout.replace(smoke.HOME_WINDOW, focused_window)
+            device.adb.side_effect = answers
+            with self.subTest(focused_window=focused_window), \
+                    patch.object(smoke.time, "monotonic", return_value=0), self.assertRaises(smoke.SmokeFailure):
+                smoke.establish_interactive_readiness(device, readiness, 180)
+            state = readiness["interactive"]
+            self.assertFalse(state["ready"])
+            self.assertFalse(smoke.home_focus_passes(state["focus"]))
+            self.assertEqual(5, device.adb.call_count)
+            device.launch.assert_not_called()
+
+    def test_search_widget_receipt_rejects_noncanonical_or_foreign_package_lists(self):
+        device, readiness = Mock(spec=smoke.Device), {}
+        device.adb.side_effect = self.answers()
+        with patch.object(smoke.time, "monotonic", return_value=0):
+            smoke.establish_interactive_readiness(device, readiness, 180)
+        valid = readiness["interactive"]
+        self.assertTrue(smoke.interactive_readiness_passes(valid))
+        for packages in (None, [], self.QSB_PACKAGE, [self.QSB_PACKAGE],
+                         [self.QSB_PACKAGE, smoke.HOME_PACKAGE],
+                         [smoke.HOME_PACKAGE, self.QSB_PACKAGE, self.QSB_PACKAGE],
+                         [smoke.HOME_PACKAGE, self.QSB_PACKAGE, "example.foreign.widget"],
+                         [smoke.HOME_PACKAGE, "com.android.systemui", self.QSB_PACKAGE],
+                         (smoke.HOME_PACKAGE, self.QSB_PACKAGE)):
+            changed = copy.deepcopy(valid)
+            changed["home_hierarchy"]["packages"] = packages
+            with self.subTest(packages=packages):
+                self.assertFalse(smoke.interactive_readiness_passes(changed))
+
+    def test_search_widget_cannot_override_read_stderr_or_the_existing_deadline(self):
+        for failure in ("read_stderr", "deadline"):
+            device, readiness, clock = Mock(spec=smoke.Device), {}, ReadinessClock()
+            answers = self.answers()
+            if failure == "read_stderr":
+                answers[3].stderr = "read diagnostic"
+            iterator = iter(enumerate(answers))
+
+            def answer(*args, **kwargs):
+                index, result = next(iterator)
+                if failure == "deadline" and index == 4:
+                    clock.now = 180
+                return result
+
+            device.adb.side_effect = answer
+            with self.subTest(failure=failure), patch.object(smoke.time, "monotonic", clock.monotonic), \
+                    self.assertRaises(smoke.SmokeFailure):
+                smoke.establish_interactive_readiness(device, readiness, 180)
+            self.assertFalse(readiness["interactive"]["ready"])
+            self.assertEqual(4 if failure == "read_stderr" else 5, device.adb.call_count)
+            device.launch.assert_not_called()
+
+
 class HomeRootRetryGuardTest(unittest.TestCase):
     NULL_ROOT = "ERROR: null root node returned by UiTestAutomationBridge.\n"
 
