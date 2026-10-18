@@ -48,7 +48,7 @@ class PreviewSelectionFormTest {
         val result = DraftSelectionCommands.apply(DraftContent(components = DraftSelections(listOf(model))), replace.command, catalog) as SelectionEdit.Ready
         assertEquals(model, result.content.components.selections.single())
         assertEquals(PreviewSelectionPreparation.Invalid, PreviewSelectionForms.replace(model, item(SelectionFixtures.selection("hosting_platform", "hosting")), catalog.hash.hex))
-        assertFalse(PreviewSelectionForms.supported("deployment_mode"))
+        assertTrue(PreviewSelectionForms.supported("deployment_mode"))
         assertFalse(PreviewSelectionForms.supported("tool"))
         assertEquals(model.settings.toString(), PreviewSelectionForms.settingsText(model))
     }
