@@ -528,6 +528,36 @@ jobs:
               raise SystemExit("Recorded selection context result count does not match executed cases")
           print(f"Verified {len(cases)} simulated recorded selection context tests; no installed-device claim")
           PYTEST
+      - name: Require catalog viewport restoration regressions to execute
+        run: |
+          python - <<'PYTEST'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          expected_suites = {
+              "CatalogViewportTest": {
+                  "sameSnapshotRestoresExactRowOffsetAfterUpstreamLayoutChangesOnlyOnce",
+                  "incompleteLoadingRetainsAnchorAcrossAnotherRecreation",
+                  "changedSnapshotMissingRowWrongVersionAndUnknownFormatNeverRestore",
+                  "newUserNavigationCancelsPendingRestoration",
+                  "closedViewportAndSnapshotChangedBeforeDrawCannotMoveRetiredScroll",
+                  "observerTransferredDuringAttachmentIsRemovedAfterRestoration",
+                  "directAndAccessibilityDetailActionsCancelPendingRestoration",
+                  "editorOnlyPositionDoesNotInventACatalogAnchor",
+                  "changedGeometryAndExtremeOffsetsKeepTheExactRowVisibleWithoutOverflow",
+              },
+              "PreviewCatalogViewportTest": {
+                  "catalogRowPositionSurvivesDetailsAndActivityRecreationWithoutDraftWrites",
+              },
+          }
+          for name, expected in expected_suites.items():
+              report = pathlib.Path(f"preview/build/test-results/testDebugUnitTest/TEST-ai.pickyour.android.preview.{name}.xml")
+              suite = ET.parse(report).getroot()
+              cases = suite.findall("testcase")
+              assert expected <= {case.attrib["name"] for case in cases}, f"Missing {name} regression"
+              assert all(not case.findall("failure") and not case.findall("error") and not case.findall("skipped") for case in cases), f"{name} regression did not pass"
+              assert int(suite.attrib["tests"]) >= len(expected)
+              print(f"Verified {len(cases)} simulated {name} tests; no installed-device claim")
+          PYTEST
       - name: Retain unsigned diagnostic and lint reports
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
