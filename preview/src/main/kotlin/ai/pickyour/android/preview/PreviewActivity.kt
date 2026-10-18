@@ -48,6 +48,7 @@ class PreviewActivity : Activity() {
     private lateinit var selection: TextView
     private lateinit var catalog: CatalogBrowseSection
     private var catalogPricebook: RecordedPricebook? = null // UI-thread owned, replaced with each catalog load.
+    private lateinit var catalogComparison: CatalogComparisonSection
     private lateinit var catalogStatus: TextView
     private lateinit var catalogSearch: EditText
     private lateinit var retry: Button
@@ -212,6 +213,8 @@ class PreviewActivity : Activity() {
         content.addView(catalogSearch)
         retry = Button(this).apply { setText(R.string.retry_catalog); setOnClickListener { loadCatalog() } }
         content.addView(retry)
+        catalogComparison = CatalogComparisonSection(this, savedInstanceState)
+        content.addView(catalogComparison)
         catalog = CatalogBrowseSection(this, savedInstanceState, ::showDetails)
         content.addView(catalog)
         catalog.search(catalogSearch.text.toString())
@@ -291,6 +294,7 @@ class PreviewActivity : Activity() {
                     retry.isEnabled = true
                     catalogStatus.setText(if (loaded.catalog == null) R.string.catalog_unavailable else R.string.catalog_ready)
                     if (loaded.catalog == null) catalog.unavailable() else catalog.show(loaded.catalog)
+                    catalogComparison.show(loaded.catalog, loaded.pricebook)
                     catalog.selectionEnabled(!storageBusy)
                     showSelection()
                 }
@@ -308,6 +312,17 @@ class PreviewActivity : Activity() {
             .setTitle(item.name)
             .setMessage(detail?.let { CatalogDetailText.describe(this, it, catalogPricebook) }
                 ?: getString(R.string.catalog_detail_unavailable))
+            .setView(Button(this).apply {
+                setText(R.string.catalog_compare_add)
+                minHeight = (48 * resources.displayMetrics.density).toInt()
+                minWidth = (48 * resources.displayMetrics.density).toInt()
+                setOnClickListener {
+                    if (dialog.isShowing && !destroyed) {
+                        catalogComparison.add(item, catalogHash)
+                        dialog.dismiss()
+                    }
+                }
+            })
             .setNegativeButton(R.string.close, null)
             .setNeutralButton(R.string.catalog_sources) { _, _ ->
                 if (dialog.isShowing && detail != null) CatalogSourceNavigation(this, detail, isCurrent = {
@@ -894,6 +909,7 @@ class PreviewActivity : Activity() {
 
     override fun onSaveInstanceState(outState: Bundle) {
         catalog.saveState(outState)
+        catalogComparison.save(outState)
         outState.putString("draftId", currentDraftId.value)
         outState.putBoolean("selectionResolved", selectionResolved)
         val checkpoint = PreviewDraftRestoration.capture(savedRecord, storageReady, storageBusy)
@@ -934,6 +950,7 @@ class PreviewActivity : Activity() {
     override fun onDestroy() {
         destroyed = true
         if (::catalog.isInitialized) catalog.close()
+        if (::catalogComparison.isInitialized) catalogComparison.close()
         storageReady = false
         storageBusy = true
         if (::tierSection.isInitialized) tierSection.close()

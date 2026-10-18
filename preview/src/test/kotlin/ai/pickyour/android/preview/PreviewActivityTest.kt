@@ -80,6 +80,18 @@ class PreviewActivityTest {
     private fun loaded() = (adapter().load() as PreviewDraftLoad.Available).record
     private fun dialog() = ShadowAlertDialog.getLatestAlertDialog()!!
     private fun samples() = views().filterIsInstance<Button>().filter { it.text.toString().startsWith("Open FICTIONAL") }
+    private fun comparisonSection() = views().filterIsInstance<CatalogComparisonSection>().single()
+    private fun comparisonAdd(detail: AlertDialog = dialog()) = views(detail.window!!.decorView).filterIsInstance<Button>()
+        .single { it.text.toString() == activity.getString(R.string.catalog_compare_add) }
+    private fun addComparison(kind: String) {
+        field(R.string.catalog_search).setText("cat.$kind.fixture")
+        await { samples().size == 1 }
+        samples().single().performClick()
+        val opened = dialog()
+        comparisonAdd(opened).performClick()
+        await { !opened.isShowing }
+    }
+    private fun comparisonRemovals() = views().filterIsInstance<Button>().filter { it.text.toString().startsWith("Remove component ") }
 
     private fun sourceDetails(vararg sources: String?): PreviewCatalogDetails {
         val root = activity.assets.open("catalog.json").bufferedReader(Charsets.UTF_8).use { org.json.JSONObject(it.readText()) }
@@ -476,6 +488,294 @@ class PreviewActivityTest {
         assertEquals(before, retiredOutput.text.toString())
         assertFalse(button(R.string.findings_browse).isEnabled)
         assertTrue(hasText(R.string.findings_notice))
+        assertTrue(adapter().load() is PreviewDraftLoad.Missing)
+    }
+
+    @Test fun catalogComparisonTrayRetainsExactPinsAcrossDetailsBackAndRecreationWithoutSaving() {
+        save()
+        val baseline = loaded().baselineIdentity
+        field(R.string.draft_title).setText("pending comparison title")
+        field(R.string.workload_budget).setText("12.00")
+        field(R.string.catalog_search).setText("cat.model.fixture")
+        await { samples().size == 1 }
+        samples().single().performClick()
+        val dismissedDetail = dialog()
+        val dismissedAdd = comparisonAdd(dismissedDetail)
+        dismissedDetail.onBackPressed()
+        await { !dismissedDetail.isShowing }
+        dismissedAdd.performClick()
+        assertTrue(comparisonRemovals().isEmpty())
+        addComparison("model")
+        assertFalse(button(R.string.catalog_compare_open).isEnabled)
+        addComparison("accelerator")
+        assertTrue(button(R.string.catalog_compare_open).isEnabled)
+        val captured = Bundle().also { comparisonSection().save(it) }
+        assertEquals(listOf("cat.model.fixture", "cat.accelerator.fixture"), captured.getStringArrayList("comparisonIds"))
+        addComparison("workload")
+        assertEquals(2, comparisonRemovals().size)
+        assertTrue(views().filterIsInstance<TextView>().any { it.text.toString().contains(activity.getString(R.string.catalog_compare_full)) })
+        samples().single().performClick()
+        val detail = dialog()
+        detail.onBackPressed()
+        await { !detail.isShowing }
+        recreate()
+        await { button(R.string.catalog_compare_open).isEnabled }
+        val restored = Bundle().also { comparisonSection().save(it) }
+        assertEquals(captured.getStringArrayList("comparisonIds"), restored.getStringArrayList("comparisonIds"))
+        assertEquals(captured.getStringArrayList("comparisonVersions"), restored.getStringArrayList("comparisonVersions"))
+        assertEquals(captured.getStringArrayList("comparisonHashes"), restored.getStringArrayList("comparisonHashes"))
+        assertEquals("cat.workload.fixture", field(R.string.catalog_search).text.toString())
+        assertEquals("pending comparison title", field(R.string.draft_title).text.toString())
+        assertEquals("12.00", field(R.string.workload_budget).text.toString())
+        assertTrue(hasText(R.string.no_selection))
+        assertEquals(baseline, loaded().baselineIdentity)
+        val removedControl = comparisonRemovals().first()
+        removedControl.performClick()
+        assertEquals(1, comparisonRemovals().size)
+        assertFalse(button(R.string.catalog_compare_open).isEnabled)
+        assertEquals(listOf("cat.accelerator.fixture"), Bundle().also { comparisonSection().save(it) }.getStringArrayList("comparisonIds"))
+        addComparison("model")
+        removedControl.performClick()
+        assertEquals(listOf("cat.accelerator.fixture", "cat.model.fixture"),
+            Bundle().also { comparisonSection().save(it) }.getStringArrayList("comparisonIds"))
+        assertEquals(baseline, loaded().baselineIdentity)
+    }
+
+    @Test fun catalogComparisonDifferencesKeepVersionsConditionsAndUnknownFieldsVisible() {
+        val root = activity.assets.open("catalog.json").bufferedReader(Charsets.UTF_8).use { org.json.JSONObject(it.readText()) }
+        val items = root.getJSONArray("items")
+        val model = (0 until items.length()).map { items.getJSONObject(it) }.single { it.getString("kind") == "model" }
+        model.getJSONObject("spec").remove("supports_fine_tuning")
+        model.getJSONObject("spec").put("min_weights_vram_gb", 0)
+        val newer = org.json.JSONObject(model.toString()).put("version", "successor")
+        newer.getJSONObject("spec").put("supported_precisions", org.json.JSONArray().put("int8"))
+        items.put(newer)
+        val browser = requireNotNull(PreviewCatalogBrowser.read(root.toString().toByteArray(Charsets.UTF_8)))
+        views().filterIsInstance<CatalogBrowseSection>().single().show(browser)
+        comparisonSection().show(browser)
+        field(R.string.catalog_search).setText("cat.model.fixture")
+        assertEquals(2, samples().size)
+        samples().first().performClick()
+        val firstDetail = dialog()
+        comparisonAdd(firstDetail).performClick()
+        await { !firstDetail.isShowing }
+        samples().last().performClick()
+        val secondDetail = dialog()
+        comparisonAdd(secondDetail).performClick()
+        await { !secondDetail.isShowing }
+        button(R.string.catalog_compare_open).performClick()
+        val comparison = dialog()
+        fun texts() = views(comparison.window!!.decorView).filterIsInstance<TextView>().map { it.text.toString() }
+        val sameField = activity.getString(R.string.catalog_compare_field, activity.getString(R.string.catalog_compare_spec), "min_weights_vram_gb")
+        val unknownField = activity.getString(R.string.catalog_compare_field, activity.getString(R.string.catalog_compare_spec), "supports_fine_tuning")
+        assertTrue(sameField in texts())
+        assertTrue(unknownField in texts())
+        assertTrue(texts().any { it.contains("Version: \"2026.10-demo\"") })
+        assertTrue(texts().any { it.contains("Version: \"successor\"") })
+        val toggle = views(comparison.window!!.decorView).filterIsInstance<android.widget.CheckBox>().single()
+        toggle.performClick()
+        assertTrue(toggle.isChecked)
+        assertFalse(sameField in texts())
+        assertTrue(unknownField in texts())
+        assertTrue(texts().any { it.contains("provider_ref [string]: \"cat.model_provider.fixture\"") })
+        assertTrue(texts().any { it.contains("supported_precisions [array]: [\"int8\"]") })
+        assertTrue(texts().any { it.contains(activity.getString(R.string.catalog_detail_price)) })
+        assertTrue(texts().any { it.contains(activity.getString(R.string.catalog_compare_unknown)) })
+        comparison.onBackPressed()
+        assertTrue(Bundle().also { comparisonSection().save(it) }.getBoolean("comparisonDifferencesOnly"))
+        assertNull(shadowOf(activity).nextStartedActivity)
+        assertTrue(adapter().load() is PreviewDraftLoad.Missing)
+    }
+
+    @Test fun catalogComparisonPreservesRecordedPriceSnapshotsAndUnknownRecoveryWithoutSaving() {
+        save()
+        val baseline = loaded().baselineIdentity
+        field(R.string.context_objective).setText("pending combined price comparison")
+        addComparison("compute_profile")
+        addComparison("storage")
+        val pinned = Bundle().also { comparisonSection().save(it) }
+        val catalogBytes = activity.assets.open("catalog.json").use { it.readBytes() }
+        val browser = requireNotNull(PreviewCatalogBrowser.read(catalogBytes))
+        val book = activity.assets.open("pricebook.json").use {
+            (RecordedPricebook.read(it) as RecordedPricebookResult.Parsed).pricebook
+        }
+        button(R.string.catalog_compare_open).performClick()
+        val opened = dialog()
+        fun contexts(value: AlertDialog) = views(value.window!!.decorView).filterIsInstance<TextView>()
+            .map { it.text.toString() }.filter { it.contains(activity.getString(R.string.catalog_detail_price)) }
+        val original = contexts(opened)
+        assertEquals(2, original.size)
+        original.forEach { text ->
+            assertTrue(text.contains("Pricebook: \"prices.fixture.1\""))
+            assertTrue(text.contains("SHA-256: ${book.hash}"))
+            assertTrue(text.contains("Catalog item version: \"2026.10-demo\""))
+            assertTrue(text.contains(activity.getString(R.string.catalog_price_notice)))
+            assertTrue(text.contains(activity.getString(R.string.catalog_price_conditions_missing)))
+        }
+        assertTrue(original[0].contains("Meter: gpu_hour"))
+        assertTrue(original[0].contains("Recorded unit_price.amount: \"0.80\""))
+        assertFalse(original[0].contains("rate.storage.fixture"))
+        assertTrue(original[1].contains("Meter: storage_gb_month"))
+        assertTrue(original[1].contains("Recorded unit_price.amount: \"0.05\""))
+        assertFalse(original[1].contains("rate.compute_profile.fixture"))
+        views(opened.window!!.decorView).filterIsInstance<android.widget.CheckBox>().single().performClick()
+        assertEquals(original, contexts(opened))
+        opened.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+        await { !opened.isShowing }
+
+        // A failed fresh price read replaces the old book; matching catalog pins remain available.
+        comparisonSection().show(browser, null)
+        button(R.string.catalog_compare_open).performClick()
+        val unavailable = dialog()
+        val unknown = contexts(unavailable)
+        assertEquals(2, unknown.size)
+        unknown.forEach { text ->
+            assertTrue(text.contains(activity.getString(R.string.catalog_price_unavailable)))
+            assertFalse(text.contains("Recorded unit_price.amount:"))
+            assertFalse(text.contains(book.hash))
+        }
+        unavailable.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+        await { !unavailable.isShowing }
+        comparisonSection().show(browser, book)
+        button(R.string.catalog_compare_open).performClick()
+        assertEquals(original, contexts(dialog()))
+        recreate()
+        await { button(R.string.catalog_compare_open).isEnabled }
+        button(R.string.catalog_compare_open).performClick()
+        assertEquals(original, contexts(dialog()))
+        val restored = Bundle().also { comparisonSection().save(it) }
+        for (key in listOf("comparisonIds", "comparisonVersions", "comparisonHashes")) {
+            assertEquals(pinned.getStringArrayList(key), restored.getStringArrayList(key))
+        }
+        assertEquals("pending combined price comparison", field(R.string.context_objective).text.toString())
+        assertTrue(hasText(R.string.no_selection))
+        assertEquals(baseline, loaded().baselineIdentity)
+        assertNull(shadowOf(activity).nextStartedActivity)
+    }
+
+    @Test fun catalogComparisonKeepsUnavailablePinsAndRejectsAnOldDetailAfterSnapshotReplacement() {
+        addComparison("model")
+        addComparison("accelerator")
+        samples().single().performClick()
+        val oldDetail = dialog()
+        val pinState = Bundle().also { comparisonSection().save(it) }
+        val bytes = activity.assets.open("catalog.json").use { it.readBytes() }
+        val original = requireNotNull(PreviewCatalogBrowser.read(bytes))
+        val root = org.json.JSONObject(bytes.toString(Charsets.UTF_8)).put("revision", 2)
+        val replacement = requireNotNull(PreviewCatalogBrowser.read(root.toString().toByteArray(Charsets.UTF_8)))
+        views().filterIsInstance<CatalogBrowseSection>().single().show(replacement)
+        comparisonSection().show(replacement)
+        assertFalse(button(R.string.catalog_compare_open).isEnabled)
+        comparisonAdd(oldDetail).performClick()
+        await { !oldDetail.isShowing }
+        assertEquals(2, comparisonRemovals().size)
+        assertTrue(views().filterIsInstance<TextView>().any { it.text.toString() == activity.getString(R.string.catalog_compare_unavailable) })
+        val after = Bundle().also { comparisonSection().save(it) }
+        assertEquals(pinState.getStringArrayList("comparisonHashes"), after.getStringArrayList("comparisonHashes"))
+        comparisonSection().show(original)
+        assertTrue(button(R.string.catalog_compare_open).isEnabled)
+        comparisonSection().show(null)
+        assertFalse(button(R.string.catalog_compare_open).isEnabled)
+        comparisonRemovals().last().performClick()
+        assertEquals(listOf("cat.model.fixture"), Bundle().also { comparisonSection().save(it) }.getStringArrayList("comparisonIds"))
+        assertTrue(adapter().load() is PreviewDraftLoad.Missing)
+    }
+
+    @Test fun retiredCatalogComparisonControlsCannotMutateStateOrOpenDialogs() {
+        save()
+        val baseline = loaded().baselineIdentity
+        field(R.string.context_objective).setText("pending comparison objective")
+        addComparison("model")
+        addComparison("accelerator")
+        val retiredSection = comparisonSection()
+        val retiredRemove = comparisonRemovals().first()
+        val retiredOpen = button(R.string.catalog_compare_open)
+        retiredOpen.performClick()
+        val comparison = dialog()
+        val retiredToggle = views(comparison.window!!.decorView).filterIsInstance<android.widget.CheckBox>().single()
+        comparison.onBackPressed()
+        await { !comparison.isShowing }
+        retiredToggle.performClick()
+        assertFalse(Bundle().also { retiredSection.save(it) }.getBoolean("comparisonDifferencesOnly"))
+        field(R.string.catalog_search).setText("cat.workload.fixture")
+        samples().single().performClick()
+        val retiredAdd = comparisonAdd()
+        val before = Bundle().also { retiredSection.save(it) }
+        recreate()
+        await { button(R.string.catalog_compare_open).isEnabled }
+        val previousDialog = ShadowAlertDialog.getLatestAlertDialog()
+        retiredRemove.performClick()
+        retiredAdd.performClick()
+        retiredToggle.performClick()
+        retiredOpen.performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+        assertSame(previousDialog, ShadowAlertDialog.getLatestAlertDialog())
+        val retiredAfter = Bundle().also { retiredSection.save(it) }
+        val current = Bundle().also { comparisonSection().save(it) }
+        for (state in listOf(retiredAfter, current)) {
+            assertEquals(before.getStringArrayList("comparisonIds"), state.getStringArrayList("comparisonIds"))
+            assertEquals(before.getStringArrayList("comparisonVersions"), state.getStringArrayList("comparisonVersions"))
+            assertFalse(state.getBoolean("comparisonDifferencesOnly"))
+        }
+        assertEquals("pending comparison objective", field(R.string.context_objective).text.toString())
+        assertEquals(baseline, loaded().baselineIdentity)
+    }
+
+    @Test fun invalidCatalogComparisonRestorationIsExplicitAndPreservesPendingEditorInputs() {
+        field(R.string.draft_title).setText("pending title survives invalid tray")
+        val state = Bundle()
+        controller.pause().saveInstanceState(state).stop().destroy()
+        state.putStringArrayList("comparisonIds", arrayListOf("cat.model.fixture"))
+        state.putStringArrayList("comparisonVersions", arrayListOf())
+        state.putStringArrayList("comparisonHashes", arrayListOf("a".repeat(64)))
+        controller = Robolectric.buildActivity(PreviewActivity::class.java).create(state).start().resume().visible()
+        await { button(R.string.save_draft).isEnabled }
+        assertTrue(views().filterIsInstance<TextView>().any { it.text.toString().contains(activity.getString(R.string.catalog_compare_reset)) })
+        assertTrue(comparisonRemovals().isEmpty())
+        assertFalse(button(R.string.catalog_compare_open).isEnabled)
+        assertEquals("pending title survives invalid tray", field(R.string.draft_title).text.toString())
+        assertTrue(adapter().load() is PreviewDraftLoad.Missing)
+    }
+
+    @Test
+    @Config(qualifiers = "ar-rEG-ldrtl-w320dp-h640dp")
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun catalogComparisonStackedHeadingsAndToggleRemainMeasuredAtNarrowRtlLargeText() {
+        RuntimeEnvironment.setFontScale(2f)
+        recreate()
+        await { button(R.string.save_draft).isEnabled }
+        addComparison("model")
+        addComparison("accelerator")
+        button(R.string.catalog_compare_open).performClick()
+        val root = dialog().window!!.decorView
+        val density = activity.resources.displayMetrics.density
+        val width = (320 * density).toInt()
+        val height = (640 * density).toInt()
+        root.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY))
+        root.layout(0, 0, width, height)
+        assertEquals(View.LAYOUT_DIRECTION_RTL, root.layoutDirection)
+        val headings = views(root).filterIsInstance<TextView>().filter { it.isAccessibilityHeading }
+        assertTrue(headings.size > 3)
+        // Component numbers follow the configured locale; exact pins remain visible in either direction.
+        assertTrue(headings.any { it.text.toString().contains("cat.model.fixture") && it.text.toString().contains("2026.10-demo") })
+        assertTrue(headings.any { it.text.toString().contains("cat.accelerator.fixture") && it.text.toString().contains("2026.10-demo") })
+        headings.forEach { heading ->
+            assertTrue(heading.width in 1..width)
+            assertNotNull(heading.layout)
+            assertTrue(heading.layout.lineCount > 0)
+            assertTrue(heading.layout.height <= heading.height - heading.compoundPaddingTop - heading.compoundPaddingBottom)
+            repeat(heading.layout.lineCount) { assertEquals(0, heading.layout.getEllipsisCount(it)) }
+        }
+        val toggle = views(root).filterIsInstance<android.widget.CheckBox>().single()
+        assertTrue(toggle.height >= (48 * density).toInt())
+        assertTrue(toggle.width >= (48 * density).toInt())
+        val node = toggle.createAccessibilityNodeInfo()
+        assertTrue(node.isCheckable)
+        assertFalse(node.isChecked)
+        assertEquals(activity.getString(R.string.catalog_compare_differences), node.text.toString())
+        assertTrue(toggle.isFocusable)
+        assertNull(shadowOf(activity).nextStartedActivity)
         assertTrue(adapter().load() is PreviewDraftLoad.Missing)
     }
 
