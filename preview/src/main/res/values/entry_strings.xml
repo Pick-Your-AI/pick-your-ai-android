@@ -1,0 +1,4 @@
+<resources>
+    <string name="entry_unsupported">This entry cannot be opened. Links and shared content are not supported by this local preview. Your saved drafts and any open local editor are unchanged. Continue locally, or choose a draft from the library.</string>
+    <string name="entry_choose_local">No local draft is selected. Open the local library or create a new draft before saving.</string>
+</resources>
