@@ -151,6 +151,13 @@ jobs:
               "catalogRecordedPriceBoundsLiteralAlternativesWithoutSelectingOrCombining",
               "catalogRecordedPriceReadFailureKeepsUnknownContextAndRetryUsesFreshSnapshot",
               "catalogRecordedPriceReloadAndRetiredDialogCannotChangePendingDraft",
+              "explicitComponentsAddConfigureToggleAndRemovePreserveGuestInputs",
+              "invalidComponentInputRemainsVisibleAndCannotCommitTruncatedPrefix",
+              "staleComponentFormCannotOverwriteConcurrentSavedHead",
+              "repeatedAndRetiredComponentConfirmationsCannotCreateAnotherRevision",
+              "exactComponentReplacementNoopRetainsIdentityAndDirtyFormBlocksEntry",
+              "canceledComponentDialogsAndPickersRevokeTheirRetainedCallbacks",
+              "inFlightComponentCommitFreezesFormUntilInvalidOutcomeRestoresInputs",
           }
           cases = suite.findall("testcase")
           assert expected <= {case.attrib["name"] for case in cases}, "Missing UI regression"
