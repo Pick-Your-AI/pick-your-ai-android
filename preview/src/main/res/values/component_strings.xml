@@ -1,0 +1,30 @@
+<resources>
+    <string name="component_heading">Saved local components</string>
+    <string name="component_limits">Explicit T1/T2 draft edits only. Catalog choices below are synthetic fixtures. These controls do not evaluate compatibility, cost, deployment requirements or readiness. Save or explicitly reopen pending form edits before changing components.</string>
+    <string name="component_count">Saved selections: %1$s</string>
+    <string name="component_manage">Manage saved components</string>
+    <string name="component_choose_catalog">Choose exact fixture component</string>
+    <string name="component_unsupported">This retained kind is outside the current T1/T2 editor. Its content remains unchanged.</string>
+    <string name="component_configure">Edit settings</string>
+    <string name="component_edit_role">Edit role</string>
+    <string name="component_role_warning">Enter the role for %1$s. For a new role, use 1–50 ASCII characters: a–z first, then a–z, 0–9, _ or -. Saving keeps this component’s identity, enabled state, catalog choice, settings and links. Each role can be used once per component kind.</string>
+    <string name="component_disable">Disable selection</string>
+    <string name="component_enable">Enable selection</string>
+    <string name="component_remove">Remove selection</string>
+    <string name="component_toggle_warning">Commit the enabled state for this exact selection? Settings and links remain retained. This does not establish that its requirements are met.</string>
+    <string name="component_remove_warning">Remove this exact selection and its incident links? No other selection is promoted or removed. Affected link IDs (0 means none): %1$s</string>
+    <string name="component_add">Add new selection</string>
+    <string name="component_replace">Replace %1$s</string>
+    <string name="component_replace_warning">Replace this selection with exact fixture %1$s @ %2$s from snapshot %3$s? Its identity, role, enabled state, settings and links are retained. Compatibility is not established.</string>
+    <string name="component_add_warning">Add exact fixture %1$s @ %2$s from snapshot %3$s. Enter an explicit lowercase role and schema-valid settings. Empty settings provide no missing required values. The checkbox below is the exact enabled state to commit.</string>
+    <string name="component_role">Explicit selection role</string>
+    <string name="component_settings">Settings JSON object (maximum 16,384 characters)</string>
+    <string name="component_enabled">Enabled in local draft</string>
+    <string name="component_commit">Commit local revision</string>
+    <string name="component_settings_warning">Replace only this selection’s settings with the exact JSON object below. Required settings must remain present. Raw credentials must never be entered; only opaque secret references are allowed where the frozen schema permits them. Invalid input remains visible and does not save.</string>
+    <string name="component_invalid">No revision committed. Correct the entered values using the rules shown in this form. The original input is retained.</string>
+    <string name="component_rejected">No revision committed. Selection command rejected: %1$s. Reopen or revise the explicit choice; no substitute was selected.</string>
+    <string name="component_saved">Local selection revision saved. Compatibility, cost and readiness remain unestablished.</string>
+    <string name="component_noop">The current saved selection already matches. No new revision was created.</string>
+    <string name="component_large_settings">Existing settings exceed this small editor’s text limit. They remain saved unchanged; this editor will not truncate them.</string>
+</resources>

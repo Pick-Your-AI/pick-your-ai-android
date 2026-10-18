@@ -2,11 +2,14 @@ package ai.pickyour.android.preview
 
 import android.app.Activity
 import android.app.AlertDialog
+import android.content.DialogInterface
+import android.content.Intent
 import android.os.Bundle
 import android.text.InputFilter
 import android.text.Editable
 import android.text.TextWatcher
 import ai.pickyour.core.preview.*
+import ai.pickyour.core.drafts.DraftWorkload
 import ai.pickyour.core.drafts.Activation
 import ai.pickyour.core.drafts.OptionalTier
 import ai.pickyour.core.drafts.DraftStorageFailure
@@ -23,7 +26,6 @@ import android.widget.TextView
 import ai.pickyour.core.contracts.FrozenDocument
 import ai.pickyour.core.contracts.FrozenSchemaValidator
 import ai.pickyour.core.contracts.FrozenValidation
-import org.json.JSONObject
 import java.util.concurrent.Executors
 import ai.pickyour.core.preview.SyntheticCatalogEvidence
 import ai.pickyour.core.evidence.EvidenceLabel
@@ -32,11 +34,12 @@ import ai.pickyour.core.evidence.EvidenceLabel
 class PreviewActivity : Activity() {
     private val worker = Executors.newSingleThreadExecutor()
     private var destroyed = false
+    private lateinit var workloadSection: WorkloadSection
+    private var restoreWorkloadFromDisk = false
     private lateinit var tierSection: OptionalTierSection
     private var selectedId: String? = null
     private var selectedVersion: String? = null
     private var selectedCatalogHash: String? = null
-    private var loadedCatalogHash: String? = null
     private lateinit var title: EditText
     private lateinit var objective: EditText
     private lateinit var contextInput: EditText
@@ -44,17 +47,24 @@ class PreviewActivity : Activity() {
     private var domainContext = PreviewDraftContext()
     private var restoreContextFromDisk = false
     private lateinit var selection: TextView
-    private lateinit var catalog: LinearLayout
+    private lateinit var componentSection: SelectionEditSection
+    private var componentCatalog: ai.pickyour.core.drafts.SelectionCatalogSnapshot? = null
+    private lateinit var catalog: CatalogBrowseSection
+    private lateinit var catalogComparison: CatalogComparisonSection
+    private lateinit var catalogPinRecovery: CatalogPinRecovery
+    private var catalogFixture: CatalogFixtureData? = null // UI-thread owned, replaced even when pricing is absent.
+    // The origin remains current while its child inspection is open after parent dismissal.
+    private var catalogDetailDialog: AlertDialog? = null
+    private var catalogPriceBrowser: CatalogPriceBrowser? = null
     private lateinit var catalogStatus: TextView
     private lateinit var catalogSearch: EditText
-    private lateinit var catalogResults: TextView
-    private var searchCatalogHash: String? = null
     private lateinit var retry: Button
-    private var items: List<SampleItem> = emptyList()
     private lateinit var save: Button
     private lateinit var reopen: Button
     private lateinit var clear: Button
     private lateinit var history: Button
+    private lateinit var compareRetained: Button
+    private lateinit var compareLibrary: Button
     private lateinit var saveStatus: TextView
     private var draftLibrary: PreviewDraftLibrary? = null // Accessed only on the single worker.
     private var currentDraftId = PreviewDraftId("guest-draft")
@@ -62,36 +72,65 @@ class PreviewActivity : Activity() {
     private lateinit var activeDraft: TextView
     private lateinit var libraryButton: Button
     private lateinit var newDraftButton: Button
+    private lateinit var recoverButton: Button
     private lateinit var duplicateButton: Button
+    private lateinit var retryDeleteButton: Button
+    private var pendingDeleteId: PreviewDraftId? = null
     private var savedRecord: PreviewStoredDraft? = null // UI-thread owned.
+    private var revisionDialog: AlertDialog? = null
+    private var revisionRequest: Any? = null
+    private var revisionBrowser: RevisionComparisonBrowser? = null
+    private var libraryComparison: LibraryRevisionComparison? = null
     private var storageReady = false
+    private var storageAuthority = Any() // UI-thread identity; never reused across storage operations.
     private var storageBusy = true
+        set(value) {
+            if (value) {
+                storageAuthority = Any()
+                retireRevisionInspection()
+            }
+            field = value
+            if (value && ::catalogPinRecovery.isInitialized) catalogPinRecovery.dismiss()
+        }
     private var restoringFields = false
     private var restoration: PreviewDraftRestoration? = null
+    private lateinit var findings: FindingsInspectionSection
+    private lateinit var diagnostics: LocalDiagnostics
+    private var diagnosticsResumed = false
+    private var entryBlocked = false
+    private var unsupportedEntry = false
+    private lateinit var entryNotice: TextView
 
-
-    private data class LoadedCatalog(val items: List<SampleItem>, val hash: String)
-    private data class SampleItem(val id: String, val name: String, val kind: String, val version: String)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // The checkpoint records a deliberate local recovery; it contains no incoming URI or payload.
+        entryBlocked = if (savedInstanceState?.containsKey("entryBlocked") == true)
+            savedInstanceState.getBoolean("entryBlocked") else !isLocalEntry(intent)
+        unsupportedEntry = entryBlocked || savedInstanceState?.getBoolean("unsupportedEntry", false) == true
         currentDraftId = PreviewDraftId(savedInstanceState?.getString("draftId") ?: "guest-draft")
-        selectionResolved = savedInstanceState != null && savedInstanceState.getBoolean("selectionResolved", true)
+        pendingDeleteId = savedInstanceState?.getString("pendingDeleteId")?.let(::PreviewDraftId)
+        selectionResolved = !entryBlocked && savedInstanceState != null && savedInstanceState.getBoolean("selectionResolved", true)
         restoration = savedInstanceState?.let {
             PreviewDraftRestoration(it.getString("draftBaseline"), it.getBoolean("draftRequiresReopen", true))
         }
+        val workloadCheckpoint = WorkloadSection.restore(savedInstanceState)
+        restoreWorkloadFromDisk = !workloadCheckpoint.hasInputs
         restoreContextFromDisk = savedInstanceState != null && !savedInstanceState.getBoolean("contextInputsPresent", false)
         domainContext = PreviewDraftContext(savedInstanceState?.getString("objective"), savedInstanceState?.getString("contextInput"))
         selectedId = savedInstanceState?.getString("selectedId")
         selectedVersion = savedInstanceState?.getString("selectedVersion")
         selectedCatalogHash = savedInstanceState?.getString("selectedCatalogHash")
-        searchCatalogHash = savedInstanceState?.getString("searchCatalogHash")
         val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         fun text(resource: Int, size: Float = 18f) = TextView(this).apply {
             setText(resource)
             textSize = size
         }.also(content::addView)
         text(R.string.notice, 20f)
+        entryNotice = text(R.string.entry_unsupported).apply {
+            accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
+            visibility = if (unsupportedEntry) View.VISIBLE else View.GONE
+        }
         text(R.string.guest_draft, 22f).apply { if (android.os.Build.VERSION.SDK_INT >= 28) isAccessibilityHeading = true }
         text(R.string.temporary)
         activeDraft = text(R.string.library_active).apply {
@@ -125,7 +164,7 @@ class PreviewActivity : Activity() {
                 addTextChangedListener(object : TextWatcher {
                     override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
                     override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                        if (!restoringFields) { changed(s.toString()); formChanged() }
+                        if (!destroyed && !restoringFields) { changed(s.toString()); formChanged() }
                     }
                     override fun afterTextChanged(s: Editable?) {}
                 })
@@ -146,42 +185,73 @@ class PreviewActivity : Activity() {
         clear = Button(this).apply {
             setText(R.string.clear_draft)
             setOnClickListener {
+                if (destroyed) return@setOnClickListener
                 title.setText("")
                 selectedId = null
                 selectedVersion = null
                 selectedCatalogHash = null
                 applyContext(PreviewDraftContext())
+                workloadSection.apply(PreviewWorkloadInputs())
                 showSelection()
                 formChanged()
             }
         }
         content.addView(clear)
+        workloadSection = WorkloadSection(this, workloadCheckpoint.inputs, { !destroyed }) { formChanged() }
+        content.addView(workloadSection)
         saveStatus = text(R.string.draft_loading).apply { accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE }
         save = Button(this).apply { setText(R.string.save_draft); setOnClickListener { saveDraft() } }
         reopen = Button(this).apply {
             setText(R.string.reopen_draft)
             setOnClickListener {
+                if (destroyed || storageBusy || !selectionResolved) return@setOnClickListener
+                val baseline = savedRecord
+                val draftId = currentDraftId
+                val authority = storageAuthority
                 AlertDialog.Builder(this@PreviewActivity).setTitle(R.string.reopen_draft)
                     .setMessage(R.string.reopen_warning)
                     .setNegativeButton(R.string.keep_edits, null)
-                    .setPositiveButton(R.string.reopen_confirm) { _, _ -> loadDraft(false) }.show()
+                    .setPositiveButton(R.string.reopen_confirm) { confirmation, _ ->
+                        if ((confirmation as? AlertDialog)?.isShowing == true && !destroyed && !storageBusy &&
+                            selectionResolved && currentDraftId == draftId && savedRecord === baseline && storageAuthority === authority) loadDraft(false)
+                    }.show()
             }
         }
         content.addView(save)
         content.addView(reopen)
         history = Button(this).apply { setText(R.string.draft_history); setOnClickListener { showHistory() } }
         content.addView(history)
+        compareRetained = Button(this).apply {
+            setText(R.string.revision_compare_pair_open)
+            setOnClickListener { savedRecord?.let { showComparisonPicker(it, pickBoth = true) } }
+        }
+        content.addView(compareRetained)
+        compareLibrary = Button(this).apply {
+            setText(R.string.library_compare_open)
+            setOnClickListener { showLibraryComparison() }
+        }
+        content.addView(compareLibrary)
         libraryButton = Button(this).apply { setText(R.string.library_open); setOnClickListener { showLibrary() } }
         newDraftButton = Button(this).apply { setText(R.string.library_new); setOnClickListener { confirmCreate(false) } }
         duplicateButton = Button(this).apply { setText(R.string.library_duplicate); setOnClickListener { confirmCreate(true) } }
+        retryDeleteButton = Button(this).apply {
+            setText(R.string.library_retry_delete)
+            setOnClickListener { pendingDeleteId?.let { confirmDelete(it, null, true) } }
+        }
         content.addView(libraryButton)
         content.addView(newDraftButton)
         content.addView(duplicateButton)
+        recoverButton = Button(this).apply { setText(R.string.recovery_copy); setOnClickListener { confirmRecoveryCopy() } }
+        content.addView(recoverButton)
+        content.addView(retryDeleteButton)
         tierSection = OptionalTierSection(this) { expected, tier, activation ->
             if (storageReady && !storageBusy && savedRecord === expected && matchesSaved())
                 setDraftActivation(expected, tier, activation)
         }
         content.addView(tierSection)
+        componentSection = SelectionEditSection(this, ::commitSelection)
+        componentSection.restore(savedInstanceState)
+        content.addView(componentSection)
         title.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { formChanged() }
@@ -204,22 +274,31 @@ class PreviewActivity : Activity() {
         }
         searchLabel.labelFor = catalogSearch.id
         content.addView(catalogSearch)
-        catalogResults = text(R.string.catalog_search_waiting).apply {
-            accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
-        }
         retry = Button(this).apply { setText(R.string.retry_catalog); setOnClickListener { loadCatalog() } }
         content.addView(retry)
-        catalog = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        catalogPinRecovery = CatalogPinRecovery(this, worker) {
+            if (!destroyed) {
+                catalogSearch.requestFocus()
+                catalogSearch.requestRectangleOnScreen(android.graphics.Rect(0, 0, catalogSearch.width, catalogSearch.height), true)
+            }
+        }
+        catalogComparison = CatalogComparisonSection(this, savedInstanceState, ::showPinnedDetails, catalogPinRecovery::dismiss)
+        content.addView(catalogComparison)
+        catalog = CatalogBrowseSection(this, savedInstanceState, ::showDetails)
         content.addView(catalog)
+        catalog.search(catalogSearch.text.toString())
         catalogSearch.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { renderCatalog() }
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                catalog.search(s.toString())
+            }
             override fun afterTextChanged(s: Editable?) {}
         })
         val status = text(R.string.ready).apply { accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE }
         val evidenceDetails = text(R.string.evidence_ready)
         val run = Button(this).apply { setText(R.string.run) }
         run.setOnClickListener {
+            if (destroyed) return@setOnClickListener
             run.isEnabled = false
             status.setText(R.string.working)
             evidenceDetails.setText(R.string.evidence_ready)
@@ -244,7 +323,21 @@ class PreviewActivity : Activity() {
         }
         content.addView(run)
         CostInspectionSection(this, worker) { !destroyed }.attach(content)
-        FindingsInspectionSection(this, worker) { !destroyed }.attach(content)
+        findings = FindingsInspectionSection(this, worker) { !destroyed }
+        findings.attach(content)
+        diagnostics = LocalDiagnostics(this, {
+            LocalDiagnosticReport(
+                when {
+                    storageBusy -> DiagnosticStorageState.BUSY
+                    storageReady -> DiagnosticStorageState.READY
+                    savedRecord != null -> DiagnosticStorageState.RECONCILIATION_REQUIRED
+                    else -> DiagnosticStorageState.UNAVAILABLE
+                },
+                if (catalogFixture?.catalog != null) DiagnosticCatalogState.SYNTHETIC_LOADED
+                else DiagnosticCatalogState.UNAVAILABLE_OR_LOADING,
+            )
+        }, { !destroyed && diagnosticsResumed })
+        diagnostics.attach(content)
         setContentView(ScrollView(this).apply { addView(content) })
         content.setOnApplyWindowInsetsListener { view, insets ->
             val padding = (24 * resources.displayMetrics.density).toInt()
@@ -257,7 +350,24 @@ class PreviewActivity : Activity() {
         content.setPadding(padding, padding, padding, padding)
         updateEditingEnabled()
         loadCatalog()
-        if (selectionResolved) loadDraft(true) else restoreActiveDraft(savedInstanceState != null)
+        if (entryBlocked) {
+            storageBusy = false
+            saveStatus.setText(R.string.entry_choose_local)
+            updateEditingEnabled()
+        } else if (selectionResolved) loadDraft(true) else restoreActiveDraft(savedInstanceState != null)
+    }
+
+    private fun isLocalEntry(value: Intent?): Boolean = value == null ||
+        (value.action == null || value.action == Intent.ACTION_MAIN) && value.data == null &&
+            value.type == null && value.clipData == null && value.selector == null
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        if (destroyed) return
+        // A new entry never replaces an already open editor, its pending fields or its save authority.
+        if (!isLocalEntry(intent)) unsupportedEntry = true
+        else if (!entryBlocked) unsupportedEntry = false
+        entryNotice.visibility = if (unsupportedEntry) View.VISIBLE else View.GONE
     }
 
     private fun readCatalogFixture(): ByteArray = assets.open("catalog.json").use { stream ->
@@ -273,87 +383,145 @@ class PreviewActivity : Activity() {
     }
 
     private fun loadCatalog() {
+        if (destroyed) return
+        catalogPinRecovery.dismiss()
         retry.isEnabled = false
         catalogStatus.setText(R.string.working)
         worker.execute {
-            val loaded = try {
-                val bytes = readCatalogFixture()
-                check(FrozenSchemaValidator().validate(FrozenDocument.CATALOG, bytes.inputStream()) == FrozenValidation.Valid)
-                val rows = JSONObject(String(bytes, Charsets.UTF_8)).getJSONArray("items")
-                check(rows.length() <= 256) // A bounded fixture view, not production paging.
-                val rowsList = List(rows.length()) { index ->
-                    val row = rows.getJSONObject(index)
-                    SampleItem(row.getString("id"), row.getString("name"), row.getString("kind"), row.getString("version"))
+            var componentSnapshot: ai.pickyour.core.drafts.SelectionCatalogSnapshot? = null
+            val loaded = CatalogFixtureData.read({
+                readCatalogFixture().also {
+                    componentSnapshot = ai.pickyour.core.drafts.SelectionCatalogSnapshot.fromJson(it)
                 }
-                LoadedCatalog(rowsList, java.security.MessageDigest.getInstance("SHA-256").digest(bytes)
-                    .joinToString("") { "%02x".format(it.toInt() and 255) })
-            } catch (_: Exception) { null }
+            }) { assets.open("pricebook.json") }
+            val selectionSnapshot = componentSnapshot.takeIf { loaded.catalog != null }
             runOnUiThread {
                 if (!destroyed) {
+                    catalogFixture = loaded
                     retry.isEnabled = true
-                    items = loaded?.items.orEmpty()
-                    loadedCatalogHash = loaded?.hash
-                    val changed = loaded != null && searchCatalogHash != null && searchCatalogHash != loaded.hash
-                    catalogStatus.setText(when {
-                        loaded == null -> R.string.catalog_unavailable
-                        changed -> R.string.catalog_search_changed
-                        else -> R.string.catalog_ready
-                    })
-                    if (loaded != null) searchCatalogHash = loaded.hash
-                    renderCatalog()
+                    catalogStatus.setText(if (loaded.catalog == null) R.string.catalog_unavailable else R.string.catalog_ready)
+                    componentCatalog = selectionSnapshot
+                    componentSection.catalog(loaded.catalog?.items.orEmpty(), loaded.catalog?.hash)
+                    if (loaded.catalog == null) catalog.unavailable() else catalog.show(loaded.catalog)
+                    catalogComparison.show(loaded.catalog, loaded.pricebook)
+                    catalog.selectionEnabled(!storageBusy)
                     showSelection()
                 }
             }
         }
     }
 
-    /** Always uses the current query and complete loaded snapshot, including after an async reload. */
-    private fun renderCatalog() {
-        catalog.removeAllViews()
-        if (loadedCatalogHash == null) {
-            catalogResults.setText(R.string.catalog_search_waiting)
-            return
-        }
-        val query = PreviewCatalogQuery(catalogSearch.text.toString())
-        val visible = items.filter { query.matches(it.id, it.name, it.kind, it.version) }
-        catalogResults.text = if (visible.isEmpty()) getString(R.string.catalog_search_empty)
-            else getString(R.string.catalog_search_count, visible.size, items.size)
-        visible.forEach { item ->
-            catalog.addView(Button(this).apply {
-                text = getString(R.string.item_button, item.name, item.kind)
-                isEnabled = !storageBusy
-                setOnClickListener { showDetails(item) }
-            })
-        }
-    }
-
-    private fun showDetails(item: SampleItem) {
-        AlertDialog.Builder(this)
+    private fun showDetails(item: PreviewCatalogItem, catalogHash: String) {
+        if (destroyed) return
+        catalogPinRecovery.dismiss()
+        catalogDetailDialog?.dismiss()
+        catalogDetailDialog = null
+        catalogPriceBrowser?.retire()
+        catalogPriceBrowser = null
+        val baseline = savedRecord
+        val draftId = currentDraftId
+        val detail = catalog.details(item, catalogHash)
+        val priceContext = catalogFixture
+        val prices = priceContext?.pricebook
+        lateinit var dialog: AlertDialog
+        val builder = AlertDialog.Builder(this)
+        // Keep actions above the independently scrolling message. A separate custom content panel
+        // can collapse to zero height when the native message also fills the dialog.
+        builder.setCustomTitle(LinearLayout(builder.context).apply {
+            orientation = LinearLayout.VERTICAL
+            val target = kotlin.math.ceil(48 * resources.displayMetrics.density.toDouble()).toInt()
+            val inset = kotlin.math.ceil(16 * resources.displayMetrics.density.toDouble()).toInt()
+            setPadding(inset, inset, inset, 0)
+            addView(TextView(builder.context).apply {
+                text = item.name
+                setTextAppearance(android.R.style.TextAppearance_Material_Title)
+                maxLines = 2
+                ellipsize = android.text.TextUtils.TruncateAt.END
+            }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
+            if (detail != null) addView(Button(builder.context).apply {
+                setText(R.string.catalog_price_browse)
+                setSingleLine(false)
+                minHeight = target
+                minWidth = target
+                setOnClickListener {
+                    val isCurrent = {
+                        catalogDetailDialog === dialog && !destroyed && !storageBusy && savedRecord === baseline && currentDraftId == draftId &&
+                            catalogFixture === priceContext && catalog.contains(item, catalogHash)
+                    }
+                    if (dialog.isShowing && isCurrent()) {
+                        dialog.dismiss()
+                        CatalogPriceBrowser(this@PreviewActivity, detail, prices, isCurrent).also {
+                            catalogPriceBrowser = it
+                            it.show()
+                        }
+                    }
+                }
+            }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
+            addView(Button(builder.context).apply {
+                setText(R.string.catalog_compare_add)
+                setSingleLine(false)
+                minHeight = target
+                minWidth = target
+                setOnClickListener {
+                    if (catalogDetailDialog === dialog && dialog.isShowing && !destroyed) {
+                        catalogComparison.add(item, catalogHash)
+                        dialog.dismiss()
+                    }
+                }
+            }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
+        })
+        dialog = builder
             .setTitle(item.name)
-            .setMessage(getString(R.string.item_details, item.id, item.kind, item.version))
+            .setMessage(detail?.let { CatalogDetailText.describe(this, it, prices) }
+                ?: getString(R.string.catalog_detail_unavailable))
             .setNegativeButton(R.string.close, null)
+            .setNeutralButton(R.string.catalog_sources) { _, _ ->
+                if (dialog.isShowing && detail != null) CatalogSourceNavigation(this, detail, isCurrent = {
+                    catalogDetailDialog === dialog && !destroyed && !storageBusy && savedRecord === baseline && currentDraftId == draftId &&
+                        catalog.contains(item, catalogHash)
+                }).show()
+            }
             .setPositiveButton(R.string.select_sample) { _, _ ->
-                if (!storageBusy && loadedCatalogHash != null) {
+                if (catalogDetailDialog === dialog && dialog.isShowing && !destroyed && !storageBusy && savedRecord === baseline && currentDraftId == draftId &&
+                    catalog.contains(item, catalogHash)) {
                     selectedId = item.id
                     selectedVersion = item.version
-                    selectedCatalogHash = loadedCatalogHash
+                    selectedCatalogHash = catalogHash
                     showSelection()
                     formChanged()
                 }
             }
-            .show()
+            .create()
+        catalogDetailDialog = dialog
+        dialog.window?.decorView?.layoutDirection = resources.configuration.layoutDirection
+        dialog.show()
+    }
+
+    private fun showPinnedDetails(pin: PreviewCatalogPin, captured: PreviewCatalogBrowser?, originIsCurrent: () -> Boolean) {
+        if (destroyed || storageBusy || !originIsCurrent()) return
+        catalogDetailDialog?.dismiss()
+        catalogDetailDialog = null
+        catalogPriceBrowser?.retire()
+        catalogPriceBrowser = null
+        val baseline = savedRecord
+        val draftId = currentDraftId
+        catalogPinRecovery.open(pin, captured) {
+            !destroyed && !storageBusy && savedRecord === baseline && currentDraftId == draftId && originIsCurrent()
+        }
     }
 
     private fun showSelection() {
-        val item = items.firstOrNull { it.id == selectedId && it.version == selectedVersion && selectedCatalogHash == loadedCatalogHash }
+        if (destroyed) return
+        val name = catalog.selectedName(selectedId, selectedVersion, selectedCatalogHash)
         selection.text = when {
             selectedId == null -> getString(R.string.no_selection)
-            item == null -> getString(R.string.selection_unavailable)
-            else -> getString(R.string.selected_sample, item.name)
+            name == null -> getString(R.string.selection_unavailable)
+            else -> getString(R.string.selected_sample, name)
         }
     }
 
     private fun applyContext(value: PreviewDraftContext) {
+        if (destroyed) return
         domainContext = value
         val wasRestoring = restoringFields
         restoringFields = true
@@ -364,6 +532,7 @@ class PreviewActivity : Activity() {
     }
 
     private fun updateContextState() {
+        if (destroyed) return
         if (!::contextState.isInitialized) return
         fun label(value: String?) = getString(when {
             value == null -> R.string.context_unanswered
@@ -373,11 +542,13 @@ class PreviewActivity : Activity() {
         contextState.text = getString(R.string.context_state, label(domainContext.objective), label(domainContext.context))
     }
 
-    private fun matchesSaved() = savedRecord?.let { it.fields == fields() && it.contextInput == domainContext } == true
+    private fun matchesSaved() = savedRecord?.let { it.fields == fields() && it.contextInput == domainContext &&
+        it.workloadInput == workloadSection.inputs.parsed() } == true
 
     private fun fields() = PreviewDraftFields(title.text.toString(), selectedId, selectedVersion, selectedCatalogHash)
 
     private fun formChanged() {
+        if (destroyed) return
         updateContextState()
         if (restoringFields || !::saveStatus.isInitialized) return
         if (!storageBusy && storageReady) {
@@ -387,23 +558,33 @@ class PreviewActivity : Activity() {
     }
 
     private fun updateEditingEnabled() {
+        if (destroyed) return
         title.isEnabled = !storageBusy
         objective.isEnabled = !storageBusy
         contextInput.isEnabled = !storageBusy
         clear.isEnabled = !storageBusy
-        save.isEnabled = storageReady && !storageBusy && !matchesSaved()
+        workloadSection.setEditable(!storageBusy)
+        save.isEnabled = storageReady && !storageBusy && workloadSection.inputs.parsed() != null && !matchesSaved()
         reopen.isEnabled = !storageBusy && selectionResolved
         history.isEnabled = storageReady && !storageBusy && savedRecord != null
+        compareRetained.isEnabled = history.isEnabled
+        compareLibrary.isEnabled = !storageBusy && !entryBlocked && selectionResolved
         libraryButton.isEnabled = !storageBusy
         newDraftButton.isEnabled = !storageBusy
         duplicateButton.isEnabled = storageReady && !storageBusy && savedRecord != null
+        recoverButton.isEnabled = !storageBusy && savedRecord != null && !matchesSaved() && workloadSection.inputs.parsed() != null
+        retryDeleteButton.visibility = if (pendingDeleteId == null) View.GONE else View.VISIBLE
+        retryDeleteButton.isEnabled = pendingDeleteId != null && !storageBusy
         if (::tierSection.isInitialized) tierSection.update(savedRecord, storageReady && !storageBusy && matchesSaved())
-        if (::catalog.isInitialized) for (index in 0 until catalog.childCount) catalog.getChildAt(index).isEnabled = !storageBusy
+        if (::catalog.isInitialized) catalog.selectionEnabled(!storageBusy)
+        if (::componentSection.isInitialized) componentSection.update(savedRecord, storageReady && !storageBusy && matchesSaved(), currentDraftId.value)
     }
 
     private fun showHistory() {
+        if (destroyed) return
         val baseline = savedRecord ?: return
         if (!storageReady || storageBusy) return
+        retireRevisionInspection()
         val revisions = baseline.history.reversed()
         val rows = revisions.map { revision ->
             getString(if (revision.fields == null) R.string.history_unavailable else R.string.history_revision,
@@ -411,21 +592,27 @@ class PreviewActivity : Activity() {
                 (revision.restoredFrom?.let { getString(R.string.domain_history_source, it.toString()) } ?: "")
         }.toTypedArray()
         AlertDialog.Builder(this).setTitle(R.string.draft_history)
-            .setItems(rows) { _, index ->
+            .setItems(rows) { dialog, index ->
+                if (!historyDialogIsCurrent(dialog, baseline)) return@setItems
                 val revision = revisions[index]
                 val oldFields = revision.fields
                 if (oldFields == null) {
                     AlertDialog.Builder(this).setMessage(R.string.history_unavailable_detail)
+                        .setNeutralButton(R.string.domain_restore_preview) { dialog, _ ->
+                            if (historyDialogIsCurrent(dialog, baseline)) confirmDomainRestore(baseline, revision)
+                        }
                         .setPositiveButton(R.string.close, null).show()
                 } else {
                     AlertDialog.Builder(this).setTitle(getString(R.string.history_revision, revision.revision.toString()))
                         .setMessage(getString(R.string.history_copy_warning, oldFields.title,
                             if (baseline.earlierHistoryUnavailable) getString(R.string.history_earlier_unavailable) else ""))
                         .setNegativeButton(R.string.keep_edits, null)
-                        .setNeutralButton(R.string.domain_restore_preview) { _, _ -> confirmDomainRestore(baseline, revision) }
-                        .setPositiveButton(R.string.history_copy) { _, _ ->
+                        .setNeutralButton(R.string.domain_restore_preview) { dialog, _ ->
+                            if (historyDialogIsCurrent(dialog, baseline)) confirmDomainRestore(baseline, revision)
+                        }
+                        .setPositiveButton(R.string.history_copy) { dialog, _ ->
                             // A dialog opened before another save/load cannot adopt that operation's baseline.
-                            if (storageReady && !storageBusy && savedRecord === baseline) {
+                            if (historyDialogIsCurrent(dialog, baseline)) {
                                 restoringFields = true
                                 title.setText(oldFields.title)
                                 selectedId = oldFields.selectedId
@@ -437,30 +624,168 @@ class PreviewActivity : Activity() {
                             }
                         }.show()
                 }
-            }.setPositiveButton(R.string.revision_compare_open) { _, _ -> showComparisonPicker(baseline) }
+            }.setPositiveButton(R.string.revision_compare_open) { dialog, _ ->
+                if (historyDialogIsCurrent(dialog, baseline)) showComparisonPicker(baseline)
+            }
             .setNegativeButton(R.string.close, null).show()
     }
 
-    private fun showComparisonPicker(baseline: PreviewStoredDraft) {
+    private fun historyDialogIsCurrent(dialog: DialogInterface, baseline: PreviewStoredDraft): Boolean =
+        !destroyed && (dialog as? AlertDialog)?.isShowing == true && storageReady && !storageBusy && savedRecord === baseline
+
+    private fun showComparisonPicker(baseline: PreviewStoredDraft, pickBoth: Boolean = false) {
+        if (destroyed || isFinishing) return
         if (!storageReady || storageBusy || savedRecord !== baseline) return
+        retireRevisionInspection()
+        val request = Any()
+        revisionRequest = request
+        val authority = storageAuthority
+        val draftId = currentDraftId
+        fun current() = !destroyed && !isFinishing && storageReady && !storageBusy &&
+            currentDraftId == draftId && savedRecord === baseline && storageAuthority === authority && revisionRequest === request
         val revisions = baseline.history.reversed()
-        AlertDialog.Builder(this).setTitle(R.string.revision_compare_open)
-            .setItems(revisions.map { getString(R.string.history_revision, it.revision.toString()) }.toTypedArray()) { _, index ->
-                worker.execute {
-                    val comparison = baseline.compareRevision(revisions[index].revision)
-                    runOnUiThread {
-                        if (!destroyed) {
-                            if (savedRecord !== baseline || comparison == null) {
-                                AlertDialog.Builder(this).setMessage(R.string.revision_compare_changed)
-                                    .setPositiveButton(R.string.close, null).show()
-                            } else showRevisionComparison(comparison)
+        val rows = revisions.map { getString(R.string.history_revision, it.revision.toString()) }.toTypedArray()
+        fun pickerTitle(label: String) = TextView(this).apply {
+            text = label
+            setTextAppearance(android.R.style.TextAppearance_Material_Title)
+            val padding = (16 * resources.displayMetrics.density).toInt()
+            setPadding(padding, padding, padding, padding)
+            if (android.os.Build.VERSION.SDK_INT >= 28) isAccessibilityHeading = true
+        }
+        fun open(dialog: AlertDialog) = current() && revisionDialog === dialog && dialog.isShowing
+        fun prepare(from: Long, to: Long) {
+            val preparing = AlertDialog.Builder(this)
+                .setMessage(getString(R.string.revision_compare_preparing, from.toString(), to.toString()))
+                .setNegativeButton(R.string.close, null).create()
+            presentRevisionDialog(preparing)
+            worker.execute {
+                val comparison = baseline.compareRevisions(from, to)
+                runOnUiThread {
+                    if (current() && revisionDialog === preparing && preparing.isShowing) {
+                        revisionDialog = null
+                        preparing.dismiss()
+                        if (comparison == null) {
+                            retireRevisionInspection()
+                            AlertDialog.Builder(this).setMessage(R.string.revision_compare_changed)
+                                .setPositiveButton(R.string.close, null).show()
+                        } else {
+                            revisionBrowser = RevisionComparisonBrowser(this, comparison, ::current).also { it.show() }
                         }
                     }
                 }
-            }.setNegativeButton(R.string.close, null).show()
+            }
+        }
+        lateinit var chooseBefore: () -> Unit
+        fun chooseAfter(from: Long) {
+            lateinit var picker: AlertDialog
+            picker = AlertDialog.Builder(this).setCustomTitle(pickerTitle(getString(R.string.revision_compare_choose_after, from.toString())))
+                .setItems(rows) { _, index ->
+                    if (open(picker) && index in revisions.indices) prepare(from, revisions[index].revision)
+                }.setNeutralButton(R.string.revision_compare_back_to_before) { _, _ ->
+                    if (open(picker)) chooseBefore()
+                }.setNegativeButton(R.string.close, null).create()
+            presentRevisionDialog(picker)
+        }
+        chooseBefore = {
+            lateinit var picker: AlertDialog
+            picker = AlertDialog.Builder(this).setCustomTitle(pickerTitle(getString(
+                if (pickBoth) R.string.revision_compare_choose_before else R.string.revision_compare_open)))
+                .setItems(rows) { _, index ->
+                    if (open(picker) && index in revisions.indices) {
+                        val from = revisions[index].revision
+                        if (pickBoth) chooseAfter(from) else prepare(from, baseline.revision)
+                    }
+                }.setNegativeButton(R.string.close, null).create()
+            presentRevisionDialog(picker)
+        }
+        chooseBefore()
+    }
+
+    private fun presentRevisionDialog(dialog: AlertDialog) {
+        val previous = revisionDialog
+        revisionDialog = dialog
+        previous?.dismiss()
+        dialog.setOnDismissListener {
+            if (revisionDialog === dialog) {
+                revisionDialog = null
+                revisionRequest = null
+            }
+        }
+        dialog.show()
+    }
+
+    private fun retireRevisionInspection() {
+        revisionRequest = null
+        revisionDialog?.dismiss()
+        revisionDialog = null
+        revisionBrowser?.retire()
+        revisionBrowser = null
+        libraryComparison?.retire()
+        libraryComparison = null
+    }
+
+    private fun showLibraryComparison() {
+        if (destroyed || isFinishing || storageBusy || entryBlocked || !selectionResolved) return
+        retireRevisionInspection()
+        val request = Any()
+        revisionRequest = request
+        val authority = storageAuthority
+        val draftId = currentDraftId
+        val baseline = savedRecord
+        fun current() = !destroyed && !isFinishing && !storageBusy && !entryBlocked && selectionResolved &&
+            currentDraftId == draftId && savedRecord === baseline && storageAuthority === authority && revisionRequest === request
+        libraryComparison = LibraryRevisionComparison(this, { task -> worker.execute { task() } },
+            { library().list() }, ::current).also { it.show() }
+    }
+
+    private fun commitSelection(expected: PreviewStoredDraft, hash: String?, prepare: () -> PreviewSelectionPreparation,
+        completed: (Boolean, String) -> Unit) {
+        if (destroyed || !storageReady || storageBusy || savedRecord !== expected || !matchesSaved() ||
+            hash != null && componentCatalog?.hash?.hex != hash) { completed(false, getString(R.string.draft_reconcile)); return }
+        val id = currentDraftId
+        val snapshot = componentCatalog
+        storageBusy = true
+        saveStatus.setText(R.string.draft_saving)
+        updateEditingEnabled()
+        worker.execute {
+            val result = try {
+                when (val prepared = prepare()) {
+                    PreviewSelectionPreparation.Invalid -> null
+                    is PreviewSelectionPreparation.Ready -> openPersistence(id).applySelection(expected, prepared.command, snapshot)
+                }
+            } catch (_: Exception) { PreviewSelectionSave.Uncertain }
+            runOnUiThread {
+                if (!destroyed) {
+                    storageBusy = false
+                    var acknowledged = false
+                    when (result) {
+                        null -> saveStatus.setText(R.string.component_invalid)
+                        is PreviewSelectionSave.Saved -> {
+                            savedRecord = result.record
+                            acknowledged = true
+                            saveStatus.setText(if (result.change == null) R.string.component_noop else R.string.component_saved)
+                        }
+                        PreviewSelectionSave.Conflict -> {
+                            storageReady = false
+                            saveStatus.setText(R.string.draft_conflict)
+                        }
+                        PreviewSelectionSave.Uncertain -> {
+                            storageReady = false
+                            saveStatus.setText(R.string.draft_uncertain)
+                        }
+                        is PreviewSelectionSave.Rejected -> saveStatus.text = getString(R.string.component_rejected, result.reason.name)
+                        is PreviewSelectionSave.Failed -> saveStatus.setText(if (result.reason == DraftStorageFailure.LIMIT_EXCEEDED)
+                            R.string.draft_history_full else R.string.draft_save_failed)
+                    }
+                    updateEditingEnabled()
+                    completed(acknowledged, saveStatus.text.toString())
+                }
+            }
+        }
     }
 
     private fun setDraftActivation(expected: PreviewStoredDraft, tier: OptionalTier, activation: Activation) {
+        if (destroyed) return
         val id = currentDraftId
         storageBusy = true
         saveStatus.setText(R.string.draft_saving)
@@ -504,22 +829,8 @@ class PreviewActivity : Activity() {
         }
     }
 
-    private fun showRevisionComparison(comparison: PreviewRevisionComparison) {
-        val value: (String?) -> String = ::renderLocalValue
-        val rows = comparison.changes.take(100).map { change ->
-            getString(R.string.revision_compare_row, change.field,
-                change.key?.let { " [${value(it)}]" }.orEmpty(), value(change.before), value(change.after))
-        }
-        val message = listOf(getString(R.string.revision_compare_scope),
-            getString(R.string.revision_compare_count, rows.size.toString(), comparison.changes.size.toString()),
-            getString(if (comparison.guestFieldsComparable) R.string.revision_compare_guest_known else R.string.revision_compare_guest_unknown),
-            getString(if (comparison.metadataChanged) R.string.revision_compare_metadata_changed else R.string.revision_compare_metadata_same),
-            rows.joinToString("\n\n")).joinToString("\n\n")
-        AlertDialog.Builder(this).setTitle(getString(R.string.revision_compare_title, comparison.from.toString(), comparison.to.toString()))
-            .setMessage(message).setPositiveButton(R.string.close, null).show()
-    }
-
     private fun confirmDomainRestore(baseline: PreviewStoredDraft, revision: PreviewDraftRevision) {
+        if (destroyed) return
         if (!storageReady || storageBusy || savedRecord !== baseline) return
         val value: (String?) -> String = ::renderLocalValue
         val content = revision.content
@@ -527,16 +838,30 @@ class PreviewActivity : Activity() {
             value(content.primaryModel), content.optional.entries.joinToString("\n") { (tier, input) ->
                 getString(R.string.domain_restore_tier, tier.name, input.activation.name,
                     input.selections.size.toString(), input.settings.size.toString())
-            })
+            }) + "\n\n" + content.workload.let { w ->
+                listOf(R.string.workload_region to w.region, R.string.workload_currency to w.currency,
+                    R.string.workload_budget to w.monthlyBudgetAmount?.encoded,
+                    R.string.workload_requests to w.requestsPerDay?.toString(),
+                    R.string.workload_input_tokens to w.avgInputTokens?.toString(),
+                    R.string.workload_output_tokens to w.avgOutputTokens?.toString(),
+                    R.string.workload_concurrency to w.maxConcurrency?.toString(),
+                    R.string.workload_latency to w.maxLatencyMs?.toString(),
+                    R.string.workload_classification to w.dataClassification?.encoded)
+                    .joinToString("\n") { (label, input) -> "${getString(label)}: ${value(input)}" }
+            }
+        val components = getString(R.string.domain_restore_components,
+            baseline.components.selections.size.toString(), content.components.selections.size.toString(),
+            baseline.components.links.size.toString(), content.components.links.size.toString())
         AlertDialog.Builder(this).setTitle(getString(R.string.history_revision, revision.revision.toString()))
-            .setMessage(getString(R.string.domain_restore_warning, summary))
+            .setMessage(getString(R.string.domain_restore_warning, summary + "\n\n" + components))
             .setNegativeButton(R.string.keep_edits, null)
-            .setPositiveButton(R.string.domain_restore_commit) { _, _ ->
-                if (storageReady && !storageBusy && savedRecord === baseline) restoreDomain(baseline, revision.revision)
+            .setPositiveButton(R.string.domain_restore_commit) { dialog, _ ->
+                if (historyDialogIsCurrent(dialog, baseline)) restoreDomain(baseline, revision.revision)
             }.show()
     }
 
     private fun restoreDomain(expected: PreviewStoredDraft, revision: Long) {
+        if (destroyed) return
         val id = currentDraftId
         storageBusy = true
         saveStatus.setText(R.string.draft_saving)
@@ -550,6 +875,7 @@ class PreviewActivity : Activity() {
                         is PreviewDraftSave.Saved -> {
                             savedRecord = result.record
                             applyContext(result.record.contextInput)
+                            workloadSection.apply(PreviewWorkloadInputs.from(result.record.workloadInput))
                             saveStatus.setText(if (matchesSaved()) R.string.draft_saved else R.string.draft_unsaved)
                         }
                         PreviewDraftSave.Conflict -> {
@@ -583,6 +909,7 @@ class PreviewActivity : Activity() {
     }
 
     private fun restoreActiveDraft(preserveRestoredFields: Boolean) {
+        if (destroyed) return
         storageBusy = true
         storageReady = false
         updateEditingEnabled()
@@ -612,6 +939,7 @@ class PreviewActivity : Activity() {
     }
 
     private fun showLibrary() {
+        if (destroyed) return
         if (storageBusy) return
         storageBusy = true
         updateEditingEnabled()
@@ -632,15 +960,18 @@ class PreviewActivity : Activity() {
                                 else record?.fields?.title?.ifEmpty { getString(R.string.library_untitled) }
                                 ?: getString(R.string.library_unavailable), entry.id.value)
                         }.toTypedArray()
-                        AlertDialog.Builder(this).setTitle(R.string.library_open).setItems(labels) { _, index ->
+                        AlertDialog.Builder(this).setTitle(R.string.library_open).setItems(labels) { picker, index ->
+                            if ((picker as? AlertDialog)?.isShowing != true || destroyed || storageBusy) return@setItems
                             val entry = entries[index]
                             if (entry.deletionPending) confirmDelete(entry)
                             else AlertDialog.Builder(this).setTitle(getString(R.string.library_local_id, entry.id.value))
                                 .setMessage(R.string.library_switch_warning)
                                 .setNegativeButton(R.string.keep_edits, null)
-                                .setNeutralButton(R.string.library_delete) { _, _ -> confirmDelete(entry) }
-                                .setPositiveButton(R.string.library_open_selected) { _, _ ->
-                                    if (!storageBusy) openDraftTarget(entry.id)
+                                .setNeutralButton(R.string.library_delete) { detail, _ ->
+                                    if ((detail as? AlertDialog)?.isShowing == true) confirmDelete(entry)
+                                }
+                                .setPositiveButton(R.string.library_open_selected) { detail, _ ->
+                                    if ((detail as? AlertDialog)?.isShowing == true && !storageBusy) openDraftTarget(entry.id)
                                 }.show()
                         }.setNegativeButton(R.string.close, null).show()
                     }
@@ -650,27 +981,51 @@ class PreviewActivity : Activity() {
     }
 
     private fun confirmDelete(entry: PreviewLibraryEntry) {
+        if (destroyed) return
+        confirmDelete(entry.id, (entry.state as? PreviewDraftLoad.Available)?.record, entry.deletionPending)
+    }
+
+    private fun confirmDelete(id: PreviewDraftId, expected: PreviewStoredDraft?, retry: Boolean) {
+        if (destroyed) return
         if (storageBusy) return
-        AlertDialog.Builder(this).setTitle(if (entry.deletionPending) R.string.library_retry_delete else R.string.library_delete)
-            .setMessage(getString(R.string.library_delete_warning, entry.id.value))
+        val pending = pendingDeleteId
+        if (pending != null && pending != id) {
+            AlertDialog.Builder(this).setMessage(getString(R.string.library_existing_cleanup, pending.value))
+                .setPositiveButton(R.string.library_retry_delete) { redirect, _ ->
+                    if ((redirect as? AlertDialog)?.isShowing == true) confirmDelete(pending, null, true)
+                }
+                .setNegativeButton(R.string.close, null).show()
+            return
+        }
+        val retryOnly = retry || pending == id
+        AlertDialog.Builder(this).setTitle(if (retryOnly) R.string.library_retry_delete else R.string.library_delete)
+            .setMessage(getString(if (retryOnly) R.string.library_retry_warning else R.string.library_delete_warning, id.value))
             .setNegativeButton(R.string.keep_edits, null)
-            .setPositiveButton(if (entry.deletionPending) R.string.library_retry_delete else R.string.library_delete) { _, _ ->
-                if (!storageBusy) deleteDraft(entry)
+            .setPositiveButton(if (retryOnly) R.string.library_retry_delete else R.string.library_delete) { confirmation, _ ->
+                if ((confirmation as? AlertDialog)?.isShowing == true && !storageBusy) deleteDraft(id, expected, retryOnly)
             }.show()
     }
 
-    private fun deleteDraft(entry: PreviewLibraryEntry) {
+    private fun deleteDraft(id: PreviewDraftId, expected: PreviewStoredDraft?, retryOnly: Boolean) {
+        if (destroyed || storageBusy) return
+        val pending = pendingDeleteId
+        if (pending != null && pending != id) return
+        // A retained confirmation must use the operation that is current at dispatch.
+        val retry = retryOnly || pending == id
         val previous = PreviewDraftSession(currentDraftId, savedRecord, fields(), storageReady)
-        val expected = (entry.state as? PreviewDraftLoad.Available)?.record
+        // Capture the named operation before dispatch so recreation can reconcile even if its row disappears.
+        pendingDeleteId = id
         storageBusy = true
         updateEditingEnabled()
         worker.execute {
-            val result = try { library().delete(entry.id, expected) }
+            val result = try { if (retry) library().retryDeletion(id) else library().delete(id, expected) }
                 catch (_: Exception) { PreviewLibraryDelete.Unconfirmed(DraftStorageFailure.IO_FAILURE) }
             runOnUiThread {
                 if (!destroyed) {
                     storageBusy = false
-                    val next = previous.afterDeletion(entry.id, result)
+                    if (result == PreviewLibraryDelete.Deleted || result == PreviewLibraryDelete.Conflict ||
+                        !retry && result is PreviewLibraryDelete.Failed) pendingDeleteId = null
+                    val next = previous.afterDeletion(id, result)
                     savedRecord = next.record
                     storageReady = next.ready
                     if (next !== previous) {
@@ -681,7 +1036,7 @@ class PreviewActivity : Activity() {
                     AlertDialog.Builder(this).setMessage(when (result) {
                         PreviewLibraryDelete.Deleted -> R.string.library_deleted
                         PreviewLibraryDelete.Conflict -> R.string.library_delete_conflict
-                        is PreviewLibraryDelete.Failed -> R.string.library_delete_failed
+                        is PreviewLibraryDelete.Failed -> if (retry) R.string.library_retry_failed else R.string.library_delete_failed
                         is PreviewLibraryDelete.Unconfirmed -> R.string.library_delete_unconfirmed
                     }).setPositiveButton(R.string.close, null).show()
                 }
@@ -690,6 +1045,7 @@ class PreviewActivity : Activity() {
     }
 
     private fun openDraftTarget(target: PreviewDraftId) {
+        if (destroyed) return
         if (storageBusy) return
         val previous = PreviewDraftSession(currentDraftId, savedRecord, fields(), storageReady)
         storageBusy = true
@@ -710,6 +1066,9 @@ class PreviewActivity : Activity() {
                             R.string.active_write_failed else R.string.library_switch_failed)
                             .setPositiveButton(R.string.close, null).show()
                     } else {
+                        entryBlocked = false
+                        unsupportedEntry = false
+                        entryNotice.visibility = View.GONE
                         currentDraftId = next.id
                         selectionResolved = true
                         savedRecord = next.record
@@ -721,6 +1080,7 @@ class PreviewActivity : Activity() {
                         selectedVersion = next.fields.selectedVersion
                         selectedCatalogHash = next.fields.catalogHash
                         applyContext(next.record?.contextInput ?: PreviewDraftContext())
+                        workloadSection.apply(PreviewWorkloadInputs.from(next.record?.workloadInput ?: DraftWorkload()))
                         restoringFields = false
                         activeDraft.text = getString(R.string.library_active, currentDraftId.value)
                         showSelection()
@@ -733,21 +1093,46 @@ class PreviewActivity : Activity() {
     }
 
     private fun confirmCreate(duplicate: Boolean) {
+        if (destroyed) return
         if (storageBusy) return
         val source = if (duplicate) savedRecord ?: return else null
         AlertDialog.Builder(this).setTitle(if (duplicate) R.string.library_duplicate else R.string.library_new)
             .setMessage(if (duplicate) R.string.library_duplicate_warning else R.string.library_new_warning)
             .setNegativeButton(R.string.keep_edits, null)
-            .setPositiveButton(R.string.library_continue) { _, _ ->
-                if (!storageBusy && (!duplicate || savedRecord === source && storageReady)) createDraft(source)
+            .setPositiveButton(R.string.library_continue) { confirmation, _ ->
+                if ((confirmation as? AlertDialog)?.isShowing == true && !storageBusy &&
+                    (!duplicate || savedRecord === source && storageReady)) createDraft(source)
             }.show()
     }
 
-    private fun createDraft(source: PreviewStoredDraft?) {
+    private fun confirmRecoveryCopy() {
+        if (destroyed || storageBusy) return
+        val source = savedRecord ?: return
+        val rawWorkload = workloadSection.inputs
+        val workload = rawWorkload.parsed() ?: return
+        if (matchesSaved()) return
+        val pending = PreviewPendingDraft(fields(), domainContext, workload)
+        AlertDialog.Builder(this).setTitle(R.string.recovery_copy)
+            .setMessage(getString(R.string.recovery_warning, source.revision.toString()))
+            .setNegativeButton(R.string.keep_edits, null)
+            .setPositiveButton(R.string.recovery_confirm) { confirmation, _ ->
+                if ((confirmation as? AlertDialog)?.isShowing == true && !destroyed && !storageBusy &&
+                    savedRecord === source && fields() == pending.fields &&
+                    domainContext == pending.context && workloadSection.inputs === rawWorkload)
+                    createDraft(source, pending)
+            }.show()
+    }
+
+    private fun createDraft(source: PreviewStoredDraft?, pending: PreviewPendingDraft? = null) {
+        if (destroyed) return
         storageBusy = true
         updateEditingEnabled()
         worker.execute {
-            val result = try { if (source == null) library().create() else library().duplicate(source) } catch (_: Exception) { null }
+            val result = try {
+                if (source == null) library().create()
+                else if (pending == null) library().duplicate(source)
+                else library().recoverPending(source, pending)
+            } catch (_: Exception) { null }
             runOnUiThread {
                 if (!destroyed) {
                     storageBusy = false
@@ -765,6 +1150,7 @@ class PreviewActivity : Activity() {
     }
 
     private fun loadDraft(preserveRestoredFields: Boolean) {
+        if (destroyed) return
         val id = currentDraftId
         activeDraft.text = getString(R.string.library_active, id.value)
         storageBusy = true
@@ -785,6 +1171,9 @@ class PreviewActivity : Activity() {
                         val checkpoint = PreviewContextCheckpoint(!restoreContextFromDisk, domainContext)
                         applyContext(checkpoint.forLoad(preserveRestoredFields, savedRecord?.contextInput ?: PreviewDraftContext()))
                         restoreContextFromDisk = false
+                        val workloadCheckpoint = PreviewWorkloadCheckpoint(!restoreWorkloadFromDisk, workloadSection.inputs)
+                        workloadSection.apply(workloadCheckpoint.forLoad(preserveRestoredFields, savedRecord?.workloadInput ?: DraftWorkload()))
+                        restoreWorkloadFromDisk = false
                     }
                     if (storageReady && !preserveRestoredFields) {
                         val values = savedRecord?.fields ?: PreviewDraftFields()
@@ -809,16 +1198,18 @@ class PreviewActivity : Activity() {
     }
 
     private fun saveDraft() {
+        if (destroyed) return
         if (!storageReady || storageBusy) return
         val id = currentDraftId
         val pendingContext = domainContext
+        val pendingWorkload = workloadSection.inputs.parsed() ?: return
         val pending = fields()
         val expected = savedRecord
         storageBusy = true
         saveStatus.setText(R.string.draft_saving)
         updateEditingEnabled()
         worker.execute {
-            val result = try { openPersistence(id).save(expected, pending, pendingContext) } catch (_: Exception) { null }
+            val result = try { openPersistence(id).save(expected, pending, pendingContext, pendingWorkload) } catch (_: Exception) { null }
             runOnUiThread {
                 if (!destroyed) {
                     storageBusy = false
@@ -845,11 +1236,18 @@ class PreviewActivity : Activity() {
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
+        outState.putBoolean("entryBlocked", entryBlocked)
+        outState.putBoolean("unsupportedEntry", unsupportedEntry)
+        catalog.saveState(outState)
+        catalogComparison.save(outState)
+        componentSection.save(outState)
+        outState.putString("pendingDeleteId", pendingDeleteId?.value)
         outState.putString("draftId", currentDraftId.value)
         outState.putBoolean("selectionResolved", selectionResolved)
         val checkpoint = PreviewDraftRestoration.capture(savedRecord, storageReady, storageBusy)
         outState.putString("draftBaseline", checkpoint.baselineIdentity)
         outState.putBoolean("draftRequiresReopen", checkpoint.requiresReopen)
+        workloadSection.save(outState)
         outState.putBoolean("contextInputsPresent", true)
         outState.putString("objective", domainContext.objective)
         outState.putString("contextInput", domainContext.context)
@@ -857,8 +1255,6 @@ class PreviewActivity : Activity() {
         outState.putString("selectedId", selectedId)
         outState.putString("selectedVersion", selectedVersion)
         outState.putString("selectedCatalogHash", selectedCatalogHash)
-        outState.putString("catalogQuery", catalogSearch.text.toString().take(PreviewCatalogQuery.MAX_LENGTH))
-        outState.putString("searchCatalogHash", searchCatalogHash)
         super.onSaveInstanceState(outState)
     }
 
@@ -883,8 +1279,32 @@ class PreviewActivity : Activity() {
         ).joinToString("\n\n")
     }
 
+    override fun onResume() {
+        super.onResume()
+        diagnosticsResumed = true
+    }
+
+    override fun onPause() {
+        diagnosticsResumed = false
+        if (::diagnostics.isInitialized) diagnostics.dismiss()
+        super.onPause()
+    }
+
     override fun onDestroy() {
         destroyed = true
+        if (::findings.isInitialized) findings.close()
+        if (::diagnostics.isInitialized) diagnostics.close()
+        if (::catalogPinRecovery.isInitialized) catalogPinRecovery.close()
+        catalogDetailDialog?.dismiss()
+        catalogDetailDialog = null
+        catalogPriceBrowser?.retire()
+        catalogPriceBrowser = null
+        if (::catalog.isInitialized) catalog.close()
+        if (::catalogComparison.isInitialized) catalogComparison.close()
+        if (::componentSection.isInitialized) componentSection.close()
+        storageReady = false
+        storageBusy = true
+        if (::tierSection.isInitialized) tierSection.close()
         worker.shutdownNow()
         super.onDestroy()
     }

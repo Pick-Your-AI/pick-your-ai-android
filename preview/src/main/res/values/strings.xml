@@ -54,7 +54,7 @@
     <string name="draft_save_failed">Save failed. Your visible edits are retained. The previous acknowledged copy is unchanged; retry Save locally or reopen the saved copy.</string>
     <string name="draft_conflict">Another local copy changed. Your edits are retained but were not saved. Reopen the saved copy before editing again; unsaved edits are not overwritten automatically.</string>
     <string name="draft_uncertain">Save could not be confirmed. Your edits are retained, and the new copy may already be on disk. Reopen the saved copy before retrying.</string>
-    <string name="draft_history_full">Local history or record limit reached. Your visible edits are not saved; earlier revisions are retained. Reopening restores the saved copy. This preview does not yet support history trimming or export.</string>
+    <string name="draft_history_full">Local history, record, or storage limit reached. Your visible edits are not saved; earlier revisions are retained. Reopening restores the saved copy. This preview does not yet support history trimming or export.</string>
     <string name="draft_reconcile">Local state needs reconciliation. Your visible edits are retained but are not confirmed saved. Reopen the saved copy before saving again.</string>
     <string name="draft_history">Saved local revision history</string>
     <string name="history_revision">Local revision %1$s</string>
@@ -67,4 +67,20 @@ Copy this revision’s title and sample selection into the editor? This replaces
 %2$s</string>
     <string name="history_copy">Copy form to editor</string>
     <string name="history_earlier_unavailable">Earlier history was not retained in the migrated source and is unavailable.</string>
+    <string name="workload_heading">Workload assumptions</string>
+    <string name="workload_limits">Optional user inputs, not catalog facts or measured capacity. Blank means unanswered. Currency uses three uppercase letters. Budget uses a nonnegative decimal with up to 12 fractional digits. Counts use whole digits without leading zeroes; concurrency and latency must be positive. These inputs do not establish placement, compatibility, pricing completeness or T0/T1 readiness.</string>
+    <string name="workload_region">Region</string>
+    <string name="workload_currency">Currency</string>
+    <string name="workload_budget">Monthly budget amount</string>
+    <string name="workload_requests">Requests per day</string>
+    <string name="workload_input_tokens">Average input tokens</string>
+    <string name="workload_output_tokens">Average output tokens</string>
+    <string name="workload_concurrency">Maximum concurrency</string>
+    <string name="workload_latency">Maximum latency in milliseconds</string>
+    <string name="workload_unanswered">Unanswered</string>
+    <string name="workload_classification">Data classification</string>
+    <string name="workload_classification_value">Data classification: %1$s</string>
+    <string name="workload_invalid">Some entered workload values are invalid. Your text is retained; correct it before saving.</string>
+    <string name="workload_editable">Unanswered inputs stay unanswered. Save commits these assumptions; no evaluation or quote is generated.</string>
+    <string name="workload_rejected">That entire edit was rejected because it exceeds the local text buffer. Previous text is unchanged. Edit the text again or reopen before saving.</string>
 </resources>

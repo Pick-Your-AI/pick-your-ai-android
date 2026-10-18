@@ -7,6 +7,7 @@ import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
 import java.nio.channels.OverlappingFileLockException
 import java.nio.file.Files
+import java.nio.file.DirectoryIteratorException
 import java.nio.file.LinkOption.NOFOLLOW_LINKS
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption.ATOMIC_MOVE
@@ -15,6 +16,7 @@ import java.nio.file.StandardOpenOption.CREATE
 import java.nio.file.StandardOpenOption.CREATE_NEW
 import java.nio.file.StandardOpenOption.READ
 import java.nio.file.StandardOpenOption.WRITE
+import java.nio.file.attribute.BasicFileAttributes
 import java.security.MessageDigest
 
 /** Identifies bytes only, not publisher authenticity, rights, freshness or schema validity. */
@@ -22,7 +24,12 @@ data class ArtifactHash(val hex: String) {
     init { require(hex.matches(Regex("[0-9a-f]{64}"))) { "Expected a lowercase SHA-256 digest" } }
 }
 
-enum class CacheFailure { BUSY, IO_FAILURE, TOO_LARGE, HASH_MISMATCH, CANCELLED, CORRUPT }
+enum class CacheFailure { BUSY, IO_FAILURE, TOO_LARGE, RETENTION_LIMIT, HASH_MISMATCH, CANCELLED, CORRUPT }
+
+/** Explicit managed-payload budgets, not eviction permission or a filesystem free-space guarantee. */
+data class CacheRetentionLimits(val maxArtifacts: Int, val maxRetainedBytes: Long) {
+    init { require(maxArtifacts > 0 && maxRetainedBytes > 0) }
+}
 
 sealed interface CacheRead {
     data object Missing : CacheRead
@@ -46,8 +53,9 @@ internal enum class CacheWritePoint { STAGED, ARTIFACT_PUBLISHED, POINTER_STAGED
  * Caller must durably provision the root and all ancestor directory entries before construction.
  * The caller supplies a trusted expected hash and is responsible for schema/rights/freshness checks.
  * No networking, archive unpacking, scheduling, automatic eviction or multi-file catalog assembly.
- * Pinned hashes remain readable after activation of newer bytes. Total retained storage is NOT bounded;
- * the owner must impose a separately reviewed retention policy before continuous production refresh.
+ * Pinned hashes remain readable after activation of newer bytes. Optional explicit retention limits
+ * reject new artifacts without eviction. Without those limits, retained storage remains unbounded.
+ * The owner must choose and integrate a reviewed retention policy before production refresh.
  *
  * All cooperating instances first claim a non-reentrant JVM guard for the canonical directory, then
  * take a nonblocking exclusive OS lock, including reads. BUSY
@@ -60,9 +68,13 @@ internal enum class CacheWritePoint { STAGED, ARTIFACT_PUBLISHED, POINTER_STAGED
 class VerifiedArtifactCache internal constructor(
     directory: Path,
     private val maxBytes: Int,
+    private val retention: CacheRetentionLimits?,
     private val checkpoint: (CacheWritePoint) -> Unit,
 ) {
-    constructor(directory: Path, maxBytes: Int = 16 * 1024 * 1024) : this(directory, maxBytes, {})
+    constructor(directory: Path, maxBytes: Int = 16 * 1024 * 1024) : this(directory, maxBytes, null, {})
+    constructor(directory: Path, maxBytes: Int, retention: CacheRetentionLimits) : this(directory, maxBytes, retention, {})
+    internal constructor(directory: Path, maxBytes: Int, checkpoint: (CacheWritePoint) -> Unit) :
+        this(directory, maxBytes, null, checkpoint)
 
     private val root: Path
     init {
@@ -110,6 +122,7 @@ class VerifiedArtifactCache internal constructor(
                         readVerified(expected, missingIsCorrupt = true)
                         Files.delete(stage)
                     } else {
+                        enforceRetention(Files.size(stage))
                         Files.move(stage, destination, ATOMIC_MOVE)
                     }
                     syncDirectory()
@@ -190,6 +203,32 @@ class VerifiedArtifactCache internal constructor(
 
     private companion object {
         val activeRoots = HashSet<Path>()
+        val artifactName = Regex("[0-9a-f]{64}\\.bin")
+    }
+
+    /** Under the same exclusive lock as publication; failed-publication payloads also consume quota. */
+    private fun enforceRetention(incomingBytes: Long) {
+        val limits = retention ?: return
+        if (incomingBytes > limits.maxRetainedBytes) fail(CacheFailure.RETENTION_LIMIT)
+        var artifacts = 1 // Reserve the new identity before counting retained artifacts.
+        var retainedBytes = incomingBytes
+        try {
+            Files.newDirectoryStream(root).use { entries ->
+                for (entry in entries) {
+                    cancelled()
+                    if (!artifactName.matches(entry.fileName.toString())) continue
+                    val attributes = Files.readAttributes(entry, BasicFileAttributes::class.java, NOFOLLOW_LINKS)
+                    if (!attributes.isRegularFile) fail(CacheFailure.CORRUPT)
+                    // Subtract before adding, so even Long.MAX_VALUE budgets cannot wrap.
+                    if (artifacts >= limits.maxArtifacts || attributes.size() > limits.maxRetainedBytes - retainedBytes)
+                        fail(CacheFailure.RETENTION_LIMIT)
+                    artifacts++
+                    retainedBytes += attributes.size()
+                }
+            }
+        } catch (_: DirectoryIteratorException) {
+            fail(CacheFailure.IO_FAILURE)
+        }
     }
 
     private fun cleanupStaging() {

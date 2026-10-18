@@ -13,10 +13,11 @@ dependencyLocking { lockAllConfigurations() }
 
 tasks.processResources {
     from(rootProject.file("contracts/v1/schemas")) {
-        include("*.schema.json")
+        include("*.schema.json", "component-registry.json")
         into("contracts/v1/schemas")
     }
 }
 tasks.processTestResources {
     from(rootProject.file("contracts/v1/examples")) { into("contracts/v1/examples") }
+    from(rootProject.file("contracts/v1/baseline/core-ruleset.json")) { into("contracts/v1/baseline") }
 }

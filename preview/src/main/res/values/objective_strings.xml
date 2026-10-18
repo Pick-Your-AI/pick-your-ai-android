@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="objective_next_input">Review next required objective input</string>
+    <string name="objective_inputs_missing">Unanswered required objective inputs: %1$s. This is incomplete input, not a compatibility failure. Overall build readiness, compatibility and pricing have not been evaluated.</string>
+    <string name="objective_inputs_answered">Required objective inputs are answered. Overall build readiness, compatibility and pricing have not been evaluated.</string>
+    <string name="objective_inputs_invalid">Correct invalid or rejected inputs before checking required objective inputs. Overall build readiness, compatibility and pricing have not been evaluated.</string>
+</resources>

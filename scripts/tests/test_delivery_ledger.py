@@ -3,6 +3,9 @@ import copy
 import importlib.util
 import json
 from pathlib import Path
+import subprocess
+import sys
+import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -56,6 +59,593 @@ class LedgerValidationTest(unittest.TestCase):
         self.ledger['issues'][0]['canonical_acceptance_record']['repository'] = 'Pick-Your-AI/pick-your-ai-android'
         with self.assertRaises(ValueError):
             module.validate(self.ledger)
+
+    def test_accepted_design_cannot_authorize_another_issue(self):
+        accepted = self.ledger['issues'][22]
+        target = self.ledger['issues'][88]  # Installed secure storage remains its own work.
+        target['accepted_design_outcome'] = copy.deepcopy(accepted['accepted_design_outcome'])
+        target['canonical_acceptance_record']['repository'] = 'Pick-Your-AI/pick-your-ai-android'
+        target['criteria'][0].update(status='complete', completion_evidence=['pr-279'], remaining_engineering='')
+        with self.assertRaisesRegex(ValueError, 'unsupported design acceptance: 89'):
+            module.validate(self.ledger)
+
+    def test_design_completion_requires_exact_merged_receipt_and_reviews(self):
+        for changed in ('missing', 'review', 'scope', 'source', 'open', 'revision', 'artifact'):
+            with self.subTest(changed=changed):
+                ledger = copy.deepcopy(self.ledger)
+                issue = ledger['issues'][22]
+                receipt = ledger['evidence']['pr-279']
+                if changed == 'missing':
+                    del issue['accepted_design_outcome']
+                elif changed == 'review':
+                    issue['accepted_design_outcome']['receiving_reviews'] = []
+                elif changed == 'scope':
+                    issue['accepted_design_outcome']['scope'] = 'installed_device_security'
+                elif changed == 'source':
+                    issue['accepted_design_outcome']['source_review_revision'] = '0' * 40
+                elif changed == 'open':
+                    receipt['observed_state'] = 'open'
+                elif changed == 'revision':
+                    receipt['revision'] = '0' * 40
+                    receipt['artifact_url'] = receipt['artifact_url'].replace(module.DESIGN_23_REVISION, '0' * 40)
+                else:
+                    receipt['artifact_url'] = receipt['artifact_url'].replace('14.01.md', '14.02.md')
+                with self.assertRaises(ValueError):
+                    module.validate(ledger)
+
+    def test_accepted_design_cannot_change_criteria_even_with_recomputed_digest(self):
+        import hashlib
+        criterion = self.ledger['issues'][22]['criteria'][0]
+        criterion['text'] = 'Installed device security accepted.'
+        criterion['text_sha256'] = hashlib.sha256(criterion['text'].encode()).hexdigest()
+        with self.assertRaisesRegex(ValueError, 'reviewed design criterion set changed: 23'):
+            module.validate(self.ledger)
+
+    def test_design_completion_rejects_missing_proof_and_unfinished_work(self):
+        for field, value in [
+            ('completion_evidence', []),
+            ('completion_evidence', ['pr-132']),
+            ('remaining_engineering', 'Unreviewed data flow remains.'),
+            ('external_prerequisites', [{'kind': 'owner_acceptance', 'requirement': 'Pending design review.'}]),
+            ('evidence_relation', 'criterion_partial_results_with_issue_context'),
+        ]:
+            with self.subTest(field=field, value=value):
+                ledger = copy.deepcopy(self.ledger)
+                ledger['issues'][22]['criteria'][0][field] = value
+                with self.assertRaises(ValueError):
+                    module.validate(ledger)
+
+    def test_accepted_placement_preserves_history_and_cannot_move_to_another_path(self):
+        for changed in ('path', 'history'):
+            ledger = copy.deepcopy(self.ledger)
+            issue = ledger['issues'][22]
+            if changed == 'path':
+                issue['canonical_acceptance_record']['path'] = 'docs/delivery/android/work-packages/14.02.md'
+            else:
+                issue['accepted_design_outcome']['historical_acceptance_record']['repository'] = 'Pick-Your-AI/pick-your-ai-android'
+            with self.assertRaises(ValueError):
+                module.validate(ledger)
+
+    def test_all_state_source_keeps_closed_issue_in_exact_criterion_comparison(self):
+        source = [{'number': issue['number'], 'title': issue['title'],
+                   'state': 'closed' if issue['number'] == 23 else 'open',
+                   'body': '## Acceptance criteria\n' +
+                   '\n'.join('- [x] ' + c['text'] for c in issue['criteria']) +
+                   '\n## Delivery record\n`' + issue['canonical_acceptance_record']['path'] + '`'}
+                  for issue in self.ledger['issues']]
+        module.validate(self.ledger, source)
+        with self.assertRaisesRegex(ValueError, 'live issue inventory differs'):
+            module.validate(self.ledger, [issue for issue in source if issue['state'] == 'open'])
+
+    def test_completion_requires_reviewed_schema_version(self):
+        for version in (1, 2, 3, 4, 5, True, '2', '3', '4', '5', '6', 4.0, 5.0, 6.0):
+            ledger = copy.deepcopy(self.ledger)
+            ledger['schema_version'] = version
+            with self.assertRaisesRegex(ValueError, 'unsupported schema version'):
+                module.validate(ledger)
+
+    def test_issue_and_source_identity_reject_numeric_aliases(self):
+        source = [{'number': issue['number'], 'title': issue['title'],
+                   'body': '## Acceptance criteria\n' +
+                   '\n'.join('- [ ] ' + c['text'] for c in issue['criteria']) +
+                   '\n## Delivery record\n`' + issue['canonical_acceptance_record']['path'] + '`'}
+                  for issue in self.ledger['issues']]
+        for location in ('ledger', 'source'):
+            for index, alias in ((22, 23.0), (0, True)):
+                with self.subTest(location=location, alias=alias):
+                    ledger = copy.deepcopy(self.ledger)
+                    changed_source = copy.deepcopy(source)
+                    if location == 'ledger':
+                        issue = ledger['issues'][index]
+                        issue['number'] = alias
+                        issue['url'] = f'{module.BASE}/issues/{alias}'
+                        for ordinal, criterion in enumerate(issue['criteria'], 1):
+                            criterion['id'] = f'{alias}.{ordinal}'
+                    else:
+                        changed_source[index]['number'] = alias
+                    with self.assertRaisesRegex(ValueError, f'{location} issue numbers must be integers'):
+                        module.validate(ledger, changed_source)
+
+
+    def test_foundation_criteria_cannot_change_with_a_recomputed_digest(self):
+        import hashlib
+        for number in (20, 24, 34):
+            for ordinal in range(3):
+                with self.subTest(number=number, ordinal=ordinal + 1):
+                    ledger = copy.deepcopy(self.ledger)
+                    criterion = ledger['issues'][number - 1]['criteria'][ordinal]
+                    criterion['text'] = 'Installed production behavior accepted.'
+                    criterion['text_sha256'] = hashlib.sha256(criterion['text'].encode()).hexdigest()
+                    with self.assertRaisesRegex(ValueError, f'reviewed design criterion set changed: {number}'):
+                        module.validate(ledger)
+
+    def test_foundation_decisions_require_their_own_receipts(self):
+        for target, source in ((20, 24), (24, 34), (34, 20), (20, 23)):
+            with self.subTest(target=target, source=source):
+                ledger = copy.deepcopy(self.ledger)
+                ledger['issues'][target - 1]['accepted_design_outcome'] = copy.deepcopy(
+                    ledger['issues'][source - 1]['accepted_design_outcome'])
+                with self.assertRaisesRegex(ValueError, f'missing or changed reviewed design acceptance: {target}'):
+                    module.validate(ledger)
+
+    def test_foundation_requires_exact_delivery_placement_scope_and_reviews(self):
+        for number in (20, 24, 34):
+            for changed in ('missing-review', 'wrong-review', 'source', 'scope', 'history',
+                            'placement', 'record', 'open', 'revision', 'artifact'):
+                with self.subTest(number=number, changed=changed):
+                    ledger = copy.deepcopy(self.ledger)
+                    issue = ledger['issues'][number - 1]
+                    accepted = issue['accepted_design_outcome']
+                    receipt = ledger['evidence']['pr-297']
+                    if changed == 'missing-review':
+                        accepted['receiving_reviews'].pop()
+                    elif changed == 'wrong-review':
+                        accepted['receiving_reviews'][-1] = module.DESIGN_23_ACCEPTANCE['receiving_reviews'][0]
+                    elif changed == 'source':
+                        accepted['source_review_revision'] = '0' * 40
+                    elif changed == 'scope':
+                        accepted['scope'] = 'installed_production_execution'
+                    elif changed == 'history':
+                        accepted['historical_acceptance_record']['repository'] = module.REPOSITORY
+                    elif changed == 'placement':
+                        issue['canonical_acceptance_record']['repository'] = 'Pick-Your-AI/pickyour.ai'
+                    elif changed == 'record':
+                        accepted['record_url'] = module.FOUNDATION_DECISION
+                    elif changed == 'open':
+                        receipt['observed_state'] = 'open'
+                    elif changed == 'revision':
+                        receipt['revision'] = '0' * 40
+                        receipt['artifact_url'] = receipt['artifact_url'].replace(module.FOUNDATION_REVISION, '0' * 40)
+                    else:
+                        receipt['artifact_url'] = accepted['record_url']
+                    with self.assertRaises(ValueError):
+                        module.validate(ledger)
+
+    def test_foundation_completion_preserves_unfinished_criterion_guards(self):
+        for number in (20, 24, 34):
+            for field, value in (
+                ('completion_evidence', []),
+                ('completion_evidence', ['pr-279']),
+                ('completion_evidence', ['pr-297', 'pr-279']),
+                ('remaining_engineering', 'Unreviewed decision remains.'),
+                ('external_prerequisites', [{'kind': 'owner_acceptance', 'requirement': 'Pending design review.'}]),
+                ('evidence_relation', 'issue_context_only; inspect artifact scope before attributing any criterion result'),
+            ):
+                with self.subTest(number=number, field=field, value=value):
+                    ledger = copy.deepcopy(self.ledger)
+                    ledger['issues'][number - 1]['criteria'][0][field] = value
+                    with self.assertRaises(ValueError):
+                        module.validate(ledger)
+
+    def test_foundation_does_not_authorize_parent_or_implementation_completion(self):
+        for number in (1, 48, 98):
+            with self.subTest(number=number):
+                ledger = copy.deepcopy(self.ledger)
+                target = ledger['issues'][number - 1]
+                target['accepted_design_outcome'] = copy.deepcopy(ledger['issues'][19]['accepted_design_outcome'])
+                target['canonical_acceptance_record']['repository'] = module.REPOSITORY
+                target['criteria'][0].update(status='complete', completion_evidence=['pr-297'],
+                                             remaining_engineering='', external_prerequisites=[],
+                                             evidence_relation=module.COMPLETE_DESIGN_RELATION)
+                with self.assertRaisesRegex(ValueError, f'unsupported design acceptance: {number}'):
+                    module.validate(ledger)
+
+
+    def test_account_criteria_cannot_change_with_a_recomputed_digest(self):
+        import hashlib
+        for ordinal in range(3):
+            with self.subTest(ordinal=ordinal + 1):
+                ledger = copy.deepcopy(self.ledger)
+                criterion = ledger['issues'][24]['criteria'][ordinal]
+                criterion['text'] = 'Remote accounts and billing are implemented.'
+                criterion['text_sha256'] = hashlib.sha256(criterion['text'].encode()).hexdigest()
+                with self.assertRaisesRegex(ValueError, 'reviewed design criterion set changed: 25'):
+                    module.validate(ledger)
+
+    def test_account_decision_requires_exact_delivery_placement_scope_and_reviews(self):
+        for changed in ('missing', 'missing-review', 'wrong-review', 'source', 'scope',
+                        'history-repository', 'history-path', 'placement', 'path',
+                        'record', 'decision', 'open', 'revision', 'artifact'):
+            with self.subTest(changed=changed):
+                ledger = copy.deepcopy(self.ledger)
+                issue = ledger['issues'][24]
+                accepted = issue['accepted_design_outcome']
+                receipt = ledger['evidence']['pr-322']
+                if changed == 'missing':
+                    del issue['accepted_design_outcome']
+                elif changed == 'missing-review':
+                    accepted['receiving_reviews'].pop()
+                elif changed == 'wrong-review':
+                    accepted['receiving_reviews'][-1] = module.FOUNDATION_REVIEWS[-1]
+                elif changed == 'source':
+                    accepted['source_review_revision'] = '0' * 40
+                elif changed == 'scope':
+                    accepted['scope'] = 'remote_accounts_and_billing_implementation'
+                elif changed == 'history-repository':
+                    accepted['historical_acceptance_record']['repository'] = module.REPOSITORY
+                elif changed == 'history-path':
+                    accepted['historical_acceptance_record']['path'] = module.DESIGN_23_PATH
+                elif changed == 'placement':
+                    issue['canonical_acceptance_record']['repository'] = 'Pick-Your-AI/pickyour.ai'
+                elif changed == 'path':
+                    issue['canonical_acceptance_record']['path'] = module.DESIGN_23_PATH
+                elif changed == 'record':
+                    accepted['record_url'] = module.DESIGN_25_DECISION
+                elif changed == 'decision':
+                    accepted['decision_url'] = accepted['record_url']
+                elif changed == 'open':
+                    receipt['observed_state'] = 'open'
+                elif changed == 'revision':
+                    receipt['revision'] = '0' * 40
+                    receipt['artifact_url'] = receipt['artifact_url'].replace(module.DESIGN_25_REVISION, '0' * 40)
+                else:
+                    receipt['artifact_url'] = accepted['record_url']
+                with self.assertRaises(ValueError):
+                    module.validate(ledger)
+
+    def test_account_decision_cannot_substitute_other_design_receipts(self):
+        for other in (20, 23, 24, 34):
+            for target, source in ((25, other), (other, 25)):
+                with self.subTest(target=target, source=source):
+                    ledger = copy.deepcopy(self.ledger)
+                    ledger['issues'][target - 1]['accepted_design_outcome'] = copy.deepcopy(
+                        ledger['issues'][source - 1]['accepted_design_outcome'])
+                    with self.assertRaisesRegex(ValueError, f'missing or changed reviewed design acceptance: {target}'):
+                        module.validate(ledger)
+
+    def test_account_completion_requires_exact_proof_and_no_unfinished_requirement(self):
+        for ordinal in range(3):
+            for field, value in (
+                ('completion_evidence', []),
+                ('completion_evidence', ['pr-297']),
+                ('completion_evidence', ['pr-322', 'pr-297']),
+                ('remaining_engineering', 'Applicability remains undecided.'),
+                ('external_prerequisites', [{'kind': 'owner_acceptance', 'requirement': 'Pending design review.'}]),
+                ('evidence_relation', 'issue_context_only; inspect artifact scope before attributing any criterion result'),
+            ):
+                with self.subTest(ordinal=ordinal + 1, field=field, value=value):
+                    ledger = copy.deepcopy(self.ledger)
+                    ledger['issues'][24]['criteria'][ordinal][field] = value
+                    with self.assertRaises(ValueError):
+                        module.validate(ledger)
+
+    def test_account_decision_does_not_authorize_service_or_implementation_completion(self):
+        for number in (1, 35, 89, 98):
+            with self.subTest(number=number):
+                ledger = copy.deepcopy(self.ledger)
+                target = ledger['issues'][number - 1]
+                target['accepted_design_outcome'] = copy.deepcopy(ledger['issues'][24]['accepted_design_outcome'])
+                target['canonical_acceptance_record']['repository'] = module.REPOSITORY
+                target['criteria'][0].update(status='complete', completion_evidence=['pr-322'],
+                                             remaining_engineering='', external_prerequisites=[],
+                                             evidence_relation=module.COMPLETE_DESIGN_RELATION)
+                message = (f'missing or changed reviewed design acceptance: {number}' if number == 35
+                           else f'unsupported design acceptance: {number}')
+                with self.assertRaisesRegex(ValueError, message):
+                    module.validate(ledger)
+
+
+    def test_baseline_criteria_cannot_change_with_a_recomputed_digest(self):
+        import hashlib
+        for ordinal in range(3):
+            with self.subTest(ordinal=ordinal + 1):
+                ledger = copy.deepcopy(self.ledger)
+                criterion = ledger['issues'][46]['criteria'][ordinal]
+                criterion['text'] = 'Supported physical devices and production performance are qualified.'
+                criterion['text_sha256'] = hashlib.sha256(criterion['text'].encode()).hexdigest()
+                with self.assertRaisesRegex(ValueError, 'reviewed design criterion set changed: 47'):
+                    module.validate(ledger)
+
+    def test_baseline_requires_exact_delivery_artifacts_scope_history_and_reviews(self):
+        for changed in ('missing', 'missing-review', 'wrong-review', 'source', 'scope',
+                        'history-repository', 'history-path', 'placement', 'path',
+                        'record', 'baseline', 'decision', 'open', 'revision', 'artifact'):
+            with self.subTest(changed=changed):
+                ledger = copy.deepcopy(self.ledger)
+                issue = ledger['issues'][46]
+                accepted = issue['accepted_design_outcome']
+                receipt = ledger['evidence']['pr-318']
+                if changed == 'missing':
+                    del issue['accepted_design_outcome']
+                elif changed == 'missing-review':
+                    accepted['receiving_reviews'].pop()
+                elif changed == 'wrong-review':
+                    accepted['receiving_reviews'][1] = module.DESIGN_25_ACCEPTANCE['receiving_reviews'][0]
+                elif changed == 'source':
+                    accepted['source_review_revision'] = '0' * 40
+                elif changed == 'scope':
+                    accepted['scope'] = 'physical_device_and_production_release_qualification'
+                elif changed == 'history-repository':
+                    accepted['historical_acceptance_record']['repository'] = module.REPOSITORY
+                elif changed == 'history-path':
+                    accepted['historical_acceptance_record']['path'] = module.DESIGN_25_PATH
+                elif changed == 'placement':
+                    issue['canonical_acceptance_record']['repository'] = 'Pick-Your-AI/pickyour.ai'
+                elif changed == 'path':
+                    issue['canonical_acceptance_record']['path'] = module.DESIGN_25_PATH
+                elif changed == 'record':
+                    accepted['record_url'] = accepted['baseline_url']
+                elif changed == 'baseline':
+                    accepted['baseline_url'] = accepted['record_url']
+                elif changed == 'decision':
+                    accepted['decision_url'] = accepted['record_url']
+                elif changed == 'open':
+                    receipt['observed_state'] = 'open'
+                elif changed == 'revision':
+                    receipt['revision'] = '0' * 40
+                    receipt['artifact_url'] = receipt['artifact_url'].replace(module.DESIGN_47_REVISION, '0' * 40)
+                else:
+                    receipt['artifact_url'] = accepted['baseline_url']
+                with self.assertRaises(ValueError):
+                    module.validate(ledger)
+
+    def test_baseline_receipt_cannot_substitute_any_other_accepted_decision(self):
+        for other in (20, 23, 24, 25, 34):
+            for target, source in ((47, other), (other, 47)):
+                with self.subTest(target=target, source=source):
+                    ledger = copy.deepcopy(self.ledger)
+                    ledger['issues'][target - 1]['accepted_design_outcome'] = copy.deepcopy(
+                        ledger['issues'][source - 1]['accepted_design_outcome'])
+                    with self.assertRaisesRegex(ValueError, f'missing or changed reviewed design acceptance: {target}'):
+                        module.validate(ledger)
+
+    def test_baseline_completion_requires_exact_proof_and_no_unfinished_decision(self):
+        for ordinal in range(3):
+            for field, value in (
+                ('completion_evidence', []),
+                ('completion_evidence', ['pr-322']),
+                ('completion_evidence', ['pr-318', 'pr-322']),
+                ('remaining_engineering', 'Qualification targets or review methods remain undecided.'),
+                ('external_prerequisites', [{'kind': 'owner_acceptance', 'requirement': 'Pending decision review.'}]),
+                ('evidence_relation', 'issue_context_only; inspect artifact scope before attributing any criterion result'),
+            ):
+                with self.subTest(ordinal=ordinal + 1, field=field, value=value):
+                    ledger = copy.deepcopy(self.ledger)
+                    ledger['issues'][46]['criteria'][ordinal][field] = value
+                    with self.assertRaises(ValueError):
+                        module.validate(ledger)
+
+    def test_baseline_does_not_authorize_implementation_devices_performance_or_release(self):
+        for number in (1, 48, 54, 71, 74, 107):
+            with self.subTest(number=number):
+                ledger = copy.deepcopy(self.ledger)
+                target = ledger['issues'][number - 1]
+                target['accepted_design_outcome'] = copy.deepcopy(ledger['issues'][46]['accepted_design_outcome'])
+                target['canonical_acceptance_record']['repository'] = module.REPOSITORY
+                target['criteria'][0].update(status='complete', completion_evidence=['pr-318'],
+                                             remaining_engineering='', external_prerequisites=[],
+                                             evidence_relation=module.COMPLETE_DESIGN_RELATION)
+                with self.assertRaisesRegex(ValueError, f'unsupported design acceptance: {number}'):
+                    module.validate(ledger)
+
+
+    def test_service_criteria_cannot_change_with_a_recomputed_digest(self):
+        import hashlib
+        for ordinal in range(3):
+            with self.subTest(ordinal=ordinal + 1):
+                ledger = copy.deepcopy(self.ledger)
+                criterion = ledger['issues'][34]['criteria'][ordinal]
+                criterion['text'] = 'A production endpoint, accepted operator and executed restore are verified.'
+                criterion['text_sha256'] = hashlib.sha256(criterion['text'].encode()).hexdigest()
+                with self.assertRaisesRegex(ValueError, 'reviewed design criterion set changed: 35'):
+                    module.validate(ledger)
+
+    def test_service_requires_exact_delivery_artifacts_scope_history_and_reviews(self):
+        for changed in ('missing', 'missing-review', 'wrong-review', 'source', 'scope',
+                        'history-repository', 'history-path', 'placement', 'path',
+                        'record', 'baseline', 'decision', 'open', 'revision', 'artifact'):
+            with self.subTest(changed=changed):
+                ledger = copy.deepcopy(self.ledger)
+                issue = ledger['issues'][34]
+                accepted = issue['accepted_design_outcome']
+                receipt = ledger['evidence']['pr-347']
+                if changed == 'missing':
+                    del issue['accepted_design_outcome']
+                elif changed == 'missing-review':
+                    accepted['receiving_reviews'].pop()
+                elif changed == 'wrong-review':
+                    accepted['receiving_reviews'][1] = module.DESIGN_25_ACCEPTANCE['receiving_reviews'][0]
+                elif changed == 'source':
+                    accepted['source_review_revision'] = '0' * 40
+                elif changed == 'scope':
+                    accepted['scope'] = 'deployed_shared_service_and_accepted_operator'
+                elif changed == 'history-repository':
+                    accepted['historical_acceptance_record']['repository'] = module.REPOSITORY
+                elif changed == 'history-path':
+                    accepted['historical_acceptance_record']['path'] = module.DESIGN_25_PATH
+                elif changed == 'placement':
+                    issue['canonical_acceptance_record']['repository'] = 'Pick-Your-AI/pickyour.ai'
+                elif changed == 'path':
+                    issue['canonical_acceptance_record']['path'] = module.DESIGN_25_PATH
+                elif changed == 'record':
+                    accepted['record_url'] = accepted['baseline_url']
+                elif changed == 'baseline':
+                    accepted['baseline_url'] = accepted['record_url']
+                elif changed == 'decision':
+                    accepted['decision_url'] = accepted['record_url']
+                elif changed == 'open':
+                    receipt['observed_state'] = 'open'
+                elif changed == 'revision':
+                    receipt['revision'] = '0' * 40
+                    receipt['artifact_url'] = receipt['artifact_url'].replace(module.DESIGN_35_REVISION, '0' * 40)
+                else:
+                    receipt['artifact_url'] = accepted['baseline_url']
+                with self.assertRaises(ValueError):
+                    module.validate(ledger)
+
+    def test_service_receipt_cannot_substitute_any_other_accepted_decision(self):
+        for other in (20, 23, 24, 25, 34, 47):
+            for target, source in ((35, other), (other, 35)):
+                with self.subTest(target=target, source=source):
+                    ledger = copy.deepcopy(self.ledger)
+                    ledger['issues'][target - 1]['accepted_design_outcome'] = copy.deepcopy(
+                        ledger['issues'][source - 1]['accepted_design_outcome'])
+                    with self.assertRaisesRegex(ValueError, f'missing or changed reviewed design acceptance: {target}'):
+                        module.validate(ledger)
+
+    def test_service_completion_requires_exact_proof_and_no_unfinished_decision(self):
+        for ordinal in range(3):
+            for field, value in (
+                ('completion_evidence', []),
+                ('completion_evidence', ['pr-322']),
+                ('completion_evidence', ['pr-347', 'pr-322']),
+                ('remaining_engineering', 'Hosting or explicit operating gate remains undecided.'),
+                ('external_prerequisites', [{'kind': 'owner_acceptance', 'requirement': 'Pending decision review.'}]),
+                ('evidence_relation', 'issue_context_only; inspect artifact scope before attributing any criterion result'),
+            ):
+                with self.subTest(ordinal=ordinal + 1, field=field, value=value):
+                    ledger = copy.deepcopy(self.ledger)
+                    ledger['issues'][34]['criteria'][ordinal][field] = value
+                    with self.assertRaises(ValueError):
+                        module.validate(ledger)
+
+    def test_service_decision_does_not_authorize_parent_client_operations_or_release(self):
+        for number in (1, 2, 36, 44, 51, 62, 89, 92, 98, 107):
+            with self.subTest(number=number):
+                ledger = copy.deepcopy(self.ledger)
+                target = ledger['issues'][number - 1]
+                target['accepted_design_outcome'] = copy.deepcopy(ledger['issues'][34]['accepted_design_outcome'])
+                target['canonical_acceptance_record']['repository'] = module.REPOSITORY
+                target['criteria'][0].update(status='complete', completion_evidence=['pr-347'],
+                                             remaining_engineering='', external_prerequisites=[],
+                                             evidence_relation=module.COMPLETE_DESIGN_RELATION)
+                with self.assertRaisesRegex(ValueError, f'unsupported design acceptance: {number}'):
+                    module.validate(ledger)
+
+
+class LedgerInputIntegrityTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.raw_ledger = (ROOT / 'docs/delivery/criterion-evidence.json').read_text(encoding='utf-8')
+        cls.ledger = json.loads(cls.raw_ledger)
+        # Controlled all-state source fixture; this is not a live GitHub capture.
+        cls.source = [
+            {'number': issue['number'], 'title': issue['title'],
+             'state': 'closed' if issue['number'] in module.REVIEWED_DESIGNS else 'open',
+             'body': '## Acceptance criteria\n' +
+                     '\n'.join('- [x] ' + c['text'] for c in issue['criteria']) +
+                     '\n## Delivery record\n`' + issue['canonical_acceptance_record']['path'] + '`'}
+            for issue in cls.ledger['issues']
+        ]
+        cls.raw_source = json.dumps(cls.source, ensure_ascii=False)
+
+    def run_cli(self, ledger_text=None, source_text=None, optimized=False):
+        with tempfile.TemporaryDirectory(prefix='ledger-input-') as directory:
+            path = Path(directory)
+            ledger_path = path / 'ledger.json'
+            ledger_path.write_text(self.raw_ledger if ledger_text is None else ledger_text,
+                                   encoding='utf-8')
+            command = [sys.executable] + (['-O'] if optimized else []) + [
+                str(ROOT / 'scripts/check_delivery_ledger.py'), '--ledger', str(ledger_path)]
+            if source_text is not None:
+                source_path = path / 'issues.json'
+                source_path.write_text(source_text, encoding='utf-8')
+                command += ['--issues', str(source_path)]
+            return subprocess.run(command, capture_output=True, text=True, timeout=10)
+
+    def assert_rejected(self, message, **inputs):
+        for optimized in (False, True):
+            with self.subTest(optimized=optimized):
+                result = self.run_cli(optimized=optimized, **inputs)
+                self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+                self.assertIn('Delivery ledger check failed: ', result.stderr)
+                self.assertIn(message, result.stderr)
+                self.assertNotIn('PASS:', result.stdout)
+                self.assertNotIn('Traceback', result.stderr)
+
+    def test_duplicate_schema_and_source_identity_members_fail_at_cli(self):
+        self.assert_rejected('duplicate JSON member', ledger_text=self.raw_ledger.replace(
+            '"schema_version": 6', '"schema_version": 5, "schema_version": 6', 1))
+        self.assert_rejected('duplicate JSON member', source_text=self.raw_source.replace(
+            '"number": 1', '"number": 999, "number": 1', 1))
+
+    def test_nested_review_and_source_body_duplicates_fail_at_cli(self):
+        self.assert_rejected('duplicate JSON member', ledger_text=self.raw_ledger.replace(
+            '"receiving_reviews": [', '"receiving_reviews": [], "receiving_reviews": [', 1))
+        self.assert_rejected('duplicate JSON member', source_text=self.raw_source.replace(
+            '"body":', '"body": "Unreviewed replacement", "body":', 1))
+
+    def test_escaped_duplicate_members_fail_at_both_cli_inputs(self):
+        self.assert_rejected('duplicate JSON member', ledger_text=self.raw_ledger.replace(
+            '"schema_version": 6', r'"\u0073chema_version": 5, "schema_version": 6', 1))
+        self.assert_rejected('duplicate JSON member', source_text=self.raw_source.replace(
+            '"number": 1', r'"\u006eumber": 999, "number": 1', 1))
+        for location, raw in (('ledger_text', self.raw_ledger), ('source_text', self.raw_source)):
+            with self.subTest(location=location):
+                changed = raw.replace('{', r'{"synthetic_probe": {"x": 0, "\u0078": 1},', 1)
+                self.assert_rejected('duplicate JSON member', **{location: changed})
+
+    def test_nonfinite_literals_fail_at_both_cli_inputs(self):
+        for token in ('NaN', 'Infinity', '-Infinity'):
+            for location, raw in (('ledger_text', self.raw_ledger), ('source_text', self.raw_source)):
+                with self.subTest(token=token, location=location):
+                    changed = raw.replace('{', '{"synthetic_probe": [' + token + '],', 1)
+                    self.assert_rejected('non-finite JSON number', **{location: changed})
+
+    def test_numeric_overflow_fails_at_both_cli_inputs(self):
+        for token in ('1e10000', '-1e10000'):
+            for location, raw in (('ledger_text', self.raw_ledger), ('source_text', self.raw_source)):
+                with self.subTest(token=token, location=location):
+                    changed = raw.replace('{', '{"synthetic_probe": [' + token + '],', 1)
+                    self.assert_rejected('non-finite JSON number', **{location: changed})
+
+    def test_finite_values_unicode_and_numeric_text_keep_live_audit_behavior(self):
+        metadata = json.dumps({'values': [0.0, 1.125, -2.5, 1e308, 1e-308],
+                               'text': 'NaN Infinity 1e10000 café 日本語'}, ensure_ascii=False)
+        ledger_text = self.raw_ledger.replace('{', '{"synthetic_probe": ' + metadata + ',', 1)
+        source_text = self.raw_source.replace('{', '{"synthetic_probe": ' + metadata + ',', 1)
+        for optimized in (False, True):
+            with self.subTest(optimized=optimized):
+                result = self.run_cli(ledger_text, source_text, optimized)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertIn('420 incomplete criteria, 21 reviewed design criteria', result.stdout)
+                self.assertIn('exact source criteria matched.', result.stdout)
+                self.assertEqual(result.stderr, '')
+        changed = copy.deepcopy(self.source)
+        changed[0]['body'] = changed[0]['body'].replace('All selected core work packages',
+                                                      'Changed selected work packages')
+        self.assert_rejected('live criteria differ: 1', source_text=json.dumps(changed))
+
+    def test_each_ordinary_record_rejects_a_different_valid_website_path(self):
+        for issue in self.ledger['issues']:
+            if issue['number'] in module.REVIEWED_DESIGNS:
+                continue
+            with self.subTest(number=issue['number']):
+                ledger = copy.deepcopy(self.ledger)
+                ledger['issues'][issue['number'] - 1]['canonical_acceptance_record']['path'] = (
+                    'docs/delivery/android/work-packages/99.99.md')
+                with self.assertRaisesRegex(ValueError, 'unreviewed acceptance coordinates'):
+                    module.validate(ledger)
+
+    def test_matching_source_substitution_cannot_move_an_ordinary_record(self):
+        ledger = copy.deepcopy(self.ledger)
+        source = copy.deepcopy(self.source)
+        original = ledger['issues'][47]['canonical_acceptance_record']['path']
+        substituted = 'docs/delivery/android/work-packages/99.99.md'
+        ledger['issues'][47]['canonical_acceptance_record']['path'] = substituted
+        source[47]['body'] = source[47]['body'].replace(original, substituted)
+        self.assert_rejected('unreviewed acceptance coordinates',
+                             ledger_text=json.dumps(ledger), source_text=json.dumps(source))
 
 
 if __name__ == '__main__':

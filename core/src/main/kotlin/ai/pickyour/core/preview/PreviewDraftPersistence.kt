@@ -25,20 +25,22 @@ class PreviewContextCheckpoint(val hasInputs: Boolean, val inputs: PreviewDraftC
         if (preservePending && hasInputs) inputs else baseline
 }
 class PreviewStoredDraft internal constructor(internal val draft: StoredDraft, val fields: PreviewDraftFields) {
+    val components: DraftSelections get() = draft.content.components
+    val workloadInput: DraftWorkload get() = draft.content.workload
     val contextInput: PreviewDraftContext get() = PreviewDraftContext(draft.content.objective, draft.content.context)
     val optionalTiers: Map<OptionalTier, TierDraft> get() = draft.content.optional
     val revision: Long get() = draft.version.number
     val baselineIdentity: String get() = "${draft.version.number}:${draft.version.hash.hex}"
     /** Retained guest forms only; unavailable metadata is never reconstructed or replaced. */
     val history: List<PreviewDraftRevision> get() = java.util.Collections.unmodifiableList(draft.history.map {
-        PreviewDraftRevision(it.number, decodePreviewFields(it.metadata), it.content, it.change, it.restoredFrom)
+        PreviewDraftRevision(it.number, decodePreviewFields(it.metadata), it.content, it.change, it.restoredFrom, it.selectionChange)
     })
     val earlierHistoryUnavailable: Boolean get() = draft.earlierHistoryUnavailable
     override fun toString() = "PreviewStoredDraft"
 }
 /** Retained local content and guest metadata, never an evaluation or price result. */
 class PreviewDraftRevision internal constructor(val revision: Long, val fields: PreviewDraftFields?,
-    val content: DraftContent, val change: StoredRevisionChange, val restoredFrom: Long?) {
+    val content: DraftContent, val change: StoredRevisionChange, val restoredFrom: Long?, val selectionChange: SelectionChange? = null) {
     override fun toString() = "PreviewDraftRevision"
 }
 
@@ -47,6 +49,11 @@ private fun decodePreviewFields(metadata: Map<String, String>): PreviewDraftFiel
     val title = metadata["preview.title"] ?: return null
     return try { PreviewDraftFields(title, metadata["preview.selectedId"], metadata["preview.selectedVersion"], metadata["preview.catalogHash"]) }
     catch (_: IllegalArgumentException) { null }
+}
+
+/** Immutable, validated pending inputs; raw invalid text cannot enter a recovery transaction. */
+class PreviewPendingDraft(val fields: PreviewDraftFields, val context: PreviewDraftContext, val workload: DraftWorkload) {
+    override fun toString() = "PreviewPendingDraft"
 }
 
 sealed interface PreviewDraftLoad {
@@ -60,6 +67,16 @@ sealed interface PreviewDraftSave {
     data class Failed(val reason: DraftStorageFailure) : PreviewDraftSave
     /** Must reopen before retrying; never show an acknowledged saved state from this outcome. */
     data object Uncertain : PreviewDraftSave
+}
+
+/** A command result acknowledges only local persistence, never compatibility or pricing. */
+sealed interface PreviewSelectionSave {
+    class Saved(val record: PreviewStoredDraft, val change: SelectionChange?) : PreviewSelectionSave
+    data object Conflict : PreviewSelectionSave
+    data class Rejected(val reason: SelectionRejection) : PreviewSelectionSave
+    data class Failed(val reason: DraftStorageFailure) : PreviewSelectionSave
+    /** Reopen before another command; a dispatched write may already be durable. */
+    data object Uncertain : PreviewSelectionSave
 }
 
 /**
@@ -78,22 +95,48 @@ class PreviewDraftPersistence internal constructor(private val store: LocalDraft
         is DraftLoad.Available -> decode(result.draft)
     } }
 
-    fun save(expected: PreviewStoredDraft?, fields: PreviewDraftFields, contextInput: PreviewDraftContext? = null): PreviewDraftSave = write {
+    /** Local candidate review only. Library liveness and the original captured store token apply. */
+    fun prepareSnapshotCandidate(expected: PreviewStoredDraft, inputs: DraftSnapshotInputs): DraftProjectionPreparation =
+        guarded({ DraftProjectionPreparation.Failed(it) }) { store.prepareSnapshotCandidate(expected.draft.version, inputs) }
+
+    /** No export or saved feedback: Created is a reviewed in-memory candidate, with exact inputs. */
+    fun createSnapshotCandidate(review: DraftProjectionPreparation.Review, acknowledgment: DraftProjectionAcknowledgment?): DraftProjectionCreation =
+        guarded({ DraftProjectionCreation.Failed(it) }) { store.createSnapshotCandidate(review, acknowledgment) }
+
+    fun save(expected: PreviewStoredDraft?, fields: PreviewDraftFields, contextInput: PreviewDraftContext? = null,
+        workloadInput: DraftWorkload? = null): PreviewDraftSave = write {
         val previous = expected?.draft?.content ?: DraftContent()
-        val content = if (contextInput == null) previous else
-            DraftContent(contextInput.objective, contextInput.context, previous.primaryModel, previous.optional)
-        val metadata = (expected?.draft?.metadata ?: emptyMap()).toMutableMap()
-        metadata[FORMAT] = "1"
-        metadata[TITLE] = fields.title
-        if (fields.selectedId == null) metadata.remove(SELECTION) else metadata[SELECTION] = fields.selectedId
-        if (fields.selectedVersion == null) metadata.remove(VERSION) else metadata[VERSION] = fields.selectedVersion
-        if (fields.catalogHash == null) metadata.remove(CATALOG) else metadata[CATALOG] = fields.catalogHash
+        val content = DraftContent(
+            if (contextInput == null) previous.objective else contextInput.objective,
+            if (contextInput == null) previous.context else contextInput.context,
+            previous.primaryModel, previous.optional, workloadInput ?: previous.workload, previous.components)
+        val metadata = previewMetadata(expected?.draft?.metadata.orEmpty(), fields)
         when (val result = store.save(expected?.draft?.version, content, metadata)) {
             is DraftSave.Saved -> PreviewDraftSave.Saved(PreviewStoredDraft(result.draft, fields))
             DraftSave.Conflict -> PreviewDraftSave.Conflict
             is DraftSave.Failed -> PreviewDraftSave.Failed(result.reason)
             is DraftSave.Uncertain -> PreviewDraftSave.Uncertain
             DraftSave.UnknownRevision -> PreviewDraftSave.Failed(DraftStorageFailure.CORRUPT)
+        }
+    }
+
+    /** Original baseline authority and library liveness stay locked across the canonical command. */
+    fun applySelection(expected: PreviewStoredDraft, command: SelectionCommand,
+        catalog: SelectionCatalogSnapshot? = null): PreviewSelectionSave {
+        var started = false
+        return guarded({ if (started) PreviewSelectionSave.Uncertain else PreviewSelectionSave.Failed(it) }) {
+            started = true
+            when (val result = store.applySelection(DraftSelectionIntent(expected.draft.version, command), catalog)) {
+                is DraftSelectionSave.Saved -> when (val decoded = decode(result.draft)) {
+                    is PreviewDraftLoad.Available -> PreviewSelectionSave.Saved(decoded.record, result.change)
+                    is PreviewDraftLoad.Failed -> PreviewSelectionSave.Failed(decoded.reason)
+                    PreviewDraftLoad.Missing -> PreviewSelectionSave.Failed(DraftStorageFailure.CORRUPT)
+                }
+                DraftSelectionSave.Conflict -> PreviewSelectionSave.Conflict
+                is DraftSelectionSave.Rejected -> PreviewSelectionSave.Rejected(result.reason)
+                is DraftSelectionSave.Failed -> PreviewSelectionSave.Failed(result.reason)
+                is DraftSelectionSave.Uncertain -> PreviewSelectionSave.Uncertain
+            }
         }
     }
 
@@ -138,6 +181,35 @@ class PreviewDraftPersistence internal constructor(private val store: LocalDraft
             is DraftSave.Uncertain -> PreviewDraftSave.Uncertain
             DraftSave.UnknownRevision -> PreviewDraftSave.Failed(DraftStorageFailure.CORRUPT)
         }
+    }
+
+    /** Explicit recovery copy: new identity and save authority, never a retry against the source. */
+    internal fun copyPendingSnapshot(source: PreviewStoredDraft, pending: PreviewPendingDraft): PreviewDraftSave = write {
+        val previous = source.draft.content
+        val content = DraftContent(pending.context.objective, pending.context.context, previous.primaryModel,
+            previous.optional, pending.workload, previous.components)
+        val metadata = previewMetadata(source.draft.metadata, pending.fields) + mapOf(
+            "preview.recoverySourceId" to source.draft.version.store.fileName.toString(),
+            "preview.recoverySourceRevision" to source.revision.toString(),
+            "preview.recoverySourceHash" to source.draft.version.hash.hex,
+        )
+        when (val result = store.save(null, content, metadata)) {
+            is DraftSave.Saved -> PreviewDraftSave.Saved(PreviewStoredDraft(result.draft, pending.fields))
+            DraftSave.Conflict -> PreviewDraftSave.Conflict
+            is DraftSave.Failed -> PreviewDraftSave.Failed(result.reason)
+            is DraftSave.Uncertain -> PreviewDraftSave.Uncertain
+            DraftSave.UnknownRevision -> PreviewDraftSave.Failed(DraftStorageFailure.CORRUPT)
+        }
+    }
+
+    private fun previewMetadata(previous: Map<String, String>, fields: PreviewDraftFields): Map<String, String> {
+        val metadata = previous.toMutableMap()
+        metadata[FORMAT] = "1"
+        metadata[TITLE] = fields.title
+        if (fields.selectedId == null) metadata.remove(SELECTION) else metadata[SELECTION] = fields.selectedId
+        if (fields.selectedVersion == null) metadata.remove(VERSION) else metadata[VERSION] = fields.selectedVersion
+        if (fields.catalogHash == null) metadata.remove(CATALOG) else metadata[CATALOG] = fields.catalogHash
+        return metadata
     }
 
     private fun write(action: () -> PreviewDraftSave): PreviewDraftSave {

@@ -2,6 +2,7 @@ package ai.pickyour.core.preview
 
 import ai.pickyour.core.drafts.*
 import ai.pickyour.core.cache.CacheFailure
+import ai.pickyour.core.cache.CacheRetentionLimits
 import java.nio.channels.FileChannel
 import java.nio.channels.OverlappingFileLockException
 import java.io.IOException
@@ -116,7 +117,7 @@ class PreviewDraftLibrary internal constructor(root: Path, private val checkpoin
         require(Files.isDirectory(path, NOFOLLOW_LINKS))
         // Also retries parent synchronization for a directory left by interrupted creation.
         sync(root)
-        return PreviewDraftPersistence(LocalDraftStore(path), access)
+        return PreviewDraftPersistence(LocalDraftStore(path, REVISION_RETENTION), access)
     }
 
     fun create(): PreviewLibraryCreate = createFrom(null)
@@ -128,7 +129,14 @@ class PreviewDraftLibrary internal constructor(root: Path, private val checkpoin
         return createFrom(source)
     }
 
-    private fun createFrom(source: PreviewStoredDraft?): PreviewLibraryCreate {
+    /** Explicit new identity from a captured baseline plus pending inputs; source is never rewritten. */
+    fun recoverPending(source: PreviewStoredDraft, pending: PreviewPendingDraft): PreviewLibraryCreate {
+        require(source.draft.version.store.parent == root)
+        PreviewDraftId(source.draft.version.store.fileName.toString())
+        return createFrom(source, pending)
+    }
+
+    private fun createFrom(source: PreviewStoredDraft?, pending: PreviewPendingDraft? = null): PreviewLibraryCreate {
         var created: PreviewDraftId? = null
         return locked({ reason -> created?.let { PreviewLibraryCreate.Unconfirmed(it, reason) }
             ?: PreviewLibraryCreate.Failed(reason) }) {
@@ -145,7 +153,8 @@ class PreviewDraftLibrary internal constructor(root: Path, private val checkpoin
             sync(root)
             val persistence = unbound(id) // The library lock is already held, deliberately non-reentrant.
             val result = if (source == null) persistence.save(null, PreviewDraftFields())
-                else persistence.copySavedSnapshot(source)
+                else if (pending == null) persistence.copySavedSnapshot(source)
+                else persistence.copyPendingSnapshot(source, pending)
             checkpoint(LibraryCheckpoint.AFTER_SAVE)
             when (result) {
                 is PreviewDraftSave.Saved -> PreviewLibraryCreate.Saved(id, result.record)
@@ -160,13 +169,30 @@ class PreviewDraftLibrary internal constructor(root: Path, private val checkpoin
      * must still match; null permits only a still-missing or unreadable record, never a valid save.
      * Tombstoned records can only resume cleanup. Listing never grants an editor a new save token.
      */
-    fun delete(id: PreviewDraftId, expected: PreviewStoredDraft?): PreviewLibraryDelete {
+    fun delete(id: PreviewDraftId, expected: PreviewStoredDraft?): PreviewLibraryDelete = delete(id, expected, false)
+
+    /** Reconcile a named earlier removal, including an absent final marker; never start deleting an active row. */
+    fun retryDeletion(id: PreviewDraftId): PreviewLibraryDelete = delete(id, null, true)
+
+    private fun delete(id: PreviewDraftId, expected: PreviewStoredDraft?, retryOnly: Boolean): PreviewLibraryDelete {
         var started = false
         return locked({ if (started) PreviewLibraryDelete.Unconfirmed(it) else PreviewLibraryDelete.Failed(it) }) {
             if (expected != null && expected.draft.version.store != root.resolve(id.value))
                 return@locked PreviewLibraryDelete.Conflict
             val pending = pendingPath(id)
+            if (retryOnly && !Files.exists(root.resolve(id.value), NOFOLLOW_LINKS) && !Files.exists(pending, NOFOLLOW_LINKS)) {
+                // Removal may be complete while its final acknowledgement was lost. Re-sync
+                // absence without adding a new pending row to an already full library.
+                started = true
+                if (id.value == "guest-draft") durableMarker(root.resolve(LEGACY_DELETED))
+                sync(root)
+                val directory = deletionDirectory()
+                if (Files.exists(directory, NOFOLLOW_LINKS)) sync(directory)
+                return@locked PreviewLibraryDelete.Deleted
+            }
             if (!hasTombstone(id)) {
+                if (retryOnly && Files.exists(root.resolve(id.value), NOFOLLOW_LINKS))
+                    return@locked PreviewLibraryDelete.Conflict
                 val current = if (!Files.exists(root.resolve(id.value), NOFOLLOW_LINKS)) PreviewDraftLoad.Missing
                     else try { unbound(id).load() }
                     catch (_: IllegalArgumentException) { PreviewDraftLoad.Failed(DraftStorageFailure.CORRUPT) }
@@ -292,6 +318,9 @@ class PreviewDraftLibrary internal constructor(root: Path, private val checkpoin
     private class LimitExceeded : Exception()
     companion object {
         const val MAX_DRAFTS = 64
+        // One bounded immutable envelope per supported history entry; failed publications count too.
+        private val REVISION_RETENTION = CacheRetentionLimits(LocalDraftStore.MAX_HISTORY,
+            LocalDraftStore.MAX_HISTORY.toLong() * LocalDraftStore.MAX_BYTES)
         internal const val MAX_DELETE_ENTRIES = 4096
         private const val MAX_DELETE_DEPTH = 16
         private const val LEGACY_DELETED = ".preview-guest-deleted"
