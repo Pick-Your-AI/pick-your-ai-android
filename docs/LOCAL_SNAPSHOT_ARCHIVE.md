@@ -260,3 +260,33 @@ concrete durable identity/recovery evidence for #26; it does not close the issue
 without reconciling all literal criteria, #21 receiving prerequisites, affected
 consumer reviews and the intended acceptance record. Product creation/removal
 flows and any original-serialization replay retain their explicit scope above.
+
+## Ordinary-install checkpoint composition correction (2026-10-18)
+
+The reviewed archive receiving checkout `f655a529` / tree `3426361a` passed
+2,667 core and 222 simulated Android cases. A separately accepted main change
+`48239996` added two private active-selection cleanup checkpoints. The actual
+signed archive merge `ac8307a4` therefore has tree `5479fc3d`, sole `48239996`
+parent, and a different execution identity. Its fresh main core run
+[39151144477](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39151144477)
+executed 2,679 cases and failed two archive methods. The original receiving
+observation is retained; it is not an execution on this later tree.
+
+Both failures came from enumerating every cache checkpoint as if it belonged to
+ordinary immutable installation. `CURRENT_POINTER_VERIFIED` and
+`CURRENT_PAYLOAD_REMOVED` belong only to the explicitly opted-in
+[active-selection metadata cleanup](ACTIVE_SELECTION_RETENTION.md).
+Archive bundle, index and empty-baseline installation still use ordinary
+`install`; they must never enter that reclamation path.
+
+The archive fault matrix now explicitly names its four ordinary publication
+checkpoints. It retains all eight bundle/index interruptions and all four empty
+index initialization interruptions, with their existing earlier-entry, orphan,
+identity-conflict, uncertainty, retry and historical-read assertions. Every
+requested injection must actually occur. Every observed callback, including
+unarmed setup and recovery, must belong to that explicit matrix; a future
+ordinary-install checkpoint or accidental current-only callback fails visibly
+instead of being silently excluded. This changes tests and this chronological
+note only. Immutable retention, production cache behavior and the accepted
+active-selection policy are unchanged. The reproduced red result, correction
+validation and new signed delivery retain their own exact evidence identities.
