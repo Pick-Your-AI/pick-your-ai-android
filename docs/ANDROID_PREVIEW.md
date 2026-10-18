@@ -306,7 +306,7 @@ real-data acceptance or completion of its budget-gate/delayed-response criteria.
 
 ## Bounded local draft library
 
-The preview now lists, creates, opens and duplicates local drafts through
+The preview now lists, creates, opens, duplicates and explicitly deletes local drafts through
 PreviewDraftLibrary, a bounded directory catalog over the same LocalDraftStore.
 Opaque UUID directory IDs are separate from user-editable titles. Renaming is an
 ordinary title edit plus Save locally. The original `guest-draft` directory stays
@@ -316,9 +316,10 @@ Creation serializes through an app-private library lock, provisions/syncs the
 child directory before canonical save, and acknowledges only its returned saved
 snapshot. Any failure after directory creation returns the stable unconfirmed ID;
 the UI retains its current form and asks the user to inspect that ID before another
-creation. Incomplete/corrupt/unsupported entries remain visible, never deleted or
+creation. Incomplete/corrupt/unsupported entries remain visible, never automatically deleted or
 reset; individual open failures do not prevent opening other valid entries. Known path IDs reject traversal, symlink entries fail closed, and catalogs
-are bounded to 64 drafts and 256 scanned entries. Capacity errors never trim data.
+are bounded to 64 drafts including pending cleanup, and 256 scanned entries per
+catalog directory. Capacity errors never trim data.
 
 Duplicate explicitly copies the selected saved snapshot (content and metadata),
 not pending fields, into a fresh initial revision with separate identity and save
@@ -338,7 +339,7 @@ only a successful target read commits the editor switch.
 These are native filesystem tests, not installed Android filesystem/process-death
 proof. Hosted Android build/lint is required on final head; dialog accessibility,
 installed switching/rotation and device storage tests remain unexecuted. Partial
-#86/#67 only: deletion/trash, retention/export, autosave, installed active-pointer recovery,
+#86/#67 only: retention/export, autosave, installed active-pointer recovery,
 installed qualification and receiving work-package acceptance remain outstanding.
 
 
@@ -350,7 +351,7 @@ with exact content hash, atomic activation and parent synchronization. It is not
 save token, a shared contract or a second draft engine. Reads distinguish absent,
 selected and failed state. Only absent selection defaults to the original guest;
 malformed/future bytes and unavailable/corrupt selected records never silently
-fall back to another draft. Explicit Open local draft remains the recovery path.
+fall back to another draft. Manage local drafts remains the recovery path.
 
 An explicit library switch first reads the target and then commits the selection
 pointer on the worker. Only an acknowledged selection changes the editor. Failure
@@ -368,7 +369,7 @@ or symlink targets, initialization sync retry, and non-committing editor switche
 on pointer failure/uncertainty. These verify native storage and pure transition
 behavior, not installed Android process termination or power loss. Hosted unsigned
 Android build/lint is still required at final head. Full #86/#76 acceptance retains
-its device, recovery, deletion/retention and receiving-review requirements.
+its device, recovery, retention and receiving-review requirements.
 
 
 ## Objective and context editing
@@ -427,3 +428,87 @@ and pre/post-activation failures plus restoration-checkpoint rejection. These ar
 core/adapter tests, not installed dialog, rotation, accessibility or power-loss
 acceptance. Verify those flows on the selected Android device matrix before claiming
 full #122 completion. Existing 128-entry and record-size bounds remain fail-closed.
+
+
+## Explicit local deletion and interrupted cleanup
+
+The library's row actions now offer confirmed deletion for saved, incomplete and
+unreadable local records. This extends the existing directory catalog and canonical
+`LocalDraftStore`; it does not introduce another revision engine or an interoperable
+Draft format. Deleting a readable record requires its exact directory identity,
+revision and content hash from the confirmed list entry. A changed or foreign token
+returns conflict without starting deletion. An unreadable record can be removed only
+after explicit confirmation; transient busy, IO and cancellation failures do not
+authorize treating a record as corrupt.
+
+Every library read, creation, deletion and bound persistence operation, including
+objective/context saves and durable domain restores, shares the
+same nonblocking library lock. The canonical-root JVM guard is acquired before the
+OS lock file is opened, retaining the process-lock protection from the prior fix.
+The library checks each bound adapter's identity again under that lock. An editor
+opened before deletion cannot recreate files, restore history or save into a tombstoned or absent
+directory. All cooperating library writers must obtain their adapter through
+`PreviewDraftLibrary.open` or `openLegacy`; the standalone store constructor remains
+available for independent stores outside the library.
+
+Deletion first writes and forces a tiny intent marker in `.preview-deletions`,
+then forces its parent before removing any record bytes. An interrupted operation
+retains its local ID and appears as pending cleanup in the bounded list, including
+when the record directory has already been removed. Reads and saves fail closed
+while the marker exists. Retry resumes cleanup of that same ID. Only after record
+removal and parent synchronization succeed is the pending marker removed and its
+directory synchronized. UUID names are never reused, so acknowledged removal does
+not accumulate permanent per-draft markers. The single reusable legacy name keeps
+a small `.preview-guest-deleted` marker; cold launch cannot provision a replacement
+`guest-draft` after deletion. The last-opened pointer is retained as an unavailable
+selection until the user explicitly opens or creates another draft.
+
+Cleanup removes only the selected local directory, including its complete retained
+revision history and cached revision artifacts. Filesystem traversal does not follow
+symbolic links, is limited to 4,096 entries and 16 descendant levels per attempt,
+and preserves the pending marker on a limit or IO failure. Repeated cleanup can
+finish an oversized flat directory without unbounded work in one transaction.
+Unusual deeper corruption may require a future repair tool; this preview does not
+silently broaden its traversal limits. Successful deletion acknowledges local file
+removal, not secure erasure, remote deletion, shared-catalog eviction or a full cache
+retention policy. The markers contain no title, selected catalog ID or draft body.
+The Android [`Files.walkFileTree` reference](https://developer.android.com/reference/java/nio/file/Files#walkFileTree(java.nio.file.Path,%20java.nio.file.FileVisitor))
+documents the default link behavior; the JVM symlink regression verifies this
+implementation's selected-directory boundary. Installed filesystem results remain
+separate from that API contract.
+
+Deletion of another row preserves the current editor's identity, revision token,
+pending fields and save readiness. Deletion or an uncertain result for the current
+row retains its visible pending fields and disables saving into the affected ID.
+The UI explains that outcome and offers library inspection/retry. A conflict or
+failure before deletion starts leaves the editor state unchanged. Bundle restoration
+retains the existing reconciliation marker; it cannot convert an interrupted delete
+into a saved acknowledgment or resurrect the legacy default.
+
+Local validation on 2026-10-18 passed 197 JVM tests, including 12 deletion/guard
+regressions. These cover complete selected-history removal, stale opened adapters,
+equal-byte foreign identities and stale tokens, faults at every deletion phase,
+legacy default suppression with a retained active pointer, corrupt/incomplete rows,
+symlink isolation, a separate JVM OS-lock probe, a busy canonical record, bounded
+cleanup/retry, editor transitions and post-save outer-lock uncertainty. The pinned
+JDK/Gradle/Android toolchain passed `:core:check :core:assemble
+:preview:assembleDebug :preview:lintDebug` in 34 seconds (49 tasks), with zero lint
+issues. All 43 frozen files and both manifests remained unchanged; 21 Python
+reference tests, four reference-report fixtures, four integrity regressions and six
+ledger tests passed. Hosted validation must still be observed on the exact PR head.
+
+The updated source and tests address local deletion/recovery portions of
+[Android #86](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/86) and its
+[storage prerequisite #67](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/67).
+Actual installed recreation/termination, storage-full and power-loss behavior,
+dialog rendering/TalkBack, accepted shared export/retention contracts and receiving
+work-package evidence remain separate required outcomes. These local JVM and
+unsigned build results do not complete those criteria.
+
+Required installed receiving cases include deleting the current versus another
+draft with pending edits; killing and relaunching during each cleanup phase;
+opening another valid draft beside a corrupt or pending row; retrying after storage
+failure; confirming that a deleted legacy selection never creates an empty saved
+replacement; and verifying readable confirmation/recovery controls with large text
+and TalkBack. Canonical receiving records remain in the website repository at
+`docs/delivery/android/work-packages/11.01.md` and `12.01.md`.

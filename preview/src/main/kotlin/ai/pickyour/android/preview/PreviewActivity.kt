@@ -7,7 +7,6 @@ import android.text.InputFilter
 import android.text.Editable
 import android.text.TextWatcher
 import ai.pickyour.core.preview.*
-import ai.pickyour.core.drafts.LocalDraftStore
 import ai.pickyour.core.drafts.DraftStorageFailure
 import java.nio.file.Files
 import java.nio.file.LinkOption.NOFOLLOW_LINKS
@@ -449,12 +448,7 @@ class PreviewActivity : Activity() {
 
     private fun openPersistence(id: PreviewDraftId): PreviewDraftPersistence {
         val library = library()
-        if (id.value == "guest-draft") {
-            val root = noBackupFilesDir.toPath().resolve(id.value)
-            require(!Files.isSymbolicLink(root))
-            Files.createDirectories(root)
-        }
-        return library.open(id) // Repeats parent sync before canonical store initialization.
+        return if (id.value == "guest-draft") library.openLegacy() else library.open(id)
     }
 
     private fun restoreActiveDraft(preserveRestoredFields: Boolean) {
@@ -503,19 +497,62 @@ class PreviewActivity : Activity() {
                     } else {
                         val labels = entries.map { entry ->
                             val record = (entry.state as? PreviewDraftLoad.Available)?.record
-                            getString(R.string.library_entry, record?.fields?.title?.ifEmpty { getString(R.string.library_untitled) }
+                            getString(R.string.library_entry, if (entry.deletionPending) getString(R.string.library_delete_pending)
+                                else record?.fields?.title?.ifEmpty { getString(R.string.library_untitled) }
                                 ?: getString(R.string.library_unavailable), entry.id.value)
                         }.toTypedArray()
                         AlertDialog.Builder(this).setTitle(R.string.library_open).setItems(labels) { _, index ->
-                            AlertDialog.Builder(this).setMessage(R.string.library_switch_warning)
+                            val entry = entries[index]
+                            if (entry.deletionPending) confirmDelete(entry)
+                            else AlertDialog.Builder(this).setTitle(getString(R.string.library_local_id, entry.id.value))
+                                .setMessage(R.string.library_switch_warning)
                                 .setNegativeButton(R.string.keep_edits, null)
-                                .setPositiveButton(R.string.library_open) { _, _ ->
-                                    if (!storageBusy) {
-                                        openDraftTarget(entries[index].id)
-                                    }
+                                .setNeutralButton(R.string.library_delete) { _, _ -> confirmDelete(entry) }
+                                .setPositiveButton(R.string.library_open_selected) { _, _ ->
+                                    if (!storageBusy) openDraftTarget(entry.id)
                                 }.show()
                         }.setNegativeButton(R.string.close, null).show()
                     }
+                }
+            }
+        }
+    }
+
+    private fun confirmDelete(entry: PreviewLibraryEntry) {
+        if (storageBusy) return
+        AlertDialog.Builder(this).setTitle(if (entry.deletionPending) R.string.library_retry_delete else R.string.library_delete)
+            .setMessage(getString(R.string.library_delete_warning, entry.id.value))
+            .setNegativeButton(R.string.keep_edits, null)
+            .setPositiveButton(if (entry.deletionPending) R.string.library_retry_delete else R.string.library_delete) { _, _ ->
+                if (!storageBusy) deleteDraft(entry)
+            }.show()
+    }
+
+    private fun deleteDraft(entry: PreviewLibraryEntry) {
+        val previous = PreviewDraftSession(currentDraftId, savedRecord, fields(), storageReady)
+        val expected = (entry.state as? PreviewDraftLoad.Available)?.record
+        storageBusy = true
+        updateEditingEnabled()
+        worker.execute {
+            val result = try { library().delete(entry.id, expected) }
+                catch (_: Exception) { PreviewLibraryDelete.Unconfirmed(DraftStorageFailure.IO_FAILURE) }
+            runOnUiThread {
+                if (!destroyed) {
+                    storageBusy = false
+                    val next = previous.afterDeletion(entry.id, result)
+                    savedRecord = next.record
+                    storageReady = next.ready
+                    if (next !== previous) {
+                        restoration = null
+                        saveStatus.setText(R.string.library_deleted_editor)
+                    }
+                    updateEditingEnabled()
+                    AlertDialog.Builder(this).setMessage(when (result) {
+                        PreviewLibraryDelete.Deleted -> R.string.library_deleted
+                        PreviewLibraryDelete.Conflict -> R.string.library_delete_conflict
+                        is PreviewLibraryDelete.Failed -> R.string.library_delete_failed
+                        is PreviewLibraryDelete.Unconfirmed -> R.string.library_delete_unconfirmed
+                    }).setPositiveButton(R.string.close, null).show()
                 }
             }
         }
