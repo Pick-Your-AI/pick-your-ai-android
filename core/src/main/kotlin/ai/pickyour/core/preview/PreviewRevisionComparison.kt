@@ -2,6 +2,7 @@ package ai.pickyour.core.preview
 
 import ai.pickyour.core.comparison.sameJsonValues
 import ai.pickyour.core.drafts.OptionalTier
+import ai.pickyour.core.drafts.StoredRevision
 import com.fasterxml.jackson.databind.JsonNode
 import java.util.Collections
 
@@ -26,6 +27,14 @@ fun PreviewStoredDraft.compareRevision(number: Long): PreviewRevisionComparison?
 fun PreviewStoredDraft.compareRevisions(from: Long, to: Long): PreviewRevisionComparison? {
     val old = draft.history.find { it.number == from } ?: return null
     val selected = draft.history.find { it.number == to } ?: return null
+    val retainedForms = history
+    return compareRetainedRevisions(old, selected, retainedForms.find { it.revision == from }?.fields,
+        retainedForms.find { it.revision == to }?.fields)
+}
+
+/** Shared exact value comparison; callers must supply each selected revision's own guest fields. */
+internal fun compareRetainedRevisions(old: StoredRevision, selected: StoredRevision,
+    oldFields: PreviewDraftFields?, selectedFields: PreviewDraftFields?): PreviewRevisionComparison {
     val before = old.content
     val after = selected.content
     val changes = mutableListOf<PreviewRevisionChange>()
@@ -71,16 +80,13 @@ fun PreviewStoredDraft.compareRevisions(from: Long, to: Long): PreviewRevisionCo
             add("${tier.name}.setting", left.settings[key], right.settings[key], key)
     }
     // Guest form metadata can be unavailable in older formats. Never synthesize it from content.
-    val retainedForms = history
-    val oldFields = retainedForms.find { it.revision == from }?.fields
-    val selectedFields = retainedForms.find { it.revision == to }?.fields
     if (oldFields != null && selectedFields != null) {
         add("guest.title", oldFields.title, selectedFields.title)
         add("guest.sample_id", oldFields.selectedId, selectedFields.selectedId)
         add("guest.sample_version", oldFields.selectedVersion, selectedFields.selectedVersion)
         add("guest.catalog_hash", oldFields.catalogHash, selectedFields.catalogHash)
     }
-    return PreviewRevisionComparison(from, to, changes, old.metadata != selected.metadata,
+    return PreviewRevisionComparison(old.number, selected.number, changes, old.metadata != selected.metadata,
         oldFields != null && selectedFields != null)
 }
 
