@@ -234,6 +234,35 @@ jobs:
           assert int(suite.attrib["tests"]) >= len(expected)
           print(f"Verified {len(cases)} simulated catalog snapshot callback tests; no installed-device claim")
           PYTEST
+      - name: Require current catalog result-row regressions to execute
+        run: |
+          python - <<'PYTEST'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          class_name = "ai.pickyour.android.preview.CatalogRowAuthorityActivityTest"
+          report = pathlib.Path("preview/build/test-results/testDebugUnitTest/TEST-" + class_name + ".xml")
+          if not report.is_file():
+              raise SystemExit("Missing catalog result-row regression report")
+          suite = ET.parse(report).getroot()
+          required = {
+              "currentRowOpensExactDetailsWithoutSavingPendingFields",
+              "sameSnapshotSearchCannotReviveRemovedRowCallbacks",
+              "returningToQueryCannotReviveOldRowOrRetireCurrentDetail",
+              "pagingFacetsAndSortRetirePreviousResultControls",
+          }
+          cases = suite.findall("testcase")
+          names = [case.attrib.get("name") for case in cases]
+          if suite.attrib.get("name") != class_name or any(case.attrib.get("classname") != class_name for case in cases):
+              raise SystemExit("Wrong catalog result-row regression suite")
+          if not required.issubset(names) or len(names) != len(set(names)) or not all(names):
+              raise SystemExit("Missing or duplicate catalog result-row regression")
+          if int(suite.attrib.get("tests", "-1")) != len(cases):
+              raise SystemExit("Catalog result-row regression count mismatch")
+          if any(int(suite.attrib.get(key, "-1")) != 0 for key in ("failures", "errors", "skipped")) or any(
+                  case.find(tag) is not None for case in cases for tag in ("failure", "error", "skipped")):
+              raise SystemExit("A catalog result-row regression failed or did not execute")
+          print(f"Verified {len(cases)} current catalog result-row regressions")
+          PYTEST
       - name: Require local dialog authority regressions to execute
         run: |
           python - <<'PYTEST'
@@ -491,6 +520,35 @@ jobs:
           assert all(not case.findall("failure") and not case.findall("error") and not case.findall("skipped") for case in cases), "Recorded-price browser regression did not pass"
           assert int(suite.attrib["tests"]) >= len(expected)
           print(f"Verified {len(cases)} simulated recorded-price browser tests; no installed-device claim")
+          PYTEST
+      - name: Require catalog comparison inspector retirement regressions to execute
+        run: |
+          python - <<'PYTEST'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          class_name = "ai.pickyour.android.preview.CatalogComparisonAuthorityActivityTest"
+          report = pathlib.Path("preview/build/test-results/testDebugUnitTest/TEST-" + class_name + ".xml")
+          if not report.is_file():
+              raise SystemExit("Missing catalog comparison authority regression report")
+          suite = ET.parse(report).getroot()
+          required = {
+              "currentPriceAndSourceControlsWorkBeforeComparisonWithoutSaving",
+              "comparisonRetiresPriceControlsBeforeTheyCanReplaceItsDialog",
+              "comparisonRetiresDetailSelectionBeforeItCanChangePendingFields",
+              "comparisonRetiresSourceRecoveryBeforeItCanReopenTheChooser",
+          }
+          cases = suite.findall("testcase")
+          names = [case.attrib.get("name") for case in cases]
+          if suite.attrib.get("name") != class_name or any(case.attrib.get("classname") != class_name for case in cases):
+              raise SystemExit("Wrong catalog comparison authority regression suite")
+          if not required.issubset(names) or len(names) != len(set(names)) or not all(names):
+              raise SystemExit("Missing or duplicate catalog comparison authority regression")
+          if int(suite.attrib.get("tests", "-1")) != len(cases):
+              raise SystemExit("Catalog comparison authority regression count mismatch")
+          if any(int(suite.attrib.get(key, "-1")) != 0 for key in ("failures", "errors", "skipped")) or any(
+                  case.find(tag) is not None for case in cases for tag in ("failure", "error", "skipped")):
+              raise SystemExit("A catalog comparison authority regression failed or did not execute")
+          print(f"Verified {len(cases)} catalog comparison inspector retirement regressions")
           PYTEST
       - name: Require complete local revision comparison regressions to execute
         run: |
