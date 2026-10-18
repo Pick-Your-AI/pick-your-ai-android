@@ -595,6 +595,10 @@ API 28 Android resources and Views. The existing unsigned CI lane retains its
 JUnit XML and HTML reports and fails if that task fails. AndroidX is enabled for
 the test infrastructure; the preview UI still uses platform Views.
 
+The simulated API 28 runtime is a separate locked, checksum-verified Gradle test
+input. Robolectric's runtime downloads are disabled; see the
+[runtime provenance and update procedure](ROBOLECTRIC_RUNTIME.md).
+
 The bounded tests cover acknowledged objective/context restoration, stale pending
 forms after another writer advances the saved head, explicit tier confirmation,
 and typed read-only revision comparison. They drive visible controls, wait for
