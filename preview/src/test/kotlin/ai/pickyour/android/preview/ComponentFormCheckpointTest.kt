@@ -42,7 +42,7 @@ class ComponentFormCheckpointTest {
 
     @Test fun malformedPrimitiveTypesVersionsAndModesNeverSupplyRecoveryAuthority() {
         val changes: List<(Bundle) -> Unit> = listOf(
-            { it.putString("version", "1") }, { it.putInt("version", 2) },
+            { it.putString("version", "1") }, { it.putInt("version", 3) },
             { it.remove("draftId") }, { it.putInt("baseline", 1) },
             { it.putString("selectionId", "") }, { it.putBoolean("itemId", true) },
             { it.putString("catalogHash", "b".repeat(63)) }, { it.putString("kind", "unrecognized") },
