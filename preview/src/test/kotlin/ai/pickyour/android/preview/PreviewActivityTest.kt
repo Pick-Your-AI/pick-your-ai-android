@@ -17,9 +17,11 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric
+import org.robolectric.RuntimeEnvironment
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.android.controller.ActivityController
+import org.robolectric.annotation.GraphicsMode
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.LooperMode
 import org.robolectric.shadows.ShadowAlertDialog
@@ -194,5 +196,52 @@ class PreviewActivityTest {
         val library = PreviewDraftLibrary(activity.noBackupFilesDir.toPath())
         assertTrue((library.list() as PreviewLibraryRead.Available).entries.isEmpty())
         assertEquals(activity.getString(R.string.library_deleted), shadowOf(dialog()).message.toString())
+    }
+
+    @Test
+    @Config(qualifiers = "ar-rEG-ldrtl-w320dp-h640dp")
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun largeTextRtlButtonsRetainMeasuredTargetsAndUntruncatedLabels() {
+        RuntimeEnvironment.setFontScale(2f)
+        recreate()
+        await { button(R.string.save_draft).isEnabled }
+        assertEquals(2f, activity.resources.configuration.fontScale, 0f)
+        assertEquals(View.LAYOUT_DIRECTION_RTL, activity.resources.configuration.layoutDirection)
+        val density = activity.resources.displayMetrics.density
+        val root = activity.window.decorView
+        val width = (320 * density).toInt()
+        val height = (640 * density).toInt()
+        root.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY))
+        root.layout(0, 0, width, height)
+        assertEquals(View.LAYOUT_DIRECTION_RTL, root.layoutDirection)
+        val buttons = views().filterIsInstance<Button>().filter { it.isShown }
+        assertTrue(buttons.isNotEmpty())
+        buttons.forEach { control ->
+            assertTrue("Action label is nonempty", control.text.isNotBlank())
+            assertTrue("Visible controls retain a 48dp measured height", control.height >= (48 * density).toInt())
+            assertTrue("Visible controls retain a 48dp measured width", control.width >= (48 * density).toInt())
+            assertTrue(control.width > control.compoundPaddingLeft + control.compoundPaddingRight)
+            val label = control.layout
+            assertNotNull(label)
+            assertTrue(label.lineCount > 0)
+            assertTrue("Native text layout has positive height", label.height > 0)
+            assertTrue("Label fits its measured control", label.height <= control.height - control.compoundPaddingTop - control.compoundPaddingBottom)
+            repeat(label.lineCount) { line ->
+                assertEquals("No ellipsized action label", 0, label.getEllipsisCount(line))
+            }
+        }
+    }
+
+    @Test fun forwardFocusOrderKeepsEditorsAndClearActionReachable() {
+        val title = field(R.string.draft_title)
+        val objective = field(R.string.context_objective)
+        val context = field(R.string.context_context)
+        assertTrue(title.requestFocus())
+        assertSame(objective, title.focusSearch(View.FOCUS_FORWARD))
+        assertTrue(objective.requestFocus())
+        assertSame(context, objective.focusSearch(View.FOCUS_FORWARD))
+        assertTrue(context.requestFocus())
+        assertSame(button(R.string.clear_draft), context.focusSearch(View.FOCUS_FORWARD))
     }
 }
