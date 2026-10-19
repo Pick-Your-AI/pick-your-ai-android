@@ -502,4 +502,63 @@ class PlacementBindingDeploymentTest {
         assertFalse(mismatch.observations.any { it.requestedPath == "/artifacts/sel_adapter/version" })
         assertFalse(mismatch.evidence.any { it.answer.requestedPath == "/artifacts/sel_adapter/version" })
     }
+
+    @Test
+    fun currentCoverageCannotMakeAnOlderInactiveDeploymentInapplicable() {
+        val draft = PlacementTestDraft().apply {
+            serving()
+            selected("sel_model").put("enabled", false)
+        }
+        val old = draft.freeze()
+        val oldGraph = old.graph()
+        val oldCoverage = old.coverage("/serving/complete",
+            PlacementCoverageKind.SERVING_COMPONENTS, scenario = old.basis.operation)
+
+        fun oldDeployment(coverage: PlacementCoverage) = PlacementDeployment(
+            basis = old.basis,
+            graph = oldGraph,
+            rows = emptyList(),
+            artifactFacts = emptyList(),
+            conditions = emptyList(),
+            conditionCoverage = emptyList(),
+            servingCoverage = coverage,
+            requirements = emptyList(),
+        )
+
+        // Positive control: an actually inactive, current basis can be skipped.
+        val oldOnly = oldDeployment(oldCoverage)
+        assertEquals(PlacementOutcome.SKIPPED,
+            oldOnly.evaluate(old.basis, old.qs()).result.outcome)
+
+        draft.selected("sel_model").put("enabled", true)
+        val current = draft.freeze()
+        assertEquals(old.basis.buildId, current.basis.buildId)
+        assertEquals(old.basis.operation, current.basis.operation)
+        assertNotEquals(old.basis.sha256, current.basis.sha256)
+
+        // Positive control: the current source contains an enabled serving model.
+        val actualCurrent = current.deployment()
+        val actualCurrentResult = actualCurrent.evaluate(current.basis, current.qs())
+        assertEquals(PlacementOutcome.PASS, actualCurrentResult.result.outcome)
+        assertTrue(actualCurrentResult.components.any { it.selectionId == "sel_model" })
+
+        // Existing retained old answers already become unknown on a new basis.
+        assertEquals(PlacementOutcome.UNKNOWN,
+            oldOnly.evaluate(current.basis, current.qs()).result.outcome)
+
+        // Public constructors currently permit a current-basis coverage answer
+        // with the old deployment graph/basis when build ID and operation agree.
+        val currentCoverage = current.coverage("/serving/complete",
+            PlacementCoverageKind.SERVING_COMPONENTS, scenario = current.basis.operation)
+        val mixed = oldDeployment(currentCoverage)
+        val evaluated = mixed.evaluate(current.basis, current.qs())
+        val result = evaluated.result
+
+        // Fresh coverage cannot classify membership retained from an older basis.
+        assertEquals(PlacementOutcome.UNKNOWN, result.outcome)
+        assertTrue(result.checks.any { it.reason == PlacementReason.CHANGED_BASIS })
+        assertEquals(current.basis.sha256, result.basisSha256)
+        assertEquals(PlacementMode.UNKNOWN, evaluated.mode)
+        assertTrue(evaluated.components.isEmpty())
+    }
 }
