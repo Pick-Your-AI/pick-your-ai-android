@@ -2,14 +2,22 @@
     <string name="catalog_price_unavailable">Recorded price context is unavailable. Currency, region, meter and effective period are unknown; retry loading the catalog. Missing pricing is not free.</string>
     <string name="catalog_price_notice">Recorded price context\nThis preview uses fictional price records from a dated snapshot. These are historical metadata, not a current quote.</string>
     <string name="catalog_price_snapshot">Pricebook: %1$s\nRevision: %2$s\nCaptured at: %3$s\nSHA-256: %4$s</string>
-    <string name="catalog_price_count">Exact item/version price records displayed: %1$d / %2$d. Every alternative is retained in the pricebook; none is selected or added together. Review all recorded prices opens every record, field and complete literal value.</string>
+    <!-- Quantity and argument 2 are all exact matches; argument 1 is the bounded displayed count. -->
+    <plurals name="catalog_price_count">
+        <item quantity="one">Exact item/version price record displayed: %1$d / %2$d. Every alternative is retained in the pricebook; none is selected or added together. Review all recorded prices opens every record, field and complete literal value.</item>
+        <item quantity="other">Exact item/version price records displayed: %1$d / %2$d. Every alternative is retained in the pricebook; none is selected or added together. Review all recorded prices opens every record, field and complete literal value.</item>
+    </plurals>
     <string name="catalog_price_no_record">No recorded rate matches this exact item ID and version. No other item or newer version is substituted. Pricing remains unknown, not free.</string>
     <string name="catalog_price_rate">Recorded rate %1$d\nRate ID: %2$s\nCatalog item ID: %3$s\nCatalog item version: %4$s</string>
     <string name="catalog_price_units">Meter: %1$s\nRecorded unit_price.amount: %2$s\nCurrency: %3$s\nRegion: %4$s\nRecorded price_type: %5$s</string>
     <string name="catalog_price_dates">Recorded valid_from: %1$s\nRecorded valid_until: %2$s</string>
     <string name="catalog_price_conditions_missing">Conditions: not supplied; eligibility is unknown.</string>
     <string name="catalog_price_conditions_empty">Conditions: [] — no conditions recorded; eligibility is not established.</string>
-    <string name="catalog_price_conditions">Conditions displayed: %1$d / %2$d. These literal statements are not interpreted as eligibility.\n%3$s</string>
+    <!-- Quantity and argument 2 are all retained conditions; argument 3 contains bounded literal rows. -->
+    <plurals name="catalog_price_conditions">
+        <item quantity="one">Condition displayed: %1$d / %2$d. These literal statements are not interpreted as eligibility.\n%3$s</item>
+        <item quantity="other">Conditions displayed: %1$d / %2$d. These literal statements are not interpreted as eligibility.\n%3$s</item>
+    </plurals>
     <string name="catalog_price_condition">%1$d: %2$s</string>
     <string name="catalog_price_source">Rate source URI: %1$s\nRate checked_at: %2$s\nRaw status: %3$s\nDisplay label: %4$s\nRate notes: %5$s</string>
     <string name="catalog_price_limits">Recorded currency, region, meter and dates do not establish applicability to this draft. Missing regions are not global; missing end dates do not guarantee perpetual validity. No unit or currency conversion, total, discount, eligibility or freshness decision is made. Even a recorded zero amount or list price is not an accepted free or complete quote. Rate source URIs remain plain text; dates and declared status prove neither a source check nor source-use rights.</string>

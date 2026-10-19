@@ -550,5 +550,406 @@ class PublicChecksumDispositionTest(unittest.TestCase):
                 self.assertEqual(len(rows), receipt["triage"]["reviewed_count"] + receipt["triage"]["unresolved_count"])
 
 
+class SecretReceiptBoundaryTest(unittest.TestCase):
+    """Real output entries with all scanner, process and network work controlled."""
+
+    SENTINEL = b"SYNTHETIC retained receipt\n"
+    PEER = b"SYNTHETIC unrelated peer\n"
+
+    def invoke(self, root, *, inspect=None, raw=None, triage=None):
+        captured = io.StringIO()
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(patch.object(check, "ROOT", root))
+            stack.enter_context(patch.object(check.platform, "system", return_value="Linux"))
+            stack.enter_context(patch.object(check.platform, "machine", return_value="x86_64"))
+            source = stack.enter_context(patch.object(check, "inspect_source", side_effect=inspect,
+                                                     return_value={"commit": "a" * 40, "tree": "b" * 40}))
+            install = stack.enter_context(patch.object(check, "install_scanner", return_value=Path("synthetic-scanner")))
+            stack.enter_context(patch.object(check, "verify_detection_and_removal", return_value={"synthetic": True}))
+            stack.enter_context(patch.object(check, "scan", return_value=raw or {
+                "exit_code": 0, "finding_count": 0, "findings": []}))
+            stack.enter_context(patch.object(check, "classify_reviewed_findings", return_value=triage or {
+                "reviewed_count": 0, "unresolved_count": 0, "reviewed": [], "unresolved": []}))
+            process = stack.enter_context(patch.object(check.subprocess, "Popen", side_effect=AssertionError("process forbidden")))
+            network = stack.enter_context(patch.object(check.urllib.request, "urlopen", side_effect=AssertionError("network forbidden")))
+            stack.enter_context(contextlib.redirect_stdout(captured))
+            result, failure = None, None
+            try:
+                result = check.main()
+            except Exception as error:
+                failure = type(error).__name__
+        self.assertEqual(0, process.call_count)
+        self.assertEqual(0, network.call_count)
+        return result, failure, source.call_count, install.call_count, captured.getvalue()
+
+    def rejected_without_inspection(self, root):
+        result, failure, source_calls, installs, output = self.invoke(root)
+        self.assertEqual((1, None, 0, 0), (result, failure, source_calls, installs))
+        self.assertNotIn("PRIVATE_", output)
+
+    def test_ancestor_aliases_preserve_external_receipt_before_inspection(self):
+        for component in ("root", "build", "security"):
+            with self.subTest(component=component), tempfile.TemporaryDirectory() as temporary:
+                base = Path(temporary)
+                root, foreign = base / "root", base / "foreign"
+                foreign.mkdir()
+                if component == "root":
+                    root.symlink_to(foreign, target_is_directory=True)
+                    target = foreign / "build/security/secret-scan.json"
+                else:
+                    root.mkdir()
+                    if component == "build":
+                        (root / "build").symlink_to(foreign, target_is_directory=True)
+                        target = foreign / "security/secret-scan.json"
+                    else:
+                        (root / "build").mkdir()
+                        (root / "build/security").symlink_to(foreign, target_is_directory=True)
+                        target = foreign / "secret-scan.json"
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(self.SENTINEL)
+                peer = target.parent / "peer.txt"
+                peer.write_bytes(self.PEER)
+                before = target.stat()
+                self.rejected_without_inspection(root)
+                self.assertEqual(self.SENTINEL, target.read_bytes())
+                self.assertEqual(self.PEER, peer.read_bytes())
+                self.assertEqual((before.st_ino, before.st_nlink), (target.stat().st_ino, target.stat().st_nlink))
+
+    def test_invalid_directory_entries_and_unreadable_metadata_fail_closed(self):
+        for component in ("missing-root", "root-file", "build-file", "security-file", "unreadable"):
+            with self.subTest(component=component), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary) / "root"
+                if component == "missing-root":
+                    self.rejected_without_inspection(root)
+                    self.assertFalse(root.exists())
+                    continue
+                if component == "root-file":
+                    root.write_bytes(self.SENTINEL)
+                    self.rejected_without_inspection(root)
+                    self.assertEqual(self.SENTINEL, root.read_bytes())
+                    continue
+                root.mkdir()
+                target = root / ("build" if component == "build-file" else "build/security")
+                target.parent.mkdir(parents=True, exist_ok=True)
+                if component != "unreadable":
+                    target.write_bytes(self.SENTINEL)
+                    self.rejected_without_inspection(root)
+                    self.assertEqual(self.SENTINEL, target.read_bytes())
+                else:
+                    target.mkdir()
+                    receipt = target / "secret-scan.json"
+                    receipt.write_bytes(self.SENTINEL)
+                    with patch.object(Path, "lstat", side_effect=PermissionError("PRIVATE_METADATA")):
+                        self.rejected_without_inspection(root)
+                    self.assertEqual(self.SENTINEL, receipt.read_bytes())
+
+    def test_unsafe_final_entries_preserve_targets_and_peers_without_opening(self):
+        for kind in ("symlink", "dangling", "hardlink", "directory", "fifo"):
+            with self.subTest(kind=kind), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary) / "root"
+                folder = root / "build/security"
+                folder.mkdir(parents=True)
+                receipt = folder / "secret-scan.json"
+                foreign = Path(temporary) / "foreign.json"
+                if kind in ("symlink", "hardlink"):
+                    foreign.write_bytes(self.SENTINEL)
+                if kind in ("symlink", "dangling"):
+                    receipt.symlink_to(foreign)
+                elif kind == "hardlink":
+                    os.link(foreign, receipt)
+                elif kind == "directory":
+                    receipt.mkdir()
+                    (receipt / "retained.txt").write_bytes(self.SENTINEL)
+                else:
+                    os.mkfifo(receipt)
+                peer = folder / "peer.txt"
+                peer.write_bytes(self.PEER)
+                before = receipt.lstat()
+                # A future accidental FIFO open must fail immediately, not block this test.
+                original_open = Path.open
+                def bounded_open(path, *args, **kwargs):
+                    if kind == "fifo" and path == receipt:
+                        raise AssertionError("unsafe FIFO would have been opened")
+                    return original_open(path, *args, **kwargs)
+                with patch.object(Path, "open", bounded_open):
+                    self.rejected_without_inspection(root)
+                self.assertEqual((before.st_mode, before.st_ino, before.st_nlink),
+                                 (receipt.lstat().st_mode, receipt.lstat().st_ino, receipt.lstat().st_nlink))
+                self.assertEqual(self.PEER, peer.read_bytes())
+                if kind in ("symlink", "hardlink"):
+                    self.assertEqual(self.SENTINEL, foreign.read_bytes())
+                elif kind == "dangling":
+                    self.assertFalse(foreign.exists())
+                elif kind == "directory":
+                    self.assertEqual(self.SENTINEL, (receipt / "retained.txt").read_bytes())
+
+    def test_ordinary_stale_success_retires_before_inspection_and_failed_results_remain_failed(self):
+        for outcome in ("clean", "controlled-failure", "unexpected-failure"):
+            with self.subTest(outcome=outcome), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                receipt = root / "build/security/secret-scan.json"
+                receipt.parent.mkdir(parents=True)
+                receipt.write_text('{"status":"passed","source":"SYNTHETIC previous"}\n')
+                peer = receipt.parent / "peer.txt"
+                peer.write_bytes(self.PEER)
+                observed = []
+                def inspect():
+                    observed.append(receipt.exists())
+                    if outcome == "controlled-failure":
+                        raise check.ScanFailure("controlled source failure")
+                    if outcome == "unexpected-failure":
+                        raise ValueError("PRIVATE_SOURCE_DETAILS")
+                    return {"commit": "a" * 40, "tree": "b" * 40}
+                result, failure, source_calls, installs, output = self.invoke(root, inspect=inspect)
+                self.assertEqual([False], observed)
+                self.assertEqual((0 if outcome == "clean" else 1, None, 1), (result, failure, source_calls))
+                self.assertEqual(self.PEER, peer.read_bytes())
+                value = json.loads(receipt.read_bytes())
+                self.assertEqual("passed" if outcome == "clean" else "failed", value["status"])
+                self.assertNotIn("PRIVATE_", output + receipt.read_text())
+                if outcome == "unexpected-failure":
+                    self.assertEqual("Scanner operation failed: ValueError", value["error"])
+
+    def test_complete_published_receipt_is_private_and_keeps_raw_finding_status(self):
+        for raw_count, unresolved, status in ((0, 0, "passed"), (1, 0, "passed_with_reviewed_findings"), (1, 1, "failed")):
+            with self.subTest(status=status), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                raw = {"exit_code": 10 if raw_count else 0, "finding_count": raw_count,
+                       "findings": [{"rule_id": "synthetic-rule", "file": "synthetic.txt", "line": 1,
+                                     "commit": "c" * 40}] if raw_count else []}
+                triage = {"reviewed_count": raw_count - unresolved, "unresolved_count": unresolved}
+                result, failure, _, _, output = self.invoke(root, raw=raw, triage=triage)
+                self.assertEqual((1 if unresolved else 0, None), (result, failure))
+                receipt = root / "build/security/secret-scan.json"
+                value = json.loads(receipt.read_bytes())
+                self.assertEqual(status, value["status"])
+                self.assertEqual(raw, value["scan"])
+                self.assertEqual(triage, value["triage"])
+                self.assertEqual(0o600, receipt.stat().st_mode & 0o777)
+                self.assertEqual([receipt], list(receipt.parent.iterdir()))
+                self.assertNotIn("PRIVATE_", output + receipt.read_text())
+
+    def test_new_unsafe_receipt_after_inspection_is_rechecked_before_publication(self):
+        for kind in ("symlink", "hardlink"):
+            with self.subTest(kind=kind), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary) / "root"
+                folder = root / "build/security"
+                folder.mkdir(parents=True)
+                receipt, foreign = folder / "secret-scan.json", Path(temporary) / "foreign.json"
+                foreign.write_bytes(self.SENTINEL)
+                def inspect():
+                    if kind == "symlink":
+                        receipt.symlink_to(foreign)
+                    else:
+                        os.link(foreign, receipt)
+                    return {"commit": "a" * 40, "tree": "b" * 40}
+                result, failure, source_calls, _, output = self.invoke(root, inspect=inspect)
+                self.assertEqual((1, None, 1), (result, failure, source_calls))
+                self.assertEqual(self.SENTINEL, foreign.read_bytes())
+                self.assertEqual([receipt], list(folder.iterdir()))
+                self.assertNotIn("PRIVATE_", output)
+
+    def test_serialization_and_replace_failures_leave_no_partial_or_stale_success(self):
+        for phase in ("serialization", "replace"):
+            with self.subTest(phase=phase), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                receipt = root / "build/security/secret-scan.json"
+                receipt.parent.mkdir(parents=True)
+                receipt.write_text('{"status":"passed","source":"SYNTHETIC previous"}\n')
+                peer = receipt.parent / "peer.txt"
+                peer.write_bytes(self.PEER)
+                def partial(_value, stream, **_kwargs):
+                    stream.write('{"incomplete":')
+                    raise ValueError("PRIVATE_SERIALIZATION_DETAIL")
+                with contextlib.ExitStack() as stack:
+                    if phase == "serialization":
+                        stack.enter_context(patch.object(check.json, "dump", side_effect=partial))
+                        stack.enter_context(patch.object(check.json, "dumps", side_effect=ValueError("PRIVATE_SERIALIZATION_DETAIL")))
+                    else:
+                        stack.enter_context(patch.object(Path, "replace", side_effect=PermissionError("PRIVATE_REPLACE_DETAIL")))
+                    result, failure, source_calls, _, output = self.invoke(root)
+                self.assertEqual((1, None, 1), (result, failure, source_calls))
+                self.assertFalse(receipt.exists())
+                self.assertEqual([peer], list(receipt.parent.iterdir()))
+                self.assertEqual(self.PEER, peer.read_bytes())
+                self.assertNotIn("PRIVATE_", output)
+
+
+class PublicLedgerAliasDispositionTest(unittest.TestCase):
+    def row(self):
+        rule, path, line = check.LEDGER_ALIAS_LOCATION
+        return {"rule_id": rule, "file": path, "line": line, "commit": check.LEDGER_ALIAS_COMMIT}
+
+    def result(self, rows):
+        return {"exit_code": 10 if rows else 0, "finding_count": len(rows), "findings": rows}
+
+    def proof_fixture(self):
+        # Generate the public alias example in memory, as with the scanner's
+        # existing disposable fixtures, without adding another matched source line.
+        fields = ("schema_version", "observed_on", "repository", "implementation_baseline",
+                  "source", "purpose", "evidence", "issues")
+        name = lambda version: f"PRIOR_V{version}_KEYS"
+        prefix = f"{name(9)} = {fields!r}\n{name(10)} = {name(9)}\n"
+        checker = (prefix + "\n" * 2108 + f"{name(11)} = {name(10)}\n").encode()
+        prior = json.dumps(dict.fromkeys(fields)).encode()
+        canonical = hashlib.sha256(json.dumps(json.loads(prior), sort_keys=True,
+                                             separators=(",", ":")).encode()).hexdigest()
+        return checker, prior, canonical
+
+    def identities(self):
+        return [b"a" * 40 + b"\n", b"commit\n", b"",
+                f"{check.LEDGER_ALIAS_COMMIT} {check.LEDGER_ALIAS_PARENT}\n".encode()]
+
+    def test_exact_alias_retains_every_raw_observation_and_verifies_once(self):
+        raw = self.result([self.row(), self.row()])
+        original = copy.deepcopy(raw)
+        with patch.object(check, "verify_ledger_alias_finding") as verify, \
+                patch.object(check, "verify_checksum_finding") as checksum:
+            result = check.classify_reviewed_findings(Path("source"), "a" * 40, raw)
+        verify.assert_called_once_with(Path("source"), "a" * 40)
+        checksum.assert_not_called()
+        self.assertEqual(original, raw)
+        self.assertEqual("reviewed-public-source-v2", result["policy"])
+        self.assertEqual((2, 0), (result["reviewed_count"], result["unresolved_count"]))
+        self.assertEqual([{**self.row(), "disposition": check.LEDGER_ALIAS_DISPOSITION,
+                           "file_blob": check.LEDGER_ALIAS_PROOFS[0][2],
+                           "file_sha256": check.LEDGER_ALIAS_PROOFS[0][4]}] * 2,
+                         result["reviewed_findings"])
+
+    def test_other_commit_rule_path_or_line_cannot_borrow_public_alias(self):
+        variants = (("commit", "b" * 40), ("rule_id", "github-pat"),
+                    ("file", "other.py"), ("file", "./scripts/check_delivery_ledger.py"),
+                    ("line", 2112))
+        for key, value in variants:
+            row = {**self.row(), key: value}
+            with self.subTest(key=key, value=value), \
+                    patch.object(check, "verify_ledger_alias_finding") as verify, \
+                    patch.object(check, "verify_checksum_finding") as checksum:
+                result = check.classify_reviewed_findings(Path("source"), "a" * 40, self.result([row]))
+            verify.assert_not_called()
+            checksum.assert_not_called()
+            self.assertEqual((0, 1), (result["reviewed_count"], result["unresolved_count"]))
+            self.assertEqual([row], result["unresolved_findings"])
+
+    def test_mixed_findings_and_failed_proof_keep_the_rejection_boundary(self):
+        checksum = {"rule_id": "generic-api-key", "file": check.CHECKSUM_PROOF[0][0],
+                    "line": 5, "commit": check.LEDGER_ALIAS_COMMIT}
+        unknown = {**self.row(), "file": "unreviewed.py"}
+        raw = self.result([checksum, self.row(), unknown])
+        with patch.object(check, "verify_checksum_finding"), patch.object(check, "verify_ledger_alias_finding") as verify:
+            result = check.classify_reviewed_findings(Path("source"), "a" * 40, raw)
+        verify.assert_called_once()  # A verified checksum at the same commit cannot substitute for alias proof.
+        self.assertEqual((2, 1), (result["reviewed_count"], result["unresolved_count"]))
+        self.assertEqual([unknown], result["unresolved_findings"])
+        with patch.object(check, "verify_checksum_finding"), \
+                patch.object(check, "verify_ledger_alias_finding", side_effect=check.ScanFailure(check.LEDGER_EVIDENCE_ERROR)), \
+                self.assertRaisesRegex(check.ScanFailure, check.LEDGER_EVIDENCE_ERROR):
+            check.classify_reviewed_findings(Path("source"), "a" * 40, raw)
+        with patch.object(check, "verify_ledger_alias_finding"), self.assertRaises(check.ScanFailure):
+            check.classify_reviewed_findings(Path("source"), "a" * 40, self.result([unknown, unknown]))
+
+    def test_fixed_proof_blobs_bind_mode_identity_size_complete_bytes_and_git_command(self):
+        raw = b"bounded public ledger proof\n"
+        proof = ("a" * 40, "public.json", "b" * 40, len(raw), hashlib.sha256(raw).hexdigest())
+        entry = f"100644 blob {proof[2]}\t{proof[1]}\0".encode()
+        for index in (0, 1):
+            with self.subTest(index=index), patch.object(check, "LEDGER_ALIAS_PROOFS", (proof, proof)), \
+                    patch.object(check, "checksum_git", side_effect=[entry, f"{len(raw)}\n".encode()]) as metadata, \
+                    patch.object(check.subprocess, "run", return_value=subprocess.CompletedProcess([], 0, raw, b"")) as run:
+                self.assertEqual(raw, check.reviewed_ledger_alias_blob(Path("source"), index))
+            self.assertEqual(["git", "--no-replace-objects", "-C", "source", "cat-file", "blob", "b" * 40], run.call_args.args[0])
+            self.assertEqual({"capture_output": True, "timeout": 5}, run.call_args.kwargs)
+            self.assertEqual([(Path("source"), "ls-tree", "-z", "a" * 40, "--", "public.json"),
+                              (Path("source"), "cat-file", "-s", "b" * 40)],
+                             [call.args for call in metadata.call_args_list])
+        for values in ([entry.replace(b"100644", b"120000")], [entry.replace(b"100644", b"100755")],
+                       [entry.replace(b"blob", b"tree")], [entry.replace(b"b" * 40, b"c" * 40)],
+                       [entry.replace(b"public.json", b"other.json")], [entry + entry], [entry, b"999\n"]):
+            with self.subTest(values=values), patch.object(check, "LEDGER_ALIAS_PROOFS", (proof, proof)), \
+                    patch.object(check, "checksum_git", side_effect=values), \
+                    patch.object(check.subprocess, "run") as run, self.assertRaises(check.ScanFailure):
+                check.reviewed_ledger_alias_blob(Path("source"), 0)
+            run.assert_not_called()
+        for invalid in (-1, 2, True, "0"):
+            with self.subTest(index=invalid), patch.object(check, "checksum_git") as metadata, \
+                    self.assertRaises(check.ScanFailure):
+                check.reviewed_ledger_alias_blob(Path("source"), invalid)
+            metadata.assert_not_called()
+
+    def test_proof_reader_rejects_changed_oversized_failed_or_private_output(self):
+        raw = b"public proof"
+        proof = ("a" * 40, "public.json", "b" * 40, len(raw), hashlib.sha256(raw).hexdigest())
+        entry = f"100644 blob {proof[2]}\t{proof[1]}\0".encode()
+        results = [subprocess.CompletedProcess([], 0, raw + b"x", b""),
+                   subprocess.CompletedProcess([], 0, b"x" + raw[1:], b""),
+                   subprocess.CompletedProcess([], 0, raw[:-1], b""),
+                   subprocess.CompletedProcess([], 1, raw, b""),
+                   subprocess.CompletedProcess([], 0, raw, b"PRIVATE_DIAGNOSTIC"),
+                   OSError("PRIVATE_PATH"), subprocess.TimeoutExpired("PRIVATE_COMMAND", 5)]
+        for result in results:
+            with self.subTest(result=type(result).__name__), patch.object(check, "LEDGER_ALIAS_PROOFS", (proof, proof)), \
+                    patch.object(check, "checksum_git", side_effect=[entry, f"{len(raw)}\n".encode()]), \
+                    patch.object(check.subprocess, "run", side_effect=result if isinstance(result, Exception) else None,
+                                 return_value=result), self.assertRaises(check.ScanFailure) as raised:
+                check.reviewed_ledger_alias_blob(Path("source"), 0)
+            self.assertEqual(check.LEDGER_EVIDENCE_ERROR, str(raised.exception))
+
+    def test_alias_proof_requires_current_head_reachability_and_the_exact_parent(self):
+        for index in range(4):
+            values = self.identities()
+            values[index] = b"wrong identity\n"
+            with self.subTest(index=index), patch.object(check, "checksum_git", side_effect=values), \
+                    patch.object(check, "reviewed_ledger_alias_blob") as read, self.assertRaises(check.ScanFailure):
+                check.verify_ledger_alias_finding(Path("source"), "a" * 40)
+            read.assert_not_called()
+
+    def test_only_the_public_field_alias_chain_and_exact_predecessor_are_admitted(self):
+        checker, prior, canonical = self.proof_fixture()
+        with patch.object(check, "checksum_git", side_effect=self.identities()) as git, \
+                patch.object(check, "reviewed_ledger_alias_blob", side_effect=[checker, prior]) as read, \
+                patch.object(check, "LEDGER_PRIOR_CANONICAL_SHA256", canonical):
+            check.verify_ledger_alias_finding(Path("source"), "a" * 40)
+        self.assertEqual([0, 1], [call.args[1] for call in read.call_args_list])
+        self.assertEqual((Path("source"), "merge-base", "--is-ancestor", check.LEDGER_ALIAS_COMMIT, "a" * 40),
+                         git.call_args_list[2].args)
+        name = lambda version: f"PRIOR_V{version}_KEYS"
+        variants = [checker + f"{name(11)} = {name(10)}\n".encode(),
+                    checker.replace(name(10).encode(), b"unreviewed_alias", 1),
+                    checker.replace(f"{name(10)} = {name(9)}".encode(), f"{name(10)} = '{name(9)}'".encode()),
+                    checker.replace(b"'schema_version'", b"'unreviewed_field'"), checker[:-35]]
+        for changed in variants:
+            with self.subTest(change=hashlib.sha256(changed).hexdigest()), \
+                    patch.object(check, "checksum_git", side_effect=self.identities()), \
+                    patch.object(check, "reviewed_ledger_alias_blob", side_effect=[changed, prior]), \
+                    patch.object(check, "LEDGER_PRIOR_CANONICAL_SHA256", canonical), self.assertRaises(check.ScanFailure):
+                check.verify_ledger_alias_finding(Path("source"), "a" * 40)
+        for changed in (prior.replace(b"null", b"true", 1), b"[]", b"not JSON"):
+            with self.subTest(prior=changed[:8]), patch.object(check, "checksum_git", side_effect=self.identities()), \
+                    patch.object(check, "reviewed_ledger_alias_blob", side_effect=[checker, changed]), \
+                    patch.object(check, "LEDGER_PRIOR_CANONICAL_SHA256", canonical), self.assertRaises(check.ScanFailure):
+                check.verify_ledger_alias_finding(Path("source"), "a" * 40)
+
+    def test_entrypoint_retains_raw_findings_and_fails_any_unreviewed_peer(self):
+        unknown = {**self.row(), "file": "unreviewed.py"}
+        for rows, exit_code, status in (([self.row()], 0, "passed_with_reviewed_findings"),
+                                        ([self.row(), unknown], 1, "failed")):
+            with self.subTest(status=status), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                raw = self.result(rows)
+                with patch.object(check, "ROOT", root), patch.object(check.platform, "system", return_value="Linux"), \
+                        patch.object(check.platform, "machine", return_value="x86_64"), \
+                        patch.object(check, "inspect_source", return_value={"commit": "a" * 40}), \
+                        patch.object(check, "install_scanner", return_value=Path("scanner")), \
+                        patch.object(check, "verify_detection_and_removal", return_value={}), \
+                        patch.object(check, "scan", return_value=raw), patch.object(check, "verify_ledger_alias_finding"), \
+                        contextlib.redirect_stdout(io.StringIO()):
+                    self.assertEqual(exit_code, check.main())
+                receipt = json.loads((root / "build/security/secret-scan.json").read_text())
+                self.assertEqual(status, receipt["status"])
+                self.assertEqual(raw, receipt["scan"])
+                self.assertEqual(1, receipt["triage"]["reviewed_count"])
+                self.assertEqual(len(rows) - 1, receipt["triage"]["unresolved_count"])
+
+
 if __name__ == "__main__":
     unittest.main()

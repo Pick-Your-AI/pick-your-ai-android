@@ -115,6 +115,7 @@ class PreviewActivity : Activity() {
         }
     private var restoringFields = false
     private var restoration: PreviewDraftRestoration? = null
+    private lateinit var resourceInspection: ResourceInspectionSection
     private lateinit var findings: FindingsInspectionSection
     private lateinit var snapshots: SnapshotEvaluationSection
     private lateinit var diagnostics: LocalDiagnostics
@@ -123,6 +124,7 @@ class PreviewActivity : Activity() {
     private var environmentAdmitted = false
     private var entryBlocked = false
     private var unsupportedEntry = false
+    private var draftIdentityUnavailable = false
     private lateinit var entryNotice: TextView
     private var incomingComponent: PreviewComponentRoute? = null
     private var incomingComponentUnavailable = false
@@ -142,13 +144,16 @@ class PreviewActivity : Activity() {
                 savedInstanceState.getString("incomingComponentKind"), savedInstanceState.getString("incomingComponentId"),
                 savedInstanceState.getString("incomingComponentVersion"), savedInstanceState.getString("incomingComponentSnapshot"))
             else null
-        entryBlocked = if (savedInstanceState?.containsKey("entryBlocked") == true)
+        val identityCheckpoint = DraftIdentityCheckpoint.read(savedInstanceState)
+        draftIdentityUnavailable = identityCheckpoint == null
+        entryBlocked = draftIdentityUnavailable || if (savedInstanceState?.containsKey("entryBlocked") == true)
             savedInstanceState.getBoolean("entryBlocked") else !isLocalEntry(intent)
-        unsupportedEntry = incomingComponent == null && (entryBlocked ||
+        unsupportedEntry = draftIdentityUnavailable || incomingComponent == null && (entryBlocked ||
             savedInstanceState?.getBoolean("unsupportedEntry", false) == true ||
             savedInstanceState?.getBoolean("incomingComponentPresent", false) == true)
-        currentDraftId = PreviewDraftId(savedInstanceState?.getString("draftId") ?: "guest-draft")
-        pendingDeleteId = savedInstanceState?.getString("pendingDeleteId")?.let(::PreviewDraftId)
+        // The parked fallback is never opened while entryBlocked; recovery requires an explicit local choice.
+        currentDraftId = identityCheckpoint?.draftId ?: PreviewDraftId("guest-draft")
+        pendingDeleteId = identityCheckpoint?.pendingDeleteId
         selectionResolved = !entryBlocked && savedInstanceState != null && savedInstanceState.getBoolean("selectionResolved", true)
         restoration = savedInstanceState?.let {
             PreviewDraftRestoration(it.getString("draftBaseline"), it.getBoolean("draftRequiresReopen", true))
@@ -166,7 +171,7 @@ class PreviewActivity : Activity() {
             textSize = size
         }.also(content::addView)
         text(R.string.notice, 20f)
-        entryNotice = text(R.string.entry_unsupported).apply {
+        entryNotice = text(if (draftIdentityUnavailable) R.string.draft_identity_unavailable else R.string.entry_unsupported).apply {
             accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
             visibility = if (unsupportedEntry) View.VISIBLE else View.GONE
         }
@@ -257,6 +262,7 @@ class PreviewActivity : Activity() {
             setText(R.string.reopen_draft)
             setOnClickListener {
                 if (destroyed || storageBusy || !selectionResolved) return@setOnClickListener
+                retireRevisionInspection()
                 val baseline = savedRecord
                 val draftId = currentDraftId
                 val authority = storageAuthority
@@ -407,6 +413,8 @@ class PreviewActivity : Activity() {
         }
         content.addView(run)
         CostInspectionSection(this, worker) { !destroyed }.attach(content)
+        resourceInspection = ResourceInspectionSection(this, worker, { !destroyed && diagnosticsResumed }, catalog::cancelViewportRestore)
+        resourceInspection.attach(content)
         findings = FindingsInspectionSection(this, worker) { !destroyed }
         findings.attach(content)
         snapshots = SnapshotEvaluationSection(this, worker) { !destroyed && diagnosticsResumed }
@@ -430,25 +438,27 @@ class PreviewActivity : Activity() {
                 else catalogFixture?.helpIdentity ?: HelpCatalogIdentity.UNAVAILABLE_OR_LOADING
             })
         help.attach(content)
-        setContentView(CatalogViewportScrollView(this).apply {
+        val padding = (24 * resources.displayMetrics.density).toInt()
+        content.setPadding(padding, padding, padding, padding)
+        val viewport = CatalogViewportScrollView(this).apply {
             onUserNavigation = catalog::cancelViewportRestore
             addView(content)
             catalog.attachViewport(this)
-        })
-        content.setOnApplyWindowInsetsListener { view, insets ->
-            val padding = (24 * resources.displayMetrics.density).toInt()
-            view.setPadding(padding + insets.systemWindowInsetLeft, padding + insets.systemWindowInsetTop,
-                padding + insets.systemWindowInsetRight, padding + insets.systemWindowInsetBottom)
-            insets
+            // Keep system-bar protection fixed while the form scrolls.
+            clipToPadding = true
+            setOnApplyWindowInsetsListener { view, insets ->
+                view.setPadding(insets.systemWindowInsetLeft, insets.systemWindowInsetTop,
+                    insets.systemWindowInsetRight, insets.systemWindowInsetBottom)
+                insets
+            }
         }
-        // Also provide padding before the first insets dispatch.
-        val padding = (24 * resources.displayMetrics.density).toInt()
-        content.setPadding(padding, padding, padding, padding)
+        setContentView(viewport)
+        viewport.requestApplyInsets()
         updateEditingEnabled()
         loadCatalog()
         if (entryBlocked) {
             storageBusy = false
-            saveStatus.setText(R.string.entry_choose_local)
+            saveStatus.setText(if (draftIdentityUnavailable) R.string.draft_identity_unavailable else R.string.entry_choose_local)
             updateEditingEnabled()
         } else if (selectionResolved) loadDraft(true) else restoreActiveDraft(savedInstanceState != null)
     }
@@ -472,9 +482,10 @@ class PreviewActivity : Activity() {
         if (!isLocalEntry(intent)) {
             incomingComponent = componentRoute(intent)
             incomingComponentUnavailable = false
-            unsupportedEntry = incomingComponent == null
+            unsupportedEntry = draftIdentityUnavailable || incomingComponent == null
         }
         else if (!entryBlocked) unsupportedEntry = false
+        entryNotice.setText(if (draftIdentityUnavailable) R.string.draft_identity_unavailable else R.string.entry_unsupported)
         entryNotice.visibility = if (unsupportedEntry) View.VISIBLE else View.GONE
         updateIncomingComponent()
     }
@@ -991,6 +1002,7 @@ class PreviewActivity : Activity() {
     }
 
     private fun retireRevisionInspection() {
+        if (::catalogComparison.isInitialized) catalogComparison.dismissInspection()
         revisionRequest = null
         revisionDialog?.dismiss()
         revisionDialog = null
@@ -1369,6 +1381,7 @@ class PreviewActivity : Activity() {
                     } else {
                         entryBlocked = false
                         unsupportedEntry = false
+                        draftIdentityUnavailable = false
                         entryNotice.visibility = View.GONE
                         currentDraftId = next.id
                         selectionResolved = true
@@ -1559,6 +1572,7 @@ class PreviewActivity : Activity() {
         if (!environmentAdmitted) { super.onSaveInstanceState(outState); return }
         outState.putBoolean("entryBlocked", entryBlocked)
         outState.putBoolean("unsupportedEntry", unsupportedEntry)
+        outState.putBoolean(DraftIdentityCheckpoint.UNAVAILABLE_KEY, draftIdentityUnavailable)
         outState.putBoolean("incomingComponentPresent", incomingComponent != null)
         incomingComponent?.let {
             outState.putString("incomingComponentKind", it.kind)
@@ -1622,6 +1636,7 @@ class PreviewActivity : Activity() {
         if (::diagnostics.isInitialized) diagnostics.dismiss()
         if (::help.isInitialized) help.dismiss()
         if (::snapshots.isInitialized) snapshots.dismiss()
+        if (::resourceInspection.isInitialized) resourceInspection.dismiss()
         super.onPause()
     }
 
@@ -1633,6 +1648,7 @@ class PreviewActivity : Activity() {
         savingInput = null
         if (::findings.isInitialized) findings.close()
         if (::snapshots.isInitialized) snapshots.close()
+        if (::resourceInspection.isInitialized) resourceInspection.close()
         if (::diagnostics.isInitialized) diagnostics.close()
         if (::help.isInitialized) help.close()
         if (::catalogPinRecovery.isInitialized) catalogPinRecovery.close()

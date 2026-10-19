@@ -155,6 +155,12 @@ class PlacementDeployment(
     fun evaluate(current: PlacementBasis, qualifications: PlacementQualifications): PlacementDeploymentResult {
         val components = mutableListOf<PlacementComponentMode>()
         val checks = mutableListOf(servingCoverage.check(current, qualifications))
+        if (basis.sha256 != current.sha256) {
+            checks += PlacementCheck(PlacementRule.DEPLOYMENT, PlacementDomain.component(basis.buildId),
+                PlacementOutcome.UNKNOWN, PlacementReason.CHANGED_BASIS)
+            return PlacementDeploymentResult(PlacementResult(current, qualifications, checks),
+                emptyList(), false)
+        }
         for (selection in basis.selections.filter { it.enabled && it.kind in SERVING_KINDS }) {
             val serving = requirements[selection.id]?.let { graph.serving(current, qualifications, it, artifactFacts) }
             val lineage = serving?.lineage ?: graph.lineage(current, qualifications, selection.id, artifactFacts)

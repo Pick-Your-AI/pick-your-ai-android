@@ -8,7 +8,8 @@ import tempfile
 
 
 RECEIPT_NAMES = frozenset({"preview-policy.json", "environment-configuration.json",
-                           "preview-policy-guards.json", "source-identity-regression.json"})
+                           "preview-policy-guards.json", "source-identity-regression.json",
+                           "guard-ignored-core-schema.json", "guard-ignored-preview-asset.json"})
 
 
 def receipt_destination(root: Path, name: str) -> Path:

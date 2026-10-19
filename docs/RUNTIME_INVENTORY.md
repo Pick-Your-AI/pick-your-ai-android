@@ -98,6 +98,18 @@ python scripts/check_runtime_inventory_guards.py --preview
 The second command uses the configured Android SDK. These are packaging/source
 rejection checks; they do not install the APK.
 
+Each command admits its selected fixed report, `guard-ignored-core-schema.json`
+or `guard-ignored-preview-asset.json`, before starting that inspection. The
+checkout, `build` and `inventory` ancestors must be ordinary directories; an
+existing report must be a singly linked regular file. Unsafe entries and their
+targets remain untouched. Once admitted, only that command's stale report is
+retired, so a failed current inspection cannot leave an older success at the
+same path. The other command's report and unrelated peers remain. A complete
+result uses the private-sibling JSON publication boundary and stable-checkout
+limits described below. The host fixtures mock the expensive inspection while
+checking these real filesystem effects; CI still runs both actual packaged-input
+rejection checks.
+
 The core CI job also requires a source-identity regression against the actual
 inventory producer. A private Java-only Gradle project first produces a clean
 inventory. The helper then installs a Git replacement object that makes changed

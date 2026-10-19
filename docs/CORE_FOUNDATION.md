@@ -297,3 +297,16 @@ It does not bind a Build, run rules, reconcile findings or grant readiness. The
 existing reference receiver and inspection/caller APIs retain their stronger
 consistency and current-state boundaries. Its shared Python/Kotlin panel is
 additive to the original reference-report fixture check.
+
+The [frozen Build snapshot reader](FROZEN_BUILD_BOUNDARY.md) retains all recorded
+Build fields, exact revisions/objectives, ordered selections/relationships and
+optional policy/extension content as immutable or defensive values. Shared
+Python/Kotlin fixtures cover its unchanged structural boundary; decoding neither
+creates a local identity nor verifies domain consistency, source rights, ownership,
+compatibility, saved state or a recorded deployment claim.
+
+The [standalone Selection reader](FROZEN_SELECTION_BOUNDARY.md) reuses the same
+defensive selection values without constructing a Build or applying private draft
+policy. Callers must supply the accepted enclosing contract version explicitly:
+the frozen Selection has no `schema_version` field. Full bounded parsing precedes
+version/schema admission; no local identity, save or disclosure authority follows.

@@ -83,9 +83,11 @@ unregistered experimental identity `ai.pickyour.android.preview`. Debug signing
 is disabled: this unsigned build creates no key and cannot be installed directly. Do not
 publish this diagnostic as the product.
 
-After separately authorized signing with existing suitable debug material,
-on an available emulator/device install using `adb install -r` and explicitly
-launch the diagnostic. Verify the synthetic notice, validation result, font
+The [installed-emulator CI lane](EMULATOR_SMOKE.md) signs a separate temporary copy
+with a disposable test certificate and installs only into its newly created AVD.
+Its source and observed run receipt define the bounded automated cases. For
+separately authorized manual device testing, use suitable diagnostic signing
+material and explicitly install/launch the diagnostic. Verify the synthetic notice, validation result, font
 scaling, TalkBack order/announcements, keyboard access, RTL, system insets,
 rotation, backgrounding and repeated validation. A successful build or lint check
 alone does not establish those results.
@@ -1005,3 +1007,10 @@ new navigation cancels a pending restoration. Twelve required simulated tests co
 the actual Activity's details/recreation path and the restoration, mismatch,
 loading, lifecycle and input boundaries. Installed navigation, accessibility,
 process-death and canonical receiving evidence remain separate requirements.
+
+## Recorded resource input inspection
+
+The [resource inspection guide](RECORDED_RESOURCE_INSPECTION.md) describes the explicit
+synthetic Build/ResourceEstimate reader and complete native field browser. It keeps
+all applicability limits, recorded conditions and the separate guest autosave authority
+visible; it produces no accepted capacity or memory-fit result.
