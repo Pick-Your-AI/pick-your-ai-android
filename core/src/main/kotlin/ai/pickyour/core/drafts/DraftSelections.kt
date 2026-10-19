@@ -154,7 +154,7 @@ sealed interface SelectionEdit {
     data class Rejected(val reason: SelectionRejection) : SelectionEdit
 }
 
-/** Pure T0–T5 and guardrail/evaluation edits. No tier activation, promotion, evaluation or IO. */
+/** Pure frozen T0–T6 edits. No tier activation, promotion, evaluation or IO. */
 object DraftSelectionCommands {
     fun apply(content: DraftContent, command: SelectionCommand, catalog: SelectionCatalogSnapshot? = null): SelectionEdit {
         val state = content.components
@@ -283,5 +283,5 @@ private object SelectionRegistry {
     fun exceedsCardinality(selections: List<LocalSelection>): Boolean = selections.filter { it.enabled }.groupBy { it.kind }
         .any { (kind, values) -> kinds[kind]["cardinality"].textValue() == "one" && values.size > 1 }
     fun supportsCommands(kind: String): Boolean = kinds[kind]["tier"].textValue() in setOf("T0", "T1", "T2", "T3", "T4", "T5") ||
-        kind in setOf("guardrail", "evaluation_suite")
+        kind in setOf("guardrail", "evaluation_suite", "deployment_target", "monitoring_stack", "cost_policy")
 }
