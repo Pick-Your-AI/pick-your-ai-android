@@ -104,6 +104,14 @@ only at their stated scope; this decision changes no prerequisite edge or other
 work package. Shared services, qualified external metrics and product/device
 release retain their existing authorities.
 
+[ADR 0011](decisions/0011-android-59-acceptance-record.md) separately proposes
+placing only #59's [02.05 CI receiving record](delivery/android/work-packages/02.05.md)
+in Android, effective after independent receiving review and normal reviewed main
+delivery. The original website spelling/path remain history. The existing
+[CI operations reference](CI_BASELINE.md) stays distinct from criterion acceptance;
+the placement supplies no settings change, corrected installed result,
+credential-context review, whole-issue completion or ledger amendment.
+
 [ADR 0012](decisions/0012-android-37-acceptance-record.md) places only Android
 #37's [03.04 record](delivery/android/work-packages/03.04.md) in Android after its
 independent criterion/placement receiving review and normal reviewed delivery.
