@@ -288,7 +288,7 @@ class CatalogComparisonValueActivityTest {
         assertEquals(activity.getString(R.string.domain_restore_preview), restore.text.toString())
         assertStoragePresentationRetiresValue {
             assertTrue(detail.isShowing)
-            restore.performClick()
+            restore.performClick(); idle()
             assertEquals(activity.getString(R.string.domain_restore_commit),
                 dialog().getButton(AlertDialog.BUTTON_POSITIVE).text.toString())
         }
