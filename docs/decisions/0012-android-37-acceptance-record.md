@@ -72,11 +72,19 @@ CD-11/CD1 version/type boundaries; explicit source eligibility and complete
 physical/serving/scenario inventories; original negative/recovery evidence; and
 the narrow frozen-v1 preservation/migration disposition.
 
-The final record requests actual central-contract, Android, affected website and
-iOS receiving decisions against its immutable source. Use the in-session
-reviewers' real attribution and read extent. A design review, source review,
-focused test, configured hosted run and main-push qualification are separate
-events; no absent assignee response or another person's execution is invented.
+The actual central-contract/Android, affected-iOS and affected-website/coordinator
+decisions are recorded in the
+[final receiving register](../delivery/android/work-packages/03.04.md#final-receiving-register-and-completion-sequence).
+All three anchor immutable proposal `b1adcec7dff97447f472d1c4b1a3380d212d3b9d` and accept
+the selected criterion outcome and this narrow record location from their stated
+roles. The two-document factual register amendment changes no selected policy or
+original evidence. The effective event at the start of this ADR still requires
+normal reviewed delivery.
+
+The full public receiving bodies retain each in-session reviewer's actual read
+extent and attribution. Design review, source review, focused testing, configured
+hosted execution and main-push qualification remain separate events; no absent
+assignee response, formal approving vote or another person's execution is inferred.
 
 Normal signed delivery, current-main preservation review, actual configured
 checks and original main evidence remain required. Earlier execution receipts
