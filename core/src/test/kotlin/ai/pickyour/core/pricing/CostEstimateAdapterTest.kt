@@ -195,8 +195,172 @@ class CostEstimateAdapterTest {
         }
         assertEquals(CostReception.Rejected(CostRejection.INVALID_ESTIMATE), adapter.inspect(fixture("build").toString().byteInputStream(), input))
         assertFalse(closed)
-        rejected(CostRejection.INVALID_ESTIMATE, fixture("cost-estimate").put("schema_version", "2.0.0"))
+        assertEquals("UNSUPPORTED_ESTIMATE_SCHEMA_VERSION", (inspect(fixture("cost-estimate").put("schema_version", "2.0.0")) as CostReception.Rejected).reason.name)
         rejected(CostRejection.INVALID_ESTIMATE, fixture("cost-estimate").apply { putArray("warnings").add("x".repeat(20_000)) })
         assertEquals(CostReception.Rejected(CostRejection.INVALID_BUILD), adapter.inspect("{}".byteInputStream(), fixture("cost-estimate").toString().byteInputStream()))
+    }
+
+    private enum class VersionInput(val fixtureName: String, val invalid: CostRejection, val unsupported: String) {
+        BUILD("build", CostRejection.INVALID_BUILD, "UNSUPPORTED_BUILD_SCHEMA_VERSION"),
+        ESTIMATE("cost-estimate", CostRejection.INVALID_ESTIMATE, "UNSUPPORTED_ESTIMATE_SCHEMA_VERSION"),
+    }
+
+    private class TrackedInput(bytes: ByteArray) : java.io.ByteArrayInputStream(bytes) {
+        var readCalls = 0
+        var closed = false
+        override fun read(): Int { readCalls++; return super.read() }
+        override fun read(bytes: ByteArray, offset: Int, length: Int): Int {
+            readCalls++
+            return super.read(bytes, offset, length)
+        }
+        override fun close() { closed = true; super.close() }
+    }
+
+    private fun inspectVersionBytes(input: VersionInput, bytes: ByteArray): CostReception {
+        val buildBytes = if (input == VersionInput.BUILD) bytes else fixture("build").toString().toByteArray()
+        val estimateBytes = if (input == VersionInput.ESTIMATE) bytes else fixture("cost-estimate").toString().toByteArray()
+        val originalBuild = buildBytes.copyOf()
+        val originalEstimate = estimateBytes.copyOf()
+        val build = TrackedInput(buildBytes)
+        val estimate = TrackedInput(estimateBytes)
+        val result = adapter.inspect(build, estimate)
+        assertFalse(build.closed)
+        assertFalse(estimate.closed)
+        assertArrayEquals(originalBuild, buildBytes)
+        assertArrayEquals(originalEstimate, estimateBytes)
+        if (input == VersionInput.BUILD && result is CostReception.Rejected) assertEquals(0, estimate.readCalls)
+        return result
+    }
+
+    private fun rejectedVersionBytes(input: VersionInput, bytes: ByteArray, expected: String) {
+        val result = assertInstanceOf(CostReception.Rejected::class.java, inspectVersionBytes(input, bytes))
+        assertEquals(expected, result.reason.name)
+        assertEquals("Rejected(reason=$expected)", result.toString())
+    }
+
+    @TestFactory fun `textual unsupported versions identify the supplied record without disclosing values`(): List<DynamicTest> =
+        VersionInput.entries.flatMap { input ->
+            listOf("old" to "0.9.0", "minor" to "1.0.1", "major" to "2.0.0",
+                "empty" to "", "terminal LF" to "1.0.0\n", "opaque text" to "private-cost-version").map { (label, version) ->
+                DynamicTest.dynamicTest("${input.name}: $label version") {
+                    val bytes = fixture(input.fixtureName).put("schema_version", version).toString().toByteArray()
+                    rejectedVersionBytes(input, bytes, input.unsupported)
+                }
+            }
+        }
+
+    @TestFactory fun `missing and nontext versions retain the original invalid record outcome`(): List<DynamicTest> =
+        VersionInput.entries.flatMap { input ->
+            listOf("missing" to null, "null" to "null", "boolean" to "false", "integer" to "1",
+                "decimal" to "1.0", "array" to "[]", "object" to "{}").map { (label, json) ->
+                DynamicTest.dynamicTest("${input.name}: $label version field") {
+                    val node = fixture(input.fixtureName)
+                    if (json == null) node.remove("schema_version")
+                    else node.set<com.fasterxml.jackson.databind.JsonNode>("schema_version", mapper.readTree(json))
+                    rejectedVersionBytes(input, node.toString().toByteArray(), input.invalid.name)
+                }
+            }
+        }
+
+    private fun strictVersionCases(): List<Pair<String, () -> ByteArray>> = listOf(
+        "duplicate version" to { """{"schema_version":"2.0.0","schema_version":"1.0.0"}""".toByteArray() },
+        "reversed duplicate version" to { """{"schema_version":"1.0.0","schema_version":"2.0.0"}""".toByteArray() },
+        "nested duplicate" to { """{"schema_version":"2.0.0","x":{"a":1,"a":2}}""".toByteArray() },
+        "trailing object" to { """{"schema_version":"2.0.0"} {}""".toByteArray() },
+        "trailing private text" to { """{"schema_version":"2.0.0"} private-input""".toByteArray() },
+        "truncated object" to { """{"schema_version":"2.0.0","x":""".toByteArray() },
+        "invalid UTF-8" to { """{"schema_version":"2.0.0","x":"""".toByteArray() + byteArrayOf(0xc3.toByte(), 0x28) + "\"}".toByteArray() },
+        "unpaired surrogate" to { """{"schema_version":"2.0.0","x":"\uD800"}""".toByteArray() },
+        "string limit" to { ("""{"schema_version":"2.0.0","x":"""" + "x".repeat(16_385) + "\"}").toByteArray() },
+        "member-name limit" to { ("""{"schema_version":"2.0.0","""" + "x".repeat(257) + "\":0}").toByteArray() },
+        "number limit" to { ("""{"schema_version":"2.0.0","x":""" + "1".repeat(129) + "}").toByteArray() },
+        "depth limit" to { ("""{"schema_version":"2.0.0","x":""" + "[".repeat(33) + "0" + "]".repeat(33) + "}").toByteArray() },
+        "token limit" to { ("""{"schema_version":"2.0.0","x":[""" + "0,".repeat(100_000) + "0]}").toByteArray() },
+        "byte limit after complete object" to {
+            val prefix = """{"schema_version":"2.0.0"}""".toByteArray()
+            prefix + ByteArray(1_048_577 - prefix.size) { 0x20 }
+        },
+        "array root" to { """[{"schema_version":"2.0.0"}]""".toByteArray() },
+    )
+
+    @TestFactory fun `complete strict parsing wins over an early recognized version`(): List<DynamicTest> =
+        VersionInput.entries.flatMap { input -> strictVersionCases().map { (label, bytes) ->
+            DynamicTest.dynamicTest("${input.name}: $label before version") {
+                rejectedVersionBytes(input, bytes(), input.invalid.name)
+            }
+        } }
+
+    @TestFactory fun `provider failure after a version prefix stays invalid and streams stay open`(): List<DynamicTest> =
+        VersionInput.entries.map { input -> DynamicTest.dynamicTest("${input.name}: failure before EOF") {
+            val failing = object : java.io.InputStream() {
+                val bytes = """{"schema_version":"2.0.0"}""".byteInputStream()
+                var closed = false
+                override fun read(): Int = bytes.read().also { if (it == -1) throw java.io.IOException("private-provider-detail") }
+                override fun close() { closed = true }
+            }
+            val other = TrackedInput(fixture(if (input == VersionInput.BUILD) "cost-estimate" else "build").toString().toByteArray())
+            val result = if (input == VersionInput.BUILD) adapter.inspect(failing, other) else adapter.inspect(other, failing)
+            assertEquals(CostReception.Rejected(input.invalid), result)
+            assertFalse(result.toString().contains("private-provider-detail"))
+            assertFalse(failing.closed)
+            assertFalse(other.closed)
+            if (input == VersionInput.BUILD) assertEquals(0, other.readCalls)
+        } }
+
+    @TestFactory fun `supported versions still require the unchanged full record schema`(): List<DynamicTest> =
+        VersionInput.entries.flatMap { input -> listOf("unknown field", "missing ID", "invalid enum", "invalid revision").map { label ->
+            DynamicTest.dynamicTest("${input.name}: $label at supported version") {
+                val node = fixture(input.fixtureName)
+                when (label) {
+                    "unknown field" -> node.put("private-extra", true)
+                    "missing ID" -> node.remove("id")
+                    "invalid enum" -> if (input == VersionInput.BUILD) (node["selections"][0] as ObjectNode).put("kind", "unknown_kind")
+                        else (node["line_items"][0] as ObjectNode).put("meter", "unknown_meter")
+                    "invalid revision" -> node.put(if (input == VersionInput.BUILD) "revision" else "build_revision", 0)
+                }
+                rejectedVersionBytes(input, node.toString().toByteArray(), input.invalid.name)
+            }
+        } }
+
+    @TestFactory fun `Build admission wins without reading a rejected estimate`(): List<DynamicTest> =
+        listOf("both unsupported", "invalid Build schema", "malformed estimate").map { label -> DynamicTest.dynamicTest(label) {
+            val node = fixture("build")
+            if (label == "invalid Build schema") node.remove("id") else node.put("schema_version", "2.0.0")
+            val build = TrackedInput(node.toString().toByteArray())
+            val estimate = TrackedInput(if (label == "malformed estimate") "{private".toByteArray()
+                else fixture("cost-estimate").put("schema_version", "2.0.0").toString().toByteArray())
+            val result = assertInstanceOf(CostReception.Rejected::class.java, adapter.inspect(build, estimate))
+            assertEquals(if (label == "invalid Build schema") "INVALID_BUILD" else "UNSUPPORTED_BUILD_SCHEMA_VERSION", result.reason.name)
+            assertTrue(build.readCalls > 0)
+            assertEquals(0, estimate.readCalls)
+            assertFalse(build.closed)
+            assertFalse(estimate.closed)
+        } }
+
+    @Test fun `both record admissions still precede the missing pricebook semantic check`() {
+        val build = fixture("build")
+        (build["locks"] as ObjectNode).remove("pricebook_id")
+        val estimate = fixture("cost-estimate").put("schema_version", "2.0.0")
+        assertEquals("UNSUPPORTED_ESTIMATE_SCHEMA_VERSION", (inspect(estimate, build) as CostReception.Rejected).reason.name)
+        estimate.put("schema_version", "1.0.0")
+        rejected(CostRejection.MISSING_PRICEBOOK_PIN, estimate, build)
+        assertEquals("578.50", value().reportedTotal.amount.encoded)
+    }
+
+    @TestFactory fun `supported records at the original byte budget remain inspectable`(): List<DynamicTest> =
+        VersionInput.entries.map { input -> DynamicTest.dynamicTest("${input.name}: exact byte budget") {
+            val original = fixture(input.fixtureName).toString().toByteArray()
+            val bytes = original + ByteArray(1_048_576 - original.size) { 0x20 }
+            val result = assertInstanceOf(CostReception.Inspected::class.java, inspectVersionBytes(input, bytes)).estimate
+            assertEquals("578.50", result.reportedTotal.amount.encoded)
+            assertEquals(CostEvidence.NOT_ESTABLISHED, result.budgetPass)
+            assertEquals(CostEvidence.NOT_ESTABLISHED, result.freshness)
+            assertEquals(CostEvidence.NOT_ESTABLISHED, result.freeOrIncludedTreatment)
+        } }
+
+    @Test fun `all previous rejection names keep their enum positions`() {
+        val original = listOf("INVALID_BUILD", "INVALID_ESTIMATE", "MISSING_PRICEBOOK_PIN", "BINDING_MISMATCH",
+            "DUPLICATE_ID", "UNKNOWN_SELECTION", "MIXED_CURRENCY", "INCONSISTENT_AMOUNTS", "INCONSISTENT_COVERAGE")
+        assertEquals(original, CostRejection.entries.take(original.size).map { it.name })
     }
 }
