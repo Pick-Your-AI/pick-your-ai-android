@@ -1702,6 +1702,9 @@ jobs:
           required = {
               'ai.pickyour.android.preview.CurrentDraftCheckActivityTest': {
                   'acknowledgedDraftRunsRealRulesWithUnavailableMetricsAndReadOnlyHistory',
+                  'inspectionNavigationRetiresFindingRowsAndBackWithoutChangingCurrentAnalysis',
+                  'findingsRetireCatalogControlsWithoutChangingCurrentAnalysis',
+                  'findingsRetireRevisionPickerCallbacksWithoutChangingCurrentAnalysis',
                   'realModelSettingsSavePublishesAffectedRecheckingBeforeTheNewResult',
                   'actualDeploymentModeReplacementRechecksUneditedRemoteEndpoints',
                   'actualTierDisableKeepsComponentBytesAndShowsPriorAffectedIdentitiesThenWithheld',

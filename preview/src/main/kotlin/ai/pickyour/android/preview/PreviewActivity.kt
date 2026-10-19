@@ -197,7 +197,8 @@ class PreviewActivity : Activity() {
         }
         draftSummary = CurrentDraftSummarySection(this) { !destroyed && diagnosticsResumed }
         content.addView(draftSummary)
-        currentChecks = CurrentDraftCheckSection(this, worker, { !destroyed && diagnosticsResumed }, draftSummary::currentCheckStatus)
+        currentChecks = CurrentDraftCheckSection(this, worker, { !destroyed && diagnosticsResumed },
+            draftSummary::currentCheckStatus, ::prepareCurrentCheckInspection)
         content.addView(currentChecks)
         val titleLabel = text(R.string.draft_title)
         title = EditText(this).apply {
@@ -1052,7 +1053,20 @@ class PreviewActivity : Activity() {
         dialog.show()
     }
 
+    private fun prepareCurrentCheckInspection() {
+        retireRevisionInspection()
+        if (::catalogPinRecovery.isInitialized) catalogPinRecovery.dismiss()
+        val previous = catalogDetailDialog
+        catalogDetailDialog = null
+        previous?.dismiss()
+        catalogPriceBrowser?.retire()
+        catalogPriceBrowser = null
+        catalogDetailBrowser?.retire()
+        catalogDetailBrowser = null
+    }
+
     private fun retireRevisionInspection() {
+        if (::currentChecks.isInitialized) currentChecks.dismissInspection()
         if (::catalogComparison.isInitialized) catalogComparison.dismissInspection()
         revisionRequest = null
         revisionDialog?.dismiss()
