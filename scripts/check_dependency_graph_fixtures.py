@@ -8,6 +8,8 @@ from pathlib import Path
 from jsonschema import Draft202012Validator, FormatChecker
 from referencing import Registry, Resource
 
+from reference_fixture_output import output_path, write_output
+
 ROOT = Path(__file__).resolve().parents[1]
 BASE = ROOT / "contracts/v1"
 OUTPUT = ROOT / "core/src/test/resources/contracts/dependency-graph-cases.json"
@@ -126,6 +128,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--write", action="store_true", help="regenerate only the synthetic graph fixture")
     args = parser.parse_args()
+    output = output_path(ROOT, OUTPUT.relative_to(ROOT))
     for path, digest in PINS.items():
         if hashlib.sha256((BASE / path).read_bytes()).hexdigest() != digest:
             raise ValueError("Frozen graph input identity changed")
@@ -134,10 +137,6 @@ def main():
     cases = vectors(schema, original)
     fixture = {"profile": "android-dependency-graph-wire/v1", "input_sha256": PINS, "cases": cases}
     encoded = json.dumps(fixture, ensure_ascii=False, indent=2) + "\n"
-    if args.write:
-        OUTPUT.write_text(encoded)
-    elif OUTPUT.read_text() != encoded:
-        raise ValueError("Graph fixtures changed; explicitly regenerate and review them")
     formats = FormatChecker()
     if not {"date-time", "uri"} <= formats.checkers.keys():
         raise ValueError("Frozen graph format checkers unavailable; install requirements-contracts.txt")
@@ -159,6 +158,11 @@ def main():
         counts[outcome] += 1
     if not all(counts.values()):
         raise ValueError("Graph fixtures lost a required outcome")
+    # Preserve the retained fixture until every frozen-reference check has succeeded.
+    if args.write:
+        write_output(ROOT, OUTPUT.relative_to(ROOT), encoded)
+    elif output.read_text() != encoded:
+        raise ValueError("Graph fixtures changed; explicitly regenerate and review them")
     print(f"{len(cases)} dependency graph cases agree with the frozen Python schema: {counts}")
 
 

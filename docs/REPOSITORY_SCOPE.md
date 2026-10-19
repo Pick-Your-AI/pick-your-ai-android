@@ -112,6 +112,37 @@ delivery. The original website spelling/path remain history. The existing
 the placement supplies no settings change, corrected installed result,
 credential-context review, whole-issue completion or ledger amendment.
 
+[ADR 0012](decisions/0012-android-37-acceptance-record.md) places only Android
+#37's [03.04 record](delivery/android/work-packages/03.04.md) in Android after its
+independent criterion/placement receiving review and normal reviewed delivery.
+It records the already selected synthetic normalized deployment, graph, memory,
+workload and context consumer, exact-version evidence and frozen-v1 preservation.
+The original intended website location remains history. This narrow decision
+changes no shared-service/contract authority, default dispatcher, prerequisite
+edge, other acceptance record or release boundary; exact #21 outputs and affected
+Android/web/iOS receiving remain explicit in the record.
+
+[ADR 0013](decisions/0013-android-96-acceptance-record.md) separately proposes
+placing only #96's [07.02 compatible-options receiving record](delivery/android/work-packages/07.02.md)
+in Android after independent receiving review and normal reviewed delivery. It
+preserves the historical website destination, all four literal criteria/tasks,
+the actual data-consumer and catalog/UX decisions, and exact source/original
+execution identities. The selected private stored-draft comparison leaves frozen
+archive admission and all shared authorities intact. Product/device and release
+qualification remain separate; this placement changes no other record, and
+strict-ledger reconciliation follows actual implementation and record delivery.
+
+[ADR 0014](decisions/0014-android-98-acceptance-record.md) separately places only
+#98's [07.05 selection handoff record](delivery/android/work-packages/07.05.md)
+in Android after independent receiving review and normal reviewed document
+delivery. Both actual catalog/UX and data-consumer decisions accept the implemented
+local search/detail and bounded component-route handoff, including the specific
+#76/#82 outputs consumed. Its original website coordinate remains history.
+The placement changes no other record, shared service, public App Link authority,
+prerequisite edge or release scope. Actual signed implementation and separate
+original-main evidence are recorded; strict ledger reconciliation remains a
+subsequent reviewed step.
+
 The existing website remains static. The selected future server package is
 separately built/deployed at `Pick-Your-AI/pickyour.ai/services/planner-api` only
 through canonical owner/coordinator and operations review before dependent code;

@@ -60,20 +60,34 @@ cancellation; this synchronous reader creates no network or filesystem action.
 
 ## Explicit invalidation adapter
 
-The new `DependencyInvalidation.affectedByChange(graph, changedKinds, before,
-after)` overload projects the decoded endpoint/activation fields into the
-existing algorithm. The original `List<InvalidationEdge>` entry point and its
-before/after truth table remain unchanged. Decoding by itself never activates an
-edge; this overload explicitly calls the already implemented policy.
+`DependencyInvalidation.affectedByChange(graph, changedKinds, before, after)`
+projects the decoded endpoint/activation fields into the same pure algorithm as
+the original `List<InvalidationEdge>` entry point. Its introduction in
+[#348](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/348) left that
+algorithm unchanged. Decoding by itself never activates an edge.
 
-That policy examines direct neighbours in both directions, includes edges active
-before or after a change, and treats unknown mode/production context
-conservatively. It retains removed/disabled selection identities for rechecking.
-Each supplied edge is visited finitely; cycles do not schedule recursive work.
-Output identities are deterministic and deduplicated, while the original graph
-and historical input contexts remain unchanged. The policy already treats all
-relationship labels as recheck adjacency; this contribution adds no new
-relationship interpretation or transitive propagation.
+The later [#100](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/100)
+context-change extension applies to both entry points. For each edge, it computes
+the existing activation predicate in the captured before and after contexts. The
+edge is considered when either endpoint is explicitly in `changedKinds` **or**
+the two activation values differ. Only an edge that is false in both contexts is
+suppressed. An incident unknown predicate therefore remains conservative, and
+every transition between true, false and unknown includes both endpoints.
+
+For example, an API-to-SELF_HOSTED edit to `deployment_mode` activates the frozen
+`dep.accelerator.model` edge even though neither endpoint was directly edited.
+Enabling or disabling `rag_pipeline` likewise reaches the remote frozen
+`dep.vector_database.embedding_model` edge. An unchanged unknown/unknown remote
+edge does not expand every unrelated edit; SELF_HOSTED-to-HYBRID also leaves a
+remote `self_hosted` edge unchanged because its predicate remains true.
+
+The result keeps directly edited kinds in `changedKinds` and the remaining
+endpoints of the considered edges in `affectedKinds`. It retains removed/disabled
+old and new selection identities for rechecking. Each supplied edge is inspected
+once; cycles do not schedule recursive work. Output identities are deterministic and
+deduplicated, while the original graph and historical input contexts remain
+unchanged. All relationship labels still mean recheck adjacency here; the
+extension adds no relationship interpretation or transitive propagation.
 
 The caller must still establish exact graph/build pins, identify all changed
 kinds and bind asynchronous work to the current acknowledged revision. Full
@@ -110,6 +124,14 @@ Actual decoded graphs also exercise the existing invalidation consumer, includin
 each activation, before/after changes, cycles, inverse neighbours and disabled
 identities. These synthetic inputs establish no real dependency or capacity fact.
 
+The separate [21 context-change regressions](../core/src/test/kotlin/ai/pickyour/core/invalidation/DependencyActivationChangeTest.kt)
+exercise the actual frozen mode and remote RAG edges, each T5 trigger, agents,
+`if_selected`, all six nullable-production transitions, mode uncertainty,
+unchanged remote predicates, incident unknowns and finite direct cycle handling.
+They preserve the original eight invalidation methods and the frozen decoder
+corpus. This helper extension adds no production caller or derived-result/UI
+scheduler; a complete #100 receiving implementation remains separate.
+
 Use the pinned environment in [CORE_FOUNDATION.md](CORE_FOUNDATION.md):
 
 ```sh
@@ -131,7 +153,7 @@ universal cross-client numeric or wire parity.
 | #21 | Frozen graph decoding, exact revision and immutable fields | Actual API/storage consumers, every other model and affected-owner acceptance |
 | #49 | Shared Python/Kotlin source pins, expected outcomes and retained-value round trips | Full cross-client migration/rollback matrix and successor contract acceptance |
 | #32 | Graph parser/field/numeric/immutability and consumer regressions | Complete domain, Android device and release regression suites |
-| #100 | Explicit decoded graph input to the existing finite direct-adjacency algorithm | Governed graph/build applicability, durable dirty-state propagation, evaluation/resource/cost scheduling and current UI integration |
+| #100 | Decoded graph input and context-aware finite direct-edge affected sets | Governed graph/build applicability, durable dirty-state propagation, evaluation/resource/cost scheduling and current UI integration |
 
 Canonical acceptance-record paths remain unchanged. Source review, JVM/reference
 tests, simulated Android checks, installed-device evidence and release acceptance

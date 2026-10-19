@@ -52,10 +52,15 @@ class KnownAnswerSchema private constructor(private val original: ByteArray, pri
                 val vocabulary = Vocabularies.getVocabulary(iri)
                 if (iri == "https://json-schema.org/draft/2020-12/vocab/validation") {
                     // 1.5.6 assembles vocabulary keywords after ordinary keyword
-                    // overrides; replace only these eight value comparisons in
-                    // the selected vocabulary, preserving all other validators.
+                    // overrides; replace only these eight value comparisons and
+                    // wrap the two contains-count keywords in the selected
+                    // vocabulary, preserving all other validators.
                     Vocabulary(iri, *vocabulary.keywords.map { keyword ->
-                        if (keyword.value in Cd1ValueKeyword.names) Cd1ValueKeyword(keyword.value) else keyword
+                        when (keyword.value) {
+                            in Cd1ValueKeyword.names -> Cd1ValueKeyword(keyword.value)
+                            in Cd1ContainsCountKeyword.names -> Cd1ContainsCountKeyword(keyword)
+                            else -> keyword
+                        }
                     }.toTypedArray())
                 } else vocabulary
             }.build())
