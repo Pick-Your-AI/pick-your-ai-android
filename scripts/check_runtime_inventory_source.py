@@ -12,6 +12,8 @@ import tempfile
 import time
 import zipfile
 
+from inspection_receipts import publish_receipt, retire_receipt, runtime_source_evidence_destinations
+
 
 ROOT = Path(__file__).resolve().parents[1]
 DRIVER = "scripts/runtime_inventory.init.gradle.kts"
@@ -254,15 +256,15 @@ def check() -> dict[str, object]:
 
 
 def main() -> None:
-    output = ROOT / "build/inventory/source-identity-regression.json"
-    output.unlink(missing_ok=True)
+    evidence_paths = runtime_source_evidence_destinations(ROOT)
+    if EVIDENCE != evidence_paths[0].parent:
+        raise ValueError("INSPECTION_EVIDENCE_LOCATION")
+    retire_receipt(ROOT, "source-identity-regression.json")
     EVIDENCE.mkdir(parents=True, exist_ok=True)
-    for case in CASES:
-        for suffix in (".log", ".jar", ".json"):
-            (EVIDENCE / (case + suffix)).unlink(missing_ok=True)
+    for path in evidence_paths:
+        path.unlink(missing_ok=True)
     report = check()
-    output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
+    publish_receipt(ROOT, "source-identity-regression.json", report)
     if report["status"] != "passed":
         raise SystemExit("Runtime inventory accepted replaced source under an unchanged commit; "
                          "original and adopted controls passed; source-identity regression failed")

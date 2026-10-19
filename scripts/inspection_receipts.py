@@ -1,4 +1,4 @@
-"""Publish the two fixed APK inspection receipts in a stable, trusted checkout."""
+"""Admit fixed inspection evidence and publish receipts in a stable checkout."""
 from __future__ import annotations
 
 import json
@@ -7,7 +7,8 @@ import stat
 import tempfile
 
 
-RECEIPT_NAMES = frozenset({"preview-policy.json", "environment-configuration.json"})
+RECEIPT_NAMES = frozenset({"preview-policy.json", "environment-configuration.json",
+                           "preview-policy-guards.json", "source-identity-regression.json"})
 
 
 def receipt_destination(root: Path, name: str) -> Path:
@@ -31,6 +32,30 @@ def receipt_destination(root: Path, name: str) -> Path:
     if not stat.S_ISREG(entry.st_mode) or entry.st_nlink != 1:
         raise ValueError("INSPECTION_RECEIPT_FILE")
     return output
+
+
+def runtime_source_evidence_destinations(root: Path) -> tuple[Path, ...]:
+    """Admit the report and all nine fixed evidence files before any retirement."""
+    output = receipt_destination(root, "source-identity-regression.json")
+    folder = output.parent / "source-identity-regression"
+    try:
+        entry = folder.lstat()
+    except FileNotFoundError:
+        pass
+    else:
+        if not stat.S_ISDIR(entry.st_mode):
+            raise ValueError("INSPECTION_EVIDENCE_DIRECTORY")
+    paths = tuple(folder / (case + suffix)
+                  for case in ("clean-original", "replacement-commit", "clean-adopted")
+                  for suffix in (".log", ".jar", ".json"))
+    for path in paths:
+        try:
+            entry = path.lstat()
+        except FileNotFoundError:
+            continue
+        if not stat.S_ISREG(entry.st_mode) or entry.st_nlink != 1:
+            raise ValueError("INSPECTION_EVIDENCE_FILE")
+    return paths
 
 
 def retire_receipt(root: Path, name: str) -> None:

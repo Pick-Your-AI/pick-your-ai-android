@@ -8,6 +8,8 @@ Use a scoped branch, signed commits and a pull request. Obtain independent recei
 
 Early contributors push branches named `contrib/<your-login>/<topic>` to this repository; other contributors work from a fork. Every pull request into `main` needs one approval from someone other than its author, and only maintainers merge. The [organization contributing rules](https://github.com/Pick-Your-AI/.github/blob/main/CONTRIBUTING.md) define roles, credentials and enforcement.
 
+The organization's team model assigns Triage to the `Mobile Devices` parent team and Write to the `Android` child team. Triage permits issue and pull-request triage but does not itself grant push access. `Mobile Lead Maintainers` receives team-granted Admin access; organization owners retain their repository administration rights, and a person's effective access can also include other grants. Early Contributors use their Write access only for their `contrib/<your-login>/<topic>` branches. Team membership changes go through the Lead Maintainers under the organization access policy.
+
 For the exact Android check names, source/artifact verification, intended main-branch policy and failure triage, read [CI_BASELINE.md](docs/CI_BASELINE.md). Its observed-settings section distinguishes proposed enforcement from actual repository readback; green checks alone do not configure protection.
 
 Run `git diff --check`, check relative Markdown links, and manually review scope and canonical references. For core/contract changes, follow [CORE_FOUNDATION.md](docs/CORE_FOUNDATION.md): verify the frozen import, run the Python reference suite and `./gradlew --no-daemon :core:check :core:assemble`. Never claim installed Android or production validation from JVM, reference or documentation checks.

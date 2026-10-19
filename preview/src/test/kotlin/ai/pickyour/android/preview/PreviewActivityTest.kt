@@ -1869,7 +1869,7 @@ class PreviewActivityTest {
         val book = activity.assets.open("pricebook.json").use { (RecordedPricebook.read(it) as RecordedPricebookResult.Parsed).pricebook }
         assertTrue(message.contains("Pricebook: \"prices.fixture.1\""))
         assertTrue(message.contains("SHA-256: ${book.hash}"))
-        assertTrue(message.contains("Exact item/version price records displayed: 1 / 1"))
+        assertTrue(message.contains("Exact item/version price record displayed: 1 / 1"))
         assertTrue(message.contains("Catalog item ID: \"cat.compute_profile.fixture\""))
         assertTrue(message.contains("Catalog item version: \"2026.10-demo\""))
         assertTrue(message.contains("Meter: gpu_hour"))
