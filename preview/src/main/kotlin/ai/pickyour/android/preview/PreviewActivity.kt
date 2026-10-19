@@ -259,7 +259,7 @@ class PreviewActivity : Activity() {
         componentSection = SelectionEditSection(this, ::commitSelection)
         componentSection.restore(savedInstanceState)
         content.addView(componentSection)
-        planningSection = T6PlanningSection(this, { !destroyed }) { kind ->
+        planningSection = T6PlanningSection(this, { !destroyed }, { catalog.cancelViewportRestore() }) { kind ->
             if (!destroyed && !isFinishing && catalog.browseKind(kind.catalogKind)) catalogSearch.setText("")
         }
         content.addView(planningSection)

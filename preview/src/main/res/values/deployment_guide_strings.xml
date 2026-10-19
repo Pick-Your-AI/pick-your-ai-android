@@ -1,0 +1,31 @@
+<resources>
+    <string name="deployment_guide_heading">Deployment planning guides</string>
+    <string name="deployment_guide_scope">Choose a reference guide to review external steps. Each serving component needs its actual operator and capacity identified. Opening a guide leaves the draft and its selected mode unchanged.</string>
+    <string name="deployment_guide_edition">Android planning guide 1 · frozen configuration contract 1.0.0. The draft status above still describes its recorded planning choices.</string>
+    <string name="deployment_guide_open">Read %1$s guide</string>
+    <string name="deployment_guide_hide">Hide %1$s guide</string>
+    <string name="deployment_guide_steps">External prerequisites</string>
+    <string name="deployment_guide_observation">Monitoring to establish</string>
+    <string name="deployment_guide_limits">Remaining limits</string>
+    <string name="deployment_guide_shared_review">Before protected data is uploaded, stored or sent, review applicable terms and data-handling requirements, including effective retention, content capture and sink region. Obtain credentials separately. Before traffic, review measured quality, complete cost coverage, alert ownership and recovery. Execution and promotion need their own evidence and authorization. Unknown evidence stays unknown; a required unsupported operation remains a negative finding.</string>
+    <string name="deployment_guide_api">API</string>
+    <string name="deployment_guide_api_meaning">Provider-operated shared serving</string>
+    <string name="deployment_guide_api_steps">Confirm the exact offering, model version, region, access and retention controls. Prepare a least-privilege runtime identity outside this app. Shared serving can still require account or model-access setup and a deployment object. Record the served identity, source dates and supported rollback path; check quotas and required features before traffic.</string>
+    <string name="deployment_guide_api_monitoring">Measure client latency, errors, rate limits and usage. Bind eligible provider signals to the actual API, account and configuration. Verify alert delivery and telemetry-pipeline failure behavior. Reconcile request-level cost observations with later billing.</string>
+    <string name="deployment_guide_api_limits">Provider-internal memory, queues and capacity can be unavailable. A telemetry convention alone does not prove instrumentation. Billing can arrive late; a recorded budget preference does not install or enforce a spend stop.</string>
+    <string name="deployment_guide_managed">managed</string>
+    <string name="deployment_guide_managed_meaning">Provider-operated dedicated or reserved serving</string>
+    <string name="deployment_guide_managed_steps">Confirm the actual offering, account, model and deployment version, region, capacity, quotas and access controls. Prepare runtime identity and required approvals separately. Qualify endpoint readiness, traffic changes and recovery for that platform. Reserved-capacity steps require an actual reservation, with its own conditions and cost coverage.</string>
+    <string name="deployment_guide_managed_monitoring">Combine client latency, errors and usage with the endpoint, health and capacity signals that the selected platform actually exposes. Retain each signal definition, scope and version; validate the collector and alert route. Confirm effective logging, retention and content-capture settings.</string>
+    <string name="deployment_guide_managed_limits">A provider name or deployment label supplies no internal hardware, queue or usable-capacity evidence. Unavailable signals remain unknown. Rollback capacity and charges depend on the actual offering; a managed label alone establishes neither.</string>
+    <string name="deployment_guide_self_hosted">self-hosted</string>
+    <string name="deployment_guide_self_hosted_meaning">User-operated serving</string>
+    <string name="deployment_guide_self_hosted_steps">Record the actual CPU or device, host-memory and storage arrangement. Pin the image digest, weights revision, runtime arguments and dependencies. Check access boundaries, runtime support, startup and health on that target. Measure the intended workload before cutover and retain the previous artifacts with a rehearsed recovery path.</string>
+    <string name="deployment_guide_self_hosted_monitoring">Establish client, engine and host observations, using only signals supported by the exact runtime. Check metric names, units, versions and collector health. Measure readiness, latency, errors and applicable queue or memory behavior; test the chosen alert route and telemetry failures.</string>
+    <string name="deployment_guide_self_hosted_limits">The Android device is not assumed to be the serving target. Catalog hardware facts alone do not establish calibrated capacity or throughput. An exporter or endpoint can exist without qualified measurements. Single-host and clustered recovery need their own supported mechanics and evidence.</string>
+    <string name="deployment_guide_hybrid">hybrid</string>
+    <string name="deployment_guide_hybrid_meaning">Compose the actual serving-component plans</string>
+    <string name="deployment_guide_hybrid_steps">Classify each serving component using its operator and capacity, then retain its applicable API, managed or self-hosted sequence. Review the real connections, exact versions, identity boundaries, data movement, region, routing and recovery. Multiple API providers alone do not make a build hybrid.</string>
+    <string name="deployment_guide_hybrid_monitoring">Preserve observations for each component and the connections between them. Bind client traces, latency, errors, usage and cost coverage to their actual sources and scopes. Qualify content capture and telemetry failure handling across every boundary; missing signals remain visible.</string>
+    <string name="deployment_guide_hybrid_limits">One component cannot clear another component of its requirements. Preserve known failures alongside unresolved inputs. A whole-build label cannot suppress an applicable local check or invent access to provider internals. Actual applicability and readiness require their separate reviewed evidence.</string>
+</resources>
