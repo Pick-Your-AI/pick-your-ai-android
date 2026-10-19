@@ -1,0 +1,1645 @@
+{
+  "profile": "android-dependency-graph-wire/v1",
+  "input_sha256": {
+    "schemas/common.schema.json": "0342ce2f1114e7276fc7f6a08ff5b86e8727caadd83ae4f443de9a7e1431c43c",
+    "schemas/dependency-graph.schema.json": "fb6a8bb42a9424d4ff2b520301f816c247789a3d70d1124afea1a8dc5ed5bd75",
+    "examples/dependency-graph.json": "e9b3bca19a9cf8241fd74f6618824882a3413649822add88be1ac93cb3f1bacc"
+  },
+  "cases": [
+    {
+      "name": "canonical-fixture",
+      "path": [],
+      "operation": "none",
+      "expected": "decoded"
+    },
+    {
+      "name": "missing-schema_version",
+      "path": [
+        "schema_version"
+      ],
+      "operation": "remove",
+      "expected": "unsupported_version"
+    },
+    {
+      "name": "null-schema_version",
+      "path": [
+        "schema_version"
+      ],
+      "operation": "set",
+      "expected": "unsupported_version",
+      "json": "null"
+    },
+    {
+      "name": "wrong-type-schema_version",
+      "path": [
+        "schema_version"
+      ],
+      "operation": "set",
+      "expected": "unsupported_version",
+      "json": "true"
+    },
+    {
+      "name": "missing-id",
+      "path": [
+        "id"
+      ],
+      "operation": "remove",
+      "expected": "schema_mismatch"
+    },
+    {
+      "name": "null-id",
+      "path": [
+        "id"
+      ],
+      "operation": "set",
+      "expected": "schema_mismatch",
+      "json": "null"
+    },
+    {
+      "name": "wrong-type-id",
+      "path": [
+        "id"
+      ],
+      "operation": "set",
+      "expected": "schema_mismatch",
+      "json": "true"
+    },
+    {
+      "name": "missing-revision",
+      "path": [
+        "revision"
+      ],
+      "operation": "remove",
+      "expected": "schema_mismatch"
+    },
+    {
+      "name": "null-revision",
+      "path": [
+        "revision"
+      ],
+      "operation": "set",
+      "expected": "schema_mismatch",
+      "json": "null"
+    },
+    {
+      "name": "wrong-type-revision",
+      "path": [
+        "revision"
+      ],
+      "operation": "set",
+      "expected": "schema_mismatch",
+      "json": "true"
+    },
+    {
+      "name": "missing-edges",
+      "path": [
+        "edges"
+      ],
+      "operation": "remove",
+      "expected": "schema_mismatch"
+    },
+    {
+      "name": "null-edges",
+      "path": [
+        "edges"
+      ],
+      "operation": "set",
+      "expected": "schema_mismatch",
+      "json": "null"
+    },
+    {
+      "name": "wrong-type-edges",
+      "path": [
+        "edges"
+      ],
+      "operation": "set",
+      "expected": "schema_mismatch",
+      "json": "true"
+    },
+    {
+      "name": "edge-missing-id",
+      "path": [
+        "edges",
+        "0",
+        "id"
+      ],
+      "operation": "remove",
+      "expected": "schema_mismatch"
+    },
+    {
+      "name": "edge-null-id",
+      "path": [
+        "edges",
+        "0",
+        "id"
+      ],
+      "operation": "set",
+      "expected": "schema_mismatch",
+      "json": "null"
+    },
+    {
+      "name": "edge-wrong-type-id",
+      "path": [
+        "edges",
+        "0",
+        "id"
+      ],
+      "operation": "set",
+      "expected": "schema_mismatch",
+      "json": "true"
+    },
+    {
+      "name": "edge-missing-dependent_kind",
+      "path": [
+        "edges",
+        "0",
+        "dependent_kind"
+      ],
+      "operation": "remove",
+      "expected": "schema_mismatch"
+    },
+    {
+      "name": "edge-null-dependent_kind",
+      "path": [
+        "edges",
+        "0",
+        "dependent_kind"
+      ],
+      "operation": "set",
+      "expected": "schema_mismatch",
+      "json": "null"
+    },
+    {
+      "name": "edge-wrong-type-dependent_kind",
+      "path": [
+        "edges",
+        "0",
+        "dependent_kind"
+      ],
+      "operation": "set",
+      "expected": "schema_mismatch",
+      "json": "true"
+    },
+    {
+      "name": "edge-missing-depends_on_kind",
+      "path": [
+        "edges",
+        "0",
+        "depends_on_kind"
+      ],
+      "operation": "remove",
+      "expected": "schema_mismatch"
+    },
+    {
+      "name": "edge-null-depends_on_kind",
+      "path": [
+        "edges",
+        "0",
+        "depends_on_kind"
+      ],
+      "operation": "set",
+      "expected": "schema_mismatch",
+      "json": "null"
+    },
+    {
+      "name": "edge-wrong-type-depends_on_kind",
+      "path": [
+        "edges",
+        "0",
+        "depends_on_kind"
+      ],
+      "operation": "set",
+      "expected": "schema_mismatch",
+      "json": "true"
+    },
+    {
+      "name": "edge-missing-relationship",
+      "path": [
+        "edges",
+        "0",
+        "relationship"
+      ],
+      "operation": "remove",
+      "expected": "schema_mismatch"
+    },
+    {
+      "name": "edge-null-relationship",
+      "path": [
+        "edges",
+        "0",
+        "relationship"
+      ],
+      "operation": "set",
+      "expected": "schema_mismatch",
+      "json": "null"
+    },
+    {
+      "name": "edge-wrong-type-relationship",
+      "path": [
+        "edges",
+        "0",
+        "relationship"
+      ],
+      "operation": "set",
+      "expected": "schema_mismatch",
+      "json": "true"
+    },
+    {
+      "name": "edge-missing-activation",
+      "path": [
+        "edges",
+        "0",
+        "activation"
+      ],
+      "operation": "remove",
+      "expected": "schema_mismatch"
+    },
+    {
+      "name": "edge-null-activation",
+      "path": [
+        "edges",
+        "0",
+        "activation"
+      ],
+      "operation": "set",
+      "expected": "schema_mismatch",
+      "json": "null"
+    },
+    {
+      "name": "edge-wrong-type-activation",
+      "path": [
+        "edges",
+        "0",
+        "activation"
+      ],
+      "operation": "set",
+      "expected": "schema_mismatch",
+      "json": "true"
+    },
+    {
+      "name": "edge-missing-rationale",
+      "path": [
+        "edges",
+        "0",
+        "rationale"
+      ],
+      "operation": "remove",
+      "expected": "schema_mismatch"
+    },
+    {
+      "name": "edge-null-rationale",
+      "path": [
+        "edges",
+        "0",
+        "rationale"
+      ],
+      "operation": "set",
+      "expected": "schema_mismatch",
+      "json": "null"
+    },
+    {
+      "name": "edge-wrong-type-rationale",
+      "path": [
+        "edges",
+        "0",
+        "rationale"
+      ],
+      "operation": "set",
+      "expected": "schema_mismatch",
+      "json": "true"
+    },
+    {
+      "name": "dependent_kind-workload",
+      "path": [
+        "edges",
+        "0",
+        "dependent_kind"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"workload\""
+    },
+    {
+      "name": "dependent_kind-deployment_mode",
+      "path": [
+        "edges",
+        "0",
+        "dependent_kind"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"deployment_mode\""
+    },
+    {
+      "name": "dependent_kind-model_provider",
+      "path": [
+        "edges",
+        "0",
+        "dependent_kind"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"model_provider\""
+    },
+    {
+      "name": "dependent_kind-model",
+      "path": [
+        "edges",
+        "0",
+        "dependent_kind"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"model\""
+    },
+    {
+      "name": "dependent_kind-context_policy",
+      "path": [
+        "edges",
+        "0",
+        "dependent_kind"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"context_policy\""
+    },
+    {
+      "name": "dependent_kind-hosting_platform",
+      "path": [
+        "edges",
+        "0",
+        "dependent_kind"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"hosting_platform\""
+    },
+    {
+      "name": "dependent_kind-accelerator",
+      "path": [
+        "edges",
+        "0",
+        "dependent_kind"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"accelerator\""
+    },
+    {
+      "name": "dependent_kind-compute_profile",
+      "path": [
+        "edges",
+        "0",
+        "dependent_kind"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"compute_profile\""
+    },
+    {
+      "name": "dependent_kind-inference_engine",
+      "path": [
+        "edges",
+        "0",
+        "dependent_kind"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"inference_engine\""
+    },
+    {
+      "name": "dependent_kind-storage",
+      "path": [
+        "edges",
+        "0",
+        "dependent_kind"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"storage\""
+    },
+    {
+      "name": "dependent_kind-data_source",
+      "path": [
+        "edges",
+        "0",
+        "dependent_kind"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"data_source\""
+    },
+    {
+      "name": "dependent_kind-knowledge_base",
+      "path": [
+        "edges",
+        "0",
+        "dependent_kind"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"knowledge_base\""
+    },
+    {
+      "name": "dependent_kind-embedding_model",
+      "path": [
+        "edges",
+        "0",
+        "dependent_kind"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"embedding_model\""
+    },
+    {
+      "name": "dependent_kind-vector_database",
+      "path": [
+        "edges",
+        "0",
+        "dependent_kind"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"vector_database\""
+    },
+    {
+      "name": "dependent_kind-rag_pipeline",
+      "path": [
+        "edges",
+        "0",
+        "dependent_kind"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"rag_pipeline\""
+    },
+    {
+      "name": "dependent_kind-agent_framework",
+      "path": [
+        "edges",
+        "0",
+        "dependent_kind"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"agent_framework\""
+    },
+    {
+      "name": "dependent_kind-tool",
+      "path": [
+        "edges",
+        "0",
+        "dependent_kind"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"tool\""
+    },
+    {
+      "name": "dependent_kind-mcp_server",
+      "path": [
+        "edges",
+        "0",
+        "dependent_kind"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"mcp_server\""
+    },
+    {
+      "name": "dependent_kind-memory_store",
+      "path": [
+        "edges",
+        "0",
+        "dependent_kind"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"memory_store\""
+    },
+    {
+      "name": "dependent_kind-integration",
+      "path": [
+        "edges",
+        "0",
+        "dependent_kind"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"integration\""
+    },
+    {
+      "name": "dependent_kind-training_framework",
+      "path": [
+        "edges",
+        "0",
+        "dependent_kind"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"training_framework\""
+    },
+    {
+      "name": "dependent_kind-training_compute",
+      "path": [
+        "edges",
+        "0",
+        "dependent_kind"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"training_compute\""
+    },
+    {
+      "name": "dependent_kind-training_dataset",
+      "path": [
+        "edges",
+        "0",
+        "dependent_kind"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"training_dataset\""
+    },
+    {
+      "name": "dependent_kind-fine_tuned_model",
+      "path": [
+        "edges",
+        "0",
+        "dependent_kind"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"fine_tuned_model\""
+    },
+    {
+      "name": "dependent_kind-guardrail",
+      "path": [
+        "edges",
+        "0",
+        "dependent_kind"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"guardrail\""
+    },
+    {
+      "name": "dependent_kind-evaluation_suite",
+      "path": [
+        "edges",
+        "0",
+        "dependent_kind"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"evaluation_suite\""
+    },
+    {
+      "name": "dependent_kind-deployment_target",
+      "path": [
+        "edges",
+        "0",
+        "dependent_kind"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"deployment_target\""
+    },
+    {
+      "name": "dependent_kind-monitoring_stack",
+      "path": [
+        "edges",
+        "0",
+        "dependent_kind"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"monitoring_stack\""
+    },
+    {
+      "name": "dependent_kind-cost_policy",
+      "path": [
+        "edges",
+        "0",
+        "dependent_kind"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"cost_policy\""
+    },
+    {
+      "name": "unknown-dependent_kind",
+      "path": [
+        "edges",
+        "0",
+        "dependent_kind"
+      ],
+      "operation": "set",
+      "expected": "schema_mismatch",
+      "json": "\"future_unsupported\""
+    },
+    {
+      "name": "depends_on_kind-workload",
+      "path": [
+        "edges",
+        "0",
+        "depends_on_kind"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"workload\""
+    },
+    {
+      "name": "depends_on_kind-deployment_mode",
+      "path": [
+        "edges",
+        "0",
+        "depends_on_kind"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"deployment_mode\""
+    },
+    {
+      "name": "depends_on_kind-model_provider",
+      "path": [
+        "edges",
+        "0",
+        "depends_on_kind"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"model_provider\""
+    },
+    {
+      "name": "depends_on_kind-model",
+      "path": [
+        "edges",
+        "0",
+        "depends_on_kind"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"model\""
+    },
+    {
+      "name": "depends_on_kind-context_policy",
+      "path": [
+        "edges",
+        "0",
+        "depends_on_kind"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"context_policy\""
+    },
+    {
+      "name": "depends_on_kind-hosting_platform",
+      "path": [
+        "edges",
+        "0",
+        "depends_on_kind"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"hosting_platform\""
+    },
+    {
+      "name": "depends_on_kind-accelerator",
+      "path": [
+        "edges",
+        "0",
+        "depends_on_kind"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"accelerator\""
+    },
+    {
+      "name": "depends_on_kind-compute_profile",
+      "path": [
+        "edges",
+        "0",
+        "depends_on_kind"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"compute_profile\""
+    },
+    {
+      "name": "depends_on_kind-inference_engine",
+      "path": [
+        "edges",
+        "0",
+        "depends_on_kind"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"inference_engine\""
+    },
+    {
+      "name": "depends_on_kind-storage",
+      "path": [
+        "edges",
+        "0",
+        "depends_on_kind"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"storage\""
+    },
+    {
+      "name": "depends_on_kind-data_source",
+      "path": [
+        "edges",
+        "0",
+        "depends_on_kind"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"data_source\""
+    },
+    {
+      "name": "depends_on_kind-knowledge_base",
+      "path": [
+        "edges",
+        "0",
+        "depends_on_kind"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"knowledge_base\""
+    },
+    {
+      "name": "depends_on_kind-embedding_model",
+      "path": [
+        "edges",
+        "0",
+        "depends_on_kind"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"embedding_model\""
+    },
+    {
+      "name": "depends_on_kind-vector_database",
+      "path": [
+        "edges",
+        "0",
+        "depends_on_kind"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"vector_database\""
+    },
+    {
+      "name": "depends_on_kind-rag_pipeline",
+      "path": [
+        "edges",
+        "0",
+        "depends_on_kind"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"rag_pipeline\""
+    },
+    {
+      "name": "depends_on_kind-agent_framework",
+      "path": [
+        "edges",
+        "0",
+        "depends_on_kind"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"agent_framework\""
+    },
+    {
+      "name": "depends_on_kind-tool",
+      "path": [
+        "edges",
+        "0",
+        "depends_on_kind"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"tool\""
+    },
+    {
+      "name": "depends_on_kind-mcp_server",
+      "path": [
+        "edges",
+        "0",
+        "depends_on_kind"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"mcp_server\""
+    },
+    {
+      "name": "depends_on_kind-memory_store",
+      "path": [
+        "edges",
+        "0",
+        "depends_on_kind"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"memory_store\""
+    },
+    {
+      "name": "depends_on_kind-integration",
+      "path": [
+        "edges",
+        "0",
+        "depends_on_kind"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"integration\""
+    },
+    {
+      "name": "depends_on_kind-training_framework",
+      "path": [
+        "edges",
+        "0",
+        "depends_on_kind"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"training_framework\""
+    },
+    {
+      "name": "depends_on_kind-training_compute",
+      "path": [
+        "edges",
+        "0",
+        "depends_on_kind"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"training_compute\""
+    },
+    {
+      "name": "depends_on_kind-training_dataset",
+      "path": [
+        "edges",
+        "0",
+        "depends_on_kind"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"training_dataset\""
+    },
+    {
+      "name": "depends_on_kind-fine_tuned_model",
+      "path": [
+        "edges",
+        "0",
+        "depends_on_kind"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"fine_tuned_model\""
+    },
+    {
+      "name": "depends_on_kind-guardrail",
+      "path": [
+        "edges",
+        "0",
+        "depends_on_kind"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"guardrail\""
+    },
+    {
+      "name": "depends_on_kind-evaluation_suite",
+      "path": [
+        "edges",
+        "0",
+        "depends_on_kind"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"evaluation_suite\""
+    },
+    {
+      "name": "depends_on_kind-deployment_target",
+      "path": [
+        "edges",
+        "0",
+        "depends_on_kind"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"deployment_target\""
+    },
+    {
+      "name": "depends_on_kind-monitoring_stack",
+      "path": [
+        "edges",
+        "0",
+        "depends_on_kind"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"monitoring_stack\""
+    },
+    {
+      "name": "depends_on_kind-cost_policy",
+      "path": [
+        "edges",
+        "0",
+        "depends_on_kind"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"cost_policy\""
+    },
+    {
+      "name": "unknown-depends_on_kind",
+      "path": [
+        "edges",
+        "0",
+        "depends_on_kind"
+      ],
+      "operation": "set",
+      "expected": "schema_mismatch",
+      "json": "\"future_unsupported\""
+    },
+    {
+      "name": "requires-always",
+      "path": [
+        "edges",
+        "0"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "{\"id\":\"dep.model.deployment_mode\",\"dependent_kind\":\"model\",\"depends_on_kind\":\"deployment_mode\",\"relationship\":\"requires\",\"activation\":\"always\",\"rationale\":\"model selection must be reevaluated when deployment_mode changes.\"}"
+    },
+    {
+      "name": "requires-self_hosted",
+      "path": [
+        "edges",
+        "0"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "{\"id\":\"dep.model.deployment_mode\",\"dependent_kind\":\"model\",\"depends_on_kind\":\"deployment_mode\",\"relationship\":\"requires\",\"activation\":\"self_hosted\",\"rationale\":\"model selection must be reevaluated when deployment_mode changes.\"}"
+    },
+    {
+      "name": "requires-non_api",
+      "path": [
+        "edges",
+        "0"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "{\"id\":\"dep.model.deployment_mode\",\"dependent_kind\":\"model\",\"depends_on_kind\":\"deployment_mode\",\"relationship\":\"requires\",\"activation\":\"non_api\",\"rationale\":\"model selection must be reevaluated when deployment_mode changes.\"}"
+    },
+    {
+      "name": "requires-rag_enabled",
+      "path": [
+        "edges",
+        "0"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "{\"id\":\"dep.model.deployment_mode\",\"dependent_kind\":\"model\",\"depends_on_kind\":\"deployment_mode\",\"relationship\":\"requires\",\"activation\":\"rag_enabled\",\"rationale\":\"model selection must be reevaluated when deployment_mode changes.\"}"
+    },
+    {
+      "name": "requires-agents_enabled",
+      "path": [
+        "edges",
+        "0"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "{\"id\":\"dep.model.deployment_mode\",\"dependent_kind\":\"model\",\"depends_on_kind\":\"deployment_mode\",\"relationship\":\"requires\",\"activation\":\"agents_enabled\",\"rationale\":\"model selection must be reevaluated when deployment_mode changes.\"}"
+    },
+    {
+      "name": "requires-fine_tuning_enabled",
+      "path": [
+        "edges",
+        "0"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "{\"id\":\"dep.model.deployment_mode\",\"dependent_kind\":\"model\",\"depends_on_kind\":\"deployment_mode\",\"relationship\":\"requires\",\"activation\":\"fine_tuning_enabled\",\"rationale\":\"model selection must be reevaluated when deployment_mode changes.\"}"
+    },
+    {
+      "name": "requires-if_selected",
+      "path": [
+        "edges",
+        "0"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "{\"id\":\"dep.model.deployment_mode\",\"dependent_kind\":\"model\",\"depends_on_kind\":\"deployment_mode\",\"relationship\":\"requires\",\"activation\":\"if_selected\",\"rationale\":\"model selection must be reevaluated when deployment_mode changes.\"}"
+    },
+    {
+      "name": "requires-production_only",
+      "path": [
+        "edges",
+        "0"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "{\"id\":\"dep.model.deployment_mode\",\"dependent_kind\":\"model\",\"depends_on_kind\":\"deployment_mode\",\"relationship\":\"requires\",\"activation\":\"production_only\",\"rationale\":\"model selection must be reevaluated when deployment_mode changes.\"}"
+    },
+    {
+      "name": "constrains-always",
+      "path": [
+        "edges",
+        "0"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "{\"id\":\"dep.model.deployment_mode\",\"dependent_kind\":\"model\",\"depends_on_kind\":\"deployment_mode\",\"relationship\":\"constrains\",\"activation\":\"always\",\"rationale\":\"model selection must be reevaluated when deployment_mode changes.\"}"
+    },
+    {
+      "name": "constrains-self_hosted",
+      "path": [
+        "edges",
+        "0"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "{\"id\":\"dep.model.deployment_mode\",\"dependent_kind\":\"model\",\"depends_on_kind\":\"deployment_mode\",\"relationship\":\"constrains\",\"activation\":\"self_hosted\",\"rationale\":\"model selection must be reevaluated when deployment_mode changes.\"}"
+    },
+    {
+      "name": "constrains-non_api",
+      "path": [
+        "edges",
+        "0"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "{\"id\":\"dep.model.deployment_mode\",\"dependent_kind\":\"model\",\"depends_on_kind\":\"deployment_mode\",\"relationship\":\"constrains\",\"activation\":\"non_api\",\"rationale\":\"model selection must be reevaluated when deployment_mode changes.\"}"
+    },
+    {
+      "name": "constrains-rag_enabled",
+      "path": [
+        "edges",
+        "0"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "{\"id\":\"dep.model.deployment_mode\",\"dependent_kind\":\"model\",\"depends_on_kind\":\"deployment_mode\",\"relationship\":\"constrains\",\"activation\":\"rag_enabled\",\"rationale\":\"model selection must be reevaluated when deployment_mode changes.\"}"
+    },
+    {
+      "name": "constrains-agents_enabled",
+      "path": [
+        "edges",
+        "0"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "{\"id\":\"dep.model.deployment_mode\",\"dependent_kind\":\"model\",\"depends_on_kind\":\"deployment_mode\",\"relationship\":\"constrains\",\"activation\":\"agents_enabled\",\"rationale\":\"model selection must be reevaluated when deployment_mode changes.\"}"
+    },
+    {
+      "name": "constrains-fine_tuning_enabled",
+      "path": [
+        "edges",
+        "0"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "{\"id\":\"dep.model.deployment_mode\",\"dependent_kind\":\"model\",\"depends_on_kind\":\"deployment_mode\",\"relationship\":\"constrains\",\"activation\":\"fine_tuning_enabled\",\"rationale\":\"model selection must be reevaluated when deployment_mode changes.\"}"
+    },
+    {
+      "name": "constrains-if_selected",
+      "path": [
+        "edges",
+        "0"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "{\"id\":\"dep.model.deployment_mode\",\"dependent_kind\":\"model\",\"depends_on_kind\":\"deployment_mode\",\"relationship\":\"constrains\",\"activation\":\"if_selected\",\"rationale\":\"model selection must be reevaluated when deployment_mode changes.\"}"
+    },
+    {
+      "name": "constrains-production_only",
+      "path": [
+        "edges",
+        "0"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "{\"id\":\"dep.model.deployment_mode\",\"dependent_kind\":\"model\",\"depends_on_kind\":\"deployment_mode\",\"relationship\":\"constrains\",\"activation\":\"production_only\",\"rationale\":\"model selection must be reevaluated when deployment_mode changes.\"}"
+    },
+    {
+      "name": "informs-always",
+      "path": [
+        "edges",
+        "0"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "{\"id\":\"dep.model.deployment_mode\",\"dependent_kind\":\"model\",\"depends_on_kind\":\"deployment_mode\",\"relationship\":\"informs\",\"activation\":\"always\",\"rationale\":\"model selection must be reevaluated when deployment_mode changes.\"}"
+    },
+    {
+      "name": "informs-self_hosted",
+      "path": [
+        "edges",
+        "0"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "{\"id\":\"dep.model.deployment_mode\",\"dependent_kind\":\"model\",\"depends_on_kind\":\"deployment_mode\",\"relationship\":\"informs\",\"activation\":\"self_hosted\",\"rationale\":\"model selection must be reevaluated when deployment_mode changes.\"}"
+    },
+    {
+      "name": "informs-non_api",
+      "path": [
+        "edges",
+        "0"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "{\"id\":\"dep.model.deployment_mode\",\"dependent_kind\":\"model\",\"depends_on_kind\":\"deployment_mode\",\"relationship\":\"informs\",\"activation\":\"non_api\",\"rationale\":\"model selection must be reevaluated when deployment_mode changes.\"}"
+    },
+    {
+      "name": "informs-rag_enabled",
+      "path": [
+        "edges",
+        "0"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "{\"id\":\"dep.model.deployment_mode\",\"dependent_kind\":\"model\",\"depends_on_kind\":\"deployment_mode\",\"relationship\":\"informs\",\"activation\":\"rag_enabled\",\"rationale\":\"model selection must be reevaluated when deployment_mode changes.\"}"
+    },
+    {
+      "name": "informs-agents_enabled",
+      "path": [
+        "edges",
+        "0"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "{\"id\":\"dep.model.deployment_mode\",\"dependent_kind\":\"model\",\"depends_on_kind\":\"deployment_mode\",\"relationship\":\"informs\",\"activation\":\"agents_enabled\",\"rationale\":\"model selection must be reevaluated when deployment_mode changes.\"}"
+    },
+    {
+      "name": "informs-fine_tuning_enabled",
+      "path": [
+        "edges",
+        "0"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "{\"id\":\"dep.model.deployment_mode\",\"dependent_kind\":\"model\",\"depends_on_kind\":\"deployment_mode\",\"relationship\":\"informs\",\"activation\":\"fine_tuning_enabled\",\"rationale\":\"model selection must be reevaluated when deployment_mode changes.\"}"
+    },
+    {
+      "name": "informs-if_selected",
+      "path": [
+        "edges",
+        "0"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "{\"id\":\"dep.model.deployment_mode\",\"dependent_kind\":\"model\",\"depends_on_kind\":\"deployment_mode\",\"relationship\":\"informs\",\"activation\":\"if_selected\",\"rationale\":\"model selection must be reevaluated when deployment_mode changes.\"}"
+    },
+    {
+      "name": "informs-production_only",
+      "path": [
+        "edges",
+        "0"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "{\"id\":\"dep.model.deployment_mode\",\"dependent_kind\":\"model\",\"depends_on_kind\":\"deployment_mode\",\"relationship\":\"informs\",\"activation\":\"production_only\",\"rationale\":\"model selection must be reevaluated when deployment_mode changes.\"}"
+    },
+    {
+      "name": "produces-always",
+      "path": [
+        "edges",
+        "0"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "{\"id\":\"dep.model.deployment_mode\",\"dependent_kind\":\"model\",\"depends_on_kind\":\"deployment_mode\",\"relationship\":\"produces\",\"activation\":\"always\",\"rationale\":\"model selection must be reevaluated when deployment_mode changes.\"}"
+    },
+    {
+      "name": "produces-self_hosted",
+      "path": [
+        "edges",
+        "0"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "{\"id\":\"dep.model.deployment_mode\",\"dependent_kind\":\"model\",\"depends_on_kind\":\"deployment_mode\",\"relationship\":\"produces\",\"activation\":\"self_hosted\",\"rationale\":\"model selection must be reevaluated when deployment_mode changes.\"}"
+    },
+    {
+      "name": "produces-non_api",
+      "path": [
+        "edges",
+        "0"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "{\"id\":\"dep.model.deployment_mode\",\"dependent_kind\":\"model\",\"depends_on_kind\":\"deployment_mode\",\"relationship\":\"produces\",\"activation\":\"non_api\",\"rationale\":\"model selection must be reevaluated when deployment_mode changes.\"}"
+    },
+    {
+      "name": "produces-rag_enabled",
+      "path": [
+        "edges",
+        "0"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "{\"id\":\"dep.model.deployment_mode\",\"dependent_kind\":\"model\",\"depends_on_kind\":\"deployment_mode\",\"relationship\":\"produces\",\"activation\":\"rag_enabled\",\"rationale\":\"model selection must be reevaluated when deployment_mode changes.\"}"
+    },
+    {
+      "name": "produces-agents_enabled",
+      "path": [
+        "edges",
+        "0"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "{\"id\":\"dep.model.deployment_mode\",\"dependent_kind\":\"model\",\"depends_on_kind\":\"deployment_mode\",\"relationship\":\"produces\",\"activation\":\"agents_enabled\",\"rationale\":\"model selection must be reevaluated when deployment_mode changes.\"}"
+    },
+    {
+      "name": "produces-fine_tuning_enabled",
+      "path": [
+        "edges",
+        "0"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "{\"id\":\"dep.model.deployment_mode\",\"dependent_kind\":\"model\",\"depends_on_kind\":\"deployment_mode\",\"relationship\":\"produces\",\"activation\":\"fine_tuning_enabled\",\"rationale\":\"model selection must be reevaluated when deployment_mode changes.\"}"
+    },
+    {
+      "name": "produces-if_selected",
+      "path": [
+        "edges",
+        "0"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "{\"id\":\"dep.model.deployment_mode\",\"dependent_kind\":\"model\",\"depends_on_kind\":\"deployment_mode\",\"relationship\":\"produces\",\"activation\":\"if_selected\",\"rationale\":\"model selection must be reevaluated when deployment_mode changes.\"}"
+    },
+    {
+      "name": "produces-production_only",
+      "path": [
+        "edges",
+        "0"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "{\"id\":\"dep.model.deployment_mode\",\"dependent_kind\":\"model\",\"depends_on_kind\":\"deployment_mode\",\"relationship\":\"produces\",\"activation\":\"production_only\",\"rationale\":\"model selection must be reevaluated when deployment_mode changes.\"}"
+    },
+    {
+      "name": "unknown-relationship",
+      "path": [
+        "edges",
+        "0",
+        "relationship"
+      ],
+      "operation": "set",
+      "expected": "schema_mismatch",
+      "json": "\"future_unsupported\""
+    },
+    {
+      "name": "unknown-activation",
+      "path": [
+        "edges",
+        "0",
+        "activation"
+      ],
+      "operation": "set",
+      "expected": "schema_mismatch",
+      "json": "\"future_unsupported\""
+    },
+    {
+      "name": "unsupported-version",
+      "path": [
+        "schema_version"
+      ],
+      "operation": "set",
+      "expected": "unsupported_version",
+      "json": "\"2.0.0\""
+    },
+    {
+      "name": "wrong-root",
+      "path": [],
+      "operation": "set",
+      "expected": "invalid_input",
+      "json": "[]"
+    },
+    {
+      "name": "invalid-id",
+      "path": [
+        "id"
+      ],
+      "operation": "set",
+      "expected": "schema_mismatch",
+      "json": "\"INVALID ID\""
+    },
+    {
+      "name": "invalid-edge-id",
+      "path": [
+        "edges",
+        "0",
+        "id"
+      ],
+      "operation": "set",
+      "expected": "schema_mismatch",
+      "json": "\"INVALID ID\""
+    },
+    {
+      "name": "zero-revision",
+      "path": [
+        "revision"
+      ],
+      "operation": "set",
+      "expected": "schema_mismatch",
+      "json": "0"
+    },
+    {
+      "name": "negative-revision",
+      "path": [
+        "revision"
+      ],
+      "operation": "set",
+      "expected": "schema_mismatch",
+      "json": "-1"
+    },
+    {
+      "name": "fractional-revision",
+      "path": [
+        "revision"
+      ],
+      "operation": "set",
+      "expected": "schema_mismatch",
+      "json": "1.5"
+    },
+    {
+      "name": "large-revision",
+      "path": [
+        "revision"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "123456789012345678901234567890123456789"
+    },
+    {
+      "name": "beyond-long-revision",
+      "path": [
+        "revision"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "9223372036854775808"
+    },
+    {
+      "name": "integral-decimal-revision",
+      "path": [
+        "revision"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "1.00e2"
+    },
+    {
+      "name": "large-integral-exponent-revision",
+      "path": [
+        "revision"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "1e19"
+    },
+    {
+      "name": "negative-integral-exponent-revision",
+      "path": [
+        "revision"
+      ],
+      "operation": "set",
+      "expected": "schema_mismatch",
+      "json": "-1e19"
+    },
+    {
+      "name": "empty-edges",
+      "path": [
+        "edges"
+      ],
+      "operation": "set",
+      "expected": "schema_mismatch",
+      "json": "[]"
+    },
+    {
+      "name": "nonobject-edge",
+      "path": [
+        "edges",
+        "0"
+      ],
+      "operation": "set",
+      "expected": "schema_mismatch",
+      "json": "[]"
+    },
+    {
+      "name": "empty-rationale",
+      "path": [
+        "edges",
+        "0",
+        "rationale"
+      ],
+      "operation": "set",
+      "expected": "schema_mismatch",
+      "json": "\"\""
+    },
+    {
+      "name": "unicode-rationale",
+      "path": [
+        "edges",
+        "0",
+        "rationale"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"🙂\""
+    },
+    {
+      "name": "whitespace-rationale",
+      "path": [
+        "edges",
+        "0",
+        "rationale"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\" \\n\\t\""
+    },
+    {
+      "name": "inert-rationale",
+      "path": [
+        "edges",
+        "0",
+        "rationale"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"https://example.invalid/graph; recorded text is not executed\""
+    },
+    {
+      "name": "unknown-root-field",
+      "path": [
+        "future_field"
+      ],
+      "operation": "set",
+      "expected": "schema_mismatch",
+      "json": "true"
+    },
+    {
+      "name": "unknown-edge-field",
+      "path": [
+        "edges",
+        "0",
+        "future_field"
+      ],
+      "operation": "set",
+      "expected": "schema_mismatch",
+      "json": "true"
+    },
+    {
+      "name": "unsupported-placement",
+      "path": [
+        "edges",
+        "0",
+        "placement"
+      ],
+      "operation": "set",
+      "expected": "schema_mismatch",
+      "json": "\"synthetic\""
+    },
+    {
+      "name": "unsupported-component_role",
+      "path": [
+        "edges",
+        "0",
+        "component_role"
+      ],
+      "operation": "set",
+      "expected": "schema_mismatch",
+      "json": "\"synthetic\""
+    },
+    {
+      "name": "unsupported-memory_pool",
+      "path": [
+        "edges",
+        "0",
+        "memory_pool"
+      ],
+      "operation": "set",
+      "expected": "schema_mismatch",
+      "json": "\"synthetic\""
+    },
+    {
+      "name": "unsupported-hybrid-activation",
+      "path": [
+        "edges",
+        "0",
+        "activation"
+      ],
+      "operation": "set",
+      "expected": "schema_mismatch",
+      "json": "\"hybrid\""
+    },
+    {
+      "name": "unsupported-extensions",
+      "path": [
+        "extensions"
+      ],
+      "operation": "set",
+      "expected": "schema_mismatch",
+      "json": "{\"x_fixture\":true}"
+    },
+    {
+      "name": "repeated-edge-preserved",
+      "path": [
+        "edges"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "[{\"id\":\"dep.model.deployment_mode\",\"dependent_kind\":\"model\",\"depends_on_kind\":\"deployment_mode\",\"relationship\":\"constrains\",\"activation\":\"always\",\"rationale\":\"model selection must be reevaluated when deployment_mode changes.\"},{\"id\":\"dep.model.model_provider\",\"dependent_kind\":\"model\",\"depends_on_kind\":\"model_provider\",\"relationship\":\"requires\",\"activation\":\"always\",\"rationale\":\"model selection must be reevaluated when model_provider changes.\"},{\"id\":\"dep.model.deployment_mode\",\"dependent_kind\":\"model\",\"depends_on_kind\":\"deployment_mode\",\"relationship\":\"constrains\",\"activation\":\"always\",\"rationale\":\"model selection must be reevaluated when deployment_mode changes.\"}]"
+    },
+    {
+      "name": "repeated-id-different-edge-preserved",
+      "path": [
+        "edges"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "[{\"id\":\"dep.model.deployment_mode\",\"dependent_kind\":\"model\",\"depends_on_kind\":\"deployment_mode\",\"relationship\":\"constrains\",\"activation\":\"always\",\"rationale\":\"model selection must be reevaluated when deployment_mode changes.\"},{\"id\":\"dep.model.deployment_mode\",\"dependent_kind\":\"model\",\"depends_on_kind\":\"accelerator\",\"relationship\":\"constrains\",\"activation\":\"always\",\"rationale\":\"Different recorded edge\"}]"
+    },
+    {
+      "name": "self-edge-preserved",
+      "path": [
+        "edges",
+        "0",
+        "depends_on_kind"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"model\""
+    },
+    {
+      "name": "cycle-preserved",
+      "path": [
+        "edges"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "[{\"id\":\"dep.model.deployment_mode\",\"dependent_kind\":\"model\",\"depends_on_kind\":\"deployment_mode\",\"relationship\":\"constrains\",\"activation\":\"always\",\"rationale\":\"model selection must be reevaluated when deployment_mode changes.\"},{\"id\":\"dep.synthetic.reverse\",\"dependent_kind\":\"deployment_mode\",\"depends_on_kind\":\"model\",\"relationship\":\"constrains\",\"activation\":\"always\",\"rationale\":\"model selection must be reevaluated when deployment_mode changes.\"}]"
+    },
+    {
+      "name": "one-invalid-edge-rejects-whole-graph",
+      "path": [
+        "edges"
+      ],
+      "operation": "set",
+      "expected": "schema_mismatch",
+      "json": "[{\"id\":\"dep.model.deployment_mode\",\"dependent_kind\":\"model\",\"depends_on_kind\":\"deployment_mode\",\"relationship\":\"constrains\",\"activation\":\"always\",\"rationale\":\"model selection must be reevaluated when deployment_mode changes.\"},{\"id\":\"dep.model.deployment_mode\",\"dependent_kind\":\"model\",\"depends_on_kind\":\"deployment_mode\",\"relationship\":\"constrains\",\"activation\":\"always\"}]"
+    },
+    {
+      "name": "terminal-lf-id-preserved",
+      "path": [
+        "id"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"graph.valid\\n\""
+    },
+    {
+      "name": "terminal-lf-edge-id-preserved",
+      "path": [
+        "edges",
+        "0",
+        "id"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "\"edge.valid\\n\""
+    },
+    {
+      "name": "terminal-cr-id-rejected",
+      "path": [
+        "id"
+      ],
+      "operation": "set",
+      "expected": "schema_mismatch",
+      "json": "\"graph.valid\\r\""
+    },
+    {
+      "name": "terminal-cr-edge-id-rejected",
+      "path": [
+        "edges",
+        "0",
+        "id"
+      ],
+      "operation": "set",
+      "expected": "schema_mismatch",
+      "json": "\"edge.valid\\r\""
+    }
+  ]
+}
