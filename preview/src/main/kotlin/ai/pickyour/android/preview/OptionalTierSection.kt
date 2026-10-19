@@ -16,6 +16,7 @@ class OptionalTierSection(context: Context,
     private var closed = false
     private var editable = false
     private var savedBaseline: PreviewStoredDraft? = null
+    private var currentDialog: AlertDialog? = null
     private val buttons = linkedMapOf<OptionalTier, Button>()
     init {
         orientation = VERTICAL
@@ -30,25 +31,30 @@ class OptionalTierSection(context: Context,
                     if (closed || !editable) return@setOnClickListener
                     val expected = savedBaseline ?: return@setOnClickListener
                     val choices = Activation.entries
-                    AlertDialog.Builder(context).setTitle(tier.name)
-                        .setItems(choices.map { label(it) }.toTypedArray()) { picker, index ->
-                            if ((picker as? AlertDialog)?.isShowing != true || closed || !editable ||
-                                savedBaseline !== expected) return@setItems
+                    lateinit var picker: AlertDialog
+                    picker = AlertDialog.Builder(context).setTitle(tier.name)
+                        .setItems(choices.map { label(it) }.toTypedArray()) { _, index ->
+                            if (!current(picker, expected)) return@setItems
                             val next = choices[index]
-                            AlertDialog.Builder(context).setTitle(tier.name)
+                            lateinit var confirmation: AlertDialog
+                            confirmation = AlertDialog.Builder(context).setTitle(tier.name)
                                 .setMessage(context.getString(R.string.tier_confirm, label(next)))
                                 .setNegativeButton(R.string.keep_edits, null)
-                                .setPositiveButton(R.string.tier_commit) { confirmation, _ ->
-                                    if ((confirmation as? AlertDialog)?.isShowing == true && !closed && editable &&
-                                        savedBaseline === expected) commit(expected, tier, next)
-                                }.show()
-                        }.setNegativeButton(R.string.close, null).show()
+                                .setPositiveButton(R.string.tier_commit) { _, _ ->
+                                    if (!current(confirmation, expected)) return@setPositiveButton
+                                    dismissCurrent()
+                                    commit(expected, tier, next)
+                                }.create()
+                            present(confirmation)
+                        }.setNegativeButton(R.string.close, null).create()
+                    present(picker)
                 }
             }.also(::addView)
         }
     }
     fun update(record: PreviewStoredDraft?, editable: Boolean) {
         if (closed) return
+        if (!editable || savedBaseline !== record) dismissCurrent()
         this.editable = editable
         savedBaseline = record
         buttons.forEach { (tier, button) ->
@@ -60,10 +66,27 @@ class OptionalTierSection(context: Context,
         }
     }
     fun close() {
+        dismissCurrent()
         closed = true
         editable = false
         savedBaseline = null
         buttons.values.forEach { it.isEnabled = false }
+    }
+
+    private fun current(dialog: AlertDialog, expected: PreviewStoredDraft) =
+        !closed && editable && savedBaseline === expected && currentDialog === dialog && dialog.isShowing
+
+    private fun present(dialog: AlertDialog) {
+        dismissCurrent()
+        currentDialog = dialog
+        dialog.setOnDismissListener { if (currentDialog === dialog) currentDialog = null }
+        dialog.show()
+    }
+
+    private fun dismissCurrent() {
+        val previous = currentDialog
+        currentDialog = null
+        previous?.dismiss()
     }
 
     private fun label(value: Activation) = context.getString(when (value) {
