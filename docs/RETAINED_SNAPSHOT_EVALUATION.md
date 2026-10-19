@@ -1,5 +1,21 @@
 # Retained-snapshot rule inspection (Android #84)
 
+## Current criterion record and historical observations
+
+The [09.01 receiving record](delivery/android/work-packages/09.01.md) now offers
+the complete four-criterion outcome, exact native prerequisite output intake and
+the current source/receiving/main evidence for independent final review. Its
+[ADR 0010](decisions/0010-android-84-acceptance-record.md) proposes only this
+Android-local record's placement; normal reviewed record delivery and the separate
+strict-ledger amendment still govern completion.
+
+The implementation/profile and chronological source-time observations below are
+retained unchanged. Their original pending-review language describes those earlier
+slices, not a reversal of later signed delivery or a new execution. The current
+record distinguishes the delivered consumer at `44b4c7e3`, the seventeen-case
+configuration supplement and actual signed main `ea1bcd6d`. Every original
+receipt keeps its own source, date, runner and limits.
+
 This is a concrete private local consumer of the existing bounded frozen evaluator.
 It evaluates an explicitly selected, verified immutable archive entry and displays
 the result through a revocable Android viewing session. The editor's current or
