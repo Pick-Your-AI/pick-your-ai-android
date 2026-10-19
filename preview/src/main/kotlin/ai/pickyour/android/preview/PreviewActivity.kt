@@ -377,7 +377,8 @@ class PreviewActivity : Activity() {
         if (destroyed || android.os.Build.VERSION.SDK_INT < 27) return
         val decor = window.decorView
         val legacyMask = View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
-        val insetsMask = android.view.WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS
+        val insetsMask = if (android.os.Build.VERSION.SDK_INT >= 30)
+            android.view.WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS else 0
         val insetsController = if (android.os.Build.VERSION.SDK_INT >= 30)
             window.insetsController else null
         if (!hasFocus) {
