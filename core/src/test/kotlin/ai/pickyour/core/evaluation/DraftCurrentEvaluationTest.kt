@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
+import java.math.BigInteger
 import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Duration
@@ -207,7 +208,7 @@ class DraftCurrentEvaluationTest {
 
     @Test fun unrepresentedAndTypedWorkloadChangesRetireTheCompleteRuleBasis() {
         val pins = inputs(); val (store, old) = saved(content(rows("workload", "model")))
-        val typed = edit(store, old, DraftContent(workload = DraftWorkload(maxConcurrency = 7), components = old.content.components))
+        val typed = edit(store, old, DraftContent(workload = DraftWorkload(maxConcurrency = BigInteger.valueOf(7)), components = old.content.components))
         val text = edit(store, typed, DraftContent(objective = "unrepresented private objective", workload = typed.content.workload,
             components = typed.content.components))
         assertEquals(DraftRecheckScope.CONSERVATIVE_FULL, request(typed, pins, old).recheck.scope)
