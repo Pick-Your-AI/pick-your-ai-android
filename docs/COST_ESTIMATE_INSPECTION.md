@@ -60,6 +60,12 @@ explicit currencies, declared coverage and missing classifications while escapin
 literal text and disclosing display counts. Its simulated checks remain separate
 from current-draft pricing, accepted real rates and installed-device evidence.
 
+The display also offers a separate [recorded-line exact-product observation](RECORDED_COST_ARITHMETIC.md).
+That explicitly versioned no-rounding profile leaves this receiver and its
+original declared-amount checks unchanged. Per-line equality, difference,
+unrepresentable precision or uninspected input is not a billing-validity verdict
+and cannot alter the retained declaration or promote any evidence classification.
+
 ## Criterion coverage and remaining acceptance
 
 | Exact #103 criterion | Evidence | Remaining gap |
