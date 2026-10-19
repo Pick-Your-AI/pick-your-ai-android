@@ -104,6 +104,14 @@ only at their stated scope; this decision changes no prerequisite edge or other
 work package. Shared services, qualified external metrics and product/device
 release retain their existing authorities.
 
+[ADR 0011](decisions/0011-android-59-acceptance-record.md) separately proposes
+placing only #59's [02.05 CI receiving record](delivery/android/work-packages/02.05.md)
+in Android, effective after independent receiving review and normal reviewed main
+delivery. The original website spelling/path remain history. The existing
+[CI operations reference](CI_BASELINE.md) stays distinct from criterion acceptance;
+the placement supplies no settings change, corrected installed result,
+credential-context review, whole-issue completion or ledger amendment.
+
 The existing website remains static. The selected future server package is
 separately built/deployed at `Pick-Your-AI/pickyour.ai/services/planner-api` only
 through canonical owner/coordinator and operations review before dependent code;
