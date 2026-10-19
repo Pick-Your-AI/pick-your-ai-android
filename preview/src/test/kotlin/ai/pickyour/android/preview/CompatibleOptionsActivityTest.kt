@@ -123,7 +123,7 @@ class CompatibleOptionsActivityTest {
     }
     private fun addForm(kind: String = "workload", role: String = "primary", settings: String = "{}"): AlertDialog {
         button(R.string.component_choose_catalog).performClick()
-        val choices = choose(dialog()) { it.startsWith("$kind ·") }
+        val choices = choose(dialog()) { it.startsWith("${componentTokenForLookup(activity, kind)} ·") }
         val form = choose(choices) { it == activity.getString(R.string.component_add) }
         field(form, R.string.component_role).setText(role)
         field(form, R.string.component_settings).setText(settings)

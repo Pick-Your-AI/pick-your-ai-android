@@ -1,0 +1,11 @@
+<resources>
+    <!-- %1$s is the canonical component kind, %2$s its catalog ID, %3$s its exact version.
+         Each value is already directionally isolated. Keep the technical values untranslated;
+         the pattern and placeholder order may be localized. Version text can use any script. -->
+    <string name="component_catalog_choice">%1$s · %2$s @ %3$s</string>
+    <!-- %1$s is the exact catalog ID; %2$s is its exact version, already directionally isolated. -->
+    <string name="component_catalog_identity">%1$s @ %2$s</string>
+    <!-- %1$s is the canonical kind, %2$s the saved role, %3$s the local selection ID.
+         All three are technical values, already directionally isolated; localize only the pattern. -->
+    <string name="component_saved_choice">%1$s · %2$s · %3$s</string>
+</resources>

@@ -110,12 +110,12 @@ class FoundationSelectionActivityTest {
     private fun choices(kind: String): AlertDialog {
         await { button(R.string.component_choose_catalog).isEnabled }
         button(R.string.component_choose_catalog).performClick()
-        return select(dialog()) { it.startsWith("$kind ·") }
+        return select(dialog()) { it.startsWith("${componentTokenForLookup(activity, kind)} ·") }
     }
     private fun addForm(kind: String) = select(choices(kind)) { it == activity.getString(R.string.component_add) }
     private fun action(selection: LocalSelection, label: Int): AlertDialog {
         button(R.string.component_manage).performClick()
-        val actions = select(dialog()) { it.endsWith(" · ${selection.id}") }
+        val actions = select(dialog()) { it.endsWith(" · ${componentTokenForLookup(activity, selection.id)}") }
         return select(actions) { it == activity.getString(label) }
     }
     private fun commit(form: AlertDialog, previous: PreviewStoredDraft = loaded()): PreviewStoredDraft {
