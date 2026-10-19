@@ -4,6 +4,8 @@ This correction is a bounded continuation of [Android #80](https://github.com/Pi
 and [Android #64](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/64).
 It fixes the preview's fixed viewport insets and ordinary light-theme system-bar contrast.
 The modal navigation-icon defect remains unresolved in the installed evidence below.
+The current source proposal pairs a lighter modal scrim with dark foreground requests
+for both system bars; its new installed pixels remain required.
 The existing owners retain the separate scroll/focus/caret checkpoint and checked-choice work.
 
 ## Observed defect
@@ -82,6 +84,67 @@ inspected on 2026-10-18. This source reasoning did not establish corrected insta
 pixels: the subsequent 444 result below retained the defect. The original 978
 screenshots remain evidence of the earlier source.
 
+
+## Current proposal: lighter scrim with consistent dark system-bar foregrounds
+
+The original [298 result6260410436](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/467#issuecomment-6260410436)
+qualifies four passed product cases while the image gate fails. The two original
+modal PNGs retain dark navigation glyphs RGB69,70,79 over RGB100,100,100,
+measuring1.5828461084972716:1. The completed Taskbar observations retain delivered
+navigation intensity0 but background override1 and multiplier1 at both modal
+checkpoints. The read-only
+[immutable reference controller](https://android.googlesource.com/platform/packages/apps/Launcher3/+/898b9af9a28663b5bd4ab19e1db8fc43adb5fb52/quickstep/src/com/android/launcher3/taskbar/NavbarButtonsViewController.java)
+blends the system intensity first, then the background override. This supports a
+downstream background-color explanation; it does not bind the installed binary to
+that source or make the sequential PNG/query captures atomic.
+
+The API27-and-later `PreviewAlertDialogTheme` now explicitly requests dark status
+and navigation foregrounds with both `windowLightStatusBar` and
+`windowLightNavigationBar` true, and changes `backgroundDimAmount` from the
+inherited0.6 to0.32. It keeps the platform `ThemeOverlay.Material.Dialog.Alert`
+parent, floating dialogs and normal dim-behind behavior. The Activity retains its
+existing light theme and dark foreground requests while dialogs show and dismiss.
+Its generic focus-loss navigation override and two saved-bit fields are removed;
+focus changes no longer save, clear or restore appearance bits. No per-dialog
+callback, private API, system setting, taskbar manipulation, Material dependency,
+new window type or replacement UI framework is introduced.
+
+This design assumes the preview's existing light theme/background. It does not
+advertise a dark-theme policy. API26 keeps the exact original base resource file
+and its inherited navigation behavior; no new API26 modal result is claimed.
+API27–29 receive the explicit theme attributes, and API30+ receives those same
+public theme requests without the former imperative appearance override.
+The current installed target remains API35. Requested appearance and simulated
+theme attributes still require rendered confirmation on the actual guest.
+
+The0.32 value is corroborated by the official Material Components
+[immutable scrim token](https://github.com/material-components/material-components-android/blob/66b0eeb53afeb6025ffbbd37734b08e5bce197ed/lib/java/com/google/android/material/dialog/res/values/tokens.xml)
+and its
+[dialog theme overlays](https://github.com/material-components/material-components-android/blob/66b0eeb53afeb6025ffbbd37734b08e5bce197ed/lib/java/com/google/android/material/dialog/res/values/themes_overlay.xml).
+These references motivate this explicit product choice; the preview continues using
+its existing platform theme and dependencies. The public
+[dimAmount contract](https://developer.android.com/reference/android/view/WindowManager.LayoutParams#dimAmount)
+defines the0–1 dim range.
+
+The independent [whole-bar observation6260694630](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/467#issuecomment-6260694630)
+also matters: original298 modal status icons are white over RGB100 and measure
+5.917570593923599:1. Conditional black-scrim arithmetic would move an RGB250
+background to170 at0.32. Keeping the observed dark navigation endpoints would
+then give4.031901612882563:1, but keeping white status endpoints would give only
+2.3231230535045992:1. That is why this proposal changes both foreground requests.
+These calculations are design evidence, not predicted or observed guest pixels.
+
+All five changed Activity methods and the full build/lint/native guards remain
+unexecuted locally for this source because sandbox startup is blocked by ENOSPC.
+The complete prior tests/results retain their historical source attribution.
+The next configured receiver must execute the new source and qualify both ordinary
+and modal status/navigation foreground/background pairs from its original PNGs,
+including restored ordinary checkpoints. The installed navigation threshold remains
+the same unrounded3:1; no pixel acceptance, lifecycle assertion, timer, viewport,
+Taskbar raw observation or ACL boundary is relaxed. A failed or ambiguous result
+remains unqualified. Physical devices, TalkBack, gesture navigation/cutouts and full
+issues80/64 acceptance remain separate.
+
 ## Validation scope
 
 Four mandatory `PreviewActivityTest` methods exercise the actual Activity's viewport
@@ -99,12 +162,16 @@ matching counts and no failed, skipped or errored case. Fixture-only reflection
 constructs API 28 `WindowInsets(Rect)` values because compileSdk 35 hides that
 constructor; the actual listener receives those values through public dispatch.
 
-Two additional mandatory Activity methods open the real empty-library and deletion
-AlertDialogs. They verify light navigation-icon requests on each dimmed floating
-window, unchanged 0.6 dim amount and unchanged underlying Activity appearance.
-Cancellation, reopening, confirmation and dismissal retain pending text/caret,
-acknowledged identity or the explicit deleted/save-disabled state as applicable.
-The strict existing Activity receipt gate requires both unique method names.
+Two mandatory Activity methods open the real empty-library and deletion AlertDialogs.
+For the current proposal they require dark status and navigation foreground requests,
+FLAG_DIM_BEHIND, the explicit0.32 dim amount, floating-window inheritance and unchanged
+underlying Activity appearance. Cancellation, reopening, confirmation and dismissal
+retain every prior pending text/caret, acknowledged identity and deleted/save-disabled
+assertion. Three further methods retain the shown-dialog, repeated-focus and retired-
+window/recreation witnesses, now requiring focus changes to preserve the current
+appearance instead of requesting/restoring light navigation icons. The strict
+existing receipt gate names all five methods with their updated descriptions;
+no required method is dropped and the Activity inventory remains102.
 
 These are API 28 Robolectric simulations using the existing pinned runtime.
 Current-source build, lint, original reports and receiving review are required for
@@ -114,7 +181,7 @@ failure evidence only for the display behavior they show; they are not a new-sou
 visual pass. Physical devices, TalkBack, gesture-navigation/cutout matrices, keyboard
 transitions and full #80/#64 acceptance remain separate.
 
-## Activity focus and effective navigation appearance
+## Historical Activity focus and effective navigation appearance
 
 The later installed receiving commit `44423a63aeaeff35f051053dbf0c37283dff3d01`
 (tree `10b709d5c2c66e98c394dc6b3e1ca0f19dd0c343`) includes the dialog overlay
@@ -124,20 +191,20 @@ clipping remain separate from the uncorrected navigation appearance. Reading a
 dialog's resource/legacy bit alone did not establish effective WindowManager
 appearance on that API35 guest.
 
-The Activity now responds to its own window-focus lifecycle. On the first focus
-loss it remembers only the navigation appearance bits, then requests light
-navigation icons through the legacy flag and, on API30+, the public
-`WindowInsetsController` appearance API. When focus returns it restores the
-original navigation bits while preserving unrelated current flags. Repeated
-focus-loss callbacks do not replace the saved value, and a destroyed Activity
-cannot restore a retired window. API26 retains its existing resource behavior.
+The historical focus-callback revision responded to its own window-focus lifecycle.
+On first focus loss it remembered only the navigation appearance bits, then requested
+light navigation icons through the legacy flag and, on API30+, the public
+`WindowInsetsController` appearance API. Focus return restored the original bits while
+preserving unrelated flags. Repeated loss did not replace the saved value and a
+destroyed Activity could not restore a retired window. API26 retained its resource
+behavior. The current proposal removes this ineffective generic manipulation.
 
-Focus loss can also occur for system overlays or backgrounding; this callback is
-not proof that a particular dialog owns focus. Existing dialog instances,
-listeners, dim amount, pending form and persistence behavior are retained. Three
-API28 native simulations explicitly drive the real Activity callback through a
-shown confirmation, repeated focus changes and recreation. They cover the
-legacy branch and local state, not API30+ WindowManager propagation.
+Focus loss can also occur for system overlays or backgrounding; that callback was
+not proof that a particular dialog owned focus. The revision retained dialog
+instances, listeners, dim amount, pending form and persistence behavior. Its three
+API28 native simulations drove the Activity callback through a shown confirmation,
+repeated focus changes and recreation. They covered the legacy branch and local
+state, without establishing API30+ WindowManager propagation.
 
 The subsequent installed [run 39185018484](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39185018484)
 used actual receiving commit `929e5ff80261389d1fe6dedf02155ab639201505`, tree

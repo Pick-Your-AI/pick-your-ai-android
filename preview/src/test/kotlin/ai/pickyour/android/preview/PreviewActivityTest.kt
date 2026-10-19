@@ -278,7 +278,7 @@ class PreviewActivityTest {
         } finally { attributes.recycle() }
     }
 
-    @Test fun emptyLibraryDialogUsesLightNavigationIconsWithoutChangingPendingForm() {
+    @Test fun emptyLibraryDialogKeepsDarkSystemIconsAndPendingForm() {
         controller.visible()
         val originalAppearance = activity.window.decorView.systemUiVisibility
         assertTrue(originalAppearance and View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR != 0)
@@ -296,7 +296,7 @@ class PreviewActivityTest {
         await { ShadowAlertDialog.getLatestAlertDialog()?.let { it !== previous && it.isShowing } == true }
         val empty = dialog()
         assertEquals(activity.getString(R.string.library_empty), shadowOf(empty).message.toString())
-        assertLightDialogNavigationIcons(empty, originalAppearance)
+        assertDarkDialogSystemBarIcons(empty, originalAppearance)
         empty.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
         finishActivityWork()
         assertFalse(empty.isShowing)
@@ -309,7 +309,7 @@ class PreviewActivityTest {
         assertFalse(button(R.string.save_draft).isEnabled)
     }
 
-    @Test fun deletionDialogKeepsLightNavigationIconsAcrossCancelReopenAndConfirmation() {
+    @Test fun deletionDialogKeepsDarkSystemIconsAcrossCancelReopenAndConfirmation() {
         controller.visible()
         val originalAppearance = activity.window.decorView.systemUiVisibility
         assertTrue(originalAppearance and View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR != 0)
@@ -320,7 +320,7 @@ class PreviewActivityTest {
         title.setText("pending modal edit")
         title.setSelection(5)
         val first = deleteConfirmation(PreviewDraftId("guest-draft"))
-        assertLightDialogNavigationIcons(first, originalAppearance)
+        assertDarkDialogSystemBarIcons(first, originalAppearance)
         first.getButton(AlertDialog.BUTTON_NEGATIVE).performClick()
         finishActivityWork()
         assertFalse(first.isShowing)
@@ -332,12 +332,12 @@ class PreviewActivityTest {
 
         val second = deleteConfirmation(PreviewDraftId("guest-draft"))
         assertNotSame(first, second)
-        assertLightDialogNavigationIcons(second, originalAppearance)
+        assertDarkDialogSystemBarIcons(second, originalAppearance)
         second.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
         await { hasText(R.string.library_deleted_editor) && button(R.string.library_open).isEnabled }
         val result = dialog()
         assertEquals(activity.getString(R.string.library_deleted), shadowOf(result).message.toString())
-        assertLightDialogNavigationIcons(result, originalAppearance)
+        assertDarkDialogSystemBarIcons(result, originalAppearance)
         result.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
         finishActivityWork()
         assertFalse(result.isShowing)
@@ -347,7 +347,7 @@ class PreviewActivityTest {
         assertFalse(button(R.string.save_draft).isEnabled)
     }
 
-    @Test fun activityFocusLossKeepsLightModalNavigationAndPendingForm() {
+    @Test fun activityFocusChangesPreserveDarkModalSystemBarsAndPendingForm() {
         val editor = field(R.string.draft_title)
         editor.setText("saved focus baseline")
         save()
@@ -363,7 +363,7 @@ class PreviewActivityTest {
         // Robolectric does not dispatch the real WindowManager focus handoff.
         // Exercise the actual Activity callback; installed pixels remain a separate gate.
         activity.onWindowFocusChanged(false)
-        assertLightDialogNavigationIcons(confirmation, appearance and navigation.inv())
+        assertDarkDialogSystemBarIcons(confirmation, appearance)
         assertEquals("pending focus edit", editor.text.toString())
         assertEquals(4, editor.selectionStart)
         assertEquals(4, editor.selectionEnd)
@@ -378,15 +378,15 @@ class PreviewActivityTest {
         assertEquals(saved, loaded().baselineIdentity)
     }
 
-    @Test fun repeatedFocusLossRestoresOnlyTheOriginalNavigationAppearanceBit() {
+    @Test fun repeatedFocusChangesPreserveCurrentSystemBarAppearance() {
         val decor = activity.window.decorView
         val navigation = View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
         val original = decor.systemUiVisibility
         assertEquals(navigation, original and navigation)
         activity.onWindowFocusChanged(false)
-        assertEquals(original and navigation.inv(), decor.systemUiVisibility)
+        assertEquals(original, decor.systemUiVisibility)
         activity.onWindowFocusChanged(false)
-        assertEquals(original and navigation.inv(), decor.systemUiVisibility)
+        assertEquals(original, decor.systemUiVisibility)
 
         // An unrelated change while unfocused must not be replaced by a stale full bitfield.
         val unrelated = View.SYSTEM_UI_FLAG_LAYOUT_STABLE
@@ -405,38 +405,42 @@ class PreviewActivityTest {
         assertEquals(alreadyLight, decor.systemUiVisibility)
     }
 
-    @Test fun retiredWindowFocusCallbackCannotRestoreItsAppearanceAfterRecreation() {
+    @Test fun retiredWindowFocusCallbackLeavesCurrentAppearanceAfterRecreation() {
         val navigation = View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
         val retired = activity
         val oldDecor = retired.window.decorView
         val original = oldDecor.systemUiVisibility
         field(R.string.draft_title).setText("pending across focused windows")
         retired.onWindowFocusChanged(false)
-        assertEquals(original and navigation.inv(), oldDecor.systemUiVisibility)
+        assertEquals(original, oldDecor.systemUiVisibility)
 
         recreate()
         await { button(R.string.save_draft).isEnabled }
         val currentAppearance = activity.window.decorView.systemUiVisibility
         assertEquals(navigation, currentAppearance and navigation)
         retired.onWindowFocusChanged(true)
-        assertEquals(original and navigation.inv(), oldDecor.systemUiVisibility)
+        assertEquals(original, oldDecor.systemUiVisibility)
         assertEquals(currentAppearance, activity.window.decorView.systemUiVisibility)
         assertEquals("pending across focused windows", field(R.string.draft_title).text.toString())
     }
 
-    private fun assertLightDialogNavigationIcons(dialog: AlertDialog, activityAppearance: Int) {
+    private fun assertDarkDialogSystemBarIcons(dialog: AlertDialog, activityAppearance: Int) {
         assertTrue(dialog.isShowing)
         val window = requireNotNull(dialog.window)
         assertTrue(window.attributes.flags and android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND != 0)
-        assertEquals(0.6f, window.attributes.dimAmount, 0.0f)
-        assertEquals("The dimmed modal background needs light navigation icons", 0,
-            window.decorView.systemUiVisibility and View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR)
+        assertEquals(0.32f, window.attributes.dimAmount, 0.0f)
+        val darkForegrounds = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
+        assertEquals("The lighter modal scrim requires dark status and navigation icons", darkForegrounds,
+            window.decorView.systemUiVisibility and darkForegrounds)
+        assertEquals(darkForegrounds, activityAppearance and darkForegrounds)
         assertEquals(activityAppearance, activity.window.decorView.systemUiVisibility)
         val attributes = dialog.context.theme.obtainStyledAttributes(intArrayOf(
-            android.R.attr.windowLightNavigationBar, android.R.attr.windowIsFloating))
+            android.R.attr.windowLightNavigationBar, android.R.attr.windowLightStatusBar,
+            android.R.attr.windowIsFloating))
         try {
-            assertFalse(attributes.getBoolean(0, true))
+            assertTrue(attributes.getBoolean(0, false))
             assertTrue(attributes.getBoolean(1, false))
+            assertTrue(attributes.getBoolean(2, false))
         } finally { attributes.recycle() }
     }
 
