@@ -104,9 +104,13 @@ class DraftSelectionRoleTest {
         assertEquals(SelectionEdit.Rejected(SelectionRejection.MISSING_SELECTION),
             DraftSelectionCommands.apply(before, SelectionCommand.Configure("missing_selection", selection.settings, "candidate")))
         val retained = SelectionFixtures.selection("deployment_target", "selection_deployment")
-        assertEquals(SelectionEdit.Rejected(SelectionRejection.UNSUPPORTED_KIND),
-            DraftSelectionCommands.apply(DraftContent(components = DraftSelections(listOf(retained))),
-                SelectionCommand.Configure(retained.id, retained.settings, "candidate")))
+        assertThrows(IllegalArgumentException::class.java) {
+            LocalSelection.fromJson(retained.toJson().put("kind", "future_deployment_target"))
+        }
+        val changed = ready(DraftContent(components = DraftSelections(listOf(retained))),
+            SelectionCommand.Configure(retained.id, retained.settings, "candidate"))
+        assertEquals("candidate", changed.content.components.selections.single().role)
+        assertEquals(retained.settings, changed.content.components.selections.single().settings)
         assertEquals(listOf(selection), before.components.selections)
     }
 

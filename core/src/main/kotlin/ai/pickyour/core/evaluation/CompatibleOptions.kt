@@ -24,7 +24,7 @@ enum class CompatibleOptionsUnavailable {
 data class CompatibleOptionsBinding(
     val buildId: String, val buildRevision: BigInteger, val catalogSnapshotId: String, val catalogRevision: BigInteger,
     val rulesetId: String, val rulesetVersion: String, val dependencyGraphId: String,
-    val dependencyGraphRevision: BigInteger, val pricebookId: String,
+    val dependencyGraphRevision: BigInteger, val pricebookId: String?,
     val slot: CompatibleOptionSlot, val inputDigest: String,
 )
 data class CompatibleOptionIdentity(val catalogItemId: String, val catalogItemVersion: String)
@@ -159,7 +159,7 @@ class CompatibleOptionsRequest private constructor(
             listOf(bBytes, cBytes, rBytes).forEach(::frame); candidateBytes.forEach(::frame)
             val binding = CompatibleOptionsBinding(b["id"].asText(), b["revision"].bigIntegerValue(), c["id"].asText(), c["revision"].bigIntegerValue(),
                 r["id"].asText(), r["version"].asText(), locks["dependency_graph_id"].asText(),
-                locks["dependency_graph_revision"].bigIntegerValue(), locks["pricebook_id"].asText(),
+                locks["dependency_graph_revision"].bigIntegerValue(), locks["pricebook_id"]?.textValue(),
                 slot, digest.digest().joinToString("") { "%02x".format(it.toInt() and 255) })
             val affected = r["rules"].filter { rule -> rule["affected_kinds"].any { it.asText() == slot.kind } }
                 .map { it["id"].asText() }.toSet()

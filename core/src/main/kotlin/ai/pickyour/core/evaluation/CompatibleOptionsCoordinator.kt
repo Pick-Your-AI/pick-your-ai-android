@@ -50,8 +50,10 @@ class CompatibleOptionsCoordinator {
 
     private fun identity(request: CompatibleOptionsRequest): AnalysisIdentity {
         val b = request.binding
+        // Disjoint private tags preserve optional absence; no Build lock or pricebook is invented.
+        val pricebookIdentity = b.pricebookId?.let { "pricebook:present:$it" } ?: "pricebook:absent"
         // Full mathematical revisions and every source byte are in the digest; never narrow to Long.
         return AnalysisIdentity("compatible-options:${b.inputDigest}", 0, b.catalogSnapshotId,
-            b.dependencyGraphId, "${b.rulesetId}:${b.rulesetVersion}", b.pricebookId)
+            b.dependencyGraphId, "${b.rulesetId}:${b.rulesetVersion}", pricebookIdentity)
     }
 }

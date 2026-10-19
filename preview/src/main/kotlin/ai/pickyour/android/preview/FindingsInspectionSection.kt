@@ -71,7 +71,7 @@ internal class FindingsInspectionSection(
                     if (active() && request === attempt) {
                         accepted = value
                         output.text = if (value == null) activity.getString(R.string.findings_rejected, rejection ?: "UNAVAILABLE")
-                            else describe(value)
+                            else FindingsInspectionText.describe(activity, value)
                         inspect.isEnabled = true; browse.isEnabled = value != null
                     }
                 }
@@ -82,7 +82,7 @@ internal class FindingsInspectionSection(
             val report = accepted ?: return@setOnClickListener
             retireWindows()
             val picker = AlertDialog.Builder(activity).setTitle(R.string.findings_browse)
-                .setItems(report.findings.map { activity.getString(R.string.findings_row, it.ruleId, it.outcome, it.severity) }.toTypedArray()) { origin, index ->
+                .setItems(report.findings.map { FindingsInspectionText.row(activity, it) }.toTypedArray()) { origin, index ->
                     val dialog = origin as? AlertDialog ?: return@setItems
                     if (!current(dialog, report)) return@setItems
                     showFinding(report, index)
@@ -95,7 +95,8 @@ internal class FindingsInspectionSection(
     private fun showFinding(report: ReferenceReportView, index: Int) {
         if (!current(report)) return
         val finding = report.findings.getOrNull(index) ?: return
-        val detail = AlertDialog.Builder(activity).setTitle(finding.ruleId).setMessage(describe(finding))
+        val detail = AlertDialog.Builder(activity).setTitle(FindingsInspectionText.title(activity, finding))
+            .setMessage(FindingsInspectionText.describe(activity, finding))
             .setNeutralButton(R.string.findings_context_open) { origin, _ ->
                 val dialog = origin as? AlertDialog ?: return@setNeutralButton
                 if (!current(dialog, report)) return@setNeutralButton
@@ -114,27 +115,5 @@ internal class FindingsInspectionSection(
         previous?.dismiss()
         dialog.setOnDismissListener { if (currentDialog === dialog) currentDialog = null }
         dialog.show()
-    }
-    private fun describe(report: ReferenceReportView): String = listOf(
-        activity.getString(R.string.findings_notice),
-        activity.getString(R.string.findings_identity, report.id, report.buildId, report.buildRevision.toString(), report.evaluatedAt),
-        activity.getString(R.string.findings_locks, report.catalogSnapshotId, report.rulesetId, report.rulesetVersion,
-            report.dependencyGraphId, report.dependencyGraphRevision.toString()),
-        activity.getString(R.string.findings_status, report.result, report.deploymentReadiness),
-        listOf("pass", "fail", "unknown", "skipped").joinToString(" · ") { outcome -> "$outcome: ${report.findings.count { it.outcome == outcome }}" },
-        activity.getString(R.string.findings_limits),
-    ).joinToString("\n\n")
-
-    private fun describe(finding: ReferenceFindingView): String {
-        fun supplied(value: String?) = value ?: activity.getString(R.string.findings_not_supplied)
-        val evidence = if (finding.evidence.isEmpty()) activity.getString(R.string.findings_no_evidence) else
-            finding.evidence.joinToString("\n\n") { activity.getString(R.string.findings_evidence,
-                it.path, supplied(it.observedJson), supplied(it.expectedJson), supplied(it.sourceVersion)) }
-        return listOf(activity.getString(R.string.findings_row, finding.ruleId, finding.outcome, finding.severity),
-            activity.getString(R.string.findings_reason, finding.code, finding.message),
-            activity.getString(R.string.findings_remediation, finding.remediation?.takeIf { it.isNotEmpty() }
-                ?: activity.getString(R.string.findings_not_supplied)),
-            activity.getString(R.string.findings_selections, finding.selectionIds.joinToString(", ").ifEmpty { activity.getString(R.string.findings_not_supplied) }),
-            evidence, activity.getString(R.string.findings_limits)).joinToString("\n\n")
     }
 }

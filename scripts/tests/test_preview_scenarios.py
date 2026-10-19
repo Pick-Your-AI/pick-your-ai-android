@@ -2,7 +2,11 @@
 import copy
 import importlib.util
 import json
+import os
 from pathlib import Path
+import shutil
+import subprocess
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -139,7 +143,7 @@ class PreviewScenarioFixtureTests(unittest.TestCase):
             target = root / scenarios.ASSET_DIRECTORY / 'empty-build.json'
             target.unlink()
             target.symlink_to(root / scenarios.ASSET_DIRECTORY / 'core-build.json')
-            with self.assertRaisesRegex(ValueError, 'Generated preview output differs'):
+            with self.assertRaisesRegex(ValueError, 'Generated output is not a singly linked regular file'):
                 scenarios.check(root)
 
     def test_required_format_assertions_cannot_be_silently_omitted(self):
@@ -147,6 +151,99 @@ class PreviewScenarioFixtureTests(unittest.TestCase):
         with patch.object(scenarios, 'FormatChecker', return_value=missing):
             with self.assertRaisesRegex(ValueError, 'Required frozen date-time/URI format assertions unavailable'):
                 scenarios.validators(scenarios.ROOT)
+
+    def copied_checkout(self, directory):
+        root = directory / 'checkout'
+        (root / 'scripts').mkdir(parents=True)
+        for name in ('check_preview_scenarios.py', 'check_contracts.py'):
+            shutil.copy2(scenarios.ROOT / 'scripts' / name, root / 'scripts' / name)
+        (root / 'contracts').symlink_to(scenarios.ROOT / 'contracts', target_is_directory=True)
+        for path, value in self.outputs.items():
+            (root / path).parent.mkdir(parents=True, exist_ok=True)
+            (root / path).write_bytes(value)
+        return root
+
+    def run_checker(self, root, *arguments):
+        return subprocess.run([sys.executable, str(root / 'scripts/check_preview_scenarios.py'), *arguments],
+                              capture_output=True, text=True, timeout=10)
+
+    def test_cli_rejects_output_ancestor_symlinks_before_reading_or_writing(self):
+        for ancestor in (Path('preview'), scenarios.ASSET_DIRECTORY, scenarios.PIN_TABLE.parent):
+            with self.subTest(ancestor=str(ancestor)), tempfile.TemporaryDirectory(prefix='preview-output-ancestor-') as name:
+                directory = Path(name)
+                root = self.copied_checkout(directory)
+                external = directory / 'external'
+                shutil.move(root / ancestor, external)
+                (root / ancestor).symlink_to(external, target_is_directory=True)
+                self.assertNotEqual(0, self.run_checker(root).returncode)
+                next(p for p in external.rglob('*') if p.is_file()).write_bytes(b'controlled external sentinel')
+                original = {p.relative_to(external): p.read_bytes() for p in external.rglob('*') if p.is_file()}
+                self.assertNotEqual(0, self.run_checker(root, '--write').returncode)
+                self.assertTrue((root / ancestor).is_symlink())
+                self.assertEqual(original, {p.relative_to(external): p.read_bytes()
+                                            for p in external.rglob('*') if p.is_file()})
+
+    def test_cli_preflights_late_output_alias_without_replacing_earlier_output(self):
+        for alias in ('symlink', 'hardlink', 'dangling-symlink'):
+            with self.subTest(alias=alias), tempfile.TemporaryDirectory(prefix='preview-output-alias-') as name:
+                directory = Path(name)
+                root = self.copied_checkout(directory)
+                first = root / scenarios.ASSET_DIRECTORY / 'manifest.json'
+                first.write_bytes(b'earlier controlled output')
+                external = directory / 'external.kt'
+                external.write_bytes(b'controlled external sentinel')
+                target = root / scenarios.PIN_TABLE
+                target.unlink()
+                if alias == 'hardlink':
+                    os.link(external, target)
+                else:
+                    target.symlink_to(external if alias == 'symlink' else directory / 'missing.kt')
+                result = self.run_checker(root, '--write')
+                self.assertNotEqual(0, result.returncode)
+                self.assertEqual(b'earlier controlled output', first.read_bytes())
+                self.assertEqual(b'controlled external sentinel', external.read_bytes())
+                self.assertEqual(alias != 'hardlink', target.is_symlink())
+                self.assertFalse((directory / 'missing.kt').exists())
+
+    def test_cli_rejects_nonregular_late_output_without_blocking_or_partial_write(self):
+        for kind in ('directory', 'fifo'):
+            with self.subTest(kind=kind), tempfile.TemporaryDirectory(prefix='preview-output-type-') as name:
+                root = self.copied_checkout(Path(name))
+                first = root / scenarios.ASSET_DIRECTORY / 'manifest.json'
+                first.write_bytes(b'earlier controlled output')
+                target = root / scenarios.PIN_TABLE
+                target.unlink()
+                if kind == 'directory':
+                    target.mkdir()
+                else:
+                    os.mkfifo(target)
+                result = self.run_checker(root, '--write')
+                self.assertNotEqual(0, result.returncode)
+                self.assertEqual(b'earlier controlled output', first.read_bytes())
+
+    def test_cli_regenerates_missing_outputs_and_replaces_only_owned_regular_files(self):
+        with tempfile.TemporaryDirectory(prefix='preview-output-regenerate-') as name:
+            directory = Path(name)
+            root = self.copied_checkout(directory)
+            shutil.rmtree(root / 'preview')
+            for _ in range(2):
+                result = self.run_checker(root, '--write')
+                self.assertEqual(0, result.returncode, result.stderr)
+                self.assertEqual(self.outputs, {p.relative_to(root): p.read_bytes()
+                                              for p in (root / 'preview').rglob('*') if p.is_file()})
+                self.assertEqual(0, self.run_checker(root).returncode)
+
+    def test_failed_replacement_preserves_existing_output_and_removes_temporary_file(self):
+        with tempfile.TemporaryDirectory(prefix='preview-output-failure-') as name:
+            root = self.copied_checkout(Path(name))
+            first = root / scenarios.ASSET_DIRECTORY / 'manifest.json'
+            first.write_bytes(b'earlier controlled output')
+            original = {p.relative_to(root): p.read_bytes() for p in (root / 'preview').rglob('*') if p.is_file()}
+            with patch.object(Path, 'replace', side_effect=OSError('controlled replacement failure')):
+                with self.assertRaisesRegex(OSError, 'controlled replacement failure'):
+                    scenarios.write_outputs(root, self.outputs)
+            self.assertEqual(original, {p.relative_to(root): p.read_bytes()
+                                        for p in (root / 'preview').rglob('*') if p.is_file()})
 
 
 if __name__ == '__main__':

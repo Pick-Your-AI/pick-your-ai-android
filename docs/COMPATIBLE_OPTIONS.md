@@ -25,8 +25,12 @@ Unicode, duplicate-key, trailing-content and other parser limits still apply.
 The immutable request's digest includes original bytes, candidate settings and
 order, and explicit slot intent. Its binding also exposes the build ID and full
 integer revision, catalog ID/revision, ruleset ID/version, graph ID/revision and
-pricebook ID. Large revisions are never narrowed to a machine-sized counter.
-Input mutation after capture cannot change the request or its result.
+optional pricebook ID. Schema-permitted omission remains typed absence in the
+binding; explicit JSON null still fails frozen validation. The coordinator uses
+private presence/absence tags only for currentness, without adding a Build lock,
+pricebook document or cost evidence. Large revisions are never narrowed to a
+machine-sized counter. Input mutation after capture cannot change the request or
+its result.
 
 The baseline removes only the specified replacement selection and its incident
 links. It leaves every other role, selection, setting, order and input lock
@@ -251,6 +255,12 @@ the original draft/baseline/catalog checks. No recovery dialog or canonical
 storage policy is replaced by this contribution.
 
 ## Additional validation and remaining acceptance
+
+`CompatibleOptionsAbsentLockCausalReplayTest` validates all four captured frozen
+documents before preparation. Its present, omitted and explicit-null controls
+exercise real candidate evaluation and currentness delivery, preserve caller
+bytes and prove that omitting the optional lock does not create a pricebook. The
+normal Core verification requires these three cases to execute and pass.
 
 `DraftCompatibleOptionsTest` uses actual private stores and full frozen fixtures
 with explicitly synthetic counterexamples. It covers blank/single-selection
