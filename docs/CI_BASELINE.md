@@ -205,7 +205,7 @@ gates. The named prerequisite from #48 supplies
 the pinned build/module outputs; a CI result does not invent a production package
 or supported-device release decision.
 
-[ADR 0009](decisions/0009-android-59-acceptance-record.md) proposes placing only
+[ADR 0011](decisions/0011-android-59-acceptance-record.md) proposes placing only
 the [02.05 receiving record](delivery/android/work-packages/02.05.md) in Android,
 effective after independent receiving review and normal reviewed main delivery.
 Until that event, its intended `docs/delivery/android/work-packages/02.05.md` path
