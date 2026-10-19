@@ -122,6 +122,10 @@ class PreviewActivity : Activity() {
     private var entryBlocked = false
     private var unsupportedEntry = false
     private lateinit var entryNotice: TextView
+    private var incomingComponent: PreviewComponentRoute? = null
+    private var incomingComponentUnavailable = false
+    private lateinit var incomingComponentNotice: TextView
+    private lateinit var incomingComponentOpen: Button
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -130,10 +134,17 @@ class PreviewActivity : Activity() {
         if (!environmentAdmitted) return
         autosaveRequested = savedInstanceState?.getBoolean("autosaveRequested", false) == true
         if (savedInstanceState?.getBoolean("autosavePaused", false) == true) autosave.pause()
-        // The checkpoint records a deliberate local recovery; it contains no incoming URI or payload.
+        // The checkpoint retains normalized navigation identity, never an incoming URI or write authority.
+        incomingComponent = if (savedInstanceState == null) componentRoute(intent) else
+            if (savedInstanceState.getBoolean("incomingComponentPresent", false)) PreviewComponentRoute.restore(
+                savedInstanceState.getString("incomingComponentKind"), savedInstanceState.getString("incomingComponentId"),
+                savedInstanceState.getString("incomingComponentVersion"), savedInstanceState.getString("incomingComponentSnapshot"))
+            else null
         entryBlocked = if (savedInstanceState?.containsKey("entryBlocked") == true)
             savedInstanceState.getBoolean("entryBlocked") else !isLocalEntry(intent)
-        unsupportedEntry = entryBlocked || savedInstanceState?.getBoolean("unsupportedEntry", false) == true
+        unsupportedEntry = incomingComponent == null && (entryBlocked ||
+            savedInstanceState?.getBoolean("unsupportedEntry", false) == true ||
+            savedInstanceState?.getBoolean("incomingComponentPresent", false) == true)
         currentDraftId = PreviewDraftId(savedInstanceState?.getString("draftId") ?: "guest-draft")
         pendingDeleteId = savedInstanceState?.getString("pendingDeleteId")?.let(::PreviewDraftId)
         selectionResolved = !entryBlocked && savedInstanceState != null && savedInstanceState.getBoolean("selectionResolved", true)
@@ -157,6 +168,17 @@ class PreviewActivity : Activity() {
             accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
             visibility = if (unsupportedEntry) View.VISIBLE else View.GONE
         }
+        incomingComponentNotice = text(R.string.component_link_ready).apply {
+            accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
+            visibility = if (incomingComponent == null) View.GONE else View.VISIBLE
+        }
+        incomingComponentOpen = Button(this).apply {
+            setText(R.string.component_link_open)
+            setSingleLine(false)
+            visibility = if (incomingComponent == null) View.GONE else View.VISIBLE
+            setOnClickListener { openIncomingComponent() }
+        }
+        content.addView(incomingComponentOpen)
         text(R.string.guest_draft, 22f).apply { if (android.os.Build.VERSION.SDK_INT >= 28) isAccessibilityHeading = true }
         text(R.string.temporary)
         activeDraft = text(R.string.library_active).apply {
@@ -434,13 +456,51 @@ class PreviewActivity : Activity() {
         (value.action == null || value.action == Intent.ACTION_MAIN) && value.data == null &&
             value.type == null && value.clipData == null && value.selector == null
 
+    private fun componentRoute(value: Intent?): PreviewComponentRoute? {
+        val grants = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION or
+            Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION or Intent.FLAG_GRANT_PREFIX_URI_PERMISSION
+        if (value == null || value.action != Intent.ACTION_VIEW || value.type != null || value.clipData != null ||
+            value.selector != null || value.flags and grants != 0) return null
+        return PreviewComponentRoute.parse(value.dataString)
+    }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         if (destroyed || !environmentAdmitted) return
         // A new entry never replaces an already open editor, its pending fields or its save authority.
-        if (!isLocalEntry(intent)) unsupportedEntry = true
+        if (!isLocalEntry(intent)) {
+            incomingComponent = componentRoute(intent)
+            incomingComponentUnavailable = false
+            unsupportedEntry = incomingComponent == null
+        }
         else if (!entryBlocked) unsupportedEntry = false
         entryNotice.visibility = if (unsupportedEntry) View.VISIBLE else View.GONE
+        updateIncomingComponent()
+    }
+
+    private fun updateIncomingComponent() {
+        if (destroyed || !::incomingComponentOpen.isInitialized) return
+        val visibility = if (incomingComponent == null) View.GONE else View.VISIBLE
+        incomingComponentNotice.visibility = visibility
+        incomingComponentOpen.visibility = visibility
+        incomingComponentNotice.setText(if (incomingComponentUnavailable)
+            R.string.component_link_unavailable else R.string.component_link_ready)
+        incomingComponentOpen.isEnabled = incomingComponent != null && ::retry.isInitialized && retry.isEnabled
+    }
+
+    private fun openIncomingComponent() {
+        if (destroyed || isFinishing || isDestroyed || !diagnosticsResumed || !::retry.isInitialized || !retry.isEnabled) return
+        val route = incomingComponent ?: return
+        val browser = catalogFixture?.catalog
+        val item = browser?.items?.singleOrNull { route.matches(it, browser.hash) }
+        if (browser == null || item == null || !catalog.contains(item, browser.hash)) {
+            incomingComponentUnavailable = true
+            updateIncomingComponent()
+            return
+        }
+        incomingComponentUnavailable = false
+        updateIncomingComponent()
+        showDetails(item, browser.hash)
     }
 
     private fun readCatalogFixture(): ByteArray = assets.open("catalog.json").use { stream ->
@@ -461,6 +521,7 @@ class PreviewActivity : Activity() {
         catalogDetailBrowser?.retire()
         catalogDetailBrowser = null
         retry.isEnabled = false
+        updateIncomingComponent()
         catalogStatus.setText(R.string.working)
         catalogRetentionStatus.visibility = View.GONE
         worker.execute {
@@ -490,6 +551,7 @@ class PreviewActivity : Activity() {
                     if (loaded.catalog == null) catalog.unavailable() else catalog.show(loaded.catalog)
                     catalogComparison.show(loaded.catalog, loaded.pricebook)
                     catalog.selectionEnabled(!storageBusy)
+                    updateIncomingComponent()
                     showSelection()
                     updateDraftSummary()
                 }
@@ -513,6 +575,13 @@ class PreviewActivity : Activity() {
         val detail = catalog.details(item, catalogHash)
         val priceContext = catalogFixture
         val prices = priceContext?.pricebook
+        val canUseInDraft = {
+            baseline != null && !destroyed && !isFinishing && !isDestroyed && diagnosticsResumed &&
+                !entryBlocked && selectionResolved && !storageBusy && storageReady &&
+                storageAuthority === detailAuthority && savedRecord === baseline && currentDraftId == draftId &&
+                catalog.contains(item, catalogHash) && PreviewSelectionForms.supported(item.kind) &&
+                componentSection.canReviewCurrentChoices(baseline)
+        }
         lateinit var dialog: AlertDialog
         val builder = AlertDialog.Builder(this)
         // Keep actions above the independently scrolling message. A separate custom content panel
@@ -568,23 +637,45 @@ class PreviewActivity : Activity() {
                     }
                 }
             }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
-            addView(Button(builder.context).apply {
-                setText(R.string.catalog_compare_add)
-                setSingleLine(false)
-                minHeight = target
-                minWidth = target
-                setOnClickListener {
-                    if (catalogDetailDialog === dialog && dialog.isShowing && !destroyed) {
-                        catalogComparison.add(item, catalogHash)
-                        dialog.dismiss()
+            addView(LinearLayout(builder.context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                addView(Button(builder.context).apply {
+                    setText(R.string.catalog_compare_add)
+                    setSingleLine(false)
+                    minHeight = target
+                    minWidth = target
+                    setOnClickListener {
+                        if (catalogDetailDialog === dialog && dialog.isShowing && !destroyed) {
+                            catalogComparison.add(item, catalogHash)
+                            dialog.dismiss()
+                        }
                     }
-                }
+                }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+                addView(Button(builder.context).apply {
+                    setText(R.string.catalog_use_in_draft)
+                    setSingleLine(false)
+                    minHeight = target
+                    minWidth = target
+                    isEnabled = canUseInDraft()
+                    setOnClickListener {
+                        if (catalogDetailDialog !== dialog || !dialog.isShowing || destroyed) return@setOnClickListener
+                        if (!canUseInDraft()) {
+                            isEnabled = false
+                            dialog.setMessage(getString(R.string.catalog_selection_changed))
+                            return@setOnClickListener
+                        }
+                        dialog.dismiss()
+                        componentSection.fromCatalog(requireNotNull(baseline), item, catalogHash)
+                    }
+                }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
             }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
         })
         dialog = builder
             .setTitle(item.name)
-            .setMessage(detail?.let { CatalogDetailText.describe(this, it, prices) }
-                ?: getString(R.string.catalog_detail_unavailable))
+            .setMessage((detail?.let { CatalogDetailText.describe(this, it, prices) }
+                ?: getString(R.string.catalog_detail_unavailable)) + if (canUseInDraft()) "" else "\n\n" +
+                getString(if (PreviewSelectionForms.supported(item.kind)) R.string.catalog_selection_requires_saved
+                    else R.string.component_unsupported))
             .setNegativeButton(R.string.close, null)
             .setNeutralButton(R.string.catalog_sources) { _, _ ->
                 if (dialog.isShowing && detail != null) CatalogSourceNavigation(this, detail, isCurrent = {
@@ -707,6 +798,7 @@ class PreviewActivity : Activity() {
         if (::tierSection.isInitialized) tierSection.update(savedRecord, storageReady && !storageBusy && matchesSaved())
         if (::catalog.isInitialized) catalog.selectionEnabled(!storageBusy)
         if (::componentSection.isInitialized) componentSection.update(savedRecord, storageReady && !storageBusy && matchesSaved(), currentDraftId.value)
+        updateIncomingComponent()
         if (::planningSection.isInitialized) planningSection.update(savedRecord, when {
             storageBusy -> PlanningDraftState.LOADING
             !storageReady -> PlanningDraftState.UNAVAILABLE
@@ -1447,6 +1539,13 @@ class PreviewActivity : Activity() {
         if (!environmentAdmitted) { super.onSaveInstanceState(outState); return }
         outState.putBoolean("entryBlocked", entryBlocked)
         outState.putBoolean("unsupportedEntry", unsupportedEntry)
+        outState.putBoolean("incomingComponentPresent", incomingComponent != null)
+        incomingComponent?.let {
+            outState.putString("incomingComponentKind", it.kind)
+            outState.putString("incomingComponentId", it.itemId)
+            outState.putString("incomingComponentVersion", it.version)
+            outState.putString("incomingComponentSnapshot", it.snapshotHash)
+        }
         catalog.saveState(outState)
         catalogComparison.save(outState)
         componentSection.save(outState)
