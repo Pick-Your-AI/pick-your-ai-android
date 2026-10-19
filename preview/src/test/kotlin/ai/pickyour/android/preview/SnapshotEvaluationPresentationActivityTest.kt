@@ -111,11 +111,13 @@ class SnapshotEvaluationPresentationActivityTest {
             }))
         val rules = node("ruleset")
         val rule = rules.getJSONArray("rules").getJSONObject(0)
-        rule.put("applies_when", JSONObject("""{"op":"eq","left":{"literal":1},"right":{"literal":1}}"""))
+        rule.put("applies_when", JSONObject(if (outcome == "skipped")
+            """{"op":"eq","left":{"literal":0},"right":{"literal":1}}""" else
+            """{"op":"eq","left":{"literal":1},"right":{"literal":1}}"""))
         rule.put("assert", JSONObject(when (outcome) {
             "fail" -> """{"op":"eq","left":{"literal":0},"right":{"literal":1}}"""
             "unknown" -> """{"op":"eq","left":{"metric":"cost.monthly_total_amount"},"right":{"literal":"0"}}"""
-            "pass" -> """{"op":"eq","left":{"literal":1},"right":{"literal":1}}"""
+            "pass", "skipped" -> """{"op":"eq","left":{"literal":1},"right":{"literal":1}}"""
             else -> error("Test must select an explicit supported rule outcome")
         }))
         rule.put("severity", severity).put("on_unknown", "review")
@@ -184,6 +186,46 @@ class SnapshotEvaluationPresentationActivityTest {
         assertTrue(text.contains("Inspect the recorded setting"))
         assertTrue(text.contains("Result in this profile: indeterminate"))
         assertTrue(text.contains("Readiness in this profile: needs_review"))
+    }
+
+    @Test fun retainedUnknownFindingDisclosesAbsentEvidenceAndUnmetInputs() {
+        val saved = saveRule("Recorded missing-input explanation", "Inspect the recorded input", "unknown", "error")
+        val text = inspect(saved, "unknown", "error")
+        assertTrue("A retained finding must state that its accepted report has no evidence entries",
+            text.contains(activity.getString(R.string.findings_no_evidence)))
+        assertTrue(text.contains("RESOURCE_ESTIMATE: NOT_SUPPLIED"))
+        assertTrue(text.contains("COST_ESTIMATE: NOT_SUPPLIED"))
+        assertTrue(text.contains("Result in this profile: indeterminate"))
+        assertFalse(text.contains("Readiness in this profile: ready"))
+        assertFalse(text.contains("Observed JSON:"))
+    }
+
+    @Test fun retainedFailureDisclosesAbsentEvidenceWithoutBecomingPass() {
+        val saved = saveRule("Recorded warning explanation", "Inspect the recorded setting", "fail", "warning")
+        val text = inspect(saved, "fail", "warning")
+        assertTrue(text.contains(activity.getString(R.string.findings_no_evidence)))
+        assertTrue(text.contains("Result in this profile: valid"))
+        assertTrue(text.contains("Readiness in this profile: needs_review"))
+        assertFalse(text.contains("Outcome: pass ·"))
+        assertFalse(text.contains("Observed JSON:"))
+    }
+
+    @Test fun retainedPassKeepsEvidenceAbsenceSeparateFromItsOutcome() {
+        val saved = saveRule("Recorded passing rule", "A passing rule omits this remediation", "pass", "error")
+        val text = inspect(saved, "pass", "error")
+        assertTrue(text.contains(activity.getString(R.string.findings_no_evidence)))
+        assertTrue(text.contains("Result in this profile: valid"))
+        assertFalse(text.contains("Evidence entries displayed:"))
+        assertFalse(text.contains("Observed JSON:"))
+    }
+
+    @Test fun retainedSkippedFindingDisclosesAbsentEvidenceWithoutBecomingPass() {
+        val saved = saveRule("Recorded inapplicable rule", "An inapplicable rule omits this remediation", "skipped", "error")
+        val text = inspect(saved, "skipped", "error")
+        assertTrue(text.contains(activity.getString(R.string.findings_no_evidence)))
+        assertFalse(text.contains("Outcome: pass ·"))
+        assertFalse(text.contains("Evidence entries displayed:"))
+        assertFalse(text.contains("Observed JSON:"))
     }
 
     @Test fun retainedFailingTextCannotInjectStatusLinesOrBidiControls() {

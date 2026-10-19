@@ -215,6 +215,7 @@ internal class SnapshotEvaluationSection(
                 activity.getString(R.string.findings_remediation, literalText(finding.remediation)),
                 activity.getString(R.string.snapshot_affected, finding.selectionIds.joinToString(", ").ifEmpty {
                     activity.getString(R.string.findings_not_supplied) }),
+                FindingsInspectionText.evidence(activity, finding),
             ).joinToString("\n") },
         ).joinToString("\n\n")
     }
