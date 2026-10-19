@@ -1,0 +1,75 @@
+{
+  "conclusion": "Current-file removal leaves the same exact finding in reachable history.",
+  "disposition": "Unissued synthetic fixture; no exception or source-history rewrite applied.",
+  "fixture": {
+    "kind": "publicly-derived-unissued-pattern",
+    "remotes": [],
+    "removed_commit": "4f6b125833b08675c4f1fbe8abbac2f621eb5055",
+    "seeded_commit": "d3004139f04e955d245411dfb06074b16de63584"
+  },
+  "limitations": [
+    "Not a scan of project history or a dependency vulnerability assessment.",
+    "No issued credential, live authentication, revocation or provider audit was exercised.",
+    "No private report, contacted responder, advisory or customer notification was performed.",
+    "No corrected application build, signing, installation or distribution was performed.",
+    "This rehearsal does not complete Android #69 or operational response readiness."
+  ],
+  "observations": {
+    "after_removal_directory": {
+      "exit_code": 0,
+      "finding_count": 0,
+      "findings": []
+    },
+    "after_removal_history": {
+      "exit_code": 10,
+      "finding_count": 1,
+      "findings": [
+        {
+          "commit": "d3004139f04e955d245411dfb06074b16de63584",
+          "file": "fixture.txt",
+          "line": 1,
+          "rule_id": "github-pat"
+        }
+      ]
+    },
+    "before_removal_directory": {
+      "exit_code": 10,
+      "finding_count": 1
+    },
+    "before_removal_history": {
+      "exit_code": 10,
+      "finding_count": 1,
+      "findings": [
+        {
+          "commit": "d3004139f04e955d245411dfb06074b16de63584",
+          "file": "fixture.txt",
+          "line": 1,
+          "rule_id": "github-pat"
+        }
+      ]
+    }
+  },
+  "scanner": {
+    "binary_sha256": "88f91962aa2f93ac6ab281d553b9e125f5197bbbce38f9f2437f7299c32e5509",
+    "version": "8.30.1"
+  },
+  "schema_version": 1,
+  "scope": "local-synthetic-response-exercise",
+  "source": {
+    "base_commit": "d5c66d3f0ffb402c2b2222dcd9d57d07d9fd736d",
+    "base_tree": "2143ad4eecaf999a508c09111887563c8991aef7",
+    "executed_files": [
+      {
+        "path": "scripts/exercise_security_response.py",
+        "sha256": "f7db909c8292692a53ecde5ac0293f80112f6d339831c5921f5c1dcff19c8363"
+      },
+      {
+        "path": "scripts/check_secrets.py",
+        "sha256": "7d3c7957defe376b47aeedceb822176c74080779b7779f182d3a356d52108ee8"
+      }
+    ],
+    "identity_scope": "Base revision plus actual executed-file digests; driver may be uncommitted."
+  },
+  "started_utc": "2026-10-19T03:17:22.846152+00:00",
+  "status": "passed"
+}

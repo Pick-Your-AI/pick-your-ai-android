@@ -17,6 +17,11 @@ checkout and its reachable history. Review sanitized findings without copying
 matched values into public comments; successful pattern detection is one security
 check and does not establish dependency, credential-rotation or release acceptance.
 
+Use the [security response runbook](docs/SECURITY_RESPONSE.md) for vulnerability
+intake, containment, urgent fixes and credential/key recovery. Its reproducible
+local rehearsal preserves the difference between current-file removal and an
+unresolved historical finding; it establishes no live response or release.
+
 The [runtime inventory](docs/RUNTIME_INVENTORY.md) links the resolved core and
 optional unsigned-preview runtime inputs to their build artifact hashes. Review
 POM license declarations and missing/inherited metadata before using it for any
