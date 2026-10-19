@@ -1,7 +1,7 @@
 package ai.pickyour.android.preview
 
 import android.os.Bundle
-import android.os.Looper
+import android.os.SystemClock
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
@@ -17,7 +17,6 @@ import org.junit.runner.RunWith
 import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
-import org.robolectric.Shadows.shadowOf
 import org.robolectric.android.controller.ActivityController
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.LooperMode
@@ -60,7 +59,7 @@ class CatalogRetentionActivityTest {
     private fun await(condition: () -> Boolean) {
         val deadline = System.nanoTime() + 15_000_000_000L
         while (System.nanoTime() < deadline) {
-            shadowOf(Looper.getMainLooper()).idle()
+            AutosaveUiClock.idle()
             if (condition()) return
             Thread.sleep(10)
         }
@@ -86,6 +85,8 @@ class CatalogRetentionActivityTest {
         assertRetained(bytes)
         assertEquals(View.GONE, warning().visibility)
         assertNoDraft()
+        AutosaveUiClock.pause()
+        val inputStartedAt = SystemClock.uptimeMillis()
         field(R.string.draft_title).setText("pending across catalog retention")
         field(R.string.context_objective).setText("unsaved objective")
         val before = files()
@@ -98,6 +99,8 @@ class CatalogRetentionActivityTest {
         assertEquals("pending across catalog retention", field(R.string.draft_title).text.toString())
         assertEquals("unsaved objective", field(R.string.context_objective).text.toString())
         assertNoDraft()
+        assertTrue("Retention observation must precede the ordinary autosave deadline",
+            SystemClock.uptimeMillis() - inputStartedAt < 750L)
     }
 
     @Test fun failedRetentionKeepsCatalogUsableAndExplicitReloadRecoversWithoutSaving() {
@@ -108,6 +111,8 @@ class CatalogRetentionActivityTest {
         assertEquals(activity.getString(R.string.catalog_retention_unconfirmed), warning().text.toString())
         assertArrayEquals(sentinel, Files.readAllBytes(directory))
         assertTrue(button(R.string.catalog_next).isEnabled)
+        AutosaveUiClock.pause()
+        val inputStartedAt = SystemClock.uptimeMillis()
         field(R.string.draft_title).setText("pending while retention failed")
         field(R.string.context_objective).setText("pending explicit retry")
         assertNoDraft()
@@ -119,6 +124,8 @@ class CatalogRetentionActivityTest {
         assertEquals("pending while retention failed", field(R.string.draft_title).text.toString())
         assertEquals("pending explicit retry", field(R.string.context_objective).text.toString())
         assertNoDraft()
+        assertTrue("Retention observation must precede the ordinary autosave deadline",
+            SystemClock.uptimeMillis() - inputStartedAt < 750L)
     }
 
     @Test fun fullHistoryPreservesEveryPinAndExplainsUnretainedCatalogWithoutBlockingBrowse() {
@@ -138,6 +145,8 @@ class CatalogRetentionActivityTest {
         assertTrue(button(R.string.catalog_next).isEnabled)
         assertEquals(before, files())
         assertEquals(CacheRead.Missing, cache.pinned(hash(original)))
+        AutosaveUiClock.pause()
+        val inputStartedAt = SystemClock.uptimeMillis()
         field(R.string.draft_title).setText("pending at catalog quota")
         button(R.string.retry_catalog).performClick()
         await { button(R.string.retry_catalog).isEnabled && warning().visibility == View.VISIBLE }
@@ -147,5 +156,7 @@ class CatalogRetentionActivityTest {
         for (bytes in retained) assertArrayEquals(bytes, (cache.pinned(hash(bytes)) as CacheRead.Available).bytes)
         assertEquals("pending at catalog quota", field(R.string.draft_title).text.toString())
         assertNoDraft()
+        assertTrue("Retention observation must precede the ordinary autosave deadline",
+            SystemClock.uptimeMillis() - inputStartedAt < 750L)
     }
 }

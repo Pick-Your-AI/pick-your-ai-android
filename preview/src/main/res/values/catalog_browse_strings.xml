@@ -13,7 +13,10 @@
     <string name="catalog_sort_kind">Tier and kind</string>
     <string name="catalog_previous">Previous catalog page</string>
     <string name="catalog_next">Next catalog page</string>
-    <string name="catalog_page">Synthetic results: page %1$d of %2$d · %3$d matching items</string>
+    <plurals name="catalog_page">
+        <item quantity="one">Synthetic results: page %1$d of %2$d · %3$d matching item</item>
+        <item quantity="other">Synthetic results: page %1$d of %2$d · %3$d matching items</item>
+    </plurals>
     <string name="catalog_no_matches">No synthetic items match this query and these filters. Change the search or select All tiers and All kinds.</string>
     <string name="catalog_browse_waiting">Catalog browsing is unavailable until the fixture has loaded.</string>
     <string name="catalog_snapshot_changed">The synthetic catalog snapshot changed. The page was reset; your draft selection keeps its original version.</string>

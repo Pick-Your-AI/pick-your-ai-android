@@ -5,6 +5,8 @@ import android.app.AlertDialog
 import android.content.DialogInterface
 import android.content.Intent
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.text.InputFilter
 import android.text.Editable
 import android.text.TextWatcher
@@ -26,12 +28,22 @@ import ai.pickyour.core.contracts.FrozenDocument
 import ai.pickyour.core.contracts.FrozenSchemaValidator
 import ai.pickyour.core.contracts.FrozenValidation
 import java.util.concurrent.Executors
+import java.util.concurrent.RejectedExecutionException
 import ai.pickyour.core.preview.SyntheticCatalogEvidence
 import ai.pickyour.core.evidence.EvidenceLabel
 
-/** Guest preview over synthetic fixtures with explicit local save through the canonical store. */
+/** Guest preview over synthetic fixtures with acknowledged local saves through the canonical store. */
 class PreviewActivity : Activity() {
     private val worker = Executors.newSingleThreadExecutor()
+    private val autosaveHandler = Handler(Looper.getMainLooper())
+    private val autosave = PreviewDraftAutosave(PreviewAutosaveScheduler { delay, action ->
+        val callback = Runnable { action() }
+        if (autosaveHandler.postDelayed(callback, delay))
+            PreviewAutosaveCancellation { autosaveHandler.removeCallbacks(callback) }
+        else null
+    }) { request -> saveDraft(request) }
+    private var autosaveRequested = false
+    private var savingInput: PreviewPendingDraft? = null
     private var destroyed = false
     private lateinit var workloadSection: WorkloadSection
     private var restoreWorkloadFromDisk = false
@@ -89,6 +101,7 @@ class PreviewActivity : Activity() {
     private var storageBusy = true
         set(value) {
             if (value) {
+                autosave.cancel()
                 storageAuthority = Any()
                 retireRevisionInspection()
             }
@@ -110,6 +123,8 @@ class PreviewActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        autosaveRequested = savedInstanceState?.getBoolean("autosaveRequested", false) == true
+        if (savedInstanceState?.getBoolean("autosavePaused", false) == true) autosave.pause()
         // The checkpoint records a deliberate local recovery; it contains no incoming URI or payload.
         entryBlocked = if (savedInstanceState?.containsKey("entryBlocked") == true)
             savedInstanceState.getBoolean("entryBlocked") else !isLocalEntry(intent)
@@ -625,23 +640,38 @@ class PreviewActivity : Activity() {
 
     private fun fields() = PreviewDraftFields(title.text.toString(), selectedId, selectedVersion, selectedCatalogHash)
 
-    private fun formChanged() {
+    private fun pendingInput(): PreviewPendingDraft? = workloadSection.inputs.parsed()?.let {
+        PreviewPendingDraft(fields(), domainContext, it)
+    }
+
+    private fun matchesInput(input: PreviewPendingDraft) = fields() == input.fields &&
+        domainContext == input.context && workloadSection.inputs.parsed() == input.workload
+
+    private fun formChanged(edited: Boolean = true) {
         if (destroyed) return
         updateContextState()
         if (restoringFields || !::saveStatus.isInitialized) return
+        autosaveRequested = edited && !matchesSaved()
         if (!storageBusy && storageReady) {
-            saveStatus.setText(if (matchesSaved()) R.string.draft_saved else R.string.draft_unsaved)
+            saveStatus.setText(when {
+                matchesSaved() -> R.string.draft_saved
+                autosave.isPaused -> R.string.draft_autosave_paused
+                else -> R.string.draft_unsaved
+            })
+        } else if (storageBusy && savingInput != null) {
+            saveStatus.setText(if (matchesInput(checkNotNull(savingInput))) R.string.draft_saving else R.string.draft_saving_pending)
         }
         updateEditingEnabled()
     }
 
     private fun updateEditingEnabled() {
         if (destroyed) return
-        title.isEnabled = !storageBusy
-        objective.isEnabled = !storageBusy
-        contextInput.isEnabled = !storageBusy
+        val formEditable = !storageBusy || savingInput != null
+        title.isEnabled = formEditable
+        objective.isEnabled = formEditable
+        contextInput.isEnabled = formEditable
         clear.isEnabled = !storageBusy
-        workloadSection.setEditable(!storageBusy)
+        workloadSection.setEditable(formEditable)
         save.isEnabled = storageReady && !storageBusy && workloadSection.inputs.parsed() != null && !matchesSaved()
         reopen.isEnabled = !storageBusy && selectionResolved
         history.isEnabled = storageReady && !storageBusy && savedRecord != null
@@ -664,6 +694,7 @@ class PreviewActivity : Activity() {
             else -> PlanningDraftState.SAVED
         })
         updateDraftSummary()
+        updateAutosave()
     }
 
     private fun updateDraftSummary() {
@@ -692,6 +723,21 @@ class PreviewActivity : Activity() {
             { workloadSection.reviewObjectiveInputs(pendingInputs) },
             { if (baseline != null) componentSection.reviewCurrentChoices(baseline) },
             { if (::planningSection.isInitialized) planningSection.reviewGuidance() })
+    }
+
+    private fun updateAutosave() {
+        if (!storageReady || storageBusy || !selectionResolved || !autosaveRequested || matchesSaved() || autosave.isPaused) {
+            autosave.cancel()
+            return
+        }
+        val pending = pendingInput()
+        if (pending == null) {
+            autosave.cancel()
+            return
+        }
+        if (!autosave.schedule(PreviewAutosaveRequest(currentDraftId, savedRecord, storageAuthority, pending))) {
+            saveStatus.setText(R.string.draft_save_failed)
+        }
     }
 
     private fun showHistory() {
@@ -1206,7 +1252,8 @@ class PreviewActivity : Activity() {
                         restoringFields = false
                         activeDraft.text = getString(R.string.library_active, currentDraftId.value)
                         showSelection()
-                        formChanged()
+                        autosave.resume()
+                        formChanged(edited = false)
                     }
                     updateEditingEnabled()
                 }
@@ -1288,7 +1335,11 @@ class PreviewActivity : Activity() {
                     val loadSucceeded = result is PreviewDraftLoad.Available || result == PreviewDraftLoad.Missing
                     val needsReopen = preserveRestoredFields && restoration?.canResume(savedRecord) != true
                     storageReady = loadSucceeded && !needsReopen
-                    if (!preserveRestoredFields && loadSucceeded) restoration = null
+                    if (!preserveRestoredFields && loadSucceeded) {
+                        restoration = null
+                        autosaveRequested = false
+                        autosave.resume()
+                    }
                     if (loadSucceeded) {
                         val checkpoint = PreviewContextCheckpoint(!restoreContextFromDisk, domainContext)
                         applyContext(checkpoint.forLoad(preserveRestoredFields, savedRecord?.contextInput ?: PreviewDraftContext()))
@@ -1311,6 +1362,7 @@ class PreviewActivity : Activity() {
                         !loadSucceeded -> draftLoadRecoveryMessage((result as? PreviewDraftLoad.Failed)?.reason)
                         needsReopen -> R.string.draft_reconcile
                         matchesSaved() -> R.string.draft_saved
+                        autosave.isPaused -> R.string.draft_autosave_paused
                         else -> R.string.draft_unsaved
                     })
                     updateEditingEnabled()
@@ -1319,41 +1371,51 @@ class PreviewActivity : Activity() {
         }
     }
 
-    private fun saveDraft() {
+    private fun saveDraft(request: PreviewAutosaveRequest? = null) {
         if (destroyed) return
         if (!storageReady || storageBusy) return
         val id = currentDraftId
-        val pendingContext = domainContext
-        val pendingWorkload = workloadSection.inputs.parsed() ?: return
-        val pending = fields()
+        val pending = pendingInput() ?: return
         val expected = savedRecord
+        if (request != null && !request.matches(id, expected, storageAuthority, pending)) return
+        if (request == null) autosave.resume() // Explicit retry; readiness still excludes uncertain/conflicting authority.
+        savingInput = pending
         storageBusy = true
+        val authority = storageAuthority
         saveStatus.setText(R.string.draft_saving)
         updateEditingEnabled()
-        worker.execute {
-            val result = try { openPersistence(id).save(expected, pending, pendingContext, pendingWorkload) } catch (_: Exception) { null }
-            runOnUiThread {
-                if (!destroyed) {
-                    storageBusy = false
-                    when (result) {
-                        is PreviewDraftSave.Saved -> {
-                            savedRecord = result.record
-                            saveStatus.setText(if (matchesSaved()) R.string.draft_saved else R.string.draft_unsaved)
-                        }
-                        PreviewDraftSave.Conflict -> {
-                            storageReady = false
-                            saveStatus.setText(R.string.draft_conflict)
-                        }
-                        PreviewDraftSave.Uncertain, null -> {
-                            storageReady = false
-                            saveStatus.setText(R.string.draft_uncertain)
-                        }
-                        is PreviewDraftSave.Failed -> saveStatus.setText(if (result.reason == DraftStorageFailure.LIMIT_EXCEEDED)
-                            R.string.draft_history_full else R.string.draft_save_failed)
-                    }
-                    updateEditingEnabled()
+        fun accept(result: PreviewDraftSave) {
+            if (destroyed || !storageBusy || currentDraftId != id || savedRecord !== expected || storageAuthority !== authority) return
+            storageBusy = false
+            savingInput = null
+            autosave.completed(result)
+            when (result) {
+                is PreviewDraftSave.Saved -> {
+                    savedRecord = result.record
+                    autosaveRequested = !matchesSaved()
+                    saveStatus.setText(if (matchesSaved()) R.string.draft_saved else R.string.draft_unsaved)
                 }
+                PreviewDraftSave.Conflict -> {
+                    storageReady = false
+                    saveStatus.setText(R.string.draft_conflict)
+                }
+                PreviewDraftSave.Uncertain -> {
+                    storageReady = false
+                    saveStatus.setText(R.string.draft_uncertain)
+                }
+                is PreviewDraftSave.Failed -> saveStatus.setText(if (result.reason == DraftStorageFailure.LIMIT_EXCEEDED)
+                    R.string.draft_history_full else R.string.draft_save_failed)
             }
+            updateEditingEnabled()
+        }
+        try {
+            worker.execute {
+                val result = try { openPersistence(id).save(expected, pending.fields, pending.context, pending.workload) }
+                    catch (_: Exception) { PreviewDraftSave.Uncertain }
+                runOnUiThread { accept(result) }
+            }
+        } catch (_: RejectedExecutionException) {
+            accept(PreviewDraftSave.Failed(DraftStorageFailure.IO_FAILURE))
         }
     }
 
@@ -1366,6 +1428,8 @@ class PreviewActivity : Activity() {
         outState.putString("pendingDeleteId", pendingDeleteId?.value)
         outState.putString("draftId", currentDraftId.value)
         outState.putBoolean("selectionResolved", selectionResolved)
+        outState.putBoolean("autosaveRequested", autosaveRequested)
+        outState.putBoolean("autosavePaused", autosave.isPaused)
         val checkpoint = PreviewDraftRestoration.capture(savedRecord, storageReady, storageBusy)
         outState.putString("draftBaseline", checkpoint.baselineIdentity)
         outState.putBoolean("draftRequiresReopen", checkpoint.requiresReopen)
@@ -1419,6 +1483,8 @@ class PreviewActivity : Activity() {
     override fun onDestroy() {
         destroyed = true
         if (::draftSummary.isInitialized) draftSummary.close()
+        autosave.close()
+        savingInput = null
         if (::findings.isInitialized) findings.close()
         if (::snapshots.isInitialized) snapshots.close()
         if (::diagnostics.isInitialized) diagnostics.close()
