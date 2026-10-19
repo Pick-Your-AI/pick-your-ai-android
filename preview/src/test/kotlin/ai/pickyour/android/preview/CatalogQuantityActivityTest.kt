@@ -1,7 +1,7 @@
 package ai.pickyour.android.preview
 
 import android.app.AlertDialog
-import android.os.Looper
+import android.os.SystemClock
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
@@ -36,11 +36,15 @@ class CatalogQuantityActivityTest {
     private lateinit var controller: ActivityController<PreviewActivity>
     private val activity get() = controller.get()
     private val pendingTitle = "Pending catalog quantity inspection"
+    private var pendingSince = 0L
 
     @Before fun launch() {
         controller = Robolectric.buildActivity(PreviewActivity::class.java).setup()
         await { button(R.string.save_draft).isEnabled && button(R.string.catalog_next).isEnabled }
         assertTrue(libraryState() is PreviewDraftLoad.Missing)
+        // Keep these read-only inspections before the independent title autosave deadline.
+        AutosaveUiClock.pause()
+        pendingSince = SystemClock.uptimeMillis()
         field(R.string.draft_title).setText(pendingTitle)
     }
 
@@ -94,7 +98,7 @@ class CatalogQuantityActivityTest {
     private fun dialog() = requireNotNull(ShadowAlertDialog.getLatestAlertDialog())
     private fun title() = shadowOf(dialog()).title.toString()
     private fun rows() = (0 until dialog().listView.adapter.count).map { dialog().listView.adapter.getItem(it).toString() }
-    private fun idle() = shadowOf(Looper.getMainLooper()).idle()
+    private fun idle() = AutosaveUiClock.idle()
     private fun click(which: Int) { dialog().getButton(which).performClick(); idle() }
     private fun choose(index: Int) { shadowOf(dialog()).clickOnItem(index); idle() }
     private fun inspect(name: String): String {
@@ -114,6 +118,7 @@ class CatalogQuantityActivityTest {
     }
     private fun libraryState() = PreviewDraftLibrary(activity.noBackupFilesDir.toPath()).openLegacy().load()
     private fun assertReadOnly() {
+        assertTrue("Read-only actions stay before autosave", SystemClock.uptimeMillis() in pendingSince until pendingSince + 750)
         assertEquals(pendingTitle, field(R.string.draft_title).text.toString())
         assertTrue(libraryState() is PreviewDraftLoad.Missing)
         assertNull(shadowOf(activity).nextStartedActivity)

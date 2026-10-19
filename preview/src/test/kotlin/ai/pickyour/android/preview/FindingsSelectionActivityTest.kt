@@ -3,7 +3,7 @@ package ai.pickyour.android.preview
 import android.app.AlertDialog
 import android.graphics.Rect
 import android.os.Bundle
-import android.os.Looper
+import android.os.SystemClock
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
@@ -68,7 +68,7 @@ class FindingsSelectionActivityTest {
         .filter { it.visibility == View.VISIBLE && it.text.isNotBlank() }
     private fun text(window: AlertDialog = dialog()) = views(window.window!!.decorView).filterIsInstance<TextView>()
         .filterNot { it is Button }.joinToString("\n") { it.text.toString() }
-    private fun idle() = shadowOf(Looper.getMainLooper()).idle()
+    private fun idle() = AutosaveUiClock.idle()
     private fun click(label: Int, window: AlertDialog = dialog()) {
         button(label, window.window!!.decorView).performClick()
         idle()
@@ -157,6 +157,9 @@ class FindingsSelectionActivityTest {
         .single { it.text.toString().startsWith("Page ") }
 
     @Test fun selectionPageCountsRetainEmptySingleAndWholePagedTotals() {
+        // Count inspection has no save authority; the independent title debounce stays pending.
+        AutosaveUiClock.pause()
+        val pendingSince = SystemClock.uptimeMillis()
         title().setText("pending count inspection")
         for (count in listOf(1, 0, 2, 17)) {
             val report = countReport(count)
@@ -185,6 +188,7 @@ class FindingsSelectionActivityTest {
             navigation.retire()
         }
         assertEquals("pending count inspection", title().text.toString())
+        assertTrue("Read-only actions stay before autosave", SystemClock.uptimeMillis() in pendingSince until pendingSince + 750)
         assertNoDraftWrite()
     }
 
@@ -194,6 +198,8 @@ class FindingsSelectionActivityTest {
     fun selectionPageCountsKeepResourceLocaleAndExpandedRtlNavigation() {
         RuntimeEnvironment.setFontScale(2f)
         recreate()
+        AutosaveUiClock.pause()
+        val pendingSince = SystemClock.uptimeMillis()
         title().setText("pending localized inspection")
         val single = show(countReport(1))
         assertEquals("Page ١ of ١ · ١ selection · ١–١ displayed", pageHeader().text.toString())
@@ -223,6 +229,7 @@ class FindingsSelectionActivityTest {
         assertTrue(text().contains("Recorded role: \"recorded_16\""))
         assertEquals("sel_count_16", report.findings.first().selectionContexts.last().selectionId)
         assertEquals("pending localized inspection", title().text.toString())
+        assertTrue("Read-only actions stay before autosave", SystemClock.uptimeMillis() in pendingSince until pendingSince + 750)
         assertNoDraftWrite()
     }
 
