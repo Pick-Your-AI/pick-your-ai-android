@@ -41,9 +41,14 @@ or external action that remains unestablished.
 Each browse action opens its exact frozen T6 kind, clears conflicting catalog
 search/facets and preserves the sort order. It neither selects a component nor
 changes pending fields, saved history or catalog pins. The existing synthetic
-catalog and incomplete T6 editing scope remain explicit. Recorded configuration
+catalog and remaining T6 product/evidence scope remain explicit. Recorded configuration
 does not establish measured safety/quality, executed deployment, active monitoring,
 price coverage or an enforced spending limit.
+The [guardrail/evaluation forms](GUARDRAIL_EVALUATION_SELECTIONS.md) and
+[operational forms](OPERATIONAL_SELECTIONS.md) admit the exact five frozen kinds
+through the existing explicit controls. Their seventeen optional settings retain
+requested values, independent of T3–T5 intent, without completing per-mode
+readiness, detailed export, approvals or operational execution.
 
 `PreviewT6GuidanceTest` defines core registry, optional-tier and recorded-state
 regressions; `T6PlanningActivityTest` adds five named lifecycle, navigation and

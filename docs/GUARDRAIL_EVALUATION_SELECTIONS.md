@@ -51,8 +51,10 @@ replacement retains the selection identity, role, state, settings, notes,
 extensions and relationships. Removing a selection removes only that identity
 and its incident links, with no promotion of a remaining control or evaluation.
 
-`deployment_target`, `monitoring_stack` and `cost_policy` remain valid retained
-frozen kinds outside this editor's mutation subset. Frozen schemas, examples,
+The original two-kind continuation left `deployment_target`, `monitoring_stack`
+and `cost_policy` outside its mutation subset. The subsequent
+[operational continuation](OPERATIONAL_SELECTIONS.md) admits those three frozen
+kinds separately for partial #52 and preserves this same shared panel. Frozen schemas, examples,
 registry and source pins are unchanged. Proposed guardrail target categories,
 policy references, evaluation metrics, dataset references, evidence/report
 references, benchmark tiers and new rule revisions are not adopted as settings.
@@ -172,12 +174,16 @@ enum combinations, exact numbers and proposed-field rejection; every optional
 tier state; multiple roles and incident-link removal; exact catalog pins and
 unchanged replacements; format-4/5 history/restore; immutable caller snapshots;
 core-only projection without invented results; and managed stale/foreign/deleted
-write authority. Existing unsupported-kind tests keep every rejection assertion
-for the three remaining deployment, monitoring and cost-policy kinds. The
+write authority. At this two-kind source checkpoint, existing unsupported-kind
+tests kept every rejection assertion for the three remaining deployment,
+monitoring and cost-policy kinds. The
 foundation method is retitled from `retained core tier six kinds stay outside
 this command subset` to `retained deployment monitoring and cost policy kinds
 stay outside this command subset`. The two newly admitted kinds have their own
 full positive and negative coverage.
+The later [operational continuation](OPERATIONAL_SELECTIONS.md) records their
+subsequent admission, dedicated cases and explicit foundation-test retitle;
+neither that later source nor its execution is attributed to this checkpoint.
 
 Eleven paused-looper Activity cases cover guidance before save or catalog
 availability, both-kind explicit entry/reopen, complete invalid-input retention,
