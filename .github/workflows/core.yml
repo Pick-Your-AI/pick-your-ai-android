@@ -1444,6 +1444,12 @@ jobs:
               "replacedAndCancelledValueButtonsCannotReplaceTheirCurrentOwner",
               "catalogReplacementAndPinRemovalRetireCompleteValueNavigation",
               "detailAndStorageEntryRetireCompleteValueCallbacks",
+              "newDraftConfirmationRetiresCompleteValueCallbacks",
+              "duplicateConfirmationRetiresCompleteValueCallbacks",
+              "recoveryCopyConfirmationRetiresCompleteValueCallbacks",
+              "libraryEntryRetiresCompleteValueCallbacks",
+              "deleteConfirmationRetiresCompleteValueCallbacks",
+              "pendingDeletionRetryRetiresCompleteValueCallbacks",
               "recreationKeepsTheExactTrayButRejectsAllOldValueControls",
               "completeValueHeadingsAndActionsRemainReachableAtNarrowRtlLargeText",
           }
