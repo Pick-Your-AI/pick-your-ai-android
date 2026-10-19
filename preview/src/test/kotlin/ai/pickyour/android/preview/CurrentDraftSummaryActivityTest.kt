@@ -32,7 +32,7 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.TimeUnit
 
-/** Actual simulated Activity/resources/store; no installed-device or evaluated-current-draft claim. */
+/** Actual simulated Activity/resources/store; no installed-device or production-outcome claim. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28])
 @LooperMode(LooperMode.Mode.PAUSED)
@@ -160,8 +160,34 @@ class CurrentDraftSummaryActivityTest {
         finishWork()
         return loaded()
     }
-    private fun assertNoCurrentResults() {
-        assertEquals(activity.getString(R.string.draft_summary_evaluation_unavailable), output(R.id.draft_summary_evaluation))
+    private fun assertCurrentResultLimits() {
+        val evaluation = output(R.id.draft_summary_evaluation)
+        val record = (adapter().load() as? PreviewDraftLoad.Available)?.record
+        val acknowledged = record != null && output(R.id.draft_summary_source) ==
+            activity.getString(R.string.draft_summary_saved, record.revision.toString())
+        val unavailable = setOf(
+            "No evaluation is available for the current draft.",
+            "Checks are unavailable while editing. Save the current inputs before reevaluation.",
+            "Current check authority was retired while this screen was inactive.",
+            "Checks are unavailable until the exact catalog, graph and rules are loaded.",
+            "The stored draft changed. Reopen or reconcile the editor before checking it again.",
+            "The current source or check could not be confirmed. Retry without treating an earlier result as current.",
+        )
+        val revision = record?.revision
+        val observations = acknowledged && Regex("Saved revision $revision: [0-9]+ pass, [0-9]+ fail, [0-9]+ unknown, " +
+            "[0-9]+ skipped rule observations\\. Severity is shown separately in each finding\\.").matches(evaluation)
+        val withheld = acknowledged && evaluation.startsWith("Checks for saved revision $revision are unavailable: ") &&
+            evaluation.endsWith("The affected set remains visible; unavailable is not pass or a zero estimate.")
+        val rechecking = acknowledged && evaluation == "Rechecking saved revision $revision. " +
+            "Results remain unavailable until its inputs and current revision are confirmed."
+        assertTrue("Summary must expose only unavailable or exact saved-source local observations: $evaluation",
+            evaluation in unavailable || observations || withheld || rechecking)
+        assertTrue(views().filterIsInstance<TextView>().any {
+            val value = it.text.toString()
+            value.contains("loaded synthetic catalog, dependency graph and rules") &&
+                value.contains("Free-text objective and context are not interpreted.") &&
+                value.contains("Current cost and resource estimates are unavailable.")
+        })
         assertEquals(activity.getString(R.string.draft_summary_cost_unavailable), output(R.id.draft_summary_cost))
     }
     private fun idle() = shadowOf(Looper.getMainLooper()).idle()
@@ -218,7 +244,7 @@ class CurrentDraftSummaryActivityTest {
         assertEquals("invalid", field(R.string.workload_budget).text.toString())
         assertFalse(button(R.string.save_draft).isEnabled)
         assertEquals(retained, disk())
-        assertNoCurrentResults()
+        assertCurrentResultLimits()
     }
 
     @Test fun acknowledgedCountsAndPendingInputsStayDistinctAcrossRecreation() {
@@ -236,7 +262,7 @@ class CurrentDraftSummaryActivityTest {
         assertEquals("pending region", field(R.string.workload_region).text.toString())
         assertEquals(recorded.baselineIdentity, loaded().baselineIdentity)
         assertEquals(retained, disk())
-        assertNoCurrentResults()
+        assertCurrentResultLimits()
     }
 
     @Test fun aDelayedReadWithholdsCountsAndOldActionsUntilActualCompletion() {
@@ -262,7 +288,7 @@ class CurrentDraftSummaryActivityTest {
         assertEquals(activity.getString(R.string.draft_summary_component_counts, 1, 1), output(R.id.draft_summary_components))
         assertNotSame(old, action(R.id.draft_summary_component_action))
         assertEquals(retained, disk())
-        assertNoCurrentResults()
+        assertCurrentResultLimits()
     }
 
     @Test fun componentActionsUseCurrentEditorsAndNeverReplayIntoANewDraft() {
@@ -300,7 +326,7 @@ class CurrentDraftSummaryActivityTest {
         assertSame(previous, dialog())
         assertEquals(current, disk())
         assertEquals(activity.getString(R.string.draft_summary_component_counts, 0, 0), output(R.id.draft_summary_components))
-        assertNoCurrentResults()
+        assertCurrentResultLimits()
     }
 
     @Test fun successfulComponentFormsRefreshTheSummaryAfterEachAcknowledgedSave() {
@@ -319,7 +345,7 @@ class CurrentDraftSummaryActivityTest {
         dialogField(role, R.string.component_role).setText("secondary")
         commitFormAndReviewCurrentComponents(role, "role")
         assertEquals("secondary", loaded().components.selections.single().role)
-        assertNoCurrentResults()
+        assertCurrentResultLimits()
     }
 
     @Test fun discardingRecoveredComponentInputRefreshesTheSummaryWithoutOtherEdits() {
@@ -346,7 +372,7 @@ class CurrentDraftSummaryActivityTest {
         current.performClick()
         assertEquals(activity.getString(R.string.component_choose_catalog), shadowOf(dialog()).title.toString())
         assertTrue(loaded().components.selections.isEmpty())
-        assertNoCurrentResults()
+        assertCurrentResultLimits()
     }
 
     @Test fun pauseAndRecreationRetireSummaryActionsWithoutDroppingPendingText() {
@@ -370,7 +396,7 @@ class CurrentDraftSummaryActivityTest {
         assertTrue(field(R.string.draft_title).hasFocus())
         assertEquals("keep paused draft", field(R.string.draft_title).text.toString())
         assertEquals(retained, disk())
-        assertNoCurrentResults()
+        assertCurrentResultLimits()
     }
 
     @Test fun unconfirmedRestorationCannotBorrowTheOldRevisionOrItsActions() {
@@ -390,7 +416,7 @@ class CurrentDraftSummaryActivityTest {
         assertSame(previous, ShadowAlertDialog.getLatestAlertDialog())
         assertEquals("pending over older baseline", field(R.string.draft_title).text.toString())
         assertEquals(retained, disk())
-        assertNoCurrentResults()
+        assertCurrentResultLimits()
     }
 
     @Test fun fixedReportsCannotPopulateCurrentEvaluationOrCostAfterEditsOrSave() {
@@ -401,14 +427,14 @@ class CurrentDraftSummaryActivityTest {
         finishWork()
         assertTrue(button(R.string.findings_browse).isEnabled)
         assertTrue(views().filterIsInstance<TextView>().any { it.text.toString().contains("Known declared line subtotal:") })
-        assertNoCurrentResults()
+        assertCurrentResultLimits()
         assertEquals(retained, disk())
         field(R.string.workload_region).setText("another region")
-        assertNoCurrentResults()
+        assertCurrentResultLimits()
         save()
-        assertNoCurrentResults()
+        assertCurrentResultLimits()
         recreate()
-        assertNoCurrentResults()
+        assertCurrentResultLimits()
     }
 
     @Test fun summaryOmitsPrivateValuesAndKeepsTheExistingDiagnosticReport() {

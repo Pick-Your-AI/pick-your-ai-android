@@ -54,6 +54,54 @@ jobs:
         run: sha256sum --check gradle/wrapper/wrapper.sha256
       - name: Compile and test JVM core
         run: ./gradlew --no-daemon --dependency-verification=strict --init-script scripts/runtime_inventory.init.gradle.kts :core:check :core:assemble runtimeInventory
+      - name: Require current-draft binding and invalidation Core regressions
+        run: |
+          python - <<'PYCURRENT'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          required = {
+              'ai.pickyour.core.evaluation.DraftCurrentEvaluationTest': {
+                  'wholeCurrentContextUsesExistingRulesAndKeepsUnrepresentedPrivateFields()',
+                  'callerByteMutationCannotChangeCapturedPinsGraphOrLaterEvaluation()',
+                  'malformedOversizedDuplicateAndUnsupportedInputsNeverCreateAPin()',
+                  'canonicalModelEditInvalidatesForwardAndInverseIdentitiesWithoutEditingHistory()',
+                  'modeOnlyReplacementRechecksRemoteAcceleratorModelEdge()',
+                  'optionalIntentDisableAndUnknownRetainPriorIdsAndWithholdContradictoryObservations()',
+                  'removedAndDisabledSelectionsRemainInTheAcknowledgedTransition()',
+                  'exactCatalogContextUnknownAndProductionChangesStayConservative()',
+                  'replacementGraphUsesOldBindingAndIncludesRemovedEdges()',
+                  'duplicateCycleAndSelfEdgesKeepFiniteDeterministicSelectionAttendance()',
+                  'anotherStoreNeverBorrowsPriorDraftIdentitiesEvenAtTheSameRevision()',
+                  'unrepresentedAndTypedWorkloadChangesRetireTheCompleteRuleBasis()',
+              },
+              'ai.pickyour.core.preview.PreviewCurrentDraftAnalysisTest': {
+                  'firstLoadReadsHeadTwiceRunsOnceAndRerendersWithoutRescheduling()',
+                  'unsavedEditAndRevertCannotReviveTheRetiredSameHashAttempt()',
+                  'nextAcknowledgedSourceUsesSupersededPredecessorNotLastSuccessfulResult()',
+                  'runningOldCompletionCannotOverwriteNewerSourceEvenWithReentrantDelivery()',
+                  'actualDurableMutationDuringEvaluationRejectsTheOtherwiseValidResult()',
+                  'readFailuresAndStaleHeadNeverInvokeTheEvaluatorAndRequireRetry()',
+                  'postEvaluationReadFailureWithholdsAndExplicitRetryRecovers()',
+                  'foreignOutcomeCannotAcquireAnotherSourceAttempt()',
+                  'differentStoreWithIdenticalBytesGetsItsOwnAttemptAndNoPredecessor()',
+                  'artifactAbaAndLifecycleRetirementKeepFreshTokensAndHistoricalBytes()',
+              },
+          }
+          for name, expected in required.items():
+              path = pathlib.Path('core/build/test-results/test') / ("TEST-" + name + ".xml")
+              suite = ET.parse(path).getroot()
+              cases = suite.findall("testcase")
+              names = [case.attrib.get("name") for case in cases]
+              if suite.attrib.get("name") != name or any(case.attrib.get("classname") != name for case in cases):
+                  raise SystemExit("Foreign current-draft regression report")
+              if set(names) != expected or len(names) != len(expected):
+                  raise SystemExit("Missing, unexpected or repeated current-draft regression")
+              if int(suite.attrib.get("tests", "-1")) != len(cases) or any(int(suite.attrib.get(key, "-1")) != 0 for key in ("failures", "errors", "skipped")):
+                  raise SystemExit("Current-draft regression totals did not pass")
+              if any(case.find(tag) is not None for case in cases for tag in ("failure", "error", "skipped")):
+                  raise SystemExit("Current-draft regression did not execute successfully")
+              print(f"Verified {len(cases)} source-named current-draft cases in {name}; no installed-device claim")
+          PYCURRENT
       - name: Require exact recorded-resource Core receiving regressions
         run: |
           python - <<'PYTEST'
@@ -1646,6 +1694,39 @@ jobs:
               raise SystemExit("Retained-revision pair result count does not match executed cases")
           print(f"Verified {len(cases)} simulated retained-revision pair tests; no installed-device claim")
           PYTEST
+      - name: Require actual current-draft Activity reevaluation regressions
+        run: |
+          python - <<'PYCURRENT'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          required = {
+              'ai.pickyour.android.preview.CurrentDraftCheckActivityTest': {
+                  'acknowledgedDraftRunsRealRulesWithUnavailableMetricsAndReadOnlyHistory',
+                  'realModelSettingsSavePublishesAffectedRecheckingBeforeTheNewResult',
+                  'actualDeploymentModeReplacementRechecksUneditedRemoteEndpoints',
+                  'actualTierDisableKeepsComponentBytesAndShowsPriorAffectedIdentitiesThenWithheld',
+                  'pendingMainEditRetiresActualCompatiblePickerAndCannotReviveItsControls',
+                  'catalogReloadRevokesBeforeIoAndSameBytesReturnWithANewAttempt',
+                  'actualNewDraftSwitchHidesPriorIdsAndNeverAdoptsPreviousSource',
+                  'realSaveConflictWithholdsUntilTheCanonicalReopenRecovers',
+                  'pauseAndRecreationRetireCurrentAuthorityAndDoNotRestoreAReportFromBundle',
+              },
+          }
+          for name, expected in required.items():
+              path = pathlib.Path('preview/build/test-results/testDebugUnitTest') / ("TEST-" + name + ".xml")
+              suite = ET.parse(path).getroot()
+              cases = suite.findall("testcase")
+              names = [case.attrib.get("name") for case in cases]
+              if suite.attrib.get("name") != name or any(case.attrib.get("classname") != name for case in cases):
+                  raise SystemExit("Foreign current-draft regression report")
+              if set(names) != expected or len(names) != len(expected):
+                  raise SystemExit("Missing, unexpected or repeated current-draft regression")
+              if int(suite.attrib.get("tests", "-1")) != len(cases) or any(int(suite.attrib.get(key, "-1")) != 0 for key in ("failures", "errors", "skipped")):
+                  raise SystemExit("Current-draft regression totals did not pass")
+              if any(case.find(tag) is not None for case in cases for tag in ("failure", "error", "skipped")):
+                  raise SystemExit("Current-draft regression did not execute successfully")
+              print(f"Verified {len(cases)} source-named current-draft cases in {name}; no installed-device claim")
+          PYCURRENT
       - name: Require actual native compatible-picker caller regressions
         run: |
           python - <<'PYCANDIDATES'

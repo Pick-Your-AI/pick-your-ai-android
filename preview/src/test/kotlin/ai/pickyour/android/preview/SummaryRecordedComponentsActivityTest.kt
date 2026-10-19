@@ -33,7 +33,7 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.TimeUnit
 
-/** Real simulated Activity and canonical local records; no catalog lookup or current-result evidence. */
+/** Real simulated Activity and canonical local records; recorded inspection remains separate from current local-rule observations. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28])
 @LooperMode(LooperMode.Mode.PAUSED)
@@ -128,9 +128,34 @@ class SummaryRecordedComponentsActivityTest {
         finishWork()
         return loaded()
     }
-    private fun assertNoCurrentResults() {
-        assertEquals(activity.getString(R.string.draft_summary_evaluation_unavailable),
-            summary().findViewById<TextView>(R.id.draft_summary_evaluation).text.toString())
+    private fun assertCurrentResultLimits() {
+        val evaluation = summary().findViewById<TextView>(R.id.draft_summary_evaluation).text.toString()
+        val record = (adapter().load() as? PreviewDraftLoad.Available)?.record
+        val acknowledged = record != null && summary().findViewById<TextView>(R.id.draft_summary_source).text.toString() ==
+            activity.getString(R.string.draft_summary_saved, record.revision.toString())
+        val unavailable = setOf(
+            "No evaluation is available for the current draft.",
+            "Checks are unavailable while editing. Save the current inputs before reevaluation.",
+            "Current check authority was retired while this screen was inactive.",
+            "Checks are unavailable until the exact catalog, graph and rules are loaded.",
+            "The stored draft changed. Reopen or reconcile the editor before checking it again.",
+            "The current source or check could not be confirmed. Retry without treating an earlier result as current.",
+        )
+        val revision = record?.revision
+        val observations = acknowledged && Regex("Saved revision $revision: [0-9]+ pass, [0-9]+ fail, [0-9]+ unknown, " +
+            "[0-9]+ skipped rule observations\\. Severity is shown separately in each finding\\.").matches(evaluation)
+        val withheld = acknowledged && evaluation.startsWith("Checks for saved revision $revision are unavailable: ") &&
+            evaluation.endsWith("The affected set remains visible; unavailable is not pass or a zero estimate.")
+        val rechecking = acknowledged && evaluation == "Rechecking saved revision $revision. " +
+            "Results remain unavailable until its inputs and current revision are confirmed."
+        assertTrue("Summary must expose only unavailable or exact saved-source local observations: $evaluation",
+            evaluation in unavailable || observations || withheld || rechecking)
+        assertTrue(views().filterIsInstance<TextView>().any {
+            val value = it.text.toString()
+            value.contains("loaded synthetic catalog, dependency graph and rules") &&
+                value.contains("Free-text objective and context are not interpreted.") &&
+                value.contains("Current cost and resource estimates are unavailable.")
+        })
         assertEquals(activity.getString(R.string.draft_summary_cost_unavailable),
             summary().findViewById<TextView>(R.id.draft_summary_cost).text.toString())
     }
@@ -157,7 +182,7 @@ class SummaryRecordedComponentsActivityTest {
         assertEquals(record.baselineIdentity, loaded().baselineIdentity)
         assertEquals(before, disk())
         assertNull(shadowOf(activity).nextStartedActivity)
-        assertNoCurrentResults()
+        assertCurrentResultLimits()
     }
 
     @Test fun unsavedAndAcknowledgedEmptyComponentListsRemainDistinct() {
@@ -167,7 +192,7 @@ class SummaryRecordedComponentsActivityTest {
         save()
         assertTrue(text().contains("No components recorded in this saved revision."))
         assertNull(toggleOrNull())
-        assertNoCurrentResults()
+        assertCurrentResultLimits()
     }
 
     @Test fun pendingEditsCanInspectSavedComponentsWithoutAcknowledgingThemAcrossRecreation() {
@@ -190,7 +215,7 @@ class SummaryRecordedComponentsActivityTest {
         assertEquals("pending summary context", field(R.string.context_context).text.toString())
         assertEquals(record.baselineIdentity, loaded().baselineIdentity)
         assertEquals(before, disk())
-        assertNoCurrentResults()
+        assertCurrentResultLimits()
     }
 
     @Test fun loadingWithholdsExpandedRecordsAndRetiredControlsCannotRevealThem() {
@@ -245,7 +270,7 @@ class SummaryRecordedComponentsActivityTest {
         assertFalse(text().contains("Catalog item:"))
         expand()
         assertTrue(text().contains(activity.getString(R.string.draft_summary_components_revision, acknowledged.revision.toString())))
-        assertNoCurrentResults()
+        assertCurrentResultLimits()
     }
 
     @Test fun oldExpansionControlsCannotReplayAfterPauseOrIntoAnotherDraft() {
@@ -267,7 +292,7 @@ class SummaryRecordedComponentsActivityTest {
         assertFalse(text().contains("Catalog item:"))
         assertNull(toggleOrNull())
         assertEquals(before, disk())
-        assertNoCurrentResults()
+        assertCurrentResultLimits()
     }
 
     @Test fun unconfirmedRestorationNeverUsesPriorComponentDetails() {
@@ -301,7 +326,7 @@ class SummaryRecordedComponentsActivityTest {
         assertEquals(record.baselineIdentity, loaded().baselineIdentity)
         assertEquals(before, disk())
         assertNull(shadowOf(activity).nextStartedActivity)
-        assertNoCurrentResults()
+        assertCurrentResultLimits()
     }
 
     @Test

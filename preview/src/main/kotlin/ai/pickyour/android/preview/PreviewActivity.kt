@@ -50,6 +50,9 @@ class PreviewActivity : Activity() {
     private lateinit var tierSection: OptionalTierSection
     private lateinit var planningSection: T6PlanningSection
     private lateinit var draftSummary: CurrentDraftSummarySection
+    private lateinit var currentChecks: CurrentDraftCheckSection
+    private var currentCheckInputs: ai.pickyour.core.evaluation.DraftCurrentInputs? = null
+    private var currentCheckAuthority = Any()
     private var selectedId: String? = null
     private var selectedVersion: String? = null
     private var selectedCatalogHash: String? = null
@@ -108,6 +111,7 @@ class PreviewActivity : Activity() {
                 storageAuthority = Any()
                 retireRevisionInspection()
                 if (::compatibleOptions.isInitialized) compatibleOptions.dismiss()
+                invalidateCurrentChecks(PreviewCurrentUnavailable.STORAGE_UNCONFIRMED)
             }
             field = value
             if (value && ::catalogPinRecovery.isInitialized) catalogPinRecovery.dismiss()
@@ -193,6 +197,8 @@ class PreviewActivity : Activity() {
         }
         draftSummary = CurrentDraftSummarySection(this) { !destroyed && diagnosticsResumed }
         content.addView(draftSummary)
+        currentChecks = CurrentDraftCheckSection(this, worker, { !destroyed && diagnosticsResumed }, draftSummary::currentCheckStatus)
+        content.addView(currentChecks)
         val titleLabel = text(R.string.draft_title)
         title = EditText(this).apply {
             id = View.generateViewId()
@@ -322,8 +328,13 @@ class PreviewActivity : Activity() {
         }
         content.addView(tierSection)
         compatibleOptions = CompatibleOptionsPicker(this, worker) { !destroyed && diagnosticsResumed }
-        componentSection = SelectionEditSection(this, ::commitSelection, ::showCompatibleOptions, compatibleOptions::dismiss)
-        componentSection.onReviewAvailabilityChanged = ::updateDraftSummary
+        componentSection = SelectionEditSection(this, ::commitSelection, ::showCompatibleOptions) {
+            compatibleOptions.dismiss()
+            invalidateCurrentChecks(PreviewCurrentUnavailable.EDITING)
+            // The section has finished changing its form ownership before this read-only refresh.
+            autosaveHandler.post { updateCurrentChecks() }
+        }
+        componentSection.onReviewAvailabilityChanged = { updateDraftSummary(); updateCurrentChecks() }
         componentSection.restore(savedInstanceState)
         content.addView(componentSection)
         planningSection = T6PlanningSection(this, { !destroyed }, { catalog.cancelViewportRestore() }) { kind ->
@@ -530,6 +541,8 @@ class PreviewActivity : Activity() {
     private fun loadCatalog() {
         if (destroyed) return
         compatibleOptions.dismiss()
+        currentCheckInputs = null
+        invalidateCurrentChecks(PreviewCurrentUnavailable.INPUT_UNAVAILABLE)
         catalogPinRecovery.dismiss()
         catalogDetailBrowser?.retire()
         catalogDetailBrowser = null
@@ -547,6 +560,11 @@ class PreviewActivity : Activity() {
                 }
             }) { assets.open("pricebook.json") }
             val selectionSnapshot = componentSnapshot.takeIf { loaded.catalog != null }
+            val checkInputs = try { catalogBytes?.takeIf { loaded.catalog != null }?.let { bytes ->
+                assets.open("dependency-graph.json").use { graph -> assets.open("ruleset.json").use { rules ->
+                    CurrentDraftCheckSection.readInputs(bytes, graph, rules)
+                } }
+            } } catch (_: Exception) { null }
             val retention = if (loaded.catalog == null) null else
                 CatalogRetainedSnapshots.retain(noBackupFilesDir.toPath(), requireNotNull(catalogBytes))
             runOnUiThread {
@@ -560,6 +578,7 @@ class PreviewActivity : Activity() {
                         retention.reason == ai.pickyour.core.cache.CacheFailure.RETENTION_LIMIT)
                         R.string.catalog_retention_limit else R.string.catalog_retention_unconfirmed)
                     componentCatalog = selectionSnapshot
+                    currentCheckInputs = checkInputs
                     componentSection.catalog(loaded.catalog?.items.orEmpty(), loaded.catalog?.hash)
                     if (loaded.catalog == null) catalog.unavailable() else catalog.show(loaded.catalog)
                     catalogComparison.show(loaded.catalog, loaded.pricebook)
@@ -567,6 +586,7 @@ class PreviewActivity : Activity() {
                     updateIncomingComponent()
                     showSelection()
                     updateDraftSummary()
+                    updateCurrentChecks()
                 }
             }
         }
@@ -775,6 +795,7 @@ class PreviewActivity : Activity() {
     private fun formChanged(edited: Boolean = true) {
         if (destroyed) return
         if (::compatibleOptions.isInitialized) compatibleOptions.dismiss()
+        invalidateCurrentChecks(PreviewCurrentUnavailable.EDITING)
         updateContextState()
         if (restoringFields || !::saveStatus.isInitialized) return
         autosaveRequested = edited && !matchesSaved()
@@ -821,6 +842,7 @@ class PreviewActivity : Activity() {
             else -> PlanningDraftState.SAVED
         })
         updateDraftSummary()
+        updateCurrentChecks()
         updateAutosave()
     }
 
@@ -850,6 +872,35 @@ class PreviewActivity : Activity() {
             { workloadSection.reviewObjectiveInputs(pendingInputs) },
             { if (baseline != null) componentSection.reviewCurrentChoices(baseline) },
             { if (::planningSection.isInitialized) planningSection.reviewGuidance() })
+    }
+
+    private fun invalidateCurrentChecks(reason: PreviewCurrentUnavailable) {
+        currentCheckAuthority = Any()
+        if (::currentChecks.isInitialized) currentChecks.invalidate(reason)
+    }
+
+    private fun updateCurrentChecks() {
+        if (destroyed || !::currentChecks.isInitialized || !::workloadSection.isInitialized || !::componentSection.isInitialized) return
+        val record = savedRecord
+        val inputs = currentCheckInputs
+        val fixture = catalogFixture
+        val id = currentDraftId
+        val storage = storageAuthority
+        val authority = currentCheckAuthority
+        fun current() = !destroyed && !isFinishing && !isDestroyed && diagnosticsResumed &&
+            !entryBlocked && selectionResolved && storageReady && !storageBusy && matchesSaved() &&
+            savedRecord === record && currentDraftId == id && storageAuthority === storage && currentCheckAuthority === authority &&
+            currentCheckInputs === inputs && inputs != null && catalogFixture === fixture && retry.isEnabled &&
+            fixture?.catalog?.hash == inputs.catalogHash.hex && componentCatalog?.hash?.hex == inputs.catalogHash.hex &&
+            record != null && componentSection.canReviewCurrentChoices(record)
+        val reason = when {
+            !diagnosticsResumed -> PreviewCurrentUnavailable.BACKGROUND
+            storageBusy || !storageReady || !selectionResolved || entryBlocked -> PreviewCurrentUnavailable.STORAGE_UNCONFIRMED
+            !matchesSaved() || record != null && !componentSection.canReviewCurrentChoices(record) -> PreviewCurrentUnavailable.EDITING
+            inputs == null || !retry.isEnabled -> PreviewCurrentUnavailable.INPUT_UNAVAILABLE
+            else -> PreviewCurrentUnavailable.STORAGE_UNCONFIRMED
+        }
+        currentChecks.update(record, inputs, current(), authority, reason, ::current) { openPersistence(id).load() }
     }
 
     private fun updateAutosave() {
@@ -1627,10 +1678,12 @@ class PreviewActivity : Activity() {
         super.onResume()
         diagnosticsResumed = true
         updateDraftSummary()
+        updateCurrentChecks()
     }
 
     override fun onPause() {
         diagnosticsResumed = false
+        invalidateCurrentChecks(PreviewCurrentUnavailable.BACKGROUND)
         if (::compatibleOptions.isInitialized) compatibleOptions.dismiss()
         if (::draftSummary.isInitialized) draftSummary.retireActions()
         if (::diagnostics.isInitialized) diagnostics.dismiss()
@@ -1643,6 +1696,7 @@ class PreviewActivity : Activity() {
     override fun onDestroy() {
         destroyed = true
         if (::compatibleOptions.isInitialized) compatibleOptions.close()
+        if (::currentChecks.isInitialized) currentChecks.close()
         if (::draftSummary.isInitialized) draftSummary.close()
         autosave.close()
         savingInput = null

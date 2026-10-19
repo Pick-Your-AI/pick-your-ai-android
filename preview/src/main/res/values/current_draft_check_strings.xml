@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="current_check_heading">Saved draft checks</string>
+    <string name="current_check_limits">Local rule observations use the loaded synthetic catalog, dependency graph and rules. Free-text objective and context are not interpreted. Current cost and resource estimates are unavailable. These checks do not authorize deployment.</string>
+    <string name="current_check_rechecking">Rechecking saved revision %1$s. Results remain unavailable until its inputs and current revision are confirmed.</string>
+    <string name="current_check_current">Saved revision %1$s: %2$d pass, %3$d fail, %4$d unknown, %5$d skipped rule observations. Severity is shown separately in each finding.</string>
+    <string name="current_check_withheld">Checks for saved revision %1$s are unavailable: %2$s. The affected set remains visible; unavailable is not pass or a zero estimate.</string>
+    <string name="current_check_optional_unresolved">Optional tier intent is unknown or conflicts with enabled components</string>
+    <string name="current_check_work_limit">The local check exceeded its finite work limit</string>
+    <string name="current_check_binding_mismatch">A selected item does not match the exact loaded catalog identity and version</string>
+    <string name="current_check_unsupported">The loaded rule operation is outside this diagnostic profile</string>
+    <string name="current_check_invalid">The local diagnostic input or output could not be admitted</string>
+    <string name="current_check_pending">Checks are unavailable while editing. Save the current inputs before reevaluation.</string>
+    <string name="current_check_background">Current check authority was retired while this screen was inactive.</string>
+    <string name="current_check_inputs_unavailable">Checks are unavailable until the exact catalog, graph and rules are loaded.</string>
+    <string name="current_check_source_changed">The stored draft changed. Reopen or reconcile the editor before checking it again.</string>
+    <string name="current_check_failed">The current source or check could not be confirmed. Retry without treating an earlier result as current.</string>
+    <string name="current_check_unavailable">No evaluation is available for the current draft.</string>
+    <string name="current_check_affected">Selections to recheck: %1$s</string>
+    <string name="current_check_no_selections">no recorded selection IDs</string>
+    <string name="current_check_retry">Retry saved draft checks</string>
+    <string name="current_check_inspect">Inspect current rule observations</string>
+    <string name="current_check_page">Rule observations %1$d–%2$d of %3$d</string>
+    <string name="current_check_finding">Rule: %1$s\nOutcome: %2$s\nSeverity: %3$s\nObservation: %4$s\nRecorded guidance: %5$s\nAffected selections: %6$s\n\nNo external evidence or cost/resource estimate is supplied by this observation.</string>
+    <string name="current_check_back">Back to observations</string>
+    <string name="current_check_next">Next observations</string>
+    <string name="current_check_previous">Previous observations</string>
+    <item name="current_draft_check" type="id" />
+    <item name="current_draft_check_status" type="id" />
+    <item name="current_draft_check_affected" type="id" />
+    <item name="current_draft_check_retry" type="id" />
+    <item name="current_draft_check_inspect" type="id" />
+</resources>
