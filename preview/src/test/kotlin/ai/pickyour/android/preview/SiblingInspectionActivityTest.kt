@@ -6,6 +6,7 @@ import android.os.Looper
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.EditText
 import android.widget.TextView
 import ai.pickyour.core.cache.ArtifactHash
 import ai.pickyour.core.contracts.ContractDecimal
@@ -358,13 +359,69 @@ class SiblingInspectionActivityTest {
             share.performClick(); idle()
             val chooser = requireNotNull(shadowOf(activity).nextStartedActivity)
             assertEquals(Intent.ACTION_CHOOSER, chooser.action)
+            assertEquals(setOf(Intent.EXTRA_INTENT, Intent.EXTRA_TITLE), chooser.extras!!.keySet())
             val send = requireNotNull(chooser.getParcelableExtra<Intent>(Intent.EXTRA_INTENT))
             assertEquals(Intent.ACTION_SEND, send.action)
             assertEquals("text/plain", send.type)
+            assertEquals(setOf(Intent.EXTRA_TEXT), send.extras!!.keySet())
             assertEquals(text, send.getStringExtra(Intent.EXTRA_TEXT))
-            assertNull(send.data)
-            assertNull(send.clipData)
+            for (intent in listOf(chooser, send)) {
+                assertNull(intent.data)
+                // Android can migrate EXTRA_TEXT into ClipData while dispatching the chooser.
+                intent.clipData?.let { clip ->
+                    assertEquals(1, clip.itemCount)
+                    assertNull(clip.description.label)
+                    assertEquals(1, clip.description.mimeTypeCount)
+                    assertEquals("text/plain", clip.description.getMimeType(0))
+                    val item = clip.getItemAt(0)
+                    assertEquals(text, item.text.toString())
+                    assertNull(item.uri)
+                    assertNull(item.intent)
+                    assertNull(item.htmlText)
+                }
+                assertNull(intent.component)
+                assertNull(intent.`package`)
+                assertEquals(0, intent.flags and Intent.FLAG_GRANT_READ_URI_PERMISSION.inv())
+            }
             share.performClick(); idle()
+        }
+    }
+
+    @Test fun explicitCatalogComparisonRetiresSiblingActionsButKeepsTheAcceptedHistoryRoute() {
+        preservingSavedState {
+            for (kind in listOf("model", "compute_profile")) {
+                field<EditText>("catalogSearch").setText("cat.$kind.fixture")
+                fun samples() = views(field<CatalogBrowseSection>("catalog")).filterIsInstance<Button>()
+                    .filter { it.text.toString().contains("FICTIONAL") }
+                await { samples().size == 1 }
+                samples().single().performClick(); idle()
+                val detail = dialog()
+                button(R.string.catalog_compare_add, detail.window!!.decorView).performClick(); idle()
+                assertFalse(detail.isShowing)
+            }
+            val compare = button(R.string.catalog_compare_open)
+            assertTrue(compare.isEnabled)
+            val help = helpDestination()
+            val oldOpen = help.findViewById<Button>(R.id.help_external_open)
+            compare.performClick(); idle()
+            val comparison = dialog()
+            assertFalse(help.isShowing)
+            oldOpen.performClick(); unchangedWindow(comparison)
+            val diagnostics = openDiagnostics()
+            val oldShare = diagnostics.findViewById<Button>(R.id.diagnostic_share)
+            compare.performClick(); idle()
+            val next = dialog()
+            assertFalse(diagnostics.isShowing)
+            oldShare.performClick(); unchangedWindow(next)
+            button(R.string.draft_history).performClick(); idle()
+            val history = dialog()
+            assertTrue(history.listView.adapter.count > 0)
+            compare.performClick(); idle()
+            val historicalComparison = dialog()
+            assertTrue("An accepted History route remains live across catalog comparison", history.isShowing)
+            choose(history)
+            assertFalse("The live History child retires the newer comparison", historicalComparison.isShowing)
+            assertNotSame(historicalComparison, dialog())
         }
     }
 
