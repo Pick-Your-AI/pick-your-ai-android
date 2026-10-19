@@ -15,6 +15,7 @@ internal enum class PlanningDraftState { LOADING, UNAVAILABLE, UNSAVED, SAVED, P
 internal class T6PlanningSection(
     private val activity: Activity,
     private val alive: () -> Boolean,
+    onReferenceNavigation: () -> Unit,
     browse: (PreviewT6Kind) -> Unit,
 ) : LinearLayout(activity) {
     private val source: TextView
@@ -59,6 +60,7 @@ internal class T6PlanningSection(
             })
             recorded
         }
+        addView(DeploymentPlanningGuides(activity, alive, onReferenceNavigation))
         update(null, PlanningDraftState.LOADING)
     }
 
