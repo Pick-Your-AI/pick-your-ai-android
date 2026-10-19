@@ -243,6 +243,12 @@ optional absence. Shared Python/Kotlin mutation cases and malformed-input tests
 cover this structural boundary; decoding does not authenticate or execute an
 evaluation, bind it to the current build, or certify its reported result.
 
+The [dependency graph decoder](DEPENDENCY_GRAPH_BOUNDARY.md) retains all frozen
+edge fields, order, duplicate/cyclic relationships and exact revisions as immutable
+values. Shared Python/Kotlin cases cover the structural boundary. An explicit
+overload projects those values into the existing direct-adjacency invalidation
+algorithm without changing its activation truth table or authorizing graph policy.
+
 The [frozen Event decoder](FROZEN_EVENT_BOUNDARY.md) retains every event and payload
 field as immutable typed values, with exact subject revisions and explicit optional
 presence. Shared Python/Kotlin cases exercise the unchanged schema. Decoding adds
