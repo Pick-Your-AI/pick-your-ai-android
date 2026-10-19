@@ -79,6 +79,10 @@ Git/Gradle/Kotlin bookkeeping and local SDK configuration are outside this sourc
 guard; external build-tool inputs are outside its project-source claim. This does
 not turn the build into a hermetic environment attestation.
 
+Git status, commit/tree lookup and tracked-blob inspection use literal objects
+with replacement lookup disabled. A local replacement ref cannot substitute a
+different source tree under the unchanged commit identifier.
+
 Each CI job also runs an actual ignored-input rejection regression. The helper
 creates a private disposable Git checkout, confirms clean Git status with an
 ignored schema or asset, executes the real pinned offline build, verifies the
