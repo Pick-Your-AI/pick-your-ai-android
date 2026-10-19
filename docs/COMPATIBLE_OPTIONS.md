@@ -281,8 +281,13 @@ disabled proposals, explicit saved optional activation, and narrow RTL/large-tex
 catalog variants in these tests are synthetic inputs, not a live catalog or a
 new rule policy. Original failed development runs remain separately attributed.
 
-Android #96 remains open for exact current-source receiving evidence, native
-prerequisite and affected-consumer acceptance, installed/device qualification and
-the original canonical `07.02.md` acceptance record. Its website record path is
-not relocated by this code. This document makes no new shared-service or v1
-compatibility decision and claims no whole-issue closure.
+The actual delegated data-consumer and Android catalog/UX decisions accept all
+four literal #96 behaviors/tasks for the selected private profile, with their
+exact source and original-execution constraints. The [07.02 receiving record](delivery/android/work-packages/07.02.md)
+and [ADR 0013](decisions/0013-android-96-acceptance-record.md) preserve the historical
+website destination and propose its explicit Android placement through independent
+review and normal delivery. Current-source qualification, signed implementation
+and record delivery, post-main verification and strict-ledger reconciliation must
+be observed before #96 closes. Product/device and release qualification retain
+their separate acceptance-baseline gates; no extra device criterion or new shared
+service/v1 compatibility policy is introduced by this local comparison.

@@ -146,7 +146,7 @@ class CatalogPinRecoveryActivityTest {
     }
     private fun worker() = PreviewActivity::class.java.getDeclaredField("worker").apply { isAccessible = true }.get(activity) as ExecutorService
 
-    @Test fun currentPinnedInspectionUsesCapturedDetailsWithoutCreatingACacheOrSaving() {
+    @Test fun currentPinnedInspectionUsesCapturedDetailsWithoutChangingRetainedBytesOrSaving() {
         save()
         val baseline = loaded().baselineIdentity
         field(R.string.draft_title).setText("pending pinned inspection")
@@ -154,7 +154,7 @@ class CatalogPinRecoveryActivityTest {
         field(R.string.workload_budget).setText("12.00")
         addPin("compute_profile")
         val before = state()
-        assertFalse(Files.exists(cacheRoot()))
+        val retainedBefore = files(cacheRoot())
         inspect().performClick()
         awaitResult(R.string.catalog_pin_captured)
         assertTrue(message().contains("cat.compute_profile.fixture"))
@@ -163,7 +163,7 @@ class CatalogPinRecoveryActivityTest {
         assertTrue(message().contains(activity.getString(R.string.catalog_pin_prices)))
         assertTrue(message().contains(activity.getString(R.string.catalog_price_unavailable)))
         assertFalse(message().contains("Recorded unit_price.amount:"))
-        assertFalse(Files.exists(cacheRoot()))
+        assertEquals(retainedBefore, files(cacheRoot()))
         dialogButton(R.string.catalog_pin_browse).performClick()
         idle()
         assertFalse(dialog().isShowing)
@@ -213,12 +213,14 @@ class CatalogPinRecoveryActivityTest {
         val current = document().put("revision", 6)
         showCatalog(current)
         val before = state()
+        val retainedBefore = files(cacheRoot())
         inspect().performClick()
         awaitResult(R.string.catalog_pin_missing)
         val failed = dialog()
         assertTrue(message().contains(pin(old).snapshotHash))
-        assertFalse(Files.exists(cacheRoot()))
+        assertEquals(retainedBefore, files(cacheRoot()))
         val cache = cache()
+        assertEquals(CacheRead.Missing, cache.pinned(hash(bytes(old))))
         install(cache, bytes(old))
         install(cache, bytes(current))
         val disk = files(cacheRoot())
@@ -454,14 +456,15 @@ class CatalogPinRecoveryActivityTest {
         oldEntry.performClick(); oldRetry.performClick(); idle()
         assertSame(oldDialog, dialog())
         inspect().performClick()
-        awaitResult(R.string.catalog_pin_missing)
-        val missing = dialog()
-        val missedRetry = dialogButton(R.string.catalog_pin_retry)
+        awaitResult(R.string.catalog_pin_retained)
+        assertTrue(message().contains(before.getStringArrayList("comparisonHashes")!!.single()))
+        val retainedSnapshot = dialog()
+        val retainedSnapshotRetry = dialogButton(R.string.catalog_pin_retry)
         button(R.string.retry_catalog).performClick()
         await { button(R.string.retry_catalog).isEnabled }
-        assertFalse(missing.isShowing)
-        missedRetry.performClick(); idle()
-        assertSame(missing, dialog())
+        assertFalse(retainedSnapshot.isShowing)
+        retainedSnapshotRetry.performClick(); idle()
+        assertSame(retainedSnapshot, dialog())
         inspect().performClick()
         awaitResult(R.string.catalog_pin_captured)
         val beforeRecreation = dialog()
@@ -556,6 +559,12 @@ class CatalogPinRecoveryActivityTest {
         val cache = VerifiedArtifactCache(target, PreviewCatalogPinResolver.MAX_BYTES)
         install(cache, bytes(old))
         val beforeFiles = files(target)
+        // Replace only the known initial bundled-cache fixture with this test's foreign symlink.
+        val bundled = activity.assets.open("catalog.json").use { it.readBytes() }
+        val initial = files(cacheRoot())
+        assertEquals(setOf("active", "lock", "${hash(bundled).hex}.bin"), initial.keys)
+        initial.keys.forEach { Files.delete(cacheRoot().resolve(it)) }
+        Files.delete(cacheRoot())
         Files.createSymbolicLink(cacheRoot(), target)
         restorePin(pin(old))
         val before = state()

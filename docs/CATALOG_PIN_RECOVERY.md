@@ -30,10 +30,11 @@ The Android adapter reads only an already existing
 file type, size, hash and nonblocking-lock checks to the existing cache. The read
 uses the cache's ordinary coordination lock; it never reads or activates the
 active pointer, creates the catalog directory, installs an artifact, evicts a
-snapshot or repairs corrupt bytes. The current fixture loader does not populate
-this directory. Real catalog acquisition, authenticated publication and a reviewed
-archive retention/installation path remain separate work; a missing directory
-simply produces the explicit unavailable result.
+snapshot or repairs corrupt bytes. The bundled synthetic loader now has a
+separate bounded retention path described below; inspection itself remains
+read-only. Real catalog acquisition and authenticated publication remain separate
+work. A missing directory still produces the explicit unavailable inspection
+result without creating it.
 
 Retained input uses the existing preview bounds: at most 1 MiB, 256 items and the
 bounded JSON reader's depth, token, string and numeric budgets. The recognized
@@ -75,6 +76,58 @@ count disclosure. **Review all recorded details** opens every projected field an
 provenance entry in a [complete-value browser](CATALOG_DETAIL_BROWSER.md) belonging
 to this same exact historical request. It preserves every retained character
 through bounded escaped parts without acquiring a pricebook or activating bytes.
+
+## Separate bundled retention (#87, #104, partial)
+
+After the bundled fixture passes the existing catalog reader, the Activity's
+existing worker submits its exact original bytes to `PreviewCatalogRetention`.
+This separate ingress copies and validates the bounded frozen snapshot before
+provisioning `catalog-snapshots-v1` under the existing private application root.
+It rejects a missing root, a symbolic-link directory or a foreign file without
+following, replacing or repairing it. It retains no pricebook and receives no
+network or user-imported content.
+
+The engineering budget is **16 immutable snapshots and 16 MiB of managed payloads**,
+with the existing 1 MiB and 256-item input bounds. New installations use
+`VerifiedArtifactCache`'s locked hash verification, forced bytes, atomic publication
+and directory synchronization. An already retained pin is independently verified
+and its directory entry is forced before successful reuse is reported. This
+confirms a readable artifact left by an interrupted publication without moving a
+different active cache pointer. Provisioning also forces the private parent
+directory, including when retrying a previously created child. These local
+filesystem checks do not establish physical-device power-loss behavior.
+
+Ordinary retention never evicts old pins or expands its budget. A new version
+that cannot fit leaves every old immutable payload and the previous cache head
+intact. Exact existing pins remain usable at quota. Managed-payload accounting
+has the same [limits and exclusions](CACHE_RETENTION_LIMITS.md) as the existing
+cache policy; it is not a whole-application filesystem quota or proof of free space.
+
+Retention failure does not discard the valid in-memory catalog, disable browsing
+or save pending draft edits. A separate polite status explains either the finite
+history limit or that keeping the version could not be confirmed. The existing
+**Reload bundled catalog** action starts a fresh attempt. Busy, failed, cancelled
+and uncertain installations are not reported as successful retention. A later
+explicit load may confirm exact bytes by rereading and forcing their directory;
+it does not treat the earlier uncertain result as an acknowledgement. Corrupt
+immutable content remains unchanged for explicit recovery or repair outside
+this ingress.
+
+The current catalog still comes from the selected bundled fixture, and historical
+inspection still resolves only its captured exact pin. A cache active pointer
+never substitutes another catalog for a requested snapshot. This bounded synthetic
+path grants no publication authority, source-use permission, real-data promotion,
+price coverage, automated refresh, product quota or whole-issue acceptance.
+
+Twelve focused Core cases cover exact old/new pins, reopening, a finite quota,
+unsupported/invalid/oversized input, symlinks, failed provisioning, interrupted
+publication, required directory synchronization on reuse, typed busy/cancelled
+outcomes and immutable bytes. Three Activity cases exercise the actual bundled
+loader through recreation, an explicit failed-to-successful retry and a full
+non-evicting history while preserving pending edits. The pre-existing pin recovery
+cases continue to verify that inspection does not alter retained bytes or draft
+state. Normal current-tree build, lint and simulated-test evidence remain distinct
+from installed-device and canonical receiving acceptance.
 
 ## Native lifetime and presentation
 
