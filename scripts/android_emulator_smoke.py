@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import contextlib
+from collections import Counter
+from decimal import Decimal, InvalidOperation
 import hashlib
 import json
 import os
@@ -12,12 +14,14 @@ import platform
 import re
 import signal
 import stat
+import struct
 import subprocess
 import sys
 import tempfile
 import time
 import uuid
 import xml.etree.ElementTree as ET
+import zlib
 
 
 PACKAGE = "ai.pickyour.android.preview"
@@ -58,6 +62,16 @@ UI_SCROLL_MAX_STEPS = 64
 UI_ROTATION_TIMEOUT_SECONDS = 30
 UI_ROTATION_STATE_TEXT_LIMIT = 65536
 ROTATION_STATE_QUERY = ("shell", "dumpsys", "-t", "3", "activity", "activities")
+SYSTEM_BAR_CHECKPOINTS = (
+    "05-pending-portrait", "06-explicit-delete-confirmation",
+    "07-deleted-editor-keeps-pending-fields", "08-deleted-draft-stays-absent-after-relaunch",
+)
+SYSTEM_BAR_WINDOW_QUERY = ("shell", "dumpsys", "-t", "3", "window")
+SYSTEM_BAR_LIGHTBAR_QUERY = ("shell", "dumpsys", "-t", "3", "activity", "service",
+                            "com.android.systemui/.SystemUIService", "LightBarController")
+SYSTEM_BAR_WINDOW_LIMIT = 262144
+SYSTEM_BAR_PNG_LIMIT = 8388608
+SYSTEM_BAR_MINIMUM_CONTRAST = 3.0
 GUEST_READINESS_COMMANDS = (
     ("boot_completed", ("getprop", "sys.boot_completed"), ("1",)),
     ("boot_animation", ("getprop", "init.svc.bootanim"), ("", "stopped")),
@@ -680,7 +694,8 @@ def observe_startup_display(device, avd_root: Path, receipt: dict) -> None:
 
 
 def complete_receipt(receipt: dict, source_sha: str, expected_mode: str | None = None,
-                     expected_display_profile: str | None = None) -> None:
+                     expected_display_profile: str | None = None,
+                     expected_system_bar_evidence: bool = False) -> None:
     require(receipt.get("source_commit") == source_sha, "Receipt source commit differs")
     require(receipt.get("scope") == "owned-installed-aosp-emulator", "Wrong evidence scope")
     require(receipt.get("status") == "passed", "Installed smoke did not pass")
@@ -725,6 +740,15 @@ def complete_receipt(receipt: dict, source_sha: str, expected_mode: str | None =
             "Complete owned-guest readiness evidence is missing")
     require(interactive_readiness_passes(readiness.get("interactive")),
             "Complete pre-installation framework/home readiness evidence is missing")
+    if expected_system_bar_evidence or "system_bar_evidence" in receipt:
+        require(system_bar_evidence_passes(receipt.get("system_bar_evidence")),
+                "Complete installed navigation contrast/window evidence is missing or failed")
+        require(startup_display_passes(receipt.get("startup_display"),
+                                       receipt["system_bar_evidence"]["profile"]),
+                "Installed navigation evidence has no matching qualified startup display")
+        require(receipt["system_bar_evidence"]["source_commit"] == source_sha
+                and receipt["system_bar_evidence"]["unsigned_apk_sha256"] == receipt.get("unsigned_apk_sha256"),
+                "Installed navigation evidence belongs to another source or APK")
 
 
 class Device:
@@ -1091,9 +1115,395 @@ def default_display_rotation_state(text: str) -> dict | None:
             "user_rotation": ("ROTATION_0", "ROTATION_90", "ROTATION_180", "ROTATION_270").index(requested_rotation)}
 
 
+def decode_navigation_png(data: bytes) -> tuple[int, int, bytearray]:
+    """Decode only the observed fixed-rig 8-bit, non-interlaced sRGB RGBA format.
+
+    Original bytes are never changed. Both compressed input and inflation are
+    bounded; unsupported profiles/chunks fail instead of guessing their colors.
+    """
+    require(isinstance(data, bytes) and 8 < len(data) <= SYSTEM_BAR_PNG_LIMIT
+            and data[:8] == b"\x89PNG\r\n\x1a\n", "Unsupported or oversized navigation PNG")
+    offset, width, height = 8, 0, 0
+    kinds, compressed = [], bytearray()
+    while offset < len(data):
+        require(offset + 12 <= len(data), "Truncated navigation PNG chunk")
+        length = struct.unpack_from(">I", data, offset)[0]
+        kind = data[offset + 4:offset + 8]
+        end = offset + 12 + length
+        require(end <= len(data), "Truncated navigation PNG payload")
+        payload = data[offset + 8:end - 4]
+        require(zlib.crc32(kind + payload) & 0xffffffff == struct.unpack_from(">I", data, end - 4)[0],
+                "Navigation PNG chunk CRC differs")
+        require(kind in (b"IHDR", b"sRGB", b"sBIT", b"IDAT", b"IEND"),
+                "Unqualified navigation PNG chunk or color profile")
+        if kind == b"IHDR":
+            require(not kinds and length == 13, "Duplicate or misplaced navigation PNG header")
+            width, height, depth, color, compression, filtering, interlace = struct.unpack(">IIBBBBB", payload)
+            require((width, height) == (720, 1280) and (depth, color, compression, filtering, interlace)
+                    == (8, 6, 0, 0, 0), "Navigation PNG does not match the qualified portrait raster")
+        elif kind == b"sRGB":
+            require(kinds == [b"IHDR"] and payload == b"\x00", "Unqualified navigation PNG sRGB intent")
+        elif kind == b"sBIT":
+            require(kinds == [b"IHDR", b"sRGB"] and payload == b"\x08\x08\x08\x08",
+                    "Unqualified navigation PNG component precision")
+        elif kind == b"IDAT":
+            require(kinds[:3] == [b"IHDR", b"sRGB", b"sBIT"]
+                    and all(value == b"IDAT" for value in kinds[3:]), "Misordered navigation PNG data")
+            compressed.extend(payload)
+        else:
+            require(length == 0 and end == len(data) and b"IDAT" in kinds,
+                    "Missing image data or trailing navigation PNG content")
+        # One marker represents all consecutive IDAT chunks, including empty
+        # chunks. Header/order validation therefore has constant work per chunk.
+        if kind != b"IDAT" or kinds[-1] != b"IDAT":
+            kinds.append(kind)
+        offset = end
+    require(kinds and kinds[-1] == b"IEND", "Missing navigation PNG end")
+    stride = width * 4
+    expected = height * (stride + 1)
+    inflater = zlib.decompressobj()
+    raw = inflater.decompress(compressed, expected + 1)
+    require(len(raw) == expected and inflater.eof and not inflater.unused_data
+            and not inflater.unconsumed_tail, "Navigation PNG inflation differs from bounded image size")
+    pixels, previous = bytearray(), bytearray(stride)
+    for y in range(height):
+        start = y * (stride + 1)
+        method = raw[start]
+        require(method in range(5), "Unknown navigation PNG row filter")
+        row = bytearray(raw[start + 1:start + 1 + stride])
+        if method:
+            for x in range(stride):
+                left = row[x - 4] if x >= 4 else 0
+                above = previous[x]
+                upper_left = previous[x - 4] if x >= 4 else 0
+                if method == 1:
+                    predictor = left
+                elif method == 2:
+                    predictor = above
+                elif method == 3:
+                    predictor = (left + above) // 2
+                else:
+                    estimate = left + above - upper_left
+                    distances = (abs(estimate - left), abs(estimate - above), abs(estimate - upper_left))
+                    predictor = (left, above, upper_left)[distances.index(min(distances))]
+                row[x] = (row[x] + predictor) & 255
+        pixels.extend(row)
+        previous = row
+    return width, height, pixels
+
+
+def navigation_contrast(first: tuple[int, ...], second: tuple[int, ...]) -> float:
+    def luminance(color):
+        channels = [value / 255 for value in color[:3]]
+        linear = [value / 12.92 if value <= 0.04045 else ((value + 0.055) / 1.055) ** 2.4
+                  for value in channels]
+        return sum(value * weight for value, weight in zip(linear, (0.2126, 0.7152, 0.0722)))
+    values = sorted((luminance(first), luminance(second)))
+    return (values[1] + 0.05) / (values[0] + 0.05)
+
+
+def navigation_image(png: bytes, xml: bytes, *, modal_text: str | None = None,
+                     modal_button: str | None = None) -> tuple[list[tuple[int, ...]], dict]:
+    width, height, pixels = decode_navigation_png(png)
+    require(isinstance(xml, bytes) and 0 < len(xml) <= 262144, "Unqualified navigation hierarchy size")
+    root = ET.fromstring(xml)
+    nodes = list(root.iter("node"))
+    require(root.tag == "hierarchy" and root.get("rotation") == "0" and nodes
+            and all(node.get("package") == PACKAGE for node in nodes),
+            "Navigation hierarchy is not the fresh owned portrait window")
+    bars = [node for node in nodes if node.get("resource-id") == "android:id/navigationBarBackground"]
+    if modal_text is None:
+        require(len(bars) == 1 and bars[0].get("class") == "android.view.View"
+                and bars[0].get("enabled") == "true" and bounds(bars[0]) == (0, 1196, 720, 1280),
+                "Missing or ambiguous fixed-rig navigation background")
+    else:
+        messages = [node for node in nodes if modal_text.casefold() in node.get("text", "").casefold()]
+        buttons = [node for node in nodes if node.get("text", "").casefold() == modal_button.casefold()
+                   and node.get("class") == BUTTON and node.get("enabled") == "true"]
+        require(not bars and len(messages) == 1 and len(buttons) == 1
+                and all(visible(node) and bounds(node)[2] <= width and bounds(node)[3] <= height
+                        for node in messages + buttons),
+                "Navigation modal hierarchy identity is missing or ambiguous")
+    # The ordinary hierarchy identifies this fixed-rig rectangle. Modal hierarchies
+    # omit the underlying bar; the paired same-size image must preserve its glyph geometry.
+    region = [tuple(pixels[index:index + 4]) for index in range(1196 * width * 4, len(pixels), 4)]
+    require(len(region) == 60480 and all(color[3] == 255 for color in region),
+            "Navigation region is incomplete or transparent")
+    return region, {"png_bytes": len(png), "png_sha256": hashlib.sha256(png).hexdigest(),
+                    "xml_bytes": len(xml), "xml_sha256": hashlib.sha256(xml).hexdigest(),
+                    "dimensions": [width, height], "bounds": [0, 1196, 720, 1280]}
+
+
+def navigation_components(region: list[tuple[int, ...]], color: tuple[int, ...]) -> list[set[int]]:
+    remaining = {index for index, value in enumerate(region) if value == color}
+    components = []
+    while remaining:
+        seed = min(remaining)
+        remaining.remove(seed)
+        component, pending = {seed}, [seed]
+        while pending:
+            index = pending.pop()
+            x, y = index % 720, index // 720
+            neighbors = ([index - 1] if x else []) + ([index + 1] if x < 719 else [])
+            neighbors += ([index - 720] if y else []) + ([index + 720] if y < 83 else [])
+            for neighbor in neighbors:
+                if neighbor in remaining:
+                    remaining.remove(neighbor)
+                    component.add(neighbor)
+                    pending.append(neighbor)
+        components.append(component)
+    components.sort(key=lambda group: min(index % 720 for index in group))
+    require(len(components) == 3, "Ordinary navigation glyph geometry is ambiguous")
+    for position, component in enumerate(components):
+        xs, ys = [index % 720 for index in component], [index // 720 for index in component]
+        require(250 <= len(component) <= 900 and position * 240 + 16 <= min(xs)
+                and max(xs) < (position + 1) * 240 - 16 and 12 <= max(xs) - min(xs) + 1 <= 48
+                and 12 <= max(ys) - min(ys) + 1 <= 48 and min(ys) >= 12 and max(ys) < 72,
+                "Ordinary navigation glyph placement is outside the fixed rig")
+    return components
+
+
+def measure_navigation_pair(reference_png: bytes, reference_xml: bytes, modal_png: bytes,
+                            modal_xml: bytes, modal_text: str, modal_button: str) -> dict:
+    reference, reference_identity = navigation_image(reference_png, reference_xml)
+    modal, modal_identity = navigation_image(modal_png, modal_xml, modal_text=modal_text,
+                                             modal_button=modal_button)
+    common = Counter(reference).most_common()
+    require(len(common) >= 2 and common[0][1] * 100 >= len(reference) * 95
+            and 1000 <= common[1][1] <= 2700
+            and (len(common) == 2 or common[2][1] * 10 < common[1][1]),
+            "Ordinary navigation color populations are ambiguous")
+    background, foreground = common[0][0], common[1][0]
+    groups = navigation_components(reference, foreground)
+    reference_ratio = navigation_contrast(background, foreground)
+    require(reference_ratio >= SYSTEM_BAR_MINIMUM_CONTRAST, "Ordinary navigation contrast is below 3:1")
+    background_indices = [index for index, color in enumerate(reference) if color == background]
+    modal_background, background_count = Counter(modal[index] for index in background_indices).most_common(1)[0]
+    require(background_count * 100 >= len(background_indices) * 95,
+            "Modal navigation background is not a uniform paired region")
+    measured = []
+    for group in groups:
+        color, count = Counter(modal[index] for index in group).most_common(1)[0]
+        require(count * 100 >= len(group) * 95 and color != modal_background,
+                "Modal navigation glyph is absent or differs from paired geometry")
+        ratio = navigation_contrast(color, modal_background)
+        measured.append({"reference_solid_pixels": len(group), "matching_modal_pixels": count,
+                         "modal_glyph_rgb": list(color[:3]), "contrast": ratio,
+                         "reference_bounds": [min(index % 720 for index in group),
+                                              min(index // 720 for index in group) + 1196,
+                                              max(index % 720 for index in group) + 1,
+                                              max(index // 720 for index in group) + 1197]})
+    require(len({tuple(row["modal_glyph_rgb"]) for row in measured}) == 1,
+            "Modal navigation glyph colors are inconsistent")
+    return {"reference": reference_identity, "modal": modal_identity,
+            "reference_background_rgb": list(background[:3]), "reference_glyph_rgb": list(foreground[:3]),
+            "reference_contrast": reference_ratio, "modal_background_rgb": list(modal_background[:3]),
+            "minimum_contrast": SYSTEM_BAR_MINIMUM_CONTRAST, "glyphs": measured,
+            "status": "passed" if all(row["contrast"] >= SYSTEM_BAR_MINIMUM_CONTRAST for row in measured)
+            else "failed_contrast"}
+
+
+def retain_system_bar_window(device: Device, output: Path, receipt: dict, name: str) -> None:
+    state = receipt.setdefault("system_bar_evidence", {"scope": "fixed-rig-navigation-contrast",
+        "profile": receipt.get("startup_display", {}).get("profile"), "serial": SERIAL,
+        "source_commit": receipt.get("source_commit"), "unsigned_apk_sha256": receipt.get("unsigned_apk_sha256"),
+        "window_observations": {}})
+    observations = state["window_observations"]
+    require(name in SYSTEM_BAR_CHECKPOINTS and name not in observations,
+            "Duplicate or unexpected system-bar checkpoint")
+    observed = {"phase": "after_original_png_capture", "command": {},
+                "png_sha256": digest(output / (name + ".png")), "xml_sha256": digest(output / (name + ".xml"))}
+    observations[name] = observed
+    try:
+        observe_interactive_command(device, SYSTEM_BAR_WINDOW_QUERY, observed["command"],
+                                    timeout=5, retained_limit=SYSTEM_BAR_WINDOW_LIMIT)
+    except Exception as error:
+        observed["error"] = {"type": type(error).__name__, "message": bounded_text(str(error), 1200)}
+    # Keep every partial result and all later original checkpoints. Final acceptance
+    # rejects an incomplete query; this observation cannot rescue a product failure.
+    retained = observed["command"].get("stdout_tail", "")
+    path = output / (name + ".window.txt")
+    path.write_text(retained, encoding="utf-8")
+    observed["retained_text_file"] = path.name
+    observed["retained_text_sha256"] = hashlib.sha256(retained.encode("utf-8")).hexdigest()
+
+    # This separate read observes SystemUI's tint decision after the original PNG
+    # and WindowManager query. It is not an atomic reconstruction of either read.
+    light_observations = state.setdefault("light_bar_observations", {})
+    require(name not in light_observations, "Duplicate SystemUI light-bar checkpoint")
+    light = {"phase": "after_original_png_and_window_observation", "command": {},
+             "png_sha256": observed["png_sha256"], "xml_sha256": observed["xml_sha256"]}
+    light_observations[name] = light
+    try:
+        observe_interactive_command(device, SYSTEM_BAR_LIGHTBAR_QUERY, light["command"],
+                                    timeout=5, retained_limit=SYSTEM_BAR_WINDOW_LIMIT)
+    except Exception as error:
+        light["error"] = {"type": type(error).__name__, "message": bounded_text(str(error), 1200)}
+    retained = light["command"].get("stdout_tail", "")
+    path = output / (name + ".lightbar.txt")
+    path.write_text(retained, encoding="utf-8")
+    light["retained_text_file"] = path.name
+    light["retained_text_sha256"] = hashlib.sha256(retained.encode("utf-8")).hexdigest()
+
+
+def qualify_system_bar_evidence(output: Path, receipt: dict) -> None:
+    state = receipt.setdefault("system_bar_evidence", {})
+    state["status"] = "unqualified"
+    pairs = state["pairs"] = {}
+    try:
+        require(receipt.get("startup_display", {}).get("profile") == "raster-720x1280-280",
+                "System-bar image qualification requires the observed fixed raster profile")
+        for reference, modal, text, button in (
+                (SYSTEM_BAR_CHECKPOINTS[0], SYSTEM_BAR_CHECKPOINTS[1],
+                 "Permanently delete local ID guest-draft", "Delete local draft"),
+                (SYSTEM_BAR_CHECKPOINTS[2], SYSTEM_BAR_CHECKPOINTS[3],
+                 "No local draft directories found.", "Close")):
+            row = pairs[modal] = {"status": "unqualified", "reference_checkpoint": reference}
+            try:
+                row.update(measure_navigation_pair(
+                    (output / (reference + ".png")).read_bytes(), (output / (reference + ".xml")).read_bytes(),
+                    (output / (modal + ".png")).read_bytes(), (output / (modal + ".xml")).read_bytes(),
+                    text, button))
+            except Exception as error:
+                row["error"] = {"type": type(error).__name__, "message": bounded_text(str(error), 1200)}
+        state["status"] = "passed"
+        require(system_bar_evidence_passes(state), "Installed navigation images or window observations did not qualify")
+    except Exception as error:
+        state["status"] = "failed"
+        state["error"] = {"type": type(error).__name__, "message": bounded_text(str(error), 1200)}
+        raise
+
+
+def lightbar_intensity_fields_pass(text: str) -> bool:
+    """Admit finite Java float spellings without rounding or interpreting tint."""
+    for field in ("mPendingDarkIntensity", "mDarkIntensity", "mNextDarkIntensity"):
+        values = re.findall(r"\b" + field + r"=(\S*)", text)
+        if len(values) != 1 or len(values[0]) > 32 or re.fullmatch(
+                r"[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?", values[0]) is None:
+            return False
+        try:
+            value = Decimal(values[0])
+            if not value.is_finite() or not 0 <= value <= 1:
+                return False
+        except InvalidOperation:
+            return False
+    return True
+
+
+def system_bar_evidence_passes(state: dict) -> bool:
+    if not (isinstance(state, dict) and state.get("scope") == "fixed-rig-navigation-contrast"
+            and state.get("profile") == "raster-720x1280-280" and state.get("serial") == SERIAL
+            and state.get("status") == "passed" and "error" not in state
+            and isinstance(state.get("window_observations"), dict)
+            and set(state["window_observations"]) == set(SYSTEM_BAR_CHECKPOINTS)
+            and isinstance(state.get("light_bar_observations"), dict)
+            and set(state["light_bar_observations"]) == set(SYSTEM_BAR_CHECKPOINTS)
+            and isinstance(state.get("pairs"), dict)
+            and set(state["pairs"]) == {SYSTEM_BAR_CHECKPOINTS[1], SYSTEM_BAR_CHECKPOINTS[3]}
+            and isinstance(state.get("source_commit"), str)
+            and re.fullmatch(r"[0-9a-f]{40}", state["source_commit"]) is not None
+            and isinstance(state.get("unsigned_apk_sha256"), str)
+            and re.fullmatch(r"[0-9a-f]{64}", state["unsigned_apk_sha256"]) is not None):
+        return False
+    for name, observation in state["window_observations"].items():
+        if not (isinstance(observation, dict) and observation.get("phase") == "after_original_png_capture"
+                and "error" not in observation and isinstance(observation.get("command"), dict)):
+            return False
+        command = observation["command"]
+        if not (interactive_command_passes(command, SYSTEM_BAR_WINDOW_QUERY, SYSTEM_BAR_WINDOW_LIMIT)
+                and command.get("timeout_seconds") == 5 and "DUMP TIMEOUT" not in command["stdout_tail"]
+                and type(command.get("seconds")) in (int, float) and 0 <= command["seconds"] <= 5
+                and "Error dumping service info:" not in command["stdout_tail"]
+                and command["stdout_tail"].startswith("WINDOW MANAGER ")
+                and observation.get("retained_text_file") == name + ".window.txt"
+                and observation.get("retained_text_sha256")
+                == hashlib.sha256(command["stdout_tail"].encode("utf-8")).hexdigest()):
+            return False
+        light = state["light_bar_observations"][name]
+        if not (isinstance(light, dict) and "error" not in light
+                and light.get("phase") == "after_original_png_and_window_observation"
+                and isinstance(light.get("command"), dict)
+                and all(light.get(key) == observation.get(key) for key in ("png_sha256", "xml_sha256"))):
+            return False
+        command = light["command"]
+        if not (interactive_command_passes(command, SYSTEM_BAR_LIGHTBAR_QUERY, SYSTEM_BAR_WINDOW_LIMIT)
+                and command.get("timeout_seconds") == 5
+                and type(command.get("seconds")) in (int, float) and 0 <= command["seconds"] <= 5
+                and "DUMP TIMEOUT" not in command["stdout_tail"]
+                and "Error dumping service info:" not in command["stdout_tail"]
+                and light.get("retained_text_file") == name + ".lightbar.txt"
+                and light.get("retained_text_sha256")
+                == hashlib.sha256(command["stdout_tail"].encode("utf-8")).hexdigest()):
+            return False
+        # Require the named target and its raw state to be present. No missing
+        # field is defaulted to zero/false or interpreted as a pixel/tint result.
+        text = command["stdout_tail"]
+        if not (re.search(r"^\s*SERVICE com\.android\.systemui/\.SystemUIService\b", text, re.M)
+                and re.search(r"^\s*LightBarController:\s*$", text, re.M)
+                and re.search(r"^\s*mAppearance=.*$", text, re.M)
+                and all(re.search(r"^\s*" + field + r"=(true|false)\s*$", text, re.M)
+                        for field in ("mNavigationLight", "mHasLightNavigationBar", "mForceDarkForScrim",
+                                      "mForceLightForScrim", "mNavbarColorManagedByIme"))
+                and len(re.findall(r"^\s*NavigationBarTransitionsController:\s*$", text, re.M)) == 1
+                and re.search(r"^\s*Dump took [0-9]+ms\s*$", text, re.M)):
+            return False
+        navigation = re.split(r"^\s*NavigationBarTransitionsController:\s*$", text, flags=re.M)[1]
+        if not (all(re.search(r"\b" + field + r"=(true|false)\b", navigation)
+                    for field in ("mTransitionDeferring", "mTransitionPending", "mTintChangePending"))
+                and lightbar_intensity_fields_pass(navigation)):
+            return False
+    for modal, row in state["pairs"].items():
+        reference = SYSTEM_BAR_CHECKPOINTS[SYSTEM_BAR_CHECKPOINTS.index(modal) - 1]
+        if not (isinstance(row, dict) and row.get("status") == "passed" and "error" not in row
+                and row.get("reference_checkpoint") == reference
+                and row.get("minimum_contrast") == SYSTEM_BAR_MINIMUM_CONTRAST
+                and type(row.get("reference_contrast")) in (int, float)
+                and row["reference_contrast"] >= SYSTEM_BAR_MINIMUM_CONTRAST
+                and isinstance(row.get("glyphs"), list) and len(row["glyphs"]) == 3):
+            return False
+        colors = [row.get(key) for key in ("reference_background_rgb", "reference_glyph_rgb", "modal_background_rgb")]
+        colors += [glyph.get("modal_glyph_rgb") if isinstance(glyph, dict) else None for glyph in row["glyphs"]]
+        if not all(isinstance(color, list) and len(color) == 3
+                   and all(type(value) is int and 0 <= value <= 255 for value in color) for color in colors):
+            return False
+        if (row["reference_contrast"] != navigation_contrast(colors[0], colors[1])
+                or len({tuple(color) for color in colors[3:]}) != 1):
+            return False
+        for name, identity in ((reference, row.get("reference")), (modal, row.get("modal"))):
+            if not (isinstance(identity, dict) and identity.get("dimensions") == [720, 1280]
+                    and identity.get("bounds") == [0, 1196, 720, 1280]
+                    and all(type(value) is int for value in identity["dimensions"] + identity["bounds"])
+                    and all(isinstance(identity.get(key), str)
+                            and re.fullmatch(r"[0-9a-f]{64}", identity[key]) is not None
+                            and identity[key] == state["window_observations"][name].get(key)
+                            for key in ("png_sha256", "xml_sha256"))
+                    and type(identity.get("png_bytes")) is int and 8 < identity["png_bytes"] <= SYSTEM_BAR_PNG_LIMIT
+                    and type(identity.get("xml_bytes")) is int and 0 < identity["xml_bytes"] <= 262144):
+                return False
+        for position, glyph in enumerate(row["glyphs"]):
+            if not (isinstance(glyph, dict) and type(glyph.get("contrast")) in (int, float)
+                    and glyph["contrast"] == navigation_contrast(glyph["modal_glyph_rgb"], colors[2])
+                    and glyph["contrast"] >= SYSTEM_BAR_MINIMUM_CONTRAST
+                    and type(glyph.get("reference_solid_pixels")) is int
+                    and 250 <= glyph["reference_solid_pixels"] <= 900
+                    and type(glyph.get("matching_modal_pixels")) is int
+                    and 0 <= glyph["matching_modal_pixels"] <= glyph["reference_solid_pixels"]
+                    and glyph["matching_modal_pixels"] * 100 >= glyph["reference_solid_pixels"] * 95
+                    and isinstance(glyph.get("reference_bounds"), list) and len(glyph["reference_bounds"]) == 4
+                    and all(type(value) is int for value in glyph["reference_bounds"])):
+                return False
+            left, top, right, bottom = glyph["reference_bounds"]
+            if not (position * 240 + 16 <= left < right <= (position + 1) * 240 - 16
+                    and 1208 <= top < bottom <= 1268 and 12 <= right - left <= 48
+                    and 12 <= bottom - top <= 48 and glyph["reference_solid_pixels"] <= (right - left) * (bottom - top)):
+                return False
+    return True
+
+
 class Ui:
     def __init__(self, device: Device, output: Path, receipt: dict):
         self.device, self.output = device, output
+        self.receipt = receipt
         self.dumps = receipt.setdefault("ui_hierarchy_dumps", {"attempted": 0, "completed": 0, "exit_137": 0})
         self.observations = receipt.setdefault("ui_hierarchy_observations", {"attempted": 0, "recent_attempts": []})
 
@@ -1309,6 +1719,8 @@ class Ui:
         )
         require(result.stdout.startswith(b"\x89PNG\r\n\x1a\n"), "Screenshot is not PNG")
         (self.output / (name + ".png")).write_bytes(result.stdout)
+        if name in SYSTEM_BAR_CHECKPOINTS:
+            retain_system_bar_window(self.device, self.output, self.receipt, name)
 
     def rotate(self, rotation: int):
         require(type(rotation) is int and rotation in (0, 1, 2, 3), "Invalid requested UI rotation")
@@ -1746,8 +2158,10 @@ def main() -> int:
                         log.seek(max(0, emulator_log.stat().st_size - 1_048_576))
                         (output / "emulator.log").write_bytes(log.read())
         receipt["unsigned_apk_unchanged"] = digest(apk) == original_hash
+        qualify_system_bar_evidence(output, receipt)
         receipt["status"] = "passed"
-        complete_receipt(receipt, source, expected_mode=settings["mode"], expected_display_profile=display_profile)
+        complete_receipt(receipt, source, expected_mode=settings["mode"], expected_display_profile=display_profile,
+                         expected_system_bar_evidence=True)
     except Exception as error:
         receipt.update(status="failed", error=str(error))
         print("Installed emulator smoke failed: " + str(error), file=sys.stderr)

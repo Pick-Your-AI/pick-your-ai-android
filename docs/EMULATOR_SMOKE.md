@@ -1968,3 +1968,194 @@ This establishes the chosen directory's actual readiness in that software-mode
 run; changing the XML staging path did not cure its observed launch timeout.
 The later HVF receipt described above is separate and did not reach readiness or
 installation. Both failures remain evidence when evaluating a new owned guest.
+
+## Installed navigation diagnostics and a separate pixel gate (2026-10-19)
+
+This is a bounded source proposal on the existing receiver 76a48d2a / tree 450f9f82.
+It does not correct Activity, theme or WindowManager behavior. The canonical
+Activity/window owner retains that source. Both the earlier 444 and later 929
+installed runs passed their four functional cases while original modal 06/08
+retained dark navigation glyphs on a dimmed background. The new 929 original
+qualification is recorded in [6257903467](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/467#issuecomment-6257903467).
+Its observed 1.582846:1 modal failure is not changed by this proposal or by the
+passing API 28 focus simulations. A new actual source/receiving run is required.
+
+### Original images and bounded window observations
+
+The existing checkpoint first writes its original XML and PNG exactly as before.
+Immediately after the PNG, checkpoints 05,06,07 and08 each make one read-only call
+on the already-owned emulator serial: `adb -s emulator-5554 shell dumpsys -t 3 window`.
+The host allowance is 5 seconds per call, four calls maximum, 20 seconds total
+requested command allowance. These are additional, explicit diagnostic allowances;
+there is no timer increase to boot, guest readiness, screenshot capture, rotation,
+case navigation or owned cleanup. The screenshot command still has its 15-second
+limit. There is no retry, extra UI input or appearance mutation.
+
+The receipt binds each observation to its checkpoint PNG/XML hashes, exact argv,
+exit/timeout/error, observed duration, decoded stream metadata and the separately
+retained `.window.txt` hash. Up to 262,144 decoded characters are retained. A timeout
+preserves its available partial output; failed or truncated output remains
+unqualified. This retention limit does not claim to bound the existing subprocess
+capture buffer. A complete command is still an observation, not proof of an
+identified causal window. Review the actual focus, frames, visible navigation
+insets, color/background-window candidates and effective appearance in those raw
+results before accepting another production hypothesis. XML/PNG/window reads are
+ordered observations, not an atomic WindowManager snapshot.
+
+A command failure does not discard the later original modal checkpoint. Both
+modal pairs are assessed after the four existing functional cases and ordinary
+owned emulator cleanup. A contrast or diagnostic failure then fails the overall
+installed harness and final receiving gate while preserving each case's actual
+status. Thus four passing product rows coexist with the existing overall-failure JUnit
+row when this final gate fails: five total JUnit tests with one failure. The four
+product interactions are not relabeled as failures.
+Ordinary output-write failures retain the existing fail-closed behavior.
+
+### Fixed-rig image identity and contrast
+
+The automatic image qualification is deliberately restricted to the actual
+`raster-720x1280-280` portrait configuration, with the existing source/APK/device
+and startup-display observations still required. It covers ordinary 05 with
+modal 06 and ordinary 07 with modal 08; it is not a gesture-navigation, landscape,
+cutout, physical-device or whole-accessibility assessment. The two modal
+hierarchies must match their existing owned-package text/button identities, using
+the same case-insensitive text matching as the product harness.
+
+The paired ordinary hierarchy must identify exactly one owned
+`android:id/navigationBarBackground` at `[0,1196][720,1280]`. Modal hierarchies omit
+that underlying bar. Their same-size, same-rotation images are admitted only when
+the ordinary bar's three separate solid-glyph components remain identifiable at
+the same positions. This is an explicit fixed-rig pairing; it does not infer a
+missing modal hierarchy node or identify the bar-owning WindowManager window.
+
+The decoder admits only the observed non-interlaced 8-bit RGBA PNG with explicit
+sRGB intent 0 and 8-bit component precision. It checks every chunk CRC, exact chunk
+order, terminal IEND, dimensions and bounded inflation; at most 8 MiB of compressed
+input is admitted and the inflated size must exactly equal the fixed canvas.
+Unknown color profiles/chunks, unsupported encodings, truncated/concatenated
+streams, transparent bar pixels and wrong geometry are unqualified. Original
+files are not edited or rewritten by the analysis.
+
+Within the 60,480-pixel bar, the ordinary background must cover at least 95 percent,
+with 1,000–2,700 solid foreground pixels and no similarly large third population.
+The foreground must form exactly three connected components, 250–900 pixels each,
+within the three separate fixed-rig horizontal thirds and 12–48-pixel bounds away
+from the bar edges. Each modal glyph must preserve at least 95 percent of its
+paired component's same-color interior pixels, and the paired background must
+remain at least 95 percent uniform. All three glyphs must share their solid color.
+Missing, shifted or inconsistent controls and ambiguous regions fail qualification.
+These geometry/population limits are fixed-rig admission rules, not a reduction of
+the contrast threshold or a general visual-recognition claim.
+
+The unrounded sRGB relative-luminance ratio must be at least 3:1 for both ordinary
+controls and all three modal glyphs. The [W3C non-text contrast explanation](https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html)
+supplies the 3:1 reference and warns against rounding a result up to the threshold.
+This check uses solid original pixel populations, excludes their antialiased
+fringes from the measured pair, and makes no claim of complete WCAG compliance.
+A receipt cannot replace the computed ratio with a larger scalar: final validation
+recomputes each ratio from its bounded integer RGB channels and checks population,
+geometry, source/APK and checkpoint-hash relationships.
+
+Both the running harness and the final workflow's `complete_receipt` call explicitly
+require the new image evidence. The helper's default remains compatible with
+historical receipt fixtures; any present image evidence is still validated, and
+the current installed/receiving calls cannot omit the required field. The workflow
+change is only that explicit keyword argument: no job, action, dependency,
+producer, attendance name or original product assertion is removed or weakened.
+
+### Actual local witnesses and retained runtime limits
+
+The already-retained original 444 archive is 985,537 bytes with SHA-256
+`e55d231e280b551c876595d4b4a9bf632664d0d4565ec530221480296f985577`.
+Its unmodified 05/06 and 07/08 originals were read directly through the candidate
+decoder. The ordinary controls measure 8.97386058887348:1. Each of the three modal
+components measures 1.5828461084972716:1 and both pairs return `failed_contrast`.
+All 418/601/619 ordinary solid-glyph coordinates retain the original dark modal
+color. This reproduces the actual pixel defect rather than a command-text check.
+
+The portable host tests embed only exact decoded bar-strip pixels from original 05
+and 06, with explicit strip and original-image hashes. They construct clearly
+synthetic canvases/XML around those strips, and include a separately labeled
+synthetic white-glyph positive. Neither fixture is an edited original screenshot
+or evidence of a corrected installed modal. The ordinary original is the actual
+available positive control; a future corrected modal original is still required.
+Tests also cover missing/shifted/mixed controls, foreign/duplicate hierarchies,
+PNG parsing/inflation failures, all five filters, timeout partials, one-command
+ordering, retained product results and forged/missing evidence.
+
+No actual guest WindowManager observation, corrected modal pixel, new hosted pass
+or main-delivery result is claimed for this proposal. Current 76/929 and all earlier
+failed originals remain preserved. Normal exact-source review, current accepted-main
+composition and configured receiving checks remain required before any subsequent
+normal delivery. The historical interval ending 01:05 is not extended by this work.
+
+
+### Targeted SystemUI observation and explicit display binding
+
+The separately identified follow-up to the frozen `56789030` proposal adds one
+additional read after each of the four original PNG and WindowManager observations:
+
+```text
+adb -s emulator-5554 shell dumpsys -t 3 activity service com.android.systemui/.SystemUIService LightBarController
+```
+
+Each targeted service read has its own five-second host allowance and the same
+262,144-character decoded retention bound. There are at most four WindowManager
+and four SystemUI calls: eight calls and 40 seconds of total requested command
+allowance. The original proposal's 20-second figure describes its four WMS calls;
+this addition explicitly adds at most 20 seconds. Existing boot, readiness,
+rotation, screenshot, navigation and cleanup timers and product assertions remain
+unchanged. A failure or timeout retains partial output and the subsequent original
+checkpoints; it is neither retried nor treated as a zero/default state.
+
+The fixed Android 15 r1 [DumpHandler source](https://github.com/aosp-mirror/platform_frameworks_base/blob/android-15.0.0_r1/packages/SystemUI/src/com/android/systemui/dump/DumpHandler.kt)
+documents this targeted service form. Its [LightBarController](https://github.com/aosp-mirror/platform_frameworks_base/blob/android-15.0.0_r1/packages/SystemUI/src/com/android/systemui/statusbar/phone/LightBarController.java)
+registers this name for the default display and dumps appearance, navigation-light,
+scrim-force and IME-management fields. The included
+[transition controller](https://github.com/aosp-mirror/platform_frameworks_base/blob/android-15.0.0_r1/packages/SystemUI/src/com/android/systemui/statusbar/phone/LightBarTransitionsController.java)
+dumps pending, current and next dark intensity and transition state. In that source,
+`mNavigationLight=true` requests dark icons; it does not mean that the photographed
+icons are white. These are primary-source semantics, without an exact source-tag
+to installed-image identity claim.
+
+The final receipt requires the exact service query, complete successful streams,
+the named LightBar target, its explicit state fields, a navigation transition
+section and the final dump-completion line. A present empty appearance-flags value
+is retained as such; missing or malformed state is unqualified. The raw state is
+not converted into a causal conclusion or used instead of pixel measurement.
+Each `.lightbar.txt` and its retained text hash is bound to the original checkpoint
+PNG/XML hashes and ordered phase. None of the three sequential observations is
+claimed to be atomic. Both original modal failures remain authoritative.
+
+Independent review also found that the first proposal's reusable final helper
+could admit raster image evidence with a valid `pixel-2` startup record, or no
+startup record, when its optional display argument was omitted. The actual
+workflow already supplied the raster display guard, so this was not an observed
+hosted bypass. The follow-up requires a fully qualified startup display whose
+profile matches image evidence whenever that evidence is required or present.
+Meaningful missing/mismatch witnesses now reject, a matching raster control passes,
+and historical receipts without image evidence retain their earlier admission.
+
+All additions remain local source preparation. A later accepted-main autosave
+change requires explicit preservation and installed-flow reconciliation; these
+new observation delays do not establish compatibility with a 750-millisecond
+pending-form autosave behavior that is absent from the frozen source76 baseline.
+No Activity/theme correction, new actual observation or passing modal is claimed.
+
+The decoder continuation also fixes the first proposal's repeated-IDAT bookkeeping:
+one constant-size parser marker now represents consecutive data chunks. Valid
+split and empty IDAT chunks retain identical decoded bytes without repeatedly
+copying/scanning an ever-growing prior-chunk list. A counted-work regression fails
+the original decoder and passes the continuation; CRC, order, profile, dimensions
+and inflation limits remain intact. This addresses input-processing cost, not an
+observed defect in the retained screenshot pixels.
+
+A further raw-format correction admits the finite scientific notation emitted by
+Java's `PrintWriter.print(float)`, including `1.0E-4`. The three retained navigation
+intensity tokens are individually bounded to 32 characters, matched as decimal or
+scientific notation, and checked with exact decimal arithmetic for the closed
+range zero through one. Nonfinite, malformed, repeated, oversized or out-of-range
+fields remain unqualified; raw spellings remain unchanged. This avoids rejecting a
+legitimate animation-state observation and does not round, interpret or replace
+the independently measured screenshot contrast. New tests reproduce the prior
+scientific-format rejection and retain ordinary/end-point positive controls.

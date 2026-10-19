@@ -1009,7 +1009,8 @@ jobs:
           require_emulator_package(boundary, inspect_binary=True)
           receipt = json.loads(Path("preview/build/reports/emulator-smoke/receipt.json").read_text())
           complete_receipt(receipt, os.environ["GITHUB_SHA"], expected_mode="kvm",
-                           expected_display_profile=context["environment"]["PYAI_EMULATOR_DISPLAY_PROFILE"])
+                           expected_display_profile=context["environment"]["PYAI_EMULATOR_DISPLAY_PROFILE"],
+                           expected_system_bar_evidence=True)
           require(receipt["source_tree"] == context["source_tree"] and
                   receipt["unsigned_apk_sha256"] == context["unsigned_apk_sha256"] and
                   receipt["emulator_binary_sha256"] == boundary["emulator_package"]["binary_sha256"],
