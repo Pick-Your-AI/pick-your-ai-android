@@ -1,6 +1,6 @@
 # Criterion evidence ledger
 
-## Version 13: the received normalized placement outcome for #37
+## Version 14: the received normalized placement outcome for #37
 
 This amendment records **25 reviewed design criteria, fourteen reviewed implementation
 criteria, one reviewed import-integrity criterion and three reviewed support
@@ -142,20 +142,95 @@ live provider, fit/readiness, rights, cost or release acceptance.
 
 The validator admits only the exact reviewed #37 tuple and three merged evidence
 entries, then reverses only its three statuses, accepted outcome, narrow record
-coordinate, new evidence and version/purpose. It runs the entire unchanged v12
-validator and verifies the complete reconstructed v12 canonical digest. The
-regression also reproduces all **609,028 original v12 bytes**, SHA-256
-`cce0a733e94fc6e38bf4c8f4956a7e0059d42e9324c23e81fbece8f67ddf1551`.
-All 128 other issue objects, 29 previous evidence objects and 441 literal
+coordinate, new evidence and version/purpose. It runs the entire unchanged v13
+validator and verifies the complete reconstructed v13 canonical digest
+`2cb45d15a0db15a25ffb8d50effb4c9a34c1df94c4121c8d5d86e2e50e39ab07`.
+The regression also reproduces all **611,487 original v13 bytes**, SHA-256
+`54e4ed9e29f42eb7e82b3d05454335ed1f44e251a21d0baeb00e4a64c55cf3dc`.
+All 128 other issue objects, 31 previous evidence objects and 441 literal
 criterion texts/digests survive unchanged. The previous documentation below
 remains byte-exact after removing this section. Normal and optimized validation
 retain useful historical diagnostics; data-supplied approval, numeric aliases,
 different source/artifact/role identities and broader profile claims reject.
 
+The metadata amendment [#587](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/587)
+actually reached main first at signed
+`5c69ace0d72b7cf3983b2681d219a1989552053f`, tree
+`8b6f3a00bd9e7495d9cba7cad94ae0356059c299`, sole
+`a566e27ef323353310d00cb43147ca84a2c2bc1c` parent. This continuation therefore
+uses v14 and retains all of that accepted v13: #48/#59's Android record
+coordinates, #57's scoped references and remaining work, both new metadata
+receipts, and its unchanged v12 history wrapper. The prior proposed v13 #37
+signing and receiving executions at #609/#615 remain historical; they do not
+qualify this combined source. The combined suite retains all 154 accepted
+metadata/history methods and all 21 placement methods. Its own actual normal
+and optimized execution and later configured delivery are recorded separately.
+
 GitHub checkbox/status reconciliation is a separate deliberate action after this
 ledger amendment's reviewed normal delivery and validation. No closing-keyword
 automation, assignee/native-edge change or other issue completion is implied.
 
+
+## Version 13: effective record placement and scoped environment metadata
+
+This metadata amendment receives the selected [#587 source](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/587)
+after the strict #96 amendment delivered in [#590](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/590).
+No criterion status changes in this metadata amendment. All **441 literal
+criteria and statuses, 126 unaffected issue records and 29 prior evidence
+objects** remain exact. The totals remain **40 complete / 401 incomplete**:
+25 design, 11 implementation, one import-integrity and three support criteria.
+
+### Exact metadata received
+
+| Issue | Scoped correction | Preserved boundary |
+| --- | --- | --- |
+| #48 | The repository coordinate for `02.01` is Android, under accepted [ADR0008](../decisions/0008-android-48-acceptance-record.md) at `710d337fed2004689993c0b8bc01f12de780b04c`. | The path and every criterion remain unchanged and incomplete. |
+| #59 | The repository coordinate for `02.05` is Android, under accepted [ADR0011](../decisions/0011-android-59-acceptance-record.md) at `146413ff168583f4c2b0df87ab41d36e57f8ea85`. | The path and every criterion remain unchanged and incomplete. |
+| #57 | `57.1` retains `pr-136` and receives scoped `pr-515` / `pr-502` references; `57.2` and `57.3` retain `pr-136` and receive only `pr-502`. Remaining work now distinguishes delivered finite synthetic behavior from real variant qualification. | All three criteria remain incomplete; the original website `02.02` coordinate, literal texts, dependencies and completion fences remain unchanged. |
+
+The two additional evidence entries are fixed historical receipts. The
+[#515 loaded-identity record](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/515#issuecomment-6259700859)
+is limited to criterion 57.1. The
+[#502 environment record](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/502#issuecomment-6267418772)
+covers finite synthetic admission, explicit missing-configuration rejection and
+preview-fixture exclusion. Its decoded-log, source, API and upload observations
+retain their original **binary contents uninspected** limit. Neither receipt
+establishes a configured staging/production variant, a credential handoff,
+installed execution, release or whole-criterion acceptance. This amendment does
+not reacquire historical binary artifacts or change the underlying environment
+implementation.
+
+### Complete strict history and source ancestry
+
+The exact preceding v12 ledger was delivered at signed
+`152818c5a4a4aae70fed71805b14fc1a605394c3`, tree
+`203fa361a60c727bad685c5ff3e2cb3731cd9673`, sole accepted parent
+`068f1375fe3dee11d2be53ffd5a2a8735457d987`. This coordinate identifies
+actual source delivery; its later execution receipts retain their own identities.
+The selected donor is `9e67d54f6ac5492035894e2f38bb1df5ef0a7639`.
+Its proposed schema number is not adopted as a competing v12; the receiving
+source follows the actually accepted predecessor and retains the donor history.
+
+The entire **609,028-byte** prior JSON has SHA-256
+`cce0a733e94fc6e38bf4c8f4956a7e0059d42e9324c23e81fbece8f67ddf1551`
+and canonical object digest
+`0b213fb07461765844b38ef9901674df4f397dd59924312f2a78ba3f5251e3c4`.
+The wrapper admits only the exact metadata cells and fixed evidence, reconstructs
+that whole object, invokes the unchanged historical v12 validator, and verifies
+the complete prior-object identity. It does not discard unknown metadata or
+replace the older history helpers. The complete #96 acceptance, historical
+#553 implementation/main observations, prior role decisions and ADR0013/07.02
+record remain untouched.
+
+The existing 138 test identities retain their assertions with explicit outer
+history-layer calls. The picker history comparison first reconstructs v12 before
+comparing its four #96 additions with v11; the earlier reconstruction functions
+are unchanged. Sixteen metadata controls cover complete byte and object inverses,
+wrong issue/path/coordinate use, misplaced references, receipt substitution,
+forged completion, unknown history, literal-text/source forgery, copy isolation,
+normal/optimized CLI rejection and exact preservation of the full prior README.
+These are source-described controls; actual receiving runs and public delivery
+are recorded separately at their executed revisions.
 
 ## Version 12: the delivered constraint-aware picker for #96
 

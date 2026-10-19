@@ -113,7 +113,7 @@ class ComponentRoleActivityTest {
     private fun action(label: Int, id: String = "sel_model"): AlertDialog {
         button(R.string.component_manage).performClick()
         val picker = dialog()
-        val index = (0 until picker.listView.adapter.count).single { picker.listView.adapter.getItem(it).toString().endsWith(" · $id") }
+        val index = (0 until picker.listView.adapter.count).single { picker.listView.adapter.getItem(it).toString().endsWith(" · ${componentTokenForLookup(activity, id)}") }
         shadowOf(picker).clickOnItem(index)
         await { dialog() !== picker && dialog().isShowing }
         val actions = dialog()

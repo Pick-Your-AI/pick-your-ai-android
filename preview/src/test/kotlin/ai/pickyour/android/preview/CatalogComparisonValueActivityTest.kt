@@ -15,6 +15,11 @@ import ai.pickyour.core.preview.PreviewCatalogComparison
 import ai.pickyour.core.preview.PreviewCatalogDetails
 import ai.pickyour.core.preview.PreviewDraftLibrary
 import ai.pickyour.core.preview.PreviewDraftLoad
+import ai.pickyour.core.preview.PreviewDraftId
+import ai.pickyour.core.preview.PreviewLibraryCreate
+import ai.pickyour.core.preview.PreviewLibraryRead
+import java.io.IOException
+import java.nio.file.Path
 import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.After
@@ -265,6 +270,88 @@ class CatalogComparisonValueActivityTest {
         assertStable(before)
     }
 
+    @Test fun historyDetailRetiresCompleteValueCallbacks() {
+        val picker = historyPicker()
+        assertStoragePresentationRetiresValue {
+            assertTrue(picker.isShowing)
+            shadowOf(picker).clickOnItem(0)
+        }
+    }
+
+    @Test fun domainRestoreConfirmationRetiresCompleteValueCallbacks() {
+        val picker = historyPicker()
+        shadowOf(picker).clickOnItem(0); idle()
+        val detail = dialog()
+        assertNotSame(picker, detail)
+        assertTrue(detail.isShowing)
+        val restore = detail.getButton(AlertDialog.BUTTON_NEUTRAL)
+        assertEquals(activity.getString(R.string.domain_restore_preview), restore.text.toString())
+        assertStoragePresentationRetiresValue {
+            assertTrue(detail.isShowing)
+            restore.performClick(); idle()
+            assertEquals(activity.getString(R.string.domain_restore_commit),
+                dialog().getButton(AlertDialog.BUTTON_POSITIVE).text.toString())
+        }
+    }
+
+    @Test fun newDraftConfirmationRetiresCompleteValueCallbacks() {
+        assertStoragePresentationRetiresValue { button(R.string.library_new).performClick() }
+    }
+
+    @Test fun duplicateConfirmationRetiresCompleteValueCallbacks() {
+        assertStoragePresentationRetiresValue { button(R.string.library_duplicate).performClick() }
+    }
+
+    @Test fun recoveryCopyConfirmationRetiresCompleteValueCallbacks() {
+        assertStoragePresentationRetiresValue { button(R.string.recovery_copy).performClick() }
+    }
+
+    @Test fun libraryEntryRetiresCompleteValueCallbacks() {
+        val picker = libraryPicker()
+        val index = libraryIndex(picker, PreviewDraftId("guest-draft"))
+        assertStoragePresentationRetiresValue {
+            assertTrue(picker.isShowing)
+            shadowOf(picker).clickOnItem(index)
+        }
+    }
+
+    @Test fun deleteConfirmationRetiresCompleteValueCallbacks() {
+        val entry = libraryEntry(PreviewDraftId("guest-draft"))
+        assertStoragePresentationRetiresValue {
+            assertTrue(entry.isShowing)
+            entry.getButton(AlertDialog.BUTTON_NEUTRAL).performClick()
+        }
+    }
+
+    @Test fun pendingDeletionRetryRetiresCompleteValueCallbacks() {
+        val root = activity.noBackupFilesDir.toPath()
+        val second = (PreviewDraftLibrary(root).create() as PreviewLibraryCreate.Saved).id
+        var faultReached = false
+        failFinalCleanup { faultReached = true }
+        val entry = libraryEntry(second)
+        entry.getButton(AlertDialog.BUTTON_NEUTRAL).performClick(); idle()
+        val confirmation = dialog()
+        assertNotSame(entry, confirmation)
+        assertTrue(confirmation.isShowing)
+        assertEquals(activity.getString(R.string.library_delete_warning, second.value),
+            shadowOf(confirmation).message.toString())
+        confirmation.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+        await { button(R.string.library_open).isEnabled &&
+            shadowOf(dialog()).message.toString() == activity.getString(R.string.library_delete_unconfirmed) }
+        assertTrue("The actual deletion must reach the injected final acknowledgement failure", faultReached)
+        assertFalse((PreviewDraftLibrary(root).list() as PreviewLibraryRead.Available).entries.any { it.id == second })
+        assertEquals(second.value, state().getString("pendingDeleteId"))
+        assertEquals(baseline, loaded().baselineIdentity)
+        dialog().getButton(AlertDialog.BUTTON_POSITIVE).performClick(); idle()
+        assertStoragePresentationRetiresValue {
+            assertTrue(button(R.string.library_retry_delete).isEnabled)
+            button(R.string.library_retry_delete).performClick()
+            assertEquals(activity.getString(R.string.library_retry_warning, second.value),
+                shadowOf(dialog()).message.toString())
+        }
+        assertEquals(second.value, state().getString("pendingDeleteId"))
+    }
+
     @Test fun recreationKeepsTheExactTrayButRejectsAllOldValueControls() {
         val pair = prepareLongPair()
         openComparison()
@@ -340,6 +427,85 @@ class CatalogComparisonValueActivityTest {
         assertNotSame(root, dialog().window!!.decorView)
         assertCaptured(pair.second[0], "spdx_id")
         assertStable(before)
+    }
+
+    private fun assertStoragePresentationRetiresValue(presentStorage: () -> Unit) {
+        prepareLongPair()
+        openComparison()
+        inspect(1, "spdx_id")
+        val value = dialog()
+        val back = button(R.string.catalog_compare_back_values, value.window!!.decorView)
+        val next = button(R.string.catalog_detail_browser_next_part, value.window!!.decorView)
+        val before = state()
+        val beforeLibrary = librarySnapshot()
+        presentStorage(); idle()
+        val storage = dialog()
+        assertNotSame(value, storage)
+        assertTrue(storage.isShowing)
+        assertFalse("A new storage dialog must retire the captured complete-value owner", value.isShowing)
+        listOf(back, next).forEach { it.performClick(); idle() }
+        assertSame(storage, dialog())
+        assertTrue(storage.isShowing)
+        assertStable(before)
+        assertEquals(beforeLibrary, librarySnapshot())
+        storage.getButton(AlertDialog.BUTTON_NEGATIVE).performClick(); idle()
+        assertFalse(storage.isShowing)
+        listOf(back, next).forEach { it.performClick(); idle() }
+        assertSame(storage, dialog())
+        assertFalse(storage.isShowing)
+        assertStable(before)
+        assertEquals(beforeLibrary, librarySnapshot())
+        openComparison()
+        inspect(1, "spdx_id")
+        assertNotSame(value, dialog())
+        assertTrue(dialog().isShowing)
+        assertStable(before)
+    }
+
+    private fun historyPicker(): AlertDialog {
+        val previous = ShadowAlertDialog.getLatestAlertDialog()
+        button(R.string.draft_history).performClick()
+        val picker = dialog()
+        assertNotSame(previous, picker)
+        assertTrue(picker.isShowing)
+        assertTrue(picker.listView.adapter.count > 0)
+        return picker
+    }
+
+    private fun libraryPicker(): AlertDialog {
+        val previous = ShadowAlertDialog.getLatestAlertDialog()
+        button(R.string.library_open).performClick()
+        await { ShadowAlertDialog.getLatestAlertDialog()?.let { it !== previous && it.isShowing } == true &&
+            button(R.string.library_open).isEnabled }
+        return dialog()
+    }
+    private fun libraryIndex(picker: AlertDialog, id: PreviewDraftId): Int {
+        val rows = picker.listView.adapter
+        return (0 until rows.count).single { rows.getItem(it).toString().contains(id.value) }
+    }
+    private fun libraryEntry(id: PreviewDraftId): AlertDialog {
+        val picker = libraryPicker()
+        shadowOf(picker).clickOnItem(libraryIndex(picker, id))
+        await { dialog() !== picker && dialog().isShowing }
+        return dialog()
+    }
+    private fun librarySnapshot() = (PreviewDraftLibrary(activity.noBackupFilesDir.toPath()).list()
+        as PreviewLibraryRead.Available).entries.associate { entry ->
+        entry.id to Triple((entry.state as? PreviewDraftLoad.Available)?.record?.baselineIdentity,
+            entry.state.javaClass.name, entry.deletionPending)
+    }
+    private fun failFinalCleanup(onReached: () -> Unit) {
+        val constructor = PreviewDraftLibrary::class.java.getDeclaredConstructor(
+            Path::class.java, kotlin.jvm.functions.Function1::class.java, kotlin.jvm.functions.Function1::class.java)
+        val creation: (Any) -> Unit = {}
+        val removal: (Any) -> Unit = { point ->
+            if (point.toString() == "TOMBSTONE_REMOVED") {
+                onReached()
+                throw IOException("injected final acknowledgement failure")
+            }
+        }
+        val faulty = constructor.newInstance(activity.noBackupFilesDir.toPath(), creation, removal) as PreviewDraftLibrary
+        PreviewActivity::class.java.getDeclaredField("draftLibrary").apply { isAccessible = true }.set(activity, faulty)
     }
 
     private fun prepareLongPair() = preparePair { first, second ->
