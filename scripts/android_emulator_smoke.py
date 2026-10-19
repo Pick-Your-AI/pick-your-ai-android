@@ -1414,7 +1414,7 @@ def system_bar_evidence_passes(state: dict) -> bool:
                 and command.get("timeout_seconds") == 5 and "DUMP TIMEOUT" not in command["stdout_tail"]
                 and type(command.get("seconds")) in (int, float) and 0 <= command["seconds"] <= 5
                 and "Error dumping service info:" not in command["stdout_tail"]
-                and command["stdout_tail"].startswith("WINDOW MANAGER ")
+                and command["stdout_tail"].startswith(("WINDOW MANAGER ", "\nWINDOW MANAGER "))
                 and observation.get("retained_text_file") == name + ".window.txt"
                 and observation.get("retained_text_sha256")
                 == hashlib.sha256(command["stdout_tail"].encode("utf-8")).hexdigest()):

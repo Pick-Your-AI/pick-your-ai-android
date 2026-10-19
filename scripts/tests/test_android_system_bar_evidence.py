@@ -360,6 +360,56 @@ class SystemBarEvidenceTests(unittest.TestCase):
                 SMOKE.retain_system_bar_window(device, output, receipt, name)
             self.assertEqual(len(device.calls), 2)
 
+    def test_observed_window_leading_linefeed_preserves_complete_raw_evidence(self):
+        # Original0a1 full dumpsys window output has one leading LF. The PNGs
+        # here remain synthetic positives, not a corrected installed result.
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory); self.write_checkpoints(output)
+            device, receipt = WindowDevice(), self.receipt()
+            device.result.stdout = '\nWINDOW MANAGER LAST ANR (dumpsys window lastanr)\n' + device.result.stdout
+            original_text = device.result.stdout.encode('utf-8')
+            originals = {p.name: p.read_bytes() for p in output.iterdir()}
+            for name in SMOKE.SYSTEM_BAR_CHECKPOINTS:
+                SMOKE.retain_system_bar_window(device, output, receipt, name)
+                observed = receipt['system_bar_evidence']['window_observations'][name]
+                self.assertEqual((output / observed['retained_text_file']).read_bytes(), original_text)
+                self.assertEqual(observed['retained_text_sha256'], hashlib.sha256(original_text).hexdigest())
+                self.assertEqual(observed['command']['stdout_tail'], device.result.stdout)
+            self.assertEqual({name: (output / name).read_bytes() for name in originals}, originals)
+            failure = None
+            try:
+                SMOKE.qualify_system_bar_evidence(output, receipt)
+            except SMOKE.SmokeFailure as error:
+                failure = str(error)
+            self.assertIsNone(failure, 'Complete observed leading-LF window output must qualify')
+            self.assertTrue(SMOKE.system_bar_evidence_passes(receipt['system_bar_evidence']))
+            self.assertEqual(len(device.calls), 8)
+
+    def test_window_header_does_not_admit_unobserved_prefixes(self):
+        state = self.passing_state()
+        for prefix in ('\n\n', ' ', '\t', '\r', '\r\n', '\ufeff', 'unrelated output\n'):
+            with self.subTest(prefix=repr(prefix)):
+                candidate = copy.deepcopy(state)
+                observed = candidate['window_observations'][SMOKE.SYSTEM_BAR_CHECKPOINTS[0]]
+                command = observed['command']; text = prefix + command['stdout_tail']
+                command.update(stdout=SMOKE.ui_stream_observation(text), stdout_tail=text)
+                observed['retained_text_sha256'] = hashlib.sha256(text.encode('utf-8')).hexdigest()
+                self.assertFalse(SMOKE.system_bar_evidence_passes(candidate))
+
+    def test_observed_window_header_keeps_failed_modal_pixels_failed(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory); self.write_checkpoints(output, bad=True)
+            device, receipt = WindowDevice(), self.receipt()
+            device.result.stdout = '\n' + device.result.stdout
+            for name in SMOKE.SYSTEM_BAR_CHECKPOINTS:
+                SMOKE.retain_system_bar_window(device, output, receipt, name)
+            with self.assertRaisesRegex(SMOKE.SmokeFailure, 'navigation images or window observations'):
+                SMOKE.qualify_system_bar_evidence(output, receipt)
+            state = receipt['system_bar_evidence']
+            self.assertEqual([row['status'] for row in state['pairs'].values()],
+                             ['failed_contrast', 'failed_contrast'])
+            self.assertFalse(SMOKE.system_bar_evidence_passes(state))
+
     def test_window_timeout_retains_partial_output_and_does_not_retry(self):
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory); self.write_checkpoints(output)
