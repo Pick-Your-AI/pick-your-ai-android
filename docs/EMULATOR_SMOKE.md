@@ -2758,3 +2758,61 @@ prefixed control passes both sources. A replay against all four unaltered
 original streams remains separate and was not completed at this source freeze. A future configured receiving run must still
 qualify its own exact source and originals; this source correction cannot
 convert the earlier installed failure into a pass.
+
+### Repository-root artifact extraction after environment evidence
+
+The actual signed receiving checkout `c9d268aa33b56c60695f1057822993b2c0e199a4`
+(tree `62f85c7fa6ff3eff1605d0970d97ce18f04e9202`, source `4311de0129465c1b7e0becb102794af65413324c`)
+failed before emulator preparation in run `39261046842`, installed job
+`118092388651`. Its exact boundary error was
+`Expected the original unsigned APK handoff`; the following restoration step
+reported that no ACL grant had been attempted. This is a file-handoff admission
+failure, not a sudo-policy denial or a new image/provider result.
+
+The successful Preview producer selected artifact `12190128510`,
+3,285,947 bytes, SHA256
+`fdd701e5ff763890d731b3c9fd20d4549e72969faf532895c19e046a9b69fc9a`.
+The installed download verified that same artifact digest. Its expected APK
+SHA256 was
+`fbb8dc71fbfaf15308bd335a1f39eaa35fdd832f4ea6eeef02a316936059960f`.
+The retained boundary artifact `12191842278` is 292 bytes, SHA256
+`a095e61d7dfa4d25643605756da3a86cd9ceee65c0c54b4866a5557f53c382bc`.
+The complete decoded producer and installed logs bind these identities; this
+source note does not claim an additional original ZIP-body audit.
+
+The accepted `build/environment-selection/` evidence directory is a sibling of
+`preview/`. With the other Preview upload paths, the pinned upload action
+therefore uses the repository root as its least common ancestor; the actual
+producer log explicitly records that root. The pinned downloader extracts the
+selected artifact at its configured destination. The former `preview/build`
+destination adds that prefix to already repository-relative members, while the
+strict receiver still requires
+`preview/build/outputs/apk/debug/preview-debug-unsigned.apk` from the checkout
+root. The corrected destination is `.`, preserving the APK and all accepted
+environment/test/lint evidence at their declared repository-relative paths.
+
+This behavior is supported by the complete pinned primary implementations:
+[upload search/LCA at ea165f8d](https://github.com/actions/upload-artifact/blob/ea165f8d65b6e75b540449e92b4886f43607fa02/src/shared/search.ts)
+and [download destination at d3f86a10](https://github.com/actions/download-artifact/blob/d3f86a106a0bac45b974a628896c90dbdf5c8093/src/download-artifact.ts).
+The one-line workflow correction leaves the exact artifact ID, producer APK
+digest, checkout validation, regular-file/no-symlink requirement and original
+APK hash comparison intact. It changes no KVM, privilege, lifecycle, readiness,
+case, rotation, image or provider logic.
+
+`test_android_artifact_handoff.py` uses a tiny synthetic ZIP and the current
+workflow's upload patterns/destination to exercise the unchanged
+`android_kvm_process.current_context` file/hash gate. It models the pinned
+archive-root semantics; it does not run either GitHub action or install an APK.
+The runner environment, interpreter, platform and checkout location are fixture
+inputs; the only permitted process calls are four mocked Git observations.
+Actual temporary files, ZIP members, existence/link checks and SHA256 reads
+remain real, with every other process command rejected by the fixture.
+
+All five focused host methods passed. The same positive method fails against
+the complete unchanged parent workflow and passes with the one-line correction;
+the exact shared boundary source is identical in both. Additional controls
+retain the old nested-layout rejection and reject foreign names, changed bytes
+and a symlink even when its target bytes match. The existing Core
+`test_android*.py` discovery schedules these methods without a new command or
+dependency. The failed c9d268a run remains historical; the corrected source still
+requires its own configured receiving result and applicable original evidence.
