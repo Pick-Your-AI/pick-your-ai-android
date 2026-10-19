@@ -5,7 +5,10 @@ grouping and digits while keeping each original decimal string visible. This is
 a presentation change for Android [#65](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/65)
 and [#103](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/103).
 It consumes the existing immutable `CostEstimateAdapter` result; it does not
-calculate prices, join rates, change coverage, or update the editable draft.
+produce a quote, join rates, change coverage, or update the editable draft.
+The separately selected [recorded exact-product observation](RECORDED_COST_ARITHMETIC.md)
+now adds bounded, unrounded quantity × unit-price observations beside the unchanged
+declared amounts. It is not a new admission rule or a billing-validity verdict.
 
 ## Decimal and currency meaning
 
