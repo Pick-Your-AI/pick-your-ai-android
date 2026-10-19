@@ -861,6 +861,9 @@ jobs:
           report = pathlib.Path("preview/build/test-results/testDebugUnitTest/TEST-ai.pickyour.android.preview.LocalHelpActivityTest.xml")
           suite = ET.parse(report).getroot()
           expected = {
+              "helpShowsTheActualLoadedBundledIdentityWithoutExportingIt",
+              "differentAndUnavailableCatalogsNeverBorrowBundledLabelsOrPrivateMetadata",
+              "helpCapturesLoadingOnceAndOnlyFreshHelpShowsTheCompletedCatalog",
               "localHelpAndActualBrowserIntentExcludeSavedAndPendingPrivateContent",
               "eachPublicDestinationRequiresReviewAndOnlyOneExplicitFixedUriDispatch",
               "cancelledDismissedAndReplacedHelpAndDestinationCallbacksCannotNavigate",
