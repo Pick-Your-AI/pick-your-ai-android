@@ -3,6 +3,7 @@ package ai.pickyour.android.preview
 import android.content.Context
 import android.text.BidiFormatter
 import android.text.TextDirectionHeuristics
+import android.view.View
 import ai.pickyour.core.contracts.ContractDecimal
 import ai.pickyour.core.contracts.ContractMoney
 import ai.pickyour.core.contracts.ContractRejected
@@ -114,6 +115,6 @@ internal object CostInspectionText {
 
     // Source-provided control/format characters have already been escaped. Only our formatter adds bidi marks.
     private fun ltr(context: Context, value: String): String =
-        BidiFormatter.getInstance(context.resources.configuration.locales[0])
+        BidiFormatter.getInstance(context.resources.configuration.layoutDirection == View.LAYOUT_DIRECTION_RTL)
             .unicodeWrap(value, TextDirectionHeuristics.LTR)
 }
