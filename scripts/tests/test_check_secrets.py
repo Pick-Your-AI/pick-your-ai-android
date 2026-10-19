@@ -775,5 +775,181 @@ class SecretReceiptBoundaryTest(unittest.TestCase):
                 self.assertNotIn("PRIVATE_", output)
 
 
+class PublicLedgerAliasDispositionTest(unittest.TestCase):
+    def row(self):
+        rule, path, line = check.LEDGER_ALIAS_LOCATION
+        return {"rule_id": rule, "file": path, "line": line, "commit": check.LEDGER_ALIAS_COMMIT}
+
+    def result(self, rows):
+        return {"exit_code": 10 if rows else 0, "finding_count": len(rows), "findings": rows}
+
+    def proof_fixture(self):
+        # Generate the public alias example in memory, as with the scanner's
+        # existing disposable fixtures, without adding another matched source line.
+        fields = ("schema_version", "observed_on", "repository", "implementation_baseline",
+                  "source", "purpose", "evidence", "issues")
+        name = lambda version: f"PRIOR_V{version}_KEYS"
+        prefix = f"{name(9)} = {fields!r}\n{name(10)} = {name(9)}\n"
+        checker = (prefix + "\n" * 2108 + f"{name(11)} = {name(10)}\n").encode()
+        prior = json.dumps(dict.fromkeys(fields)).encode()
+        canonical = hashlib.sha256(json.dumps(json.loads(prior), sort_keys=True,
+                                             separators=(",", ":")).encode()).hexdigest()
+        return checker, prior, canonical
+
+    def identities(self):
+        return [b"a" * 40 + b"\n", b"commit\n", b"",
+                f"{check.LEDGER_ALIAS_COMMIT} {check.LEDGER_ALIAS_PARENT}\n".encode()]
+
+    def test_exact_alias_retains_every_raw_observation_and_verifies_once(self):
+        raw = self.result([self.row(), self.row()])
+        original = copy.deepcopy(raw)
+        with patch.object(check, "verify_ledger_alias_finding") as verify, \
+                patch.object(check, "verify_checksum_finding") as checksum:
+            result = check.classify_reviewed_findings(Path("source"), "a" * 40, raw)
+        verify.assert_called_once_with(Path("source"), "a" * 40)
+        checksum.assert_not_called()
+        self.assertEqual(original, raw)
+        self.assertEqual("reviewed-public-source-v2", result["policy"])
+        self.assertEqual((2, 0), (result["reviewed_count"], result["unresolved_count"]))
+        self.assertEqual([{**self.row(), "disposition": check.LEDGER_ALIAS_DISPOSITION,
+                           "file_blob": check.LEDGER_ALIAS_PROOFS[0][2],
+                           "file_sha256": check.LEDGER_ALIAS_PROOFS[0][4]}] * 2,
+                         result["reviewed_findings"])
+
+    def test_other_commit_rule_path_or_line_cannot_borrow_public_alias(self):
+        variants = (("commit", "b" * 40), ("rule_id", "github-pat"),
+                    ("file", "other.py"), ("file", "./scripts/check_delivery_ledger.py"),
+                    ("line", 2112))
+        for key, value in variants:
+            row = {**self.row(), key: value}
+            with self.subTest(key=key, value=value), \
+                    patch.object(check, "verify_ledger_alias_finding") as verify, \
+                    patch.object(check, "verify_checksum_finding") as checksum:
+                result = check.classify_reviewed_findings(Path("source"), "a" * 40, self.result([row]))
+            verify.assert_not_called()
+            checksum.assert_not_called()
+            self.assertEqual((0, 1), (result["reviewed_count"], result["unresolved_count"]))
+            self.assertEqual([row], result["unresolved_findings"])
+
+    def test_mixed_findings_and_failed_proof_keep_the_rejection_boundary(self):
+        checksum = {"rule_id": "generic-api-key", "file": check.CHECKSUM_PROOF[0][0],
+                    "line": 5, "commit": check.LEDGER_ALIAS_COMMIT}
+        unknown = {**self.row(), "file": "unreviewed.py"}
+        raw = self.result([checksum, self.row(), unknown])
+        with patch.object(check, "verify_checksum_finding"), patch.object(check, "verify_ledger_alias_finding") as verify:
+            result = check.classify_reviewed_findings(Path("source"), "a" * 40, raw)
+        verify.assert_called_once()  # A verified checksum at the same commit cannot substitute for alias proof.
+        self.assertEqual((2, 1), (result["reviewed_count"], result["unresolved_count"]))
+        self.assertEqual([unknown], result["unresolved_findings"])
+        with patch.object(check, "verify_checksum_finding"), \
+                patch.object(check, "verify_ledger_alias_finding", side_effect=check.ScanFailure(check.LEDGER_EVIDENCE_ERROR)), \
+                self.assertRaisesRegex(check.ScanFailure, check.LEDGER_EVIDENCE_ERROR):
+            check.classify_reviewed_findings(Path("source"), "a" * 40, raw)
+        with patch.object(check, "verify_ledger_alias_finding"), self.assertRaises(check.ScanFailure):
+            check.classify_reviewed_findings(Path("source"), "a" * 40, self.result([unknown, unknown]))
+
+    def test_fixed_proof_blobs_bind_mode_identity_size_complete_bytes_and_git_command(self):
+        raw = b"bounded public ledger proof\n"
+        proof = ("a" * 40, "public.json", "b" * 40, len(raw), hashlib.sha256(raw).hexdigest())
+        entry = f"100644 blob {proof[2]}\t{proof[1]}\0".encode()
+        for index in (0, 1):
+            with self.subTest(index=index), patch.object(check, "LEDGER_ALIAS_PROOFS", (proof, proof)), \
+                    patch.object(check, "checksum_git", side_effect=[entry, f"{len(raw)}\n".encode()]) as metadata, \
+                    patch.object(check.subprocess, "run", return_value=subprocess.CompletedProcess([], 0, raw, b"")) as run:
+                self.assertEqual(raw, check.reviewed_ledger_alias_blob(Path("source"), index))
+            self.assertEqual(["git", "--no-replace-objects", "-C", "source", "cat-file", "blob", "b" * 40], run.call_args.args[0])
+            self.assertEqual({"capture_output": True, "timeout": 5}, run.call_args.kwargs)
+            self.assertEqual([(Path("source"), "ls-tree", "-z", "a" * 40, "--", "public.json"),
+                              (Path("source"), "cat-file", "-s", "b" * 40)],
+                             [call.args for call in metadata.call_args_list])
+        for values in ([entry.replace(b"100644", b"120000")], [entry.replace(b"100644", b"100755")],
+                       [entry.replace(b"blob", b"tree")], [entry.replace(b"b" * 40, b"c" * 40)],
+                       [entry.replace(b"public.json", b"other.json")], [entry + entry], [entry, b"999\n"]):
+            with self.subTest(values=values), patch.object(check, "LEDGER_ALIAS_PROOFS", (proof, proof)), \
+                    patch.object(check, "checksum_git", side_effect=values), \
+                    patch.object(check.subprocess, "run") as run, self.assertRaises(check.ScanFailure):
+                check.reviewed_ledger_alias_blob(Path("source"), 0)
+            run.assert_not_called()
+        for invalid in (-1, 2, True, "0"):
+            with self.subTest(index=invalid), patch.object(check, "checksum_git") as metadata, \
+                    self.assertRaises(check.ScanFailure):
+                check.reviewed_ledger_alias_blob(Path("source"), invalid)
+            metadata.assert_not_called()
+
+    def test_proof_reader_rejects_changed_oversized_failed_or_private_output(self):
+        raw = b"public proof"
+        proof = ("a" * 40, "public.json", "b" * 40, len(raw), hashlib.sha256(raw).hexdigest())
+        entry = f"100644 blob {proof[2]}\t{proof[1]}\0".encode()
+        results = [subprocess.CompletedProcess([], 0, raw + b"x", b""),
+                   subprocess.CompletedProcess([], 0, b"x" + raw[1:], b""),
+                   subprocess.CompletedProcess([], 0, raw[:-1], b""),
+                   subprocess.CompletedProcess([], 1, raw, b""),
+                   subprocess.CompletedProcess([], 0, raw, b"PRIVATE_DIAGNOSTIC"),
+                   OSError("PRIVATE_PATH"), subprocess.TimeoutExpired("PRIVATE_COMMAND", 5)]
+        for result in results:
+            with self.subTest(result=type(result).__name__), patch.object(check, "LEDGER_ALIAS_PROOFS", (proof, proof)), \
+                    patch.object(check, "checksum_git", side_effect=[entry, f"{len(raw)}\n".encode()]), \
+                    patch.object(check.subprocess, "run", side_effect=result if isinstance(result, Exception) else None,
+                                 return_value=result), self.assertRaises(check.ScanFailure) as raised:
+                check.reviewed_ledger_alias_blob(Path("source"), 0)
+            self.assertEqual(check.LEDGER_EVIDENCE_ERROR, str(raised.exception))
+
+    def test_alias_proof_requires_current_head_reachability_and_the_exact_parent(self):
+        for index in range(4):
+            values = self.identities()
+            values[index] = b"wrong identity\n"
+            with self.subTest(index=index), patch.object(check, "checksum_git", side_effect=values), \
+                    patch.object(check, "reviewed_ledger_alias_blob") as read, self.assertRaises(check.ScanFailure):
+                check.verify_ledger_alias_finding(Path("source"), "a" * 40)
+            read.assert_not_called()
+
+    def test_only_the_public_field_alias_chain_and_exact_predecessor_are_admitted(self):
+        checker, prior, canonical = self.proof_fixture()
+        with patch.object(check, "checksum_git", side_effect=self.identities()) as git, \
+                patch.object(check, "reviewed_ledger_alias_blob", side_effect=[checker, prior]) as read, \
+                patch.object(check, "LEDGER_PRIOR_CANONICAL_SHA256", canonical):
+            check.verify_ledger_alias_finding(Path("source"), "a" * 40)
+        self.assertEqual([0, 1], [call.args[1] for call in read.call_args_list])
+        self.assertEqual((Path("source"), "merge-base", "--is-ancestor", check.LEDGER_ALIAS_COMMIT, "a" * 40),
+                         git.call_args_list[2].args)
+        name = lambda version: f"PRIOR_V{version}_KEYS"
+        variants = [checker + f"{name(11)} = {name(10)}\n".encode(),
+                    checker.replace(name(10).encode(), b"unreviewed_alias", 1),
+                    checker.replace(f"{name(10)} = {name(9)}".encode(), f"{name(10)} = '{name(9)}'".encode()),
+                    checker.replace(b"'schema_version'", b"'unreviewed_field'"), checker[:-35]]
+        for changed in variants:
+            with self.subTest(change=hashlib.sha256(changed).hexdigest()), \
+                    patch.object(check, "checksum_git", side_effect=self.identities()), \
+                    patch.object(check, "reviewed_ledger_alias_blob", side_effect=[changed, prior]), \
+                    patch.object(check, "LEDGER_PRIOR_CANONICAL_SHA256", canonical), self.assertRaises(check.ScanFailure):
+                check.verify_ledger_alias_finding(Path("source"), "a" * 40)
+        for changed in (prior.replace(b"null", b"true", 1), b"[]", b"not JSON"):
+            with self.subTest(prior=changed[:8]), patch.object(check, "checksum_git", side_effect=self.identities()), \
+                    patch.object(check, "reviewed_ledger_alias_blob", side_effect=[checker, changed]), \
+                    patch.object(check, "LEDGER_PRIOR_CANONICAL_SHA256", canonical), self.assertRaises(check.ScanFailure):
+                check.verify_ledger_alias_finding(Path("source"), "a" * 40)
+
+    def test_entrypoint_retains_raw_findings_and_fails_any_unreviewed_peer(self):
+        unknown = {**self.row(), "file": "unreviewed.py"}
+        for rows, exit_code, status in (([self.row()], 0, "passed_with_reviewed_findings"),
+                                        ([self.row(), unknown], 1, "failed")):
+            with self.subTest(status=status), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                raw = self.result(rows)
+                with patch.object(check, "ROOT", root), patch.object(check.platform, "system", return_value="Linux"), \
+                        patch.object(check.platform, "machine", return_value="x86_64"), \
+                        patch.object(check, "inspect_source", return_value={"commit": "a" * 40}), \
+                        patch.object(check, "install_scanner", return_value=Path("scanner")), \
+                        patch.object(check, "verify_detection_and_removal", return_value={}), \
+                        patch.object(check, "scan", return_value=raw), patch.object(check, "verify_ledger_alias_finding"), \
+                        contextlib.redirect_stdout(io.StringIO()):
+                    self.assertEqual(exit_code, check.main())
+                receipt = json.loads((root / "build/security/secret-scan.json").read_text())
+                self.assertEqual(status, receipt["status"])
+                self.assertEqual(raw, receipt["scan"])
+                self.assertEqual(1, receipt["triage"]["reviewed_count"])
+                self.assertEqual(len(rows) - 1, receipt["triage"]["unresolved_count"])
+
+
 if __name__ == "__main__":
     unittest.main()
