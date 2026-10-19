@@ -5,6 +5,8 @@ import json
 from pathlib import Path
 import sys
 
+from reference_fixture_output import output_path, write_output
+
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('frozen_evaluate', ROOT / 'contracts/v1/reference/evaluate.py')
 reference = importlib.util.module_from_spec(spec)
@@ -24,9 +26,10 @@ for name, metrics, strict in [
     report = reference.Evaluator(b, catalog, rules, metrics=metrics).evaluate()
     cases.append(dict(name=name, strict=strict, report=report))
 output = json.dumps(cases, indent=2) + '\n'
-path = ROOT / 'core/src/test/resources/evaluation/reference-reports.json'
+relative = Path('core/src/test/resources/evaluation/reference-reports.json')
+path = output_path(ROOT, relative)
 if '--write' in sys.argv:
-    path.write_text(output)
+    write_output(ROOT, relative, output)
 else:
     if path.read_text() != output:
         raise SystemExit('Reference adapter fixtures differ; inspect upstream before regenerating')
