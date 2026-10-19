@@ -4,19 +4,12 @@ The existing **Unsigned synthetic Android preview** CI job builds, lints and run
 the named Robolectric regressions on Linux. After that job succeeds, **Installed
 synthetic Android preview (hosted KVM)** verifies the exact unsigned APK handoff and
 runs the same smoke harness on an explicitly selected Ubuntu 24.04 runner. The
-accepted harness retains the original non-root UID, GID and groups,
+new provisioning proposal retains the original non-root UID, GID and groups,
 and uses the existing privileged-tooling policy for one temporary named-user KVM
 ACL and its exact restoration. It uses one fresh AOSP API 35 x86_64 AVD. The
 explicit 720×1280/280-dpi startup profile from the preceding HVF experiment is
 retained and bound across the workflow, unprivileged child and final receipts.
-The lane was delivered through
-[#467](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/467) at
-[`0f5fea42c5cd149472269da2e47559a24689ba71`](https://github.com/Pick-Your-AI/pick-your-ai-android/commit/0f5fea42c5cd149472269da2e47559a24689ba71).
-The case table below describes the accepted harness, including its
-[automatic-save and invalid-pending-input reconciliation](#current-main-autosave-scenario-reconciliation).
-It does not relabel an earlier run or establish a result for a later checkout.
-
-The first historical ACL/KVM attempt booted and verified that display, then failed its HOME
+The first ACL/KVM attempt booted and verified that display, then failed its HOME
 root acquisition and exact cleanup check. The second acquired fresh HOME XML and
 focus but rejected its embedded search package; that attempt restored the exact
 original ACL. The third passed HOME readiness and the installed launch case,
@@ -38,9 +31,9 @@ package, support matrix, service contract, signing policy or release.
 | Required installed case | Assertions made by the harness | Limit |
 | --- | --- | --- |
 | `installed_synthetic_launch` | Fresh install launches the exact experimental Activity; the synthetic notice and active `guest-draft` identity are visible | One AOSP image and diagnostic package |
-| `acknowledged_save_survives_force_stop` | Enter fixed synthetic title/objective/context; require the actual automatic valid-form save acknowledgement and disabled Save; HOME then force-stop terminates the process; a new process reopens the same acknowledged fields and local ID | Automatic-save persistence after force-stop/cold relaunch; no manual-save action, low-memory process death or power-loss result |
-| `pending_fields_survive_rotation` | Enter the exact invalid Requests per day value before pending title/objective edits; require both observed rotations to preserve those fields, unchanged context, the invalid raw input and explanation, explicit unsaved state and disabled Save | Deliberately invalid pending input in two orientations of one emulator configuration; no support-matrix or general adaptive/accessibility qualification |
-| `confirmed_deletion_does_not_resurrect` | Select the exact acknowledged saved library row, inspect the ID-specific deletion confirmation, confirm removal, retain pending editor fields and invalid workload input with Save/history disabled, then verify an empty library before and after another cold relaunch | Current readable local draft, not every corrupt/interrupted cleanup, storage-full, another-draft, secure-erasure or remote-deletion case |
+| `acknowledged_save_survives_force_stop` | Enter fixed synthetic title/objective/context; Save displays its acknowledgement and disables; HOME then force-stop terminates the process; a new process reopens the same acknowledged fields and local ID | Force-stop/cold relaunch, not low-memory process death, autosave or power-loss durability |
+| `pending_fields_survive_rotation` | Pending title/objective edits survive observed landscape and portrait rotations; context stays unchanged; Save remains enabled and the form remains explicitly unsaved | Two orientations in one emulator configuration, not the support matrix or general adaptive/accessibility qualification |
+| `confirmed_deletion_does_not_resurrect` | Select the exact saved library row, inspect the ID-specific deletion confirmation, confirm removal, retain pending editor fields with Save/history disabled, then verify an empty library before and after another cold relaunch | Current readable local draft, not every corrupt/interrupted cleanup, storage-full, another-draft, secure-erasure or remote-deletion case |
 
 The harness drives the installed app through `adb` input and UI Automator hierarchy
 dumps. It locates current visible labels, adjacent editors and exact button text;
