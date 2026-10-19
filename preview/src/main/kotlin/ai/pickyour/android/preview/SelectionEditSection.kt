@@ -32,6 +32,8 @@ class SelectionEditSection(private val activity: Activity,
     private val discardRecovery = Button(activity)
     private var catalogHash: String? = null
     private var catalogItems: List<PreviewCatalogItem> = emptyList()
+    private var reviewAvailable = false
+    internal var onReviewAvailabilityChanged: (() -> Unit)? = null
 
     init {
         orientation = VERTICAL
@@ -78,6 +80,13 @@ class SelectionEditSection(private val activity: Activity,
     internal fun canReviewCurrentChoices(expected: PreviewStoredDraft): Boolean = canOpen(expected) &&
         (if (expected.components.selections.isEmpty()) choose.isEnabled else manage.isEnabled)
 
+    private fun publishReviewAvailability() {
+        val available = baseline?.let(::canReviewCurrentChoices) == true
+        if (available == reviewAvailable) return
+        reviewAvailable = available
+        onReviewAvailabilityChanged?.invoke()
+    }
+
     /** Navigate through the existing current-record controls; all later editor checks still apply. */
     internal fun reviewCurrentChoices(expected: PreviewStoredDraft) {
         if (!canReviewCurrentChoices(expected)) return
@@ -99,6 +108,7 @@ class SelectionEditSection(private val activity: Activity,
         })
         reviewRecovery.visibility = if (recovery is ComponentFormRecovery.Pending) View.VISIBLE else View.GONE
         discardRecovery.visibility = if (noRecovery) View.GONE else View.VISIBLE
+        publishReviewAvailability()
     }
     fun restore(state: Bundle?) {
         if (closed) return
@@ -120,6 +130,8 @@ class SelectionEditSection(private val activity: Activity,
         reviewRecovery.isEnabled = false; discardRecovery.isEnabled = false
         dialogs.toList().forEach { it.dismiss() }; dialogs.clear()
         formBinding = null; recovery = ComponentFormRecovery.None
+        publishReviewAvailability()
+        onReviewAvailabilityChanged = null
     }
     private fun show(dialog: AlertDialog, feedback: TextView? = null): AlertDialog {
         dialogs += dialog
