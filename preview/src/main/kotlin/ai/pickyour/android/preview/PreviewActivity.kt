@@ -888,7 +888,7 @@ class PreviewActivity : Activity() {
                         .setNeutralButton(R.string.domain_restore_preview) { dialog, _ ->
                             if (historyDialogIsCurrent(dialog, baseline)) confirmDomainRestore(baseline, revision)
                         }
-                        .setPositiveButton(R.string.close, null).show()
+                        .setPositiveButton(R.string.close, null).showStorageDialog()
                 } else {
                     AlertDialog.Builder(this).setTitle(getString(R.string.history_revision, revision.revision.toString()))
                         .setMessage(getString(R.string.history_copy_warning, oldFields.title,
@@ -909,7 +909,7 @@ class PreviewActivity : Activity() {
                                 showSelection()
                                 formChanged()
                             }
-                        }.show()
+                        }.showStorageDialog()
                 }
             }.setPositiveButton(R.string.revision_compare_open) { dialog, _ ->
                 if (historyDialogIsCurrent(dialog, baseline)) showComparisonPicker(baseline)
@@ -1170,7 +1170,7 @@ class PreviewActivity : Activity() {
             .setNegativeButton(R.string.keep_edits, null)
             .setPositiveButton(R.string.domain_restore_commit) { dialog, _ ->
                 if (historyDialogIsCurrent(dialog, baseline)) restoreDomain(baseline, revision.revision)
-            }.show()
+            }.showStorageDialog()
     }
 
     private fun restoreDomain(expected: PreviewStoredDraft, revision: Long) {

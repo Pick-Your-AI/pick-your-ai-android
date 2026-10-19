@@ -270,6 +270,30 @@ class CatalogComparisonValueActivityTest {
         assertStable(before)
     }
 
+    @Test fun historyDetailRetiresCompleteValueCallbacks() {
+        val picker = historyPicker()
+        assertStoragePresentationRetiresValue {
+            assertTrue(picker.isShowing)
+            shadowOf(picker).clickOnItem(0)
+        }
+    }
+
+    @Test fun domainRestoreConfirmationRetiresCompleteValueCallbacks() {
+        val picker = historyPicker()
+        shadowOf(picker).clickOnItem(0); idle()
+        val detail = dialog()
+        assertNotSame(picker, detail)
+        assertTrue(detail.isShowing)
+        val restore = detail.getButton(AlertDialog.BUTTON_NEUTRAL)
+        assertEquals(activity.getString(R.string.domain_restore_preview), restore.text.toString())
+        assertStoragePresentationRetiresValue {
+            assertTrue(detail.isShowing)
+            restore.performClick()
+            assertEquals(activity.getString(R.string.domain_restore_commit),
+                dialog().getButton(AlertDialog.BUTTON_POSITIVE).text.toString())
+        }
+    }
+
     @Test fun newDraftConfirmationRetiresCompleteValueCallbacks() {
         assertStoragePresentationRetiresValue { button(R.string.library_new).performClick() }
     }
@@ -436,6 +460,16 @@ class CatalogComparisonValueActivityTest {
         assertNotSame(value, dialog())
         assertTrue(dialog().isShowing)
         assertStable(before)
+    }
+
+    private fun historyPicker(): AlertDialog {
+        val previous = ShadowAlertDialog.getLatestAlertDialog()
+        button(R.string.draft_history).performClick()
+        val picker = dialog()
+        assertNotSame(previous, picker)
+        assertTrue(picker.isShowing)
+        assertTrue(picker.listView.adapter.count > 0)
+        return picker
     }
 
     private fun libraryPicker(): AlertDialog {
