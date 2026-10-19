@@ -67,7 +67,17 @@ newer profile. Required missing inputs remain missing.
 | Lifecycle | Always `draft` in this local profile; this is an output-state policy, not evaluation, deployment readiness or permission |
 
 Every artifact receives the bounded strict JSON reader and its fixed frozen
-schema. A matching hash is byte identity only. Expected IDs and versions must
+schema. Exact hash mismatch is checked first; a matching hash is byte identity
+only. After complete bounded parsing, a present textual `schema_version` other
+than exactly `"1.0.0"` is withheld as `ARTIFACT_UNSUPPORTED_SCHEMA_VERSION` at its
+fixed artifact path, without including the rejected text. This diagnostic reaches
+both public preparation facades. Missing, null or nontext version fields remain
+`ARTIFACT_SCHEMA_MISMATCH`, as do malformed, duplicate-key, trailing, invalid-UTF-8
+or over-limit inputs. The generic frozen validator and the archive's existing
+version checks and public outcomes remain unchanged. Rejection creates no
+candidate and changes no durable draft, token, active selection or prior candidate.
+
+Expected artifact IDs and revision/version pins must
 match the actual artifact. Ruleset versions remain exact strings. Integer artifact
 revisions compare by exact mathematical integer value, including integral decimal
 or exponent forms; their original raw bytes remain unchanged. This local profile
@@ -221,13 +231,30 @@ prerequisite, canonical acceptance path or broader work package is closed here.
 Run the required frozen-import/reference checks and core/native gates from
 [CORE_FOUNDATION.md](CORE_FOUNDATION.md) and [CI_BASELINE.md](CI_BASELINE.md).
 Focused local command: `:core:test --tests ai.pickyour.core.drafts.DraftSnapshotProjectionTest
---tests ai.pickyour.core.preview.PreviewDraftProjectionTest` with the pinned offline
-toolchain. The actual focused run after composing the independently reviewed
-numeric prerequisite at local `803c7a247e8e32d2a348441b77ef995a0b86face` executes
-15 projection and three managed-library cases with zero failures, errors or
-skips. The earlier counter failure is retained as the discovery evidence for
-#320, rather than relabeled as a successful run. The in-session research engineer
-has read the complete projection, canonical wrapper changes, tests and this
-boundary note; its source review is distinct from the author's test execution.
+--tests ai.pickyour.core.preview.PreviewDraftProjectionTest
+--tests ai.pickyour.core.drafts.DraftProjectionVersionTest
+--tests ai.pickyour.core.drafts.SnapshotBundleIntegrityTest` with the pinned offline
+toolchain.
+
+The historical focused run at local
+`803c7a247e8e32d2a348441b77ef995a0b86face`, before
+`DraftProjectionVersionTest` existed, composed the independently reviewed numeric
+prerequisite and executed 15 projection and three managed-library cases with zero
+failures, errors or skips. The earlier counter failure is retained as the
+discovery evidence for #320, rather than relabeled as a successful run. The
+in-session research engineer has read the complete projection, canonical wrapper
+changes, tests and this boundary note; its source review is distinct from the
+author's test execution.
+
+The version-diagnostic regression baseline at local
+`02f7ce0fd1d401cee25e05f44d8e622c864e447c` executed all 82 new cases: 69 passed and
+13 failed because unsupported textual versions received the generic schema code.
+At corrected source `b41dda6d249d81e069b387cfc6720be40f55f929`, the focused command
+above executed 108 cases in four suites with zero failures, errors or skips:
+82 version, 15 existing projection, three managed-library projection and eight
+archive-integrity cases. All 82 baseline identities were retained, including the
+13 formerly failing cases. The original failed and corrected logs/XML remain
+separate evidence; neither run is an installed Android result.
+
 Final exact-tree full gates and published receiving review belong in the delivery
 receipt. No installed-device or complete work-package acceptance is implied.

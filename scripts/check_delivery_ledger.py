@@ -4,6 +4,7 @@
 Read-only: never calls GitHub, changes issue state, or interprets checks as acceptance.
 """
 import argparse
+import copy
 import hashlib
 import json
 import math
@@ -389,7 +390,7 @@ REVIEWED_DESIGNS[2] = {
 # checkbox state, an arbitrary approval flag or a successful check. Observation
 # revisions and original artifact identities stay separate from the record delivery.
 COMPLETE_IMPLEMENTATION_RELATION = 'criterion_complete_reviewed_implementation_outcome'
-LEDGER_PURPOSE = 'Living evidence index: 25 reviewed documentary/design criteria for Android #2/#20/#23/#24/#25/#34/#35/#47 and 3 reviewed local-model implementation criteria for #26 are complete; 413 criteria remain incomplete. This does not replace acceptance receipts, GitHub issue status or native dependencies.'
+LEDGER_PURPOSE = 'Living evidence index: 25 reviewed documentary/design criteria for Android #2/#20/#23/#24/#25/#34/#35/#47, 3 reviewed local-model implementation criteria for #26 and the single reviewed import-integrity criterion 21.2 are complete; 412 criteria remain incomplete. This does not replace acceptance receipts, GitHub issue status or native dependencies.'
 IMPLEMENTATION_26_EVIDENCE = {'pr-407': {'pr_url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/pull/407',
             'observed_state': 'merged',
             'revision': '5cb0729889dd56f8e14af356f0547683d1c511a2',
@@ -599,6 +600,207 @@ PRESERVED_METADATA_SHA256 = '81a7ffc4531f20237aef4e61123b4fb3e6deaef42b88a595b3c
 ORDINARY_RECORD_COORDINATES_SHA256 = 'b7c0d2b1a30a75013cce5473a991cea4d47ce3732c3918530fdde1b888c2908a'
 
 
+
+# One exact criterion may be accepted without promoting its issue or siblings.
+COMPLETE_IMPORT_RELATION = 'criterion_complete_reviewed_import_integrity_outcome'
+IMPORT_21_2_ID = '21.2'
+IMPORT_21_2_EVIDENCE_REF = 'pr-430'
+IMPORT_21_2_ACCEPTANCE = {'classification': 'reviewed_import_integrity_criterion',
+ 'criterion_id': '21.2',
+ 'criterion_text_sha256': 'd55fb9faa949130917f48f5a8e913cf87b55f26859ac1909f5ae712da5d055ba',
+ 'scope': 'exact_frozen_import_provenance_and_reproduced_integrity_only',
+ 'evidence_ref': 'pr-430',
+ 'source_review_revision': 'da3b095b51de209dba943f1bc0c478f9081de550',
+ 'source_review_tree': 'ceed506f4a03873486a02f185ddb3eb7efca2050',
+ 'receiving_reviews': [{'url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/pull/430#pullrequestreview-5565527306',
+                        'reviewed_revision': 'da3b095b51de209dba943f1bc0c478f9081de550',
+                        'role': 'coordinating_engineer_shared_schema_technical_receiver_under_express_delegation',
+                        'disposition': 'accept_exact_literal_21.2_import_evidence_only',
+                        'identity_scope': 'actual_in_session_shared_account_review_not_absent_assignee_or_separate_account_approval',
+                        'state': 'COMMENTED',
+                        'submitted_at': '2026-10-18T23:20:47Z'}],
+ 'upstream': {'repository': 'Pick-Your-AI/pick-your-ai-research',
+              'accepted_pr': 44,
+              'merge_commit': '9769fcd9ea380b1211669b2753181c7782444178',
+              'root_tree': '6320941c0437b6f069272955afafe96b198817f3',
+              'contract_subtree': 'b1c4eaa4037f2a1e02103849064a947e758a2b40',
+              'contract_subtree_object_type': 'tree',
+              'package': 'ai-builder-contract-v1',
+              'contract_version': '1.0.0',
+              'excluded_research_document': {'path': 'ADOPTION.md',
+                                             'git_blob': 'ef8906b5d21fb28c67ece8c5eb9019d30dcd040b',
+                                             'reason': 'Research receiving policy is documented by that '
+                                                       'repository; Android records its own consumer '
+                                                       'boundary.'}},
+ 'import_inventory': {'directory': 'contracts/v1',
+                      'original_package_files': 43,
+                      'pinned_metadata_files': 2,
+                      'exact_import_leaves': 45,
+                      'manifest_sha256': 'ef6d5801eec10f3169e2bf84653e7026b33088e305a987991ec52faadcd7f554',
+                      'upstream_sums_sha256': '0587a133436268bc03684ad61ff29f3bd1a12eb83db8a497eabdbb8fd8803e15',
+                      'complete_mapping_path': 'docs/evidence/frozen-import-21.2-20261018.json',
+                      'archived_prompt_mapping': {'AGENTS.md': 'docs/IMPLEMENTATION_AGENTS.md',
+                                                  'HANDOFF_PROMPT.md': 'docs/IMPLEMENTATION_HANDOFF.md'}},
+ 'import_execution': {'workflow_run': 39166674498,
+                      'workflow_event': 'push',
+                      'run_attempt': 1,
+                      'core_job': 117790951872,
+                      'url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39166674498/job/117790951872',
+                      'checkout': '40bd3d99dd7286f4b2fba0d6b17eb4e89b869657',
+                      'positive_command': 'python scripts/check_contracts.py',
+                      'verified_original_hashes': 43,
+                      'verified_metadata_hashes': 2,
+                      'unmodified_reference_cases': 21,
+                      'reference_seconds': '0.672',
+                      'negative_command': 'python -m unittest discover -s tests -v',
+                      'negative_methods': ['test_modified_schema_fails_before_reference_execution',
+                                           'test_modified_manifest_cannot_redefine_accepted_hashes',
+                                           'test_missing_artifact_fails',
+                                           'test_extra_schema_is_not_silently_bundled'],
+                      'negative_seconds': '0.182',
+                      'outcome': 'success',
+                      'log_bytes': 39592,
+                      'log_sha256': '82662a001afb0bbfc335ccbeb408fd26547290e654974fc523df5689f633e113',
+                      'failure_semantics': 'Each negative invokes the real runner in an isolated copy, '
+                                           'requires exit1 plus Contract integrity failure, and rejects '
+                                           'evidence of the original21-case suite having executed.',
+                      'evidence_audit': 'Original hosted decoded log and preserved exact source inspected; '
+                                        'no project test rerun was performed for this document.'},
+ 'delivery': {'revision': '0765e3657a7d747b8f6f8f9a07e6117d3ff806f1',
+              'tree': '4be11a32c5770e99d655a278d86511d7cfbf8d15',
+              'parent': 'cbe6367175bd264463d397dc8a8705c84980ad8d',
+              'signature_verified': True,
+              'merged_at': '2026-10-19T00:54:46Z',
+              'artifacts': [{'path': 'docs/CONTRACT_ADOPTION.md',
+                             'mode': '100644',
+                             'blob': 'fcddd79f200973d313693c10aecbcd4e54a48e22',
+                             'bytes': 5003,
+                             'sha256': 'c792c697919dad6a36b3178af0684d2e0a50b30ff0da95f17bb295e39ed84735',
+                             'url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/blob/0765e3657a7d747b8f6f8f9a07e6117d3ff806f1/docs/CONTRACT_ADOPTION.md'},
+                            {'path': 'docs/CONTRACT_IMPORT_EVIDENCE.md',
+                             'mode': '100644',
+                             'blob': '6c8ca9e99766eab7bbe4f09b7734d0c4187a6b99',
+                             'bytes': 6566,
+                             'sha256': 'ec28a9549c590b3118e1d36617f19a9bb310831fb7101324c60fda32fb3f0c7e',
+                             'url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/blob/0765e3657a7d747b8f6f8f9a07e6117d3ff806f1/docs/CONTRACT_IMPORT_EVIDENCE.md'},
+                            {'path': 'docs/CONTRACT_REVISION_HANDOFF.md',
+                             'mode': '100644',
+                             'blob': 'b2eda5319defc02a99179d97748e2fa8953e8f1f',
+                             'bytes': 7046,
+                             'sha256': '3a688e8e77b05ad79323e2421808b370557358229bbd3c1d05dad1c1817089a1',
+                             'url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/blob/0765e3657a7d747b8f6f8f9a07e6117d3ff806f1/docs/CONTRACT_REVISION_HANDOFF.md'},
+                            {'path': 'docs/evidence/frozen-import-21.2-20261018.json',
+                             'mode': '100644',
+                             'blob': '5794a15ae261e7fa94506fc8cf4705aea4b0ddb1',
+                             'bytes': 20597,
+                             'sha256': 'f3c69d25329f33cceb50978533213967d5124c64d36820e53c90407410bdce49',
+                             'url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/blob/0765e3657a7d747b8f6f8f9a07e6117d3ff806f1/docs/evidence/frozen-import-21.2-20261018.json'}]},
+ 'default_verification': {'receipt_url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/pull/430#issuecomment-6257757921',
+                          'receipt_created_at': '2026-10-19T01:32:43Z',
+                          'primary': {'revision': '0765e3657a7d747b8f6f8f9a07e6117d3ff806f1',
+                                      'tree': '4be11a32c5770e99d655a278d86511d7cfbf8d15',
+                                      'event': 'push',
+                                      'branch': 'main',
+                                      'run': 39182899227,
+                                      'overall_outcome': 'cancelled',
+                                      'core_job': 117839252712,
+                                      'core_outcome': 'success',
+                                      'core_cases': 3994,
+                                      'core_suites': 77,
+                                      'preview_job': 117839253015,
+                                      'preview_outcome': 'cancelled',
+                                      'completed_preview_xml_reports': 0,
+                                      'scanner_run': 39182899218,
+                                      'scanner_job': 117839252717,
+                                      'scanner_outcome': 'success',
+                                      'scanner_named_controls': 17,
+                                      'reachable_commits': 179,
+                                      'core_artifact': {'id': 12156487938,
+                                                        'bytes': 1245628,
+                                                        'sha256': '167f67e18518a04df7ec934dcaf1bf9d9a80ca28de7f22e8770ddfe14a8ffd47'},
+                                      'scanner_artifact': {'id': 12157016286,
+                                                           'bytes': 943,
+                                                           'sha256': '03bbc88720e398480c1890bd98476c7fae3188185716a50dab1eb81fea649619'}},
+                          'following_documentation_only': {'revision': 'a6db68625bb3dc5003e163468e991cebb6635923',
+                                                           'tree': '84c8f62c66f3bb665c8e6aa0435548e5a34ede93',
+                                                           'parent': '0765e3657a7d747b8f6f8f9a07e6117d3ff806f1',
+                                                           'source_change': 'four_CONTRIBUTING_lines_only_all_425_other_source_entries_unchanged',
+                                                           'event': 'push',
+                                                           'branch': 'main',
+                                                           'run': 39183180872,
+                                                           'overall_outcome': 'success',
+                                                           'core_job': 117840368009,
+                                                           'core_outcome': 'success',
+                                                           'core_cases': 3994,
+                                                           'core_suites': 77,
+                                                           'preview_job': 117840368300,
+                                                           'preview_outcome': 'success',
+                                                           'preview_cases': 300,
+                                                           'preview_suites': 25,
+                                                           'scanner_run': 39183180932,
+                                                           'scanner_job': 117840090421,
+                                                           'scanner_outcome': 'success',
+                                                           'scanner_named_controls': 17,
+                                                           'reachable_commits': 180,
+                                                           'core_artifact': {'id': 12157276774,
+                                                                             'bytes': 1245475,
+                                                                             'sha256': '7badaba5e3991a702dea1fafeb2d04f76036b7785ab693d52bb4c47817dfeed9'},
+                                                           'preview_artifact': {'id': 12156758057,
+                                                                                'bytes': 3020907,
+                                                                                'sha256': 'bbf2f04b59715ce137175da06d9eee4c0f8f7ec63574e48bd4744cf0d270441a'},
+                                                           'runtime_artifact': {'id': 12156952561,
+                                                                                'bytes': 3823967,
+                                                                                'sha256': '45d16a0ab3bd1144bcc0e09a072ff8e01dd3dd3b30dd9cc568ed81cdd37e42dc'},
+                                                           'scanner_artifact': {'id': 12157031429,
+                                                                                'bytes': 942,
+                                                                                'sha256': 'db50594e836e9b9ad0e93be9d5e470cf9b1ce9bf032f88cfccde0adb6255da37'}},
+                          'runtime_scope': 'original_reference_and_JVM_or_simulated_Android_receipts_not_installed_execution',
+                          'cancelled_results_relabelled': False,
+                          'new_execution_claimed_by_ledger': False},
+ 'canonical_acceptance_record': {'repository': 'Pick-Your-AI/pickyour.ai',
+                                 'path': 'docs/delivery/android/work-packages/03.01.md'},
+ 'canonical_acceptance_record_relocated': False,
+ 'whole_issue_completion': False,
+ 'remaining_criteria': ['21.1', '21.3'],
+ 'outcome_boundaries': ['Only literal 21.2 import provenance and integrity reproduction are accepted.',
+                        'Every other criterion, including 21.1, 21.3 and all of 32, 33, 48 and 49, retains '
+                        'its prior status and evidence.',
+                        'No network, persistence, user-import, generated-model, decimal-transport or '
+                        'current-binding acceptance is inferred.',
+                        'No successor contract adoption, installed device, recipient delivery, domain '
+                        'evidence, production or release acceptance is inferred.',
+                        'The canonical 03.01 website coordinate is unchanged; issue state, native '
+                        'relationships, Projects and ownership are not modified by the checker.']}
+IMPORT_21_2_EVIDENCE = {'pr_url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/pull/430',
+ 'observed_state': 'merged',
+ 'revision': '0765e3657a7d747b8f6f8f9a07e6117d3ff806f1',
+ 'artifact_url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/blob/0765e3657a7d747b8f6f8f9a07e6117d3ff806f1/docs/CONTRACT_IMPORT_EVIDENCE.md',
+ 'scope_limit': 'Exact delivered import supplement and actual literal 21.2 receiving review only. Original '
+                '40bd import execution, 0765 cancelled overall/native with successful Core/scanner, and '
+                'following documentation-only a6 successful default remain separately pinned. '
+                'EvaluationReport source and broader 21.1/21.3, whole issue 21, 32/33/48/49, successor, '
+                'installed, operating and release outcomes are not completed by this receipt.'}
+PRIOR_21_ISSUE_SHA256 = 'eac8951ff123e43b22c2ac7bb20cac3eb8c7cef5697dd0d77d6d545de0a3e50d'
+PRIOR_21_2_FIELDS = {'status': 'incomplete',
+ 'evidence_relation': 'issue_context_only; inspect artifact scope before attributing any criterion result',
+ 'remaining_engineering': 'Exercise frozen schemas and decimal semantics at each actual API and storage '
+                          'boundary.',
+ 'external_prerequisites': [],
+ 'completion_evidence': []}
+PRIOR_V8_PURPOSE = ('Living evidence index: 25 reviewed documentary/design criteria for Android '
+ '#2/#20/#23/#24/#25/#34/#35/#47 and 3 reviewed local-model implementation criteria for #26 are complete; '
+ '413 criteria remain incomplete. This does not replace acceptance receipts, GitHub issue status or native '
+ 'dependencies.')
+PRIOR_V8_KEYS = ('schema_version',
+ 'observed_on',
+ 'repository',
+ 'implementation_baseline',
+ 'source',
+ 'purpose',
+ 'evidence',
+ 'issues')
+PRIOR_V8_LEDGER_SHA256 = '5db8320d3f26f0ddf24e751e41489aaec344f997eb52d408a95449b4b6cabdae'
+
 def json_digest(value):
     """Canonical JSON identity also distinguishes integers, floats and booleans."""
     encoded = json.dumps(value, sort_keys=True, separators=(',', ':'), allow_nan=False)
@@ -639,8 +841,26 @@ def source_criteria(body):
     return re.findall(r'^- \[[ xX]\] (.+)$', section, re.M)
 
 
+
+def reconstruct_prior_v8(ledger):
+    """Reverse only the one source-reviewed amendment, never authorize a receipt.
+
+    validate() checks its exact receipt and outcome before using this reconstruction.
+    Unrelated issue, criterion, evidence and metadata values stay available to the
+    original history guards. Extra finite input metadata retains the v8 CLI behavior.
+    """
+    previous = copy.deepcopy(ledger)
+    criterion = previous['issues'][20]['criteria'][1]
+    criterion.pop('accepted_import_integrity_outcome')
+    criterion.update(copy.deepcopy(PRIOR_21_2_FIELDS))
+    previous['evidence'].pop(IMPORT_21_2_EVIDENCE_REF)
+    previous['schema_version'] = 8
+    previous['purpose'] = PRIOR_V8_PURPOSE
+    return previous
+
+
 def validate(ledger, source=None):
-    require(type(ledger['schema_version']) is int and ledger['schema_version'] == 8, 'unsupported schema version')
+    require(type(ledger['schema_version']) is int and ledger['schema_version'] == 9, 'unsupported schema version')
     require(ledger['repository'] == REPOSITORY, 'wrong repository')
     require(ledger['purpose'] == LEDGER_PURPOSE, 'unsupported ledger completion summary')
     evidence = ledger['evidence']
@@ -709,6 +929,18 @@ def validate(ledger, source=None):
             text = criterion['text']
             require(isinstance(text, str) and bool(text.strip()), f'empty criterion: {key}')
             require(criterion['text_sha256'] == hashlib.sha256(text.encode()).hexdigest(), f'criterion text digest mismatch: {key}')
+            accepted_import = key == IMPORT_21_2_ID
+            require(accepted_import or 'accepted_import_integrity_outcome' not in criterion,
+                    f'unsupported import-integrity acceptance: {key}')
+            if accepted_import:
+                require(criterion['text_sha256'] == IMPORT_21_2_ACCEPTANCE['criterion_text_sha256'],
+                        'reviewed import-integrity criterion text changed: 21.2')
+                require(json_digest(criterion.get('accepted_import_integrity_outcome')) ==
+                        json_digest(IMPORT_21_2_ACCEPTANCE),
+                        'missing or changed reviewed import-integrity acceptance: 21.2')
+                require(json_digest(evidence.get(IMPORT_21_2_EVIDENCE_REF)) ==
+                        json_digest(IMPORT_21_2_EVIDENCE),
+                        'missing or changed reviewed import-integrity evidence: 21.2')
             if accepted_design:
                 require(criterion['status'] == 'complete' and
                         criterion['completion_evidence'] == [accepted_design['acceptance']['evidence_ref']],
@@ -725,6 +957,14 @@ def validate(ledger, source=None):
                         f'completed criterion still has unfinished requirements: {key}')
                 require(criterion['evidence_relation'] == COMPLETE_IMPLEMENTATION_RELATION,
                         f'unsupported implementation completion attribution: {key}')
+            elif accepted_import:
+                require(criterion['status'] == 'complete' and
+                        criterion['completion_evidence'] == [IMPORT_21_2_EVIDENCE_REF],
+                        'missing reviewed import-integrity completion evidence: 21.2')
+                require(criterion['remaining_engineering'] == '' and criterion['external_prerequisites'] == [],
+                        'completed import criterion still has unfinished requirements: 21.2')
+                require(criterion['evidence_relation'] == COMPLETE_IMPORT_RELATION,
+                        'unsupported import-integrity completion attribution: 21.2')
             else:
                 require(criterion['status'] == 'incomplete' and criterion['completion_evidence'] == [], f'unreviewed completion claim: {key}')
                 require(bool(criterion['remaining_engineering'].strip()), f'missing remaining work: {key}')
@@ -746,6 +986,12 @@ def validate(ledger, source=None):
             paths = re.findall(r'`(docs/delivery/android/[^`\n]+\.md)`', original['body'])
             require(record['path'] in paths, f'live acceptance path differs: {number}')
 
+    # Recover v8 before its original v7/v6 reconstruction and coordinate guards.
+    # No other criterion or issue field is normalised by this amendment.
+    previous_v8 = reconstruct_prior_v8(ledger)
+    issues = previous_v8['issues']
+    evidence = previous_v8['evidence']
+
     ordinary_coordinates = [
         {'number': issue['number'],
          'repository': issue['canonical_acceptance_record']['repository'],
@@ -757,6 +1003,9 @@ def validate(ledger, source=None):
                                   separators=(',', ':')).encode('utf-8')
     require(hashlib.sha256(coordinate_bytes).hexdigest() == ORDINARY_RECORD_COORDINATES_SHA256,
             'unreviewed acceptance coordinates; reconcile placement explicitly')
+
+    require(json_digest(previous_v8['issues'][20]) == PRIOR_21_ISSUE_SHA256,
+            'unreviewed change to another issue record: preserve prior #21 context and partial history')
 
     # Reverse only the reviewed #2 completion/placement fields and compare
     # the entire prior object, including its distinct receiving prerequisites.
@@ -795,6 +1044,8 @@ def validate(ledger, source=None):
     ]
     require(json_digest(previous_model) == PRIOR_26_ISSUE_SHA256,
             'unreviewed change to prior #26 context or partial history')
+    require(json_digest({key: previous_v8[key] for key in PRIOR_V8_KEYS}) == PRIOR_V8_LEDGER_SHA256,
+            'unreviewed change to complete prior v8 ledger history')
 
 
 def main():
@@ -808,7 +1059,7 @@ def main():
     except (OSError, ValueError, KeyError, TypeError) as error:
         print(f'Delivery ledger check failed: {error}', file=sys.stderr)
         return 1
-    print('PASS: 129 unique issue URLs, 413 incomplete criteria, 25 reviewed design criteria, 3 reviewed implementation criteria, pinned evidence and canonical paths' +
+    print('PASS: 129 unique issue URLs, 412 incomplete criteria, 25 reviewed design criteria, 3 reviewed implementation criteria, 1 reviewed import-integrity criterion, pinned evidence and canonical paths' +
           ('; exact source criteria matched.' if source is not None else '; live source comparison NOT performed.'))
     return 0
 
