@@ -40,7 +40,10 @@ ledger, native issue relationship or completion state.
 
 [`LocalHelp`](../preview/src/main/kotlin/ai/pickyour/android/preview/LocalHelp.kt)
 accepts only an Activity, a current-owner predicate, an existing diagnostic-review
-callback and a browser launcher. It has no draft/store, file, log, network,
+callback, a browser launcher and a closed catalog-identity callback. The later
+[#57 identity contribution](LOCAL_PREVIEW_IDENTITY.md) renders only fixed public
+labels from the current loaded fixture state; no raw catalog ID, hash or private
+metadata enters Help. It has no draft/store, file, log, network,
 clipboard, account or arbitrary URL input. Its three destination enum values are
 the source-owned Android issues list and two exact issue-form selectors. Neither
 title, body, recipient nor diagnostic report is inserted into a link.

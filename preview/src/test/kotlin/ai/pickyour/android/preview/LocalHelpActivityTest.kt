@@ -102,6 +102,116 @@ class LocalHelpActivityTest {
         assertEquals(0, intent.flags)
     }
 
+    @Test fun helpShowsTheActualLoadedBundledIdentityWithoutExportingIt() {
+        val bytes = activity.assets.open("catalog.json").use { it.readBytes() }
+        val expectedHash = "2e9120db823faef3e1e330a7d2e8067b3ab064328e2faed699d15cf41880fbf8"
+        val actualHash = MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
+        assertEquals(expectedHash, actualHash)
+        val document = org.json.JSONObject(bytes.toString(Charsets.UTF_8))
+        assertEquals("catalog.fixture.1", document.getString("id"))
+        assertEquals(1, document.getInt("revision"))
+        assertEquals("1.0.0", document.getString("schema_version"))
+        assertEquals(expectedHash, CatalogFixtureData.read({ bytes }) {
+            activity.assets.open("pricebook.json")
+        }.catalog?.hash)
+
+        button(R.string.help_open).performClick()
+        val visible = text()
+        assertTrue("Help must identify the actual loaded public catalog", visible.contains("catalog.fixture.1"))
+        assertTrue(visible.contains("Catalog revision: 1"))
+        assertTrue(visible.contains("Catalog schema: 1.0.0"))
+        assertTrue(visible.contains(BuildConfig.APPLICATION_ID))
+        assertTrue(visible.contains("Remote API: not configured"))
+        assertFalse(visible.contains(expectedHash))
+        assertNull(shadowOf(activity).nextStartedActivity)
+
+        control(R.id.help_diagnostics).performClick(); idle()
+        val report = dialog().findViewById<TextView>(R.id.diagnostic_report).text.toString()
+        assertEquals(LocalDiagnosticReport(DiagnosticStorageState.READY, DiagnosticCatalogState.SYNTHETIC_LOADED).text, report)
+        assertFalse(report.contains("catalog.fixture.1"))
+        assertFalse(report.contains(expectedHash))
+        assertNull(shadowOf(activity).nextStartedActivity)
+    }
+
+    @Test fun differentAndUnavailableCatalogsNeverBorrowBundledLabelsOrPrivateMetadata() {
+        val bytes = activity.assets.open("catalog.json").use { it.readBytes() }
+        val privateId = "catalog.private-sentinel"
+        val privateFailure = "private-sentinel-path-and-credential"
+        fun read(value: ByteArray) = CatalogFixtureData.read({ value }) { activity.assets.open("pricebook.json") }
+        val privateBytes = org.json.JSONObject(bytes.toString(Charsets.UTF_8))
+            .put("id", privateId).toString().toByteArray(Charsets.UTF_8)
+        val privateCatalog = read(privateBytes)
+        val differentBytes = read(bytes + byteArrayOf(10))
+        assertNotNull(privateCatalog.catalog)
+        assertNotNull(differentBytes.catalog) // Same IDs and versions are insufficient when the actual bytes differ.
+        val wrongVersion = org.json.JSONObject(bytes.toString(Charsets.UTF_8))
+            .put("schema_version", "2.0.0").toString().toByteArray(Charsets.UTF_8)
+        val missing = CatalogFixtureData.read({ throw java.io.IOException(privateFailure) }) {
+            fail("A failed catalog read must not request a pricebook"); java.io.ByteArrayInputStream(byteArrayOf())
+        }
+        val missingPrices = CatalogFixtureData.read({ bytes }) { throw java.io.IOException(privateFailure) }
+        assertNull(missingPrices.pricebook)
+        assertNotNull(missingPrices.catalog) // These labels identify the catalog only, never a pricebook.
+        val states = listOf(
+            null to HelpCatalogIdentity.UNAVAILABLE_OR_LOADING,
+            missing to HelpCatalogIdentity.UNAVAILABLE_OR_LOADING,
+            read("not JSON".toByteArray()) to HelpCatalogIdentity.UNAVAILABLE_OR_LOADING,
+            read(wrongVersion) to HelpCatalogIdentity.UNAVAILABLE_OR_LOADING,
+            privateCatalog to HelpCatalogIdentity.UNRECOGNIZED,
+            differentBytes to HelpCatalogIdentity.UNRECOGNIZED,
+            missingPrices to HelpCatalogIdentity.BUNDLED_V1,
+            read(bytes) to HelpCatalogIdentity.BUNDLED_V1,
+        )
+        var loaded: CatalogFixtureData? = null
+        val help = LocalHelp(activity, { true }, {}, launch = { fail("Help must not navigate while reading metadata") },
+            captureCatalogIdentity = { loaded?.helpIdentity ?: HelpCatalogIdentity.UNAVAILABLE_OR_LOADING })
+            .also(helpers::add)
+        val before = storedBytes()
+        for ((input, expected) in states) {
+            loaded = input
+            assertEquals(expected, input?.helpIdentity ?: HelpCatalogIdentity.UNAVAILABLE_OR_LOADING)
+            help.show()
+            val expectedText = when (expected) {
+                HelpCatalogIdentity.BUNDLED_V1 -> R.string.help_catalog_known
+                HelpCatalogIdentity.UNRECOGNIZED -> R.string.help_catalog_unrecognized
+                HelpCatalogIdentity.UNAVAILABLE_OR_LOADING -> R.string.help_catalog_unavailable
+            }
+            assertEquals(activity.getString(expectedText), dialog().findViewById<TextView>(R.id.help_catalog_identity).text.toString())
+            val visible = text()
+            assertEquals(expected == HelpCatalogIdentity.BUNDLED_V1, visible.contains("catalog.fixture.1"))
+            assertEquals(expected == HelpCatalogIdentity.BUNDLED_V1, visible.contains("Catalog schema: 1.0.0"))
+            for (excluded in listOf(privateId, privateFailure, privateCatalog.catalog!!.hash, differentBytes.catalog!!.hash,
+                    "2e9120db823faef3e1e330a7d2e8067b3ab064328e2faed699d15cf41880fbf8")) {
+                assertFalse(visible.contains(excluded))
+            }
+            assertNull(shadowOf(activity).nextStartedActivity)
+            assertEquals(before, storedBytes())
+        }
+    }
+
+    @Test fun helpCapturesLoadingOnceAndOnlyFreshHelpShowsTheCompletedCatalog() {
+        val before = storedBytes()
+        button(R.string.retry_catalog).performClick()
+        assertFalse(button(R.string.retry_catalog).isEnabled)
+        button(R.string.help_open).performClick()
+        val loading = dialog()
+        val capturedText = text(loading)
+        assertEquals(activity.getString(R.string.help_catalog_unavailable),
+            loading.findViewById<TextView>(R.id.help_catalog_identity).text.toString())
+        assertFalse(capturedText.contains("catalog.fixture.1"))
+
+        await { button(R.string.retry_catalog).isEnabled }
+        assertSame(loading, dialog())
+        assertTrue(loading.isShowing)
+        assertEquals(capturedText, text(loading))
+        loading.dismiss()
+        button(R.string.help_open).performClick()
+        assertEquals(activity.getString(R.string.help_catalog_known),
+            dialog().findViewById<TextView>(R.id.help_catalog_identity).text.toString())
+        assertNull(shadowOf(activity).nextStartedActivity)
+        assertEquals(before, storedBytes())
+    }
+
     @Test fun localHelpAndActualBrowserIntentExcludeSavedAndPendingPrivateContent() {
         val sentinels = listOf("private-sentinel-title", "private-sentinel-objective",
             "https://private.example/?token=private-sentinel-credential", "private-sentinel-pending", "private-sentinel-query")
