@@ -123,6 +123,34 @@ source-navigation, managed selection or storage-liveness guards.
 
 ## Validation and remaining acceptance
 
+### Retired detail and price actions at comparison entry
+
+Opening comparison or rendering a replacement tray retires the prior catalog
+detail parent and complete price browser before establishing the new inspection.
+The existing library, retained-pin and complete-detail retirement remains in the
+same Activity callback. Clearing the exact parent identity also rejects callbacks
+from its earlier source chooser or recovery message. The external URI policy and
+source-confirmation behavior are unchanged.
+
+On accepted source `30ead65bf9dd1aeef1fc8847f73b8c57a2634f33`, four focused
+Robolectric Activity methods produced one passing current-control case and three
+failures: a retained price row replaced comparison with a fields dialog, retained
+source recovery reopened its chooser, and the former detail's Select action
+changed pending selection. Applying the four-line Activity correction makes all
+four methods pass. The tests use the unchanged synthetic catalog/pricebook,
+actual detail/price/source/comparison controls, an acknowledged saved baseline,
+pending objective/budget and a nonempty exact two-pin tray. They require those
+values to remain unchanged and verify that current controls still work before
+the transition. The initial missing-import test compilation failure remains
+separate from these executed cases.
+
+The workflow requires each named method, its exact class, unique actual cases,
+matching totals and no failures/errors/skips. Every earlier admission program
+remains intact. This is local simulation evidence for the callback boundary;
+published current-tree checks, independent review, signed receiving and actual
+post-main qualification remain separate delivery requirements. It adds no
+installed-device, real-source, pricing or whole-work-package acceptance.
+
 Seven core regressions cover same-name exact versions, limit/removal, forged or
 stale lookup, oversized identity refusal, exact-snapshot recovery, arbitrary
 precision, unknown/false/zero/empty distinctions, cross-kind refusal and immutable

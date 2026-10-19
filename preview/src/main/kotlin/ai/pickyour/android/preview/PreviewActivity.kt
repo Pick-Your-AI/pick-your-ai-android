@@ -290,6 +290,10 @@ class PreviewActivity : Activity() {
         catalogComparison = CatalogComparisonSection(this, savedInstanceState, ::showPinnedDetails) {
             retireRevisionInspection()
             catalogPinRecovery.dismiss()
+            catalogDetailDialog?.dismiss()
+            catalogDetailDialog = null
+            catalogPriceBrowser?.retire()
+            catalogPriceBrowser = null
             catalogDetailBrowser?.retire()
         }
         content.addView(catalogComparison)

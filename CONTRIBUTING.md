@@ -4,6 +4,10 @@ Start from the existing fully qualified planning issue linked in the README. Rea
 
 Use a scoped branch, signed commits and a pull request. Obtain independent receiving review and satisfy repository rules before merge. Include the canonical issue, changed behavior or guidance, evidence, limitations and required handoffs. Do not close a work package solely because a PR merged; reconcile every acceptance criterion with receiving review and evidence.
 
+## Access, branches and reviews
+
+Early contributors push branches named `contrib/<your-login>/<topic>` to this repository; other contributors work from a fork. Every pull request into `main` needs one approval from someone other than its author, and only maintainers merge. The [organization contributing rules](https://github.com/Pick-Your-AI/.github/blob/main/CONTRIBUTING.md) define roles, credentials and enforcement.
+
 For the exact Android check names, source/artifact verification, intended main-branch policy and failure triage, read [CI_BASELINE.md](docs/CI_BASELINE.md). Its observed-settings section distinguishes proposed enforcement from actual repository readback; green checks alone do not configure protection.
 
 Run `git diff --check`, check relative Markdown links, and manually review scope and canonical references. For core/contract changes, follow [CORE_FOUNDATION.md](docs/CORE_FOUNDATION.md): verify the frozen import, run the Python reference suite and `./gradlew --no-daemon :core:check :core:assemble`. Never claim installed Android or production validation from JVM, reference or documentation checks.
