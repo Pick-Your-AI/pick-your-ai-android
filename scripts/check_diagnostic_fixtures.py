@@ -1,11 +1,43 @@
 """Reproduce bounded diagnostic goldens from the unchanged frozen Python reference."""
 import copy
+import hashlib
 import importlib.util
 import json
 from pathlib import Path
+import re
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
+PROFILE_SOURCE = Path('core/src/main/kotlin/ai/pickyour/core/evaluation/RetainedSnapshotEvaluation.kt')
+PROFILE_INPUTS = {
+    'REFERENCE_SHA256': Path('contracts/v1/reference/evaluate.py'),
+    'EVALUATOR_SHA256': Path('core/src/main/kotlin/ai/pickyour/core/evaluation/FrozenDiagnosticEvaluator.kt'),
+    'REPORT_RECEIVER_SHA256': Path('core/src/main/kotlin/ai/pickyour/core/evaluation/ReferenceReportAdapter.kt'),
+}
+
+
+def verify_profile(root=ROOT):
+    """Check declared source identities; full package and runtime gates remain separate."""
+    schema_paths = sorted((root / 'contracts/v1/schemas').glob('*.schema.json'), key=lambda path: path.name)
+    if len(schema_paths) != 14:
+        raise ValueError('Expected exactly 14 original frozen schema files')
+    # Exact existing CD-7 schema-only descriptor: filename/hash pairs, ASCII compact JSON,
+    # sorted by basename, no trailing newline. The full 43-file import gate still runs first.
+    rows = [[path.name, hashlib.sha256(path.read_bytes()).hexdigest()] for path in schema_paths]
+    descriptor = json.dumps(rows, ensure_ascii=True, separators=(',', ':')).encode('ascii')
+    expected = {key: hashlib.sha256((root / path).read_bytes()).hexdigest() for key, path in PROFILE_INPUTS.items()}
+    expected.update(SCHEMAS_SHA256=hashlib.sha256(descriptor).hexdigest(),
+                    ID='local-retained-frozen-v1-no-external-evidence/1', REFERENCE_TIME='2026-10-16T09:00:00Z')
+    source = (root / PROFILE_SOURCE).read_text()
+    for key, value in expected.items():
+        found = re.findall(r'^\s*const val ' + re.escape(key) + r' = "([^"]+)"\s*$', source, re.MULTILINE)
+        if found != [value]:
+            raise ValueError(f'Retained evaluator profile identity differs: {key}')
+    return expected
+
+
+verify_profile()
+print('Verified local retained-evaluation profile source/reference/schema pins.')
 spec = importlib.util.spec_from_file_location('frozen_evaluate', ROOT / 'contracts/v1/reference/evaluate.py')
 reference = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(reference)

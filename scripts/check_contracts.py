@@ -51,7 +51,7 @@ def main():
                  'check_quality_run_fixtures.py', 'check_frozen_pattern_fixtures.py',
                  'check_event_fixtures.py', 'check_resource_estimate_fixtures.py', 'check_diagnostic_fixtures.py', 'check_ruleset_fixtures.py',
                  'check_deployment_manifest_fixtures.py',
-                 'check_cost_estimate_fixtures.py', 'check_pricebook_fixtures.py'):
+                 'check_cost_estimate_fixtures.py', 'check_pricebook_fixtures.py', 'test_diagnostic_profile.py'):
         result = subprocess.call([sys.executable, str(ROOT / 'scripts' / name)], cwd=ROOT)
         if result:
             return result
