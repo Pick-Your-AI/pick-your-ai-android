@@ -428,6 +428,7 @@ class PreviewActivityTest {
         assertTrue(dialog.isShowing)
         val window = requireNotNull(dialog.window)
         assertFalse(window.attributes.flags and android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND != 0)
+        assertFalse(window.attributes.flags and android.view.WindowManager.LayoutParams.FLAG_BLUR_BEHIND != 0)
         val darkForegrounds = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
         assertEquals("The undimmed light backing requires dark status and navigation icons", darkForegrounds,
             window.decorView.systemUiVisibility and darkForegrounds)
