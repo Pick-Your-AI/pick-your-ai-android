@@ -13,6 +13,7 @@ import platform
 import re
 import shlex
 import shutil
+import stat
 import subprocess
 import sys
 import tarfile
@@ -523,10 +524,50 @@ def inspect_source() -> dict:
             "reachable_commits": int(git("rev-list", "--count", "HEAD"))}
 
 
+def receipt_destination() -> Path:
+    """Admit the fixed sanitized output in a stable, non-aliased checkout."""
+    require(stat.S_ISDIR(ROOT.lstat().st_mode), "Scanner receipt root is not a directory")
+    for directory in (ROOT / "build", ROOT / "build/security"):
+        try:
+            entry = directory.lstat()
+        except FileNotFoundError:
+            break
+        require(stat.S_ISDIR(entry.st_mode), "Scanner receipt directory is not a regular directory")
+    receipt = ROOT / "build/security/secret-scan.json"
+    try:
+        entry = receipt.lstat()
+    except FileNotFoundError:
+        return receipt
+    require(stat.S_ISREG(entry.st_mode) and entry.st_nlink == 1,
+            "Scanner receipt is not a single-link regular file")
+    return receipt
+
+
+def publish_receipt(receipt: dict) -> None:
+    """Publish complete private JSON; never expose a partial final report."""
+    output = receipt_destination()
+    output.parent.mkdir(parents=True, exist_ok=True)
+    receipt_destination()
+    temporary_path = None
+    try:
+        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=output.parent,
+                                         prefix=".secret-scan.json.", delete=False) as temporary:
+            temporary_path = Path(temporary.name)
+            json.dump(receipt, temporary, indent=2, sort_keys=True)
+            temporary.write("\n")
+        receipt_destination()
+        temporary_path.replace(output)
+    finally:
+        if temporary_path is not None:
+            temporary_path.unlink(missing_ok=True)
+
+
 def main() -> int:
-    output = ROOT / "build" / "security"
-    output.mkdir(parents=True, exist_ok=True)
-    receipt_path = output / "secret-scan.json"
+    try:
+        receipt_destination().unlink(missing_ok=True)
+    except (OSError, ScanFailure):
+        print("Secret scan failed; sanitized receipt destination was not admitted")
+        return 1
     receipt = {"schema_version": 1, "status": "failed", "scope": "reachable-HEAD-history",
                "started_utc": dt.datetime.now(dt.timezone.utc).isoformat(),
                "scanner": {"version": VERSION, "archive_sha256": ARCHIVE_SHA256,
@@ -555,7 +596,12 @@ def main() -> int:
         receipt["error"] = "Scanner operation failed: " + type(error).__name__
     finally:
         receipt["seconds"] = round(time.monotonic() - started, 3)
-        receipt_path.write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    try:
+        publish_receipt(receipt)
+    except Exception as error:
+        # Filesystem/serialization errors may contain private paths or content.
+        print("Secret scan failed; sanitized receipt publication failed: " + type(error).__name__)
+        return 1
     print("Secret scan " + receipt["status"] + "; sanitized receipt: build/security/secret-scan.json")
     return 0 if receipt["status"] in ("passed", "passed_with_reviewed_findings") else 1
 

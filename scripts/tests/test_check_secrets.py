@@ -550,5 +550,230 @@ class PublicChecksumDispositionTest(unittest.TestCase):
                 self.assertEqual(len(rows), receipt["triage"]["reviewed_count"] + receipt["triage"]["unresolved_count"])
 
 
+class SecretReceiptBoundaryTest(unittest.TestCase):
+    """Real output entries with all scanner, process and network work controlled."""
+
+    SENTINEL = b"SYNTHETIC retained receipt\n"
+    PEER = b"SYNTHETIC unrelated peer\n"
+
+    def invoke(self, root, *, inspect=None, raw=None, triage=None):
+        captured = io.StringIO()
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(patch.object(check, "ROOT", root))
+            stack.enter_context(patch.object(check.platform, "system", return_value="Linux"))
+            stack.enter_context(patch.object(check.platform, "machine", return_value="x86_64"))
+            source = stack.enter_context(patch.object(check, "inspect_source", side_effect=inspect,
+                                                     return_value={"commit": "a" * 40, "tree": "b" * 40}))
+            install = stack.enter_context(patch.object(check, "install_scanner", return_value=Path("synthetic-scanner")))
+            stack.enter_context(patch.object(check, "verify_detection_and_removal", return_value={"synthetic": True}))
+            stack.enter_context(patch.object(check, "scan", return_value=raw or {
+                "exit_code": 0, "finding_count": 0, "findings": []}))
+            stack.enter_context(patch.object(check, "classify_reviewed_findings", return_value=triage or {
+                "reviewed_count": 0, "unresolved_count": 0, "reviewed": [], "unresolved": []}))
+            process = stack.enter_context(patch.object(check.subprocess, "Popen", side_effect=AssertionError("process forbidden")))
+            network = stack.enter_context(patch.object(check.urllib.request, "urlopen", side_effect=AssertionError("network forbidden")))
+            stack.enter_context(contextlib.redirect_stdout(captured))
+            result, failure = None, None
+            try:
+                result = check.main()
+            except Exception as error:
+                failure = type(error).__name__
+        self.assertEqual(0, process.call_count)
+        self.assertEqual(0, network.call_count)
+        return result, failure, source.call_count, install.call_count, captured.getvalue()
+
+    def rejected_without_inspection(self, root):
+        result, failure, source_calls, installs, output = self.invoke(root)
+        self.assertEqual((1, None, 0, 0), (result, failure, source_calls, installs))
+        self.assertNotIn("PRIVATE_", output)
+
+    def test_ancestor_aliases_preserve_external_receipt_before_inspection(self):
+        for component in ("root", "build", "security"):
+            with self.subTest(component=component), tempfile.TemporaryDirectory() as temporary:
+                base = Path(temporary)
+                root, foreign = base / "root", base / "foreign"
+                foreign.mkdir()
+                if component == "root":
+                    root.symlink_to(foreign, target_is_directory=True)
+                    target = foreign / "build/security/secret-scan.json"
+                else:
+                    root.mkdir()
+                    if component == "build":
+                        (root / "build").symlink_to(foreign, target_is_directory=True)
+                        target = foreign / "security/secret-scan.json"
+                    else:
+                        (root / "build").mkdir()
+                        (root / "build/security").symlink_to(foreign, target_is_directory=True)
+                        target = foreign / "secret-scan.json"
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(self.SENTINEL)
+                peer = target.parent / "peer.txt"
+                peer.write_bytes(self.PEER)
+                before = target.stat()
+                self.rejected_without_inspection(root)
+                self.assertEqual(self.SENTINEL, target.read_bytes())
+                self.assertEqual(self.PEER, peer.read_bytes())
+                self.assertEqual((before.st_ino, before.st_nlink), (target.stat().st_ino, target.stat().st_nlink))
+
+    def test_invalid_directory_entries_and_unreadable_metadata_fail_closed(self):
+        for component in ("missing-root", "root-file", "build-file", "security-file", "unreadable"):
+            with self.subTest(component=component), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary) / "root"
+                if component == "missing-root":
+                    self.rejected_without_inspection(root)
+                    self.assertFalse(root.exists())
+                    continue
+                if component == "root-file":
+                    root.write_bytes(self.SENTINEL)
+                    self.rejected_without_inspection(root)
+                    self.assertEqual(self.SENTINEL, root.read_bytes())
+                    continue
+                root.mkdir()
+                target = root / ("build" if component == "build-file" else "build/security")
+                target.parent.mkdir(parents=True, exist_ok=True)
+                if component != "unreadable":
+                    target.write_bytes(self.SENTINEL)
+                    self.rejected_without_inspection(root)
+                    self.assertEqual(self.SENTINEL, target.read_bytes())
+                else:
+                    target.mkdir()
+                    receipt = target / "secret-scan.json"
+                    receipt.write_bytes(self.SENTINEL)
+                    with patch.object(Path, "lstat", side_effect=PermissionError("PRIVATE_METADATA")):
+                        self.rejected_without_inspection(root)
+                    self.assertEqual(self.SENTINEL, receipt.read_bytes())
+
+    def test_unsafe_final_entries_preserve_targets_and_peers_without_opening(self):
+        for kind in ("symlink", "dangling", "hardlink", "directory", "fifo"):
+            with self.subTest(kind=kind), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary) / "root"
+                folder = root / "build/security"
+                folder.mkdir(parents=True)
+                receipt = folder / "secret-scan.json"
+                foreign = Path(temporary) / "foreign.json"
+                if kind in ("symlink", "hardlink"):
+                    foreign.write_bytes(self.SENTINEL)
+                if kind in ("symlink", "dangling"):
+                    receipt.symlink_to(foreign)
+                elif kind == "hardlink":
+                    os.link(foreign, receipt)
+                elif kind == "directory":
+                    receipt.mkdir()
+                    (receipt / "retained.txt").write_bytes(self.SENTINEL)
+                else:
+                    os.mkfifo(receipt)
+                peer = folder / "peer.txt"
+                peer.write_bytes(self.PEER)
+                before = receipt.lstat()
+                # A future accidental FIFO open must fail immediately, not block this test.
+                original_open = Path.open
+                def bounded_open(path, *args, **kwargs):
+                    if kind == "fifo" and path == receipt:
+                        raise AssertionError("unsafe FIFO would have been opened")
+                    return original_open(path, *args, **kwargs)
+                with patch.object(Path, "open", bounded_open):
+                    self.rejected_without_inspection(root)
+                self.assertEqual((before.st_mode, before.st_ino, before.st_nlink),
+                                 (receipt.lstat().st_mode, receipt.lstat().st_ino, receipt.lstat().st_nlink))
+                self.assertEqual(self.PEER, peer.read_bytes())
+                if kind in ("symlink", "hardlink"):
+                    self.assertEqual(self.SENTINEL, foreign.read_bytes())
+                elif kind == "dangling":
+                    self.assertFalse(foreign.exists())
+                elif kind == "directory":
+                    self.assertEqual(self.SENTINEL, (receipt / "retained.txt").read_bytes())
+
+    def test_ordinary_stale_success_retires_before_inspection_and_failed_results_remain_failed(self):
+        for outcome in ("clean", "controlled-failure", "unexpected-failure"):
+            with self.subTest(outcome=outcome), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                receipt = root / "build/security/secret-scan.json"
+                receipt.parent.mkdir(parents=True)
+                receipt.write_text('{"status":"passed","source":"SYNTHETIC previous"}\n')
+                peer = receipt.parent / "peer.txt"
+                peer.write_bytes(self.PEER)
+                observed = []
+                def inspect():
+                    observed.append(receipt.exists())
+                    if outcome == "controlled-failure":
+                        raise check.ScanFailure("controlled source failure")
+                    if outcome == "unexpected-failure":
+                        raise ValueError("PRIVATE_SOURCE_DETAILS")
+                    return {"commit": "a" * 40, "tree": "b" * 40}
+                result, failure, source_calls, installs, output = self.invoke(root, inspect=inspect)
+                self.assertEqual([False], observed)
+                self.assertEqual((0 if outcome == "clean" else 1, None, 1), (result, failure, source_calls))
+                self.assertEqual(self.PEER, peer.read_bytes())
+                value = json.loads(receipt.read_bytes())
+                self.assertEqual("passed" if outcome == "clean" else "failed", value["status"])
+                self.assertNotIn("PRIVATE_", output + receipt.read_text())
+                if outcome == "unexpected-failure":
+                    self.assertEqual("Scanner operation failed: ValueError", value["error"])
+
+    def test_complete_published_receipt_is_private_and_keeps_raw_finding_status(self):
+        for raw_count, unresolved, status in ((0, 0, "passed"), (1, 0, "passed_with_reviewed_findings"), (1, 1, "failed")):
+            with self.subTest(status=status), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                raw = {"exit_code": 10 if raw_count else 0, "finding_count": raw_count,
+                       "findings": [{"rule_id": "synthetic-rule", "file": "synthetic.txt", "line": 1,
+                                     "commit": "c" * 40}] if raw_count else []}
+                triage = {"reviewed_count": raw_count - unresolved, "unresolved_count": unresolved}
+                result, failure, _, _, output = self.invoke(root, raw=raw, triage=triage)
+                self.assertEqual((1 if unresolved else 0, None), (result, failure))
+                receipt = root / "build/security/secret-scan.json"
+                value = json.loads(receipt.read_bytes())
+                self.assertEqual(status, value["status"])
+                self.assertEqual(raw, value["scan"])
+                self.assertEqual(triage, value["triage"])
+                self.assertEqual(0o600, receipt.stat().st_mode & 0o777)
+                self.assertEqual([receipt], list(receipt.parent.iterdir()))
+                self.assertNotIn("PRIVATE_", output + receipt.read_text())
+
+    def test_new_unsafe_receipt_after_inspection_is_rechecked_before_publication(self):
+        for kind in ("symlink", "hardlink"):
+            with self.subTest(kind=kind), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary) / "root"
+                folder = root / "build/security"
+                folder.mkdir(parents=True)
+                receipt, foreign = folder / "secret-scan.json", Path(temporary) / "foreign.json"
+                foreign.write_bytes(self.SENTINEL)
+                def inspect():
+                    if kind == "symlink":
+                        receipt.symlink_to(foreign)
+                    else:
+                        os.link(foreign, receipt)
+                    return {"commit": "a" * 40, "tree": "b" * 40}
+                result, failure, source_calls, _, output = self.invoke(root, inspect=inspect)
+                self.assertEqual((1, None, 1), (result, failure, source_calls))
+                self.assertEqual(self.SENTINEL, foreign.read_bytes())
+                self.assertEqual([receipt], list(folder.iterdir()))
+                self.assertNotIn("PRIVATE_", output)
+
+    def test_serialization_and_replace_failures_leave_no_partial_or_stale_success(self):
+        for phase in ("serialization", "replace"):
+            with self.subTest(phase=phase), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                receipt = root / "build/security/secret-scan.json"
+                receipt.parent.mkdir(parents=True)
+                receipt.write_text('{"status":"passed","source":"SYNTHETIC previous"}\n')
+                peer = receipt.parent / "peer.txt"
+                peer.write_bytes(self.PEER)
+                def partial(_value, stream, **_kwargs):
+                    stream.write('{"incomplete":')
+                    raise ValueError("PRIVATE_SERIALIZATION_DETAIL")
+                with contextlib.ExitStack() as stack:
+                    if phase == "serialization":
+                        stack.enter_context(patch.object(check.json, "dump", side_effect=partial))
+                        stack.enter_context(patch.object(check.json, "dumps", side_effect=ValueError("PRIVATE_SERIALIZATION_DETAIL")))
+                    else:
+                        stack.enter_context(patch.object(Path, "replace", side_effect=PermissionError("PRIVATE_REPLACE_DETAIL")))
+                    result, failure, source_calls, _, output = self.invoke(root)
+                self.assertEqual((1, None, 1), (result, failure, source_calls))
+                self.assertFalse(receipt.exists())
+                self.assertEqual([peer], list(receipt.parent.iterdir()))
+                self.assertEqual(self.PEER, peer.read_bytes())
+                self.assertNotIn("PRIVATE_", output)
+
+
 if __name__ == "__main__":
     unittest.main()
