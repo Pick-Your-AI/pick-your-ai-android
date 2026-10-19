@@ -101,7 +101,10 @@ source event. Retry rechecks its enabled and non-running state at execution.
 
 Opening History, catalog details or revision comparison retires the findings
 page and its retained row, paging and Back callbacks. Opening findings retires
-older catalog and revision inspections. This changes presentation ownership only:
+older catalog and revision inspections, plus the current History picker, record
+detail or restore confirmation. Retained History controls cannot reopen a child,
+copy fields or commit a restore after findings opens. This changes presentation
+ownership only:
 the acknowledged analysis, binding and saved bytes remain available, and a fresh
 inspection can be opened after closing the newer view.
 

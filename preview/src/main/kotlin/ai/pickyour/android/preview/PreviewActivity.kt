@@ -96,6 +96,7 @@ class PreviewActivity : Activity() {
     private lateinit var retryDeleteButton: Button
     private var pendingDeleteId: PreviewDraftId? = null
     private var savedRecord: PreviewStoredDraft? = null // UI-thread owned.
+    private var historyDialog: AlertDialog? = null
     private var revisionDialog: AlertDialog? = null
     private var revisionRequest: Any? = null
     private var revisionBrowser: RevisionComparisonBrowser? = null
@@ -940,7 +941,7 @@ class PreviewActivity : Activity() {
                         .setNeutralButton(R.string.domain_restore_preview) { dialog, _ ->
                             if (historyDialogIsCurrent(dialog, baseline)) confirmDomainRestore(baseline, revision)
                         }
-                        .setPositiveButton(R.string.close, null).show()
+                        .setPositiveButton(R.string.close, null).showHistoryDialog()
                 } else {
                     AlertDialog.Builder(this).setTitle(getString(R.string.history_revision, revision.revision.toString()))
                         .setMessage(getString(R.string.history_copy_warning, oldFields.title,
@@ -961,16 +962,35 @@ class PreviewActivity : Activity() {
                                 showSelection()
                                 formChanged()
                             }
-                        }.show()
+                        }.showHistoryDialog()
                 }
             }.setPositiveButton(R.string.revision_compare_open) { dialog, _ ->
                 if (historyDialogIsCurrent(dialog, baseline)) showComparisonPicker(baseline)
             }
-            .setNegativeButton(R.string.close, null).show()
+            .setNegativeButton(R.string.close, null).showHistoryDialog()
     }
 
     private fun historyDialogIsCurrent(dialog: DialogInterface, baseline: PreviewStoredDraft): Boolean =
-        !destroyed && (dialog as? AlertDialog)?.isShowing == true && storageReady && !storageBusy && savedRecord === baseline
+        !destroyed && historyDialog === dialog && (dialog as? AlertDialog)?.isShowing == true &&
+            storageReady && !storageBusy && savedRecord === baseline
+
+    private fun AlertDialog.Builder.showHistoryDialog(): AlertDialog {
+        // Preserve the shared inspection retirement used by the accepted storage-dialog path.
+        retireRevisionInspection()
+        val next = create()
+        val previous = historyDialog
+        historyDialog = next
+        previous?.dismiss()
+        next.setOnDismissListener { if (historyDialog === next) historyDialog = null }
+        next.show()
+        return next
+    }
+
+    private fun retireHistoryInspection() {
+        val previous = historyDialog
+        historyDialog = null
+        previous?.dismiss()
+    }
 
     private fun showComparisonPicker(baseline: PreviewStoredDraft, pickBoth: Boolean = false) {
         if (destroyed || isFinishing) return
@@ -1054,6 +1074,7 @@ class PreviewActivity : Activity() {
     }
 
     private fun prepareCurrentCheckInspection() {
+        retireHistoryInspection()
         retireRevisionInspection()
         if (::catalogPinRecovery.isInitialized) catalogPinRecovery.dismiss()
         val previous = catalogDetailDialog
@@ -1235,7 +1256,7 @@ class PreviewActivity : Activity() {
             .setNegativeButton(R.string.keep_edits, null)
             .setPositiveButton(R.string.domain_restore_commit) { dialog, _ ->
                 if (historyDialogIsCurrent(dialog, baseline)) restoreDomain(baseline, revision.revision)
-            }.show()
+            }.showHistoryDialog()
     }
 
     private fun restoreDomain(expected: PreviewStoredDraft, revision: Long) {
@@ -1697,6 +1718,7 @@ class PreviewActivity : Activity() {
 
     override fun onPause() {
         diagnosticsResumed = false
+        retireHistoryInspection()
         invalidateCurrentChecks(PreviewCurrentUnavailable.BACKGROUND)
         if (::compatibleOptions.isInitialized) compatibleOptions.dismiss()
         if (::draftSummary.isInitialized) draftSummary.retireActions()
@@ -1709,6 +1731,7 @@ class PreviewActivity : Activity() {
 
     override fun onDestroy() {
         destroyed = true
+        retireHistoryInspection()
         if (::compatibleOptions.isInitialized) compatibleOptions.close()
         if (::currentChecks.isInitialized) currentChecks.close()
         if (::draftSummary.isInitialized) draftSummary.close()

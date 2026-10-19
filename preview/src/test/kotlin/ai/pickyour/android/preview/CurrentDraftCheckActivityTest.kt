@@ -325,6 +325,78 @@ class CurrentDraftCheckActivityTest {
         assertEquals(before, disk())
     }
 
+    @Test fun findingsRetireHistoryPickerDetailAndRestoreCallbacksWithoutChangingCurrentAnalysis() {
+        val current = state() as PreviewCurrentDraftState.Current
+        val binding = current.request.binding
+        val baseline = loaded().baselineIdentity
+        val before = disk()
+        for (stage in 0..2) {
+            button(R.string.draft_history).performClick(); idle()
+            val picker = dialog()
+            assertTrue(picker.isShowing)
+            assertTrue(picker.listView.adapter.count > 0)
+            val compare = picker.getButton(AlertDialog.BUTTON_POSITIVE)
+            val detail = if (stage > 0) {
+                shadowOf(picker).clickOnItem(0); idle(); dialog().also {
+                    assertNotSame(picker, it)
+                    assertTrue(it.isShowing)
+                }
+            } else null
+            val copy = detail?.getButton(AlertDialog.BUTTON_POSITIVE)
+            val review = detail?.getButton(AlertDialog.BUTTON_NEUTRAL)
+            val confirmation = if (stage > 1) {
+                requireNotNull(review).performClick(); idle(); dialog().also {
+                    assertNotSame(detail, it)
+                    assertTrue(it.isShowing)
+                    assertEquals(activity.getString(R.string.domain_restore_commit),
+                        it.getButton(AlertDialog.BUTTON_POSITIVE).text.toString())
+                }
+            } else null
+            val restore = confirmation?.getButton(AlertDialog.BUTTON_POSITIVE)
+            val findings = inspectFindings()
+            fun replay() {
+                shadowOf(picker).clickOnItem(0)
+                compare.performClick(); copy?.performClick(); review?.performClick(); restore?.performClick()
+                idle(); finishWork()
+            }
+            replay()
+            assertSame("Retired History stage $stage cannot replace findings", findings, dialog())
+            assertTrue(findings.isShowing)
+            listOfNotNull(picker, detail, confirmation).forEach { assertFalse(it.isShowing) }
+            assertSame(current, state())
+            assertEquals(binding, (state() as PreviewCurrentDraftState.Current).request.binding)
+            assertEquals(baseline, loaded().baselineIdentity)
+            assertEquals(before, disk())
+
+            findings.cancel(); idle(); replay()
+            assertSame("Closing findings cannot revive retired History stage $stage", findings, dialog())
+            assertFalse(findings.isShowing)
+            assertSame(current, state())
+            assertEquals(baseline, loaded().baselineIdentity)
+            assertEquals(before, disk())
+
+            button(R.string.draft_history).performClick(); idle()
+            val fresh = dialog()
+            assertNotSame(picker, fresh)
+            assertTrue(fresh.isShowing)
+            shadowOf(fresh).clickOnItem(0); idle()
+            val freshDetail = dialog()
+            assertNotSame(fresh, freshDetail)
+            assertTrue(freshDetail.isShowing)
+            freshDetail.getButton(AlertDialog.BUTTON_NEUTRAL).performClick(); idle()
+            assertNotSame(freshDetail, dialog())
+            assertTrue(dialog().isShowing)
+            assertEquals(activity.getString(R.string.domain_restore_commit),
+                dialog().getButton(AlertDialog.BUTTON_POSITIVE).text.toString())
+            dialog().cancel(); idle()
+        }
+        finishWork()
+        assertSame(current, state())
+        assertEquals(binding, (state() as PreviewCurrentDraftState.Current).request.binding)
+        assertEquals(baseline, loaded().baselineIdentity)
+        assertEquals(before, disk())
+    }
+
     @Test fun realModelSettingsSavePublishesAffectedRecheckingBeforeTheNewResult() {
         components(listOf("model", "accelerator", "context_policy", "deployment_mode", "compute_profile"))
         val prior = state() as PreviewCurrentDraftState.Current

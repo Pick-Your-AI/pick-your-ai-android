@@ -1705,6 +1705,7 @@ jobs:
                   'inspectionNavigationRetiresFindingRowsAndBackWithoutChangingCurrentAnalysis',
                   'findingsRetireCatalogControlsWithoutChangingCurrentAnalysis',
                   'findingsRetireRevisionPickerCallbacksWithoutChangingCurrentAnalysis',
+                  'findingsRetireHistoryPickerDetailAndRestoreCallbacksWithoutChangingCurrentAnalysis',
                   'realModelSettingsSavePublishesAffectedRecheckingBeforeTheNewResult',
                   'actualDeploymentModeReplacementRechecksUneditedRemoteEndpoints',
                   'actualTierDisableKeepsComponentBytesAndShowsPriorAffectedIdentitiesThenWithheld',
