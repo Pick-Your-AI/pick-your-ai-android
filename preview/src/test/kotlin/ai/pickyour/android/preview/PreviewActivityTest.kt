@@ -427,20 +427,22 @@ class PreviewActivityTest {
     private fun assertDarkDialogSystemBarIcons(dialog: AlertDialog, activityAppearance: Int) {
         assertTrue(dialog.isShowing)
         val window = requireNotNull(dialog.window)
-        assertTrue(window.attributes.flags and android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND != 0)
-        assertEquals(0.32f, window.attributes.dimAmount, 0.0f)
+        assertFalse(window.attributes.flags and android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND != 0)
         val darkForegrounds = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
-        assertEquals("The lighter modal scrim requires dark status and navigation icons", darkForegrounds,
+        assertEquals("The undimmed light backing requires dark status and navigation icons", darkForegrounds,
             window.decorView.systemUiVisibility and darkForegrounds)
         assertEquals(darkForegrounds, activityAppearance and darkForegrounds)
         assertEquals(activityAppearance, activity.window.decorView.systemUiVisibility)
         val attributes = dialog.context.theme.obtainStyledAttributes(intArrayOf(
             android.R.attr.windowLightNavigationBar, android.R.attr.windowLightStatusBar,
-            android.R.attr.windowIsFloating))
+            android.R.attr.windowIsFloating, android.R.attr.backgroundDimEnabled,
+            android.R.attr.backgroundDimAmount))
         try {
             assertTrue(attributes.getBoolean(0, false))
             assertTrue(attributes.getBoolean(1, false))
             assertTrue(attributes.getBoolean(2, false))
+            assertFalse(attributes.getBoolean(3, true))
+            assertEquals(0.0f, attributes.getFloat(4, -1.0f), 0.0f)
         } finally { attributes.recycle() }
     }
 

@@ -4,8 +4,8 @@ This correction is a bounded continuation of [Android #80](https://github.com/Pi
 and [Android #64](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/64).
 It fixes the preview's fixed viewport insets and ordinary light-theme system-bar contrast.
 The modal navigation-icon defect remains unresolved in the installed evidence below.
-The current source proposal pairs a lighter modal scrim with dark foreground requests
-for both system bars; its new installed pixels remain required.
+The current source proposal removes the platform window scrim and keeps dark foreground
+requests for both system bars; its new installed pixels remain required.
 The existing owners retain the separate scroll/focus/caret checkpoint and checked-choice work.
 
 ## Observed defect
@@ -85,12 +85,12 @@ pixels: the subsequent 444 result below retained the defect. The original 978
 screenshots remain evidence of the earlier source.
 
 
-## Current proposal: lighter scrim with consistent dark system-bar foregrounds
+## Current proposal: floating dialogs without a platform window scrim
 
 The original [298 result6260410436](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/467#issuecomment-6260410436)
 qualifies four passed product cases while the image gate fails. The two original
 modal PNGs retain dark navigation glyphs RGB69,70,79 over RGB100,100,100,
-measuring1.5828461084972716:1. The completed Taskbar observations retain delivered
+measuring1.5828461084972716:1. Complete Taskbar observations retain delivered
 navigation intensity0 but background override1 and multiplier1 at both modal
 checkpoints. The read-only
 [immutable reference controller](https://android.googlesource.com/platform/packages/apps/Launcher3/+/898b9af9a28663b5bd4ab19e1db8fc43adb5fb52/quickstep/src/com/android/launcher3/taskbar/NavbarButtonsViewController.java)
@@ -98,52 +98,69 @@ blends the system intensity first, then the background override. This supports a
 downstream background-color explanation; it does not bind the installed binary to
 that source or make the sequential PNG/query captures atomic.
 
-The API27-and-later `PreviewAlertDialogTheme` now explicitly requests dark status
-and navigation foregrounds with both `windowLightStatusBar` and
-`windowLightNavigationBar` true, and changes `backgroundDimAmount` from the
-inherited0.6 to0.32. It keeps the platform `ThemeOverlay.Material.Dialog.Alert`
-parent, floating dialogs and normal dim-behind behavior. The Activity retains its
-existing light theme and dark foreground requests while dialogs show and dismiss.
-Its generic focus-loss navigation override and two saved-bit fields are removed;
-focus changes no longer save, clear or restore appearance bits. No per-dialog
-callback, private API, system setting, taskbar manipulation, Material dependency,
-new window type or replacement UI framework is introduced.
+The unexecuted [4a4 proposal](https://github.com/Pick-Your-AI/pick-your-ai-android/commit/4a4d00fa6de314ca1676bb3af38ee466bd588afe)
+paired a0.32 window scrim with explicit dark foreground requests for both bars.
+Its immutable source and prospective70f carry remain superseded candidates, not
+failed or successful executions. The source/original-state
+[finding6260981160](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/467#issuecomment-6260981160)
+blocks that design: original298 already requested a light status bar on the centered
+floating dialog, yet its effective status region remained light-foreground.
+The original modal status icons are white over RGB100 and measure5.917570593923599:1.
+Conditional arithmetic would move an RGB250 backdrop to170 at0.32: the observed
+dark navigation endpoints would reach4.031901612882563:1, but white status endpoints
+would reach only2.3231230535045992:1. Those calculations are neither a new rendered
+result nor a reason to tune a narrow intermediate contrast crossing.
 
-This design assumes the preview's existing light theme/background. It does not
-advertise a dark-theme policy. API26 keeps the exact original base resource file
-and its inherited navigation behavior; no new API26 modal result is claimed.
-API27–29 receive the explicit theme attributes, and API30+ receives those same
-public theme requests without the former imperative appearance override.
-The current installed target remains API35. Requested appearance and simulated
-theme attributes still require rendered confirmation on the actual guest.
+The exact Android15-r1
+[DisplayPolicy dimming-window path](https://github.com/aosp-mirror/platform_frameworks_base/blob/android-15.0.0_r1/services/core/java/com/android/server/wm/DisplayPolicy.java)
+emits an appearance-zero status region when a dimming window's bounds meet the
+status bar but its actual frame does not, even if it requests dark status icons.
+The full reference source is Git blob4a59fc2a8f152757b4c7fde533e1f12a48404d4f.
+Repeating the appearance attribute alone cannot resolve that path.
 
-The0.32 value is corroborated by the official Material Components
-[immutable scrim token](https://github.com/material-components/material-components-android/blob/66b0eeb53afeb6025ffbbd37734b08e5bce197ed/lib/java/com/google/android/material/dialog/res/values/tokens.xml)
-and its
-[dialog theme overlays](https://github.com/material-components/material-components-android/blob/66b0eeb53afeb6025ffbbd37734b08e5bce197ed/lib/java/com/google/android/material/dialog/res/values/themes_overlay.xml).
-These references motivate this explicit product choice; the preview continues using
-its existing platform theme and dependencies. The public
-[dimAmount contract](https://developer.android.com/reference/android/view/WindowManager.LayoutParams#dimAmount)
-defines the0–1 dim range.
+The selected successor makes an explicit presentation choice: **no platform
+window scrim** for the preview's API27-and-later floating platform AlertDialogs.
+The overlay sets `backgroundDimEnabled=false` and `backgroundDimAmount=0`,
+with both `windowLightStatusBar` and `windowLightNavigationBar` true.
+It retains the platform `ThemeOverlay.Material.Dialog.Alert` parent, floating
+dialog surface/elevation, focus and modality, outside-touch/cancel/confirmation
+behavior and existing data/listener ownership. The unchanged background therefore
+retains its ordinary light backing rather than depending on a centered dimming
+window to recolor a bar region. Actual rendering remains a receiving requirement.
 
-The independent [whole-bar observation6260694630](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/467#issuecomment-6260694630)
-also matters: original298 modal status icons are white over RGB100 and measure
-5.917570593923599:1. Conditional black-scrim arithmetic would move an RGB250
-background to170 at0.32. Keeping the observed dark navigation endpoints would
-then give4.031901612882563:1, but keeping white status endpoints would give only
-2.3231230535045992:1. That is why this proposal changes both foreground requests.
-These calculations are design evidence, not predicted or observed guest pixels.
+The Activity's generic focus-loss navigation override and two saved-bit fields are
+removed. Focus changes no longer save, clear or restore appearance bits; normal
+light-theme/dark-foreground requests remain. No per-dialog imperative callback,
+fullscreen wrapper, app-drawn status protection, private API, system/taskbar setting,
+Material dependency, replacement UI framework or new window type is introduced.
+The design assumes the current light preview theme; it does not advertise a dark-
+theme policy. API26 retains the exact base resource and inherited navigation/modal
+behavior, with no new API26 result. API27–29 use the overlay attributes, and API30+
+uses the same public requests without the old imperative appearance override.
+The current installed target remains API35.
 
-All five changed Activity methods and the full build/lint/native guards remain
-unexecuted locally for this source because sandbox startup is blocked by ENOSPC.
-The complete prior tests/results retain their historical source attribution.
-The next configured receiver must execute the new source and qualify both ordinary
-and modal status/navigation foreground/background pairs from its original PNGs,
-including restored ordinary checkpoints. The installed navigation threshold remains
-the same unrounded3:1; no pixel acceptance, lifecycle assertion, timer, viewport,
-Taskbar raw observation or ACL boundary is relaxed. A failed or ambiguous result
-remains unqualified. Physical devices, TalkBack, gesture navigation/cutouts and full
-issues80/64 acceptance remain separate.
+The exact Android15-r1
+[PhoneWindow theme initialization](https://github.com/aosp-mirror/platform_frameworks_base/blob/android-15.0.0_r1/core/java/com/android/internal/policy/PhoneWindow.java)
+reads the dim amount only inside the enabled-dimming branch. Disabling that branch
+prevents adding `FLAG_DIM_BEHIND`; a theme amount of zero does not promise that
+the inactive raw `LayoutParams.dimAmount` becomes zero. Its public
+[declaration and contract](https://github.com/aosp-mirror/platform_frameworks_base/blob/android-15.0.0_r1/core/java/android/view/WindowManager.java)
+default to1.0 and make that amount relevant only when the flag is set.
+The shown-window test therefore requires the actual flag absent, the theme dim
+switch false and its explicit amount0.0, while preserving raw installed attributes
+as observations. It does not add an unnecessary per-dialog call merely to zero an
+inactive field.
+
+All five changed Activity methods and the complete build/lint/native guards remain
+unexecuted locally for this source after the ENOSPC startup block. Earlier results
+retain their exact historical source attribution. The next configured receiver
+must execute this source and qualify both ordinary and modal status/navigation
+foreground/background pairs from its original PNGs, including restored ordinary
+checkpoints and visible floating-dialog separation. The installed navigation
+threshold remains the same unrounded3:1; no image acceptance, lifecycle assertion,
+timer, viewport, Taskbar observation or ACL boundary is relaxed. A failed or
+ambiguous result remains unqualified. Physical devices, TalkBack, gesture navigation,
+cutouts and full issues80/64 acceptance remain separate.
 
 ## Validation scope
 
@@ -164,7 +181,7 @@ constructor; the actual listener receives those values through public dispatch.
 
 Two mandatory Activity methods open the real empty-library and deletion AlertDialogs.
 For the current proposal they require dark status and navigation foreground requests,
-FLAG_DIM_BEHIND, the explicit0.32 dim amount, floating-window inheritance and unchanged
+FLAG_DIM_BEHIND absent, explicit disabled/zero theme dim attributes, floating-window inheritance and unchanged
 underlying Activity appearance. Cancellation, reopening, confirmation and dismissal
 retain every prior pending text/caret, acknowledged identity and deleted/save-disabled
 assertion. Three further methods retain the shown-dialog, repeated-focus and retired-

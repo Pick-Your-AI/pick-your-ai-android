@@ -9,6 +9,7 @@
     <style name="PreviewAlertDialogTheme" parent="android:style/ThemeOverlay.Material.Dialog.Alert">
         <item name="android:windowLightStatusBar">true</item>
         <item name="android:windowLightNavigationBar">true</item>
-        <item name="android:backgroundDimAmount">0.32</item>
+        <item name="android:backgroundDimEnabled">false</item>
+        <item name="android:backgroundDimAmount">0</item>
     </style>
 </resources>
