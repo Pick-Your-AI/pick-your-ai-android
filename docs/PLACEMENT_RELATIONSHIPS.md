@@ -1,5 +1,17 @@
 # Android placement and relationship applicability
 
+## Current implementation and receiving record
+
+The later [03.04 record](delivery/android/work-packages/03.04.md) connects the
+selected six interfaces and seventeen vector groups below to the implemented
+normalized placement/context consumers, their actual source/test receipts and
+final criterion receiving. [ADR 0012](decisions/0012-android-37-acceptance-record.md)
+proposes that record's narrow Android location; its effective event remains
+actual independent receiving review and normal reviewed delivery. This pointer
+itself changes no issue or ledger acceptance.
+
+## Original mapping checkpoint
+
 Technical mapping and receiving packet for
 [Android #37](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/37).
 This connects the existing frozen transport cases to the component, binding,

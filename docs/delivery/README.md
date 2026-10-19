@@ -1,5 +1,151 @@
 # Criterion evidence ledger
 
+## Proposed version 10: the three received support outcomes
+
+This contribution records **25 reviewed design criteria, three reviewed
+implementation criteria, one reviewed import-integrity criterion and three
+reviewed support criteria complete, with 409 criteria incomplete**. Its only new
+completed criteria are **33.1, 33.2 and 33.3**, with their original texts and
+digests. The accepted outcome is the current guest-local preview and actual
+controlled, in-session public intake. It is a separate fixed support receipt;
+it does not reclassify support as a design decision or a local-model outcome.
+
+The preceding version 9 was ordinarily delivered in
+[#518](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/518) at signed
+`a24792eeea1e20977ddb3dd8942d7ce300bc7856`, tree
+`6af6a48776064093c79adc91b9a9bd7f43852e1c`, sole accepted-main parent
+`9729e18df3b439e5abec424b097bc9d8016274e6`. Its exact 21.2 receipt, both incomplete
+neighbours and every other earlier criterion remain unchanged. This contribution
+uses the canonical ledger paths under the standing project instruction; it
+claims no ownership transfer from silence or additional main-delivery window.
+
+### Actual source, receiving decisions and delivery
+
+The [17.04 support record](android/work-packages/17.04.md), narrow
+[ADR 0009](../decisions/0009-android-33-acceptance-record.md),
+[scope pointer](../REPOSITORY_SCOPE.md), [Help guide](../SUPPORT_HELP.md) and
+[diagnostic guide](../LOCAL_DIAGNOSTICS.md) were received in
+[#494](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/494).
+The actual reviews are
+[support/operations 5566090971](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/494#pullrequestreview-5566090971)
+and
+[affected local-data/service 5566084664](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/494#pullrequestreview-5566084664),
+both anchored to `eff1b2be9eba4e2e739910b9056f12e9a7b16f71`, tree
+`ff5f556a97f51e6b1cc206c4810f96b5a8c62e13`. Their complete body hashes, actual
+COMMENT states, times, source and responsibilities are fixed in the receipt.
+These are separate in-session reviewers acting under the user's delegation,
+not fabricated assignee replies or separate-account formal approvals. The source
+commit's unsigned review preparation stays distinct from the later signed merge.
+
+Normal delivery occurred at **2026-10-19 04:40:30 UTC** as signed
+`efdf9b61d64c6d3864d92684bc8e7f83b3c0af4f`, tree
+`45d80532ee9615d61b5cfdfc9007c2c71930112c`, sole parent
+`1c51313d7499118a31b0d3a5af322aed5fa64a59`. The
+[actual final delivery receipt 6260058131](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/494#issuecomment-6260058131)
+binds all five documents. Four match the original review exactly. SUPPORT_HELP
+also preserves the separately accepted #515 catalog-identity constructor
+paragraph; the complete receiving composition retains every original support
+hunk. All five final blob/byte/SHA-256 identities remain fixed historical
+delivery observations, with their immutable revision URLs and original source
+proof. Current-file byte and mode checks apply only to ADR 0009 and the canonical
+17.04 record. The scope pointer, Help guide and diagnostic guide may receive later
+reviewed changes without rewriting those historical pins or invalidating the
+accepted record. The receipt does not label those later changes as the original
+eight-case Help execution.
+
+This signed merge makes ADR 0009 effective for **only #33 / 17.04** in the Android
+repository. The original intended website coordinate remains in the historical
+receipt and is recovered exactly when reconstructing version 9. No other
+acceptance record is moved.
+
+### The three literal outcomes and their observations
+
+| Criterion | Received evidence and boundary |
+| --- | --- |
+| 33.1 Help, correction, reproduction, diagnostics and triage | Local Help and support guidance, finite diagnostic fields, safe reproduction/escalation/deletion/security rules, the two actual public intake records, and attributable category/disposition. Responsibility is the accepted current implementation session. |
+| 33.2 Each advertised route reaches a monitored destination or is unavailable | One explicit browser submission to each advertised public form, full independent resulting-body comparison and separate triage. Private reporting and direct in-app support submission remain explicitly unavailable. A browser launch alone is not a submission. |
+| 33.3 Exact safe diagnostic preview without automatic upload | The original eight named diagnostic cases exercise seeded saved/pending private content, exact preview/chooser text, no outgoing Intent before explicit consent, durable-file preservation, immutable capture, cancellation/replacement/recreation and missing handlers. Two finite states and ten compiled fields exclude raw private input structurally. Chooser dispatch is not recipient receipt. |
+
+The four literal implementation tasks and both validation methods remain fixed
+in the support receipt. The completed #23 design prerequisite supplies the
+F10/T08, F11/T07 and B3/B7 boundaries, with its actual receiving review; it is not
+substituted for runtime evidence.
+
+The coordinator's two controlled browser submissions created
+[#481](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/481) at 00:32:29
+and [#482](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/482) at
+00:34:50 UTC on 2026-10-19. The independently reviewed field payload and complete
+original bodies matched, including all seven sections: 2,181 and 2,553 characters.
+Their separate triage comments
+[6257197299](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/481#issuecomment-6257197299)
+and
+[6257199698](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/482#issuecomment-6257199698)
+record intact receipt/no app defect and **retain unknown** for the invented
+SYNTHETIC-INTAKE-33 scenario. They reject an unsupported compatibility pass and
+change no real source, price, rule, rights or contract record. The two test issues
+closed only after that receipt and disposition.
+
+The evidence submitter's sole later change expanded four shorthand Research
+references to explicit cross-repository links at 00:37:21. The clarified body has
+2,848 characters; original and clarified hashes and the exact inverse are
+retained separately. This is an author-input clarification, not an app defect.
+The earlier API-created #478/#479 remain their separate history. No connector
+creation is substituted for the observed browser route, and neither payload
+contains private data, attachments, diagnostics or an installed-version claim.
+
+### Distinct actual default results
+
+| Original checkout | Actual qualified result |
+| --- | --- |
+| `efdf9b61`, run 39200654761 | Core 4,071/85 and the separate scanner succeeded. Overall and native results were cancelled. Available 356/31 passing native XML and partial inventory do not supply missing lint, 27 attendance programs, ignored-input, policy or SPDX completion. |
+| `9729e18d`, run 39201004245 | This independently reviewed projection-diagnostic successor preserves all five support documents exactly. Its actual default succeeded: Core 4,153/86; simulated Android 356/31; all 45 native steps and 27 attendance programs; source/dependency/output pins; conformance; SPDX; lint and packaging; separate 17-control, 190-commit scanner with zero findings. |
+
+The [actual descendant receipt 6260050638](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/509#issuecomment-6260050638)
+keeps both originals separate. The fixed support receipt includes each run/job,
+all eight artifact ID/size/hash records, cancellation limits and complete later
+qualification. Original XML and pure inventory-to-SPDX checks do not become a
+new product, JVM, emulator, AAPT2 or scanner run. Simulated cases do not establish
+installed Android browser or Sharesheet delivery.
+
+### Complete version-9 preservation and remaining process
+
+Only #33's exact completion/attribution fields, issue-local support receipt and
+canonical placement, the new `pr-494` evidence object, schema number and current
+summary change. The validator reverses only those fields and proves the complete
+preceding version-9 canonical JSON digest. Its original UTF-8 serialization is
+**494,218 bytes**, SHA-256
+`49fc9557d3fc383c355663c2a71cc5096a4e2dcca5b1ed91da7657e249d627c4`.
+All **438 other criterion objects, 128 other issue objects, 25 earlier evidence
+objects and historical metadata** are retained exactly. The existing version-8,
+version-7 and version-6 reconstructions and ordinary-coordinate guards stay in
+place. Reconstruction and validation never mutate the caller's input.
+
+The regression suite rejects copied support authority in every other issue or
+any criterion, a bare completion relation, altered literals, missing roles,
+invented submission/triage, an unknown-to-pass promotion, cancelled-to-success
+rewrites, numeric/boolean aliases, changed document pins, moved coordinates and
+earlier-history edits. The original import-only comparison still operates on its
+exact reconstructed version 9. Unknown finite input metadata retains the prior
+CLI behavior and supplies no completion authority.
+The fixed historical Help and diagnostic identities must each remain present
+exactly once; additional accepted test methods do not rewrite those earlier lists.
+
+Run `python scripts/check_delivery_ledger.py` and
+`python -m unittest discover -s scripts/tests -p 'test_delivery_ledger.py' -v`.
+The checker states whether an additional fresh all-state source comparison was
+performed. This source contribution starts no product execution and changes no
+issue, Project, native relationship or assignee. Independent review, ordinary
+ledger delivery, actual default verification and exact live reconciliation remain
+separate steps. The existing #48/#467 and all other owners retain their work.
+No confidential route, future rota/SLA, installed-device or physical accessibility
+qualification, shared-service operation, production or release is supplied here.
+
+## Retained version 9 and earlier descriptions
+
+The complete preceding text follows unchanged. Its proposal language and counts
+describe its historical source checkpoint. Version 9 is now delivered at the
+signed a247 revision above; version 10 adds only the fixed support outcome.
+
 ## Proposed version 9: exact import-integrity criterion 21.2
 
 This contribution extends the accepted canonical version-8 ledger. Version 9
