@@ -269,6 +269,32 @@ retention UX, installed-process-death evidence and receiving acceptance. Canonic
 records remain `11.01.md`, `12.01.md`, `08.06.md` and `02.03.md` under the existing
 website Android work-package path. No issue closes.
 
+### Typed guidance when a local draft cannot be opened
+
+The active-draft load screen uses the existing typed storage failure to explain
+the recovery requirement. An unsupported local or preview format requires a
+compatible reader; unverified or malformed retained data requires a readable
+copy; a read-limit failure requires a reader supporting the retained size and
+format. None of these messages promises an available app update, changes the
+stored data or enables saving. The existing library action can open another
+local draft through its own confirmation flow. Temporary or unclassified read
+failures retain the explicit Reopen saved copy retry.
+
+`DraftLoadRecoveryActivityTest` exercises five simulated Android cases using
+real canonical files: a future local envelope, future preview metadata,
+hash-corrupt retained bytes, missing required form metadata and a busy store
+lock. The cases check pending text, selected sample and local draft identity;
+failed loads, attempted disabled saves, explicit failed retries and recreation
+must preserve the seeded file hashes. Releasing the busy lock alone does not
+retry; an explicit successful reopen uses the same saved baseline. CI requires
+all five named cases to execute without failures or skips.
+
+This is a bounded contribution to #81's unavailable-version and local-failure
+guidance. #58's typed asynchronous architecture, broader loading/offline,
+permission/server/conflict states, Android UX/accessibility receiving review
+and the canonical `06.05.md` acceptance record remain separate. Simulated
+Android tests do not establish installed-device or complete #81 acceptance.
+
 ## Retained guest form history
 
 The saved-history button reads immutable entries from the canonical store. Each
