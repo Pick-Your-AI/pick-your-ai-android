@@ -94,6 +94,28 @@ python scripts/check_runtime_inventory_guards.py --preview
 The second command uses the configured Android SDK. These are packaging/source
 rejection checks; they do not install the APK.
 
+The core CI job also requires a source-identity regression against the actual
+inventory producer. A private Java-only Gradle project first produces a clean
+inventory. The helper then installs a Git replacement object that makes changed
+tracked Java source appear clean under the original commit. It requires the real
+task to build the changed class and reject that deceptive source identity without
+writing a new inventory. Finally, it removes the replacement, actually commits
+the changed source in the private repository, and requires a clean inventory for
+that new commit. This positive control prevents a blanket build failure from
+satisfying the rejection check.
+
+```sh
+python scripts/check_runtime_inventory_source.py
+```
+
+This check uses the existing pinned wrapper with a warmed Gradle cache, offline
+mode, strict verification and no persistent daemon. It adds no runtime dependency
+and needs no Android SDK. The fixture is removed afterward; the ordinary core
+artifact retains `build/inventory/source-identity-regression.json` plus the three
+original Gradle logs, actual fixture JARs and any newly written fixture inventories
+under `build/inventory/source-identity-regression/`. This checks the producer's
+source identity boundary, without establishing installed or release acceptance.
+
 The explicit POM artifact query needs five metadata files that the prior runtime
 resolution used Gradle module metadata instead of directly verifying. Their
 new SHA-256 pins below were calculated from the exact Maven Central POM bytes

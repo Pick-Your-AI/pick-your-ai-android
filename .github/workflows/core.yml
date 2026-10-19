@@ -58,6 +58,8 @@ jobs:
           python scripts/check_conformance_fixtures.py --reports core/build/test-results/test --exit-code 0 --output build/conformance/qualified.json
       - name: Reject ignored packaged contract schemas
         run: python scripts/check_runtime_inventory_guards.py
+      - name: Require actual inventory producer to reject Git replacement objects
+        run: python scripts/check_runtime_inventory_source.py
       - name: Export and validate the current runtime SPDX document
         run: python scripts/runtime_sbom.py
       - name: Retain test and library artifacts
