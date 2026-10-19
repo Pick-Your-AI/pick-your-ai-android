@@ -32,6 +32,7 @@ internal class LocalHelp(
     private val reviewDiagnostics: () -> Unit,
     private val launch: (Intent) -> Unit = { activity.startActivity(it) },
     private val captureCatalogIdentity: () -> HelpCatalogIdentity = { HelpCatalogIdentity.UNAVAILABLE_OR_LOADING },
+    private val beforeShow: () -> Unit = {},
 ) {
     private var currentDialog: AlertDialog? = null
     private var closed = false
@@ -48,6 +49,7 @@ internal class LocalHelp(
 
     fun show() {
         if (!current()) return
+        beforeShow()
         val catalogIdentity = captureCatalogIdentity() // One finite snapshot per current Help dialog.
         val content = content()
         content.addView(text(activity.getString(R.string.help_build,

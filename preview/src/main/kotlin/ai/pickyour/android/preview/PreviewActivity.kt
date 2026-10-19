@@ -200,7 +200,7 @@ class PreviewActivity : Activity() {
         draftSummary = CurrentDraftSummarySection(this) { !destroyed && diagnosticsResumed }
         content.addView(draftSummary)
         currentChecks = CurrentDraftCheckSection(this, worker, { !destroyed && diagnosticsResumed },
-            draftSummary::currentCheckStatus, ::prepareCurrentCheckInspection)
+            draftSummary::currentCheckStatus, ::prepareInspection)
         content.addView(currentChecks)
         val titleLabel = text(R.string.draft_title)
         title = EditText(this).apply {
@@ -427,11 +427,12 @@ class PreviewActivity : Activity() {
         }
         content.addView(run)
         CostInspectionSection(this, worker) { !destroyed }.attach(content)
-        resourceInspection = ResourceInspectionSection(this, worker, { !destroyed && diagnosticsResumed }, catalog::cancelViewportRestore)
+        resourceInspection = ResourceInspectionSection(this, worker, { !destroyed && diagnosticsResumed },
+            { catalog.cancelViewportRestore(); prepareInspection() })
         resourceInspection.attach(content)
-        findings = FindingsInspectionSection(this, worker) { !destroyed }
+        findings = FindingsInspectionSection(this, worker, beforeInspect = ::prepareInspection) { !destroyed }
         findings.attach(content)
-        snapshots = SnapshotEvaluationSection(this, worker) { !destroyed && diagnosticsResumed }
+        snapshots = SnapshotEvaluationSection(this, worker, beforeInspect = ::prepareInspection) { !destroyed && diagnosticsResumed }
         snapshots.attach(content)
         diagnostics = LocalDiagnostics(this, {
             LocalDiagnosticReport(
@@ -444,13 +445,13 @@ class PreviewActivity : Activity() {
                 if (catalogFixture?.catalog != null) DiagnosticCatalogState.SYNTHETIC_LOADED
                 else DiagnosticCatalogState.UNAVAILABLE_OR_LOADING,
             )
-        }, { !destroyed && diagnosticsResumed })
+        }, { !destroyed && diagnosticsResumed }, beforeShow = ::prepareInspection)
         diagnostics.attach(content)
         help = LocalHelp(this, { !destroyed && diagnosticsResumed }, diagnostics::show,
             captureCatalogIdentity = {
                 if (!retry.isEnabled) HelpCatalogIdentity.UNAVAILABLE_OR_LOADING
                 else catalogFixture?.helpIdentity ?: HelpCatalogIdentity.UNAVAILABLE_OR_LOADING
-            })
+            }, beforeShow = ::prepareInspection)
         help.attach(content)
         privacy = LocalPrivacy(this, beforeShow = { retireRevisionInspection() }) {
             !destroyed && diagnosticsResumed
@@ -1079,7 +1080,7 @@ class PreviewActivity : Activity() {
         dialog.show()
     }
 
-    private fun prepareCurrentCheckInspection() {
+    private fun prepareInspection() {
         retireHistoryInspection()
         retireRevisionInspection()
         if (::catalogPinRecovery.isInitialized) catalogPinRecovery.dismiss()
@@ -1095,6 +1096,11 @@ class PreviewActivity : Activity() {
     private fun retireRevisionInspection() {
         if (::currentChecks.isInitialized) currentChecks.dismissInspection()
         if (::catalogComparison.isInitialized) catalogComparison.dismissInspection()
+        if (::snapshots.isInitialized) snapshots.dismiss()
+        if (::resourceInspection.isInitialized) resourceInspection.dismissInspection()
+        if (::findings.isInitialized) findings.dismissInspection()
+        if (::help.isInitialized) help.dismiss()
+        if (::diagnostics.isInitialized) diagnostics.dismiss()
         revisionRequest = null
         revisionDialog?.dismiss()
         revisionDialog = null

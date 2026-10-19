@@ -46,6 +46,7 @@ internal class LocalDiagnostics(
     private val capture: () -> LocalDiagnosticReport,
     private val alive: () -> Boolean,
     private val launch: (Intent) -> Unit = { activity.startActivity(it) },
+    private val beforeShow: () -> Unit = {},
 ) {
     private var currentDialog: AlertDialog? = null
     private var closed = false
@@ -65,6 +66,7 @@ internal class LocalDiagnostics(
 
     fun show() {
         if (!current()) return
+        beforeShow()
         val report = capture() // Capture once; dispatch uses these exact displayed bytes.
         val content = LinearLayout(activity).apply {
             orientation = LinearLayout.VERTICAL
