@@ -36,6 +36,72 @@ counts. Empty optional workload values remain unanswered. Answering those three
 fields does not establish overall T0/T1, compatibility or deployment readiness.
 Unfinished forms remain saveable whenever the existing editor permits it.
 
+## Inspecting saved components
+
+The saved-component summary can be expanded without opening an editor. Every
+recorded selection appears in its original order with its selection ID, kind,
+role, exact catalog item/version reference and enabled or disabled configuration
+state. The list names its acknowledged revision. A confirmed empty list is
+explicitly empty; unsaved, loading and unconfirmed drafts do not borrow that
+known-empty state or a prior list.
+
+These are recorded references. The summary performs no catalog lookup and does
+not infer availability, suitability, readiness or current evaluation. It reuses
+the existing bounded literal renderer: control and format characters are escaped,
+quoted values are directionally wrapped, and values longer than the existing
+160-character display bound have an explicit truncation label. The stored value
+is unchanged. Selection settings, notes, extensions and credential references
+are not part of this display.
+
+Pending main-form changes can inspect the same acknowledged list without the
+inspection saving or discarding those changes. Expansion survives replacement
+controls for that same record; a storage transition, different acknowledged record or recreated
+Activity starts collapsed. Each toggle retains the current summary generation
+and rechecks the existing Activity/storage/input authority. Pause disables its
+retained control; a replaced, destroyed or unconfirmed owner cannot use an old
+callback to reveal another record. Inspection writes no draft or history and
+starts no external Activity. The separately scheduled form autosave retains its
+existing deadline and authority; its later acknowledgement refreshes the summary
+and collapses the prior list. Existing editor navigation retains its original
+save and command guards.
+
+The added `SummaryRecordedComponentsActivityTest` begins from accepted main
+`56cc178e38f1fc0914db273468301e3431daef64`. Its first actual Activity case ran with
+unchanged production and only the new test staged, tree
+`fd0b5db145ebea608836bbb03853ccbb3c8ebd2c`. The real draft/catalog setup passed, then
+one missing-inspection assertion failed, with zero errors or skips. That original
+5,438-byte log has SHA-256
+`94cc10bae63aad53e21fe3a975070b7586db3622e1fcffdcc1b082421cac4728`.
+Two earlier setup failures remain separate: the restored JDK initially lacked
+the environment certificate authority, and the new test initially lacked its
+runner import. Neither executed a test. The environment uses its existing OS
+Java trust store; no TLS bypass or machine path is added to source.
+
+The independently reviewed initial implementation tree
+`d0629c7788add44890b0bdb66234ec27b9fa54ab` passed 5,188 core cases across 95 suites
+and 418 simulated Activity cases across 38 suites, with zero failures, errors or
+skips. Its unsigned APK assembly and lint passed; lint reported 18 warnings and
+no errors. The original 4,850-byte build log has SHA-256
+`1ae05da8591f4f8d8fb1865d3dd084da4a4e0cdd3d7d30e2d53776fa42d2dfe5`.
+These observations remain attributed to that earlier tree, separately from
+receiving integration and hosted execution.
+
+The initial eight named regressions cover exact recorded identities and private-field
+omission, confirmed empty versus unavailable lists, pending edits and recreation,
+delayed storage, retired controls and draft replacement, unconfirmed restoration,
+arbitrary literal versions, and measured narrow RTL layout at twice the normal
+font scale. Their separate workflow step requires every case to execute without
+duplicates, failures, errors or skips. Receiving integration on accepted
+`4da017adcc4112acfa1d254529b41b06fd98ccc0` retains the thirteen existing summary
+cases and their complete execution guard, including the two component-form
+refresh cases delivered since the initial baseline. The ninth new case advances
+the accepted simulated UI clock to the actual autosave deadline: inspection must
+not postpone that write, and the newly acknowledged revision must replace the
+old list and its retained control. The pending-input cases observe their defined
+pre-deadline interval; they do not assume pending edits remain unsaved indefinitely.
+These simulated Activity cases do
+not establish installed accessibility, screen-reader or product layout acceptance.
+
 ## Current results and core planning
 
 Current evaluation is **unavailable** and current price coverage is

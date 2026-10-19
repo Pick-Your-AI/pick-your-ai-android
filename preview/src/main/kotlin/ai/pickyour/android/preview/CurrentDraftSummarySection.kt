@@ -1,6 +1,8 @@
 package ai.pickyour.android.preview
 
 import android.app.Activity
+import android.text.BidiFormatter
+import android.text.TextDirectionHeuristics
 import android.view.View
 import android.widget.Button
 import android.widget.LinearLayout
@@ -19,6 +21,10 @@ internal class CurrentDraftSummarySection(
     private var generation: Any? = null
     private val source: TextView
     private val components: TextView
+    private val componentDetails: LinearLayout
+    private var detailsRecord: PreviewStoredDraft? = null
+    private var detailsExpanded = false
+    private var detailsToggle: Button? = null
     private val sample: TextView
     private val objectives: TextView
     private val actions: LinearLayout
@@ -37,6 +43,7 @@ internal class CurrentDraftSummarySection(
             accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
         }.also(::addView)
         components = TextView(activity).apply { id = R.id.draft_summary_components }.also(::addView)
+        componentDetails = LinearLayout(activity).apply { orientation = VERTICAL }.also(::addView)
         sample = TextView(activity).apply { id = R.id.draft_summary_sample }.also(::addView)
         addView(TextView(activity).apply { setText(R.string.draft_summary_selection_limits) })
         objectives = TextView(activity).apply {
@@ -59,10 +66,63 @@ internal class CurrentDraftSummarySection(
     /** Retained controls never acquire a replacement generation's input or storage authority. */
     fun retireActions() {
         generation = null
+        detailsToggle?.isEnabled = false
         repeat(actions.childCount) { actions.getChildAt(it).isEnabled = false }
     }
 
-    fun close() { closed = true; retireActions() }
+    fun close() {
+        closed = true
+        retireActions()
+        detailsRecord = null
+        detailsExpanded = false
+        detailsToggle = null
+        componentDetails.removeAllViews()
+    }
+
+    /** Inspect only this acknowledged record, including while main-form edits remain pending. */
+    private fun showRecordedComponents(record: PreviewStoredDraft?, token: Any, current: () -> Boolean) {
+        if (detailsRecord !== record) detailsExpanded = false
+        detailsRecord = record
+        detailsToggle = null
+        componentDetails.removeAllViews()
+        if (record == null) return
+        val selections = record.components.selections
+        if (selections.isEmpty()) {
+            componentDetails.addView(TextView(activity).apply {
+                setText(R.string.draft_summary_components_empty)
+            })
+            return
+        }
+        val toggle = Button(activity).apply {
+            minimumHeight = (48 * resources.displayMetrics.density + 0.5f).toInt()
+            isEnabled = active() && current()
+        }.also { detailsToggle = it; componentDetails.addView(it) }
+        val body = LinearLayout(activity).apply { orientation = VERTICAL }.also(componentDetails::addView)
+        fun literal(raw: String) = BidiFormatter.getInstance(activity.resources.configuration.locales[0])
+            .unicodeWrap(CatalogDetailText.literal(activity, raw), TextDirectionHeuristics.LTR)
+        fun text(value: String) { body.addView(TextView(activity).apply { text = value }) }
+        fun render() {
+            toggle.setText(if (detailsExpanded) R.string.draft_summary_hide_components else R.string.draft_summary_show_components)
+            body.removeAllViews()
+            if (!detailsExpanded) return
+            text(activity.getString(R.string.draft_summary_components_revision, record.revision.toString()))
+            text(activity.getString(R.string.draft_summary_components_unresolved))
+            for (selection in selections) {
+                text(activity.getString(R.string.draft_summary_component_record,
+                    literal(selection.id), literal(selection.kind), literal(selection.role),
+                    literal(selection.catalogItemId), literal(selection.catalogItemVersion),
+                    activity.getString(if (selection.enabled) R.string.draft_summary_component_enabled
+                        else R.string.draft_summary_component_disabled)))
+            }
+        }
+        toggle.setOnClickListener {
+            if (toggle.isEnabled && generation === token && active() && current()) {
+                detailsExpanded = !detailsExpanded
+                render()
+            }
+        }
+        render()
+    }
 
     fun update(
         record: PreviewStoredDraft?,
@@ -94,6 +154,7 @@ internal class CurrentDraftSummarySection(
             activity.getString(R.string.draft_summary_component_counts,
                 selected.count { it.enabled }, selected.count { !it.enabled })
         }
+        showRecordedComponents(captured, token, current)
         sample.setText(when {
             !available -> R.string.draft_summary_sample_unavailable
             sampleSelected -> R.string.draft_summary_sample_present
