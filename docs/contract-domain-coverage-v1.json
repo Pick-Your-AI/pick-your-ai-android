@@ -1,0 +1,2152 @@
+{
+  "inventory_version": 1,
+  "issue": "https://github.com/Pick-Your-AI/pick-your-ai-android/issues/32",
+  "record_kind": "engineering_coverage_inventory",
+  "status": "partial_mapping_pending_receiving_review",
+  "basis": {
+    "repository": "Pick-Your-AI/pick-your-ai-android",
+    "commit": "a24792eeea1e20977ddb3dd8942d7ce300bc7856",
+    "tree": "6af6a48776064093c79adc91b9a9bd7f43852e1c",
+    "recorded_date": "2026-10-19",
+    "frozen_package_version": "1.0.0",
+    "frozen_research_commit": "9769fcd9ea380b1211669b2753181c7782444178",
+    "frozen_contract_tree": "b1c4eaa4037f2a1e02103849064a947e758a2b40",
+    "rule": "Historical source map. Later source or execution requires an explicit update; membership, a test reference and a job count are distinct claims."
+  },
+  "evidence_states": {
+    "source_reference": "Exact source bytes and the named executable method/factory were read and linked. This does not assert an execution or exhaustive coverage.",
+    "attributed_execution_record": "The linked original-output receipt is attributed to its exact checkout and scope. Only explicitly linked case claims receive that qualification.",
+    "reviewed_limitation": "Requires a precise invariant, reason and actual criterion-specific receiving review. None are newly granted by this inventory.",
+    "pending": "Missing mapping, execution join or receiving decision remains explicit and cannot count as accepted coverage."
+  },
+  "source_files": [
+    {
+      "path": "contracts/v1/tests/test_contract.py",
+      "git_blob": "59b13bf9016f8ca72e00fbba022119ee7bb763e3",
+      "bytes": 16522,
+      "sha256": "237fef187e553cac3e7e42c8dd38f5ac0a76e9166e5851d3c75ff1eb32135f77"
+    },
+    {
+      "path": "core/src/test/kotlin/ai/pickyour/core/contracts/FrozenSchemaValidatorTest.kt",
+      "git_blob": "9b2411bd60c39af4e216f13f799d45babe8bcb80",
+      "bytes": 4179,
+      "sha256": "636f5ab371585459ad348d53b64518b14b8776882643c5fa2fb880c72f90e925"
+    },
+    {
+      "path": "core/src/test/kotlin/ai/pickyour/core/contracts/ContractValuesTest.kt",
+      "git_blob": "dbabe75fba57bc8d113114fcf43dd5c5fde33f8d",
+      "bytes": 2137,
+      "sha256": "2b1f5f7ad51d4390e526c81e36cd70fbb0b0c0fe98555ddaf6e57f263ed489ca"
+    },
+    {
+      "path": "core/src/test/kotlin/ai/pickyour/core/contracts/FrozenIntegerBoundsTest.kt",
+      "git_blob": "9e8b62e7dbaafd2338f30ba1d84d0b0b8d064247",
+      "bytes": 10440,
+      "sha256": "db76421b6d07a6643d73d461be2643081b4f3697bf76a738c98f788df9864ef5"
+    },
+    {
+      "path": "core/src/test/kotlin/ai/pickyour/core/drafts/DraftHistoryTest.kt",
+      "git_blob": "21bb0511115d9b758cfd7ee50fad121ac8591daf",
+      "bytes": 8455,
+      "sha256": "3eb0765fdb3cd35e1f813cc9530d64cadd70c2d60571864362a8ff3074ab8e91"
+    },
+    {
+      "path": "core/src/test/kotlin/ai/pickyour/core/drafts/LocalDraftStoreTest.kt",
+      "git_blob": "dbfb03041a305d0da8b0394c58c501b4f3fb3e19",
+      "bytes": 10582,
+      "sha256": "621fc6dbe2457748cdf08cf1c438f55777e36aed2a42a60ee7cab39d38817fd3"
+    },
+    {
+      "path": "core/src/test/kotlin/ai/pickyour/core/invalidation/DependencyInvalidationTest.kt",
+      "git_blob": "33b20896d2b6e644184ec310a33ed30d84842c97",
+      "bytes": 6495,
+      "sha256": "88d8e8137abf35ecfbba4b089c92dccc4998d5c2f67d04fe80a18601bd6e167f"
+    },
+    {
+      "path": "core/src/test/kotlin/ai/pickyour/core/pricing/RateScreenTest.kt",
+      "git_blob": "da1abcf2e8bb48af93175fdf31d55347e0907a3a",
+      "bytes": 5623,
+      "sha256": "ba3c2ed4b6b78f9fdc081bcee3356948bd73073c084e08ffff96f14ff35e2ddb"
+    },
+    {
+      "path": "core/src/test/kotlin/ai/pickyour/core/evidence/EvidencePresentationPolicyTest.kt",
+      "git_blob": "3d27f4a28be37ecf5ea6f98e40b94c7d415bd175",
+      "bytes": 6401,
+      "sha256": "4dad30eb7858f56d192a11959ea9b797cc51c6dcb02be5fc179e899047332815"
+    },
+    {
+      "path": "core/src/test/kotlin/ai/pickyour/core/analysis/AnalysisCoordinatorTest.kt",
+      "git_blob": "e31e5f2cebb22e1e4fb3ba25ce05d88aa914b488",
+      "bytes": 5204,
+      "sha256": "526ee8676735aefa3ddf271a7934f87fce6237d2d855829071f9042d5708506b"
+    },
+    {
+      "path": "core/src/test/kotlin/ai/pickyour/core/drafts/DraftProjectionVersionTest.kt",
+      "git_blob": "a1b9228b5346f4a521deda6cd90c18962507e3ab",
+      "bytes": 12956,
+      "sha256": "0416cc16f3367bbb730cb88e841d87b3cc4795dcdcbb9b28828b862beaba895e"
+    },
+    {
+      "path": "core/src/test/kotlin/ai/pickyour/core/evaluation/FrozenDiagnosticEvaluatorTest.kt",
+      "git_blob": "7f869338827fab1fa0786533f2cadc4f9f904dd5",
+      "bytes": 11399,
+      "sha256": "453d8eaaafd0aa995a9842a9b25f45b79d0b2ed26d921c58d1566cfed83b8298"
+    },
+    {
+      "path": "core/src/test/kotlin/ai/pickyour/core/evaluation/RetainedConfigurationGoldenTest.kt",
+      "git_blob": "28abe9bdf040e6393373d40a666c9ef8fc087767",
+      "bytes": 10636,
+      "sha256": "53984215a90c57c9e8cc9181a461aa2fa8f091745ae81b329bd4d9d7cbc0cf80"
+    },
+    {
+      "path": "core/src/test/kotlin/ai/pickyour/core/conformance/CrossClientFixtureTest.kt",
+      "git_blob": "f433731a2569c43216aca09ef92cf4b9447dc705",
+      "bytes": 1893,
+      "sha256": "00d5c0655dae178278b0e9f15449e41ffe8d2c168ee555bef27a627a4b5a577c"
+    },
+    {
+      "path": "contracts/v1/schemas/build.schema.json",
+      "git_blob": "2b173755b1665dea3d9cddf0d33062cf1adc94b5",
+      "bytes": 5121,
+      "sha256": "1beacb0b01fcdea0b8b47357cdf2e99d80a10b8a4218aaac9e3b6af55391b42a"
+    },
+    {
+      "path": "contracts/v1/schemas/catalog-item.schema.json",
+      "git_blob": "d4576e9044b5675a06d1d0d922afd129682fd501",
+      "bytes": 45569,
+      "sha256": "81c960c6e7dfe046634062e3f9ce5a1089b1d88adbd9fd45d9a67dcfc0339a25"
+    },
+    {
+      "path": "contracts/v1/schemas/catalog-snapshot.schema.json",
+      "git_blob": "88af389f4f2b72e38f5c25e4cabd73df2d6c6225",
+      "bytes": 760,
+      "sha256": "a5af428386768b698d280a18bf99c0e52364ee397a2075685213b3d0762693a4"
+    },
+    {
+      "path": "contracts/v1/schemas/common.schema.json",
+      "git_blob": "fc55e2aa32a9cd63a16ee1ea90709b6ca733f6b5",
+      "bytes": 2490,
+      "sha256": "0342ce2f1114e7276fc7f6a08ff5b86e8727caadd83ae4f443de9a7e1431c43c"
+    },
+    {
+      "path": "contracts/v1/schemas/cost-estimate.schema.json",
+      "git_blob": "1031d53c3b9d71fcfa28f9054792f83f0155d9cb",
+      "bytes": 3763,
+      "sha256": "ef7cf8c0492022c1a8a1f971e49eb86dfad5b66ce6a4b2cf72a965fc9ba81259"
+    },
+    {
+      "path": "contracts/v1/schemas/dependency-graph.schema.json",
+      "git_blob": "8bb30e002ccb13339e8e3061c89e8d5cf4df3b5e",
+      "bytes": 3668,
+      "sha256": "fb6a8bb42a9424d4ff2b520301f816c247789a3d70d1124afea1a8dc5ed5bd75"
+    },
+    {
+      "path": "contracts/v1/schemas/deployment-manifest.schema.json",
+      "git_blob": "5290ae6a40e9a957e8055b440a041f9c3becd98e",
+      "bytes": 2798,
+      "sha256": "86bc716c906aca1299d9129eec08abec44378c26b5a97317d6310afe84d6b374"
+    },
+    {
+      "path": "contracts/v1/schemas/evaluation-report.schema.json",
+      "git_blob": "77875a71a6b7440d5228a1b9880c2651c5bae20f",
+      "bytes": 3972,
+      "sha256": "78935ec78848de7655bd972851aa0357c4426f6870fc028ba81739c85040359b"
+    },
+    {
+      "path": "contracts/v1/schemas/event.schema.json",
+      "git_blob": "b15b739c8a2e4db2d973a3f5f6ef1eab616bb3dc",
+      "bytes": 3506,
+      "sha256": "e169ad8d2f7417580ef63a5098f8ec54dd514af3ce609c59bdb7780b89d6039a"
+    },
+    {
+      "path": "contracts/v1/schemas/pricebook.schema.json",
+      "git_blob": "fc6e3e74eda33325f68e6e820b3b2700dbda9a73",
+      "bytes": 2586,
+      "sha256": "169e1a48847bee8b6af4b266a55bcebe317b5655dd6abb7718e06331b1df6288"
+    },
+    {
+      "path": "contracts/v1/schemas/quality-evaluation-run.schema.json",
+      "git_blob": "8dd515b03e07916115a0864a8347968d6dd0dc20",
+      "bytes": 2588,
+      "sha256": "ed6b3f60805428e3788ce27fa224fb3d5008998f0637f24723bf65eea546a959"
+    },
+    {
+      "path": "contracts/v1/schemas/resource-estimate.schema.json",
+      "git_blob": "9dbafa69f59f8667a4e124ec34d8df17606c8f2e",
+      "bytes": 2713,
+      "sha256": "39ab5d061f9021ce14e1f987717441cff04d1a40f76db5582d343d599a5d876c"
+    },
+    {
+      "path": "contracts/v1/schemas/ruleset.schema.json",
+      "git_blob": "dfbbc2284925b101fe56eb03adf1b2c6530505d7",
+      "bytes": 8726,
+      "sha256": "b251e49774d7e6a34522555adefd40f56f5e647a8a2b4a69a0be0a4618b1a8d3"
+    },
+    {
+      "path": "contracts/v1/schemas/selection.schema.json",
+      "git_blob": "9a66cceb442c50c93c6e214b760a357146fa3c69",
+      "bytes": 27630,
+      "sha256": "f8f189c6555fec41e616c32f081d06fab9f966b0fa4891ddca55580f577d51a8"
+    },
+    {
+      "path": "contracts/v1/schemas/component-registry.json",
+      "git_blob": "56dd96f98ff04130d7672e87eeb9deaba2cb934b",
+      "bytes": 5428,
+      "sha256": "cd60070e912a60504f605f2fd9f86c64520160cce7f4184c8ea200209c6b1918"
+    },
+    {
+      "path": "core/src/test/resources/conformance/consumer-lock.json",
+      "git_blob": "75ed25c5cd1076738117df0e05a6bfff588b5c02",
+      "bytes": 2797,
+      "sha256": "9b794c27b0f162a86b5729bdb6cd29b8dc68fa78d67af1ba691af98c34f6a057"
+    },
+    {
+      "path": "docs/CONFORMANCE_FIXTURES.md",
+      "git_blob": "874703b7e5e93fcfa91dd2777b776301ede48101",
+      "bytes": 18668,
+      "sha256": "1cbf03b4b794d61deaed18e76df6e61633c90cc7a922a41d3fdbafaa76bae62e"
+    },
+    {
+      "path": "docs/CONTRACT_ADOPTION.md",
+      "git_blob": "fcddd79f200973d313693c10aecbcd4e54a48e22",
+      "bytes": 5003,
+      "sha256": "c792c697919dad6a36b3178af0684d2e0a50b30ff0da95f17bb295e39ed84735"
+    },
+    {
+      "path": "scripts/check_contracts.py",
+      "git_blob": "845de6b2f14fef76a02c87438102237b9a567946",
+      "bytes": 2966,
+      "sha256": "705fc7f4dcf73add1b0e04b78e49e188ca0569343d00ad161ac4e40bfc4bb912"
+    },
+    {
+      "path": "scripts/check_conformance_fixtures.py",
+      "git_blob": "b04774bac4f93d22e425d3c1395960089587040c",
+      "bytes": 16301,
+      "sha256": "411c96ef17c1b11ca8099994588d2cd657b61971381ef7d067dd68f84c3824f6"
+    }
+  ],
+  "schema_inventory": [
+    {
+      "id": "build",
+      "path": "contracts/v1/schemas/build.schema.json",
+      "schema_id": "https://schemas.ai-builder.example/v1/build.schema.json",
+      "title": "AI Builder versioned build snapshot",
+      "reference_scope": "top-level synthetic example",
+      "case_refs": [
+        "ref.schema",
+        "ref.examples",
+        "schema.examples"
+      ],
+      "mapping_state": "source_reference",
+      "complete_property_and_operation_coverage": "pending",
+      "pending_gap": "gap.atomic-invariants"
+    },
+    {
+      "id": "catalog-item",
+      "path": "contracts/v1/schemas/catalog-item.schema.json",
+      "schema_id": "https://schemas.ai-builder.example/v1/catalog-item.schema.json",
+      "title": "Typed catalog item",
+      "reference_scope": "embedded item examples",
+      "case_refs": [
+        "ref.schema",
+        "schema.examples"
+      ],
+      "mapping_state": "source_reference",
+      "complete_property_and_operation_coverage": "pending",
+      "pending_gap": "gap.atomic-invariants"
+    },
+    {
+      "id": "catalog-snapshot",
+      "path": "contracts/v1/schemas/catalog-snapshot.schema.json",
+      "schema_id": "https://schemas.ai-builder.example/v1/catalog-snapshot.schema.json",
+      "title": "Versioned catalog snapshot",
+      "reference_scope": "top-level synthetic example",
+      "case_refs": [
+        "ref.schema",
+        "ref.examples",
+        "schema.examples"
+      ],
+      "mapping_state": "source_reference",
+      "complete_property_and_operation_coverage": "pending",
+      "pending_gap": "gap.atomic-invariants"
+    },
+    {
+      "id": "common",
+      "path": "contracts/v1/schemas/common.schema.json",
+      "schema_id": "https://schemas.ai-builder.example/v1/common.schema.json",
+      "title": "AI Builder common types",
+      "reference_scope": "shared definitions reached by referring documents",
+      "case_refs": [
+        "ref.schema",
+        "schema.examples"
+      ],
+      "mapping_state": "source_reference",
+      "complete_property_and_operation_coverage": "pending",
+      "pending_gap": "gap.atomic-invariants"
+    },
+    {
+      "id": "cost-estimate",
+      "path": "contracts/v1/schemas/cost-estimate.schema.json",
+      "schema_id": "https://schemas.ai-builder.example/v1/cost-estimate.schema.json",
+      "title": "Auditable cost estimate based on pinned build and pricebook",
+      "reference_scope": "top-level synthetic example",
+      "case_refs": [
+        "ref.schema",
+        "ref.examples",
+        "schema.examples"
+      ],
+      "mapping_state": "source_reference",
+      "complete_property_and_operation_coverage": "pending",
+      "pending_gap": "gap.atomic-invariants"
+    },
+    {
+      "id": "dependency-graph",
+      "path": "contracts/v1/schemas/dependency-graph.schema.json",
+      "schema_id": "https://schemas.ai-builder.example/v1/dependency-graph.schema.json",
+      "title": "Bidirectional invalidation graph for component dependencies",
+      "reference_scope": "top-level synthetic example",
+      "case_refs": [
+        "ref.schema",
+        "ref.examples",
+        "schema.examples"
+      ],
+      "mapping_state": "source_reference",
+      "complete_property_and_operation_coverage": "pending",
+      "pending_gap": "gap.atomic-invariants"
+    },
+    {
+      "id": "deployment-manifest",
+      "path": "contracts/v1/schemas/deployment-manifest.schema.json",
+      "schema_id": "https://schemas.ai-builder.example/v1/deployment-manifest.schema.json",
+      "title": "Deployment evidence and explicit approval manifest",
+      "reference_scope": "top-level synthetic example",
+      "case_refs": [
+        "ref.schema",
+        "ref.examples",
+        "schema.examples"
+      ],
+      "mapping_state": "source_reference",
+      "complete_property_and_operation_coverage": "pending",
+      "pending_gap": "gap.atomic-invariants"
+    },
+    {
+      "id": "evaluation-report",
+      "path": "contracts/v1/schemas/evaluation-report.schema.json",
+      "schema_id": "https://schemas.ai-builder.example/v1/evaluation-report.schema.json",
+      "title": "Deterministic compatibility evaluation for a pinned build revision",
+      "reference_scope": "top-level synthetic example",
+      "case_refs": [
+        "ref.schema",
+        "ref.examples",
+        "schema.examples"
+      ],
+      "mapping_state": "source_reference",
+      "complete_property_and_operation_coverage": "pending",
+      "pending_gap": "gap.atomic-invariants"
+    },
+    {
+      "id": "event",
+      "path": "contracts/v1/schemas/event.schema.json",
+      "schema_id": "https://schemas.ai-builder.example/v1/event.schema.json",
+      "title": "Minimal idempotent, secret-free integration event",
+      "reference_scope": "top-level synthetic example",
+      "case_refs": [
+        "ref.schema",
+        "ref.examples",
+        "schema.examples"
+      ],
+      "mapping_state": "source_reference",
+      "complete_property_and_operation_coverage": "pending",
+      "pending_gap": "gap.atomic-invariants"
+    },
+    {
+      "id": "pricebook",
+      "path": "contracts/v1/schemas/pricebook.schema.json",
+      "schema_id": "https://schemas.ai-builder.example/v1/pricebook.schema.json",
+      "title": "Versioned sourced metered prices",
+      "reference_scope": "top-level synthetic example",
+      "case_refs": [
+        "ref.schema",
+        "ref.examples",
+        "schema.examples"
+      ],
+      "mapping_state": "source_reference",
+      "complete_property_and_operation_coverage": "pending",
+      "pending_gap": "gap.atomic-invariants"
+    },
+    {
+      "id": "quality-evaluation-run",
+      "path": "contracts/v1/schemas/quality-evaluation-run.schema.json",
+      "schema_id": "https://schemas.ai-builder.example/v1/quality-evaluation-run.schema.json",
+      "title": "Measured quality/safety evaluation evidence, separate from compatibility",
+      "reference_scope": "top-level synthetic example",
+      "case_refs": [
+        "ref.schema",
+        "ref.examples",
+        "schema.examples"
+      ],
+      "mapping_state": "source_reference",
+      "complete_property_and_operation_coverage": "pending",
+      "pending_gap": "gap.atomic-invariants"
+    },
+    {
+      "id": "resource-estimate",
+      "path": "contracts/v1/schemas/resource-estimate.schema.json",
+      "schema_id": "https://schemas.ai-builder.example/v1/resource-estimate.schema.json",
+      "title": "Version-pinned external compute and model-capacity estimates",
+      "reference_scope": "top-level synthetic example",
+      "case_refs": [
+        "ref.schema",
+        "ref.examples",
+        "schema.examples"
+      ],
+      "mapping_state": "source_reference",
+      "complete_property_and_operation_coverage": "pending",
+      "pending_gap": "gap.atomic-invariants"
+    },
+    {
+      "id": "ruleset",
+      "path": "contracts/v1/schemas/ruleset.schema.json",
+      "schema_id": "https://schemas.ai-builder.example/v1/ruleset.schema.json",
+      "title": "Declarative explainable cross-tier compatibility rules",
+      "reference_scope": "top-level synthetic example",
+      "case_refs": [
+        "ref.schema",
+        "ref.examples",
+        "schema.examples"
+      ],
+      "mapping_state": "source_reference",
+      "complete_property_and_operation_coverage": "pending",
+      "pending_gap": "gap.atomic-invariants"
+    },
+    {
+      "id": "selection",
+      "path": "contracts/v1/schemas/selection.schema.json",
+      "schema_id": "https://schemas.ai-builder.example/v1/selection.schema.json",
+      "title": "Typed, version-pinned build component selection",
+      "reference_scope": "embedded item examples",
+      "case_refs": [
+        "ref.schema",
+        "schema.examples"
+      ],
+      "mapping_state": "source_reference",
+      "complete_property_and_operation_coverage": "pending",
+      "pending_gap": "gap.atomic-invariants"
+    }
+  ],
+  "component_registry": {
+    "path": "contracts/v1/schemas/component-registry.json",
+    "schema_version": "1.0.0",
+    "kinds": [
+      {
+        "kind": "workload",
+        "tier": "T0",
+        "cardinality": "one",
+        "activation": "always",
+        "case_refs": [
+          "ref.registry",
+          "schema.examples"
+        ],
+        "mapping_state": "registry_and_example_source_references",
+        "operation_coverage_gap": "gap.kind-operations"
+      },
+      {
+        "kind": "deployment_mode",
+        "tier": "T0",
+        "cardinality": "one",
+        "activation": "always",
+        "case_refs": [
+          "ref.registry",
+          "schema.examples"
+        ],
+        "mapping_state": "registry_and_example_source_references",
+        "operation_coverage_gap": "gap.kind-operations"
+      },
+      {
+        "kind": "model_provider",
+        "tier": "T1",
+        "cardinality": "many",
+        "activation": "always",
+        "case_refs": [
+          "ref.registry",
+          "schema.examples"
+        ],
+        "mapping_state": "registry_and_example_source_references",
+        "operation_coverage_gap": "gap.kind-operations"
+      },
+      {
+        "kind": "model",
+        "tier": "T1",
+        "cardinality": "many",
+        "activation": "always",
+        "case_refs": [
+          "ref.registry",
+          "schema.examples"
+        ],
+        "mapping_state": "registry_and_example_source_references",
+        "operation_coverage_gap": "gap.kind-operations"
+      },
+      {
+        "kind": "context_policy",
+        "tier": "T1",
+        "cardinality": "one",
+        "activation": "always",
+        "case_refs": [
+          "ref.registry",
+          "schema.examples"
+        ],
+        "mapping_state": "registry_and_example_source_references",
+        "operation_coverage_gap": "gap.kind-operations"
+      },
+      {
+        "kind": "hosting_platform",
+        "tier": "T2",
+        "cardinality": "many",
+        "activation": "non_api",
+        "case_refs": [
+          "ref.registry",
+          "schema.examples"
+        ],
+        "mapping_state": "registry_and_example_source_references",
+        "operation_coverage_gap": "gap.kind-operations"
+      },
+      {
+        "kind": "accelerator",
+        "tier": "T2",
+        "cardinality": "many",
+        "activation": "self_hosted",
+        "case_refs": [
+          "ref.registry",
+          "schema.examples"
+        ],
+        "mapping_state": "registry_and_example_source_references",
+        "operation_coverage_gap": "gap.kind-operations"
+      },
+      {
+        "kind": "compute_profile",
+        "tier": "T2",
+        "cardinality": "many",
+        "activation": "self_hosted",
+        "case_refs": [
+          "ref.registry",
+          "schema.examples"
+        ],
+        "mapping_state": "registry_and_example_source_references",
+        "operation_coverage_gap": "gap.kind-operations"
+      },
+      {
+        "kind": "inference_engine",
+        "tier": "T2",
+        "cardinality": "many",
+        "activation": "self_hosted",
+        "case_refs": [
+          "ref.registry",
+          "schema.examples"
+        ],
+        "mapping_state": "registry_and_example_source_references",
+        "operation_coverage_gap": "gap.kind-operations"
+      },
+      {
+        "kind": "storage",
+        "tier": "T2",
+        "cardinality": "many",
+        "activation": "optional",
+        "case_refs": [
+          "ref.registry",
+          "schema.examples"
+        ],
+        "mapping_state": "registry_and_example_source_references",
+        "operation_coverage_gap": "gap.kind-operations"
+      },
+      {
+        "kind": "data_source",
+        "tier": "T3",
+        "cardinality": "many",
+        "activation": "optional",
+        "case_refs": [
+          "ref.registry",
+          "schema.examples"
+        ],
+        "mapping_state": "registry_and_example_source_references",
+        "operation_coverage_gap": "gap.kind-operations"
+      },
+      {
+        "kind": "knowledge_base",
+        "tier": "T3",
+        "cardinality": "many",
+        "activation": "optional",
+        "case_refs": [
+          "ref.registry",
+          "schema.examples"
+        ],
+        "mapping_state": "registry_and_example_source_references",
+        "operation_coverage_gap": "gap.kind-operations"
+      },
+      {
+        "kind": "embedding_model",
+        "tier": "T3",
+        "cardinality": "many",
+        "activation": "optional",
+        "case_refs": [
+          "ref.registry",
+          "schema.examples"
+        ],
+        "mapping_state": "registry_and_example_source_references",
+        "operation_coverage_gap": "gap.kind-operations"
+      },
+      {
+        "kind": "vector_database",
+        "tier": "T3",
+        "cardinality": "many",
+        "activation": "optional",
+        "case_refs": [
+          "ref.registry",
+          "schema.examples"
+        ],
+        "mapping_state": "registry_and_example_source_references",
+        "operation_coverage_gap": "gap.kind-operations"
+      },
+      {
+        "kind": "rag_pipeline",
+        "tier": "T3",
+        "cardinality": "many",
+        "activation": "optional",
+        "case_refs": [
+          "ref.registry",
+          "schema.examples"
+        ],
+        "mapping_state": "registry_and_example_source_references",
+        "operation_coverage_gap": "gap.kind-operations"
+      },
+      {
+        "kind": "agent_framework",
+        "tier": "T4",
+        "cardinality": "many",
+        "activation": "optional",
+        "case_refs": [
+          "ref.registry",
+          "schema.examples"
+        ],
+        "mapping_state": "registry_and_example_source_references",
+        "operation_coverage_gap": "gap.kind-operations"
+      },
+      {
+        "kind": "tool",
+        "tier": "T4",
+        "cardinality": "many",
+        "activation": "optional",
+        "case_refs": [
+          "ref.registry",
+          "schema.examples"
+        ],
+        "mapping_state": "registry_and_example_source_references",
+        "operation_coverage_gap": "gap.kind-operations"
+      },
+      {
+        "kind": "mcp_server",
+        "tier": "T4",
+        "cardinality": "many",
+        "activation": "optional",
+        "case_refs": [
+          "ref.registry",
+          "schema.examples"
+        ],
+        "mapping_state": "registry_and_example_source_references",
+        "operation_coverage_gap": "gap.kind-operations"
+      },
+      {
+        "kind": "memory_store",
+        "tier": "T4",
+        "cardinality": "many",
+        "activation": "optional",
+        "case_refs": [
+          "ref.registry",
+          "schema.examples"
+        ],
+        "mapping_state": "registry_and_example_source_references",
+        "operation_coverage_gap": "gap.kind-operations"
+      },
+      {
+        "kind": "integration",
+        "tier": "T4",
+        "cardinality": "many",
+        "activation": "optional",
+        "case_refs": [
+          "ref.registry",
+          "schema.examples"
+        ],
+        "mapping_state": "registry_and_example_source_references",
+        "operation_coverage_gap": "gap.kind-operations"
+      },
+      {
+        "kind": "training_framework",
+        "tier": "T5",
+        "cardinality": "many",
+        "activation": "optional",
+        "case_refs": [
+          "ref.registry",
+          "schema.examples"
+        ],
+        "mapping_state": "registry_and_example_source_references",
+        "operation_coverage_gap": "gap.kind-operations"
+      },
+      {
+        "kind": "training_compute",
+        "tier": "T5",
+        "cardinality": "many",
+        "activation": "optional",
+        "case_refs": [
+          "ref.registry",
+          "schema.examples"
+        ],
+        "mapping_state": "registry_and_example_source_references",
+        "operation_coverage_gap": "gap.kind-operations"
+      },
+      {
+        "kind": "training_dataset",
+        "tier": "T5",
+        "cardinality": "many",
+        "activation": "optional",
+        "case_refs": [
+          "ref.registry",
+          "schema.examples"
+        ],
+        "mapping_state": "registry_and_example_source_references",
+        "operation_coverage_gap": "gap.kind-operations"
+      },
+      {
+        "kind": "fine_tuned_model",
+        "tier": "T5",
+        "cardinality": "many",
+        "activation": "optional",
+        "case_refs": [
+          "ref.registry",
+          "schema.examples"
+        ],
+        "mapping_state": "registry_and_example_source_references",
+        "operation_coverage_gap": "gap.kind-operations"
+      },
+      {
+        "kind": "guardrail",
+        "tier": "T6",
+        "cardinality": "many",
+        "activation": "optional",
+        "case_refs": [
+          "ref.registry",
+          "schema.examples"
+        ],
+        "mapping_state": "registry_and_example_source_references",
+        "operation_coverage_gap": "gap.kind-operations"
+      },
+      {
+        "kind": "evaluation_suite",
+        "tier": "T6",
+        "cardinality": "many",
+        "activation": "optional",
+        "case_refs": [
+          "ref.registry",
+          "schema.examples"
+        ],
+        "mapping_state": "registry_and_example_source_references",
+        "operation_coverage_gap": "gap.kind-operations"
+      },
+      {
+        "kind": "deployment_target",
+        "tier": "T6",
+        "cardinality": "many",
+        "activation": "optional",
+        "case_refs": [
+          "ref.registry",
+          "schema.examples"
+        ],
+        "mapping_state": "registry_and_example_source_references",
+        "operation_coverage_gap": "gap.kind-operations"
+      },
+      {
+        "kind": "monitoring_stack",
+        "tier": "T6",
+        "cardinality": "many",
+        "activation": "optional",
+        "case_refs": [
+          "ref.registry",
+          "schema.examples"
+        ],
+        "mapping_state": "registry_and_example_source_references",
+        "operation_coverage_gap": "gap.kind-operations"
+      },
+      {
+        "kind": "cost_policy",
+        "tier": "T6",
+        "cardinality": "one",
+        "activation": "optional",
+        "case_refs": [
+          "ref.registry",
+          "schema.examples"
+        ],
+        "mapping_state": "registry_and_example_source_references",
+        "operation_coverage_gap": "gap.kind-operations"
+      }
+    ],
+    "interpretation": "Frozen tier/cardinality/activation metadata is reproduced exactly. In particular T6 optional metadata is not a new decision about mandatory planning, runtime editing or deployment readiness."
+  },
+  "case_references": {
+    "ref.schema": {
+      "source_path": "contracts/v1/tests/test_contract.py",
+      "method": "test_all_schemas_valid_draft2020",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "ref.examples": {
+      "source_path": "contracts/v1/tests/test_contract.py",
+      "method": "test_example_files_conform_to_json_schemas",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "ref.registry": {
+      "source_path": "contracts/v1/tests/test_contract.py",
+      "method": "test_registry_same_kinds_tier_and_selection_settings",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "ref.relationships": {
+      "source_path": "contracts/v1/tests/test_contract.py",
+      "method": "test_build_id_lock_and_relationships",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "ref.catalog-links": {
+      "source_path": "contracts/v1/tests/test_contract.py",
+      "method": "test_catalog_references_are_existing_and_correct_kind",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "ref.graph-kinds": {
+      "source_path": "contracts/v1/tests/test_contract.py",
+      "method": "test_graph_and_rules_reference_registered_kinds",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "ref.quote": {
+      "source_path": "contracts/v1/tests/test_contract.py",
+      "method": "test_pricebook_and_quote_reconcile",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "ref.manifest": {
+      "source_path": "contracts/v1/tests/test_contract.py",
+      "method": "test_deployment_manifest_evidence_ids_match",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "schema.examples": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/contracts/FrozenSchemaValidatorTest.kt",
+      "method": "all canonical examples pass and embedded objects validate independently",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "schema.version": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/contracts/FrozenSchemaValidatorTest.kt",
+      "method": "future version extra fields and invalid enum rejected",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "schema.kind": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/contracts/FrozenSchemaValidatorTest.kt",
+      "method": "unknown kinds and kind spec mismatch rejected",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "schema.decimal-date": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/contracts/FrozenSchemaValidatorTest.kt",
+      "method": "decimal numbers and malformed timestamps rejected",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "schema.external": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/contracts/FrozenSchemaValidatorTest.kt",
+      "method": "hostile schema properties are data and unknown schema loads fail closed",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "schema.parse": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/contracts/FrozenSchemaValidatorTest.kt",
+      "method": "malformed input fails before schema evaluation",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "money.lexeme": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/contracts/ContractValuesTest.kt",
+      "method": "money retains decimal lexeme and exact large magnitude",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "money.invalid": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/contracts/ContractValuesTest.kt",
+      "method": "invalid decimal shapes fail instead of coercing to zero",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "money.shape": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/contracts/ContractValuesTest.kt",
+      "method": "money rejects numeric amount missing and extra fields and unknown currency shape",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "version.value": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/contracts/ContractValuesTest.kt",
+      "method": "version check rejects future absent numeric and null versions",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "integer.raw": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/contracts/FrozenIntegerBoundsTest.kt",
+      "method": "every frozen integer minimum compares raw values without narrowing",
+      "reference_kind": "test_factory",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "integer.coverage": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/contracts/FrozenIntegerBoundsTest.kt",
+      "method": "coverage names every integer minimum and actual nested receivers enforce it",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "integer.ordinary": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/contracts/FrozenIntegerBoundsTest.kt",
+      "method": "ordinary numeric bounds remain exact and validation preserves input spelling and syntax gates",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "integer.local-budget": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/contracts/FrozenIntegerBoundsTest.kt",
+      "method": "local catalog and pricebook projections enforce expanded revision budget after valid schema intake",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "history.partial": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/drafts/DraftHistoryTest.kt",
+      "method": "empty and partially entered drafts preserve unanswered fields",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "history.optional": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/drafts/DraftHistoryTest.kt",
+      "method": "all optional activation combinations are independent and retain inputs",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "history.alias": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/drafts/DraftHistoryTest.kt",
+      "method": "input aliases and exposed collections cannot rewrite revisions",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "history.restore": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/drafts/DraftHistoryTest.kt",
+      "method": "edit restore edit leaves history intact and preserves current metadata",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "history.cas": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/drafts/DraftHistoryTest.kt",
+      "method": "duplicate edits are no ops but stale and foreign heads conflict",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "history.same-restore": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/drafts/DraftHistoryTest.kt",
+      "method": "restore matching content still creates new identity and stale repeat conflicts",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "history.concurrent": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/drafts/DraftHistoryTest.kt",
+      "method": "simultaneous edits have exactly one winner and retain losing input",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "history.diagnostics": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/drafts/DraftHistoryTest.kt",
+      "method": "diagnostic strings exclude user inputs",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "store.partial": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/drafts/LocalDraftStoreTest.kt",
+      "method": "empty partial and populated inputs reopen without invented values",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "store.cas": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/drafts/LocalDraftStoreTest.kt",
+      "method": "stale missing and foreign tokens cannot overwrite current revision",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "store.corrupt": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/drafts/LocalDraftStoreTest.kt",
+      "method": "unknown version malformed truncated and unknown fields remain intact and block save",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "store.reset": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/drafts/LocalDraftStoreTest.kt",
+      "method": "disk corruption is explicit and never reset to empty",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "store.interruption": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/drafts/LocalDraftStoreTest.kt",
+      "method": "preactivation failure keeps prior acknowledged state and postactivation reports uncertainty",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "store.cleanup": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/drafts/LocalDraftStoreTest.kt",
+      "method": "outer cleanup failure after activation is uncertain never a failed save",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "store.limit": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/drafts/LocalDraftStoreTest.kt",
+      "method": "excessive input rejected without overwriting previous draft",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "store.concurrent": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/drafts/LocalDraftStoreTest.kt",
+      "method": "concurrent writers cannot both acknowledge same expected head",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "store.lock": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/drafts/LocalDraftStoreTest.kt",
+      "method": "outer file lock blocks reads and writes without touching data",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "store.initialize": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/drafts/LocalDraftStoreTest.kt",
+      "method": "failed parent sync cannot yield a store and retry syncs existing child before use",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "graph.direct": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/invalidation/DependencyInvalidationTest.kt",
+      "method": "both directions follow direct adjacency without transitive policy expansion",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "graph.modes": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/invalidation/DependencyInvalidationTest.kt",
+      "method": "mode changes include edges active before or after and unknown is conservative",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "graph.activation": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/invalidation/DependencyInvalidationTest.kt",
+      "method": "every activation follows the frozen website truth table",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "graph.removed": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/invalidation/DependencyInvalidationTest.kt",
+      "method": "disabled tier and removed identities remain rechecked without editing input",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "graph.cycles": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/invalidation/DependencyInvalidationTest.kt",
+      "method": "cycles self loops duplicates and input order produce finite deterministic output",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "price.evidence": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/pricing/RateScreenTest.kt",
+      "method": "candidate preserves pricebook revision and always requires evidence review",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "price.binding": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/pricing/RateScreenTest.kt",
+      "method": "exact version meter region and currency cannot silently fall back",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "price.interval": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/pricing/RateScreenTest.kt",
+      "method": "explicit start inclusive and conservative end exclusive including offset equivalence",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "price.unknown": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/pricing/RateScreenTest.kt",
+      "method": "missing region conditions and estimate prices remain unresolved",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "price.ambiguous": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/pricing/RateScreenTest.kt",
+      "method": "alternatives remain ambiguous and duplicate IDs reject document",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "price.invalid": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/pricing/RateScreenTest.kt",
+      "method": "invalid schema reversed interval and malformed bytes fail closed without disclosure",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "evidence.legacy": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/evidence/EvidencePresentationPolicyTest.kt",
+      "method": "legacy verified establishes neither independent support nor an actual source reading",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "evidence.status": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/evidence/EvidencePresentationPolicyTest.kt",
+      "method": "all raw statuses retain their separate meanings",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "evidence.support": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/evidence/EvidencePresentationPolicyTest.kt",
+      "method": "independent support requires explicit reviewed assessment not a reference alone",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "evidence.origin": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/evidence/EvidencePresentationPolicyTest.kt",
+      "method": "reviewed support never erases estimated or user supplied origin",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "evidence.binding": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/evidence/EvidencePresentationPolicyTest.kt",
+      "method": "assessment for another claim version or snapshot cannot verify selected evidence",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "evidence.pinned": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/evidence/EvidencePresentationPolicyTest.kt",
+      "method": "pinned fact retains exact identity and explicitly absent capture date",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "evidence.current": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/evidence/EvidencePresentationPolicyTest.kt",
+      "method": "current state uses its capture timestamp without elapsed age expiration",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "evidence.recapture": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/evidence/EvidencePresentationPolicyTest.kt",
+      "method": "new capture does not mutate historical presentation or reuse its reviewed support",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "analysis.order": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/analysis/AnalysisCoordinatorTest.kt",
+      "method": "out of order success and failure cannot replace newest report",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "analysis.retry": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/analysis/AnalysisCoordinatorTest.kt",
+      "method": "same identity retry and duplicate callback cannot win",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "analysis.cancel": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/analysis/AnalysisCoordinatorTest.kt",
+      "method": "cancellation and clear reject pending callbacks",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "analysis.bindings": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/analysis/AnalysisCoordinatorTest.kt",
+      "method": "every binding input invalidates even when revision stays the same",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "analysis.capacity": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/analysis/AnalysisCoordinatorTest.kt",
+      "method": "capacity evidence replacement rejects earlier estimator result",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "analysis.foreign": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/analysis/AnalysisCoordinatorTest.kt",
+      "method": "tickets from different coordinators cannot complete requests",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "analysis.concurrent": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/analysis/AnalysisCoordinatorTest.kt",
+      "method": "concurrent terminal callbacks have exactly one winner",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "projection.unsupported": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/drafts/DraftProjectionVersionTest.kt",
+      "method": "unsupportedTextualVersionsHaveAnExplicitBoundedOutcome",
+      "reference_kind": "test_factory",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "projection.version-shape": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/drafts/DraftProjectionVersionTest.kt",
+      "method": "MissingNullAndNontextVersionsRemainSchemaFailures",
+      "reference_kind": "test_factory",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "projection.parse-first": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/drafts/DraftProjectionVersionTest.kt",
+      "method": "completeStrictParsingPrecedesVersionClassification",
+      "reference_kind": "test_factory",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "projection.hash-first": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/drafts/DraftProjectionVersionTest.kt",
+      "method": "exactHashMismatchStillPrecedesBothParsingAndVersionChecks",
+      "reference_kind": "test_factory",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "projection.full-schema": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/drafts/DraftProjectionVersionTest.kt",
+      "method": "supportedVersionDoesNotBypassTheWholeFrozenSchema",
+      "reference_kind": "test_factory",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "projection.preserve": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/drafts/DraftProjectionVersionTest.kt",
+      "method": "supportedControlsPreserveOriginalArtifactsAndDecimalSpelling",
+      "reference_kind": "test_factory",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "projection.store": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/drafts/DraftProjectionVersionTest.kt",
+      "method": "managedFacadePropagatesVersionFailuresWithoutChangingTheActiveDraftOrPriorCandidate",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "projection.stale": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/drafts/DraftProjectionVersionTest.kt",
+      "method": "unsupportedArtifactsCannotRefreshAStalePreparationToken",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "evaluate.binding": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/evaluation/FrozenDiagnosticEvaluatorTest.kt",
+      "method": "foreign catalog and rules locks reject before report creation",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "evaluate.budget": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/evaluation/FrozenDiagnosticEvaluatorTest.kt",
+      "method": "budget exhaustion never emits a partial compatible report",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "evaluate.work": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/evaluation/FrozenDiagnosticEvaluatorTest.kt",
+      "method": "recursive container containment charges nested comparisons",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "evaluate.unsupported": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/evaluation/FrozenDiagnosticEvaluatorTest.kt",
+      "method": "reference exceptions stay unsupported rather than invented verdicts",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "evaluate.raw": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/evaluation/FrozenDiagnosticEvaluatorTest.kt",
+      "method": "raw numeric spelling reaches the strict reader unchanged",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "evaluate.duplicate": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/evaluation/FrozenDiagnosticEvaluatorTest.kt",
+      "method": "duplicate identities reject across all three documents",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "evaluate.ambiguous": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/evaluation/FrozenDiagnosticEvaluatorTest.kt",
+      "method": "ambiguous selections remain unknown without guessing first match",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "evaluate.pointer": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/evaluation/FrozenDiagnosticEvaluatorTest.kt",
+      "method": "ASCII array pointer preserves leading zeros and missing paths",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "evaluate.precision": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/evaluation/FrozenDiagnosticEvaluatorTest.kt",
+      "method": "derived VRAM accepts exact 28 digits and rejects a rounded 29 digit product",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "evaluate.goldens": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/evaluation/FrozenDiagnosticEvaluatorTest.kt",
+      "method": "supported Python goldens match complete reports",
+      "reference_kind": "test_factory",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "retained.configuration": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/evaluation/RetainedConfigurationGoldenTest.kt",
+      "method": "complete retained configuration goldens preserve reference reports and explicit input authority",
+      "reference_kind": "test_factory",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory",
+      "generated_case_ids": [
+        "all-active-control",
+        "contradictory-target-region",
+        "contradictory-host-region",
+        "contradictory-self-hosted-serving",
+        "optional-t3-t4-t5-disabled",
+        "optional-t3-enabled",
+        "optional-t4-enabled-without-t3-vector",
+        "optional-t5-enabled",
+        "rag-with-disabled-knowledge",
+        "agent-with-disabled-framework",
+        "training-with-disabled-compute",
+        "production-with-disabled-guardrail",
+        "development-with-disabled-guardrail",
+        "hard-cap-disabled-without-cost",
+        "zero-budget-without-cost",
+        "precise-budget-without-cost",
+        "adjacent-budget-without-cost"
+      ]
+    },
+    "wire.cases": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/conformance/CrossClientFixtureTest.kt",
+      "method": "exactNeutralWireCases",
+      "reference_kind": "test_factory",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "wire.transport": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/conformance/CrossClientFixtureTest.kt",
+      "method": "tamperedOrTruncatedFixtureTransportCannotReachTheAdapter",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    },
+    "wire.identity": {
+      "source_path": "core/src/test/kotlin/ai/pickyour/core/conformance/CrossClientFixtureTest.kt",
+      "method": "changedPayloadCannotReuseAQualifiedFixtureIdentity",
+      "reference_kind": "test_method",
+      "evidence_state": "source_reference",
+      "execution_binding": "not_individually_qualified_by_this_inventory"
+    }
+  },
+  "domain_invariants": [
+    {
+      "id": "schema.known-shapes",
+      "scope": "frozen v1 documents",
+      "operation": "parse and schema-admit",
+      "expected_outcome_from_source": "Canonical top-level and embedded examples validate; extra fields, unknown kinds, mismatched kind/spec, future versions and invalid enums reject.",
+      "case_refs": [
+        "schema.examples",
+        "schema.version",
+        "schema.kind"
+      ],
+      "mapping_state": "source_reference",
+      "authority_paths": [
+        "contracts/v1/schemas/build.schema.json",
+        "contracts/v1/schemas/catalog-item.schema.json",
+        "contracts/v1/schemas/selection.schema.json"
+      ],
+      "remaining_boundary": "Representative negatives do not enumerate every schema property or every kind/operation combination.",
+      "limitation_disposition": "pending_issue32_receiving_review"
+    },
+    {
+      "id": "schema.local-resolution",
+      "scope": "schema admission",
+      "operation": "resolve schema and parse bytes",
+      "expected_outcome_from_source": "Unknown remote, file and traversal schema identifiers fail closed; duplicate-key malformed input fails before schema evaluation.",
+      "case_refs": [
+        "schema.external",
+        "schema.parse"
+      ],
+      "mapping_state": "source_reference",
+      "authority_paths": [
+        "contracts/v1/schemas/common.schema.json"
+      ],
+      "remaining_boundary": "No deployed API transport or server behavior is implied.",
+      "limitation_disposition": "pending_issue32_receiving_review"
+    },
+    {
+      "id": "values.decimal",
+      "scope": "money and decimal values",
+      "operation": "parse, preserve and calculate",
+      "expected_outcome_from_source": "Exact magnitude and decimal spelling survive; invalid numeric strings and numeric money amounts reject rather than coerce to zero.",
+      "case_refs": [
+        "money.lexeme",
+        "money.invalid",
+        "money.shape",
+        "schema.decimal-date"
+      ],
+      "mapping_state": "source_reference",
+      "authority_paths": [
+        "contracts/v1/schemas/common.schema.json",
+        "contracts/v1/schemas/cost-estimate.schema.json"
+      ],
+      "remaining_boundary": "Exact contract-value arithmetic does not establish a verified price or complete estimate.",
+      "limitation_disposition": "pending_issue32_receiving_review"
+    },
+    {
+      "id": "values.integer-minimum",
+      "scope": "all frozen integer minima",
+      "operation": "validate raw numeric values",
+      "expected_outcome_from_source": "The factory probes each discovered integer minimum with raw spellings; a separate recursive inventory requires every integer-minimum location, and nested receivers reject negatives.",
+      "case_refs": [
+        "integer.raw",
+        "integer.coverage"
+      ],
+      "mapping_state": "source_reference",
+      "authority_paths": [
+        "contracts/v1/schemas/catalog-item.schema.json",
+        "contracts/v1/schemas/selection.schema.json"
+      ],
+      "remaining_boundary": "This mechanically complete minimum-location check is narrower than all schema constraints or every consumer operation.",
+      "limitation_disposition": "pending_issue32_receiving_review"
+    },
+    {
+      "id": "values.consumer-budget",
+      "scope": "catalog and pricebook revisions",
+      "operation": "admit schema then project locally",
+      "expected_outcome_from_source": "Schema-valid large integers remain exact; local projections accept their documented expanded revision budget and reject larger values explicitly.",
+      "case_refs": [
+        "integer.ordinary",
+        "integer.local-budget"
+      ],
+      "mapping_state": "source_reference",
+      "authority_paths": [
+        "contracts/v1/schemas/catalog-snapshot.schema.json",
+        "contracts/v1/schemas/pricebook.schema.json"
+      ],
+      "remaining_boundary": "Schema admissibility and local projection limits are distinct; this is not cross-client arbitrary-number parity.",
+      "limitation_disposition": "pending_issue32_receiving_review"
+    },
+    {
+      "id": "registry.consistency",
+      "scope": "all 29 registered kinds",
+      "operation": "interpret registry and synthetic examples",
+      "expected_outcome_from_source": "Registry kinds, tier and selection settings match schema definitions and example items; graph/rules reference registered kinds.",
+      "case_refs": [
+        "ref.registry",
+        "ref.graph-kinds"
+      ],
+      "mapping_state": "source_reference",
+      "authority_paths": [
+        "contracts/v1/schemas/component-registry.json"
+      ],
+      "remaining_boundary": "Registry membership is not a claim that every kind has a runtime editor, every operation or all negative cases.",
+      "limitation_disposition": "pending_issue32_receiving_review"
+    },
+    {
+      "id": "binding.reference-links",
+      "scope": "synthetic build and catalog",
+      "operation": "resolve pinned relationships",
+      "expected_outcome_from_source": "Example locks, selection identities/cardinality, links and named catalog references resolve to their exact expected kind/version.",
+      "case_refs": [
+        "ref.relationships",
+        "ref.catalog-links"
+      ],
+      "mapping_state": "source_reference",
+      "authority_paths": [
+        "contracts/v1/schemas/build.schema.json",
+        "contracts/v1/schemas/catalog-item.schema.json"
+      ],
+      "remaining_boundary": "Frozen synthetic reference relationships are not approved vendor facts or exhaustive local import validation.",
+      "limitation_disposition": "pending_issue32_receiving_review"
+    },
+    {
+      "id": "draft.incomplete",
+      "scope": "local draft",
+      "operation": "create, edit and reopen",
+      "expected_outcome_from_source": "Empty and partial drafts retain unanswered values; reopening does not invent answers.",
+      "case_refs": [
+        "history.partial",
+        "store.partial"
+      ],
+      "mapping_state": "source_reference",
+      "authority_paths": [
+        "docs/REPOSITORY_SCOPE.md"
+      ],
+      "remaining_boundary": "Private local draft shape is not a valid complete BuildSnapshot by default.",
+      "limitation_disposition": "pending_issue32_receiving_review"
+    },
+    {
+      "id": "draft.optional-state",
+      "scope": "T3, T4 and T5 local draft state",
+      "operation": "change activation",
+      "expected_outcome_from_source": "Independent activation combinations retain their associated inputs.",
+      "case_refs": [
+        "history.optional"
+      ],
+      "mapping_state": "source_reference",
+      "authority_paths": [
+        "contracts/v1/schemas/component-registry.json"
+      ],
+      "remaining_boundary": "Retained input is not active evaluation authority; registry activation metadata does not replace adopted planning policy.",
+      "limitation_disposition": "pending_issue32_receiving_review"
+    },
+    {
+      "id": "draft.immutable-history",
+      "scope": "local revisions",
+      "operation": "edit and restore",
+      "expected_outcome_from_source": "Aliases cannot mutate revisions; restore appends a new identity and preserves current metadata, including restoration to matching content.",
+      "case_refs": [
+        "history.alias",
+        "history.restore",
+        "history.same-restore"
+      ],
+      "mapping_state": "source_reference",
+      "authority_paths": [
+        "docs/REPOSITORY_SCOPE.md"
+      ],
+      "remaining_boundary": "These source cases are not a complete immutable archive, corruption or installed lifecycle inventory.",
+      "limitation_disposition": "pending_issue32_receiving_review"
+    },
+    {
+      "id": "draft.compare-and-swap",
+      "scope": "local draft heads",
+      "operation": "save expected revision",
+      "expected_outcome_from_source": "Stale, missing and foreign tokens cannot overwrite current state; duplicate edits are no-ops and racing writers have one winner.",
+      "case_refs": [
+        "history.cas",
+        "history.concurrent",
+        "store.cas",
+        "store.concurrent"
+      ],
+      "mapping_state": "source_reference",
+      "authority_paths": [
+        "docs/REPOSITORY_SCOPE.md"
+      ],
+      "remaining_boundary": "JVM concurrency controls do not establish a service-side conditional update protocol.",
+      "limitation_disposition": "pending_issue32_receiving_review"
+    },
+    {
+      "id": "draft.corruption",
+      "scope": "private local storage",
+      "operation": "open and save",
+      "expected_outcome_from_source": "Malformed, truncated, unknown-field and unsupported-version bytes remain intact; corruption blocks save rather than resetting to an empty draft.",
+      "case_refs": [
+        "store.corrupt",
+        "store.reset",
+        "store.limit"
+      ],
+      "mapping_state": "source_reference",
+      "authority_paths": [
+        "docs/CONFORMANCE_FIXTURES.md"
+      ],
+      "remaining_boundary": "This row does not generalize one private format to the neutral wire contract or all historical formats.",
+      "limitation_disposition": "pending_issue32_receiving_review"
+    },
+    {
+      "id": "draft.publication",
+      "scope": "private local storage",
+      "operation": "publish and recover from injected failure",
+      "expected_outcome_from_source": "Before activation, failure preserves acknowledged state; after activation or outer cleanup failure, the result is uncertain and reopened state is inspected.",
+      "case_refs": [
+        "store.interruption",
+        "store.cleanup",
+        "store.initialize",
+        "store.lock"
+      ],
+      "mapping_state": "source_reference",
+      "authority_paths": [
+        "docs/REPOSITORY_SCOPE.md"
+      ],
+      "remaining_boundary": "Explicit test injections and JVM file locks are not physical power-loss, process-death or installed-device proof.",
+      "limitation_disposition": "pending_issue32_receiving_review"
+    },
+    {
+      "id": "draft.diagnostic-redaction",
+      "scope": "local draft diagnostics",
+      "operation": "format diagnostic text",
+      "expected_outcome_from_source": "Diagnostic strings exclude user inputs.",
+      "case_refs": [
+        "history.diagnostics"
+      ],
+      "mapping_state": "source_reference",
+      "authority_paths": [
+        "docs/REPOSITORY_SCOPE.md"
+      ],
+      "remaining_boundary": "This focused diagnostic assertion is not the complete security/privacy surface or an accepted policy review.",
+      "limitation_disposition": "pending_issue32_receiving_review"
+    },
+    {
+      "id": "graph.direct-invalidation",
+      "scope": "registered component kinds",
+      "operation": "invalidate direct neighbours",
+      "expected_outcome_from_source": "Both directions follow direct adjacency; modes include old/new active edges, and removed or disabled identities remain rechecked without editing input.",
+      "case_refs": [
+        "graph.direct",
+        "graph.modes",
+        "graph.removed"
+      ],
+      "mapping_state": "source_reference",
+      "authority_paths": [
+        "contracts/v1/schemas/dependency-graph.schema.json",
+        "contracts/v1/schemas/component-registry.json"
+      ],
+      "remaining_boundary": "No transitive policy expansion is inferred. Graph-reader receiving work remains with its existing owner.",
+      "limitation_disposition": "pending_issue32_receiving_review"
+    },
+    {
+      "id": "graph.cycles-and-activation",
+      "scope": "registered component kinds",
+      "operation": "apply activation and traverse",
+      "expected_outcome_from_source": "The frozen activation truth table is explicit; cycles, self-loops, duplicates and ordering produce finite deterministic output.",
+      "case_refs": [
+        "graph.activation",
+        "graph.cycles"
+      ],
+      "mapping_state": "source_reference",
+      "authority_paths": [
+        "contracts/v1/schemas/dependency-graph.schema.json"
+      ],
+      "remaining_boundary": "This is bounded local invalidation, not proof of all newer domain decisions or service graph behavior.",
+      "limitation_disposition": "pending_issue32_receiving_review"
+    },
+    {
+      "id": "pricing.pinned-candidate",
+      "scope": "pricebook rates",
+      "operation": "screen candidates",
+      "expected_outcome_from_source": "Candidate identity preserves revision; version, meter, region and currency cannot silently fall back; start is inclusive and the conservative end is exclusive.",
+      "case_refs": [
+        "price.binding",
+        "price.interval",
+        "price.evidence"
+      ],
+      "mapping_state": "source_reference",
+      "authority_paths": [
+        "contracts/v1/schemas/pricebook.schema.json"
+      ],
+      "remaining_boundary": "A screened candidate still requires evidence review and is not a verified price or final estimate.",
+      "limitation_disposition": "pending_issue32_receiving_review"
+    },
+    {
+      "id": "pricing.unknown-versus-invalid",
+      "scope": "pricebook rates",
+      "operation": "handle missing or conflicting evidence",
+      "expected_outcome_from_source": "Missing conditions and estimated prices stay unresolved; alternatives stay ambiguous, duplicate IDs and malformed/reversed intervals reject.",
+      "case_refs": [
+        "price.unknown",
+        "price.ambiguous",
+        "price.invalid"
+      ],
+      "mapping_state": "source_reference",
+      "authority_paths": [
+        "contracts/v1/schemas/pricebook.schema.json"
+      ],
+      "remaining_boundary": "No absent source, availability, tax, region or currency fact is fabricated.",
+      "limitation_disposition": "pending_issue32_receiving_review"
+    },
+    {
+      "id": "pricing.reference-reconciliation",
+      "scope": "synthetic quote",
+      "operation": "reconcile exact line items",
+      "expected_outcome_from_source": "Pinned synthetic rates, quantity-times-rate amounts and subtotal/tax/total reconcile with Decimal arithmetic.",
+      "case_refs": [
+        "ref.quote"
+      ],
+      "mapping_state": "source_reference",
+      "authority_paths": [
+        "contracts/v1/schemas/pricebook.schema.json",
+        "contracts/v1/schemas/cost-estimate.schema.json"
+      ],
+      "remaining_boundary": "Frozen example reconciliation is not real pricing, a measured cost or full current cost-domain implementation.",
+      "limitation_disposition": "pending_issue32_receiving_review"
+    },
+    {
+      "id": "evidence.status-and-support",
+      "scope": "presented evidence",
+      "operation": "interpret provenance",
+      "expected_outcome_from_source": "Legacy verified does not imply an actual source reading or independent support; reviewed support requires an explicit matching assessment and does not erase estimated/user origin.",
+      "case_refs": [
+        "evidence.legacy",
+        "evidence.status",
+        "evidence.support",
+        "evidence.origin",
+        "evidence.binding"
+      ],
+      "mapping_state": "source_reference",
+      "authority_paths": [
+        "contracts/v1/schemas/common.schema.json"
+      ],
+      "remaining_boundary": "This tests presentation semantics, not the truth of external evidence or approval of its use.",
+      "limitation_disposition": "pending_issue32_receiving_review"
+    },
+    {
+      "id": "evidence.pinned-versus-current",
+      "scope": "presented evidence",
+      "operation": "capture and recapture",
+      "expected_outcome_from_source": "Pinned identity and absent date stay explicit; current capture time is used without age expiry, and new captures cannot mutate historical presentation or reuse support.",
+      "case_refs": [
+        "evidence.pinned",
+        "evidence.current",
+        "evidence.recapture"
+      ],
+      "mapping_state": "source_reference",
+      "authority_paths": [
+        "contracts/v1/schemas/common.schema.json"
+      ],
+      "remaining_boundary": "No polling cadence, external source execution or latest factual status is established.",
+      "limitation_disposition": "pending_issue32_receiving_review"
+    },
+    {
+      "id": "analysis.latest-request",
+      "scope": "asynchronous local analysis",
+      "operation": "complete a callback",
+      "expected_outcome_from_source": "Out-of-order results, duplicate retries, cancelled work and foreign tickets cannot replace current output; concurrent terminal callbacks have one winner.",
+      "case_refs": [
+        "analysis.order",
+        "analysis.retry",
+        "analysis.cancel",
+        "analysis.foreign",
+        "analysis.concurrent"
+      ],
+      "mapping_state": "source_reference",
+      "authority_paths": [
+        "docs/REPOSITORY_SCOPE.md"
+      ],
+      "remaining_boundary": "These coordinator cases do not prove native scheduling or all UI lifecycle journeys.",
+      "limitation_disposition": "pending_issue32_receiving_review"
+    },
+    {
+      "id": "analysis.exact-binding",
+      "scope": "asynchronous local analysis",
+      "operation": "replace an input",
+      "expected_outcome_from_source": "Changing any bound draft/artifact input invalidates pending work even at the same revision; replacing capacity evidence rejects an earlier result.",
+      "case_refs": [
+        "analysis.bindings",
+        "analysis.capacity"
+      ],
+      "mapping_state": "source_reference",
+      "authority_paths": [
+        "contracts/v1/schemas/evaluation-report.schema.json"
+      ],
+      "remaining_boundary": "The identity gate does not certify the correctness or sufficiency of the bound estimate.",
+      "limitation_disposition": "pending_issue32_receiving_review"
+    },
+    {
+      "id": "projection.version-classification",
+      "scope": "catalog, ruleset, graph and pricebook artifacts",
+      "operation": "prepare a snapshot",
+      "expected_outcome_from_source": "Unsupported textual versions have an explicit bounded result; absent/null/nontext versions remain schema failures.",
+      "case_refs": [
+        "projection.unsupported",
+        "projection.version-shape",
+        "version.value"
+      ],
+      "mapping_state": "source_reference",
+      "authority_paths": [
+        "contracts/v1/schemas/catalog-snapshot.schema.json",
+        "contracts/v1/schemas/ruleset.schema.json",
+        "contracts/v1/schemas/dependency-graph.schema.json",
+        "contracts/v1/schemas/pricebook.schema.json"
+      ],
+      "remaining_boundary": "Classification is not an automatic migration or acceptance of a successor contract.",
+      "limitation_disposition": "pending_issue32_receiving_review"
+    },
+    {
+      "id": "projection.validation-precedence",
+      "scope": "same four projection artifact kinds",
+      "operation": "verify hash, parse and validate",
+      "expected_outcome_from_source": "Exact hash mismatch precedes parsing/version checks; strict parsing precedes version classification; supported versions still require the complete frozen schema.",
+      "case_refs": [
+        "projection.hash-first",
+        "projection.parse-first",
+        "projection.full-schema"
+      ],
+      "mapping_state": "source_reference",
+      "authority_paths": [
+        "contracts/v1/schemas/catalog-snapshot.schema.json",
+        "contracts/v1/schemas/ruleset.schema.json",
+        "contracts/v1/schemas/dependency-graph.schema.json",
+        "contracts/v1/schemas/pricebook.schema.json"
+      ],
+      "remaining_boundary": "This maps the named projection factories, not every artifact consumer.",
+      "limitation_disposition": "pending_issue32_receiving_review"
+    },
+    {
+      "id": "projection.nonmutation",
+      "scope": "stored draft and prior candidate",
+      "operation": "reject or retry projection",
+      "expected_outcome_from_source": "Supported controls retain exact original artifact bytes and decimal spelling; rejected artifacts leave the active draft/prior candidate unchanged and cannot refresh a stale token.",
+      "case_refs": [
+        "projection.preserve",
+        "projection.store",
+        "projection.stale"
+      ],
+      "mapping_state": "source_reference",
+      "authority_paths": [
+        "docs/REPOSITORY_SCOPE.md"
+      ],
+      "remaining_boundary": "82 named cases are attributed separately to their original qualification; no new execution occurred for this inventory.",
+      "limitation_disposition": "pending_issue32_receiving_review"
+    },
+    {
+      "id": "evaluation.pinned-and-unambiguous",
+      "scope": "bounded frozen diagnostic evaluator",
+      "operation": "bind inputs",
+      "expected_outcome_from_source": "Foreign locks and duplicate identities reject before a report; ambiguous selection references remain unknown rather than selecting the first match.",
+      "case_refs": [
+        "evaluate.binding",
+        "evaluate.duplicate",
+        "evaluate.ambiguous"
+      ],
+      "mapping_state": "source_reference",
+      "authority_paths": [
+        "contracts/v1/schemas/evaluation-report.schema.json",
+        "contracts/v1/schemas/build.schema.json"
+      ],
+      "remaining_boundary": "Frozen diagnostic semantics are not blanket current decision adoption or production compatibility.",
+      "limitation_disposition": "pending_issue32_receiving_review"
+    },
+    {
+      "id": "evaluation.work-and-unsupported",
+      "scope": "bounded frozen diagnostic evaluator",
+      "operation": "evaluate expressions",
+      "expected_outcome_from_source": "Budget exhaustion and nested work produce explicit rejection; unsupported reference operations and raw fractional/exponent operands do not become invented verdicts.",
+      "case_refs": [
+        "evaluate.budget",
+        "evaluate.work",
+        "evaluate.unsupported",
+        "evaluate.raw",
+        "evaluate.precision"
+      ],
+      "mapping_state": "source_reference",
+      "authority_paths": [
+        "contracts/v1/schemas/ruleset.schema.json"
+      ],
+      "remaining_boundary": "Documented evaluator restrictions remain scoped gaps for broader parity; this inventory grants no new reviewed limitation.",
+      "limitation_disposition": "pending_issue32_receiving_review"
+    },
+    {
+      "id": "evaluation.reference-goldens",
+      "scope": "bounded frozen diagnostic evaluator",
+      "operation": "compare complete reports",
+      "expected_outcome_from_source": "The fixed supported Python corpus compares complete reports; pointer controls distinguish existing, missing and unsupported forms.",
+      "case_refs": [
+        "evaluate.goldens",
+        "evaluate.pointer"
+      ],
+      "mapping_state": "source_reference",
+      "authority_paths": [
+        "contracts/v1/schemas/evaluation-report.schema.json"
+      ],
+      "remaining_boundary": "A factory reference is not an expanded case attendance claim, and this corpus is separate from the 223 neutral wire cases.",
+      "limitation_disposition": "pending_issue32_receiving_review"
+    },
+    {
+      "id": "retained.configuration-authority",
+      "scope": "17 named synthetic retained-configuration cases",
+      "operation": "save, prepare, archive, reopen and analyze",
+      "expected_outcome_from_source": "Real local store/archive and preview-session boundaries preserve the complete fixture build, four exact pinned artifacts and expected reports; resource/cost inputs remain NOT_SUPPLIED and no report becomes ready.",
+      "case_refs": [
+        "retained.configuration"
+      ],
+      "mapping_state": "source_reference",
+      "authority_paths": [
+        "contracts/v1/schemas/build.schema.json",
+        "contracts/v1/schemas/evaluation-report.schema.json"
+      ],
+      "remaining_boundary": "Inline deterministic dispatch and synthetic 45-rule reports do not establish native scheduling, measured capacity/cost or all current domain decisions.",
+      "limitation_disposition": "pending_issue32_receiving_review"
+    },
+    {
+      "id": "manifest.reference-identity",
+      "scope": "synthetic deployment manifest",
+      "operation": "inspect evidence references",
+      "expected_outcome_from_source": "Example build/revision and named artifact IDs match while status remains proposed and approval remains pending.",
+      "case_refs": [
+        "ref.manifest"
+      ],
+      "mapping_state": "source_reference",
+      "authority_paths": [
+        "contracts/v1/schemas/deployment-manifest.schema.json"
+      ],
+      "remaining_boundary": "This is example validation, not a deployment, human approval, service connection or released Android product.",
+      "limitation_disposition": "pending_issue32_receiving_review"
+    },
+    {
+      "id": "conformance.neutral-wire",
+      "scope": "four retained wire families",
+      "operation": "admit and typed-round-trip",
+      "expected_outcome_from_source": "The factory compares actual acceptance and preserved payload against each fixed producer case; transport and qualified-identity tampering cannot reach or impersonate the adapter.",
+      "case_refs": [
+        "wire.cases",
+        "wire.transport",
+        "wire.identity"
+      ],
+      "mapping_state": "source_reference",
+      "authority_paths": [
+        "docs/CONFORMANCE_FIXTURES.md"
+      ],
+      "remaining_boundary": "Exactly 223 neutral cases; private migration scenarios and transport guards are separate. No all-contract or arbitrary-number parity is inferred.",
+      "limitation_disposition": "pending_issue32_receiving_review"
+    }
+  ],
+  "conformance_profiles": {
+    "neutral_wire": {
+      "profile": "apple-cross-client-1",
+      "consumer_lock_path": "core/src/test/resources/conformance/consumer-lock.json",
+      "families": {
+        "BuildSnapshot": 85,
+        "CatalogItem": 61,
+        "Selection": 33,
+        "EvaluationReport": 44
+      },
+      "cases": 223,
+      "accepted": 141,
+      "rejected": 82,
+      "producer_sha256": "499fd9a01780ac42fa9bf2ab8cf9e1195db27321fec36040451b553a8b9ea5f9",
+      "producer_recovered_commit": "6eec8878e1456d2e7cad78399702a33461093ce8",
+      "reference_revision": "7acbefbf4e4e700231e88be272bc89e3a73dde15",
+      "website_revision": "dc66a9e269917ab7241c7d08fd0e7f2a2f039872",
+      "producer_status": "reviewed archival preparation; not default-branch or native acceptance",
+      "source_case_refs": [
+        "wire.cases"
+      ],
+      "scope": "Fixture-only admission and typed round-trip for these four families; neither evaluator parity nor current default/native Apple acceptance."
+    },
+    "private_android_migrations": {
+      "profile": "android-local-migrations-1",
+      "path": "core/src/test/resources/conformance/local-migrations-v1.json",
+      "sha256": "f480f236e7f93e737095c7f53c3fa30ab38df1e86bc41059305b0ca11591206b",
+      "cases": 34,
+      "inputs": 10,
+      "historical_formats": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "unsupported_formats": [
+        -1,
+        0,
+        99
+      ],
+      "source_basis": "ac8307a4b36e64008c5758621634c105e0078e6c",
+      "scope": "Private Android migration/history scenarios; separate from shared wire cases and Apple storage. Individual scenario-to-invariant expansion remains pending in this inventory."
+    },
+    "transport_guards": {
+      "count": 3,
+      "neutral_guards": 2,
+      "private_migration_guards": 1,
+      "scope": "Separate executable guard attendance; never added to either profile case count."
+    },
+    "existing_qualification": {
+      "path": "scripts/check_conformance_fixtures.py",
+      "wire_named_tests": 225,
+      "private_named_tests": 35,
+      "expected_wire_observations": 223,
+      "expected_private_observations": 34,
+      "scope": "Existing qualifier checks complete named attendance and exact typed observations. A qualifier receipt alone does not authenticate checkout or the original job."
+    }
+  },
+  "recorded_executions": [
+    {
+      "id": "recorded.9729-default",
+      "evidence_state": "attributed_execution_record",
+      "source": "9729e18df3b439e5abec424b097bc9d8016274e6",
+      "tree": "86ba64f126bd55fd507a9acf5f8de8ecc290fe3e",
+      "event": "push",
+      "head_branch": "main",
+      "attempt": 1,
+      "receipt": "https://github.com/Pick-Your-AI/pick-your-ai-android/pull/509#issuecomment-6260050638",
+      "core": {
+        "run": 39201004245,
+        "job": 117894097677,
+        "reported_cases": 4153,
+        "reported_suites": 86
+      },
+      "preview": {
+        "run": 39201004245,
+        "job": 117894097477,
+        "reported_cases": 356,
+        "reported_suites": 31,
+        "reported_attendance_programs": 27
+      },
+      "scanner": {
+        "run": 39201004196,
+        "job": 117893774398,
+        "reported_guards": 17,
+        "reported_history_commits": 190
+      },
+      "qualification": "The canonical original-output receipt was consumed; this inventory did not independently rerun tests or re-audit its ZIP/XML. Aggregate counts are context, not an individual execution join for every listed source reference.",
+      "source_relationship": "The fixed a247 delivery changes four ledger/checker paths. Referenced Kotlin tests are byte-identical to this source; this does not turn a 9729 run into an a247 execution."
+    },
+    {
+      "id": "recorded.projection-version",
+      "evidence_state": "attributed_execution_record",
+      "receipt": "https://github.com/Pick-Your-AI/pick-your-ai-android/pull/509#issuecomment-6260050638",
+      "case_refs": [
+        "projection.unsupported",
+        "projection.version-shape",
+        "projection.parse-first",
+        "projection.hash-first",
+        "projection.full-schema",
+        "projection.preserve",
+        "projection.store",
+        "projection.stale"
+      ],
+      "reported_named_cases": 82,
+      "qualification": "Canonical receipt explicitly qualifies 82 new projection-version cases while retaining prior cases. This source inventory validates the factory/method references; it performs no new execution."
+    }
+  ],
+  "reviewed_limitations": [],
+  "pending_gaps": [
+    {
+      "id": "gap.atomic-invariants",
+      "state": "pending_mapping_and_review",
+      "remaining": "Enumerate every supported schema property and adopted domain invariant, including positive, malformed and conflicting-operation cases. The 14-schema inventory is complete membership; the invariant inventory is intentionally partial.",
+      "coordination": [
+        "https://github.com/Pick-Your-AI/pick-your-ai-android/issues/32"
+      ]
+    },
+    {
+      "id": "gap.kind-operations",
+      "state": "pending_mapping_and_review",
+      "remaining": "For each of the 29 registered kinds, map actual supported create/edit/remove/disable/restore/project operations and their negative cases. Registry/example coverage alone cannot satisfy this requirement.",
+      "coordination": [
+        "https://github.com/Pick-Your-AI/pick-your-ai-android/issues/32"
+      ]
+    },
+    {
+      "id": "gap.owned-domain-receiving",
+      "state": "pending_feature_owner_receiving",
+      "remaining": "Extend rows from accepted graph, typed-answer and context source after its exact receiving review. Preserve existing implementation owners; do not treat an offered or isolated-stage source as accepted on this fixed main.",
+      "coordination": [
+        "https://github.com/Pick-Your-AI/pick-your-ai-android/pull/348",
+        "https://github.com/Pick-Your-AI/pick-your-ai-android/pull/487",
+        "https://github.com/Pick-Your-AI/pick-your-ai-android/pull/491",
+        "https://github.com/Pick-Your-AI/pick-your-ai-android/pull/517",
+        "https://github.com/Pick-Your-AI/pick-your-ai-research/issues/40"
+      ]
+    },
+    {
+      "id": "gap.cross-client",
+      "state": "pending_scope_extension",
+      "remaining": "Expand participating implementation agreement beyond the exact 223-case profile only through an approved versioned producer and affected-client review. Retain the reported TypeScript wide-number diagnostic and excluded representations; no server/device parity is inferred.",
+      "coordination": [
+        "https://github.com/Pick-Your-AI/pick-your-ai-android/issues/49#issuecomment-6254033978"
+      ]
+    },
+    {
+      "id": "gap.case-attendance",
+      "state": "pending_per_case_execution_join",
+      "remaining": "Join newly claimed coverage rows to original execution identities and relevant named-case results. A source reference or aggregate successful job is insufficient by itself. Historical run evidence must retain its own checkout.",
+      "coordination": [
+        "https://github.com/Pick-Your-AI/pick-your-ai-android/issues/32"
+      ]
+    },
+    {
+      "id": "gap.receiving-limitations",
+      "state": "pending_receiving_review",
+      "remaining": "Obtain criterion-specific review for each proposed coverage limitation and the canonical receiving record. This inventory contains no newly accepted limitation and closes no criterion. Preserve the existing ADR0010/#84 writer.",
+      "coordination": [
+        "https://github.com/Pick-Your-AI/pick-your-ai-android/issues/84#issuecomment-6258706464"
+      ]
+    }
+  ],
+  "acceptance_boundary": {
+    "criterion_32_1": "Not claimed complete: supported-kind/operation and malformed/version coverage still require the pending map and receiving work.",
+    "criterion_32_2": "Not claimed complete: every invariant needs an executable case or individually reviewed limitation; partial rows and an empty reviewed-limitations list do not satisfy that universal condition.",
+    "criterion_32_3": "Not claimed complete: the 223-case profile is retained precisely; wider participating implementation agreement remains separate.",
+    "canonical_receiving_path": "docs/delivery/android/work-packages/15.01.md in the canonical website authority",
+    "unchanged": "No frozen bytes, fixture expectation, implementation owner, work-package checkbox, ADR, ledger, workflow or runtime source is changed."
+  }
+}

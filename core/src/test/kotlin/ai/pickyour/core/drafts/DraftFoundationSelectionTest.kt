@@ -272,16 +272,22 @@ class DraftFoundationSelectionTest {
         assertEquals(DraftProjectionCreation.Conflict, store.createSnapshotCandidate(review, review.acknowledgeRetainedOnly(review.retainedOnlyPaths.toSet())))
     }
 
-    @Test fun `retained deployment monitoring and cost policy kinds stay outside this command subset`() {
+    @Test fun `retained operational kinds allow explicit edits while unregistered kinds cannot enter`() {
         val retained = mapper.readTree(SelectionFixtures.resource("/contracts/v1/examples/build.json"))["selections"]
             .map { LocalSelection.fromJson(it as ObjectNode) }.filter { it.kind in setOf("deployment_target", "monitoring_stack", "cost_policy") }
         assertEquals(3, retained.size)
         val content = DraftContent(components = DraftSelections(retained))
         for (value in retained) {
-            assertFalse(PreviewSelectionForms.supported(value.kind))
-            for (command in listOf(SelectionCommand.Remove(value.id), SelectionCommand.SetEnabled(value.id, false),
-                SelectionCommand.Configure(value.id, value.settings))) {
-                assertEquals(SelectionEdit.Rejected(SelectionRejection.UNSUPPORTED_KIND), DraftSelectionCommands.apply(content, command))
+            assertTrue(PreviewSelectionForms.supported(value.kind))
+            val configured = DraftSelectionCommands.apply(content, SelectionCommand.Configure(value.id, value.settings)) as SelectionEdit.Ready
+            assertEquals(content, configured.content)
+            val disabled = DraftSelectionCommands.apply(content, SelectionCommand.SetEnabled(value.id, false)) as SelectionEdit.Ready
+            assertFalse(disabled.content.components.selections.single { it.id == value.id }.enabled)
+            assertEquals(retained.filter { it.id != value.id }, disabled.content.components.selections.filter { it.id != value.id })
+            val removed = DraftSelectionCommands.apply(content, SelectionCommand.Remove(value.id)) as SelectionEdit.Ready
+            assertEquals(retained.filter { it.id != value.id }, removed.content.components.selections)
+            assertThrows(IllegalArgumentException::class.java) {
+                LocalSelection.fromJson(value.toJson().put("kind", "future_" + value.kind))
             }
         }
         assertEquals(retained, content.components.selections)

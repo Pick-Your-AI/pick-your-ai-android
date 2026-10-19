@@ -6,6 +6,10 @@ assumptions. Empty fields remain unanswered; entered zero counts and exact decim
 budget spelling survive saves and reopening. No currency, region, component,
 provider, price, placement or readiness verdict is supplied automatically.
 
+The classification picker and selected-value caption use Android string resources
+with translation context. The stored values `public`, `internal`, `confidential`
+and `restricted` remain canonical; translating a label does not rewrite them.
+
 The editor accepts the stored bounds described in [local storage](LOCAL_DRAFT_STORAGE.md).
 Whole-number form inputs use digits without leading zeroes; invalid text remains
 visible and disables Save. It is never converted to zero or silently trimmed.
