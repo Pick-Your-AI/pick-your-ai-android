@@ -7,11 +7,13 @@ import ai.pickyour.core.importing.BoundedJsonReader
 import ai.pickyour.core.importing.JsonInputResult
 import ai.pickyour.core.importing.JsonInputLimits
 import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.databind.node.JsonNodeFactory
 import com.fasterxml.jackson.databind.node.ObjectNode
 import java.io.InputStream
 import java.math.BigDecimal
 import java.util.Locale
+import java.util.Collections
 
 enum class DiagnosticRejection { INVALID_INPUT, BINDING_MISMATCH, WORK_LIMIT, UNSUPPORTED_OPERATION, INVALID_OUTPUT }
 sealed interface DiagnosticEvaluation {
@@ -67,6 +69,37 @@ class FrozenDiagnosticEvaluator(private val maxWork: Int = 250_000) {
             fail(DiagnosticRejection.INVALID_INPUT)
         return value
     }
+
+    /**
+     * Private typed draft caller only. This computes the same rule loop without creating a Build or
+     * admitting an EvaluationReport. Missing shared Build fields stay absent in the local context.
+     * The caller binds the exact stored source and artifact pins before exposing these findings.
+     */
+    internal fun evaluateDraft(context: DraftDiagnosticContext, catalog: ByteArray, ruleset: ByteArray): DraftRuleEvaluation = try {
+        val b = context.node()
+        val c = parse(FrozenDocument.CATALOG, catalog.inputStream())
+        val r = parse(FrozenDocument.RULESET, ruleset.inputStream())
+        if (c["schema_version"] != r["schema_version"] ||
+            c["items"].map { it["id"].asText() }.distinct().size != c["items"].size() ||
+            r["rules"].map { it["id"].asText() }.distinct().size != r["rules"].size())
+            fail(DiagnosticRejection.BINDING_MISMATCH)
+        val items = c["items"].associateBy { it["id"].asText() }
+        for (selection in b["selections"]) {
+            if (!selection["enabled"].asBoolean()) continue
+            val item = items[selection["catalog_item_id"].asText()] ?: continue
+            if (item["version"] != selection["catalog_item_version"] || item["kind"] != selection["kind"])
+                fail(DiagnosticRejection.BINDING_MISMATCH)
+        }
+        val findings = Run(b, c, r).evaluateFindings().findings.map { finding ->
+            DraftRuleFinding(finding["rule_id"].asText(), finding["outcome"].asText(), finding["severity"].asText(),
+                finding["code"].asText(), finding["message"].asText(), finding["remediation"].asText(),
+                Collections.unmodifiableList(finding["selection_ids"].map { it.asText() }))
+        }
+        DraftRuleEvaluation.Evaluated(Collections.unmodifiableList(findings))
+    } catch (failure: Rejection) { DraftRuleEvaluation.Rejected(failure.reason) }
+
+    private class RuleResults(val findings: ArrayNode, val errors: Boolean, val unknowns: Boolean,
+        val blocks: Boolean, val counts: Map<String, Int>)
 
     private inner class Run(val build: ObjectNode, catalog: ObjectNode, val ruleset: ObjectNode) {
         var remaining = maxWork.toLong()
@@ -253,7 +286,19 @@ class FrozenDiagnosticEvaluator(private val maxWork: Int = 250_000) {
             for (key in listOf("catalog_snapshot_id", "ruleset_id", "ruleset_version", "dependency_graph_id", "dependency_graph_revision"))
                 output.set<JsonNode>(key, build["locks"][key])
             output.put("evaluated_at", "2026-10-16T09:00:00Z") // Pinned reference fixture timestamp, not a wall clock receipt.
-            val findings = output.putArray("findings")
+            val result = evaluateFindings()
+            output.set<JsonNode>("findings", result.findings)
+            output.put("result", if (result.errors) "invalid" else if (result.unknowns) "indeterminate" else "valid")
+            output.put("deployment_readiness", if (result.errors || result.blocks ||
+                (result.unknowns && build.path("policy").path("fail_on_unknown").asBoolean(false))) "blocked" else "needs_review")
+            val summary = output.putObject("summary")
+            for ((key, value) in mapOf("passed" to "pass", "failed" to "fail", "unknown" to "unknown", "skipped" to "skipped"))
+                summary.put(key, result.counts.getValue(value))
+            return output
+        }
+
+        fun evaluateFindings(): RuleResults {
+            val findings = nodes.arrayNode()
             var errors = false; var unknowns = false; var blocks = false
             val counts = mutableMapOf("pass" to 0, "fail" to 0, "unknown" to 0, "skipped" to 0)
             for (rule in ruleset["rules"]) {
@@ -275,11 +320,7 @@ class FrozenDiagnosticEvaluator(private val maxWork: Int = 250_000) {
                 for (s in active) { charge(); if (rule["affected_kinds"].any { charge(); it == s["kind"] }) { val id = s["id"].asText(); charge(id.length.toLong() * 32); ids.add(id) } }
                 val selections = finding.putArray("selection_ids"); ids.forEach { selections.add(it) }
             }
-            output.put("result", if (errors) "invalid" else if (unknowns) "indeterminate" else "valid")
-            output.put("deployment_readiness", if (errors || blocks || (unknowns && build.path("policy").path("fail_on_unknown").asBoolean(false))) "blocked" else "needs_review")
-            val summary = output.putObject("summary")
-            for ((key, value) in mapOf("passed" to "pass", "failed" to "fail", "unknown" to "unknown", "skipped" to "skipped")) summary.put(key, counts.getValue(value))
-            return output
+            return RuleResults(findings, errors, unknowns, blocks, counts)
         }
     }
     private class Rejection(val reason: DiagnosticRejection) : RuntimeException()

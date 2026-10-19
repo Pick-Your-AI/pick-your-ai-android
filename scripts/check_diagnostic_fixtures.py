@@ -7,6 +7,8 @@ from pathlib import Path
 import re
 import sys
 
+from reference_fixture_output import output_path, write_output
+
 ROOT = Path(__file__).resolve().parents[1]
 PROFILE_SOURCE = Path('core/src/main/kotlin/ai/pickyour/core/evaluation/RetainedSnapshotEvaluation.kt')
 PROFILE_INPUTS = {
@@ -90,9 +92,10 @@ for name, applies, assertion, severity in [('skipped', no, unknown, 'error'), ('
     r['rules'] = [rule]
     cases.append(dict(name=name, build=base, ruleset=r, report=reference.Evaluator(base, catalog, r).evaluate()))
 output = json.dumps(cases, indent=2) + '\n'
-path = ROOT / 'core/src/test/resources/evaluation/diagnostic-cases.json'
+relative = Path('core/src/test/resources/evaluation/diagnostic-cases.json')
+path = output_path(ROOT, relative)
 if '--write' in sys.argv:
-    path.write_text(output)
+    write_output(ROOT, relative, output)
 else:
     if path.read_text() != output:
         raise SystemExit('Diagnostic goldens differ from the unchanged Python reference')
