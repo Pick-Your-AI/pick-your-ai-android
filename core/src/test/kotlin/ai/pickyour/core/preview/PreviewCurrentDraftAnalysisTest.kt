@@ -169,7 +169,10 @@ class PreviewCurrentDraftAnalysisTest {
         val s = store(); val record = load(s); val a = inputs()
         val graph = mapper.readTree(fixture("dependency-graph")) as ObjectNode
         graph.put("revision", 2)
-        graph.putArray("edges") // A valid replacement removes every old edge during an unavailable input interval.
+        val replacementId = "dep.replacement.current"
+        val replacement = graph["edges"][0].deepCopy<ObjectNode>().put("id", replacementId)
+        // Frozen graphs require an edge. Replace every old edge identity with one new valid edge.
+        graph.putArray("edges").add(replacement)
         val b = requireNotNull(DraftCurrentInputs.read(fixture("catalog"), graph.toString().toByteArray(), fixture("ruleset")))
         val session = PreviewCurrentDraftAnalysis()
         val before = files(); val first = start(session, record, a)
@@ -177,7 +180,8 @@ class PreviewCurrentDraftAnalysisTest {
         val second = start(session, record, b)
         assertNotEquals(first.request.binding.inputDigest, second.request.binding.inputDigest)
         assertEquals(first.request.binding.graphHash, second.request.recheck.before!!.graphHash)
-        assertEquals(first.request.recheck.edgeIds, second.request.recheck.edgeIds)
+        assertFalse(first.request.recheck.edgeIds.contains(replacementId))
+        assertEquals((first.request.recheck.edgeIds + replacementId).sorted(), second.request.recheck.edgeIds)
         session.invalidate(PreviewCurrentUnavailable.BACKGROUND)
         val third = start(session, record, a)
         assertNotSame(first, third)
