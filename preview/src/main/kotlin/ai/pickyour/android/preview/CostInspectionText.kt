@@ -9,11 +9,14 @@ import ai.pickyour.core.contracts.ContractRejected
 import ai.pickyour.core.preview.PreviewComparedValue
 import ai.pickyour.core.preview.PreviewComparedValueKind
 import ai.pickyour.core.pricing.InspectedCostEstimate
+import ai.pickyour.core.pricing.InspectedCostLine
+import ai.pickyour.core.pricing.RecordedCostArithmetic
+import ai.pickyour.core.pricing.RecordedProductObservation
 import java.math.RoundingMode
 import java.text.DecimalFormat
 import java.text.NumberFormat
 
-/** Bounded display of an inspected declaration. No arithmetic, currency conversion or rate selection. */
+/** Bounded declared values and separate unrounded-product observations; no billing or rate selection. */
 internal object CostInspectionText {
     private const val MAX_LINES = 8
     private const val MAX_LIST_ITEMS = 8
@@ -41,16 +44,32 @@ internal object CostInspectionText {
             context.getString(R.string.cost_unpriced, entries(value.reportedUnpricedSelectionIds)),
             context.getString(R.string.cost_unclassified, entries(value.unclassifiedActiveSelectionIds)),
             context.getString(R.string.cost_evidence_limits),
+            context.getString(R.string.cost_arithmetic_notice),
         )
         val shownLines = value.lines.take(MAX_LINES)
         val lines = shownLines.map { line ->
             context.getString(R.string.cost_line, literal(line.id), literal(line.selectionId), line.meter,
                 quantity(context, line.quantity), literal(line.rateId),
-                money(line.unitPrice), money(line.amount), line.method, line.confidence, entries(line.assumptions))
+                money(line.unitPrice), money(line.amount), line.method, line.confidence, entries(line.assumptions)) +
+                "\n" + arithmetic(context, line)
         }
         return (summary + context.resources.getQuantityString(R.plurals.cost_display_lines, value.lines.size,
             shownLines.size, value.lines.size) + lines +
             context.getString(R.string.cost_warnings, entries(value.warnings))).joinToString("\n\n")
+    }
+
+    private fun arithmetic(context: Context, line: InspectedCostLine): String {
+        val result = RecordedCostArithmetic.inspect(line)
+        val resource = when (result.observation) {
+            RecordedProductObservation.MATCHES_EXACT_PRODUCT -> R.string.cost_arithmetic_matches
+            RecordedProductObservation.DIFFERS_FROM_EXACT_PRODUCT -> R.string.cost_arithmetic_differs
+            RecordedProductObservation.EXACT_PRODUCT_OUTSIDE_PROFILE -> R.string.cost_arithmetic_precision
+            RecordedProductObservation.UNSUPPORTED_QUANTITY -> R.string.cost_arithmetic_quantity
+            RecordedProductObservation.DECIMAL_LIMIT_EXCEEDED -> R.string.cost_arithmetic_limit
+        }
+        return result.exactProduct?.let { product ->
+            context.getString(resource, literal(context, product), ltr(context, line.amount.currency))
+        } ?: context.getString(resource)
     }
 
     /** Frozen quantity strings can be retained even when they are not whole-string decimal values. */

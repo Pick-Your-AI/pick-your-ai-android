@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cost_arithmetic_notice">Additional arithmetic observation: multiply only the recorded quantity and unit price, without rounding or billing adjustments. A match does not validate rates, usage, coverage or a budget pass; a difference does not by itself invalidate a quote or manual override.</string>
+    <string name="cost_arithmetic_matches">Exact quantity × unit price: %1$s; currency %2$s. Matches the declared amount under this no-rounding inspection. Billing validity remains unverified.</string>
+    <string name="cost_arithmetic_differs">Exact quantity × unit price: %1$s; currency %2$s. Differs from the declared amount under this no-rounding inspection. Quotes, overrides, discounts and billing rounding still require review.</string>
+    <string name="cost_arithmetic_precision">Exact quantity × unit price: %1$s; currency %2$s. This exact product needs more than 12 fractional digits, outside the frozen money representation. No rounding policy is chosen; the declared amount is preserved.</string>
+    <string name="cost_arithmetic_quantity">Multiplication unavailable: the recorded quantity is outside the strict decimal subset. Its literal value is preserved.</string>
+    <string name="cost_arithmetic_limit">Multiplication not performed: a decimal input or result exceeds this bounded inspection. The full declared values remain retained.</string>
+</resources>
