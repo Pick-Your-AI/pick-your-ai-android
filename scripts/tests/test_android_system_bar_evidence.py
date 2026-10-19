@@ -712,6 +712,8 @@ class SystemBarEvidenceTests(unittest.TestCase):
     def test_receiving_gate_binds_qualified_images_to_source_and_apk(self):
         from test_android_emulator_smoke import complete_startup_display_fixture
         receipt = complete_startup_display_fixture()
+        from test_android_navigation_readiness import attach_ready_navigation
+        attach_ready_navigation(receipt)
         state = self.passing_state()
         state['source_commit'] = receipt['source_commit']
         state['unsigned_apk_sha256'] = receipt['unsigned_apk_sha256']
@@ -726,6 +728,8 @@ class SystemBarEvidenceTests(unittest.TestCase):
     def test_receiving_images_reject_missing_or_mismatched_startup_profile(self):
         from test_android_emulator_smoke import complete_startup_display_fixture, startup_display_fixture
         receipt = complete_startup_display_fixture()
+        from test_android_navigation_readiness import attach_ready_navigation
+        attach_ready_navigation(receipt)
         state = self.passing_state()
         state['source_commit'] = receipt['source_commit']
         state['unsigned_apk_sha256'] = receipt['unsigned_apk_sha256']

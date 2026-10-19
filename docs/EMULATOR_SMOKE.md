@@ -2495,3 +2495,57 @@ preserved at their original source identities. Final host results and all eight
 unchanged-original parser replays are recorded separately before accepting
 the one new configured receiving result. No product/image/timer/ACL change is
 introduced.
+
+
+## Fixed-raster navigation readiness before installation
+
+The original receiving preparation `3fc46164018635c791e8966979ae59cfae4309a3`
+(source `d7904025150015474998f927260444ee13a30bc2`, run `39220377892`)
+passed its four product cases but failed the installed navigation evidence gate.
+All four original Launcher service observations explicitly reported
+`TaskbarActivityContext: null`; the screenshots and window observations had no
+navigation provider. The earlier retained HOME observation already lacked that
+provider **before the preview package was installed**. Both that run and the
+earlier 555 preparation had explicitly observed user 0 `RUNNING_UNLOCKED` and
+completed the framework/application barrier. These facts do not establish a
+missed callback or the precise cause of Launcher initialization failure.
+
+For the selected `raster-720x1280-280` profile, startup now follows the existing
+user/storage checks and one framework/HOME sequence with a bounded navigation
+readiness observation. It uses the same owned serial and the **same original
+180-second absolute readiness deadline**. Each attempt obtains the existing
+complete HOME activity/window query and the complete Launcher
+TouchInteractionService query, with at most five seconds for each command and
+no more than 36 attempts, separated by at most five seconds. Every attempt,
+including negative state and partial/error command evidence, stays in the
+receipt. Transport errors, timeout, truncation, printed service-dump failures or
+loss of HOME focus fail the readiness boundary; they cannot be rescued by a
+later installed case.
+
+A qualifying attempt must observe the fixed default display, its visible
+84-pixel bottom navigation source, matching InsetsState/provider source and
+frame, and the same Taskbar window in display policy and provider ownership.
+The provider must have a ready leash and no pending position; its historical
+`mInitiallyVisible` control flag is not substituted for actual source
+visibility. The same attempt must separately observe the three initialized
+TouchInteractionService peer sections in order and the existing fully qualified
+Taskbar context, controllers, own DeviceProfile and subsequent AssistStateManager
+boundary. An earlier overview profile cannot supply the Taskbar profile.
+The observations are sequential and do not establish simultaneous rendered
+state or a correspondence to a particular AOSP source revision.
+
+The receipt binds this admission to its source commit, unsigned APK, selected
+profile and pre-installation phase. The whole gate also requires the recorded
+original guest start, deadline and timeout to match the navigation observations,
+so its remaining budget cannot be represented as a new 180-second interval. The current whole-receipt gate requires it
+whenever installed image evidence is required or present. Historical receipts
+without image evidence retain their previous admission, and the separate
+`pixel-2` path does not acquire fixed-raster geometry requirements.
+
+The observation loop performs no HOME launch, service reset, framework setting
+change or repeated app case. Its deadline failure leaves the app cases unrun and
+retains the original cleanup path. The existing post-install screenshots,
+dialog checks, rotation checks, navigation geometry and **3:1** minimum contrast
+remain required. This source correction and its host tests do not make the
+original 3fc or 555 whole receipts pass; the final receiving source still needs
+its own configured native run and original artifact qualification.

@@ -57,6 +57,7 @@ HOME_WINDOW = HOME_PACKAGE + "/" + HOME_PACKAGE + ".uioverrides.QuickstepLaunche
 FRAMEWORK_BARRIER = ("shell", "am", "wait-for-broadcast-barrier", "--flush-application-threads")
 HOME_FOCUS_QUERY = ("shell", "dumpsys", "-t", "3", "activity", "activities")
 HOME_ROOT_ATTEMPT_LIMIT = 3
+NAVIGATION_READINESS_ATTEMPT_LIMIT = 36
 HOME_ROOT_UNAVAILABLE = "ERROR: null root node returned by UiTestAutomationBridge.\n"
 UI_SCROLL_WHEEL_UNITS = 2
 UI_SCROLL_MAX_STEPS = 64
@@ -523,6 +524,7 @@ def wait_for_guest_ready(device, receipt: dict, timeout_seconds=180):
     receipt["guest_readiness"] = state
     started = time.monotonic()
     deadline = started + timeout_seconds
+    state.update(started_monotonic=float(started), deadline_monotonic=float(deadline))
     try:
         device.verify_identity()
         while time.monotonic() < deadline:
@@ -545,6 +547,12 @@ def wait_for_guest_ready(device, receipt: dict, timeout_seconds=180):
                                     "stderr_tail": bounded_text(error.stderr, 1200)}
             if guest_readiness_checks_pass(checks) and time.monotonic() < deadline:
                 establish_interactive_readiness(device, state, deadline)
+                if receipt.get("startup_display", {}).get("profile") == "raster-720x1280-280":
+                    wait_for_navigation_provider(device, state, deadline,
+                                                 source_sha=receipt.get("source_commit"),
+                                                 apk_sha=receipt.get("unsigned_apk_sha256"))
+                    require(time.monotonic() < deadline,
+                            "Owned pre-install navigation provider/TIS readiness deadline expired")
                 state["ready"] = True
                 return
             state.setdefault("first_incomplete_checks", checks)
@@ -752,6 +760,18 @@ def complete_receipt(receipt: dict, source_sha: str, expected_mode: str | None =
         require(receipt["system_bar_evidence"]["source_commit"] == source_sha
                 and receipt["system_bar_evidence"]["unsigned_apk_sha256"] == receipt.get("unsigned_apk_sha256"),
                 "Installed navigation evidence belongs to another source or APK")
+        require(navigation_readiness_passes(readiness.get("navigation_provider"), source_sha,
+                                            receipt.get("unsigned_apk_sha256")),
+                "Complete pre-install navigation provider/TIS readiness evidence is missing or failed")
+        navigation = readiness["navigation_provider"]
+        require(type(readiness.get("timeout_seconds")) in (int, float)
+                and math.isfinite(readiness["timeout_seconds"]) and 0 < readiness["timeout_seconds"] <= 180
+                and all(type(readiness.get(key)) is float and math.isfinite(readiness[key])
+                        for key in ("started_monotonic", "deadline_monotonic"))
+                and 0 <= readiness["started_monotonic"] <= navigation["started"]
+                and readiness["deadline_monotonic"] == navigation["readiness_deadline"]
+                and readiness["deadline_monotonic"] == readiness["started_monotonic"] + readiness["timeout_seconds"],
+                "Pre-install navigation readiness differs from the original guest readiness budget")
 
 
 class Device:
@@ -1076,6 +1096,229 @@ def establish_interactive_readiness(device: Device, readiness: dict, deadline: f
         raise
     finally:
         state["seconds"] = round(time.monotonic() - started, 3)
+
+
+def navigation_provider_state(text: str) -> dict | None:
+    """Read the fixed-rig navigation provider in the current default HOME display.
+
+    The caller separately binds the complete HOME_FOCUS_QUERY command and output.
+    InsetsState and its provider deliberately repeat the same source: each has
+    its own scope and the two records must agree.
+    """
+    if not (isinstance(text, str) and len(text) <= 65536
+            and text.startswith("ACTIVITY MANAGER ACTIVITIES (dumpsys activity activities)\n")
+            and not any(marker in text for marker in
+                        ("\x00", "DUMP TIMEOUT", "Error dumping service info:"))):
+        return None
+    headers = list(re.finditer(r"(?m)^Display #[^\n]*$", text))
+    ids = []
+    for header in headers:
+        match = re.fullmatch(r"Display #(0|[1-9][0-9]*) \(activities from top to bottom\):", header.group())
+        if match is None:
+            return None
+        ids.append(match.group(1))
+    if ids.count("0") != 1 or len(ids) != len(set(ids)):
+        return None
+    index = ids.index("0")
+    section = text[headers[index].end():headers[index + 1].start() if index + 1 < len(headers) else len(text)]
+
+    def block(parent, name, spaces):
+        indent = " " * spaces
+        matches = list(re.finditer(r"(?m)^" + re.escape(indent + name) + r"$", parent))
+        if len(matches) != 1:
+            return None
+        tail = parent[matches[0].end():]
+        end = re.search(r"(?m)^" + indent + r"\S", tail)
+        return tail[:end.start()] if end is not None else tail
+
+    frames = re.findall(r"(?m)^  DisplayFrames[^\n]*$", section)
+    if frames != ["  DisplayFrames w=720 h=1280 r=0"]:
+        return None
+    policy = block(section, "DisplayPolicy", 2)
+    controller = block(section, "WindowInsetsStateController", 2)
+    if policy is None or controller is None:
+        return None
+    navigation_windows = re.findall(r"(?m)^    mNavigationBar=([^\n]*)$", policy)
+    bottom_hosts = re.findall(r"(?m)^    mBottomGestureHost=([^\n]*)$", policy)
+    if not (len(navigation_windows) == 1
+            and re.fullmatch(r"Window\{[0-9a-f]{1,8} u0 Taskbar\}", navigation_windows[0])
+            and bottom_hosts == navigation_windows):
+        return None
+    window = navigation_windows[0]
+    state = block(controller, "InsetsState", 4)
+    providers = block(controller, "InsetsSourceProviders:", 4)
+    if state is None or providers is None:
+        return None
+    if re.findall(r"(?m)^      mDisplayFrame=([^\n]*)$", state) != ["Rect(0, 0 - 720, 1280)"]:
+        return None
+    state_sources = re.findall(r"(?m)^        InsetsSource ([^\n]*)$", state)
+    nav_sources = [line for line in state_sources if re.search(r"(?:^| )type=navigationBars(?: |$)", line)]
+    if len(nav_sources) != 1:
+        return None
+    source = nav_sources[0]
+    match = re.fullmatch(
+        r"id=([0-9a-f]{1,8}) type=navigationBars frame=\[0,1196\]\[720,1280\] "
+        r"visible=true flags=[A-Z_|]* sideHint=BOTTOM boundingRects=null", source)
+    if match is None:
+        return None
+    source_id = match.group(1)
+    if sum(line.startswith("id=" + source_id + " ") for line in state_sources) != 1:
+        return None
+    provider_headers = list(re.finditer(r"(?m)^      (\S[^\n]*)$", providers))
+    selected = []
+    for index, header in enumerate(provider_headers):
+        body = providers[header.end():provider_headers[index + 1].start()
+                         if index + 1 < len(provider_headers) else len(providers)]
+        rows = re.findall(r"(?m)^        mSource=InsetsSource ([^\n]*)$", body)
+        if any(re.search(r"(?:^| )type=navigationBars(?: |$)", row) for row in rows):
+            selected.append((header.group(1), body, rows))
+    if len(selected) != 1:
+        return None
+    label, provider, rows = selected[0]
+    if not (label == "InsetsSourceProvider" and rows == [source]
+            and re.findall(r"(?m)^        mSourceFrame=([^\n]*)$", provider)
+            == ["Rect(0, 1196 - 720, 1280)"]
+            and re.findall(r"(?m)^        mWindowContainer=([^\n]*)$", provider) == [window]
+            and re.findall(r"(?m)^        mIsLeashReadyForDispatching=[^\n]*$", provider)
+            == ["        mIsLeashReadyForDispatching=true mHasPendingPosition=false"]):
+        return None
+    return {"source_id": source_id, "window": window, "frame": [0, 1196, 720, 1280]}
+
+
+def initialized_taskbar_service_passes(text: str) -> bool:
+    """Observe initialized TIS fields and the existing complete Taskbar scope."""
+    if not taskbar_state_fields_pass(text):
+        return False
+    lines = text.splitlines()
+    selected = []
+    for name in ("Client", "OverviewComponentObserver", "OverviewCommandHelper",
+                 "TaskAnimationManager", "TaskbarManager"):
+        matches = [(index, line) for index, line in enumerate(lines)
+                   if re.match(r"^[ \t]*" + re.escape(name) + r":", line)]
+        if len(matches) != 1 or matches[0][1].strip() != name + ":":
+            return False
+        index, line = matches[0]
+        selected.append((index, len(line) - len(line.lstrip(" \t"))))
+    return (all(left[0] < right[0] for left, right in zip(selected, selected[1:]))
+            and selected[1][1] == selected[2][1] == selected[3][1] == selected[4][1]
+            and selected[1][1] > selected[0][1])
+
+
+def navigation_readiness_command_passes(row: dict, arguments: tuple[str, ...], limit: int) -> bool:
+    if not (isinstance(row, dict) and system_bar_interval_passes(row.get("interval"), 5)
+            and interactive_command_passes(row.get("command"), arguments, limit)):
+        return False
+    command = row["command"]
+    timeout = command.get("timeout_seconds")
+    return (type(timeout) in (int, float) and math.isfinite(timeout) and 0 < timeout <= 5
+            and not any(marker in command["stdout_tail"] for marker in (
+                "DUMP TIMEOUT", "Error dumping service info:",
+                "Failure while dumping the service:", "Got a RemoteException while dumping the service")))
+
+
+def navigation_readiness_passes(state: dict, source_sha: str, apk_sha: str) -> bool:
+    """Require every retained attempt and a complete final pre-install provider."""
+    if not (isinstance(state, dict) and state.get("ready") is True and "error" not in state
+            and state.get("phase") == "before_installation" and state.get("serial") == SERIAL
+            and state.get("profile") == "raster-720x1280-280"
+            and isinstance(source_sha, str) and re.fullmatch(r"[0-9a-f]{40}", source_sha)
+            and isinstance(apk_sha, str) and re.fullmatch(r"[0-9a-f]{64}", apk_sha)
+            and state.get("source_commit") == source_sha and state.get("unsigned_apk_sha256") == apk_sha
+            and state.get("attempt_limit") == NAVIGATION_READINESS_ATTEMPT_LIMIT
+            and all(type(state.get(key)) is float and math.isfinite(state[key])
+                    for key in ("started", "ended", "readiness_deadline"))
+            and 0 <= state["started"] <= state["ended"] < state["readiness_deadline"]
+            and 0 < state["readiness_deadline"] - state["started"] <= 180
+            and isinstance(state.get("attempts"), list)
+            and 1 <= len(state["attempts"]) <= NAVIGATION_READINESS_ATTEMPT_LIMIT):
+        return False
+    previous_end = state["started"]
+    for index, attempt in enumerate(state["attempts"]):
+        if not (isinstance(attempt, dict) and type(attempt.get("sequence")) is int
+                and attempt["sequence"] == index + 1 and "error" not in attempt
+                and navigation_readiness_command_passes(attempt.get("window"), HOME_FOCUS_QUERY, 65536)
+                and navigation_readiness_command_passes(attempt.get("taskbar"),
+                                                        SYSTEM_BAR_TASKBAR_QUERY, SYSTEM_BAR_WINDOW_LIMIT)):
+            return False
+        window, taskbar = attempt["window"], attempt["taskbar"]
+        if not (previous_end <= window["interval"]["start"] <= window["interval"]["end"]
+                <= taskbar["interval"]["start"] <= taskbar["interval"]["end"] <= state["ended"]
+                and home_focus_passes(window["command"])):
+            return False
+        for row in (window, taskbar):
+            if row["command"]["timeout_seconds"] > state["readiness_deadline"] - row["interval"]["start"]:
+                return False
+        provider = navigation_provider_state(window["command"]["stdout_tail"])
+        initialized = initialized_taskbar_service_passes(taskbar["command"]["stdout_tail"])
+        if (attempt.get("provider") != provider or type(attempt.get("taskbar_initialized")) is not bool
+                or attempt["taskbar_initialized"] is not initialized):
+            return False
+        ready = provider is not None and initialized
+        if (attempt.get("status") != ("ready" if ready else "not_ready")
+                or ready is not (index == len(state["attempts"]) - 1)):
+            return False
+        previous_end = taskbar["interval"]["end"]
+    return True
+
+
+def wait_for_navigation_provider(device: Device, readiness: dict, deadline: float, *,
+                                 source_sha: str, apk_sha: str):
+    """Poll owned startup observations within the original readiness deadline."""
+    state = {"ready": False, "phase": "before_installation", "serial": SERIAL,
+             "profile": "raster-720x1280-280", "source_commit": source_sha,
+             "unsigned_apk_sha256": apk_sha, "attempt_limit": NAVIGATION_READINESS_ATTEMPT_LIMIT,
+             "started": float(time.monotonic()), "readiness_deadline": float(deadline), "attempts": []}
+    readiness["navigation_provider"] = state
+    try:
+        require(isinstance(source_sha, str) and re.fullmatch(r"[0-9a-f]{40}", source_sha)
+                and isinstance(apk_sha, str) and re.fullmatch(r"[0-9a-f]{64}", apk_sha),
+                "Pre-install navigation readiness source/APK identity is missing")
+        for index in range(NAVIGATION_READINESS_ATTEMPT_LIMIT):
+            require(time.monotonic() < deadline,
+                    "Owned pre-install navigation provider/TIS readiness deadline expired")
+            attempt = {"sequence": index + 1, "status": "observing"}
+            state["attempts"].append(attempt)
+            try:
+                for name, arguments, limit in (
+                        ("window", HOME_FOCUS_QUERY, 65536),
+                        ("taskbar", SYSTEM_BAR_TASKBAR_QUERY, SYSTEM_BAR_WINDOW_LIMIT)):
+                    row = {"command": {}, "interval": {"clock": "host_monotonic",
+                                                       "start": float(time.monotonic())}}
+                    attempt[name] = row
+                    try:
+                        observe_interactive_command(device, arguments, row["command"],
+                                                    timeout=command_budget(deadline, 5), retained_limit=limit)
+                    finally:
+                        row["interval"]["end"] = float(time.monotonic())
+                    require(navigation_readiness_command_passes(row, arguments, limit),
+                            "Incomplete pre-install navigation readiness command: " + name)
+                    if name == "window":
+                        require(home_focus_passes(row["command"]),
+                                "Owned HOME lost focus before navigation-provider readiness")
+                attempt["provider"] = navigation_provider_state(attempt["window"]["command"]["stdout_tail"])
+                attempt["taskbar_initialized"] = initialized_taskbar_service_passes(
+                    attempt["taskbar"]["command"]["stdout_tail"])
+                ready = attempt["provider"] is not None and attempt["taskbar_initialized"]
+                attempt["status"] = "ready" if ready else "not_ready"
+                if ready:
+                    state.update(ready=True, ended=float(time.monotonic()))
+                    require(navigation_readiness_passes(state, source_sha, apk_sha),
+                            "Owned pre-install navigation provider/TIS evidence is inconsistent or late")
+                    return
+            except Exception as error:
+                attempt.update(status="failed", error={"type": type(error).__name__,
+                                                       "message": bounded_text(str(error), 1200)})
+                raise
+            remaining = deadline - time.monotonic()
+            if index + 1 < NAVIGATION_READINESS_ATTEMPT_LIMIT and remaining > 0:
+                time.sleep(min(5, remaining))
+        raise SmokeFailure("Owned pre-install navigation provider/TIS did not initialize within the bounded observations")
+    except Exception as error:
+        state.update(ready=False, error={"type": type(error).__name__, "message": bounded_text(str(error), 1200)})
+        raise
+    finally:
+        state["ended"] = float(time.monotonic())
+        state["seconds"] = round(state["ended"] - state["started"], 3)
 
 
 def default_display_rotation_state(text: str) -> dict | None:
