@@ -21,7 +21,8 @@ class ConfigurationFixtureTests(unittest.TestCase):
         self.root = Path(self.temporary.name)
         files = list(checker.PINNED) + [str(path.relative_to(checker.ROOT))
                 for path in (checker.ROOT / 'contracts/v1/schemas').glob('*.schema.json')]
-        files += [str(checker.FIXTURE), 'scripts/check_configuration_fixtures.py']
+        files += [str(checker.FIXTURE), 'scripts/check_configuration_fixtures.py',
+                  'scripts/reference_fixture_output.py']
         for name in files:
             target = self.root / name
             target.parent.mkdir(parents=True, exist_ok=True)

@@ -51,3 +51,21 @@ def write_output(root: Path, relative: Path, content: str) -> None:
     finally:
         if temporary_path is not None:
             temporary_path.unlink(missing_ok=True)
+
+
+def write_binary_output(root: Path, relative: Path, content: bytes) -> None:
+    """Publish exact binary fixture bytes using the same output-path contract."""
+    target = output_path(root, relative)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    output_path(root, relative)
+    temporary_path = None
+    try:
+        with tempfile.NamedTemporaryFile(mode='wb', dir=target.parent,
+                                         prefix=f'.{target.name}.', delete=False) as temporary:
+            temporary_path = Path(temporary.name)
+            temporary.write(content)
+        temporary_path.chmod(0o644)
+        temporary_path.replace(target)
+    finally:
+        if temporary_path is not None:
+            temporary_path.unlink(missing_ok=True)
