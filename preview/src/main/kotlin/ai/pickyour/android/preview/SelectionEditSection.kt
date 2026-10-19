@@ -61,7 +61,7 @@ internal class SelectionEditSection(private val activity: Activity,
             val items = catalogItems
             lateinit var picker: AlertDialog
             picker = show(AlertDialog.Builder(activity).setTitle(R.string.component_choose_catalog)
-                .setItems(items.map { "${it.kind} · ${it.id} @ ${it.version}" }.toTypedArray()) { _, index ->
+                .setItems(items.map { ComponentSelectionText.catalog(activity, it) }.toTypedArray()) { _, index ->
                     if (canOpen(expected) && open(picker) && catalogHash == hash && catalogItems == items) fromCatalog(expected, items[index], hash)
                 }.setNegativeButton(R.string.close, null).create())
         }
@@ -161,7 +161,7 @@ internal class SelectionEditSection(private val activity: Activity,
         return dialog
     }
     private fun open(dialog: AlertDialog) = dialog.isShowing && dialog in dialogs
-    private fun label(selection: LocalSelection) = "${selection.kind} · ${selection.role} · ${selection.id}"
+    private fun label(selection: LocalSelection) = ComponentSelectionText.selection(activity, selection)
 
     private fun reviewPendingInput() {
         if (closed || activity.isDestroyed || activity.isFinishing) return
@@ -294,7 +294,7 @@ internal class SelectionEditSection(private val activity: Activity,
             hash, items, { item -> prepareCompatibleReplacement(selection, item) }, ::current) { item ->
             if (current() && item in items) {
                 live = null
-                confirm(expected, hash, label(selection), activity.getString(R.string.component_replace_warning, item.id, item.version, hash)) {
+                confirm(expected, hash, label(selection), ComponentSelectionText.format(activity, R.string.component_replace_warning, item.id, item.version, hash)) {
                     PreviewSelectionForms.replace(selection, item, hash)
                 }
             }
@@ -307,12 +307,12 @@ internal class SelectionEditSection(private val activity: Activity,
         val targets = expected.components.selections.filter { it.kind == item.kind }
         val labels = listOf(activity.getString(R.string.component_add)) + targets.map { activity.getString(R.string.component_replace, label(it)) }
         lateinit var picker: AlertDialog
-        picker = show(AlertDialog.Builder(activity).setTitle("${item.id} @ ${item.version}")
+        picker = show(AlertDialog.Builder(activity).setTitle(ComponentSelectionText.catalogIdentity(activity, item))
             .setItems(labels.toTypedArray()) { _, index ->
                 if (!canOpen(expected) || !open(picker) || catalogHash != hash || item !in catalogItems) return@setItems
                 if (index == 0) addForm(expected, item, hash) else {
                     val target = targets[index - 1]
-                    confirm(expected, hash, label(target), activity.getString(R.string.component_replace_warning, item.id, item.version, hash)) {
+                    confirm(expected, hash, label(target), ComponentSelectionText.format(activity, R.string.component_replace_warning, item.id, item.version, hash)) {
                         PreviewSelectionForms.replace(target, item, hash)
                     }
                 }
@@ -418,7 +418,7 @@ internal class SelectionEditSection(private val activity: Activity,
         val draftId = requireNotNull(currentDraftId)
         val layout = LinearLayout(activity).apply { orientation = VERTICAL }
         var currentItem = item
-        val warning = TextView(activity).apply { text = activity.getString(R.string.component_add_warning, item.id, item.version, hash) }.also(layout::addView)
+        val warning = TextView(activity).apply { text = ComponentSelectionText.format(activity, R.string.component_add_warning, item.id, item.version, hash) }.also(layout::addView)
         foundationGuidance(layout, item.kind, showRoleChoice = true)
         retrievalGuidance(layout, item.kind)
         agentGuidance(layout, item.kind)
@@ -476,7 +476,7 @@ internal class SelectionEditSection(private val activity: Activity,
                 }, ::current) { candidate ->
                 if (current() && candidate in items) {
                     currentItem = candidate
-                    warning.text = activity.getString(R.string.component_add_warning, candidate.id, candidate.version, hash)
+                    warning.text = ComponentSelectionText.format(activity, R.string.component_add_warning, candidate.id, candidate.version, hash)
                     submit(dialog, expected, hash) { PreviewSelectionForms.add(selectionId, candidate, hash, form) }
                 }
             })
@@ -563,7 +563,7 @@ internal class SelectionEditSection(private val activity: Activity,
         if (!canOpen(expected)) return
         val draftId = requireNotNull(currentDraftId)
         val layout = LinearLayout(activity).apply { orientation = VERTICAL }
-        layout.addView(TextView(activity).apply { text = activity.getString(R.string.component_role_warning, selection.id) })
+        layout.addView(TextView(activity).apply { text = ComponentSelectionText.format(activity, R.string.component_role_warning, selection.id) })
         layout.addView(TextView(activity).apply { setText(R.string.component_recovery_limit) })
         val role = field(layout, R.string.component_role, restored?.role ?: selection.role)
         val feedback = feedback().also(layout::addView)

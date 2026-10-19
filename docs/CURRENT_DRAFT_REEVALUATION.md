@@ -99,6 +99,15 @@ badge. A failed read, changed head, unsupported operation, input failure or work
 failure withholds current results and requires a deliberate retry or a new
 source event. Retry rechecks its enabled and non-running state at execution.
 
+Opening History, catalog details or revision comparison retires the findings
+page and its retained row, paging and Back callbacks. Opening findings retires
+older catalog and revision inspections, plus the current History picker, record
+detail or restore confirmation. Retained History controls cannot reopen a child,
+copy fields or commit a restore after findings opens. This changes presentation
+ownership only:
+the acknowledged analysis, binding and saved bytes remain available, and a fresh
+inspection can be opened after closing the newer view.
+
 The existing private context represents typed selections, links and workload
 fields. Free-text objective/context, opaque primary-model choice, optional intent,
 metadata and history are bound for invalidation but are not silently interpreted

@@ -73,7 +73,7 @@ class SummaryRecordedComponentsActivityTest {
     private fun expand() { if (toggle().text.toString() == "Show saved components") toggle().performClick(); idle() }
     private fun dialog() = requireNotNull(ShadowAlertDialog.getLatestAlertDialog())
     private fun adapter() = PreviewDraftLibrary(activity.noBackupFilesDir.toPath()).openLegacy()
-    private fun loaded() = (adapter().load() as PreviewDraftLoad.Available).record
+    private fun loaded() = (readDraftAfterOwnedWork(activity, ::adapter) as PreviewDraftLoad.Available).record
     private fun store() = LocalDraftStore(activity.noBackupFilesDir.toPath().resolve("guest-draft"))
     private fun disk() = Files.walk(activity.noBackupFilesDir.toPath()).use { paths ->
         paths.filter { Files.isRegularFile(it) }.toList().associate {
@@ -130,7 +130,12 @@ class SummaryRecordedComponentsActivityTest {
     }
     private fun assertCurrentResultLimits() {
         val evaluation = summary().findViewById<TextView>(R.id.draft_summary_evaluation).text.toString()
-        val record = (adapter().load() as? PreviewDraftLoad.Available)?.record
+        val id = PreviewActivity::class.java.getDeclaredField("currentDraftId")
+            .apply { isAccessible = true }.get(activity) as PreviewDraftId
+        val record = (readDraftAfterOwnedWork(activity) {
+            val library = PreviewDraftLibrary(activity.noBackupFilesDir.toPath())
+            if (id.value == "guest-draft") library.openLegacy() else library.open(id)
+        } as? PreviewDraftLoad.Available)?.record
         val acknowledged = record != null && summary().findViewById<TextView>(R.id.draft_summary_source).text.toString() ==
             activity.getString(R.string.draft_summary_saved, record.revision.toString())
         val unavailable = setOf(

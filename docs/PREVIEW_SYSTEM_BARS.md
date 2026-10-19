@@ -3,10 +3,37 @@
 This correction is a bounded continuation of [Android #80](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/80)
 and [Android #64](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/64).
 It fixes the preview's fixed viewport insets and ordinary light-theme system-bar contrast.
-The modal navigation-icon defect remains unresolved in the installed evidence below.
-The current source proposal removes the platform window scrim and keeps dark foreground
-requests for both system bars; its new installed pixels remain required.
+The delivered design removes the platform window scrim and keeps dark foreground
+requests for both system bars. The reviewed receiving run below passed both modal
+navigation pairs; the preceding failed images remain historical evidence.
 The existing owners retain the separate scroll/focus/caret checkpoint and checked-choice work.
+
+## Delivered result and separate main-push failure — 2026-10-19
+
+[PR #467](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/467)
+delivered this source as signed main
+`0f5fea42c5cd149472269da2e47559a24689ba71`, tree
+`c9e91124c0ebbfe101e73eaa0772c5f7d3af235f`, with parent
+`5d9fb10d72ca059a93b00f3abf3b93da9d3e6897`.
+
+The independently reviewed original receiving execution was
+`bd2487f63745c0b9d2f83835a810766cc2a043c1`, tree
+`4846f4ebfb499fe11ec8a99166ef23380e492b09`, in
+[run 39294986481](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39294986481).
+Its [complete qualification](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/467#pullrequestreview-5575852486)
+records all four installed cases passing, both modal navigation pairs at
+8.97386058887348:1 against the unchanged 3:1 minimum, and exact restoration of the
+original ACL, device and process identity. The source and historical observations
+below retain their own revisions; this receiving result is not execution on the
+later main tree or whole physical-device, accessibility or release acceptance.
+
+The distinct literal-main [run 39304189399, attempt 1](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39304189399)
+passed Core and simulated Preview, but its installed job failed during SDK image
+preparation with `Error on ZipFile unknown archive`. No ACL grant or emulator case
+ran in that attempt. The [main-push follow-through](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/467#issuecomment-6274771555)
+retains the failed original, its successful cleanup and the separate scanner
+result. The log does not establish a network or corruption cause. Any later
+attempt must retain its own source and results.
 
 ## Observed defect
 
@@ -85,7 +112,7 @@ pixels: the subsequent 444 result below retained the defect. The original 978
 screenshots remain evidence of the earlier source.
 
 
-## Current proposal: floating dialogs without a platform window scrim
+## Delivered design: floating dialogs without a platform window scrim
 
 The original [298 result6260410436](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/467#issuecomment-6260410436)
 qualifies four passed product cases while the image gate fails. The two original
@@ -151,10 +178,10 @@ switch false and its explicit amount0.0, while preserving raw installed attribut
 as observations. It does not add an unnecessary per-dialog call merely to zero an
 inactive field.
 
-All five changed Activity methods and the complete build/lint/native guards remain
-unexecuted locally for this source after the ENOSPC startup block. Earlier results
-retain their exact historical source attribution. The next configured receiver
-must execute this source and qualify both ordinary and modal status/navigation
+At the original source-preparation stage, all five changed Activity methods and the
+complete build/lint/native guards were unexecuted locally after the ENOSPC startup
+block. The validation plan required the configured receiver to execute that source
+and qualify both ordinary and modal status/navigation
 foreground/background pairs from its original PNGs, including restored ordinary
 checkpoints and visible floating-dialog separation. The installed navigation
 threshold remains the same unrounded3:1; no image acceptance, lifecycle assertion,
@@ -180,7 +207,7 @@ constructs API 28 `WindowInsets(Rect)` values because compileSdk 35 hides that
 constructor; the actual listener receives those values through public dispatch.
 
 Two mandatory Activity methods open the real empty-library and deletion AlertDialogs.
-For the current proposal they require dark status and navigation foreground requests,
+For the delivered design they require dark status and navigation foreground requests,
 FLAG_DIM_BEHIND absent, explicit disabled/zero theme dim attributes, floating-window inheritance and unchanged
 underlying Activity appearance. Cancellation, reopening, confirmation and dismissal
 retain every prior pending text/caret, acknowledged identity and deleted/save-disabled
@@ -214,7 +241,7 @@ light navigation icons through the legacy flag and, on API30+, the public
 `WindowInsetsController` appearance API. Focus return restored the original bits while
 preserving unrelated flags. Repeated loss did not replace the saved value and a
 destroyed Activity could not restore a retired window. API26 retained its resource
-behavior. The current proposal removes this ineffective generic manipulation.
+behavior. The delivered design removes this ineffective generic manipulation.
 
 Focus loss can also occur for system overlays or backgrounding; that callback was
 not proof that a particular dialog owned focus. The revision retained dialog

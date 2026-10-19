@@ -26,6 +26,7 @@ internal class CurrentDraftCheckSection(
     private val worker: Executor,
     private val alive: () -> Boolean,
     private val statusChanged: (String) -> Unit,
+    private val beforeInspect: () -> Unit,
 ) : LinearLayout(activity) {
     private class Source(val record: PreviewStoredDraft, val inputs: DraftCurrentInputs, val authority: Any,
         val current: () -> Boolean, val readCurrent: () -> PreviewDraftLoad)
@@ -67,7 +68,10 @@ internal class CurrentDraftCheckSection(
         inspect.setOnClickListener {
             val captured = source ?: return@setOnClickListener
             val state = analysis.state as? PreviewCurrentDraftState.Current ?: return@setOnClickListener
-            if (active(captured)) showFindings(captured, state, 0)
+            if (active(captured)) {
+                beforeInspect()
+                showFindings(captured, state, 0)
+            }
         }
         addView(inspect)
         render()
@@ -120,7 +124,7 @@ internal class CurrentDraftCheckSection(
     private fun render() {
         if (closed) return
         val state = analysis.state
-        if (presented !== state) { dialog?.dismiss(); dialog = null; presented = state }
+        if (presented !== state) { dismissInspection(); presented = state }
         val plan: DraftCurrentRecheck? = when (state) {
             is PreviewCurrentDraftState.Rechecking -> state.request.recheck
             is PreviewCurrentDraftState.Current -> state.request.recheck
@@ -193,10 +197,17 @@ internal class CurrentDraftCheckSection(
         dialog?.dismiss(); dialog = page; page.show()
     }
 
+    /** Retire only presentation callbacks; the current saved analysis remains available. */
+    fun dismissInspection() {
+        val previous = dialog
+        dialog = null
+        previous?.dismiss()
+    }
+
     fun close() {
         if (closed) return
         closed = true; source = null; analysis.close()
-        dialog?.dismiss(); dialog = null
+        dismissInspection()
         retry.isEnabled = false; inspect.isEnabled = false
     }
 

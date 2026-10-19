@@ -92,7 +92,7 @@ class CatalogPinRecoveryActivityTest {
         keys.forEach { assertEquals(it, before.get(it), after.get(it)) }
     }
     private fun adapter() = PreviewDraftLibrary(activity.noBackupFilesDir.toPath()).openLegacy()
-    private fun loaded() = (adapter().load() as PreviewDraftLoad.Available).record
+    private fun loaded() = (readDraftAfterOwnedWork(activity, ::adapter) as PreviewDraftLoad.Available).record
     private fun save() {
         button(R.string.save_draft).performClick()
         await { !button(R.string.save_draft).isEnabled && views().filterIsInstance<TextView>()

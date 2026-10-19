@@ -62,6 +62,23 @@ class CurrentDraftCheckActivityTest {
     private fun affected() = activity.findViewById<TextView>(R.id.current_draft_check_affected).text.toString()
     private fun dialog() = requireNotNull(ShadowAlertDialog.getLatestAlertDialog())
     private fun idle() = shadowOf(Looper.getMainLooper()).idle()
+    private fun inspectFindings(): AlertDialog {
+        val inspect = activity.findViewById<Button>(R.id.current_draft_check_inspect)
+        assertTrue(inspect.isEnabled)
+        inspect.performClick(); idle()
+        return dialog().also {
+            assertTrue(it.isShowing)
+            assertTrue(it.listView.adapter.count in 1..10)
+        }
+    }
+    private fun openCatalogDetail(): AlertDialog {
+        field<EditText>("catalogSearch").setText("cat.compute_profile.fixture")
+        fun samples() = views(field<CatalogBrowseSection>("catalog")).filterIsInstance<Button>()
+            .filter { it.text.toString().startsWith("Open FICTIONAL ") }
+        await { samples().size == 1 }
+        samples().single().performClick(); idle()
+        return dialog().also { assertTrue(it.isShowing) }
+    }
     private fun await(condition: () -> Boolean) {
         val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(25)
         while (System.nanoTime() < deadline) { idle(); if (condition()) return; Thread.sleep(10) }
@@ -125,6 +142,9 @@ class CurrentDraftCheckActivityTest {
         assertTrue(firstEntered.await(10, TimeUnit.SECONDS))
         try {
             command()
+            // Platform confirmation callbacks are posted; enqueue their save before the following barrier.
+            idle()
+            assertTrue(field<Boolean>("storageBusy"))
             worker().execute { savedEntered.countDown(); check(evaluateRelease.await(25, TimeUnit.SECONDS)) }
             firstRelease.countDown(); assertTrue(savedEntered.await(15, TimeUnit.SECONDS))
             await { !field<Boolean>("storageBusy") }
@@ -152,6 +172,232 @@ class CurrentDraftCheckActivityTest {
         }
         dialog().getButton(AlertDialog.BUTTON_NEGATIVE).performClick()
         finishWork(); assertEquals(before, disk())
+    }
+
+
+    @Test fun inspectionNavigationRetiresFindingRowsAndBackWithoutChangingCurrentAnalysis() {
+        val current = state() as PreviewCurrentDraftState.Current
+        val binding = current.request.binding
+        val baseline = loaded().baselineIdentity
+        val before = disk()
+        val replacements: List<Pair<String, () -> AlertDialog>> = listOf(
+            "history" to { button(R.string.draft_history).performClick(); idle(); dialog() },
+            "catalog" to { openCatalogDetail() },
+            "revision" to { button(R.string.revision_compare_pair_open).performClick(); idle(); dialog() },
+        )
+        for ((name, replace) in replacements) {
+            for (detailOpen in listOf(false, true)) {
+                val page = inspectFindings()
+                val detail = if (detailOpen) {
+                    shadowOf(page).clickOnItem(0); idle(); dialog()
+                } else null
+                val back = detail?.getButton(AlertDialog.BUTTON_POSITIVE)
+                val replacement = replace()
+                assertNotSame(page, replacement)
+                assertTrue(replacement.isShowing)
+
+                // Deliver real retained callbacks after the newer inspection has acquired its view.
+                shadowOf(page).clickOnItem(0)
+                back?.performClick()
+                idle()
+
+                assertSame("Retired findings cannot replace $name", replacement, dialog())
+                assertTrue(replacement.isShowing)
+                assertFalse(page.isShowing)
+                if (detail != null) assertFalse(detail.isShowing)
+                assertSame(current, state())
+                assertEquals(binding, (state() as PreviewCurrentDraftState.Current).request.binding)
+                assertEquals(baseline, loaded().baselineIdentity)
+                assertEquals(before, disk())
+
+                replacement.cancel(); idle()
+                back?.performClick(); shadowOf(page).clickOnItem(0); idle()
+                assertSame("Closing $name cannot revive old findings", replacement, dialog())
+                assertFalse(replacement.isShowing)
+                val fresh = inspectFindings()
+                assertNotSame(page, fresh)
+                shadowOf(fresh).clickOnItem(0); idle()
+                val freshDetail = dialog()
+                assertTrue(freshDetail.findViewById<TextView>(android.R.id.message).text.toString().startsWith("Rule: "))
+                freshDetail.getButton(AlertDialog.BUTTON_POSITIVE).performClick(); idle()
+                assertNotSame(freshDetail, dialog())
+                assertTrue(dialog().isShowing)
+                assertTrue(dialog().listView.adapter.count in 1..10)
+                dialog().cancel(); idle()
+            }
+        }
+        finishWork()
+        assertSame(current, state())
+        assertEquals(binding, (state() as PreviewCurrentDraftState.Current).request.binding)
+        assertEquals(baseline, loaded().baselineIdentity)
+        assertEquals(before, disk())
+    }
+
+    @Test fun findingsRetireCatalogControlsWithoutChangingCurrentAnalysis() {
+        val current = state() as PreviewCurrentDraftState.Current
+        val binding = current.request.binding
+        val baseline = loaded().baselineIdentity
+        val before = disk()
+        for (priceOpen in listOf(false, true)) {
+            val parent = openCatalogDetail()
+            val select = parent.getButton(AlertDialog.BUTTON_POSITIVE)
+            val priceEntry = views(parent.window!!.decorView).filterIsInstance<Button>()
+                .single { it.text.toString() == activity.getString(R.string.catalog_price_browse) }
+            val prices = if (priceOpen) {
+                priceEntry.performClick(); idle(); dialog().also { assertTrue(it.listView.adapter.count > 0) }
+            } else null
+            val findings = inspectFindings()
+
+            select.performClick()
+            priceEntry.performClick()
+            if (prices != null) shadowOf(prices).clickOnItem(0)
+            idle(); finishWork()
+
+            assertSame("Retired catalog callbacks cannot replace current findings", findings, dialog())
+            assertTrue(findings.isShowing)
+            assertFalse(parent.isShowing)
+            if (prices != null) assertFalse(prices.isShowing)
+            assertSame(current, state())
+            assertEquals(binding, (state() as PreviewCurrentDraftState.Current).request.binding)
+            assertEquals(baseline, loaded().baselineIdentity)
+            assertEquals(before, disk())
+            findings.cancel(); idle()
+
+            val fresh = openCatalogDetail()
+            assertNotSame(parent, fresh)
+            views(fresh.window!!.decorView).filterIsInstance<Button>()
+                .single { it.text.toString() == activity.getString(R.string.catalog_price_browse) }.performClick()
+            idle()
+            val freshPrices = dialog()
+            shadowOf(freshPrices).clickOnItem(0); idle()
+            assertNotSame(freshPrices, dialog())
+            assertTrue(dialog().isShowing)
+            dialog().cancel(); idle()
+        }
+        finishWork()
+        assertSame(current, state())
+        assertEquals(binding, (state() as PreviewCurrentDraftState.Current).request.binding)
+        assertEquals(baseline, loaded().baselineIdentity)
+        assertEquals(before, disk())
+    }
+
+    @Test fun findingsRetireRevisionPickerCallbacksWithoutChangingCurrentAnalysis() {
+        val current = state() as PreviewCurrentDraftState.Current
+        val binding = current.request.binding
+        val baseline = loaded().baselineIdentity
+        val before = disk()
+        for (afterOpen in listOf(false, true)) {
+            button(R.string.revision_compare_pair_open).performClick(); idle()
+            val beforePicker = dialog()
+            assertTrue(beforePicker.listView.adapter.count > 0)
+            val afterPicker = if (afterOpen) {
+                shadowOf(beforePicker).clickOnItem(0); idle(); dialog().also {
+                    assertNotSame(beforePicker, it)
+                    assertTrue(it.listView.adapter.count > 0)
+                }
+            } else null
+            val findings = inspectFindings()
+
+            shadowOf(beforePicker).clickOnItem(0)
+            if (afterPicker != null) shadowOf(afterPicker).clickOnItem(0)
+            idle(); finishWork()
+
+            assertSame("Retired revision callbacks cannot replace current findings", findings, dialog())
+            assertTrue(findings.isShowing)
+            assertFalse(beforePicker.isShowing)
+            if (afterPicker != null) assertFalse(afterPicker.isShowing)
+            assertSame(current, state())
+            assertEquals(binding, (state() as PreviewCurrentDraftState.Current).request.binding)
+            assertEquals(baseline, loaded().baselineIdentity)
+            assertEquals(before, disk())
+            findings.cancel(); idle()
+
+            button(R.string.revision_compare_pair_open).performClick(); idle()
+            val fresh = dialog()
+            assertNotSame(beforePicker, fresh)
+            shadowOf(fresh).clickOnItem(0); idle()
+            assertNotSame(fresh, dialog())
+            assertTrue(dialog().isShowing)
+            assertTrue(dialog().listView.adapter.count > 0)
+            dialog().cancel(); idle()
+        }
+        finishWork()
+        assertSame(current, state())
+        assertEquals(binding, (state() as PreviewCurrentDraftState.Current).request.binding)
+        assertEquals(baseline, loaded().baselineIdentity)
+        assertEquals(before, disk())
+    }
+
+    @Test fun findingsRetireHistoryPickerDetailAndRestoreCallbacksWithoutChangingCurrentAnalysis() {
+        val current = state() as PreviewCurrentDraftState.Current
+        val binding = current.request.binding
+        val baseline = loaded().baselineIdentity
+        val before = disk()
+        for (stage in 0..2) {
+            button(R.string.draft_history).performClick(); idle()
+            val picker = dialog()
+            assertTrue(picker.isShowing)
+            assertTrue(picker.listView.adapter.count > 0)
+            val compare = picker.getButton(AlertDialog.BUTTON_POSITIVE)
+            val detail = if (stage > 0) {
+                shadowOf(picker).clickOnItem(0); idle(); dialog().also {
+                    assertNotSame(picker, it)
+                    assertTrue(it.isShowing)
+                }
+            } else null
+            val copy = detail?.getButton(AlertDialog.BUTTON_POSITIVE)
+            val review = detail?.getButton(AlertDialog.BUTTON_NEUTRAL)
+            val confirmation = if (stage > 1) {
+                requireNotNull(review).performClick(); idle(); dialog().also {
+                    assertNotSame(detail, it)
+                    assertTrue(it.isShowing)
+                    assertEquals(activity.getString(R.string.domain_restore_commit),
+                        it.getButton(AlertDialog.BUTTON_POSITIVE).text.toString())
+                }
+            } else null
+            val restore = confirmation?.getButton(AlertDialog.BUTTON_POSITIVE)
+            val findings = inspectFindings()
+            fun replay() {
+                shadowOf(picker).clickOnItem(0)
+                compare.performClick(); copy?.performClick(); review?.performClick(); restore?.performClick()
+                idle(); finishWork()
+            }
+            replay()
+            assertSame("Retired History stage $stage cannot replace findings", findings, dialog())
+            assertTrue(findings.isShowing)
+            listOfNotNull(picker, detail, confirmation).forEach { assertFalse(it.isShowing) }
+            assertSame(current, state())
+            assertEquals(binding, (state() as PreviewCurrentDraftState.Current).request.binding)
+            assertEquals(baseline, loaded().baselineIdentity)
+            assertEquals(before, disk())
+
+            findings.cancel(); idle(); replay()
+            assertSame("Closing findings cannot revive retired History stage $stage", findings, dialog())
+            assertFalse(findings.isShowing)
+            assertSame(current, state())
+            assertEquals(baseline, loaded().baselineIdentity)
+            assertEquals(before, disk())
+
+            button(R.string.draft_history).performClick(); idle()
+            val fresh = dialog()
+            assertNotSame(picker, fresh)
+            assertTrue(fresh.isShowing)
+            shadowOf(fresh).clickOnItem(0); idle()
+            val freshDetail = dialog()
+            assertNotSame(fresh, freshDetail)
+            assertTrue(freshDetail.isShowing)
+            freshDetail.getButton(AlertDialog.BUTTON_NEUTRAL).performClick(); idle()
+            assertNotSame(freshDetail, dialog())
+            assertTrue(dialog().isShowing)
+            assertEquals(activity.getString(R.string.domain_restore_commit),
+                dialog().getButton(AlertDialog.BUTTON_POSITIVE).text.toString())
+            dialog().cancel(); idle()
+        }
+        finishWork()
+        assertSame(current, state())
+        assertEquals(binding, (state() as PreviewCurrentDraftState.Current).request.binding)
+        assertEquals(baseline, loaded().baselineIdentity)
+        assertEquals(before, disk())
     }
 
     @Test fun realModelSettingsSavePublishesAffectedRecheckingBeforeTheNewResult() {
@@ -263,10 +509,17 @@ class CurrentDraftCheckActivityTest {
     @Test fun actualNewDraftSwitchHidesPriorIdsAndNeverAdoptsPreviousSource() {
         components(listOf("model", "accelerator"))
         val prior = state() as PreviewCurrentDraftState.Current
-        button(R.string.library_new).performClick(); dialog().getButton(AlertDialog.BUTTON_POSITIVE).performClick()
-        assertTrue(state() is PreviewCurrentDraftState.Unavailable)
-        assertFalse(affected().contains("sel_model"))
-        finishWork(); await { state() is PreviewCurrentDraftState.Current }
+        val entered = CountDownLatch(1); val release = CountDownLatch(1)
+        worker().execute { entered.countDown(); check(release.await(25, TimeUnit.SECONDS)) }
+        assertTrue(entered.await(10, TimeUnit.SECONDS))
+        try {
+            button(R.string.library_new).performClick(); dialog().getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+            idle() // Dispatch the real confirmation while its storage work remains held.
+            assertTrue(field<Boolean>("storageBusy"))
+            assertTrue(state() is PreviewCurrentDraftState.Unavailable)
+            assertFalse(affected().contains("sel_model"))
+        } finally { release.countDown(); finishWork() }
+        await { state() is PreviewCurrentDraftState.Current }
         val next = state() as PreviewCurrentDraftState.Current
         assertNotEquals(prior.request.binding.inputDigest, next.request.binding.inputDigest)
         assertNull(next.request.recheck.before)

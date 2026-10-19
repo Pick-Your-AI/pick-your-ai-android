@@ -83,7 +83,7 @@ class CompatibleOptionsActivityTest {
         assertEquals(revision, loaded().revision)
     }
     private fun adapter() = PreviewDraftLibrary(activity.noBackupFilesDir.toPath()).openLegacy()
-    private fun loaded() = (adapter().load() as PreviewDraftLoad.Available).record
+    private fun loaded() = (readDraftAfterOwnedWork(activity, ::adapter) as PreviewDraftLoad.Available).record
     private fun store() = LocalDraftStore(activity.noBackupFilesDir.toPath().resolve("guest-draft"))
     private fun disk() = Files.walk(activity.noBackupFilesDir.toPath()).use { paths -> paths.filter(Files::isRegularFile).toList().associate {
         activity.noBackupFilesDir.toPath().relativize(it).toString() to MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(it)).toList()
@@ -123,7 +123,7 @@ class CompatibleOptionsActivityTest {
     }
     private fun addForm(kind: String = "workload", role: String = "primary", settings: String = "{}"): AlertDialog {
         button(R.string.component_choose_catalog).performClick()
-        val choices = choose(dialog()) { it.startsWith("$kind ·") }
+        val choices = choose(dialog()) { it.startsWith("${componentTokenForLookup(activity, kind)} ·") }
         val form = choose(choices) { it == activity.getString(R.string.component_add) }
         field(form, R.string.component_role).setText(role)
         field(form, R.string.component_settings).setText(settings)

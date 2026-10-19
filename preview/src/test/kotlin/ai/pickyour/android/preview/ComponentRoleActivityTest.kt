@@ -75,7 +75,7 @@ class ComponentRoleActivityTest {
         .get(activity) as ExecutorService
     private fun finishWork() { repeat(3) { idle(); worker().submit {}.get(15, TimeUnit.SECONDS); idle() } }
     private fun adapter() = PreviewDraftLibrary(activity.noBackupFilesDir.toPath()).openLegacy()
-    private fun loaded() = (adapter().load() as PreviewDraftLoad.Available).record
+    private fun loaded() = (readDraftAfterOwnedWork(activity, ::adapter) as PreviewDraftLoad.Available).record
     private fun store() = LocalDraftStore(activity.noBackupFilesDir.toPath().resolve("guest-draft"))
     private fun disk() = Files.walk(activity.noBackupFilesDir.toPath()).use { paths ->
         paths.filter { Files.isRegularFile(it) }.toList().associate {
@@ -113,7 +113,7 @@ class ComponentRoleActivityTest {
     private fun action(label: Int, id: String = "sel_model"): AlertDialog {
         button(R.string.component_manage).performClick()
         val picker = dialog()
-        val index = (0 until picker.listView.adapter.count).single { picker.listView.adapter.getItem(it).toString().endsWith(" · $id") }
+        val index = (0 until picker.listView.adapter.count).single { picker.listView.adapter.getItem(it).toString().endsWith(" · ${componentTokenForLookup(activity, id)}") }
         shadowOf(picker).clickOnItem(index)
         await { dialog() !== picker && dialog().isShowing }
         val actions = dialog()
