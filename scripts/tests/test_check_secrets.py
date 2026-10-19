@@ -156,6 +156,7 @@ class SecretCheckTest(unittest.TestCase):
                 self.assertEqual(str(private / "history-git-trace.json"), kwargs["env"]["GIT_TRACE2_EVENT"])
                 self.assertEqual("1", kwargs["env"]["GIT_TRACE2_EVENT_BRIEF"])
                 self.assertEqual("1", kwargs["env"]["GIT_TRACE2_EVENT_NESTING"])
+                self.assertEqual("1", kwargs["env"]["GIT_NO_REPLACE_OBJECTS"])
                 self.assertEqual("[extend]\nuseDefault = true\n", (private / "built-in-rules.toml").read_text())
                 self.assertEqual("", (private / "empty-ignore").read_text())
                 (private / "history.json").write_text("[]")
@@ -163,7 +164,7 @@ class SecretCheckTest(unittest.TestCase):
                 return subprocess.CompletedProcess(args, 0, "", "")
             with patch.dict(os.environ, {"GITLEAKS_CONFIG": "unreviewed", "GITLEAKS_CONFIG_TOML": "unreviewed",
                                          "GIT_TRACE2_EVENT": "unreviewed", "GIT_TRACE2_EVENT_BRIEF": "0",
-                                         "GIT_TRACE2_EVENT_NESTING": "0"}), \
+                                         "GIT_TRACE2_EVENT_NESTING": "0", "GIT_NO_REPLACE_OBJECTS": "0"}), \
                     patch.object(check.subprocess, "run", side_effect=run):
                 self.assertEqual({"exit_code": 0, "finding_count": 0, "findings": []},
                                  check.scan(Path("scanner"), Path("repository"), private, "history", history=True))
@@ -223,6 +224,31 @@ class SecretCheckTest(unittest.TestCase):
                     patch.object(check, "git", side_effect=lambda *args: inputs[args]):
                 with self.assertRaises(check.ScanFailure):
                     check.inspect_source()
+
+    def test_source_metadata_uses_literal_objects_with_replacement_refs(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            repository = Path(temporary)
+            env = dict(os.environ, GIT_AUTHOR_NAME="Synthetic Source Fixture",
+                       GIT_AUTHOR_EMAIL="fixture@example.invalid", GIT_COMMITTER_NAME="Synthetic Source Fixture",
+                       GIT_COMMITTER_EMAIL="fixture@example.invalid")
+            def fixture_git(*args, input=None):
+                result = subprocess.run(["git", *args], cwd=repository, env=env, input=input,
+                                        capture_output=True, text=True, timeout=10)
+                self.assertEqual(0, result.returncode, "Temporary source fixture construction failed")
+                return result.stdout.strip()
+            fixture_git("init", "--bare", "--quiet")
+            empty = fixture_git("mktree", input="")
+            first = fixture_git("commit-tree", empty, "-m", "Synthetic initial source")
+            blob = fixture_git("hash-object", "-w", "--stdin", input="Synthetic source metadata control.\n")
+            tree = fixture_git("mktree", input="100644 blob " + blob + "\tfixture.txt\n")
+            head = fixture_git("commit-tree", tree, "-p", first, "-m", "Synthetic current source")
+            fixture_git("update-ref", "refs/heads/main", head)
+            fixture_git("symbolic-ref", "HEAD", "refs/heads/main")
+            fixture_git("replace", head, first)
+            with patch.object(check, "ROOT", repository):
+                self.assertEqual(head, check.git("rev-parse", "HEAD"))
+                self.assertEqual(tree, check.git("rev-parse", "HEAD^{tree}"))
+                self.assertEqual("2", check.git("rev-list", "--count", "HEAD"))
 
 
 class HistoryCompletionTest(unittest.TestCase):

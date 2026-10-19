@@ -296,7 +296,7 @@ def scan(binary: Path, target: Path, directory: Path, name: str, *, history: boo
            if key not in ("GITLEAKS_CONFIG", "GITLEAKS_CONFIG_TOML")}
     if history:
         env.update(GIT_TRACE2_EVENT=str(trace.absolute()), GIT_TRACE2_EVENT_BRIEF="1",
-                   GIT_TRACE2_EVENT_NESTING="1")
+                   GIT_TRACE2_EVENT_NESTING="1", GIT_NO_REPLACE_OBJECTS="1")
     result = subprocess.run(args, env=env, capture_output=True, text=True, timeout=140)
     # Raw streams stay in memory; raw finding files stay in private temporary storage.
     require(result.returncode in (0, 10), f"Scanner execution failed with exit {result.returncode}")
@@ -422,6 +422,10 @@ def verify_detection_and_removal(binary: Path, directory: Path) -> dict:
     require(merged["exit_code"] == 10 and merged["finding_count"] == 2 and all(
             row == {"rule_id": "github-pat", "file": "fixture.txt", "line": 1, "commit": merge}
             for row in merged["findings"]), "Merge-only seeded credential was not detected")
+    fixture_git("replace", merge, first)
+    replaced = scan(binary, merge_repo, directory, "literal-history", history=True)
+    require(replaced == merged, "Local Git replacement refs changed the literal history scan")
+    fixture_git("replace", "-d", merge)
 
     # Force text patches for both contributor-controlled -diff attributes and
     # Git's automatic binary classification; neither may conceal source bytes.
@@ -489,11 +493,12 @@ def verify_detection_and_removal(binary: Path, directory: Path) -> dict:
             "history_completion_controls_passed": True,
             "binary_history_exit_code": 10, "binary_history_findings": 2,
             "binary_fixture_commit": binary_commit,
-            "merge_only_exit_code": 10, "merge_only_findings": 2, "merge_fixture_commit": merge}
+            "merge_only_exit_code": 10, "merge_only_findings": 2, "merge_fixture_commit": merge,
+            "literal_history_exit_code": 10, "literal_history_findings": 2}
 
 
 def git(*args: str) -> str:
-    result = subprocess.run(["git", *args], cwd=ROOT, capture_output=True, text=True, timeout=30)
+    result = subprocess.run(["git", "--no-replace-objects", *args], cwd=ROOT, capture_output=True, text=True, timeout=30)
     require(result.returncode == 0, "Required Git source inspection failed")
     return result.stdout.strip()
 
