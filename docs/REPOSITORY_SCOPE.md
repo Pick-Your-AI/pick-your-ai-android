@@ -93,6 +93,17 @@ It changes no implementation, other acceptance path, shared authority, operating
 commitment or release qualification. Canonical ledger reconciliation follows the
 actual reviewed record delivery.
 
+[ADR 0010](decisions/0010-android-84-acceptance-record.md) separately proposes
+placing only #84's [09.01 evaluator record](delivery/android/work-packages/09.01.md)
+in Android after its independent receiving review and normal reviewed delivery.
+It records the selected local retained-snapshot diagnostic interface, exact
+reference/configuration and native evidence, source-versus-observation identities,
+and explicit unsupported/unknown/current-request boundaries. The intended website
+path remains history. Available #49/#58 and transitive #21 outputs are received
+only at their stated scope; this decision changes no prerequisite edge or other
+work package. Shared services, qualified external metrics and product/device
+release retain their existing authorities.
+
 The existing website remains static. The selected future server package is
 separately built/deployed at `Pick-Your-AI/pickyour.ai/services/planner-api` only
 through canonical owner/coordinator and operations review before dependent code;
