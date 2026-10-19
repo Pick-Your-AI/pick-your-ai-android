@@ -11,7 +11,7 @@ acceptance, publisher registration, device qualification and release remain
 separate gates in the [repository scope](REPOSITORY_SCOPE.md).
 
 The current diagnostic browses the unmodified frozen-v1 catalog and supports typed
-draft editing, explicit local save/reopen, a local library, retained history and
+draft editing, automatic valid-form saves, explicit save/reopen, a local library, retained history and
 read-only comparison and report inspection. The fixture diagnostics operate on
 the original bundled inputs; they do not evaluate the edited guest draft, whose
 compatibility remains **unknown**. Fixtures are bundled directly from the verified
@@ -24,9 +24,10 @@ Activity discards worker results. An explicit saved-state Bundle carries bounded
 pending inputs, draft identity, the acknowledged baseline and exact catalog pins;
 the catalog and durable state are reloaded after recreation. A missing exact
 selection is shown as unavailable, never silently replaced. Bundle restoration
-does not acknowledge persistence. Explicit Save uses the canonical revision
+does not acknowledge persistence. Automatic form saves and explicit Save use the canonical revision
 store; the local library and recovery flows below retain their own validation
-limits. Autosave and installed process-death qualification remain separate.
+limits. The [autosave continuation](AUTOSAVE_REVIEW.md) records its captured-input,
+failure and recreation boundaries; installed process-death qualification remains separate.
 
 ## Reproduce
 
@@ -202,7 +203,7 @@ Lint reported no issues. The frozen hash verifier and 21 Python reference tests
 also passed. No rendered-device, TalkBack or installation result is claimed.
 
 
-## Explicit local guest save and reopen
+## Local guest save and reopen
 
 The guest form now uses [PreviewDraftPersistence](../core/src/main/kotlin/ai/pickyour/core/preview/PreviewDraftPersistence.kt)
 over the canonical `LocalDraftStore`; no second persistence engine, shared Draft
@@ -214,23 +215,31 @@ Missing version/hash stays unresolved, and catalog replacement never silently
 selects a new version. The sample is displayed as unavailable until the user
 explicitly selects a current sample or clears the form.
 
-Save is explicit, not autosave. The UI displays saving only during the worker
-transaction and saved only after `PreviewDraftSave.Saved`. All edits/selection
-controls are temporarily disabled during load/save; duplicate saves are disabled.
-The single worker serializes IO. Failure preserves visible fields; stale tokens
-block saving until explicit reopen, and uncertain outcomes require reread before
-retry. Reopen requires confirmation before replacing the visible unsaved form.
-Clear modifies the form only; a later Save commits an empty form as a new revision
-and retains old history. Unsupported/corrupt persisted formats are never reset.
-History/size exhaustion has distinct feedback and never trims revisions silently.
+Valid form edits schedule a save after 750 milliseconds without another edit;
+**Save locally** commits them immediately. An unedited missing draft is not
+automatically created. The same single worker performs canonical persistence.
+The UI displays saving while the write is pending and saved only after
+`PreviewDraftSave.Saved` matches the currently visible complete form. Title,
+objective, context and workload inputs remain editable during a form save. Newer
+inputs stay visibly unconfirmed and are queued using the acknowledged baseline
+only after success. Navigation and explicit domain commands stay disabled during
+that write; load/domain operations still freeze form editing.
+
+Failure preserves visible fields and pauses automatic retries. The pause survives
+recreation; an explicit Save retries a known failed write. Stale or uncertain
+authority requires confirmed reopen before any retry. Reopen replaces the visible
+form only after confirmation and a successful load. Clear and history form-copy
+are ordinary pending edits; their valid complete form is saved after the pause or
+by Save locally. Old history remains retained. Unsupported/corrupt formats are
+never reset, and history/size exhaustion never silently trims earlier revisions.
 
 On recreation the form's small Bundle preserves pending fields; disk load establishes
 which fields are actually acknowledged. Bundle restoration is never itself a saved
 acknowledgment. Destroyed activities ignore worker callbacks. Interrupted storage
 may return failure/uncertainty; the next load reopens the canonical head. Unsaved
 edits can still be lost if Android stops the app without saved-instance restoration;
-this limitation is visible. Rapid editing, autosave and full draft-library workflow
-remain separate acceptance work rather than a promised no-loss property.
+this limitation is visible. The new [autosave source/tests](AUTOSAVE_REVIEW.md)
+do not establish installed process-death recovery or a general no-loss property.
 
 Root initialization runs off the UI thread. It synchronizes the platform-managed
 app-data parent after requesting the no-backup directory, creates the dedicated
@@ -262,9 +271,9 @@ PR head; emulator/device, TalkBack, rotation and process-termination flows remai
 unexecuted until an instrumented installation is actually tested. This change does
 not generate a signing key or install/release an app.
 
-Partial criteria: #86 local open/save and recovery; #67 canonical storage integration;
+Historical explicit-save slice: #86 local open/save and recovery; #67 canonical storage integration;
 #122 acknowledgment and retained pending fields; #76 lifecycle restoration. Still
-missing are recoverable draft deletion, autosave/domain revision UI,
+missing at that earlier source checkpoint were recoverable draft deletion, autosave/domain revision UI,
 retention UX, installed-process-death evidence and receiving acceptance. Canonical
 records remain `11.01.md`, `12.01.md`, `08.06.md` and `02.03.md` under the existing
 website Android work-package path. No issue closes.
@@ -277,9 +286,9 @@ or unsupported private guest metadata is shown as unavailable; it is not replace
 with an empty or current form. Migrated missing earlier history remains unavailable.
 
 Choosing a usable entry asks before replacing unsaved form edits. Confirmation
-copies only its guest fields into the editor, with no storage side effect. The user
-must explicitly Save locally to append a new EDIT using the current expected-head
-token. Existing domain content and current unrelated metadata stay intact. This is
+copies only its guest fields into the editor. A subsequent automatic or explicit
+form save appends a new EDIT using the current expected-head token. Existing
+domain content and current unrelated metadata stay intact. This is
 not canonical domain RESTORE, a report/price replay, or a complete revision editor.
 A dialog whose captured baseline was superseded by another in-Activity operation
 cannot copy into the editor; a different writer still fails the canonical save CAS.
@@ -418,7 +427,8 @@ snapshot validation. No issue acceptance or device qualification is claimed.
 
 Partial #122 integration now exposes a separate **Review domain restore** action
 from a supported retained history entry. The existing **Copy form to editor**
-operation still copies title/sample only and requires a later explicit save.
+operation still copies title/sample only and requires a subsequent automatic or
+explicit form save.
 Domain restore instead previews retained objective/context, opaque primary-model
 input and optional-tier activation/selection/setting counts. Its second explicit
 confirmation commits `LocalDraftStore.restore` with the original loaded token.
