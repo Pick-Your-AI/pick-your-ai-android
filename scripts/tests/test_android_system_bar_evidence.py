@@ -1170,8 +1170,6 @@ class SystemBarEvidenceTests(unittest.TestCase):
             'duplicate_correct_prefix': source.replace(outlier, '        ' + outlier.lstrip('\t') + outlier),
             'malformed_scalar': source.replace('98.0px (56.0dp)', 'not-a-dimension'),
             'nonfinite_scalar': source.replace('98.0px', 'NaNpx'),
-            'zero_scalar': source.replace('98.0px', '0px'),
-            'negative_scalar': source.replace('56.0dp', '-1dp'),
             'before_own_profile': source.replace(outlier, '').replace('      DeviceProfile:\n',
                                                                      outlier + '      DeviceProfile:\n'),
             'foreign_boundary': source.replace('        isPhone:true\n',
@@ -1229,7 +1227,6 @@ class SystemBarEvidenceTests(unittest.TestCase):
             'foreign_heading': source.replace('desiredWorkspaceHorizontalMarginPx:', 'ForeignProfile:'),
             'capitalized_name': source.replace('desiredWorkspaceHorizontalMarginPx:', 'DesiredWorkspaceHorizontalMarginPx:'),
             'underscore_name': source.replace('desiredWorkspaceHorizontalMarginPx:', 'workspace_marginPx:'),
-            'missing_px_name_suffix': source.replace('desiredWorkspaceHorizontalMarginPx:', 'desiredWorkspaceHorizontalMargin:'),
             'overlong_name': source.replace('desiredWorkspaceHorizontalMarginPx:', 'a' * 66 + 'Px:'),
             'one_tab': source.replace(metric, metric[1:]),
             'spaces_only': source.replace(metric, metric.replace('\t', ' ')),
@@ -1238,8 +1235,6 @@ class SystemBarEvidenceTests(unittest.TestCase):
             'extra_suffix': source.replace('14.0px (8.0dp)', '14.0px (8.0dp) extra'),
             'nonfinite_px': source.replace('14.0px', 'NaNpx'),
             'nonfinite_dp': source.replace('8.0dp', 'Infinitydp'),
-            'zero_px': source.replace('14.0px', '0px'),
-            'negative_dp': source.replace('8.0dp', '-8.0dp'),
             'overlong_number': source.replace('14.0px', '1' * 33 + 'px'),
             'before_profile': source.replace(metric, '').replace('      DeviceProfile:\n',
                                                                  metric + '      DeviceProfile:\n'),
@@ -1332,6 +1327,71 @@ class SystemBarEvidenceTests(unittest.TestCase):
             with self.subTest(raw=result):
                 self.assertTrue(SMOKE.taskbar_state_fields_pass(result))
                 self.assertTrue(SMOKE.system_bar_evidence_passes(state))
+                self.assertEqual(state, saved)
+
+
+    def test_taskbar_optional_finite_zero_signed_and_dotted_measurements_keep_raw_data(self):
+        # Five spellings/values come from qualified555 data. The surrounding
+        # fixture and prefix-removal variants are synthetic, not installed captures.
+        observed = (
+            'iconSizePx: 0.0px (0.0dp)',
+            'mHotseatWidthPx: 0.0px (0.0dp)',
+            'taskbarHeight: 0.0px (0.0dp)',
+            'workspacePadding.bottom: 135.0px (77.14286dp)',
+            'windowX: 0.0px (0.0dp)',
+        )
+        # Preserve the exact former optional-value/name negatives as positives.
+        # Their values cannot supply any required dimension or state.
+        synthetic = (
+            'folderChildIconSizePx: 0px (56.0dp)',
+            'folderChildIconSizePx: 98.0px (-1dp)',
+            'desiredWorkspaceHorizontalMargin: 14.0px (8.0dp)',
+            'desiredWorkspaceHorizontalMarginPx: 0px (8.0dp)',
+            'desiredWorkspaceHorizontalMarginPx: 14.0px (-8.0dp)',
+            'windowOffset.left: -1.0E2px (+0.0dp)',
+        )
+        groups = [(line,) for line in observed + synthetic] + [observed]
+        for fields in groups:
+            raw = taskbar_text().replace('    AssistStateManager:\n',
+                ''.join('\t\t' + line + '\n' for line in fields) + '    AssistStateManager:\n')
+            state = self.passing_state()
+            self.rebound_taskbar(state, raw)
+            saved = copy.deepcopy(state)
+            with self.subTest(fields=fields):
+                self.assertTrue(SMOKE.taskbar_state_fields_pass(raw))
+                self.assertTrue(SMOKE.system_bar_evidence_passes(state))
+                self.assertEqual(state, saved)
+
+    def test_taskbar_optional_finite_measurements_exclude_authority_and_malformed_names(self):
+        metric = '\t\tworkspacePadding.bottom: 135.0px (77.14286dp)\n'
+        source = taskbar_text().replace('    AssistStateManager:\n',
+                                       metric + '    AssistStateManager:\n')
+        names = (
+            '.workspacePadding', 'workspacePadding.', 'workspacePadding..bottom',
+            'workspacePadding.Bottom', 'workspace_padding.bottom', 'workspacePadding[0]',
+            'a' * 65, 'widthPx', 'heightPx', 'availableWidthPx', 'availableHeightPx',
+            'isTablet', 'isPhone', 'transposeLayoutWithOrientation', 'isGestureMode',
+            'isLandscape', 'isMultiWindowMode', 'isTwoPanels', 'isLeftRightSplit',
+            'isTaskbarPresent', 'isTaskbarPresentInApps', 'mNavMode', 'mImeDrawsImeNavBar',
+            'mIsUserSetupComplete', 'mBindInProgress', 'mWindowLayoutParams.height', 'mState',
+            'mTaskbarNavButtonDarkIntensity', 'mSlideInViewVisibleNavButtonColorOverride',
+            'mOnTaskbarBackgroundNavButtonColorOverride', 'mOnBackgroundNavButtonColorOverrideMultiplier',
+        )
+        candidates = {name: source.replace('workspacePadding.bottom:', name + ':') for name in names}
+        candidates['duplicate_dotted_name'] = source.replace(metric, metric + metric)
+        candidates['duplicate_prefixed_dotted_name'] = source.replace(metric, '    ' + metric + metric)
+        candidates['missing_scalar_px'] = source.replace('135.0px', 'px')
+        candidates['missing_scalar_dp'] = source.replace('77.14286dp', 'dp')
+        candidates['infinite_scalar'] = source.replace('135.0px', '-Infinitypx')
+        candidates['nonliteral_scalar'] = source.replace('135.0px', '0x10px')
+        candidates['oversized_exponent'] = source.replace('135.0px', '1e' + '9' * 31 + 'px')
+        for label, raw in candidates.items():
+            state = self.passing_state()
+            self.rebound_taskbar(state, raw)
+            saved = copy.deepcopy(state)
+            with self.subTest(label=label):
+                self.assertFalse(SMOKE.taskbar_state_fields_pass(raw))
+                self.assertFalse(SMOKE.system_bar_evidence_passes(state))
                 self.assertEqual(state, saved)
 
 if __name__ == '__main__':

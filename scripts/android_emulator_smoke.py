@@ -1492,20 +1492,36 @@ def taskbar_state_fields_pass(text: str) -> bool:
         return False
 
     # TransferPipe can omit its wrapper prefix after a read starts with LF.
-    # Only optional positive measurement data in this completed own profile
-    # may use the observed two-tab client prefix. Raw text is never rewritten,
-    # and these indices cannot supply a required field or a structural heading.
-    required_dimensions = {"widthPx", "heightPx", "availableWidthPx", "availableHeightPx"}
+    # Only complete optional measurement data in this own profile may use the
+    # observed two-tab client prefix. Raw text and authoritative depths stay exact.
+    authoritative_names = {
+        "widthPx", "heightPx", "availableWidthPx", "availableHeightPx", "1 dp",
+        "isTablet", "isPhone", "transposeLayoutWithOrientation", "isGestureMode",
+        "isLandscape", "isMultiWindowMode", "isTwoPanels", "isLeftRightSplit",
+        "isTaskbarPresent", "isTaskbarPresentInApps", "mNavMode", "mImeDrawsImeNavBar",
+        "mIsUserSetupComplete", "mBindInProgress", "mWindowLayoutParams.height", "mState",
+        "mTaskbarNavButtonDarkIntensity", "mSlideInViewVisibleNavButtonColorOverride",
+        "mOnTaskbarBackgroundNavButtonColorOverride", "mOnBackgroundNavButtonColorOverrideMultiplier",
+    }
+
+    def finite_measurements(values):
+        try:
+            return all(len(value) <= 32 and re.fullmatch(number, value) is not None
+                       and Decimal(value).is_finite() for value in values)
+        except InvalidOperation:
+            return False
+
     measurement_names = {}
     for index in range(profile[0] + 1, completion[0]):
-        name = re.match(r"^[ \t]*([a-z][A-Za-z0-9]{0,63}Px):", lines[index])
+        name = re.match(r"^[ \t]*([a-z][A-Za-z0-9.]{0,63}):", lines[index])
         if name is not None:
             measurement_names[name[1]] = measurement_names.get(name[1], 0) + 1
     scalar_indices = set()
     for index in range(profile[0] + 1, completion[0]):
-        match = re.fullmatch(r"\t\t([a-z][A-Za-z0-9]{0,63}Px): (\S+)px \((\S+)dp\)", lines[index])
-        if (match is not None and match[1] not in required_dimensions
-                and measurement_names[match[1]] == 1 and positive(match.groups()[1:])):
+        match = re.fullmatch(r"\t\t([a-z][A-Za-z0-9.]{0,63}): (\S+)px \((\S+)dp\)", lines[index])
+        if (match is not None and match[1] not in authoritative_names
+                and re.fullmatch(r"[a-z][A-Za-z0-9]*(?:\.[a-z][A-Za-z0-9]*)*", match[1]) is not None
+                and measurement_names[match[1]] == 1 and finite_measurements(match.groups()[1:])):
             scalar_indices.add(index)
 
     if (any(lines[index].strip() and indentation(lines[index]) <= manager[1]

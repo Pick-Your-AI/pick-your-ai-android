@@ -2455,3 +2455,43 @@ All four unchanged original555 parser replays and a new configured receiving
 result remain separately required. The earlier efe55-pass
 qualification6260931149 remains attributed to its own source and original298
 streams; it does not qualify this continuation automatically.
+
+#### Finite optional scalar correction after original555 replay
+
+The [exact3e0 original replay6262252847](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/467#issuecomment-6262252847)
+admits all eight unchanged555/298 Taskbar streams with the initial72ec parser,
+while both original failed receipts remain failed. The same qualified reader
+reproduced five additional prefix-only compatibility failures using valid
+measurements from original555: iconSizePx and mHotseatWidthPx at zero,
+taskbarHeight at zero, workspacePadding.bottom at135px, and windowX at zero.
+These are explicitly synthetic derivatives of unchanged original data, not
+new installed captures. The TransferPipe prefix mechanism does not depend on
+the field name or the sign of its dimensional value.
+
+The final rule therefore admits finite optional measurements, including zero
+and signed values, with a bounded lower-case/camel-case dotted property name.
+Names contain at most64 ASCII characters; each dot separates nonempty
+lower-case-initial alphanumeric components. Each px/dp token retains the
+existing32-character literal finite-number limit. The allowance still requires
+exactly two client tabs inside the completed own DeviceProfile, and a repaired
+name must occur exactly once across prefixed and unprefixed forms. It does not
+normalize original bytes or reinterpret any scalar as authoritative data.
+
+Every existing required name is explicitly excluded, including the four
+dimensions, profile flags, context state and controller fields. Required
+density and dimensions remain strictly positive with their exact original
+depth and uniqueness checks. Names with empty/foreign/oversized components,
+nonliteral/nonfinite values, duplicates, missing fields, structural escapes,
+incomplete sections and forwarding errors remain unqualified.
+
+The two old optional zero/signed negative expectations and the three3e0
+name/sign restrictions move to explicit positive coverage; their surrounding
+structural and malformed-input controls remain. Two new methods cover all
+five qualified observed spellings, those precise formerly rejected values,
+a clearly synthetic signed dotted offset, all authoritative names and further
+malformed/duplicate/oversized controls. All other56 prior method bodies remain
+exact. The3e0 checkpoint and its actual58-pass/seven-causal-failure records are
+preserved at their original source identities. Final host results and all eight
+unchanged-original parser replays are recorded separately before accepting
+the one new configured receiving result. No product/image/timer/ACL change is
+introduced.
