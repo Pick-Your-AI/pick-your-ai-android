@@ -19,6 +19,13 @@ document that distinction and preserve the reference schema outcomes.
 
 An inspected result owns immutable values and a serialized snapshot containing every original line, quantity basis, rate ID, assumption, warning and decimal string. This private material is not a public export; callers must apply disclosure policy. Default diagnostic strings do not print its content. Caller streams remain open.
 
+The inspector also retains a private immutable copy of the supplied Build's
+complete parsed values and exposes `recordedBuildJson`. The
+[recorded cost comparator](RECORDED_COST_COMPARISON.md) uses that copy to detect
+conflicting content at the same Build identity. Both serialized records preserve
+values and literal decimal strings; they are not authenticated original-byte
+archives. This adds no stronger price, freshness or current-draft acceptance.
+
 ## Safe interpretation
 
 `declaredCoverage` records what the producer said; it is not accepted coverage. `reportedSubtotal`, `reportedTax` and `reportedTotal` deliberately remain reported values. For partial/unknown coverage, the reported total is not a complete stack price or a proven lower bound. No omitted selection is assigned a zero amount. Explicit reported zero is preserved, but does not prove free/included billing.
