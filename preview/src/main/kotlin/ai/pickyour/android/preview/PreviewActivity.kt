@@ -115,6 +115,7 @@ class PreviewActivity : Activity() {
         }
     private var restoringFields = false
     private var restoration: PreviewDraftRestoration? = null
+    private lateinit var resourceInspection: ResourceInspectionSection
     private lateinit var findings: FindingsInspectionSection
     private lateinit var snapshots: SnapshotEvaluationSection
     private lateinit var diagnostics: LocalDiagnostics
@@ -407,6 +408,8 @@ class PreviewActivity : Activity() {
         }
         content.addView(run)
         CostInspectionSection(this, worker) { !destroyed }.attach(content)
+        resourceInspection = ResourceInspectionSection(this, worker, { !destroyed && diagnosticsResumed }, catalog::cancelViewportRestore)
+        resourceInspection.attach(content)
         findings = FindingsInspectionSection(this, worker) { !destroyed }
         findings.attach(content)
         snapshots = SnapshotEvaluationSection(this, worker) { !destroyed && diagnosticsResumed }
@@ -1622,6 +1625,7 @@ class PreviewActivity : Activity() {
         if (::diagnostics.isInitialized) diagnostics.dismiss()
         if (::help.isInitialized) help.dismiss()
         if (::snapshots.isInitialized) snapshots.dismiss()
+        if (::resourceInspection.isInitialized) resourceInspection.dismiss()
         super.onPause()
     }
 
@@ -1633,6 +1637,7 @@ class PreviewActivity : Activity() {
         savingInput = null
         if (::findings.isInitialized) findings.close()
         if (::snapshots.isInitialized) snapshots.close()
+        if (::resourceInspection.isInitialized) resourceInspection.close()
         if (::diagnostics.isInitialized) diagnostics.close()
         if (::help.isInitialized) help.close()
         if (::catalogPinRecovery.isInitialized) catalogPinRecovery.close()

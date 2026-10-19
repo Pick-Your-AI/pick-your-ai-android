@@ -1005,3 +1005,10 @@ new navigation cancels a pending restoration. Twelve required simulated tests co
 the actual Activity's details/recreation path and the restoration, mismatch,
 loading, lifecycle and input boundaries. Installed navigation, accessibility,
 process-death and canonical receiving evidence remain separate requirements.
+
+## Recorded resource input inspection
+
+The [resource inspection guide](RECORDED_RESOURCE_INSPECTION.md) describes the explicit
+synthetic Build/ResourceEstimate reader and complete native field browser. It keeps
+all applicability limits, recorded conditions and the separate guest autosave authority
+visible; it produces no accepted capacity or memory-fit result.
