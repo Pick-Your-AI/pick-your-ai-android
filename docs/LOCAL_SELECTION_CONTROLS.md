@@ -60,6 +60,13 @@ text or query values. Frozen/history decoding, retained records, role-only edits
 and replacement remain unchanged; this does not complete #99 or qualify exports,
 diagnostics, installed-device behavior or release.
 
+New Activity captures of open add/settings forms also exclude positively
+recognized URI user information under the same five-field policy. They retain
+only a fixed exclusion reason, without clearing the live correction text or
+changing save authority. Ordinary malformed text, legitimate URI spelling and
+legacy raw recovery remain distinct. See the exact bounds, compatibility and
+remaining privacy scope in [component form recovery](COMPONENT_FORM_RECOVERY.md#uri-user-information-in-newly-captured-settings).
+
 Role and settings editors keep multiline input literal and request
 [no dictionary suggestions](https://developer.android.com/reference/android/text/InputType#TYPE_TEXT_FLAG_NO_SUGGESTIONS)
 and [no personalized keyboard learning](https://developer.android.com/reference/android/view/inputmethod/EditorInfo#IME_FLAG_NO_PERSONALIZED_LEARNING).
