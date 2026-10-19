@@ -52,6 +52,46 @@ jobs:
         run: sha256sum --check gradle/wrapper/wrapper.sha256
       - name: Compile and test JVM core
         run: ./gradlew --no-daemon --dependency-verification=strict --init-script scripts/runtime_inventory.init.gradle.kts :core:check :core:assemble runtimeInventory
+      - name: Require typed private-draft compatible-option regressions
+        run: |
+          python - <<'PYCANDIDATES'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          name = "ai.pickyour.core.evaluation.DraftCompatibleOptionsTest"
+          required = {
+              "emptyStoredDraftKeepsFoundationFailureAndSeparatesNewFailureAndUnknown()",
+              "oneSelectionReplacementAndTwoSelectionBaselineUsePrivateAdmissionOnly()",
+              "storedSecondaryNeverPromotesIntoAnEmptiedPrimaryAndRealConflictsRemain()",
+              "secondaryReplacementPreservesTheOriginalPrimaryAndExactIncidentLinks()",
+              "absentSharedIdentityPolicyAndObjectiveValuesAreNeverSynthesized()",
+              "enteredWorkloadValuesPreserveExactDecimalsAndMissingValuesRemainUnknown()",
+              "currentCompleteTypedFindingsEqualTheExistingFrozenInterpreter()",
+              "rawFloatingCandidateOperandRejectsTheWholeBatchWithoutPartialOptions()",
+              "artifactHashIdentityVersionAndExistingSelectionKindMismatchRejectBeforeEvaluation()",
+              "invalidSlotsDuplicateCandidatesAndRegistryCardinalityCannotBecomeImplicitAdds()",
+              "candidateCountWorkBudgetAndCancellationWithholdTheEntireResult()",
+              "capturedInputsAndReturnedCollectionsCannotBeMutatedThroughCallerObjects()",
+              "sameStoredHashInDifferentStoresAndChangedRuleBytesHaveDifferentBindings()",
+              "realStoredEditAndRoleChangeRetireEarlierResultsBeforeQueuedStartOrDelivery()",
+              "repeatedSameByteCaptureRetryAndCancelRejectForeignAttemptAuthority()",
+              "staleCandidateDoesNotBypassTheActualStoreCommandRevisionGuard()",
+              "nativeAdapterCapturesOnlyTheAcknowledgedRecordAndRejectsOtherRecordMembership()",
+              "typedNativeBridgeKeepsExactArtifactPinsAndRawFloatingSelectionSemantics()",
+              "realOptionalIntentWithholdsContradictionsButAllowsFillingEnabledEmptySlots()",
+          }
+          suite = ET.parse(pathlib.Path("core/build/test-results/test") / f"TEST-{name}.xml").getroot()
+          cases = suite.findall("testcase")
+          names = [case.attrib["name"] for case in cases]
+          if suite.attrib.get("name") != name or any(case.attrib.get("classname") != name for case in cases):
+              raise SystemExit("Foreign private-draft candidate results")
+          if set(names) != required or len(names) != len(required):
+              raise SystemExit("Missing, unexpected or repeated private-draft candidate regression")
+          if int(suite.attrib["tests"]) != len(cases) or any(int(suite.attrib.get(key, "0")) for key in ("failures", "errors", "skipped")):
+              raise SystemExit("Private-draft candidate totals contradict passing execution")
+          if any(case.findall("failure") or case.findall("error") or case.findall("skipped") for case in cases):
+              raise SystemExit("Private-draft candidate regression did not pass")
+          print(f"Verified {len(cases)} typed private-draft candidate cases; no shared Build admission or native claim")
+          PYCANDIDATES
       - name: Require environment admission core regressions
         run: |
           python - <<'PYENVIRONMENT'
@@ -130,6 +170,11 @@ jobs:
           import pathlib
           import xml.etree.ElementTree as ET
           expected = {
+              'ai.pickyour.core.evaluation.CompatibleOptionsAbsentLockCausalReplayTest': {
+                  'presentOptionalLockRetainsItsExactIdentityThroughEvaluationAndDelivery()',
+                  'omittedOptionalLockRemainsAbsentThroughAdmittedEvaluationAndDelivery()',
+                  'explicitNullLockRemainsRejectedByTheUnchangedFrozenBoundary()',
+              },
               'ai.pickyour.core.preview.PreviewCatalogRetentionTest': {
                   'retained pins survive replacement and reopen without changing another cache head()',
                   'invalid unsupported and oversized snapshots never provision a cache()',
@@ -1321,6 +1366,38 @@ jobs:
               raise SystemExit("Retained-revision pair result count does not match executed cases")
           print(f"Verified {len(cases)} simulated retained-revision pair tests; no installed-device claim")
           PYTEST
+      - name: Require actual native compatible-picker caller regressions
+        run: |
+          python - <<'PYCANDIDATES'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          name = "ai.pickyour.android.preview.CompatibleOptionsActivityTest"
+          required = {
+              "blankSavedDraftKeepsInheritedFoundationFailureAndUsesActualCanonicalAdd",
+              "actualFrozenRulesExposeUnknownAndConflictingChoicesWithSeparateReasons",
+              "secondaryReplacementKeepsPrimaryExactAndRetainsRoleIdentitySettingsAndLinks",
+              "roleAndSettingsAbaEditsRetireQueuedPreparationAndOldRetryCannotReviveIt",
+              "pendingDraftEditAndRevertDiscardVisibleResultsAndRetainedConfirmation",
+              "actualStoreRevisionConflictCannotBeOverwrittenByAStillVisibleOlderChoice",
+              "catalogReloadPauseAndRecreationRetireOldNativeChoiceAuthority",
+              "pagedRecalculationClearsOldRowsAndPreservesCatalogBrowseContext",
+              "unavailableRoleAndDisabledProposalNeverBecomeApparentlyCompatible",
+              "narrowLargeTextPickerExposesScrollableFiltersStatusAndChoiceTargets",
+              "disabledOptionalTierIsWithheldUntilAnExplicitSavedActivation",
+          }
+          suite = ET.parse(pathlib.Path("preview/build/test-results/testDebugUnitTest") / f"TEST-{name}.xml").getroot()
+          cases = suite.findall("testcase")
+          names = [case.attrib["name"] for case in cases]
+          if suite.attrib.get("name") != name or any(case.attrib.get("classname") != name for case in cases):
+              raise SystemExit("Foreign native compatible-picker results")
+          if set(names) != required or len(names) != len(required):
+              raise SystemExit("Missing, unexpected or repeated native compatible-picker regression")
+          if int(suite.attrib["tests"]) != len(cases) or any(int(suite.attrib.get(key, "0")) for key in ("failures", "errors", "skipped")):
+              raise SystemExit("Native compatible-picker totals contradict passing execution")
+          if any(case.findall("failure") or case.findall("error") or case.findall("skipped") for case in cases):
+              raise SystemExit("Native compatible-picker regression did not pass")
+          print(f"Verified {len(cases)} actual simulated Activity/store picker cases; no installed-device claim")
+          PYCANDIDATES
       - name: Require typed local draft load recovery regressions to execute
         run: |
           python - <<'PYTEST'
@@ -1507,6 +1584,38 @@ jobs:
           if int(suite.attrib["tests"]) != len(cases):
               raise SystemExit("Recorded selection context result count does not match executed cases")
           print(f"Verified {len(cases)} simulated recorded selection context tests; no installed-device claim")
+          PYTEST
+      - name: Require provisional finding guidance regressions
+        run: |
+          python - <<'PYTEST'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          expected = {
+              'ai.pickyour.android.preview.FindingsGuidancePresentationTest': {
+                  'canonicalUnknownSkippedAndSeverityRemainIndependent',
+                  'missingRequiredChoiceHasIncompleteGuidanceWithoutChangingItsFailure',
+                  'presentConflictingComponentsHaveReportedIncompatibilityGuidance',
+                  'mixedMissingChoiceAndComponentConflictKeepSeparateGuidance',
+              },
+              'ai.pickyour.android.preview.SnapshotFindingGuidanceActivityTest': {
+                  'actualRetainedMixedFailuresShowDistinctGuidanceWithoutChangingPendingDraft',
+                  'changedRetainedRuleContentKeepsCanonicalFailuresWithoutProvisionalClassification',
+              },
+          }
+          total = 0
+          for name, required in expected.items():
+              path = pathlib.Path('preview/build/test-results/testDebugUnitTest') / ('TEST-' + name + '.xml')
+              suite = ET.parse(path).getroot()
+              cases = suite.findall('testcase')
+              names = [case.attrib['name'] for case in cases]
+              if suite.attrib.get('name') != name or set(names) != required or len(names) != len(set(names)):
+                  raise SystemExit('Missing, foreign or repeated provisional guidance regression')
+              if int(suite.attrib['tests']) != len(cases) or any(int(suite.attrib.get(key, '0')) for key in ('failures', 'errors', 'skipped')):
+                  raise SystemExit('Provisional guidance attendance is not a complete passing result')
+              if any(case.attrib.get('classname') != name or case.findall('failure') or case.findall('error') or case.findall('skipped') for case in cases):
+                  raise SystemExit('Provisional guidance regression did not pass')
+              total += len(cases)
+          print(f'Verified {total} simulated provisional guidance cases; no installed-device claim')
           PYTEST
       - name: Require current-choice accessibility regressions
         run: |

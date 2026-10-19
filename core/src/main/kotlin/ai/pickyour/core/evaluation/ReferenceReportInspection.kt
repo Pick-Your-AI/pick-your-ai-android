@@ -11,6 +11,7 @@ data class ReferenceFindingView(
     val ruleId: String, val outcome: String, val severity: String, val code: String,
     val message: String, val remediation: String?, val selectionIds: List<String>, val evidence: List<ReferenceEvidenceView>,
     val selectionContexts: List<ReferenceSelectionContext>,
+    val provisionalGuidance: ProvisionalFindingGuidance = ProvisionalFindingGuidance.UNCLASSIFIED,
 )
 data class ReferenceReportView(
     val id: String, val buildId: String, val buildRevision: BigInteger, val catalogSnapshotId: String,
@@ -29,7 +30,8 @@ fun ReportReception.Accepted.inspect(): ReferenceReportView {
         ReferenceFindingView(f.path("rule_id").asText(), f.path("outcome").asText(), f.path("severity").asText(),
             f.path("code").asText(), f.path("message").asText(), f.get("remediation")?.asText(),
             Collections.unmodifiableList(f.path("selection_ids").map { it.asText() }), Collections.unmodifiableList(evidence),
-            Collections.unmodifiableList(f.path("selection_ids").map { selectionContext(it.asText()) }))
+            Collections.unmodifiableList(f.path("selection_ids").map { selectionContext(it.asText()) }),
+            guidanceFor(f.path("rule_id").asText()))
     }
     return ReferenceReportView(root.path("id").asText(), root.path("build_id").asText(), root.path("build_revision").bigIntegerValue(),
         root.path("catalog_snapshot_id").asText(), root.path("ruleset_id").asText(), root.path("ruleset_version").asText(),
