@@ -100,8 +100,15 @@ permissions, no persisted checkout credentials, no signing or production secrets
 and pinned action revisions. JUnit reports and the core JAR are retained for seven
 days under the exact commit. This is a JVM/reference lane. A separate unsigned synthetic preview lane now
 builds an APK and runs Android lint; it does not produce a release AAB. Emulator
-and physical-device lanes are not yet present. Branch protection remains
-a separate repository setting; publishing this workflow does not make it required.
+verification now has a separate [installed-emulator lane](EMULATOR_SMOKE.md),
+delivered through [#467](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/467).
+It consumes the successful preview job's exact APK artifact, signs a temporary
+test copy and exercises four scenarios in its own AOSP emulator, with source,
+system-bar and KVM-cleanup receipt checks. Each observed result belongs to that
+run's exact source and APK; it does not supply physical-device or release
+acceptance. Branch protection remains a separate repository setting; publishing
+a workflow does not make its checks required. See [CI_BASELINE.md](CI_BASELINE.md)
+for the current four-check inventory and the separately observed settings gap.
 
 ## Criterion-level handoff
 
