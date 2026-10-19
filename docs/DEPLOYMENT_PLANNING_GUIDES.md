@@ -160,3 +160,31 @@ docs/delivery/android/work-packages/13.05.md in
 Pick-Your-AI/pickyour.ai remains the intended acceptance location pending its
 explicit placement decision. This repository note does not relocate that
 record, appoint a reviewer or close #52.
+
+
+## Original hosted navigation-fixture observation
+
+The first guide source-stage execution in #519 used actual prepared commit
+`5327e80710ae88779aef1c9edd84e987e1897ecd`, tree
+`623806b453bf89586c2dfe9bde69a4f7e90c72aa`. Native test compilation succeeded.
+All 377 methods ran: the 367 prior methods and nine new guide methods passed,
+while the new delayed-viewport method failed in its first, direct-action branch
+at an expected scroll position of 111 versus an observed 2478. The accessibility
+subcase had not yet been reached. The complete original native ZIP was hash/CRC
+verified, and all 33 XML identities plus the exact failure are recorded; this
+failure is not a guide pass or an installed-device result.
+
+That fixture measured its expected position before dispatching the first
+complete drawing and queued window/focus work. The guide action calls the
+existing cancellation synchronously; the pending-anchor callback itself checks
+that live pending identity before any scroll. The test-only correction now
+settles layout, pre-draw and main-looper work while catalog readiness is still
+withheld. It proves the exact old anchor is present before the guide action and
+absent immediately afterwards through the public saved viewport state, then
+records the settled reference position before enabling catalog selection.
+
+Both direct and accessibility action paths, the final unchanged-scroll
+assertion, the distinct old-anchor destination, filter/page state, real saved
+identity and disk bytes remain required. No production, resource or workflow
+byte changes in this correction. Its actual new execution must be qualified
+separately; the original 377-method/one-failure observation remains retained.

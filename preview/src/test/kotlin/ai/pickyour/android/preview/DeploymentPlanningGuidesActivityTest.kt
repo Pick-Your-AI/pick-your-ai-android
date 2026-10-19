@@ -393,8 +393,15 @@ class DeploymentPlanningGuidesActivityTest {
                     scroll.measure(View.MeasureSpec.makeMeasureSpec(480, View.MeasureSpec.EXACTLY),
                         View.MeasureSpec.makeMeasureSpec(320, View.MeasureSpec.EXACTLY))
                     scroll.layout(0, 0, 480, 320)
+                    scroll.viewTreeObserver.dispatchOnPreDraw()
+                    idle()
                 }
+                // Settle ordinary window/focus work while the catalog is still not read-ready.
                 layout()
+                val waiting = Bundle().also(catalog::saveState)
+                assertEquals(hash, waiting.getString("catalogViewportHash"))
+                assertEquals("guide-row-2", waiting.getString("catalogViewportId"))
+                assertEquals(-17, waiting.getInt("catalogViewportOffset"))
                 scroll.scrollTo(0, 111)
                 val reference = views(section).filterIsInstance<DeploymentPlanningGuides>().single()
                 val control = views(reference).filterIsInstance<Button>().single {
@@ -404,6 +411,9 @@ class DeploymentPlanningGuidesActivityTest {
                     control.performAccessibilityAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK, null)
                     else control.performClick())
                 assertTrue(control.isSelected)
+                val afterReference = Bundle().also(catalog::saveState)
+                assertFalse("Explicit reference navigation retires the pending anchor before read-ready",
+                    afterReference.containsKey("catalogViewportHash"))
                 layout()
                 val position = scroll.scrollY
                 val row = views(catalog).filterIsInstance<Button>().single {
