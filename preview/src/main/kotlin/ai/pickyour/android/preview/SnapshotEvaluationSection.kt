@@ -14,6 +14,7 @@ import ai.pickyour.core.drafts.SnapshotArchiveEntry
 import ai.pickyour.core.drafts.SnapshotArchiveLoad
 import ai.pickyour.core.drafts.SnapshotArchiveState
 import ai.pickyour.core.evaluation.LocalSnapshotEvaluator
+import ai.pickyour.core.evaluation.ReferenceReportView
 import ai.pickyour.core.evaluation.RetainedEvaluationProfile
 import ai.pickyour.core.evaluation.SnapshotEvaluationOutcome
 import ai.pickyour.core.evaluation.SnapshotEvaluator
@@ -40,6 +41,8 @@ internal class SnapshotEvaluationSection(
     private var inventoryRequest: Any? = null
     private var window: AlertDialog? = null
     private var analysis: PreviewSnapshotAnalysis? = null
+    private var findingPicker: AlertDialog? = null
+    private var findingNavigator: FindingsSelectionNavigator? = null
     private lateinit var open: Button
     private lateinit var status: TextView
     private fun active() = !closed && alive() && !activity.isFinishing && !activity.isDestroyed
@@ -71,8 +74,18 @@ internal class SnapshotEvaluationSection(
         window = null
         val previousAnalysis = analysis
         analysis = null
+        retireFindings()
         previousAnalysis?.close()
         previous?.dismiss()
+    }
+
+    private fun retireFindings() {
+        val previousPicker = findingPicker
+        findingPicker = null
+        val previousNavigator = findingNavigator
+        findingNavigator = null
+        previousNavigator?.retire()
+        previousPicker?.dismiss()
     }
 
     private fun loadInventory() {
@@ -137,6 +150,7 @@ internal class SnapshotEvaluationSection(
         dialog.setOnDismissListener {
             if (window === dialog) {
                 window = null
+                retireFindings()
                 val previous = analysis; analysis = null; previous?.close()
             }
         }
@@ -144,6 +158,14 @@ internal class SnapshotEvaluationSection(
     }
 
     private fun inspect(archive: LocalSnapshotArchive, state: SnapshotArchiveState, entry: SnapshotArchiveEntry) {
+        val findings = Button(activity).apply {
+            id = R.id.snapshot_findings
+            setText(R.string.snapshot_findings)
+            isAllCaps = false
+            setSingleLine(false)
+            minHeight = (48 * resources.displayMetrics.density + 0.5f).toInt()
+            isEnabled = false
+        }
         val text = TextView(activity).apply {
             id = R.id.snapshot_report
             val padding = (20 * resources.displayMetrics.density).toInt()
@@ -151,16 +173,30 @@ internal class SnapshotEvaluationSection(
             accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
         }
         val dialog = AlertDialog.Builder(activity).setTitle(R.string.snapshot_inspection)
-            .setView(ScrollView(activity).apply { addView(text) })
+            .setView(ScrollView(activity).apply {
+                addView(LinearLayout(activity).apply {
+                    orientation = LinearLayout.VERTICAL
+                    addView(findings, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT))
+                    addView(text)
+                })
+            })
             .setPositiveButton(R.string.close, null)
             .setNegativeButton(R.string.snapshot_cancel, null)
             .setNeutralButton(R.string.snapshot_retry, null).create()
         present(dialog)
         lateinit var owned: PreviewSnapshotAnalysis
+        var displayedResult: SnapshotEvaluationOutcome.Evaluated? = null
         fun valid() = current(dialog) && analysis === owned
         fun render() {
             if (!valid()) return
             val value = owned.snapshot()
+            val result = (value as? PreviewSnapshotAnalysisState.Current)?.result
+            if (displayedResult !== result) {
+                retireFindings()
+                displayedResult = result
+            }
+            findings.isEnabled = result != null
             val busy = value is PreviewSnapshotAnalysisState.Loading || value is PreviewSnapshotAnalysisState.Evaluating
             dialog.getButton(AlertDialog.BUTTON_NEGATIVE).isEnabled = busy
             dialog.getButton(AlertDialog.BUTTON_NEUTRAL).isEnabled = !busy
@@ -181,6 +217,14 @@ internal class SnapshotEvaluationSection(
             activity.runOnUiThread { render() }
         }
         analysis = owned
+        findings.setOnClickListener {
+            if (!valid()) return@setOnClickListener
+            val captured = (owned.snapshot() as? PreviewSnapshotAnalysisState.Current)?.result
+                ?: return@setOnClickListener
+            browseFindings(captured.report.inspect()) {
+                valid() && (owned.snapshot() as? PreviewSnapshotAnalysisState.Current)?.result === captured
+            }
+        }
         dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setOnClickListener {
             if (valid()) { owned.cancel(); render() }
         }
@@ -191,6 +235,27 @@ internal class SnapshotEvaluationSection(
         }
         owned.open(archive, state.version, entry)
         render()
+    }
+
+    /** Selection links belong to the captured accepted report, including its exact Build revision. */
+    private fun browseFindings(report: ReferenceReportView, isCurrent: () -> Boolean) {
+        if (!active() || !isCurrent()) return
+        retireFindings()
+        val picker = AlertDialog.Builder(activity).setTitle(R.string.snapshot_findings_choose)
+            .setItems(report.findings.map { FindingsInspectionText.row(activity, it) }.toTypedArray()) { origin, index ->
+                val shown = origin as? AlertDialog ?: return@setItems
+                if (!active() || !isCurrent() || findingPicker !== shown || !shown.isShowing) return@setItems
+                if (index !in report.findings.indices) return@setItems
+                findingPicker = null
+                shown.dismiss()
+                val navigator = FindingsSelectionNavigator(activity, report, index) { active() && isCurrent() }
+                findingNavigator = navigator
+                navigator.show()
+            }.setNegativeButton(R.string.close, null).create()
+        findingPicker = picker
+        picker.setOnDismissListener { if (findingPicker === picker) findingPicker = null }
+        picker.show()
+        picker.window?.decorView?.layoutDirection = activity.resources.configuration.layoutDirection
     }
 
     private fun describe(result: SnapshotEvaluationOutcome.Evaluated, state: SnapshotArchiveState): String {
