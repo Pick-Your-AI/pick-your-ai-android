@@ -68,7 +68,7 @@ class PreviewActivityTest {
     private fun await(condition: () -> Boolean) {
         val deadline = System.nanoTime() + 15_000_000_000L
         while (System.nanoTime() < deadline) {
-            shadowOf(Looper.getMainLooper()).idle()
+            AutosaveUiClock.idle()
             if (condition()) return
             Thread.sleep(10)
         }
@@ -128,11 +128,11 @@ class PreviewActivityTest {
 
     /** Settle the actual serial worker before asserting that a retired callback did no work. */
     private fun finishActivityWork() {
-        shadowOf(Looper.getMainLooper()).idle()
+        AutosaveUiClock.idle()
         val field = PreviewActivity::class.java.getDeclaredField("worker").apply { isAccessible = true }
         val worker = field.get(activity) as java.util.concurrent.ExecutorService
         worker.submit {}.get(15, java.util.concurrent.TimeUnit.SECONDS)
-        shadowOf(Looper.getMainLooper()).idle()
+        AutosaveUiClock.idle()
     }
 
     private fun sourceDetails(vararg sources: String?): PreviewCatalogDetails {
@@ -317,6 +317,8 @@ class PreviewActivityTest {
         save()
         val saved = loaded()
         val title = field(R.string.draft_title)
+        AutosaveUiClock.pause()
+        val pendingAt = android.os.SystemClock.uptimeMillis()
         title.setText("pending modal edit")
         title.setSelection(5)
         val first = deleteConfirmation(PreviewDraftId("guest-draft"))
@@ -345,6 +347,7 @@ class PreviewActivityTest {
         assertEquals("pending modal edit", title.text.toString())
         assertTrue(libraryIds().isEmpty())
         assertFalse(button(R.string.save_draft).isEnabled)
+        assertTrue(android.os.SystemClock.uptimeMillis() - pendingAt < 750L)
     }
 
     @Test fun activityFocusChangesPreserveDarkModalSystemBarsAndPendingForm() {
@@ -352,6 +355,8 @@ class PreviewActivityTest {
         editor.setText("saved focus baseline")
         save()
         val saved = loaded().baselineIdentity
+        AutosaveUiClock.pause()
+        val pendingAt = android.os.SystemClock.uptimeMillis()
         editor.setText("pending focus edit")
         editor.setSelection(4)
         val decor = activity.window.decorView
@@ -376,6 +381,7 @@ class PreviewActivityTest {
         assertEquals(appearance, decor.systemUiVisibility)
         assertEquals("pending focus edit", editor.text.toString())
         assertEquals(saved, loaded().baselineIdentity)
+        assertTrue(android.os.SystemClock.uptimeMillis() - pendingAt < 750L)
     }
 
     @Test fun repeatedFocusChangesPreserveCurrentSystemBarAppearance() {
@@ -410,6 +416,8 @@ class PreviewActivityTest {
         val retired = activity
         val oldDecor = retired.window.decorView
         val original = oldDecor.systemUiVisibility
+        AutosaveUiClock.pause()
+        val pendingAt = android.os.SystemClock.uptimeMillis()
         field(R.string.draft_title).setText("pending across focused windows")
         retired.onWindowFocusChanged(false)
         assertEquals(original, oldDecor.systemUiVisibility)
@@ -422,6 +430,7 @@ class PreviewActivityTest {
         assertEquals(original, oldDecor.systemUiVisibility)
         assertEquals(currentAppearance, activity.window.decorView.systemUiVisibility)
         assertEquals("pending across focused windows", field(R.string.draft_title).text.toString())
+        assertTrue(android.os.SystemClock.uptimeMillis() - pendingAt < 750L)
     }
 
     private fun assertDarkDialogSystemBarIcons(dialog: AlertDialog, activityAppearance: Int) {
@@ -1955,11 +1964,11 @@ class PreviewActivityTest {
             ExternalLinkPolicy(setOf("docs.example.com")), isCurrent = { true })
         navigation.show()
         assertEquals(8, dialog().listView.adapter.count)
-        assertEquals(activity.getString(R.string.catalog_source_page, 1, 2, 10), shadowOf(dialog()).title.toString())
+        assertEquals(activity.resources.getQuantityString(R.plurals.catalog_source_page, 10, 1, 2, 10), shadowOf(dialog()).title.toString())
         dialog().getButton(AlertDialog.BUTTON_POSITIVE).performClick()
         shadowOf(Looper.getMainLooper()).idle()
         assertEquals(2, dialog().listView.adapter.count)
-        assertEquals(activity.getString(R.string.catalog_source_page, 2, 2, 10), shadowOf(dialog()).title.toString())
+        assertEquals(activity.resources.getQuantityString(R.plurals.catalog_source_page, 10, 2, 2, 10), shadowOf(dialog()).title.toString())
         dialog().getButton(AlertDialog.BUTTON_NEUTRAL).performClick()
         shadowOf(Looper.getMainLooper()).idle()
         assertEquals(8, dialog().listView.adapter.count)

@@ -12,7 +12,9 @@ import hashlib
 import importlib.util
 import json
 from pathlib import Path
+import stat
 import sys
+import tempfile
 
 from jsonschema import Draft202012Validator, FormatChecker
 from referencing import Registry, Resource
@@ -217,8 +219,53 @@ def check_supplied(manifest_bytes: bytes, supplied: dict[str, bytes], expected_a
         require(len(value) <= DOCUMENT_LIMIT and value == expected_assets[key], 'Asset identity rejected')
 
 
+def output_path(root: Path, relative: Path) -> Path:
+    """Validate existing output components without following filesystem aliases."""
+    require(relative.parts and not relative.is_absolute() and '..' not in relative.parts,
+            'Invalid generated output path')
+    require(stat.S_ISDIR(root.lstat().st_mode), 'Generated output root is not a directory')
+    parent = root
+    for part in relative.parts[:-1]:
+        parent /= part
+        try:
+            mode = parent.lstat().st_mode
+        except FileNotFoundError:
+            break
+        require(stat.S_ISDIR(mode), 'Generated output ancestor is not a directory')
+    target = root / relative
+    try:
+        info = target.lstat()
+    except FileNotFoundError:
+        return target
+    require(stat.S_ISREG(info.st_mode) and info.st_nlink == 1,
+            'Generated output is not a singly linked regular file')
+    return target
+
+
+def write_outputs(root: Path, outputs: dict[Path, bytes]):
+    # Check the complete destination set before changing any existing output.
+    for path in outputs:
+        output_path(root, path)
+    for path, content in outputs.items():
+        target = output_path(root, path)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        output_path(root, path)
+        temporary_path = None
+        try:
+            with tempfile.NamedTemporaryFile(dir=target.parent, prefix=f'.{target.name}.', delete=False) as temporary:
+                temporary_path = Path(temporary.name)
+                temporary.write(content)
+            temporary_path.chmod(0o644)
+            temporary_path.replace(target)
+        finally:
+            if temporary_path is not None:
+                temporary_path.unlink(missing_ok=True)
+
+
 def check(root: Path = ROOT):
     outputs, expected_assets, manifest, reports = generated(root)
+    for path in outputs:
+        output_path(root, path)
     directory = root / ASSET_DIRECTORY
     actual_paths = {p.relative_to(root) for p in directory.rglob('*') if p.is_file() or p.is_symlink()}
     expected_paths = {p for p in outputs if p.parent == ASSET_DIRECTORY}
@@ -246,11 +293,7 @@ def main():
         verify()
         if args.write:
             outputs, _, _, _ = generated()
-            for path, content in outputs.items():
-                target = ROOT / path
-                require(not target.is_symlink(), 'Refusing a generated output symlink')
-                target.parent.mkdir(parents=True, exist_ok=True)
-                target.write_bytes(content)
+            write_outputs(ROOT, outputs)
         check()
         return 0
     except (OSError, ValueError) as error:

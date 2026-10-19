@@ -2549,3 +2549,76 @@ dialog checks, rotation checks, navigation geometry and **3:1** minimum contrast
 remain required. This source correction and its host tests do not make the
 original 3fc or 555 whole receipts pass; the final receiving source still needs
 its own configured native run and original artifact qualification.
+
+## Current-main autosave scenario reconciliation
+
+Accepted main `e7c8d98302e0b6620830d0e9bd9846dcc201b944` introduces the reviewed
+750 ms automatic valid-form save through the existing canonical store. Its
+`draft_unsaved` text also replaces the earlier explicit-save-only sentence.
+The preceding installed source `89c9e67e /68eaaf9f` and actual signed
+`78f401a9` run retain their own case semantics. That run's configured checks
+passed; the current original-artifact qualification is separately pending. No
+prior screenshot, receipt or passing case is assigned to this new composition.
+
+The four case IDs remain, with the following explicit current-product inputs:
+
+1. **Installed synthetic launch** retains the exact package, launch, source,
+   active-draft and visible editor checks.
+2. **Acknowledged save survives force-stop** enters the complete fixed valid
+   title, objective and context, then requires the actual **Saved locally.**
+   acknowledgment and disabled Save control. It uses the product's automatic
+   valid-form save, records `save_trigger=automatic-valid-form`, and does not race
+   a manual button click against that timer. The original force-stop, distinct
+   process identity, complete three-field cold-reopen and acknowledgment checks
+   remain. This is automatic-save evidence; it does not claim an installed
+   manual-save action occurred.
+3. **Pending fields survive rotation** first requires an empty **Requests per
+   day** editor, enters the fixed literal `invalid`, and requires that exact raw
+   input, the visible invalid-workload explanation and disabled Save. Only then
+   are the pending title/objective suffixes entered. Existing validation excludes
+   this incomplete form from manual and automatic persistence; the harness
+   changes no autosave setting, scheduler or application clock. Both strict
+   default-display rotations must retain the complete pending fields, exact
+   invalid raw input, invalid-workload explanation, current unsaved-state text
+   and disabled Save. The receipt records
+   `pending_input_constraint=invalid-workload-requests`.
+4. **Confirmed deletion does not resurrect** still requires the library row to
+   show the previously acknowledged title, an explicit confirmation, actual
+   deletion acknowledgment, retained pending title/objective/context and invalid
+   workload text, disabled persistence controls, an empty library and a cold
+   relaunch that cannot reopen or resurrect the deleted draft.
+
+All eight original checkpoint identities remain. In particular, the original
+05/06 and07/08 PNG pairs continue through the unchanged fixed-rig pixel and
+window/provider gates. Their filenames retain historical “pending” wording:
+these new pending edits are deliberately invalid and are never presented as
+acknowledged stored input. No image threshold, readiness predicate, launch or
+rotation deadline, subprocess limit, failure diagnostic, source/APK pin or ACL
+grant/restoration path changes. Failures still stop the current case, leave later
+cases unrun and retain the original failure before later diagnostics.
+
+The isolated host controls exercise the complete scenario against a modeled UI
+whose one-second observation steps cross the product's750 ms debounce. All ten
+methods pass. The same positive journey run against unchanged89c fails at the
+disabled manual Save action; the candidate passes. Negative controls retain
+failure for absent acknowledgment, wrong cold-reopened data, a nonempty initial
+numeric editor, an incorrectly enabled Save, lost invalid or pending text on
+rotation, a wrong saved library snapshot, lost invalid input after deletion and
+deletion resurrection. These are host scenario/control results, not execution of
+Kotlin, Android, the emulator or actual pixel validation.
+
+Three previously authored native modal/focus methods inspect pending valid
+fields before autosave is due. They now select the already accepted
+`AutosaveUiClock` immediately before that edit and assert elapsed uptime stays
+below750 ms. Existing shared wait/frame helpers use its ordinary-mode-preserving
+`idle()`; every original modal, pending-value, selection, saved-baseline,
+recreation, cancellation and system-bar assertion remains. This fixture clock
+does not run in the installed app or harness, and the candidate native methods
+remain unexecuted locally. The configured native task must qualify their exact
+new source before the installed job is eligible.
+
+The accepted catalog/autosave/current-main source reviews remain separately
+attributed. The combined source, configured execution, original artifacts and
+ordinary fresh receiving guards are required for final delivery; this section
+does not close an issue, establish physical-device behavior, or convert the
+earlier missing-navigation or failed-contrast originals into successes.

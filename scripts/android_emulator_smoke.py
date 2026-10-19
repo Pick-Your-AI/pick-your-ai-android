@@ -48,6 +48,10 @@ CASE_IDS = (
 TITLE_LABEL = "Draft title (up to 120 characters)"
 OBJECTIVE_LABEL = "Draft objective (optional)"
 CONTEXT_LABEL = "Draft context (optional)"
+REQUESTS_LABEL = "Requests per day"
+PENDING_REQUESTS = "invalid"
+INVALID_WORKLOAD = "Some entered workload values are invalid. Your text is retained; correct it before saving."
+UNSAVED_FORM = "Unsaved changes. Valid edits save after a short pause; Save locally saves them now."
 BUTTON = "android.widget.Button"
 EDITOR = "android.widget.EditText"
 UI_DUMP_DIRECTORY = "/data/local/tmp"
@@ -2369,11 +2373,14 @@ def exercise(device: Device, output: Path, receipt: dict):
             ui.editor(TITLE_LABEL)
             ui.checkpoint("01-installed-launch")
         with case(receipt, CASE_IDS[1]) as row:
+            row["save_trigger"] = "automatic-valid-form"
             ui.enter(TITLE_LABEL, "SyntheticEmulatorDraft")
             ui.enter(OBJECTIVE_LABEL, "SyntheticObjective")
             ui.enter(CONTEXT_LABEL, "SyntheticContext")
             ui.expect_fields("SyntheticEmulatorDraft", "SyntheticObjective", "SyntheticContext")
-            ui.click("Save locally")
+            # Accepted main saves the complete valid form after its ordinary pause.
+            # Require the actual acknowledgment and cold persistence, without racing
+            # a manual action against that product-owned deadline.
             ui.text("Saved locally.")
             ui.expect_button("Save locally", False)
             ui.checkpoint("02-acknowledged-save")
@@ -2384,20 +2391,34 @@ def exercise(device: Device, output: Path, receipt: dict):
             ui.text("Saved locally.")
             ui.expect_button("Save locally", False)
             ui.checkpoint("03-cold-relaunch")
-        with case(receipt, CASE_IDS[2]):
+        with case(receipt, CASE_IDS[2]) as row:
+            row["pending_input_constraint"] = "invalid-workload-requests"
+            require(ui.editor(REQUESTS_LABEL).get("text") == "",
+                    "The synthetic pending-input control must start unanswered")
+            ui.enter(REQUESTS_LABEL, PENDING_REQUESTS)
+            require(ui.editor(REQUESTS_LABEL).get("text") == PENDING_REQUESTS,
+                    "The complete invalid workload input was not retained")
+            ui.text(INVALID_WORKLOAD)
+            ui.expect_button("Save locally", False)
             ui.enter(TITLE_LABEL, "_pending")
             ui.enter(OBJECTIVE_LABEL, "_pending")
             ui.expect_fields("SyntheticEmulatorDraft_pending", "SyntheticObjective_pending", "SyntheticContext")
             ui.rotate(1)
-            ui.text("Unsaved changes. Tap Save locally to commit this form.")
+            ui.text(UNSAVED_FORM)
             ui.expect_fields("SyntheticEmulatorDraft_pending", "SyntheticObjective_pending", "SyntheticContext")
-            ui.expect_button("Save locally", True)
-            ui.text("Unsaved changes. Tap Save locally to commit this form.")
+            require(ui.editor(REQUESTS_LABEL).get("text") == PENDING_REQUESTS,
+                    "Landscape rotation lost the complete invalid workload input")
+            ui.text(INVALID_WORKLOAD)
+            ui.expect_button("Save locally", False)
+            ui.text(UNSAVED_FORM)
             ui.checkpoint("04-pending-landscape")
             ui.rotate(0)
-            ui.text("Unsaved changes. Tap Save locally to commit this form.")
+            ui.text(UNSAVED_FORM)
             ui.expect_fields("SyntheticEmulatorDraft_pending", "SyntheticObjective_pending", "SyntheticContext")
-            ui.expect_button("Save locally", True)
+            require(ui.editor(REQUESTS_LABEL).get("text") == PENDING_REQUESTS,
+                    "Portrait rotation lost the complete invalid workload input")
+            ui.text(INVALID_WORKLOAD)
+            ui.expect_button("Save locally", False)
             ui.checkpoint("05-pending-portrait")
         with case(receipt, CASE_IDS[3]) as row:
             ui.click("Manage local drafts")
@@ -2411,6 +2432,8 @@ def exercise(device: Device, output: Path, receipt: dict):
             ui.text("The selected local draft and its retained revision files have been removed.", contains=True, scroll=False)
             ui.click("Close", scroll=False)
             ui.expect_fields("SyntheticEmulatorDraft_pending", "SyntheticObjective_pending", "SyntheticContext")
+            require(ui.editor(REQUESTS_LABEL).get("text") == PENDING_REQUESTS,
+                    "Deletion replaced the retained invalid workload input")
             ui.expect_button("Save locally", False)
             ui.expect_button("Saved local revision history", False)
             ui.checkpoint("07-deleted-editor-keeps-pending-fields")

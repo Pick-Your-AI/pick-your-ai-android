@@ -238,6 +238,12 @@ structural and cross-document checks before accepting frozen reference reports.
 Its Python-generated cases and Kotlin negative tests are partial #32/#49/#84
 evidence, not a local evaluator or deployment approval.
 
+The [frozen catalog reader](FROZEN_CATALOG_BOUNDARY.md) retains complete snapshot
+and item envelopes, exact revisions, all canonical kinds, provenance and license
+fields, and immutable spec/extension JSON after kind-specific schema validation.
+Shared Python/Kotlin mutations exercise this structural boundary; publication,
+source acceptance, identity joins and existing preview catalog policy remain separate.
+
 The [quality-run decoder](QUALITY_RUN_BOUNDARY.md) preserves the separate frozen
 measured-run wire fields as immutable Kotlin values, including exact numbers and
 optional absence. Shared Python/Kotlin mutation cases and malformed-input tests
