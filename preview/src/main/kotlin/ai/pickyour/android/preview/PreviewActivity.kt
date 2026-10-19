@@ -257,6 +257,7 @@ class PreviewActivity : Activity() {
         }
         content.addView(tierSection)
         componentSection = SelectionEditSection(this, ::commitSelection)
+        componentSection.onReviewAvailabilityChanged = ::updateDraftSummary
         componentSection.restore(savedInstanceState)
         content.addView(componentSection)
         planningSection = T6PlanningSection(this, { !destroyed }) { kind ->
