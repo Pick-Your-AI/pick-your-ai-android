@@ -25,8 +25,20 @@ evidence.
 These unique names were observed on baseline `3850018` as GitHub Actions checks
 (application slug `github-actions`, application ID `15368`). Both workflows run
 for pull requests and pushes to `main`, with an explicit manual dispatch available.
-They have no changed-path filter. Their concurrency groups cancel superseded runs;
-a cancelled older run does not establish the current candidate's result.
+They have no changed-path filter. Each workflow keeps its existing concurrency
+group per workflow and ref. A newer pull-request run cancels the superseded run
+for that PR. Pushes to `main` and manual dispatches do not cancel a run that is
+already in progress, allowing its later packaging, policy and attendance checks
+to finish.
+
+The [GitHub concurrency rules](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#concurrency)
+retain at most one running and one pending run per group by default. A newer
+pending run replaces the older pending run; this does not guarantee execution
+of every intermediate main commit or dispatch ordering. The cancellation
+condition uses the documented [`github.event_name` context](https://docs.github.com/en/actions/reference/workflows-and-actions/contexts#github-context)
+with `pull_request` equality. Record the actual checkout and completed phases:
+a cancelled run or a successful older run does not establish another source's
+result.
 
 Artifacts use the actual checkout SHA in their names and expire after seven days.
 Read the run's checkout identity as well as the PR head: a pull-request run normally
