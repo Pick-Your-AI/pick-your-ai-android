@@ -120,6 +120,27 @@ original Gradle logs, actual fixture JARs and any newly written fixture inventor
 under `build/inventory/source-identity-regression/`. This checks the producer's
 source identity boundary, without establishing installed or release acceptance.
 
+Before that regression starts, its report and all nine fixed evidence destinations
+are admitted together: the canonical checkout, `build`, `inventory` and existing
+`source-identity-regression` directory must be ordinary directories, and each
+existing output must be a singly linked regular file. An aliased or nonregular
+late evidence entry rejects the operation before an earlier receipt or peer is
+retired. Only the admitted report and the three fixed `.log`/`.jar`/`.json` case
+sets are retired; unrelated peers remain. Ordinary stale evidence cannot describe
+the current inspection. New partial diagnostic files remain available if that
+inspection subsequently fails.
+
+The final JSON uses the same private-sibling publication boundary as the
+[packaged-policy report](PACKAGED_PREVIEW_POLICY.md). Serialization or replacement
+failure cannot leave partial final JSON. A completed regression whose actual
+producer incorrectly accepts replaced source still publishes its explicit
+`status: failed` report and exits unsuccessfully. These are stable-checkout
+safeguards, not protection against hostile concurrent namespace replacement or a
+claim of atomic multi-file retirement or power-loss durability. The normal and
+optimized `test_preview_policy.py` host fixtures cover destination admission and
+publication without executing the private Java producer; the configured CI step
+continues to require that actual producer exercise.
+
 The explicit POM artifact query needs five metadata files that the prior runtime
 resolution used Gradle module metadata instead of directly verifying. Their
 new SHA-256 pins below were calculated from the exact Maven Central POM bytes

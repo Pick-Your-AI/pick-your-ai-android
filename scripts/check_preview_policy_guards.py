@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import argparse
 import copy
-import json
 from pathlib import Path
 import struct
 import tempfile
@@ -12,6 +11,7 @@ import xml.etree.ElementTree as ET
 import zipfile
 
 from check_preview_policy import ANDROID, PACKAGE, PolicyFailure, command, inspect_apk, require, sha256
+from inspection_receipts import publish_receipt, retire_receipt
 
 ROOT = Path(__file__).resolve().parents[1]
 NS = "{http://schemas.android.com/apk/res/android}"
@@ -219,15 +219,13 @@ def main() -> int:
     parser.add_argument("--aapt2", type=Path, required=True)
     parser.add_argument("--android-jar", type=Path, required=True)
     args = parser.parse_args()
-    output = ROOT / "build/inventory/preview-policy-guards.json"
-    output.unlink(missing_ok=True)
+    retire_receipt(ROOT, "preview-policy-guards.json")
     receipt = {"schema_version": 1, "scope": "disposable-aapt2-packaging-policy-fixtures",
                "source_commit": command(["git", "rev-parse", "HEAD"], ROOT).strip(),
                "aapt2_sha256": sha256(args.aapt2), "android_jar_sha256": sha256(args.android_jar),
                "cases": check_guards(args.aapt2, args.android_jar),
                "limitations": "Binary declaration fixtures only; no app execution, installed or release result."}
-    output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n")
+    publish_receipt(ROOT, "preview-policy-guards.json", receipt)
     print("PASS: adopted policy and eleven real packaged negative cases reached their exact expected boundary.")
     return 0
 

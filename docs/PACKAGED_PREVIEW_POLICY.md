@@ -75,9 +75,11 @@ produce a passing receipt. Binary-inspection stderr and arbitrary compiled strin
 values do not enter the policy report. The SDK's successful version command writes
 to stderr; only its validated version string is accepted from that stream.
 A failed current inspection removes an admitted previous policy receipt before
-starting. The policy and [environment configuration](ENVIRONMENT_CONFIGURATION.md)
-commands share a fixed receipt boundary for `build/inventory/preview-policy.json`
-and `build/inventory/environment-configuration.json`. Existing `build` and
+starting. The policy, packaged-policy guard and
+[environment configuration](ENVIRONMENT_CONFIGURATION.md) commands share a fixed
+receipt boundary for `build/inventory/preview-policy.json`,
+`build/inventory/preview-policy-guards.json` and
+`build/inventory/environment-configuration.json`. Existing `build` and
 `inventory` entries must be ordinary directories; an existing receipt must be a
 singly linked regular file. A symlink, hardlink, directory or other nonregular
 destination is rejected before inspection or deletion, preserving the unsafe
@@ -96,6 +98,15 @@ and publication, run with:
 ```sh
 python -m unittest discover -s scripts/tests -p 'test_preview_policy.py'
 ```
+
+The packaged guard admits its output before Git/tool metadata or fixture work.
+Its real AAPT2 positive and eleven negative cases remain unchanged. The same
+fixed-name helper also publishes the separate
+[runtime source regression](RUNTIME_INVENTORY.md) report; that command admits its
+whole fixed evidence set before retiring any member. The destination regressions
+replace expensive inspection with controlled results and prohibit native child
+commands. They establish filesystem behavior, separately from the actual packaged
+fixture and Java-producer checks required by CI.
 
 The existing native CI job executes all three Python commands after producing its
 runtime inventory. The existing `android-runtime-inventory-<checkout>` archive retains
