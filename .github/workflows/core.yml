@@ -8,7 +8,7 @@ permissions:
   contents: read
 concurrency:
   group: core-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   core:
     name: Frozen contracts and JVM core
@@ -52,12 +52,143 @@ jobs:
         run: sha256sum --check gradle/wrapper/wrapper.sha256
       - name: Compile and test JVM core
         run: ./gradlew --no-daemon --dependency-verification=strict --init-script scripts/runtime_inventory.init.gradle.kts :core:check :core:assemble runtimeInventory
+      - name: Require typed private-draft compatible-option regressions
+        run: |
+          python - <<'PYCANDIDATES'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          name = "ai.pickyour.core.evaluation.DraftCompatibleOptionsTest"
+          required = {
+              "emptyStoredDraftKeepsFoundationFailureAndSeparatesNewFailureAndUnknown()",
+              "oneSelectionReplacementAndTwoSelectionBaselineUsePrivateAdmissionOnly()",
+              "storedSecondaryNeverPromotesIntoAnEmptiedPrimaryAndRealConflictsRemain()",
+              "secondaryReplacementPreservesTheOriginalPrimaryAndExactIncidentLinks()",
+              "absentSharedIdentityPolicyAndObjectiveValuesAreNeverSynthesized()",
+              "enteredWorkloadValuesPreserveExactDecimalsAndMissingValuesRemainUnknown()",
+              "currentCompleteTypedFindingsEqualTheExistingFrozenInterpreter()",
+              "rawFloatingCandidateOperandRejectsTheWholeBatchWithoutPartialOptions()",
+              "artifactHashIdentityVersionAndExistingSelectionKindMismatchRejectBeforeEvaluation()",
+              "invalidSlotsDuplicateCandidatesAndRegistryCardinalityCannotBecomeImplicitAdds()",
+              "candidateCountWorkBudgetAndCancellationWithholdTheEntireResult()",
+              "capturedInputsAndReturnedCollectionsCannotBeMutatedThroughCallerObjects()",
+              "sameStoredHashInDifferentStoresAndChangedRuleBytesHaveDifferentBindings()",
+              "realStoredEditAndRoleChangeRetireEarlierResultsBeforeQueuedStartOrDelivery()",
+              "repeatedSameByteCaptureRetryAndCancelRejectForeignAttemptAuthority()",
+              "staleCandidateDoesNotBypassTheActualStoreCommandRevisionGuard()",
+              "nativeAdapterCapturesOnlyTheAcknowledgedRecordAndRejectsOtherRecordMembership()",
+              "typedNativeBridgeKeepsExactArtifactPinsAndRawFloatingSelectionSemantics()",
+              "realOptionalIntentWithholdsContradictionsButAllowsFillingEnabledEmptySlots()",
+          }
+          suite = ET.parse(pathlib.Path("core/build/test-results/test") / f"TEST-{name}.xml").getroot()
+          cases = suite.findall("testcase")
+          names = [case.attrib["name"] for case in cases]
+          if suite.attrib.get("name") != name or any(case.attrib.get("classname") != name for case in cases):
+              raise SystemExit("Foreign private-draft candidate results")
+          if set(names) != required or len(names) != len(required):
+              raise SystemExit("Missing, unexpected or repeated private-draft candidate regression")
+          if int(suite.attrib["tests"]) != len(cases) or any(int(suite.attrib.get(key, "0")) for key in ("failures", "errors", "skipped")):
+              raise SystemExit("Private-draft candidate totals contradict passing execution")
+          if any(case.findall("failure") or case.findall("error") or case.findall("skipped") for case in cases):
+              raise SystemExit("Private-draft candidate regression did not pass")
+          print(f"Verified {len(cases)} typed private-draft candidate cases; no shared Build admission or native claim")
+          PYCANDIDATES
+      - name: Require environment admission core regressions
+        run: |
+          python - <<'PYENVIRONMENT'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          qualified = 'ai.pickyour.core.configuration.ClientEnvironmentAdmissionTest'
+          expected = {
+              'accepted preview exposes only finite configured identity and no remote authority()',
+              'real modes reject even plausible self declared endpoint identity and capabilities()',
+              'unknown and missing mode never default to preview or consume configuration()',
+              'missing configuration never manufactures preview defaults()',
+              'environment mismatch rejects independently of valid preview metadata()',
+              'actual package version and code must all match the admitted profile()',
+              'wrong contract catalog schema and configured catalog identity reject before use()',
+              'preview forbids endpoints and API declarations including empty strings()',
+              'capabilities cannot be added duplicated omitted or type coerced()',
+              'closed fields reject credentials unknown keys and missing explicit nulls()',
+              'duplicate escaped keys trailing roots invalid UTF8 and excessive nesting reject()',
+              'actual byte budget bounds reads and malformed or IO failures contain no input()',
+              'format and required scalar types are never guessed or coerced()',
+              'rejected read leaves caller stream open and fresh valid read can recover()',
+          }
+          path = pathlib.Path('core/build/test-results/test') / ("TEST-" + qualified + ".xml")
+          suite = ET.parse(path).getroot()
+          cases = suite.findall("testcase")
+          names = [case.attrib["name"] for case in cases]
+          if suite.attrib.get("name") != qualified or not expected <= set(names) or len(names) != len(set(names)):
+              raise SystemExit("Missing, foreign or duplicate environment regression")
+          if int(suite.attrib["tests"]) != len(cases) or any(int(suite.attrib.get(k, "0")) for k in ("failures", "errors", "skipped")):
+              raise SystemExit("Environment regressions did not execute cleanly")
+          if any(case.findall("failure") or case.findall("error") or case.findall("skipped") for case in cases):
+              raise SystemExit("Environment regression failed or skipped")
+          print(f"Verified {len(cases)} environment admission cases")
+          PYENVIRONMENT
+      - name: Require bounded component route parser regressions to execute
+        run: |
+          python - <<'PYROUTE'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          required = {
+              'ai.pickyour.core.preview.PreviewComponentRouteTest': {
+                  'the four explicit fields survive parsing with exact opaque version spelling()',
+                  'parameter order transport case and hex spelling do not change identity()',
+                  'only the exact private route authority and path are recognized()',
+                  'unknown duplicate missing empty and encoded parameter keys reject the complete route()',
+                  'reserved delimiters are unambiguous and values are decoded only once()',
+                  'malformed UTF8 never becomes replacement characters or a different version()',
+                  'raw nonASCII whitespace backslashes and decoded control characters reject()',
+                  'only frozen canonical kinds and bounded canonical item identifiers are accepted()',
+                  'version budget counts strict UTF8 bytes without trimming or Unicode normalization()',
+                  'snapshot identity requires exactly a full hexadecimal digest()',
+                  'empty and oversized raw entry is rejected before any catalog use()',
+                  'normalized checkpoint restoration repeats every identity admission check()',
+                  'matching requires the exact kind item version and raw snapshot identity()',
+                  'diagnostics disclose no incoming version or identity()',
+              },
+          }
+          for name, expected in required.items():
+              path = pathlib.Path('core/build/test-results/test') / ("TEST-" + name + ".xml")
+              suite = ET.parse(path).getroot()
+              cases = suite.findall("testcase")
+              names = [case.attrib["name"] for case in cases]
+              if suite.attrib.get("name") != name or any(case.attrib.get("classname") != name for case in cases):
+                  raise SystemExit("Unexpected component route regression owner")
+              if set(names) != expected or len(names) != len(expected):
+                  raise SystemExit("Missing, unexpected or repeated component route regression")
+              if int(suite.attrib["tests"]) != len(cases) or any(int(suite.attrib.get(key, "0")) != 0 for key in ("failures", "errors", "skipped")):
+                  raise SystemExit("Component route suite did not execute cleanly")
+              if any(case.findall("failure") or case.findall("error") or case.findall("skipped") for case in cases):
+                  raise SystemExit("Component route regression did not pass")
+              print(f"Verified {len(cases)} JVM {name} cases; no installed-device claim")
+          PYROUTE
       - name: Require complete retained-snapshot and frozen evaluator regressions
         run: |
           python - <<'PYTEST'
           import pathlib
           import xml.etree.ElementTree as ET
           expected = {
+              'ai.pickyour.core.evaluation.CompatibleOptionsAbsentLockCausalReplayTest': {
+                  'presentOptionalLockRetainsItsExactIdentityThroughEvaluationAndDelivery()',
+                  'omittedOptionalLockRemainsAbsentThroughAdmittedEvaluationAndDelivery()',
+                  'explicitNullLockRemainsRejectedByTheUnchangedFrozenBoundary()',
+              },
+              'ai.pickyour.core.preview.PreviewCatalogRetentionTest': {
+                  'retained pins survive replacement and reopen without changing another cache head()',
+                  'invalid unsupported and oversized snapshots never provision a cache()',
+                  'quota preserves all older pins and allows exact reuse without activation()',
+                  'missing root and foreign child preserve bytes until explicit repair()',
+                  'symbolic link roots and children never receive catalog writes()',
+                  'failed provisioning cannot acknowledge or publish and permits a fresh retry()',
+                  'readable interrupted pin requires directory sync before acknowledgement and retry preserves head()',
+                  'failed and uncertain publication preserve old pins and require separate reread()',
+                  'busy retention fails promptly without replacing existing snapshot()',
+                  'cancellation does no work and an explicit later request can proceed()',
+                  'corrupt immutable content is reported without repair or replacement()',
+                  'caller array mutations cannot rewrite retained original bytes()',
+              },
               'ai.pickyour.core.evaluation.RetainedSnapshotEvaluationTest': {
                   'actual retained bundle reproduces the complete no-evidence Python golden and keeps both times()',
                   'request captures every exact pin and remains independent of copied bytes and source deletion()',
@@ -311,6 +442,51 @@ jobs:
         run: sha256sum --check gradle/wrapper/wrapper.sha256
       - name: Compile unsigned preview, run lint and simulated UI tests
         run: ./gradlew --no-daemon --dependency-verification=strict --init-script scripts/runtime_inventory.init.gradle.kts -PandroidPreview=true :preview:assembleDebug :preview:lintDebug :preview:testDebugUnitTest runtimeInventory
+      - name: Require configuration bootstrap and lifecycle regressions
+        run: |
+          python - <<'PYENVIRONMENT'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          qualified = 'ai.pickyour.android.preview.EnvironmentBootstrapTest'
+          expected = {
+              'actualPackagedProfileMatchesAppAndFrozenCatalogMetadata',
+              'realAndUnknownSelectionsCannotAdmitPackagedPreview',
+              'missingMalformedAndWrongContractAreActionableWithoutRawValues',
+              'blockedScreenContainsOnlyFiniteRecoveryAndCloseAction',
+              'admittedPreviewStillCreatesAndRestoresLocalControls',
+              'rejectedActivityCannotRestoreEditOrOpenDraftsAcrossLifecycle',
+              'configurationSourceClosesAndFreshAdmissionDoesNotRetainFailure',
+          }
+          path = pathlib.Path('preview/build/test-results/testDebugUnitTest') / ("TEST-" + qualified + ".xml")
+          suite = ET.parse(path).getroot()
+          cases = suite.findall("testcase")
+          names = [case.attrib["name"] for case in cases]
+          if suite.attrib.get("name") != qualified or not expected <= set(names) or len(names) != len(set(names)):
+              raise SystemExit("Missing, foreign or duplicate environment regression")
+          if int(suite.attrib["tests"]) != len(cases) or any(int(suite.attrib.get(k, "0")) for k in ("failures", "errors", "skipped")):
+              raise SystemExit("Environment regressions did not execute cleanly")
+          if any(case.findall("failure") or case.findall("error") or case.findall("skipped") for case in cases):
+              raise SystemExit("Environment regression failed or skipped")
+          print(f"Verified {len(cases)} environment admission cases")
+          PYENVIRONMENT
+      - name: Verify non-secret environment configuration and unavailable real selections
+        shell: bash
+        run: |
+          python -m unittest discover -s scripts/tests -p 'test_environment_configuration.py' -v
+          python -O -m unittest discover -s scripts/tests -p 'test_environment_configuration.py' -v
+          python scripts/check_environment_configuration.py
+          mkdir -p build/environment-selection
+          for selected in staging production; do
+            log="build/environment-selection/$selected.log"
+            if ./gradlew --no-daemon --dependency-verification=strict -PandroidPreview=true -PandroidEnvironment="$selected" :preview:tasks >"$log" 2>&1; then
+              echo "An unconfigured real environment was incorrectly accepted."
+              exit 1
+            fi
+            if ! grep -Fq 'Android real-data configuration is unavailable:' "$log"; then
+              echo "The real-environment build failed outside its admission guard."
+              exit 1
+            fi
+          done
       - name: Reject ignored packaged preview assets
         run: python scripts/check_runtime_inventory_guards.py --preview
       - name: Export and validate the current runtime SPDX document
@@ -1004,6 +1180,36 @@ jobs:
               raise SystemExit("Operational selection regression did not pass")
           print(f"Verified {len(cases)} simulated operational selection cases; no installed-device claim")
           PYTEST
+      - name: Require deployment planning reference regressions
+        run: |
+          python - <<'PYTEST'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          name = "ai.pickyour.android.preview.DeploymentPlanningGuidesActivityTest"
+          path = pathlib.Path("preview/build/test-results/testDebugUnitTest") / ("TEST-" + name + ".xml")
+          suite = ET.parse(path).getroot()
+          required = {
+              "allFourReferencesOpenBeforeFirstSaveAndWithEveryOptionalTierDisabled",
+              "referencesPreserveExactSelectionsPrivateInputsCatalogContextAndStoredHistory",
+              "openingReferencesNeverReplacesAcknowledgedCountsWithPendingEditorValues",
+              "aBlockedDraftReadWithholdsCountsWhileReferenceNavigationStillWorks",
+              "parcelRecreationRestoresOnlyTheOpenReferenceAndRetiresOldButtons",
+              "aNewerDiskHeadDoesNotTurnTheRestoredGuideIntoAcknowledgedPlanning",
+              "futureReferenceKeysOrFormatsRestoreCollapsedWithoutChoosingADraftMode",
+              "detachedReferenceButtonsCannotMutateTheirRetiredViewOrTheDraft",
+              "explicitReferenceActionsCancelPendingCatalogRestorationWithoutChangingItsFilters",
+              "narrowRtlLargeTextKeepsAllGuideButtonsAndEveryExpandedTextLineReachable",
+          }
+          cases = suite.findall("testcase")
+          names = [case.attrib["name"] for case in cases]
+          if suite.attrib.get("name") != name or any(case.attrib.get("classname") != name for case in cases) or not required <= set(names) or len(names) != len(set(names)):
+              raise SystemExit("Missing, foreign or repeated deployment planning reference regression")
+          if int(suite.attrib["tests"]) != len(cases) or any(int(suite.attrib.get(key, "0")) != 0 for key in ("failures", "errors", "skipped")):
+              raise SystemExit("Deployment planning reference suite did not execute cleanly")
+          if any(case.findall("failure") or case.findall("error") or case.findall("skipped") for case in cases):
+              raise SystemExit("Deployment planning reference regression did not pass")
+          print(f"Verified {len(cases)} simulated deployment planning reference cases; no installed-device claim")
+          PYTEST
       - name: Require catalog count presentation regressions to execute
         run: |
           python - <<'PYTEST'
@@ -1182,6 +1388,37 @@ jobs:
               raise SystemExit("Current-draft summary totals contradict executed cases")
           print(f"Verified {len(cases)} simulated current-draft summary tests; no current-result or installed-device claim")
           PYTEST
+      - name: Require saved component summary inspection regressions to execute
+        run: |
+          python - <<'PYTEST'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          qualified = "ai.pickyour.android.preview.SummaryRecordedComponentsActivityTest"
+          report = pathlib.Path(f"preview/build/test-results/testDebugUnitTest/TEST-{qualified}.xml")
+          suite = ET.parse(report).getroot()
+          expected = {
+              "savedComponentDetailsExposeExactRecordedIdentityWithoutSaving",
+              "unsavedAndAcknowledgedEmptyComponentListsRemainDistinct",
+              "pendingEditsCanInspectSavedComponentsWithoutAcknowledgingThemAcrossRecreation",
+              "loadingWithholdsExpandedRecordsAndRetiredControlsCannotRevealThem",
+              "componentInspectionPreservesAutosaveDeadlineAndUsesOnlyItsAcknowledgedRevision",
+              "oldExpansionControlsCannotReplayAfterPauseOrIntoAnotherDraft",
+              "unconfirmedRestorationNeverUsesPriorComponentDetails",
+              "arbitraryRecordedVersionsRemainLiteralAndUnresolvedWithExplicitTruncation",
+              "narrowRtlLargeTextKeepsExpandedRecordsReadableAndToggleReachable",
+          }
+          cases = suite.findall("testcase")
+          names = [case.attrib.get("name") for case in cases]
+          if suite.attrib.get("name") != qualified or any(case.attrib.get("classname") != qualified for case in cases):
+              raise SystemExit("Foreign saved component summary results")
+          if set(names) != expected or len(names) != len(set(names)):
+              raise SystemExit("Missing, unexpected or repeated saved component summary regression")
+          if any(case.findall("failure") or case.findall("error") or case.findall("skipped") for case in cases):
+              raise SystemExit("Saved component summary regression did not pass")
+          if int(suite.attrib["tests"]) != len(cases) or any(int(suite.attrib[key]) != 0 for key in ("failures", "errors", "skipped")):
+              raise SystemExit("Saved component summary totals contradict executed cases")
+          print(f"Verified {len(cases)} simulated saved component summary tests; no catalog resolution or installed-device claim")
+          PYTEST
       - name: Require local help and public-report consent regressions to execute
         run: |
           python - <<'PYTEST'
@@ -1241,6 +1478,38 @@ jobs:
               raise SystemExit("Retained-revision pair result count does not match executed cases")
           print(f"Verified {len(cases)} simulated retained-revision pair tests; no installed-device claim")
           PYTEST
+      - name: Require actual native compatible-picker caller regressions
+        run: |
+          python - <<'PYCANDIDATES'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          name = "ai.pickyour.android.preview.CompatibleOptionsActivityTest"
+          required = {
+              "blankSavedDraftKeepsInheritedFoundationFailureAndUsesActualCanonicalAdd",
+              "actualFrozenRulesExposeUnknownAndConflictingChoicesWithSeparateReasons",
+              "secondaryReplacementKeepsPrimaryExactAndRetainsRoleIdentitySettingsAndLinks",
+              "roleAndSettingsAbaEditsRetireQueuedPreparationAndOldRetryCannotReviveIt",
+              "pendingDraftEditAndRevertDiscardVisibleResultsAndRetainedConfirmation",
+              "actualStoreRevisionConflictCannotBeOverwrittenByAStillVisibleOlderChoice",
+              "catalogReloadPauseAndRecreationRetireOldNativeChoiceAuthority",
+              "pagedRecalculationClearsOldRowsAndPreservesCatalogBrowseContext",
+              "unavailableRoleAndDisabledProposalNeverBecomeApparentlyCompatible",
+              "narrowLargeTextPickerExposesScrollableFiltersStatusAndChoiceTargets",
+              "disabledOptionalTierIsWithheldUntilAnExplicitSavedActivation",
+          }
+          suite = ET.parse(pathlib.Path("preview/build/test-results/testDebugUnitTest") / f"TEST-{name}.xml").getroot()
+          cases = suite.findall("testcase")
+          names = [case.attrib["name"] for case in cases]
+          if suite.attrib.get("name") != name or any(case.attrib.get("classname") != name for case in cases):
+              raise SystemExit("Foreign native compatible-picker results")
+          if set(names) != required or len(names) != len(required):
+              raise SystemExit("Missing, unexpected or repeated native compatible-picker regression")
+          if int(suite.attrib["tests"]) != len(cases) or any(int(suite.attrib.get(key, "0")) for key in ("failures", "errors", "skipped")):
+              raise SystemExit("Native compatible-picker totals contradict passing execution")
+          if any(case.findall("failure") or case.findall("error") or case.findall("skipped") for case in cases):
+              raise SystemExit("Native compatible-picker regression did not pass")
+          print(f"Verified {len(cases)} actual simulated Activity/store picker cases; no installed-device claim")
+          PYCANDIDATES
       - name: Require typed local draft load recovery regressions to execute
         run: |
           python - <<'PYTEST'
@@ -1255,6 +1524,14 @@ jobs:
               "corruptRetainedBytesRequireReadableCopyAndRetainPendingForm",
               "malformedPreviewMetadataRequiresReadableCopyWithoutReset",
               "busyStoredDraftCanRetryExplicitlyAfterLockRelease",
+              "busyReadRetryKeepsPendingInputsUntilAnExplicitSave",
+              "changedRevisionRetryKeepsInputsWithoutAdoptingNewSaveAuthority",
+              "missingRevisionRetryKeepsInputsWithoutCreatingAReplacement",
+              "unconfirmedCheckpointRetryCannotAcknowledgeAnUnchangedSavedRevision",
+              "cancelledAndStaleKeepingEditsCallbacksCannotRestartARead",
+              "keepingEditsRetryPreservesInvalidRawWorkloadInput",
+              "preservingRetryPausesAutosaveAcrossDelayAndRecreationUntilExplicitSave",
+              "cancelledAndStaleKeepingEditsCallbacksCannotPauseAutosaveOrRestartReads",
           }
           cases = suite.findall("testcase")
           names = [case.attrib["name"] for case in cases]
@@ -1276,7 +1553,7 @@ jobs:
           report = pathlib.Path("preview/build/test-results/testDebugUnitTest/TEST-ai.pickyour.android.preview.CatalogPinRecoveryActivityTest.xml")
           suite = ET.parse(report).getroot()
           expected = {
-              "currentPinnedInspectionUsesCapturedDetailsWithoutCreatingACacheOrSaving",
+              "currentPinnedInspectionUsesCapturedDetailsWithoutChangingRetainedBytesOrSaving",
               "retainedRetiredVersionDisplaysExactOlderBytesWithoutActivatingOrReplacingComparisonPins",
               "missingSnapshotRetryRecoversOnlyTheSamePinAfterExactBytesBecomeAvailable",
               "unsupportedInvalidAndAbsentVersionsHaveDistinctRecoverableMessagesAndPreserveBytes",
@@ -1420,6 +1697,38 @@ jobs:
               raise SystemExit("Recorded selection context result count does not match executed cases")
           print(f"Verified {len(cases)} simulated recorded selection context tests; no installed-device claim")
           PYTEST
+      - name: Require provisional finding guidance regressions
+        run: |
+          python - <<'PYTEST'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          expected = {
+              'ai.pickyour.android.preview.FindingsGuidancePresentationTest': {
+                  'canonicalUnknownSkippedAndSeverityRemainIndependent',
+                  'missingRequiredChoiceHasIncompleteGuidanceWithoutChangingItsFailure',
+                  'presentConflictingComponentsHaveReportedIncompatibilityGuidance',
+                  'mixedMissingChoiceAndComponentConflictKeepSeparateGuidance',
+              },
+              'ai.pickyour.android.preview.SnapshotFindingGuidanceActivityTest': {
+                  'actualRetainedMixedFailuresShowDistinctGuidanceWithoutChangingPendingDraft',
+                  'changedRetainedRuleContentKeepsCanonicalFailuresWithoutProvisionalClassification',
+              },
+          }
+          total = 0
+          for name, required in expected.items():
+              path = pathlib.Path('preview/build/test-results/testDebugUnitTest') / ('TEST-' + name + '.xml')
+              suite = ET.parse(path).getroot()
+              cases = suite.findall('testcase')
+              names = [case.attrib['name'] for case in cases]
+              if suite.attrib.get('name') != name or set(names) != required or len(names) != len(set(names)):
+                  raise SystemExit('Missing, foreign or repeated provisional guidance regression')
+              if int(suite.attrib['tests']) != len(cases) or any(int(suite.attrib.get(key, '0')) for key in ('failures', 'errors', 'skipped')):
+                  raise SystemExit('Provisional guidance attendance is not a complete passing result')
+              if any(case.attrib.get('classname') != name or case.findall('failure') or case.findall('error') or case.findall('skipped') for case in cases):
+                  raise SystemExit('Provisional guidance regression did not pass')
+              total += len(cases)
+          print(f'Verified {total} simulated provisional guidance cases; no installed-device claim')
+          PYTEST
       - name: Require current-choice accessibility regressions
         run: |
           python - <<'PYTEST'
@@ -1517,6 +1826,30 @@ jobs:
               assert int(suite.attrib["tests"]) >= len(expected)
               print(f"Verified {len(cases)} simulated {name} tests; no installed-device claim")
           PYTEST
+      - name: Require bundled catalog retention Activity regressions to execute
+        run: |
+          python - <<'PYTEST'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          name = "ai.pickyour.android.preview.CatalogRetentionActivityTest"
+          suite = ET.parse(pathlib.Path("preview/build/test-results/testDebugUnitTest") / ("TEST-" + name + ".xml")).getroot()
+          expected = {
+              "bundledLoaderRetainsExactBytesAcrossRecreationWithoutSavingPendingDraft",
+              "failedRetentionKeepsCatalogUsableAndExplicitReloadRecoversWithoutSaving",
+              "fullHistoryPreservesEveryPinAndExplainsUnretainedCatalogWithoutBlockingBrowse",
+          }
+          cases = suite.findall("testcase")
+          identities = [(case.attrib.get("classname"), case.attrib["name"]) for case in cases]
+          if suite.attrib.get("name") != name or any(owner != name for owner, _ in identities):
+              raise SystemExit("Unexpected catalog retention regression owner")
+          if not {(name, method) for method in expected} <= set(identities) or len(identities) != len(set(identities)):
+              raise SystemExit("Missing or repeated catalog retention regression")
+          if int(suite.attrib["tests"]) != len(cases) or any(int(suite.attrib.get(key, "0")) != 0 for key in ("failures", "errors", "skipped")):
+              raise SystemExit("Catalog retention suite did not execute cleanly")
+          if any(case.findall("failure") or case.findall("error") or case.findall("skipped") for case in cases):
+              raise SystemExit("Catalog retention regression did not pass")
+          print(f"Verified {len(cases)} simulated bundled catalog retention tests; no installed-device claim")
+          PYTEST
       - name: Require optional-tier dialog authority regressions
         run: |
           python - <<'PYTEST'
@@ -1536,6 +1869,50 @@ jobs:
           assert int(suite.attrib["tests"]) >= len(expected)
           print(f"Verified {len(cases)} simulated optional-tier dialog tests; no installed-device claim")
           PYTEST
+      - name: Require search handoff and incoming component Activity regressions to execute
+        run: |
+          python - <<'PYROUTE'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          required = {
+              'ai.pickyour.android.preview.CatalogSelectionHandoffActivityTest': {
+                  'searchResultAddsExactlyOnePinnedSelectionToTheCapturedDraftAndRole',
+                  'recreationRetiresTheSearchSelectionOriginWithoutChangingTheSavedDraft',
+                  'searchReplacementPreservesPrimaryAndSecondaryIdentitiesAndExactlyTheirRoles',
+                  'cardinalityAndDuplicateRoleRejectionRetainInputUntilExplicitValidCorrection',
+                  'pendingBuilderTextDisablesSearchSelectionAndRemainsUntouched',
+                  'changedSavedDraftRetiresSearchAuthorityAndExplainsRecoveryWithoutOverwriting',
+                  'aRemovedReplacementTargetCannotOverwriteTheOtherWritersNewRevision',
+                  'changedCatalogRejectsTheOriginalSearchActionWithoutSelectingAnotherVersion',
+              },
+              'ai.pickyour.android.preview.IncomingComponentLinkActivityTest': {
+                  'warmComponentLinkRequiresExplicitAddAndRepeatedDeliveryCannotDuplicateIt',
+                  'coldComponentLinkStaysUnboundAcrossRecreationUntilAnExplicitLocalChoice',
+                  'malformedOversizedAndPermissionBearingLinksCannotReplaceWarmDraftOrBrowseInput',
+                  'recognizedWarmLinkPreservesUncommittedBuilderContextAcrossRecreation',
+                  'warmLinkPreservesTheAutosaveDeadlineAndRequiresAFreshSelectionCapture',
+                  'incomingDeliveryCannotDismissCommitOrReplaceAnOpenComponentForm',
+                  'missingKindItemVersionAndSnapshotNeverFallBackToAnAvailableSelection',
+                  'corruptedNormalizedCheckpointCannotReparseOriginalIntentOrAcquireAnActiveDraft',
+                  'backgroundAndDestroyedLinkControlsCannotOpenAWindowOrWriteTheDraft',
+                  'narrowRtlLargeTextKeepsIncomingAndDraftSelectionActionsReachable',
+              },
+          }
+          for name, expected in required.items():
+              path = pathlib.Path('preview/build/test-results/testDebugUnitTest') / ("TEST-" + name + ".xml")
+              suite = ET.parse(path).getroot()
+              cases = suite.findall("testcase")
+              names = [case.attrib["name"] for case in cases]
+              if suite.attrib.get("name") != name or any(case.attrib.get("classname") != name for case in cases):
+                  raise SystemExit("Unexpected component route regression owner")
+              if set(names) != expected or len(names) != len(expected):
+                  raise SystemExit("Missing, unexpected or repeated component route regression")
+              if int(suite.attrib["tests"]) != len(cases) or any(int(suite.attrib.get(key, "0")) != 0 for key in ("failures", "errors", "skipped")):
+                  raise SystemExit("Component route suite did not execute cleanly")
+              if any(case.findall("failure") or case.findall("error") or case.findall("skipped") for case in cases):
+                  raise SystemExit("Component route regression did not pass")
+              print(f"Verified {len(cases)} simulated Activity {name} cases; no installed-device claim")
+          PYROUTE
       - name: Retain unsigned diagnostic and lint reports
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -1546,6 +1923,7 @@ jobs:
             preview/build/reports/lint-results-debug.*
             preview/build/reports/tests/testDebugUnitTest/
             preview/build/test-results/testDebugUnitTest/
+            build/environment-selection/
           retention-days: 7
           if-no-files-found: ignore
       - name: Retain artifact-linked runtime inventory

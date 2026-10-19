@@ -1,5 +1,117 @@
 # Criterion evidence ledger
 
+## Version 11: the reviewed retained-snapshot evaluator outcome for #84
+
+This amendment records **25 reviewed design criteria, seven reviewed
+implementation criteria, one reviewed import-integrity criterion and three
+reviewed support criteria complete;
+405 criteria remain incomplete**. The four new implementation criteria are
+exactly **84.1–84.4**, for the separately named
+`local-retained-frozen-v1-no-external-evidence/1` profile. This is the local
+interpreter, exact retained-input/report binding and actual native read-only
+caller that the three receiving roles accepted. It changes no other issue,
+native edge, assignee, Project field or earlier evidence object.
+
+### Exact behavior, record and receiving identities
+
+The original implemented outcome is signed #512 main
+`ea1bcd6d6a22d70d6118df1a2063e577938b27fc`, tree
+`8ff6955f8fbc5246e97e0d381150c88a2f8a8b01`. Its actual 4,071 JVM and 353 simulated
+Android cases, 29 attendance programs, four original ZIP identities and separate
+26-operator/17-configuration reference coverage retain their original execution.
+The [completed original main receipt](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/512#issuecomment-6260214198)
+does not become a new native run when this ledger is validated.
+
+The [09.01 criterion record](android/work-packages/09.01.md) and
+[ADR 0010](../decisions/0010-android-84-acceptance-record.md) were separately
+delivered through #528 at signed `f70aed520c8e04383bbf558bc2f29dd9a5765879`, tree
+`64df91b53e4f6c5c449c7a08da1993c65379c2a5`. Their exact reviewed blobs, byte lengths and SHA-256
+values are fixed. The [actual f70 main receipt](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/528#issuecomment-6262368693)
+retains a **partial** observation: its 5,150 JVM and 388 simulated Android cases
+completed, but the Preview job was canceled in the packaged-input guard and the
+later mandatory checks were skipped. That result is not a full Preview gate pass.
+
+The [separately qualified successor observation](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/524#issuecomment-6262552726) belongs to
+signed `c05238a37c61ee7b368b3ca72867645a667d6a74`, tree `26065791aa29c73fc2328abfe4c63c3883027b5b`. It follows the
+record as an explicitly reviewed source-input-identical observation under the
+[acceptance baseline](../ACCEPTANCE_BASELINE.md): only four named ledger/Python/
+documentation paths changed, all 504 other leaves and every compiled/native/
+workflow/dependency/resource input remain exact. The fixed tuple preserves both
+source trees, the complete unchanged-leaf digest and each changed path's before/
+after mode/blob identity. Its original run, dates, artifacts and qualifying
+reviewer remain attributed to that successor; no full run on f70 or this ledger
+candidate is invented. Documentation delivery alone supplies no evaluator behavior.
+
+The three original receiving decisions are independently fixed, with their
+literal UTC times and disclosed in-session roles:
+
+- [Research6260202471](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/84#issuecomment-6260202471):
+  governed compatibility/capacity and central #40/#42, accepting the constrained profile.
+- [Android-domain/affected-native6260223696](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/84#issuecomment-6260223696):
+  the actual delegated Android-domain and affected-native review.
+- [Coordinating/placement6260204544](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/84#issuecomment-6260204544):
+  the complete scoped outcome and narrow Android-local record placement.
+
+These are actual engineering decisions through the shared account, not replies
+from absent historical assignees or separate-account formal approvals. Their
+source-review scopes remain distinct from the delivery specialist's executions.
+
+### Scope that the fixed implementation receipt can accept
+
+The exact mathematical Build identity, raw bundle/source, Catalog/Ruleset/full
+Graph/optional Pricebook and all requested-evidence slot statuses are bound before
+full reevaluation. Graph pruning is not used. Every requested ResourceEstimate
+and CostEstimate remains independently diagnosed and withheld; a Pricebook is
+neither a zero-cost quote nor a qualification grant. The wrapper's own pinned
+computation, complete report re-admission, opaque ticket/fresh attempt and actual
+Activity/window/session guards prevent a foreign or stale report becoming current.
+
+The 17 complete configurations omit Build.policy and exercise reference defaults;
+the original operator corpus supplies separate decimal-comparison coverage.
+Explicit parser/operator/numeric/collection/work-budget refusals remain local
+unsupported outcomes. Outcome, independent severity and blocked/needs_review
+readiness never become universal compatibility or deployment authorization.
+The four original criterion texts/digests and all four original tasks are exact.
+
+Prerequisites #49/#58/#21 are received only at their named, already available
+outputs. Their other criteria and native edges remain unchanged, including the
+separate Manifest numeric limitation. The private retained current envelope and
+represented history survive legitimate draft deletion; older-index inspection
+supplies no current archive CAS, pending-editor authority or unavailable
+predecessor bytes. No shared wire/service, qualified external evidence, automatic
+editor evaluation, creation/removal screen, installed-device or release outcome
+is accepted through this ledger.
+
+### Exact prior-history preservation
+
+The new validator checks only the source-defined #84 outcome and two fixed
+`pr-512`/`pr-528` evidence entries, then reverses that one amendment. The
+complete earlier v10 canonical digest is
+`92b905e8707c6f5dd3061eeca234a550a768ab02cb42eadca6dd7b7692f5eddb`.
+All 128 other issue objects, 26 prior evidence objects, 441 original criterion
+texts and original metadata remain exact. Its unchanged prior v10 validator then
+performs the existing v9/v8/v7/v6 history, coordinate and receipt checks. A matching
+live capture, numeric alias, transplanted receipt or added approval flag grants
+no new acceptance.
+
+The 17 added mutation methods exercise source/main pin substitution, forged
+profile or receiving roles, missing original artifacts, changed claim scope,
+successor/source-input substitution or canceled-job promotion,
+criterion/placement/history drift, numeric aliases, source-only versus
+implementation classification and CLI rejection with and without assertions.
+Earlier tests retain their identities and their original historical inverse
+scope; explicit current schema and total assertions advance to this amendment.
+The validator reads local records; it does not execute external CI, native code,
+the scanner, an evaluator, a service or a GitHub state change.
+
+The original version-10 and older narrative below is retained byte-for-byte as
+dated ledger history. Current source review, exact-tree affected tests, ordinary
+delivery and a separate literal issue-84 reconciliation are still required.
+
+---
+
+
+
 ## Proposed version 10: the three received support outcomes
 
 This contribution records **25 reviewed design criteria, three reviewed

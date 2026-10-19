@@ -8,10 +8,13 @@ import android.view.ViewGroup
 import android.widget.*
 import ai.pickyour.core.drafts.*
 import ai.pickyour.core.preview.*
+import ai.pickyour.core.evaluation.CompatibleOptionSlot
 
 /** Explicit local draft edits. Recovered input never grants replacement save authority. */
-class SelectionEditSection(private val activity: Activity,
+internal class SelectionEditSection(private val activity: Activity,
     private val commit: (PreviewStoredDraft, String?, () -> PreviewSelectionPreparation, (Boolean, String) -> Unit) -> Unit,
+    private val compareOptions: (CompatiblePickerLaunch) -> Unit = {},
+    private val retireOptions: () -> Unit = {},
 ) : LinearLayout(activity) {
     private var closed = false
     private var editable = false
@@ -98,6 +101,7 @@ class SelectionEditSection(private val activity: Activity,
 
     fun update(record: PreviewStoredDraft?, enabled: Boolean, draftId: String? = currentDraftId) {
         if (closed) return
+        if (baseline !== record || editable != enabled || currentDraftId != draftId) retireOptions()
         baseline = record; editable = enabled; currentDraftId = draftId
         status.text = activity.getString(R.string.component_count, (record?.components?.selections?.size ?: 0).toString())
         val noRecovery = recovery === ComponentFormRecovery.None
@@ -126,11 +130,13 @@ class SelectionEditSection(private val activity: Activity,
     }
     fun catalog(items: List<PreviewCatalogItem>, hash: String?) {
         if (closed) return
+        retireOptions()
         catalogItems = items.filter { PreviewSelectionForms.supported(it.kind) }.toList()
         catalogHash = hash
         update(baseline, editable)
     }
     fun close() {
+        retireOptions()
         closed = true; editable = false; baseline = null; manage.isEnabled = false; choose.isEnabled = false
         reviewRecovery.isEnabled = false; discardRecovery.isEnabled = false
         dialogs.toList().forEach { it.dismiss() }; dialogs.clear()
@@ -139,11 +145,13 @@ class SelectionEditSection(private val activity: Activity,
         onReviewAvailabilityChanged = null
     }
     private fun show(dialog: AlertDialog, feedback: TextView? = null): AlertDialog {
+        retireOptions()
         dialogs += dialog
         if (feedback != null) dialogFeedback[dialog] = feedback
         dialog.setOnDismissListener {
             dialogs.remove(dialog); dialogFeedback.remove(dialog)
             if (formBinding?.dialog === dialog) {
+                retireOptions()
                 formBinding?.onClose?.invoke()
                 formBinding = null
                 update(baseline, editable)
@@ -248,7 +256,7 @@ class SelectionEditSection(private val activity: Activity,
         }
         val options = arrayOf(activity.getString(R.string.component_configure), activity.getString(R.string.component_edit_role),
             activity.getString(if (selection.enabled) R.string.component_disable else R.string.component_enable),
-            activity.getString(R.string.component_remove))
+            activity.getString(R.string.component_remove), activity.getString(R.string.options_open))
         lateinit var picker: AlertDialog
         picker = show(AlertDialog.Builder(activity).setTitle(label(selection)).setItems(options) { _, index ->
             if (!canOpen(expected) || !open(picker)) return@setItems
@@ -264,8 +272,33 @@ class SelectionEditSection(private val activity: Activity,
                         PreviewSelectionPreparation.Ready(SelectionCommand.Remove(selection.id))
                     }
                 }
+                4 -> compareReplacement(expected, selection)
             }
         }.setNegativeButton(R.string.close, null).create())
+    }
+
+    private fun compareReplacement(expected: PreviewStoredDraft, selection: LocalSelection) {
+        val hash = catalogHash ?: return
+        if (!canOpen(expected)) return
+        if (!selection.enabled) {
+            show(AlertDialog.Builder(activity).setTitle(R.string.options_open).setMessage(R.string.options_enabled_required)
+                .setNegativeButton(R.string.close, null).create())
+            return
+        }
+        val items = catalogItems.filter { it.kind == selection.kind }
+        val scope = Any()
+        var live: Any? = scope
+        fun current() = live === scope && canOpen(expected) && catalogHash == hash &&
+            catalogItems.filter { it.kind == selection.kind } == items
+        compareOptions(CompatiblePickerLaunch(expected, CompatibleOptionSlot(selection.kind, selection.role, selection.id, true),
+            hash, items, { item -> prepareCompatibleReplacement(selection, item) }, ::current) { item ->
+            if (current() && item in items) {
+                live = null
+                confirm(expected, hash, label(selection), activity.getString(R.string.component_replace_warning, item.id, item.version, hash)) {
+                    PreviewSelectionForms.replace(selection, item, hash)
+                }
+            }
+        })
     }
 
     /** Exact item/version/hash is carried separately from the existing opaque sample picker. */
@@ -384,7 +417,8 @@ class SelectionEditSection(private val activity: Activity,
         if (!canOpen(expected)) return
         val draftId = requireNotNull(currentDraftId)
         val layout = LinearLayout(activity).apply { orientation = VERTICAL }
-        layout.addView(TextView(activity).apply { text = activity.getString(R.string.component_add_warning, item.id, item.version, hash) })
+        var currentItem = item
+        val warning = TextView(activity).apply { text = activity.getString(R.string.component_add_warning, item.id, item.version, hash) }.also(layout::addView)
         foundationGuidance(layout, item.kind, showRoleChoice = true)
         retrievalGuidance(layout, item.kind)
         agentGuidance(layout, item.kind)
@@ -398,20 +432,54 @@ class SelectionEditSection(private val activity: Activity,
         val enabled = CheckBox(activity).apply {
             setText(R.string.component_enabled); isChecked = restored?.enabled ?: false; isSaveEnabled = false
         }.also(layout::addView)
+        val compare = Button(activity).apply {
+            id = R.id.options_form_compare; setText(R.string.options_open)
+            setSingleLine(false); ellipsize = null
+        }.also(layout::addView)
         val feedback = feedback().also(layout::addView)
         val selectionId = restored?.selectionId ?: ("selection_" + java.util.UUID.randomUUID().toString().replace("-", ""))
         val dialog = show(AlertDialog.Builder(activity).setTitle(R.string.component_add).setView(ScrollView(activity).apply { addView(layout) })
             .setNegativeButton(R.string.close, null).setPositiveButton(R.string.component_commit, null).create(), feedback)
+        var inputEpoch: Any = Any()
+        fun changed() { inputEpoch = Any(); retireOptions() }
+        val watcher = object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { changed() }
+            override fun afterTextChanged(s: android.text.Editable?) {}
+        }
+        role.addTextChangedListener(watcher); settings.addTextChangedListener(watcher)
+        enabled.setOnCheckedChangeListener { _, _ -> changed() }
         formBinding = FormBinding(dialog) { saving ->
             ComponentFormCheckpoint(ComponentFormCheckpoint.ADD, draftId, expected.baselineIdentity, selectionId,
-                item.id, item.version, hash, item.kind, role.text.toString(), settings.text.toString(), enabled.isChecked, saving)
+                currentItem.id, currentItem.version, hash, item.kind, role.text.toString(), settings.text.toString(), enabled.isChecked, saving)
                 .captureNewSettings(item.kind)
         }
         update(baseline, editable)
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
             if (!active(expected)) return@setOnClickListener
             val form = PreviewSelectionForm(role.text.toString(), enabled.isChecked, settings.text.toString())
-            submit(dialog, expected, hash) { PreviewSelectionForms.add(selectionId, item, hash, form) }
+            submit(dialog, expected, hash) { PreviewSelectionForms.add(selectionId, currentItem, hash, form) }
+        }
+        compare.setOnClickListener {
+            if (!active(expected) || !open(dialog) || formBinding?.saving == true) return@setOnClickListener
+            if (!enabled.isChecked) { feedback.setText(R.string.options_enabled_required); return@setOnClickListener }
+            val form = PreviewSelectionForm(role.text.toString(), true, settings.text.toString())
+            val epoch = inputEpoch
+            val items = catalogItems.filter { it.kind == item.kind }
+            fun current() = active(expected) && open(dialog) && formBinding?.dialog === dialog &&
+                formBinding?.saving == false && inputEpoch === epoch && catalogHash == hash &&
+                role.text.toString() == form.role && settings.text.toString() == form.settingsJson && enabled.isChecked
+            compareOptions(CompatiblePickerLaunch(expected, CompatibleOptionSlot(item.kind, form.role, selectionId, false),
+                hash, items, { candidate ->
+                    val prepared = PreviewSelectionForms.add(selectionId, candidate, hash, form) as? PreviewSelectionPreparation.Ready
+                    (prepared?.command as? SelectionCommand.Add)?.selection
+                }, ::current) { candidate ->
+                if (current() && candidate in items) {
+                    currentItem = candidate
+                    warning.text = activity.getString(R.string.component_add_warning, candidate.id, candidate.version, hash)
+                    submit(dialog, expected, hash) { PreviewSelectionForms.add(selectionId, candidate, hash, form) }
+                }
+            })
         }
     }
     private fun settingsForm(expected: PreviewStoredDraft, selection: LocalSelection, restored: ComponentFormCheckpoint? = null) {
@@ -526,6 +594,7 @@ class SelectionEditSection(private val activity: Activity,
     private fun submit(dialog: AlertDialog, expected: PreviewStoredDraft, hash: String?,
         onRejected: (() -> Unit)? = null, prepare: () -> PreviewSelectionPreparation) {
         if (!active(expected) || !open(dialog) || hash != null && hash != catalogHash) return
+        retireOptions()
         dialogFeedback[dialog]?.text = ""
         freezeForm(dialog, true)
         formBinding?.takeIf { it.dialog === dialog }?.saving = true
@@ -543,7 +612,7 @@ class SelectionEditSection(private val activity: Activity,
     }
     private fun freezeForm(dialog: AlertDialog, frozen: Boolean) {
         fun visit(view: View) {
-            if (view is EditText || view is CheckBox) view.isEnabled = !frozen
+            if (view is EditText || view is CheckBox || view.id == R.id.options_form_compare) view.isEnabled = !frozen
             if (view is ViewGroup) for (index in 0 until view.childCount) visit(view.getChildAt(index))
         }
         dialog.window?.decorView?.let(::visit)

@@ -8,7 +8,8 @@ import ai.pickyour.core.importing.JsonInputResult
 import com.fasterxml.jackson.databind.JsonNode
 import java.io.InputStream
 
-enum class ReportRejection { INVALID_BUILD, INVALID_RULESET, INVALID_REPORT, BINDING_MISMATCH, INCONSISTENT_FINDINGS }
+enum class ReportRejection { INVALID_BUILD, INVALID_RULESET, INVALID_REPORT, BINDING_MISMATCH, INCONSISTENT_FINDINGS,
+    UNSUPPORTED_BUILD_SCHEMA_VERSION, UNSUPPORTED_RULESET_SCHEMA_VERSION, UNSUPPORTED_REPORT_SCHEMA_VERSION }
 
 sealed interface ReportReception {
     data class Rejected(val reason: ReportRejection) : ReportReception
@@ -16,9 +17,12 @@ sealed interface ReportReception {
     class Accepted internal constructor(
         val json: String,
         private val selectionContexts: Map<String, ReferenceSelectionContext>,
+        private val findingGuidance: Map<String, ProvisionalFindingGuidance>,
     ) : ReportReception {
         internal fun selectionContext(id: String): ReferenceSelectionContext = selectionContexts[id]
             ?: ReferenceSelectionContext.Unavailable(id, ReferenceSelectionUnavailable.MISSING)
+        internal fun guidanceFor(ruleId: String): ProvisionalFindingGuidance = findingGuidance[ruleId]
+            ?: ProvisionalFindingGuidance.UNCLASSIFIED
     }
 }
 
@@ -33,9 +37,15 @@ class ReferenceReportAdapter {
     private val validator = FrozenSchemaValidator()
 
     fun receive(build: InputStream, ruleset: InputStream, report: InputStream): ReportReception {
-        val b = parse(FrozenDocument.BUILD, build) ?: return reject(ReportRejection.INVALID_BUILD)
-        val rules = parse(FrozenDocument.RULESET, ruleset) ?: return reject(ReportRejection.INVALID_RULESET)
-        val r = parse(FrozenDocument.EVALUATION_REPORT, report) ?: return reject(ReportRejection.INVALID_REPORT)
+        val b = parse(build) ?: return reject(ReportRejection.INVALID_BUILD)
+        if (unsupportedVersion(b)) return reject(ReportRejection.UNSUPPORTED_BUILD_SCHEMA_VERSION)
+        if (!valid(FrozenDocument.BUILD, b)) return reject(ReportRejection.INVALID_BUILD)
+        val rules = parse(ruleset) ?: return reject(ReportRejection.INVALID_RULESET)
+        if (unsupportedVersion(rules)) return reject(ReportRejection.UNSUPPORTED_RULESET_SCHEMA_VERSION)
+        if (!valid(FrozenDocument.RULESET, rules)) return reject(ReportRejection.INVALID_RULESET)
+        val r = parse(report) ?: return reject(ReportRejection.INVALID_REPORT)
+        if (unsupportedVersion(r)) return reject(ReportRejection.UNSUPPORTED_REPORT_SCHEMA_VERSION)
+        if (!valid(FrozenDocument.EVALUATION_REPORT, r)) return reject(ReportRejection.INVALID_REPORT)
         val locks = b["locks"]
         if (r["build_id"] != b["id"] || r["build_revision"].bigIntegerValue() != b["revision"].bigIntegerValue() ||
             r["schema_version"] != b["schema_version"] ||
@@ -73,15 +83,19 @@ class ReferenceReportAdapter {
             "blocked" else "needs_review"
         if (r["result"].asText() != result || r["deployment_readiness"].asText() != readiness)
             return reject(ReportRejection.INCONSISTENT_FINDINGS)
-        return ReportReception.Accepted(r.toString(), recordedSelectionContexts(b))
+        return ReportReception.Accepted(r.toString(), recordedSelectionContexts(b), recordedProvisionalGuidance(b, rules, r))
     }
 
-    private fun parse(type: FrozenDocument, stream: InputStream): JsonNode? {
-        val parsed = reader.read(stream) as? JsonInputResult.Parsed ?: return null
-        // Revalidate bounded canonical bytes rather than expose the validator's mutable tree API.
-        return if (validator.validate(type, parsed.value.toString().byteInputStream()) == FrozenValidation.Valid)
-            parsed.value else null
+    private fun parse(stream: InputStream): JsonNode? = (reader.read(stream) as? JsonInputResult.Parsed)?.value
+
+    private fun unsupportedVersion(node: JsonNode): Boolean {
+        val version = node["schema_version"]
+        return version != null && version.isTextual && version.textValue() != "1.0.0"
     }
+
+    // Revalidate bounded canonical bytes rather than expose the validator's mutable tree API.
+    private fun valid(type: FrozenDocument, node: JsonNode): Boolean =
+        validator.validate(type, node.toString().byteInputStream()) == FrozenValidation.Valid
 
     private fun reject(reason: ReportRejection) = ReportReception.Rejected(reason)
 }

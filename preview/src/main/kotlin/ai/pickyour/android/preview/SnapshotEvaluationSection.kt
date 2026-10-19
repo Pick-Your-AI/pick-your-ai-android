@@ -208,8 +208,9 @@ internal class SnapshotEvaluationSection(
                 activity.getString(R.string.snapshot_binding, it.slot.name, it.id, it.version, it.hash.hex)
             } ?: "${diagnostic.slot}: ${diagnostic.status}" },
             activity.getString(R.string.snapshot_limits),
-            report.findings.joinToString("\n\n") { finding -> listOf(
+            report.findings.joinToString("\n\n") { finding -> listOfNotNull(
                 activity.getString(R.string.findings_row, finding.ruleId, finding.outcome, finding.severity),
+                FindingsInspectionText.guidance(activity, finding),
                 activity.getString(R.string.findings_reason, finding.code, literalText(finding.message)),
                 activity.getString(R.string.findings_remediation, literalText(finding.remediation)),
                 activity.getString(R.string.snapshot_affected, finding.selectionIds.joinToString(", ").ifEmpty {

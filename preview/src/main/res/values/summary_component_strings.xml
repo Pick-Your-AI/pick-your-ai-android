@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="draft_summary_show_components">Show saved components</string>
+    <string name="draft_summary_hide_components">Hide saved components</string>
+    <string name="draft_summary_components_empty">No components recorded in this saved revision.</string>
+    <string name="draft_summary_components_revision">Component records from saved revision %1$s.</string>
+    <string name="draft_summary_components_unresolved">Availability and suitability have not been checked.</string>
+    <string name="draft_summary_component_record">Selection: %1$s\nKind: %2$s\nRole: %3$s\nCatalog item: %4$s\nCatalog version: %5$s\n%6$s</string>
+    <string name="draft_summary_component_enabled">Enabled in saved configuration</string>
+    <string name="draft_summary_component_disabled">Disabled in saved configuration</string>
+</resources>

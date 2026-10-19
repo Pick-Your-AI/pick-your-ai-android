@@ -9,12 +9,16 @@ the current source/receiving/main evidence for independent final review. Its
 Android-local record's placement; normal reviewed record delivery and the separate
 strict-ledger amendment still govern completion.
 
-The implementation/profile and chronological source-time observations below are
-retained unchanged. Their original pending-review language describes those earlier
-slices, not a reversal of later signed delivery or a new execution. The current
-record distinguishes the delivered consumer at `44b4c7e3`, the seventeen-case
-configuration supplement and actual signed main `ea1bcd6d`. Every original
-receipt keeps its own source, date, runner and limits.
+The retained-snapshot implementation/profile boundary and chronological
+source-time observations below retain their original scope. The subsequent #96
+comparison factorization updates the interpreter source descriptor to
+`b0bc63de8d6d4fed412344c4cb58864248782edf74aa9fb0fa75df9f3e80667f`; it does not
+reattribute the original #84 record or executions to that implementation. Their
+original pending-review language describes those earlier slices, not a reversal
+of later signed delivery or a new execution. The current record distinguishes
+the delivered consumer at `44b4c7e3`, the seventeen-case configuration supplement
+and actual signed main `ea1bcd6d`. Every original receipt keeps its own source,
+date, runner and limits.
 
 This is a concrete private local consumer of the existing bounded frozen evaluator.
 It evaluates an explicitly selected, verified immutable archive entry and displays
@@ -87,8 +91,17 @@ source text changes the bundle identity even when the projected Build is identic
 | --- | --- |
 | Unchanged frozen Python evaluator | `092c8a99495f9b5ae960df40b27e33f15eefe6d1a7cd80119658fdc79ada1a5a` |
 | Existing 14-schema CD-7 descriptor | `eaaf51a04c9bd0c7fce23e7ecc75724226e26b337cc1da04b88a59d2a912914f` |
-| Kotlin `FrozenDiagnosticEvaluator.kt` | `5d01c0851f3731519869cb8a546d92de10a717c4a5236a557ff70091a1db8fb6` |
+| Kotlin `FrozenDiagnosticEvaluator.kt` | `b0bc63de8d6d4fed412344c4cb58864248782edf74aa9fb0fa75df9f3e80667f` |
 | Kotlin `ReferenceReportAdapter.kt` | `50f1e1ab16d63fde5363d6aedd24e5fd6460b3de534d7b10c38a933777dd1821` |
+
+The previous interpreter descriptor
+`5d01c0851f3731519869cb8a546d92de10a717c4a5236a557ff70091a1db8fb6`
+remains the identity of the original retained-profile executions. The current
+source factors the same rule loop for a separate typed private-draft candidate
+caller; frozen Build admission, complete report construction and archived-report
+re-admission remain intact. This new source descriptor does not relabel the
+earlier runs or admit incomplete draft contexts into this retained profile. See
+[the local compatible-options boundary](COMPATIBLE_OPTIONS.md).
 
 The canonical `scripts/check_diagnostic_fixtures.py` now verifies these declared
 source pins before reproducing its unchanged twenty-six complete Python reports.
