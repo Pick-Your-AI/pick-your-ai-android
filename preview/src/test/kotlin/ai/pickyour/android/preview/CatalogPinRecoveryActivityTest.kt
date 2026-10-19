@@ -26,7 +26,6 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import org.robolectric.annotation.LooperMode
 import org.robolectric.shadows.ShadowAlertDialog
-import org.robolectric.shadows.ShadowChoreographer
 import java.nio.channels.FileChannel
 import java.nio.file.Files
 import java.nio.file.Path
@@ -70,7 +69,7 @@ class CatalogPinRecoveryActivityTest {
     private fun dialog() = requireNotNull(ShadowAlertDialog.getLatestAlertDialog())
     private fun message(window: AlertDialog = dialog()) = shadowOf(window).message.toString()
     private fun dialogButton(label: Int, window: AlertDialog = dialog()) = button(label, window.window!!.decorView)
-    private fun idle() = shadowOf(Looper.getMainLooper()).idle()
+    private fun idle() = AutosaveUiClock.idle()
     private fun await(condition: () -> Boolean) {
         val deadline = System.nanoTime() + 15_000_000_000L
         while (System.nanoTime() < deadline) {
@@ -436,7 +435,7 @@ class CatalogPinRecoveryActivityTest {
         save()
         val baseline = loaded().baselineIdentity
         // Dialog frames must not advance this read-only case beyond the autosave deadline.
-        ShadowChoreographer.setPaused(true)
+        AutosaveUiClock.pause()
         val pendingSince = SystemClock.uptimeMillis()
         field(R.string.draft_title).setText("pending lifecycle recovery")
         addPin()

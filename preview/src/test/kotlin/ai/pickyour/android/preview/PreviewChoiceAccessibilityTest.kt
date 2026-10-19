@@ -28,7 +28,6 @@ import org.robolectric.android.controller.ActivityController
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.LooperMode
 import org.robolectric.shadows.ShadowAlertDialog
-import org.robolectric.shadows.ShadowChoreographer
 
 /** Actual native list/row semantics in a JVM simulation, not an installed TalkBack run. */
 @RunWith(RobolectricTestRunner::class)
@@ -62,7 +61,7 @@ class PreviewChoiceAccessibilityTest {
     private fun await(condition: () -> Boolean) {
         val deadline = System.nanoTime() + 15_000_000_000L
         while (System.nanoTime() < deadline) {
-            shadowOf(Looper.getMainLooper()).idle()
+            AutosaveUiClock.idle()
             if (condition()) return
             Thread.sleep(10)
         }
@@ -101,7 +100,7 @@ class PreviewChoiceAccessibilityTest {
         val listener = requireNotNull(list.onItemClickListener)
         return { index ->
             listener.onItemClick(list, null, index, list.adapter.getItemId(index))
-            shadowOf(Looper.getMainLooper()).idle()
+            AutosaveUiClock.idle()
         }
     }
     private fun assertChecked(dialog: AlertDialog, index: Int) {
@@ -122,7 +121,7 @@ class PreviewChoiceAccessibilityTest {
         }
         layout()
         list.setSelection(index)
-        shadowOf(Looper.getMainLooper()).idle()
+        AutosaveUiClock.idle()
         layout()
         val row = list.getChildAt(index - list.firstVisiblePosition) as CheckedTextView
         assertTrue(row.width > 0 && row.height > 0)
@@ -143,7 +142,7 @@ class PreviewChoiceAccessibilityTest {
 
     @Test fun catalogPickersExposeCurrentCheckedChoicesWithoutSaving() {
         // Dialog frames must not advance this read-only case beyond the autosave deadline.
-        ShadowChoreographer.setPaused(true)
+        AutosaveUiClock.pause()
         val pendingSince = SystemClock.uptimeMillis()
         field(R.string.draft_title).setText("Pending title remains local")
         val choices = listOf(PreviewCatalogKinds.tiers.indexOf("T1") + 1,

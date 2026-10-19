@@ -243,3 +243,63 @@ configured run, complete original-result review and guarded receiving delivery
 are still required. Source inspection and portable admission checks remain
 distinct from Kotlin execution and installed Android UX acceptance. All four
 whole-issue criteria and the canonical acceptance path above remain unchanged.
+
+### 2026-10-19: qualify corrected Core and preserve the paused-frame failure
+
+The next ordinary workflow, [39184187910](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39184187910),
+checked published source `b2aec41535a94ad73ec59c41f33ece176506de56` as the validly
+signed prepared commit `40e2bbf241722936584d7a8b558e45d0fe988219`, exact tree
+`67245b53dbe43424994e9ef370f4b918fab5094e`.
+
+- Core job `117843021289` passed. Its original 77 XML suites contain 3,644
+  cases and zero failures, errors, or skips, including all eight autosave cases.
+  Artifact `12157731194` is 1,210,849 bytes, original ZIP SHA-256
+  `173054215fe89aaafddec0397b9f1a8cde2f05294ab415f58857ba92eff7710b`.
+  The original JAR agrees with its inventory, all eight build/input pins agree
+  with the exact source, the ignored-schema negative control is source-bound,
+  and the original 260-case conformance receipt was reproduced from its XML
+  and frozen inputs (223 wire and 34 typed migration observations).
+- The separate [scanner run 39184187823](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39184187823)
+  passed against that same prepared commit/tree: 180 reachable commits,
+  zero findings, and completed scanner fixtures. Artifact `12157665543` is
+  943 bytes, original ZIP SHA-256
+  `c4648d43aef09557f968f68b4b17a35dfc39db76a5472eb91da5b5651f14e446`.
+- Preview job `117843021110` compiled production and test Kotlin but failed
+  its simulated tests: 24 original XML suites, 305 cases, 21 failures, zero
+  errors or skips. All 13 autosave methods failed in `@Before launch` while
+  awaiting the initial UI state, before their test bodies. The same eight
+  legacy cases stalled on later dialog/UI delivery; the revision picker
+  failed its existing different-dialog assertion. Artifact `12156993812`
+  is 3,009,736 bytes, original ZIP SHA-256
+  `f929e816f9013cdec4106ce350e3cbc01ad077138731b6301f05ab833af885c1`.
+  Its strict post-test admission and packaged-policy steps did not execute.
+  These failures remain failures; the Core and scanner results do not qualify
+  the preview or establish installed Android acceptance.
+
+Every original XML member was preserved byte-for-byte separately from the full
+download. The retained XML archive is a derived container; the ZIP hashes above
+identify the original GitHub artifacts, whose bytes were checked before extraction.
+
+The correction is limited to test frame delivery. In
+[Android 9 ViewRootImpl](https://github.com/aosp-mirror/platform_frameworks_base/blob/android-9.0.0_r1/core/java/android/view/ViewRootImpl.java),
+`scheduleTraversals` installs a synchronization barrier and `doTraversal`
+removes it. Pausing the frame receiver without delivering a frame therefore
+blocks synchronous UI acknowledgements. Robolectric 4.17's
+[own Choreographer tests](https://github.com/robolectric/robolectric/blob/robolectric-4.17/robolectric/src/test/java/org/robolectric/shadows/ShadowChoreographerTest.java)
+explicitly exercise paused nanosecond frame delivery on the selected SDK range;
+[ShadowPausedSystemClock](https://github.com/robolectric/robolectric/blob/robolectric-4.17/shadows/framework/src/main/java/org/robolectric/shadows/ShadowPausedSystemClock.java)
+and [ShadowDisplayEventReceiver](https://github.com/robolectric/robolectric/blob/robolectric-4.17/shadows/framework/src/main/java/org/robolectric/shadows/ShadowDisplayEventReceiver.java)
+implement the positive clock advance and requested vsync dispatch.
+
+The shared test helper now pauses automatic frames and requests a one-nanosecond
+frame interval. Each explicit UI-idle call delivers at most one requested frame,
+then checks that millisecond uptime did not change. It never drains an animation
+or advances to a pending Handler deadline. Ordinary unpaused cases retain their
+prior idle behavior. All existing 749/750 ms boundaries, eight pre-deadline
+checks, durable baselines, private-file assertions, failure/reopen controls,
+13 Activity identities and workflow admissions remain unchanged. Production,
+persistence, debounce timing and inspection retirement policy remain unchanged.
+
+This continuation has source and whitespace checks only at preparation time.
+It requires fresh compiled test execution after independent review and ordinary
+publication; the failed prepared checkout is not relabeled as corrected evidence.

@@ -35,7 +35,6 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import org.robolectric.annotation.LooperMode
 import org.robolectric.shadows.ShadowAlertDialog
-import org.robolectric.shadows.ShadowChoreographer
 import java.nio.file.Files
 import java.nio.file.Path
 import java.security.MessageDigest
@@ -78,7 +77,7 @@ class CatalogDetailBrowserActivityTest {
     private fun click(which: Int, window: AlertDialog = dialog()) { window.getButton(which).performClick(); idle() }
     private fun choose(index: Int, window: AlertDialog = dialog()) { shadowOf(window).clickOnItem(index); idle() }
     private fun message(window: AlertDialog = dialog()) = shadowOf(window).message.toString()
-    private fun idle() = shadowOf(Looper.getMainLooper()).idle()
+    private fun idle() = AutosaveUiClock.idle()
     private fun await(condition: () -> Boolean) {
         val deadline = System.nanoTime() + 15_000_000_000L
         while (System.nanoTime() < deadline) {
@@ -412,7 +411,7 @@ class CatalogDetailBrowserActivityTest {
         save()
         val baseline = loaded().baselineIdentity
         // Dialog frames must not advance this read-only case beyond the autosave deadline.
-        ShadowChoreographer.setPaused(true)
+        AutosaveUiClock.pause()
         val pendingSince = SystemClock.uptimeMillis()
         field(R.string.draft_title).setText("pending sibling navigation")
         val previous = openActualDetail()
@@ -448,7 +447,7 @@ class CatalogDetailBrowserActivityTest {
         save()
         val baseline = loaded().baselineIdentity
         // Dialog frames must not advance this read-only case beyond the autosave deadline.
-        ShadowChoreographer.setPaused(true)
+        AutosaveUiClock.pause()
         val pendingSince = SystemClock.uptimeMillis()
         field(R.string.context_objective).setText("pending recorded detail")
         val first = openActualBrowser()
@@ -505,7 +504,7 @@ class CatalogDetailBrowserActivityTest {
         save()
         val baseline = loaded().baselineIdentity
         // Dialog frames must not advance this read-only case beyond the autosave deadline.
-        ShadowChoreographer.setPaused(true)
+        AutosaveUiClock.pause()
         val pendingSince = SystemClock.uptimeMillis()
         field(R.string.context_context).setText("pending retained fields")
         val older = document().put("revision", 3)
@@ -619,7 +618,7 @@ class CatalogDetailBrowserActivityTest {
         addPin()
         PreviewDraftLibrary(activity.noBackupFilesDir.toPath()).list()
         // Dialog frames must not advance this read-only case beyond the autosave deadline.
-        ShadowChoreographer.setPaused(true)
+        AutosaveUiClock.pause()
         val pendingSince = SystemClock.uptimeMillis()
         field(R.string.context_objective).setText("pending library transition")
         val baseline = loaded().baselineIdentity
@@ -655,7 +654,7 @@ class CatalogDetailBrowserActivityTest {
         addPin()
         PreviewDraftLibrary(activity.noBackupFilesDir.toPath()).list()
         // Dialog frames must not advance this read-only case beyond the autosave deadline.
-        ShadowChoreographer.setPaused(true)
+        AutosaveUiClock.pause()
         val pendingSince = SystemClock.uptimeMillis()
         field(R.string.context_objective).setText("pending incoming catalog inspection")
         val baseline = loaded().baselineIdentity

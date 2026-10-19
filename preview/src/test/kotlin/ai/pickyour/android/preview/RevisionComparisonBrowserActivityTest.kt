@@ -26,7 +26,6 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import org.robolectric.annotation.LooperMode
 import org.robolectric.shadows.ShadowAlertDialog
-import org.robolectric.shadows.ShadowChoreographer
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.TimeUnit
@@ -66,7 +65,7 @@ class RevisionComparisonBrowserActivityTest {
         .filterIsInstance<TextView>().filterNot { it is Button }.map { it.text.toString() }
     private fun controls(window: AlertDialog = dialog()) = views(window.window!!.decorView).filterIsInstance<Button>()
         .filter { it.visibility == View.VISIBLE && it.text.isNotBlank() }
-    private fun idle() = shadowOf(Looper.getMainLooper()).idle()
+    private fun idle() = AutosaveUiClock.idle()
     private fun click(label: Int, window: AlertDialog = dialog()) {
         button(label, window.window!!.decorView).performClick()
         idle()
@@ -163,7 +162,7 @@ class RevisionComparisonBrowserActivityTest {
         prepareSavedHistory()
         val baseline = loaded().baselineIdentity
         // Dialog frames must not advance this read-only case beyond the autosave deadline.
-        ShadowChoreographer.setPaused(true)
+        AutosaveUiClock.pause()
         val pendingSince = SystemClock.uptimeMillis()
         field(R.string.draft_title).setText("pending title")
         field(R.string.context_objective).setText("pending objective")

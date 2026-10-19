@@ -21,7 +21,6 @@ import org.robolectric.android.controller.ActivityController
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.LooperMode
 import org.robolectric.shadows.ShadowAlertDialog
-import org.robolectric.shadows.ShadowChoreographer
 import java.nio.channels.FileChannel
 import java.nio.file.StandardOpenOption.WRITE
 import java.util.concurrent.CountDownLatch
@@ -38,7 +37,7 @@ class PreviewAutosaveActivityTest {
 
     @Before fun launch() {
         // Only explicit clock advances may cross a debounce deadline in these scheduler cases.
-        ShadowChoreographer.setPaused(true)
+        AutosaveUiClock.pause()
         controller = Robolectric.buildActivity(PreviewActivity::class.java).setup()
         await { button(R.string.save_draft).isEnabled }
         assertEquals(PreviewDraftLoad.Missing, adapter().load())
@@ -59,7 +58,7 @@ class PreviewAutosaveActivityTest {
     private fun await(condition: () -> Boolean) {
         val deadline = System.nanoTime() + 15_000_000_000L
         while (System.nanoTime() < deadline) {
-            shadowOf(Looper.getMainLooper()).idle()
+            AutosaveUiClock.idle()
             if (condition()) return
             Thread.sleep(10)
         }
@@ -70,7 +69,7 @@ class PreviewAutosaveActivityTest {
         .get(activity) as ExecutorService
     private fun drain() {
         worker().submit {}.get(15, TimeUnit.SECONDS)
-        shadowOf(Looper.getMainLooper()).idle()
+        AutosaveUiClock.idle()
     }
     private fun adapter() = PreviewDraftLibrary(activity.noBackupFilesDir.toPath()).openLegacy()
     private fun loaded() = (adapter().load() as PreviewDraftLoad.Available).record
@@ -288,13 +287,13 @@ class PreviewAutosaveActivityTest {
             views(parent.window!!.decorView).filterIsInstance<Button>().single {
                 it.text.toString() == activity.getString(R.string.catalog_detail_browser_open)
             }.performClick()
-            shadowOf(Looper.getMainLooper()).idle()
+            AutosaveUiClock.idle()
             return dialog().also { assertTrue(it.isShowing) }
         }
         field(R.string.draft_title).setText("captured while inspecting")
         val oldFields = openFields()
         shadowOf(oldFields).clickOnItem(0)
-        shadowOf(Looper.getMainLooper()).idle()
+        AutosaveUiClock.idle()
         val oldValue = dialog()
         assertNotSame(oldFields, oldValue)
         assertTrue(oldValue.isShowing)
@@ -320,7 +319,7 @@ class PreviewAutosaveActivityTest {
         assertEquals(first.revision + 1, intermediate.revision)
         assertEquals("captured while inspecting", intermediate.fields.title)
         shadowOf(oldFields).clickOnItem(0); oldBack.performClick()
-        shadowOf(Looper.getMainLooper()).idle()
+        AutosaveUiClock.idle()
         assertSame(oldValue, dialog())
         assertFalse(oldValue.isShowing)
         assertEquals("newer input during inspection save", field(R.string.draft_title).text.toString())
