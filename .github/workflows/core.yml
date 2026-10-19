@@ -245,6 +245,37 @@ jobs:
               raise SystemExit("Synthetic scenario reader case did not execute and pass")
           print(f"All {len(expected)} synthetic scenario reader cases executed and passed; no scenario UI or installed-device inference.")
           PYSCENARIOS
+      - name: Require automatic form-save regressions to execute
+        run: |
+          python - <<'PYAUTOSAVE'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          class_name = "ai.pickyour.android.preview.PreviewAutosaveActivityTest"
+          suite = ET.parse(pathlib.Path("preview/build/test-results/testDebugUnitTest") / f"TEST-{class_name}.xml").getroot()
+          expected = {
+              "initialLoadAndIdleDoNotCreateAnUneditedDraft",
+              "rapidChangesAutosaveOnlyTheCompleteLatestFormAfterThePause",
+              "manualSaveConsumesThePendingDelayWithoutDuplicatingARevision",
+              "editingDuringAutosaveKeepsNewInputsUntilTheirOwnDurableAcknowledgement",
+              "invalidWorkloadCancelsThePendingSaveAndCorrectionCommitsTheWholeForm",
+              "failedAutosavePreservesTheHeadAndPauseAcrossRecreationUntilExplicitRetry",
+              "aConcurrentWriterBlocksAutomaticRetryAndRecreationCannotAdoptItsAuthority",
+              "aLibraryOpeningFailureRequiresExplicitReconciliationBeforeAutosaveCanResume",
+              "autosaveRetiresVisibleInspectionAndPreservesNewerInputUntilItsOwnAcknowledgement",
+              "recreationBeforeTheDelayRetainsPendingInputAndOnlyTheNewEditorCanSaveIt",
+              "aCommittedWriteWithoutUiAcknowledgementRequiresExplicitReconciliationAfterRecreation",
+              "selectingANewDraftRetiresThePriorTimerAndItsPendingInput",
+              "aRejectedWorkerNeverAcknowledgesOrAutomaticallyRetriesAnUndispatchedWrite",
+          }
+          cases = suite.findall("testcase")
+          if suite.get("name") != class_name or len(cases) != len(expected) or {case.get("name") for case in cases} != expected:
+              raise SystemExit("Automatic form-save regressions are missing, duplicated or unexpected")
+          if int(suite.get("tests", "-1")) != len(cases) or any(int(suite.get(key, "-1")) != 0 for key in ("failures", "errors", "skipped")):
+              raise SystemExit("Automatic form-save suite did not report complete zero-failure execution")
+          if any(case.get("classname") != class_name or any(case.find(tag) is not None for tag in ("failure", "error", "skipped")) for case in cases):
+              raise SystemExit("Automatic form-save case did not execute and pass")
+          print(f"All {len(expected)} automatic form-save simulations executed and passed; no installed-process inference.")
+          PYAUTOSAVE
       - name: Require all simulated UI regressions to execute
         run: |
           python - <<'PYTEST'

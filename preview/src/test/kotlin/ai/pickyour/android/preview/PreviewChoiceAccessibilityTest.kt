@@ -3,6 +3,7 @@ package ai.pickyour.android.preview
 import android.app.AlertDialog
 import android.os.Bundle
 import android.os.Looper
+import android.os.SystemClock
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
@@ -60,7 +61,7 @@ class PreviewChoiceAccessibilityTest {
     private fun await(condition: () -> Boolean) {
         val deadline = System.nanoTime() + 15_000_000_000L
         while (System.nanoTime() < deadline) {
-            shadowOf(Looper.getMainLooper()).idle()
+            AutosaveUiClock.idle()
             if (condition()) return
             Thread.sleep(10)
         }
@@ -99,7 +100,7 @@ class PreviewChoiceAccessibilityTest {
         val listener = requireNotNull(list.onItemClickListener)
         return { index ->
             listener.onItemClick(list, null, index, list.adapter.getItemId(index))
-            shadowOf(Looper.getMainLooper()).idle()
+            AutosaveUiClock.idle()
         }
     }
     private fun assertChecked(dialog: AlertDialog, index: Int) {
@@ -120,7 +121,7 @@ class PreviewChoiceAccessibilityTest {
         }
         layout()
         list.setSelection(index)
-        shadowOf(Looper.getMainLooper()).idle()
+        AutosaveUiClock.idle()
         layout()
         val row = list.getChildAt(index - list.firstVisiblePosition) as CheckedTextView
         assertTrue(row.width > 0 && row.height > 0)
@@ -140,6 +141,9 @@ class PreviewChoiceAccessibilityTest {
     }
 
     @Test fun catalogPickersExposeCurrentCheckedChoicesWithoutSaving() {
+        // Dialog frames must not advance this read-only case beyond the autosave deadline.
+        AutosaveUiClock.pause()
+        val pendingSince = SystemClock.uptimeMillis()
         field(R.string.draft_title).setText("Pending title remains local")
         val choices = listOf(PreviewCatalogKinds.tiers.indexOf("T1") + 1,
             PreviewCatalogKinds.all.indexOfFirst { it.id == "model" } + 1, PreviewCatalogSort.NAME.ordinal)
@@ -157,6 +161,7 @@ class PreviewChoiceAccessibilityTest {
         }
         assertEquals("Pending title remains local", field(R.string.draft_title).text.toString())
         assertNoSavedDraft()
+        assertTrue("Read-only actions stay before autosave", SystemClock.uptimeMillis() in pendingSince until pendingSince + 750)
     }
 
     @Test fun workloadPickerExposesUnansweredAndCurrentClassificationWithoutSaving() {
