@@ -256,14 +256,14 @@ class PreviewPolicyTest(unittest.TestCase):
                     changed["outputs"][0]["file"] = "different.apk"
                 inventory_path.write_text(json.dumps(changed))
                 with self.subTest(mutation=mutation), \
-                     patch.object(policy, "command", side_effect=["a" * 40 + "\n" + "b" * 40, ""]), \
+                     patch.object(policy, "source_identity", return_value=inventory["source"]), \
                      patch.object(policy, "inspect_apk") as inspect, \
                      self.assertRaisesRegex(policy.PolicyFailure, expected):
                     policy.check(root, root / "unused-tool")
                 inspect.assert_not_called()
 
     def test_source_changes_during_inspection_cannot_receive_a_pass(self):
-        for mutation in ["none", "tracked-file", "head", "replacement-tree"]:
+        for mutation in ["none", "tracked-file", "head", "replacement-tree", "assume-unchanged", "skip-worktree"]:
             with self.subTest(mutation=mutation), tempfile.TemporaryDirectory() as temporary:
                 root = Path(temporary)
                 def git(*arguments):
@@ -298,6 +298,8 @@ class PreviewPolicyTest(unittest.TestCase):
                     return run_command(arguments, cwd, **options)
                 def inspect(*_):
                     if mutation != "none":
+                        if mutation in {"assume-unchanged", "skip-worktree"}:
+                            git("update-index", "--" + mutation, "tracked.txt")
                         tracked.write_text("changed during inspection\n")
                         if mutation == "head":
                             commit("Synthetic concurrent source advance")
@@ -306,6 +308,9 @@ class PreviewPolicyTest(unittest.TestCase):
                             git("replace", source["tree"], git("write-tree"))
                             self.assertEqual("", git("status", "--porcelain", "--untracked-files=all"))
                             self.assertNotEqual("", git("--no-replace-objects", "status", "--porcelain"))
+                        elif mutation in {"assume-unchanged", "skip-worktree"}:
+                            self.assertEqual("", git("--no-replace-objects", "status", "--porcelain", "--untracked-files=all"))
+                            self.assertNotEqual(git("rev-parse", "HEAD:tracked.txt"), git("hash-object", "tracked.txt"))
                     return {"sha256": apk_hash}
                 with patch.object(policy, "command", side_effect=commands), \
                      patch.object(policy, "inspect_apk", side_effect=inspect):
@@ -313,6 +318,8 @@ class PreviewPolicyTest(unittest.TestCase):
                         self.assertEqual("passed", policy.check(root, aapt2)["status"])
                     else:
                         expected = "SOURCE_CHANGED_DURING_INSPECTION" if mutation == "head" else "SOURCE_CHANGED"
+                        if mutation in {"assume-unchanged", "skip-worktree"}:
+                            expected = "SOURCE_BYTES_MISMATCH"
                         with self.assertRaisesRegex(policy.PolicyFailure, "^" + expected + "$"):
                             policy.check(root, aapt2)
                 self.assertEqual(apk_hash, policy.sha256(apk))
@@ -391,6 +398,160 @@ class PreviewPolicyTest(unittest.TestCase):
                 self.assertEqual(current_source, receipt["source"])
                 self.assertEqual(current_inventory_hash, policy.sha256(inventory_path))
                 self.assertEqual(apk_hash, policy.sha256(apk))
+
+    def test_index_flags_cannot_hide_source_edits_before_inspection(self):
+        for flag in ["assume-unchanged", "skip-worktree"]:
+            with self.subTest(flag=flag), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                def git(*arguments):
+                    return subprocess.run(["git", "--no-replace-objects", *arguments], cwd=root,
+                                          check=True, timeout=30, stdout=subprocess.PIPE,
+                                          stderr=subprocess.PIPE).stdout.decode().strip()
+                def commit(message):
+                    git("-c", "user.name=Policy test", "-c", "user.email=policy@example.invalid",
+                        "-c", "commit.gpgsign=false", "commit", "--quiet", "--no-verify", "-am", message)
+                def literal_source():
+                    return {"commit": git("rev-parse", "HEAD"), "tree": git("rev-parse", "HEAD^{tree}")}
+                git("init", "--quiet")
+                (root / ".gitignore").write_text("build/\n**/build/\n")
+                tracked = root / "tracked.txt"
+                tracked.write_text("original\n")
+                aapt2 = root / "aapt2-fixture"
+                aapt2.write_bytes(b"synthetic tool identity")
+                git("add", "--all")
+                commit("Synthetic source baseline")
+                source = literal_source()
+                apk = root / policy.APK_PATH
+                apk.parent.mkdir(parents=True)
+                apk.write_bytes(b"unchanged synthetic artifact")
+                apk_hash = policy.sha256(apk)
+                inventory_path = root / "build/inventory/runtime-inventory.json"
+                inventory_path.parent.mkdir(parents=True)
+                inventory = {"schema_version": 1, "scope": "resolved-runtime-classpaths", "source": source,
+                             "outputs": [{"kind": "unsigned-debug-preview", "file": policy.APK_PATH,
+                                          "sha256": apk_hash, "bytes": apk.stat().st_size}]}
+                inventory_path.write_text(json.dumps(inventory))
+                inventory_hash = policy.sha256(inventory_path)
+                run_command = policy.command
+                def commands(arguments, cwd=None, **options):
+                    if arguments == [str(aapt2), "version"]:
+                        return "Android Asset Packaging Tool (aapt) 2.19-11948202"
+                    return run_command(arguments, cwd, **options)
+                with patch.object(policy, "command", side_effect=commands), \
+                     patch.object(policy, "inspect_apk", return_value={"sha256": apk_hash}) as inspect:
+                    self.assertEqual(source, policy.check(root, aapt2)["source"])
+                    git("update-index", "--" + flag, "tracked.txt")
+                    self.assertEqual(source, policy.check(root, aapt2)["source"])
+                    tracked.write_text("modified\n")  # Same size as the original: verify the blob, not only length.
+                    self.assertEqual("", git("status", "--porcelain", "--untracked-files=all"))
+                    self.assertNotEqual(git("rev-parse", "HEAD:tracked.txt"), git("hash-object", "tracked.txt"))
+                    inspect.reset_mock()
+                    with self.assertRaisesRegex(policy.PolicyFailure, "^SOURCE_BYTES_MISMATCH$"):
+                        policy.check(root, aapt2)
+                    inspect.assert_not_called()
+                    self.assertEqual(source, literal_source())
+                    self.assertEqual(inventory_hash, policy.sha256(inventory_path))
+                    self.assertEqual(apk_hash, policy.sha256(apk))
+
+                    git("update-index", "--no-" + flag, "tracked.txt")
+                    commit("Actually commit the edited source")
+                    adopted = literal_source()
+                    self.assertNotEqual(source, adopted)
+                    inventory["source"] = adopted
+                    inventory_path.write_text(json.dumps(inventory))
+                    receipt = policy.check(root, aapt2)
+                    self.assertEqual("passed", receipt["status"])
+                    self.assertEqual(adopted, receipt["source"])
+                    self.assertEqual(apk_hash, policy.sha256(apk))
+
+    def test_source_bytes_do_not_accept_git_text_normalization(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            def git(*arguments):
+                return subprocess.run(["git", *arguments], cwd=root, check=True, timeout=30,
+                                      stdout=subprocess.PIPE, stderr=subprocess.PIPE).stdout.decode().strip()
+            git("init", "--quiet")
+            (root / ".gitattributes").write_text("tracked.txt text\n")
+            tracked = root / "tracked.txt"
+            tracked.write_bytes(b"original\n")
+            git("add", "--all")
+            git("-c", "user.name=Policy test", "-c", "user.email=policy@example.invalid",
+                "-c", "commit.gpgsign=false", "commit", "--quiet", "--no-verify", "-m", "Synthetic LF source")
+            original = policy.source_identity(root)
+            tracked.write_bytes(b"original\r\n")
+            git("add", "tracked.txt")
+            self.assertEqual("", git("--no-replace-objects", "status", "--porcelain", "--untracked-files=all"))
+            self.assertEqual(git("rev-parse", "HEAD:tracked.txt"), git("hash-object", "--path=tracked.txt", "tracked.txt"))
+            self.assertNotEqual(git("rev-parse", "HEAD:tracked.txt"), git("hash-object", "--no-filters", "tracked.txt"))
+            with self.assertRaisesRegex(policy.PolicyFailure, "^SOURCE_BYTES_MISMATCH$"):
+                policy.source_identity(root)
+            tracked.write_bytes(b"original\n")
+            git("add", "tracked.txt")
+            self.assertEqual(original, policy.source_identity(root))
+
+    def test_regular_source_modes_empty_binary_and_literal_paths_are_supported(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            def git(*arguments):
+                return subprocess.run(["git", *arguments], cwd=root, check=True, timeout=30,
+                                      stdout=subprocess.PIPE, stderr=subprocess.PIPE).stdout.decode().strip()
+            git("init", "--quiet")
+            (root / "empty").write_bytes(b"")
+            directory = root / "nested space"
+            directory.mkdir()
+            (directory / "binary\tUnicode-λ\nfile ").write_bytes(b"\x00\xff\x80\r\n")
+            executable = root / "executable"
+            executable.write_bytes(b"synthetic executable identity\n")
+            executable.chmod(0o755)
+            git("add", "--all")
+            git("-c", "user.name=Policy test", "-c", "user.email=policy@example.invalid",
+                "-c", "commit.gpgsign=false", "commit", "--quiet", "--no-verify", "-m", "Synthetic regular modes")
+            self.assertTrue(git("ls-tree", "HEAD", "executable").startswith("100755 blob "))
+            self.assertTrue(git("ls-tree", "HEAD", "empty").startswith("100644 blob "))
+            self.assertEqual({"commit": git("rev-parse", "HEAD"), "tree": git("rev-parse", "HEAD^{tree}")},
+                             policy.source_identity(root))
+
+    def test_source_bytes_reject_symlink_paths_and_nonregular_tree_entries(self):
+        for case in ["tracked-symlink", "gitlink", "symlink-file", "symlink-parent"]:
+            with self.subTest(case=case), tempfile.TemporaryDirectory() as temporary:
+                private = Path(temporary)
+                root = private / "repository"
+                root.mkdir()
+                def git(*arguments):
+                    return subprocess.run(["git", *arguments], cwd=root, check=True, timeout=30,
+                                          stdout=subprocess.PIPE, stderr=subprocess.PIPE).stdout.decode().strip()
+                def commit():
+                    git("-c", "user.name=Policy test", "-c", "user.email=policy@example.invalid",
+                        "-c", "commit.gpgsign=false", "commit", "--quiet", "--no-verify", "-m", "Synthetic source mode")
+                git("init", "--quiet")
+                directory = root / "nested"
+                directory.mkdir()
+                tracked = directory / "tracked.txt"
+                tracked.write_bytes(b"original\n")
+                git("add", "--all")
+                commit()
+                source = git("rev-parse", "HEAD")
+                policy.verify_source_bytes(root, source)
+                if case == "tracked-symlink":
+                    (root / "link").symlink_to("nested/tracked.txt")
+                    git("add", "link")
+                    commit()
+                    source = git("rev-parse", "HEAD")
+                elif case == "gitlink":
+                    git("update-index", "--add", "--cacheinfo", "160000", source, "submodule")
+                    commit()
+                    source = git("rev-parse", "HEAD")
+                elif case == "symlink-file":
+                    alternate = private / "alternate.txt"
+                    tracked.rename(alternate)
+                    tracked.symlink_to(alternate)
+                else:
+                    alternate = private / "alternate-directory"
+                    directory.rename(alternate)
+                    directory.symlink_to(alternate, target_is_directory=True)
+                expected = "SOURCE_TREE_INVALID" if case in {"tracked-symlink", "gitlink"} else "SOURCE_NOT_REGULAR"
+                with self.assertRaisesRegex(policy.PolicyFailure, "^" + expected + "$"):
+                    policy.verify_source_bytes(root, source)
 
     def test_failed_current_check_removes_previous_pass_without_disclosing_error(self):
         with tempfile.TemporaryDirectory() as temporary:
