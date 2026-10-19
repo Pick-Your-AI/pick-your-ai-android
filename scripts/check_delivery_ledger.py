@@ -2989,7 +2989,7 @@ def reconstruct_prior_v11(ledger):
     return previous
 
 
-def validate(ledger, source=None):
+def _validate_prior_v12(ledger, source=None):
     require(type(ledger['schema_version']) is int and ledger['schema_version'] == 12,
             'unsupported schema version')
     require(ledger['purpose'] == LEDGER_PURPOSE_V12,
@@ -3035,6 +3035,867 @@ def validate(ledger, source=None):
             'unreviewed change to complete prior v11 ledger history')
 
 
+
+# Exact #37 implementation receiving and actual signed delivery. Input data
+# cannot enlarge this reviewed allowlist or rewrite any prior ledger history.
+IMPLEMENTATION_37_ACCEPTANCE = {'classification': 'reviewed_implementation_outcome',
+ 'scope': 'selected_synthetic_normalized_placement_and_relationship_consumer',
+ 'profile': 'android-placement-receiving/0.1',
+ 'criteria': ['37.1', '37.2', '37.3'],
+ 'implemented_subtasks': ['Resolve component deployment modes, role-bound relationships and '
+                          'adapter/base inheritance from the existing '
+                          'Pick-Your-AI/pick-your-ai-research#40 queue.',
+                          'Specify supported CPU/unified/discrete memory placement and allocations '
+                          'without treating aggregate advertised VRAM as usable capacity.',
+                          'Define shared versus independent input/output budgets and route '
+                          'overrides without an invented combined limit.',
+                          'Publish positive/failing/unresolved hybrid, ambiguous-binding and '
+                          'context cases with migration impact.'],
+ 'evidence_refs': ['pr-517', 'pr-535', 'pr-598'],
+ 'historical_acceptance_record': {'repository': 'Pick-Your-AI/pickyour.ai',
+                                  'path': 'docs/delivery/android/work-packages/03.04.md'},
+ 'record_revision': 'ed70452180a7f1020d5156c711ccde5baa66f0de',
+ 'record_tree': '20df104d4055c8cbc574e7b0d89d7b7d32a6c774',
+ 'record_path': 'docs/delivery/android/work-packages/03.04.md',
+ 'record_blob': '212b7c09becdb24338826c5d66486454e93a722d',
+ 'record_bytes': 40286,
+ 'record_sha256': '0bce5553bbc8e104930399e0e4831311b24654078f737c77d28b798e56506eab',
+ 'decision_path': 'docs/decisions/0012-android-37-acceptance-record.md',
+ 'decision_blob': '7b775d25b9c5316b45d23b53ca57eccf4ef4290a',
+ 'decision_bytes': 6128,
+ 'decision_sha256': '5806c9046f41ca045bc8748500960470fe00b794d2eb83aa956c0cae4e8f42ad',
+ 'record_url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/blob/ed70452180a7f1020d5156c711ccde5baa66f0de/docs/delivery/android/work-packages/03.04.md',
+ 'decision_url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/blob/ed70452180a7f1020d5156c711ccde5baa66f0de/docs/decisions/0012-android-37-acceptance-record.md',
+ 'record_delivery': {'pr': 535,
+                     'merged_at': '2026-10-19T16:45:38Z',
+                     'signature_verified': True,
+                     'parents': ['fd05539e72dc707fb7242b8e2f9321db1de0bdda'],
+                     'delivery_receipt': 'https://github.com/Pick-Your-AI/pick-your-ai-android/pull/535#issuecomment-6272386365',
+                     'placement_effect': 'ADR_0012_effective_for_only_android_03_04_after_actual_reviewed_normal_delivery'},
+ 'receiving_identity_scope': 'Actual delegated in-session engineering roles through the shared '
+                             'project account; no absent-assignee reply, distinct-account formal '
+                             'approval, participant/device/provider test or credentials are '
+                             'inferred.',
+ 'receiving_reviews': [{'role': 'actual_in_session_central_contract_and_android_domain',
+                        'url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/issues/37#issuecomment-6263823132',
+                        'created_at': '2026-10-19T09:15:57Z',
+                        'body_bytes': 9197,
+                        'body_sha256': '31a8f9fc663840443c33f7cd83c129df606fb00fc55d034bb3d40b0d3ddc3be3',
+                        'source_revision': 'b1adcec7dff97447f472d1c4b1a3380d212d3b9d',
+                        'source_tree': 'd452154a42edc14bc290047e9c73156e0126dc95',
+                        'disposition': 'accepted_all_three_literal_criteria_and_four_subtasks_for_selected_profile',
+                        'read_and_execution_scope': 'Context author and archive qualifier; '
+                                                    'independent complete placement/source review. '
+                                                    'Receives the selected six-interface outcome '
+                                                    'and available #21 local input boundary, '
+                                                    'without granting broader #21 acceptance.'},
+                       {'role': 'actual_in_session_affected_ios',
+                        'url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/issues/37#issuecomment-6263781725',
+                        'created_at': '2026-10-19T09:13:38Z',
+                        'body_bytes': 7089,
+                        'body_sha256': '593b9ebbf20ec010da11ccb4f9ff889cfe5677e7c0550d67060374729d3073d4',
+                        'source_revision': 'b1adcec7dff97447f472d1c4b1a3380d212d3b9d',
+                        'source_tree': 'd452154a42edc14bc290047e9c73156e0126dc95',
+                        'disposition': 'accepted_all_three_literal_criteria_and_four_subtasks_for_selected_profile',
+                        'read_and_execution_scope': 'Complete record, ADR, mapping and scoped '
+                                                    'evidence receiving; original Apple URL '
+                                                    'finding corrected. No product test execution '
+                                                    'or original-archive re-audit by this '
+                                                    'reviewer.'},
+                       {'role': 'actual_in_session_coordinating_and_affected_website',
+                        'url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/issues/37#issuecomment-6265403655',
+                        'created_at': '2026-10-19T10:45:18Z',
+                        'body_bytes': 8290,
+                        'body_sha256': 'e8d2d7a6a2ea36b1c644eb4de04b8bbc1bf096b69565ad6cb1e897824b1bfd47',
+                        'source_revision': 'b1adcec7dff97447f472d1c4b1a3380d212d3b9d',
+                        'source_tree': 'd452154a42edc14bc290047e9c73156e0126dc95',
+                        'disposition': 'accepted_all_three_literal_criteria_and_four_subtasks_for_selected_profile',
+                        'read_and_execution_scope': 'Complete selected outcome and narrow Android '
+                                                    'record placement accepted; ADR becomes '
+                                                    'effective through reviewed normal delivery. '
+                                                    'Historical website absence applies only to '
+                                                    'the inspected revision; no general website or '
+                                                    'prerequisite acceptance.'}],
+ 'final_register_source_review': 'https://github.com/Pick-Your-AI/pick-your-ai-android/pull/550#pullrequestreview-5570894623',
+ 'full_placement_source_review': 'https://github.com/Pick-Your-AI/pick-your-ai-android/pull/534#pullrequestreview-5568143967',
+ 'context_independent_source_review': 'https://github.com/Pick-Your-AI/pick-your-ai-android/pull/505#pullrequestreview-5566487937',
+ 'context_receiving_source_review': 'https://github.com/Pick-Your-AI/pick-your-ai-android/pull/517#pullrequestreview-5567753510',
+ 'implementation_source_revision': 'af8ce984a2d0169523fc5151a909328124b3ac18',
+ 'implementation_source_pins': [{'path': 'core/src/main/kotlin/ai/pickyour/core/evidence/placement/PlacementAnswers.kt',
+                                 'blob': '8633c51aee6ab937513b582ddbe319069dc7140b',
+                                 'bytes': 17067,
+                                 'sha256': '24dfb31e6ef4ae84c0c5060d707a50cdae5d0501b0d79738603dabc501ebf4da'},
+                                {'path': 'core/src/main/kotlin/ai/pickyour/core/evidence/placement/PlacementBasis.kt',
+                                 'blob': '76187d7aa86f31db4b655013cfbd64c2955abd6f',
+                                 'bytes': 11626,
+                                 'sha256': 'f0b1084aa4198a9c08653585fa53bafac156164ae649496829e98bfb68449635'},
+                                {'path': 'core/src/main/kotlin/ai/pickyour/core/evidence/placement/PlacementBindings.kt',
+                                 'blob': 'aee5620db9c5f2dc25479468f8ad91aa3ac161df',
+                                 'bytes': 13791,
+                                 'sha256': 'e07f4458a29ee43f1604c2cec5aa86a28377cbc93fbc6924ebc42e43298a870c'},
+                                {'path': 'core/src/main/kotlin/ai/pickyour/core/evidence/placement/PlacementDeployment.kt',
+                                 'blob': 'f01790e824b866ef6efd360826986511856432d5',
+                                 'bytes': 15411,
+                                 'sha256': 'db27d8edc98ee29e961bc8cc1d9d00042050fc0a95f8caf3e48416411288b894'},
+                                {'path': 'core/src/main/kotlin/ai/pickyour/core/evidence/placement/PlacementMemory.kt',
+                                 'blob': '59b2404ca43896cdc8bd4c00ac1f2cc3df856e8f',
+                                 'bytes': 32817,
+                                 'sha256': '74d7d760554a8fc108932d816b5570278c89700bd6813ccc6902b11cecd68276'},
+                                {'path': 'core/src/main/kotlin/ai/pickyour/core/evidence/placement/PlacementMemoryRecords.kt',
+                                 'blob': '638a0b4d168203e62c2f4c719ad429f19bd8eaeb',
+                                 'bytes': 11789,
+                                 'sha256': 'ecb54a791addadb777bc1e1ad4d9f2e285add675cbee570966c6c433aad9a4b1'},
+                                {'path': 'core/src/main/kotlin/ai/pickyour/core/evidence/placement/PlacementResults.kt',
+                                 'blob': '558cb819a96208d586311d2b40630e632502ee4a',
+                                 'bytes': 8150,
+                                 'sha256': '0cf3a9fd7e38ce73299bd419ad9c530ae1607a040c3f5a506b4e8e77d38046c5'},
+                                {'path': 'core/src/main/kotlin/ai/pickyour/core/evidence/placement/PlacementServing.kt',
+                                 'blob': 'e80aa376293ecf7f68979df23f697fa07ace740b',
+                                 'bytes': 1938,
+                                 'sha256': '79fd41d1baf55c2fa361bd11f8d38f2d46e132de9c7d5006962d451ca9bf1ca2'},
+                                {'path': 'core/src/main/kotlin/ai/pickyour/core/evidence/placement/PlacementWorkload.kt',
+                                 'blob': 'bfe21e7d571095a32320caba78402a85eb06a5b0',
+                                 'bytes': 8688,
+                                 'sha256': '024d51ae12c481b03d2a4d8ab75a271279a405b306e95823b344dfe6498189e4'},
+                                {'path': 'core/src/main/kotlin/ai/pickyour/core/evidence/placement/context/Cd11ContextRecord.kt',
+                                 'blob': 'ee34172c89a763012c1bd2c93cf1bea8b49c7637',
+                                 'bytes': 18146,
+                                 'sha256': '79454aea84ba5a31fba4a53640f0b56cb44e4cf7b27bc72fc8237a39e5956ffc'},
+                                {'path': 'core/src/main/kotlin/ai/pickyour/core/evidence/placement/context/ContextBudgetMath.kt',
+                                 'blob': 'aabcaca2ff009989cfe5d42227b46bd26b8c173d',
+                                 'bytes': 3845,
+                                 'sha256': 'e1767cf134bdb6498669f05bd8e85759981c738fde6d35da5dd3cba2951e535f'},
+                                {'path': 'core/src/main/kotlin/ai/pickyour/core/evidence/placement/context/ContextValues.kt',
+                                 'blob': '735b76af234fa79bb97a10e926041d70ac797d6c',
+                                 'bytes': 7934,
+                                 'sha256': '6380d8b17a91a9afe151934d86063d25c437fdf0c1eb56833172b17ac3e96e6d'},
+                                {'path': 'core/src/test/kotlin/ai/pickyour/core/evidence/placement/PlacementBindingDeploymentTest.kt',
+                                 'blob': 'e93590664b89970d404a4daf7663e6ac2d059599',
+                                 'bytes': 30536,
+                                 'sha256': 'ff574bbdab832d98f312e4deb31e883432042598f5d08ced7a93fb148de5d558'},
+                                {'path': 'core/src/test/kotlin/ai/pickyour/core/evidence/placement/PlacementMemoryFixtures.kt',
+                                 'blob': '66d75fe28262c692c9c5b3ff4464dd0722a5995e',
+                                 'bytes': 13148,
+                                 'sha256': 'd1881a1c0d0f60a6ff7e6de221651d2f23c47896e0cb657d898e0da98317584d'},
+                                {'path': 'core/src/test/kotlin/ai/pickyour/core/evidence/placement/PlacementMemoryTest.kt',
+                                 'blob': '56607a8e83fef029a8050399ecd264d4f14930f5',
+                                 'bytes': 23075,
+                                 'sha256': '9dcf4647677feefbe1773ac45d4cf3aa45936b6d7ff2a8e6d90f5a52a06b1f76'},
+                                {'path': 'core/src/test/kotlin/ai/pickyour/core/evidence/placement/PlacementReceivedVectorsTest.kt',
+                                 'blob': '9ac442cec9bc33837452befea8511b8d346f09c4',
+                                 'bytes': 8216,
+                                 'sha256': 'c4c190f406bab40c188ac4240763c766c80239cf8aa6b90ed88f33332859c52e'},
+                                {'path': 'core/src/test/kotlin/ai/pickyour/core/evidence/placement/PlacementTestFixtures.kt',
+                                 'blob': '25bd1cb9ffc2a684425237b02c4e4d94af27d902',
+                                 'bytes': 16490,
+                                 'sha256': 'd5e4179b2eaa19ae725c80e9fe7be152c2f86e1b35f512e23322b3940f1ff3a1'},
+                                {'path': 'core/src/test/kotlin/ai/pickyour/core/evidence/placement/PlacementWorkloadTest.kt',
+                                 'blob': '00d4423465c4947b1f8ea9a2091e557e5e6c0a70',
+                                 'bytes': 12104,
+                                 'sha256': 'c1b50ca0db6a1c23fe3c70c935b7fffc113db3e58d03bc87903f76d6dc241004'},
+                                {'path': 'core/src/test/kotlin/ai/pickyour/core/evidence/placement/context/Cd11ContextRecordTest.kt',
+                                 'blob': '2fe666bf734eea2f4367ae2081656c34f8f2a6c3',
+                                 'bytes': 33038,
+                                 'sha256': '70e0fbc53ff4364f5a9c5a6ef8796ccbe652fb0a2ae107d681b35653adee67e6'},
+                                {'path': 'core/src/test/kotlin/ai/pickyour/core/evidence/placement/context/ContextBudgetMathTest.kt',
+                                 'blob': '7ab8388bb787d394e27155bc750a186d46e2268e',
+                                 'bytes': 10695,
+                                 'sha256': '3b57d1275016bba5ce072a1c6b90a5ce42fbcfb734c8adaa4f5c9704fb82f66b'},
+                                {'path': 'core/src/test/resources/placement/context/reference/context-budget-answers.json',
+                                 'blob': '3006ada1fe0945649296b3e3f9a5fec0aa240f0b',
+                                 'bytes': 734,
+                                 'sha256': 'be4fc13496144cb559fa2a8116da5f81fd5e1395f50fa6c6b1b8999bf6c9b2f1'},
+                                {'path': 'core/src/test/resources/placement/context/reference/context-budget-binding.json',
+                                 'blob': '659821843ecd9db3c9d85469cfa89877329da684',
+                                 'bytes': 647,
+                                 'sha256': 'c3108457577e8710dda63f7630925422b4f1c138d039619dcb49b96ad97470a3'},
+                                {'path': 'core/src/test/resources/placement/context/reference/context-budget-binding.schema.json',
+                                 'blob': '5480495d59bf9c41c9108c7d13934359420a088e',
+                                 'bytes': 1912,
+                                 'sha256': 'f99e8d65954cdf4a51df10db345443c7d3936382f700aae28c30785b68a0722c'},
+                                {'path': 'core/src/test/resources/placement/context/reference/reference-pins.json',
+                                 'blob': '420d5e6387d3961bbaf5868ff92e2b74714780aa',
+                                 'bytes': 1176,
+                                 'sha256': '34af15882a77d8be291aee757f09001b9ab5894f0ca5db47d0e1d547a5752917'},
+                                {'path': 'core/src/test/resources/placement/context/reference/t0-answer-states.schema.json',
+                                 'blob': '91aab5e6bae86f3b7dfb8e504a65c02502c6defb',
+                                 'bytes': 1370,
+                                 'sha256': '51e18c1b5694daf905aee539712dd0a9e46e78be0ca8e438d758628d88357e0d'},
+                                {'path': 'docs/CD11_CONTEXT_PROFILE.md',
+                                 'blob': '2143ce84db0f288228dc14510732bb424868a6a3',
+                                 'bytes': 13975,
+                                 'sha256': '0b11846f26a42a045fb0bc0fa7db2107b902d5155d3f16058d5b6378ae4e3566'},
+                                {'path': 'docs/NORMALIZED_PLACEMENT_PROFILE.md',
+                                 'blob': 'af5a8635834aaf97d767a6a5d07a9234a10d02c8',
+                                 'bytes': 18057,
+                                 'sha256': '8422de93897b44058677be20b9d5bba90de7196db0a75ee05deb6378c007fa5d'}],
+ 'selected_interfaces': ['immutable_basis_and_original_inputs',
+                         'original_cd1_0_2_answers_and_qualification',
+                         'single_cd6_graph_deployment_and_exact_lineage',
+                         'cd2_physical_pools_coverage_and_copies',
+                         'exact_workload_sequence_and_admission_scope',
+                         'preserving_cd11_context_and_prior_normalization'],
+ 'vector_groups': [{'id': 'D1',
+                    'received_behavior': 'Hybrid retains applicable local failures, skips only '
+                                         'established remote local-only requirements, and retains '
+                                         'independent service failures.'},
+                   {'id': 'D2',
+                    'received_behavior': 'Actual operator and capacity facts determine '
+                                         'applicability; API protocol, catalog access and '
+                                         'customer-supplied runtime do not invent physical '
+                                         'exposure.'},
+                   {'id': 'D3',
+                    'received_behavior': 'Unknown operator, provider capacity or required exposure '
+                                         'remains unknown; independent service failure survives. '
+                                         'Reserved capacity and exposed hardware are separate.'},
+                   {'id': 'B1',
+                    'received_behavior': 'Two eligible engine candidates remain ambiguous in both '
+                                         'orders; required absence, unestablished inventory and '
+                                         'optional inapplicability remain distinct.'},
+                   {'id': 'B2',
+                    'received_behavior': 'Known wrong-kind or disabled required targets fail; '
+                                         'unavailable exact catalog version remains unknown. '
+                                         'Malformed and dangling provided records reject before '
+                                         'shortcuts.'},
+                   {'id': 'B3',
+                    'received_behavior': 'Exact adapter/base/engine facts and used checked-only '
+                                         'prerequisites survive every dependent exit; a defensive '
+                                         'two-adapter cycle is UNKNOWN/BINDING_CYCLE.'},
+                   {'id': 'M1',
+                    'received_behavior': 'Exact billion-byte units: 18U+8U fails one 24U UMA pool; '
+                                         'separate 30U and 6U demands retain fail/pass against '
+                                         'distinct 24U budgets.'},
+                   {'id': 'M2',
+                    'received_behavior': 'Only qualified physical identity permits one charge for '
+                                         'sharing; host/offload/transfer copies and independent '
+                                         'rank ceilings retain their own scope.'},
+                   {'id': 'M3',
+                    'received_behavior': 'Before-reserve 24U minus 8U and after-reserve 16U both '
+                                         'pass 16U and fail 16U+1 byte; zero and values beyond '
+                                         'binary64/Long remain exact.'},
+                   {'id': 'M4',
+                    'received_behavior': 'Qualified complete scenarios, transition coverage, '
+                                         'identity and inventories are required; unknown '
+                                         'nonnegative charges do not erase an independently '
+                                         'qualified disjoint failure.'},
+                   {'id': 'W1',
+                    'received_behavior': 'One request expands to four live sequences before a '
+                                         'qualified bound of two; exact '
+                                         'runtime/build/replica/admission/stage and '
+                                         'retained/queued coverage are required.'},
+                   {'id': 'C1',
+                    'received_behavior': '7000+2000 fails shared 8000 and passes independent input '
+                                         '8000/output 4000; no combined vendor limit is invented.'},
+                   {'id': 'C2',
+                    'received_behavior': 'An explicit 8500 total policy independently fails 9000; '
+                                         'missing/unknown/withheld, optional N/A and provided zero '
+                                         'remain distinct.'},
+                   {'id': 'C3',
+                    'received_behavior': 'Eligible 5000–7000 input plus 2000 straddles shared '
+                                         '8000; conservative upper failure and independent '
+                                         'definite failure precedence retain their selected '
+                                         'meanings.'},
+                   {'id': 'C4',
+                    'received_behavior': 'All nine scope dimensions are exact; valid '
+                                         'missing/mismatched scope or ineligible evidence is '
+                                         'unknown with no arithmetic from that bound; malformed '
+                                         'scope rejects before disabled evaluation.'},
+                   {'id': 'C5',
+                    'received_behavior': 'Prior normalized native 32768 remains available without '
+                                         'qualified extension; evidenced 131072 obeys a supplied '
+                                         '65536 runtime ceiling. The binding reader invents no '
+                                         'missing-operand fallback.'},
+                   {'id': 'G1',
+                    'received_behavior': 'Closed versions/types and original-byte/hash/all-record '
+                                         'preflight precede outcomes; valid changed basis is '
+                                         'ineligible, and immutable original provenance and frozen '
+                                         'historical dispatch remain preserved.'}],
+ 'profile_integrity': {'research_revision': '449a29be1752a3c545709da466c7d53fc18fef73',
+                       'research_tree': '6a188a54d269028e5283288d9f6afa1f63ba2163',
+                       'central_decision_blob': 'd3d53f3c135556a3bd227e8008dceb9f08676749',
+                       'deployment_decision_blob': '8d64fcc0bf16222b0ed3e06dc53c396e525c0741',
+                       'context_decision_blob': '5384081104cc2d872a4173138fc00a00c115c072',
+                       'physical_profile': 'cd2-physical-pools/0.1.0',
+                       'physical_answer_version': 'cd1-0.2',
+                       'physical_count_type': 'provided_canonical_nonnegative_decimal_ByteCount_string_to_BigInteger',
+                       'context_profile': 'cd11-0.1',
+                       'context_answer_version': 'cd1-0.1',
+                       'context_count_type': 'original_JSON_integer_token_to_BigInteger_with_field_specific_zero_rules',
+                       'context_answer_sha256': 'be4fc13496144cb559fa2a8116da5f81fd5e1395f50fa6c6b1b8999bf6c9b2f1',
+                       'version_boundary': 'No relabeling, reserialization, invented '
+                                           'assumption/source or silent old-to-new answer '
+                                           'conversion.',
+                       'qualification_boundary': 'Original bytes/hash and structural validity do '
+                                                 'not grant evidence eligibility; exact basis, '
+                                                 'original input, pointer, domain, operation and '
+                                                 'source-policy identities remain required.',
+                       'failure_boundary': 'Malformed identities, dangling provided records and '
+                                           'failed declared original bindings reject; well-formed '
+                                           'changed or unestablished active scope remains '
+                                           'unknown/ineligible, retaining independently qualified '
+                                           'failures.',
+                       'cycle_boundary': 'B3 is a defensive normalized two-adapter '
+                                         'UNKNOWN/BINDING_CYCLE case, not a semantically valid '
+                                         'frozen-v1 base_model_ref configuration or a revised '
+                                         'catalog-kind contract.'},
+ 'consumed_prerequisites': [{'repository': 'Pick-Your-AI/pick-your-ai-research',
+                             'issue': 40,
+                             'output': 'Delivered selected CD-2/CD-6/CD-7 decisions and received '
+                                       'CD-5/CD-11 test-profile semantics at the exact pinned '
+                                       'boundary.',
+                             'limits': 'No full central successor wire release, migration, service '
+                                       'or real-provider acceptance is inferred.'},
+                            {'repository': 'Pick-Your-AI/pick-your-ai-android',
+                             'issue': 21,
+                             'output': 'Available exact frozen Build/catalog/import/admission '
+                                       'output at this local typed consumer boundary, explicitly '
+                                       'received by the central/Android and coordinating roles.',
+                             'limits': 'Whole #21 API/storage/decimal-money criteria 21.1 and '
+                                       '21.3, issue state and native dependency edges are '
+                                       'unchanged.'}],
+ 'neutral_fixture_scope': {'existing_bundle_cases': 223,
+                           'existing_placement_cases': 98,
+                           'placement_dispositions': {'preserved': 30,
+                                                      'unresolved': 20,
+                                                      'unsupported_field': 24,
+                                                      'invalid_contract': 24},
+                           'gzip_bytes': 43929,
+                           'gzip_sha256': 'c1e66aa954c20354ec607ceb8f90a90c599a8748ab10dcff17ce63fda8bf366c',
+                           'raw_bytes': 1273770,
+                           'raw_sha256': '499fd9a01780ac42fa9bf2ab8cf9e1195db27321fec36040451b553a8b9ea5f9',
+                           'relation': 'Existing structural frozen-v1 observations stay distinct '
+                                       'from the selected normalized behavior; no duplicate '
+                                       'producer, changed payload or promotion of unsupported '
+                                       'fields.'},
+ 'historical_observations': [{'event': 'actual_context_and_cd1_main_push',
+                              'revision': '5d0e57dddaa819a41eb86ad811b04fb562e9c03b',
+                              'tree': '4eb8109b041ae4f140a57671ebe796ccd8ad7150',
+                              'core_cases': 5150,
+                              'preview_cases': 388,
+                              'context_cases': 158,
+                              'cd1_cases': 643,
+                              'receipt': 'https://github.com/Pick-Your-AI/pick-your-ai-android/pull/517#issuecomment-6261956039',
+                              'job_ids': [117928936512, 117928936242, 117928936664],
+                              'attribution': 'Context author/receiving controller inspected actual '
+                                             'original hosted artifacts; independent source '
+                                             'reviews retain their separate scope.'},
+                             {'event': 'corrected_focused_placement',
+                              'revision': 'b2d6d2b82b523afb11317bf24a6cccc1b87face8',
+                              'cases': 111,
+                              'binding_deployment': 41,
+                              'memory': 49,
+                              'workload': 21,
+                              'authored_patch_sha256': '0ee0f240b2032be47b90ea7e0aa081ae24f2890abec87722da18d8e0ecdc6431',
+                              'attribution': 'Placement author executed pinned Kotlin '
+                                             '2.1.20/JDK17/target17; this is not the configured '
+                                             'hosted JDK21 gate.'},
+                             {'event': 'original_placement_receiving',
+                              'revision': 'a3ee0fb4d877f7d66bd746485de81007adc16998',
+                              'tree': 'b9d1f9850516630b6ae5b6d7d97fe4d860a1b5ac',
+                              'core_cases': 5261,
+                              'preview_cases': 388,
+                              'receipt': 'https://github.com/Pick-Your-AI/pick-your-ai-android/pull/535#issuecomment-6262345939',
+                              'scope': 'Original actual 111 placement cases; this historical run '
+                                       'does not include the later seven supplement cases.'},
+                             {'event': 'exact_vector_supplement',
+                              'revision': 'b392a8fdaf51ba94313524b7badf9b27c804491a',
+                              'cases': 7,
+                              'test_blob': '9ac442cec9bc33837452befea8511b8d346f09c4',
+                              'receipt_sha256': '9e33d7dbc95854d1849b5ceaa8f94698bb9fa9cc4bf66933102b03920c82ad1c',
+                              'attribution': 'Placement author executed focused original source '
+                                             'with pinned Kotlin/JDK17; later main-push '
+                                             'observation below independently includes the same '
+                                             'seven identities.'}],
+ 'main_observation': {'execution_revision': 'af8ce984a2d0169523fc5151a909328124b3ac18',
+                      'execution_tree': 'e99114b2bc7119cf8805695251bd998e159dbda1',
+                      'event': 'push',
+                      'branch': 'main',
+                      'completed_receipt': 'https://github.com/Pick-Your-AI/pick-your-ai-android/pull/535#issuecomment-6273876242',
+                      'qualification_bytes': 649333,
+                      'qualification_sha256': 'badfa8a2bb510c8799a8cd2816ded31de8a0092b0509676de6ebc165fb2584b1',
+                      'core_cases': 6186,
+                      'core_xml_suites': 116,
+                      'preview_cases': 526,
+                      'preview_xml_suites': 51,
+                      'failures': 0,
+                      'errors': 0,
+                      'skips': 0,
+                      'duplicate_identities': 0,
+                      'target_identity_hash_format': 'SHA256 of ordered JSON [class,name] pairs, '
+                                                     'UTF-8, sorted object keys, comma/colon '
+                                                     'separators.',
+                      'target_identities': [{'group': 'corrected_112_placement_identities',
+                                             'unique_cases': 112,
+                                             'ordered_identity_json_sha256': 'b81ea5a9f24c67fe2485f97be44e5a682023fc7579dfd65ddefbe3ce7032bf49'},
+                                            {'group': 'prior_7_vector_identities',
+                                             'unique_cases': 7,
+                                             'ordered_identity_json_sha256': '5c7858d93c5fb41a0336ba6d1f5a723ce31d5b0ee99dd585e5a4132c76a719ae'},
+                                            {'group': 'context_158_identities',
+                                             'unique_cases': 158,
+                                             'ordered_identity_json_sha256': '53e68938f19373c3550418f624a55abcf5afa416a30019e0bcdfb9459eef6ed9'},
+                                            {'group': 'cd1_643_identities',
+                                             'unique_cases': 643,
+                                             'ordered_identity_json_sha256': 'be6dd4cf83c05d0ccb106ee60bde013e736c3d798d352671838f82fe87869987'}],
+                      'contains_regression': {'additional_junit_methods': 1,
+                                              'internal_rows': 154,
+                                              'internal_rows_are_not_junit_cases': True},
+                      'jobs': [{'id': 118209476537,
+                                'run_id': 39295930096,
+                                'name': 'Unsigned synthetic Android preview',
+                                'html_url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39295930096/job/118209476537',
+                                'head_sha': 'af8ce984a2d0169523fc5151a909328124b3ac18',
+                                'status': 'completed',
+                                'conclusion': 'success',
+                                'completed_at': '2026-10-19T17:51:00Z'},
+                               {'id': 118209477145,
+                                'run_id': 39295930096,
+                                'name': 'Frozen contracts and JVM core',
+                                'html_url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39295930096/job/118209477145',
+                                'head_sha': 'af8ce984a2d0169523fc5151a909328124b3ac18',
+                                'status': 'completed',
+                                'conclusion': 'success',
+                                'completed_at': '2026-10-19T17:49:57Z'},
+                               {'id': 118208322960,
+                                'run_id': 39295930030,
+                                'name': 'Pinned secret scanning',
+                                'html_url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39295930030/job/118208322960',
+                                'head_sha': 'af8ce984a2d0169523fc5151a909328124b3ac18',
+                                'status': 'completed',
+                                'conclusion': 'success',
+                                'completed_at': '2026-10-19T17:39:20Z'}],
+                      'original_artifacts': [{'kind': 'runtime',
+                                              'id': 12209120645,
+                                              'name': 'android-runtime-inventory-af8ce984a2d0169523fc5151a909328124b3ac18',
+                                              'bytes': 4832131,
+                                              'sha256': '56e5c7d0cfe1a3c9ccedc4cb950af41e6a74150f0546f2ad0f7aad2567aa2b52',
+                                              'members': 8},
+                                             {'kind': 'core',
+                                              'id': 12207764901,
+                                              'name': 'core-verification-af8ce984a2d0169523fc5151a909328124b3ac18',
+                                              'bytes': 2068430,
+                                              'sha256': 'ef47a7561dbfeeb175c6a6c52752830624f99029f15b23263a40268be32a93fe',
+                                              'members': 270},
+                                             {'kind': 'native',
+                                              'id': 12207518557,
+                                              'name': 'android-preview-af8ce984a2d0169523fc5151a909328124b3ac18',
+                                              'bytes': 3464746,
+                                              'sha256': 'b41fd073d01d2654f27aabcd870a48cb59dff6880eade12ce9b13d3a64fccf1b',
+                                              'members': 116},
+                                             {'kind': 'scanner',
+                                              'id': 12209415184,
+                                              'name': 'secret-scan-af8ce984a2d0169523fc5151a909328124b3ac18',
+                                              'bytes': 1325,
+                                              'sha256': 'f36d39c254c16b6cae11c4e27cc5f4e41024e1b21b89063962df30eb13ae517b',
+                                              'members': 1}],
+                      'literal_attendance_programs': 49,
+                      'original_archive_members': 395,
+                      'conformance': {'bytes': 65948,
+                                      'sha256': '51d66e45bfd65b90c316907c687e6234f8644309de5fd32171fa86176e88aa9b',
+                                      'tests': 260,
+                                      'wire_observations': 223,
+                                      'migration_observations': 34},
+                      'original_apk': {'bytes': 3380735,
+                                       'identical_in_both_original_archives': True,
+                                       'sha256': '4adc3d92919b8fdc2a55de27481106ecdaf3c635de5673b5978a9a2933811586'},
+                      'hosted_toolchain': {'gradle': '8.11.1',
+                                           'java': 'Temurin 21.0.12-1',
+                                           'python': '3.12.15'},
+                      'scanner': {'reachable_commits': 263,
+                                  'raw_exit_code': 10,
+                                  'raw_findings': 3,
+                                  'reviewed_public_checksum_findings': 3,
+                                  'unresolved_findings': 0,
+                                  'scope': 'actual_reachable_main_history',
+                                  'limits': 'The same three reviewed public checksum findings '
+                                            'retain the actual af8 report order and immutable '
+                                            'proof joins; no new scan, credential validation or '
+                                            'absence-of-secrets proof.'},
+                      'attribution': 'Placement delivery controller acquired and qualified the '
+                                     'four actual af8 main-push originals, exact prior-name '
+                                     'preservation, literal guards, source/dependency inventories, '
+                                     'conformance/SPDX and regular APK. Source reviewers did not '
+                                     'thereby execute these jobs.',
+                      'preserved_failures': 'Original context accessor compilation failure, '
+                                            'placement 29/34 first result and subsequent '
+                                            '103-to-111 provenance corrections, and all historical '
+                                            'receiving/audit failures keep their original scope. '
+                                            'No all-attempts-passed claim. The original '
+                                            'changed-basis UNKNOWN-versus-SKIPPED RED, successful '
+                                            'controls, focused GREEN and cancelled fbdd push '
+                                            'remain distinct; only af8 supplies this completed '
+                                            'corrected main-push observation.'},
+ 'profile_limits': ['Explicit opt-in synthetic normalized Core consumer; no Preview/default '
+                    'evaluator dispatch or runtime deployment result.',
+                    'No new Build/catalog/Answer wire field, service endpoint, persistent '
+                    'migration, source resolver, activation or globally released successor '
+                    'profile.',
+                    'No physical or installed-device run, live provider/operator evidence, '
+                    'measured hardware fit, readiness, rights, cost, release or store acceptance.',
+                    'No unchanged hash, supplied label, nonempty inventory or provided value is an '
+                    'evidence qualification/completeness grant.',
+                    'Only the three original #37 criteria and four subtasks are received; other '
+                    'issue criteria, assignees, native edges, formal historical-person approvals '
+                    'and Project fields are not changed by this receipt.'],
+ 'original_main_observation': {'execution_revision': 'ed70452180a7f1020d5156c711ccde5baa66f0de',
+                               'execution_tree': '20df104d4055c8cbc574e7b0d89d7b7d32a6c774',
+                               'event': 'push',
+                               'branch': 'main',
+                               'completed_receipt': 'https://github.com/Pick-Your-AI/pick-your-ai-android/pull/535#issuecomment-6272714192',
+                               'qualification_bytes': 750891,
+                               'qualification_sha256': 'afdb580cd37b28d5f18c47d57c8d887c5e92c090f2e83a2e6c1b8da1b049ea44',
+                               'core_cases': 5993,
+                               'core_xml_suites': 115,
+                               'preview_cases': 522,
+                               'preview_xml_suites': 50,
+                               'failures': 0,
+                               'errors': 0,
+                               'skips': 0,
+                               'duplicate_identities': 0,
+                               'target_identity_hash_format': 'SHA256 of ordered JSON [class,name] '
+                                                              'pairs, UTF-8, sorted object keys, '
+                                                              'comma/colon separators.',
+                               'target_identities': [{'group': 'prior_111_placement_identities',
+                                                      'unique_cases': 111,
+                                                      'ordered_identity_json_sha256': '2e20f3b962f9f07192556afea1d1cf0213f169a7adcace47c5743dee3d5a61a2'},
+                                                     {'group': 'prior_7_vector_identities',
+                                                      'unique_cases': 7,
+                                                      'ordered_identity_json_sha256': '5c7858d93c5fb41a0336ba6d1f5a723ce31d5b0ee99dd585e5a4132c76a719ae'},
+                                                     {'group': 'context_158_identities',
+                                                      'unique_cases': 158,
+                                                      'ordered_identity_json_sha256': '53e68938f19373c3550418f624a55abcf5afa416a30019e0bcdfb9459eef6ed9'},
+                                                     {'group': 'cd1_643_identities',
+                                                      'unique_cases': 643,
+                                                      'ordered_identity_json_sha256': 'be6dd4cf83c05d0ccb106ee60bde013e736c3d798d352671838f82fe87869987'}],
+                               'contains_regression': {'additional_junit_methods': 1,
+                                                       'internal_rows': 154,
+                                                       'internal_rows_are_not_junit_cases': True},
+                               'jobs': [{'id': 118181571022,
+                                         'run_id': 39288171205,
+                                         'name': 'Unsigned synthetic Android preview',
+                                         'html_url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39288171205/job/118181571022',
+                                         'head_sha': 'ed70452180a7f1020d5156c711ccde5baa66f0de',
+                                         'status': 'completed',
+                                         'conclusion': 'success',
+                                         'completed_at': '2026-10-19T16:54:34Z'},
+                                        {'id': 118181571431,
+                                         'run_id': 39288171205,
+                                         'name': 'Frozen contracts and JVM core',
+                                         'html_url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39288171205/job/118181571431',
+                                         'head_sha': 'ed70452180a7f1020d5156c711ccde5baa66f0de',
+                                         'status': 'completed',
+                                         'conclusion': 'success',
+                                         'completed_at': '2026-10-19T16:51:52Z'},
+                                        {'id': 118181569170,
+                                         'run_id': 39288171302,
+                                         'name': 'Pinned secret scanning',
+                                         'html_url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39288171302/job/118181569170',
+                                         'head_sha': 'ed70452180a7f1020d5156c711ccde5baa66f0de',
+                                         'status': 'completed',
+                                         'conclusion': 'success',
+                                         'completed_at': '2026-10-19T16:46:02Z'}],
+                               'original_artifacts': [{'kind': 'native',
+                                                       'id': 12205445495,
+                                                       'name': 'android-preview-ed70452180a7f1020d5156c711ccde5baa66f0de',
+                                                       'bytes': 3453953,
+                                                       'sha256': 'feab292255c66644d5292555cee1a0d63bab584f7093ecb67ec198670f2001b4',
+                                                       'members': 114},
+                                                      {'kind': 'core',
+                                                       'id': 12205415312,
+                                                       'name': 'core-verification-ed70452180a7f1020d5156c711ccde5baa66f0de',
+                                                       'bytes': 2034446,
+                                                       'sha256': '2cd3424a7a8d52a1144b8aa14feadfada116e05b558c22dd5e79310436806c9e',
+                                                       'members': 268},
+                                                      {'kind': 'runtime',
+                                                       'id': 12204542712,
+                                                       'name': 'android-runtime-inventory-ed70452180a7f1020d5156c711ccde5baa66f0de',
+                                                       'bytes': 4799324,
+                                                       'sha256': 'ea25c1b3ebe90c1d41a8a9f2b6d094ba3d199b999a0ac9a41df1959b6ddad342',
+                                                       'members': 8},
+                                                      {'kind': 'scanner',
+                                                       'id': 12205075529,
+                                                       'name': 'secret-scan-ed70452180a7f1020d5156c711ccde5baa66f0de',
+                                                       'bytes': 1326,
+                                                       'sha256': '1293a27294025beada31df6f5eedcdd46098afac064857410c876e7c90c71fc5',
+                                                       'members': 1}],
+                               'literal_attendance_programs': 48,
+                               'original_archive_members': 391,
+                               'conformance': {'bytes': 65948,
+                                               'sha256': '32e3be794070393680fc9bcf217e089130d66aa4098278c34c59f74b68528f70',
+                                               'tests': 260,
+                                               'wire_observations': 223,
+                                               'migration_observations': 34},
+                               'original_apk': {'bytes': 3372275,
+                                                'identical_in_both_original_archives': True,
+                                                'sha256': '82b3036182a7984feec117a2090d9fc92c52d9a31095df4bd72b5b3307a85278'},
+                               'hosted_toolchain': {'gradle': '8.11.1',
+                                                    'java': 'Temurin 21.0.12-1',
+                                                    'python': '3.12.15'},
+                               'scanner': {'reachable_commits': 255,
+                                           'raw_exit_code': 10,
+                                           'raw_findings': 3,
+                                           'reviewed_public_checksum_findings': 3,
+                                           'unresolved_findings': 0,
+                                           'scope': 'actual_reachable_main_history',
+                                           'limits': 'Historical fourth finding outside the '
+                                                     'squashed main history remains in the prior '
+                                                     'receipt; no new scan, credential validation '
+                                                     'or absence-of-secrets proof.'},
+                               'attribution': 'Placement delivery controller inspected all '
+                                              'original archives and actual completed jobs, '
+                                              'replayed literal guards and reinspected the '
+                                              'original regular APK; source reviewers did not '
+                                              'thereby execute these jobs.',
+                               'preserved_failures': 'Original context accessor compilation '
+                                                     'failure, placement 29/34 first result and '
+                                                     'subsequent 103-to-111 provenance '
+                                                     'corrections, and all historical '
+                                                     'receiving/audit failures keep their original '
+                                                     'scope. No all-attempts-passed claim.'},
+ 'changed_basis_correction': {'scope': 'restore_selected_G1_changed_basis_unknown_before_old_membership_or_inapplicability',
+                              'defect': 'Old inactive deployment plus qualified current coverage '
+                                        'could return SKIPPED instead of UNKNOWN after the same-ID '
+                                        'Build changed. This was a stale-membership classification '
+                                        'error, not a false PASS.',
+                              'original_source_revision': '76badfa3000388526ef66e5d7fd208b6449c3c96',
+                              'original_record_main_revision': 'ed70452180a7f1020d5156c711ccde5baa66f0de',
+                              'original_finding_review': {'url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/pull/535#pullrequestreview-5574641300',
+                                                          'review_id': 5574641300,
+                                                          'anchor': 'c654312b676639876da8db05fce6336d5112de46',
+                                                          'body_bytes': 3357,
+                                                          'body_sha256': '347de917fddb4f0a9416d9b596c27cd5de63bca09ad908667d92f5d12dbefcff',
+                                                          'submitted_at': '2026-10-19T16:33:22Z'},
+                              'correction_review': {'url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/pull/535#pullrequestreview-5574672890',
+                                                    'review_id': 5574672890,
+                                                    'anchor': 'c654312b676639876da8db05fce6336d5112de46',
+                                                    'body_bytes': 7833,
+                                                    'body_sha256': '43eec86a2b0928c0cfd5f5ba2a769b227adc36138110009d28166541f6d12577',
+                                                    'submitted_at': '2026-10-19T16:36:20Z'},
+                              'prior_source_pins_unchanged': 25,
+                              'changed_source_pins': [{'original': {'path': 'core/src/main/kotlin/ai/pickyour/core/evidence/placement/PlacementDeployment.kt',
+                                                                    'blob': '7dc569b84b32265af4bea887121d4c7065930fd6',
+                                                                    'bytes': 15046,
+                                                                    'sha256': 'd9d7758d3cf4dc084ce8568b57384ce65109df632795734b838131b399c127c2'},
+                                                       'corrected': {'path': 'core/src/main/kotlin/ai/pickyour/core/evidence/placement/PlacementDeployment.kt',
+                                                                     'blob': 'f01790e824b866ef6efd360826986511856432d5',
+                                                                     'bytes': 15411,
+                                                                     'sha256': 'db27d8edc98ee29e961bc8cc1d9d00042050fc0a95f8caf3e48416411288b894'}},
+                                                      {'original': {'path': 'core/src/test/kotlin/ai/pickyour/core/evidence/placement/PlacementBindingDeploymentTest.kt',
+                                                                    'blob': '8b163098eb6767b4a6db22e8536c16a49b1fbce4',
+                                                                    'bytes': 27700,
+                                                                    'sha256': 'b67b65a30191729ba50730ed95b3e4ed6e51f82c972d2ee19bed315bc30d3d00'},
+                                                       'corrected': {'path': 'core/src/test/kotlin/ai/pickyour/core/evidence/placement/PlacementBindingDeploymentTest.kt',
+                                                                     'blob': 'e93590664b89970d404a4daf7663e6ac2d059599',
+                                                                     'bytes': 30536,
+                                                                     'sha256': 'ff574bbdab832d98f312e4deb31e883432042598f5d08ced7a93fb148de5d558'}}],
+                              'original_red': {'attribution': 'Original independent review author '
+                                                              'executed the focused reproducer; '
+                                                              'this ledger author read its '
+                                                              'complete retained review, not a new '
+                                                              'local reproduction.',
+                                               'compile_exit_code': 0,
+                                               'test_exit_code': 1,
+                                               'tests': 1,
+                                               'failures': 1,
+                                               'expected': 'UNKNOWN',
+                                               'observed': 'SKIPPED',
+                                               'passing_controls': ['same_basis_inactive_is_skipped',
+                                                                    'current_enabled_is_pass_and_contains_model',
+                                                                    'old_deployment_and_old_coverage_against_current_is_unknown'],
+                                               'qualification_bytes': 10594,
+                                               'qualification_sha256': 'e6817ac0c458f7c1bf204b186015f06b2f8a77d0edcee60616fa878b88d0e639',
+                                               'original_junit_bytes': 2683,
+                                               'original_junit_sha256': '2561267c27ef835313ed985b686dba5de187d4f4f1a79f046743b041a6c7b7cb'},
+                              'focused_green': {'attribution': 'Correction reviewer executed the '
+                                                               'one actual regression with '
+                                                               'Kotlin2.1.20/JDK17/target17; this '
+                                                               'is distinct from the full hosted '
+                                                               'JDK21 result.',
+                                                'tests': 1,
+                                                'failures': 0,
+                                                'skips': 0,
+                                                'aborts': 0,
+                                                'compile_exit_code': 0,
+                                                'test_exit_code': 0,
+                                                'qualification_bytes': 9554,
+                                                'qualification_sha256': '20bbcde02644b8785e40a34f8a02e5627edd48f8f182ff4ec76cc1b8f209a776',
+                                                'original_junit_bytes': 1263,
+                                                'original_junit_sha256': '1695997ec2597e5f7e7771ca53a8d8efdf3f03404eb59f7c9a814c56e01e0773'},
+                              'permanent_regression': {'class': 'ai.pickyour.core.evidence.placement.PlacementBindingDeploymentTest',
+                                                       'method': 'currentCoverageCannotMakeAnOlderInactiveDeploymentInapplicable()',
+                                                       'original_controls_retained': True,
+                                                       'corrected_result': 'UNKNOWN/CHANGED_BASIS '
+                                                                           'bound to current basis '
+                                                                           'and qualifications, '
+                                                                           'empty components, '
+                                                                           'unresolved serving '
+                                                                           'membership and UNKNOWN '
+                                                                           'mode; current coverage '
+                                                                           'PASS does not erase '
+                                                                           'the substantive '
+                                                                           'UNKNOWN.'},
+                              'receiving_reviews': ['https://github.com/Pick-Your-AI/pick-your-ai-android/pull/598#pullrequestreview-5575165478',
+                                                    'https://github.com/Pick-Your-AI/pick-your-ai-android/pull/598#pullrequestreview-5575236400'],
+                              'receiving_execution': {'revision': '41726876c1b1aae40b606af33013b13d555359e4',
+                                                      'tree': 'de307038a7ae424fb11fa3a84665783227071aa3',
+                                                      'ordered_parents': ['75f031379b28a6df62c5828889fdbd5338cc8d5b',
+                                                                          'f6052e4c784008d051320c5907954fc2ce44202d'],
+                                                      'completed_success_job_ids': [118197944972,
+                                                                                    118197944687,
+                                                                                    118197944991],
+                                                      'receipt': 'https://github.com/Pick-Your-AI/pick-your-ai-android/pull/598#issuecomment-6273359114',
+                                                      'scope': 'Receiving controller inspected '
+                                                               'actual completed configured checks '
+                                                               'and full logs; its historical '
+                                                               'prepared tree is not the later '
+                                                               'main-push execution.'},
+                              'delivery': {'pr': 598,
+                                           'revision': 'fbdd62a90d636136d47f3d83f03b2a6c3ad52322',
+                                           'tree': '9c965086f923c8c63b8986b5aa584daa62f2be72',
+                                           'parents': ['152818c5a4a4aae70fed71805b14fc1a605394c3'],
+                                           'merged_at': '2026-10-19T17:37:50Z',
+                                           'signature_verified': True,
+                                           'total_leaves': 629,
+                                           'other_accepted_leaves_exact': 627,
+                                           'receipt': 'https://github.com/Pick-Your-AI/pick-your-ai-android/pull/535#issuecomment-6273406643'},
+                              'post_main_follow_through': {'cancelled_delivery_build_revision': 'fbdd62a90d636136d47f3d83f03b2a6c3ad52322',
+                                                           'cancelled_build_is_not_completed_validation': True,
+                                                           'qualified_successor_revision': 'af8ce984a2d0169523fc5151a909328124b3ac18',
+                                                           'qualified_successor_tree': 'e99114b2bc7119cf8805695251bd998e159dbda1',
+                                                           'successor_parents': ['fbdd62a90d636136d47f3d83f03b2a6c3ad52322'],
+                                                           'exact_correction_blobs_preserved': True,
+                                                           'preserved_parent_leaves_total': 627,
+                                                           'preserved_other_parent_leaves': 625,
+                                                           'preserved_correction_leaves': 2,
+                                                           'source_map_clarification_receipt': 'https://github.com/Pick-Your-AI/pick-your-ai-android/pull/535#issuecomment-6274260790',
+                                                           'separate_successor_delta_paths': 7,
+                                                           'new_regression_in_original_xml': True,
+                                                           'completed_receipt': 'https://github.com/Pick-Your-AI/pick-your-ai-android/pull/535#issuecomment-6273876242',
+                                                           'limits': 'af8 completed naturally '
+                                                                     'after the fbdd push was '
+                                                                     'cancelled; no cancelled or '
+                                                                     'previous-source execution is '
+                                                                     'reassigned. Later main '
+                                                                     'commits require their own '
+                                                                     'preservation and gates.'},
+                              'policy_effect': 'Repairs the previously selected changed-basis '
+                                               'boundary without a new profile, wire, domain '
+                                               'decision, default dispatch or external '
+                                               'acceptance.'}}
+IMPLEMENTATION_37_EVIDENCE = {'pr-517': {'pr_url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/pull/517',
+            'observed_state': 'merged',
+            'revision': '5d0e57dddaa819a41eb86ad811b04fb562e9c03b',
+            'artifact_url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/blob/5d0e57dddaa819a41eb86ad811b04fb562e9c03b/docs/CD11_CONTEXT_PROFILE.md',
+            'scope_limit': 'Delivered distinct CD1-0.2 and preserving CD11-0.1/CD1-0.1 opt-in '
+                           'packages; original 5150/388 and 643/158 evidence remains at signed 5d. '
+                           'This alone did not complete #37 or authorize default/native/provider '
+                           'behavior.'},
+ 'pr-535': {'pr_url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/pull/535',
+            'observed_state': 'merged',
+            'revision': 'ed70452180a7f1020d5156c711ccde5baa66f0de',
+            'artifact_url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/blob/ed70452180a7f1020d5156c711ccde5baa66f0de/docs/delivery/android/work-packages/03.04.md',
+            'scope_limit': 'Delivered the selected six-interface/seventeen-group normalized '
+                           'placement source, seven exact vectors, complete #37 receiving record '
+                           'and narrow ADR0012 placement. Original ed704 main-push5993/522 '
+                           'includes111+7+158 target cases and remains historical; the later '
+                           'changed-basis finding requires the separately delivered and qualified '
+                           'pr-598 correction. Only the original three scoped criteria/four '
+                           'subtasks are received, with no other issue or '
+                           'external/default/installed acceptance.'},
+ 'pr-598': {'pr_url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/pull/598',
+            'observed_state': 'merged',
+            'revision': 'fbdd62a90d636136d47f3d83f03b2a6c3ad52322',
+            'artifact_url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/blob/fbdd62a90d636136d47f3d83f03b2a6c3ad52322/core/src/main/kotlin/ai/pickyour/core/evidence/placement/PlacementDeployment.kt',
+            'scope_limit': 'Delivered the exact reviewed changed-basis UNKNOWN guard and permanent '
+                           'regression. The original SKIPPED failure, focused RED/GREEN and '
+                           'receiving417 remain historical; actual signed successor af8 '
+                           'main-push6186/526 separately includes112 placement+7 vectors+158 '
+                           'context with all prior names retained. This restores the selected '
+                           'opt-in boundary and grants no broader '
+                           '#37/default/native/provider/release authority.'}}
+IMPLEMENTATION_37_CRITERIA = ['9df2e61310ffcf71d7d218c570c7ec5fa80baab8b5b2555ffac64ac693e7723f',
+ 'f630371bd9ffb4454e5fc7ab389a68ec62c7be860beb91e35e808757c41dc2a0',
+ '6abccbe5c92bebd946bc512281a9a1e8b26a68f60a6d49ba6460c4edd00ebf9b']
+PRIOR_37_ISSUE_SHA256 = '7cdc3a35d20f64e525d9e4467fdd9f0835a2b1ecf15f9ef9413c9172127cdb90'
+PRIOR_37_PREREQUISITES = [{'kind': 'contract_acceptance',
+  'requirement': 'Accepted placement, relationship and context-budget semantics through research '
+                 '#40; preserve unresolved bindings.'}]
+PRIOR_V12_LEDGER_SHA256 = '0b213fb07461765844b38ef9901674df4f397dd59924312f2a78ba3f5251e3c4'
+PRIOR_V12_FILE_SHA256 = 'cce0a733e94fc6e38bf4c8f4956a7e0059d42e9324c23e81fbece8f67ddf1551'
+PRIOR_V12_FILE_BYTES = 609028
+LEDGER_PURPOSE_V13 = 'Living evidence index: 25 reviewed documentary/design criteria for Android #2/#20/#23/#24/#25/#34/#35/#47, 14 reviewed implementation criteria for #26/#37/#84/#96, the single reviewed import-integrity criterion 21.2 and 3 reviewed bounded support criteria for #33 are complete; 398 criteria remain incomplete. This does not replace acceptance receipts, GitHub issue status or native dependencies.'
+
+
+def reconstruct_prior_v12(ledger):
+    """Reverse only the fixed #37 receipt; preserve every other byte-level field.
+
+    This is an inverse, not admission. validate() first checks the complete fixed
+    receipt and criterion fields. Unexpected historical fields remain available
+    to the old validators and complete predecessor digest below.
+    """
+    previous = copy.deepcopy(ledger)
+    issue = previous['issues'][36]
+    issue.pop('accepted_implementation_outcome')
+    issue['canonical_acceptance_record'] = copy.deepcopy(
+        IMPLEMENTATION_37_ACCEPTANCE['historical_acceptance_record'])
+    for criterion in issue['criteria']:
+        criterion.update(status='incomplete', completion_evidence=[],
+                         remaining_engineering=PRIOR_84_REMAINING,
+                         external_prerequisites=copy.deepcopy(PRIOR_37_PREREQUISITES),
+                         evidence_relation='issue_context_only; inspect artifact scope before attributing any criterion result')
+    for evidence_ref in IMPLEMENTATION_37_EVIDENCE:
+        previous['evidence'].pop(evidence_ref)
+    previous['schema_version'] = 12
+    previous['purpose'] = LEDGER_PURPOSE_V12
+    return previous
+
+
+def validate(ledger, source=None):
+    require(type(ledger['schema_version']) is int and ledger['schema_version'] == 13,
+            'unsupported schema version')
+    require(ledger['purpose'] == LEDGER_PURPOSE_V13,
+            'unsupported ledger completion summary')
+    issues = ledger['issues']
+    numbers = [issue['number'] for issue in issues]
+    require(all(type(number) is int for number in numbers),
+            'ledger issue numbers must be integers')
+    require(numbers == list(range(1, 130)),
+            'expected unique ordered issue numbers 1–129')
+    issue = issues[36]
+    require('accepted_design_outcome' not in issue, 'unsupported design acceptance: 37')
+    require('accepted_support_outcome' not in issue, 'unsupported support acceptance: 37')
+    require(issue['canonical_acceptance_record'] == {
+        'repository': REPOSITORY, 'path': IMPLEMENTATION_37_ACCEPTANCE['record_path']},
+        'unreviewed acceptance coordinates or placement: 37')
+    require(json_digest(issue.get('accepted_implementation_outcome')) ==
+            json_digest(IMPLEMENTATION_37_ACCEPTANCE),
+            'missing or changed reviewed implementation acceptance: 37')
+    require([c['text_sha256'] for c in issue['criteria']] == IMPLEMENTATION_37_CRITERIA,
+            'reviewed implementation criterion set changed: 37')
+    for evidence_ref, expected in IMPLEMENTATION_37_EVIDENCE.items():
+        require(json_digest(ledger['evidence'].get(evidence_ref)) == json_digest(expected),
+                'implementation receipt is not the reviewed merged artifact: 37')
+    for index, criterion in enumerate(issue['criteria'], 1):
+        key = f'37.{index}'
+        require(criterion['id'] == key, f'criterion identity/order mismatch: {key}')
+        require(criterion['status'] == 'complete' and
+                criterion['completion_evidence'] == IMPLEMENTATION_37_ACCEPTANCE['evidence_refs'],
+                f'missing reviewed implementation completion evidence: {key}')
+        require(criterion['remaining_engineering'] == '' and criterion['external_prerequisites'] == [],
+                f'completed criterion still has unfinished requirements: {key}')
+        require(criterion['evidence_relation'] == COMPLETE_IMPLEMENTATION_RELATION,
+                f'unsupported implementation completion attribution: {key}')
+
+    previous_v12 = reconstruct_prior_v12(ledger)
+    # Run the actual entire predecessor validator first to preserve its useful
+    # diagnostics and every earlier receipt/coordinate/source-text boundary.
+    _validate_prior_v12(previous_v12, source)
+    require(json_digest(previous_v12['issues'][36]) == PRIOR_37_ISSUE_SHA256,
+            'unreviewed change to another issue record: preserve prior #37 context and partial history')
+    require(json_digest(previous_v12) ==
+            PRIOR_V12_LEDGER_SHA256,
+            'unreviewed change to complete prior v12 ledger history')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--ledger', type=Path, default=ROOT / 'docs/delivery/criterion-evidence.json')
@@ -3046,7 +3907,7 @@ def main():
     except (OSError, ValueError, KeyError, TypeError) as error:
         print(f'Delivery ledger check failed: {error}', file=sys.stderr)
         return 1
-    print('PASS: 129 unique issue URLs, 401 incomplete criteria, 25 reviewed design criteria, 11 reviewed implementation criteria, 1 reviewed import-integrity criterion, 3 reviewed support criteria, pinned evidence and canonical paths' +
+    print('PASS: 129 unique issue URLs, 398 incomplete criteria, 25 reviewed design criteria, 14 reviewed implementation criteria, 1 reviewed import-integrity criterion, 3 reviewed support criteria, pinned evidence and canonical paths' +
           ('; exact source criteria matched.' if source is not None else '; live source comparison NOT performed.'))
     return 0
 
