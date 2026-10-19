@@ -52,9 +52,11 @@ sealed interface PreviewLibraryDelete {
  */
 class PreviewDraftLibrary internal constructor(root: Path, private val checkpoint: (LibraryCheckpoint) -> Unit,
     private val deleteCheckpoint: (LibraryDeleteCheckpoint) -> Unit,
-    private val directoryStream: (Path) -> DirectoryStream<Path> = Files::newDirectoryStream) {
+    private val directoryStream: (Path) -> DirectoryStream<Path>) {
     constructor(root: Path) : this(root, {}, {})
     internal constructor(root: Path, checkpoint: (LibraryCheckpoint) -> Unit) : this(root, checkpoint, {})
+    internal constructor(root: Path, checkpoint: (LibraryCheckpoint) -> Unit,
+        deleteCheckpoint: (LibraryDeleteCheckpoint) -> Unit) : this(root, checkpoint, deleteCheckpoint, Files::newDirectoryStream)
     private val root: Path
     init {
         require(Files.isDirectory(root, NOFOLLOW_LINKS))
