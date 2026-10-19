@@ -5,13 +5,17 @@ import ai.pickyour.core.cache.CacheFailure
 import ai.pickyour.core.cache.CacheRead
 import ai.pickyour.core.cache.VerifiedArtifactCache
 import ai.pickyour.core.preview.PreviewCatalogPinResolver
+import ai.pickyour.core.preview.PreviewCatalogRetention
 import java.nio.file.Files
 import java.nio.file.LinkOption.NOFOLLOW_LINKS
 import java.nio.file.Path
 
-/** Exact reads of an already provisioned private cache. This adapter never creates or populates it. */
+/** Exact historical reads, plus a separate bounded ingress for the bundled synthetic loader. */
 internal object CatalogRetainedSnapshots {
-    const val DIRECTORY = "catalog-snapshots-v1"
+    const val DIRECTORY = PreviewCatalogRetention.DIRECTORY
+
+    /** Only the validated bundled loader retains bytes; historical inspection calls read alone. */
+    fun retain(privateRoot: Path, bytes: ByteArray) = PreviewCatalogRetention(privateRoot).retain(bytes)
 
     fun read(privateRoot: Path, hash: ArtifactHash): CacheRead = try {
         val directory = privateRoot.resolve(DIRECTORY)

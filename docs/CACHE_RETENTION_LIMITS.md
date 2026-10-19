@@ -53,6 +53,16 @@ over-budget directories remain readable and are never trimmed during an upgrade;
 changed writes fail until an explicit recovery or policy decision is made. Final
 product quotas, backup policy and physical-device qualification remain separate.
 
+The bundled catalog loader separately adopts **16 snapshots and 16 MiB of managed
+payloads** in its `catalog-snapshots-v1` namespace, using the existing 1 MiB input
+bound. This retains the exact validated synthetic bytes for historical inspection
+without evicting older pins, moving a different head on verified reuse or writing
+a draft. At quota, current browsing remains available and the UI explains that
+the new version could not be retained. Failed or uncertain durability is also
+explicit and the existing catalog reload can retry. See the separate
+[bundled retention protocol](CATALOG_PIN_RECOVERY.md#separate-bundled-retention-87-104-partial)
+for its failure and evidence boundaries.
+
 ## Accounting and validation limits
 
 The byte budget covers managed immutable payloads. It is not a total filesystem
@@ -73,7 +83,8 @@ writers and local save/restore behavior:
 ./gradlew --no-daemon :core:test \
   --tests ai.pickyour.core.cache.VerifiedArtifactCacheRetentionTest \
   --tests ai.pickyour.core.drafts.LocalDraftRetentionTest \
-  --tests ai.pickyour.core.preview.PreviewDraftRetentionTest
+  --tests ai.pickyour.core.preview.PreviewDraftRetentionTest \
+  --tests ai.pickyour.core.preview.PreviewCatalogRetentionTest
 ./gradlew --no-daemon :core:check :core:assemble
 ```
 

@@ -71,6 +71,7 @@ class PreviewActivity : Activity() {
     private var catalogPriceBrowser: CatalogPriceBrowser? = null
     private var catalogDetailBrowser: CatalogDetailBrowser? = null
     private lateinit var catalogStatus: TextView
+    private lateinit var catalogRetentionStatus: TextView
     private lateinit var catalogSearch: EditText
     private lateinit var retry: Button
     private lateinit var save: Button
@@ -287,6 +288,10 @@ class PreviewActivity : Activity() {
         text(R.string.catalog_heading, 22f).apply { if (android.os.Build.VERSION.SDK_INT >= 28) isAccessibilityHeading = true }
         text(R.string.catalog_explanation)
         catalogStatus = text(R.string.working).apply { accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE }
+        catalogRetentionStatus = text(R.string.catalog_retention_unconfirmed).apply {
+            visibility = View.GONE
+            accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
+        }
         val searchLabel = text(R.string.catalog_search)
         catalogSearch = EditText(this).apply {
             id = View.generateViewId()
@@ -438,19 +443,29 @@ class PreviewActivity : Activity() {
         catalogDetailBrowser = null
         retry.isEnabled = false
         catalogStatus.setText(R.string.working)
+        catalogRetentionStatus.visibility = View.GONE
         worker.execute {
+            var catalogBytes: ByteArray? = null
             var componentSnapshot: ai.pickyour.core.drafts.SelectionCatalogSnapshot? = null
             val loaded = CatalogFixtureData.read({
                 readCatalogFixture().also {
+                    catalogBytes = it
                     componentSnapshot = ai.pickyour.core.drafts.SelectionCatalogSnapshot.fromJson(it)
                 }
             }) { assets.open("pricebook.json") }
             val selectionSnapshot = componentSnapshot.takeIf { loaded.catalog != null }
+            val retention = if (loaded.catalog == null) null else
+                CatalogRetainedSnapshots.retain(noBackupFilesDir.toPath(), requireNotNull(catalogBytes))
             runOnUiThread {
                 if (!destroyed) {
                     catalogFixture = loaded
                     retry.isEnabled = true
                     catalogStatus.setText(if (loaded.catalog == null) R.string.catalog_unavailable else R.string.catalog_ready)
+                    catalogRetentionStatus.visibility = if (retention == null ||
+                        retention is PreviewCatalogRetentionResult.Available) View.GONE else View.VISIBLE
+                    catalogRetentionStatus.setText(if (retention is PreviewCatalogRetentionResult.Failed &&
+                        retention.reason == ai.pickyour.core.cache.CacheFailure.RETENTION_LIMIT)
+                        R.string.catalog_retention_limit else R.string.catalog_retention_unconfirmed)
                     componentCatalog = selectionSnapshot
                     componentSection.catalog(loaded.catalog?.items.orEmpty(), loaded.catalog?.hash)
                     if (loaded.catalog == null) catalog.unavailable() else catalog.show(loaded.catalog)

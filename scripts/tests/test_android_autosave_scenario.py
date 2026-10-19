@@ -96,7 +96,11 @@ class ScenarioUi:
 
     def editor(self, label):
         self.tick(("editor", label))
-        return self.item(self.device.values[label])
+        value = self.device.values[label]
+        # Android TextView exposes its hint as accessibility text when raw input is empty.
+        if label == REQUESTS and value == "" and self.device.fault != "unhinted_request_control":
+            value = "Unanswered"
+        return self.item(value)
 
     def enter(self, label, value):
         self.tick(("enter", label, value))
@@ -195,6 +199,9 @@ class ScenarioUi:
     def checkpoint(self, name):
         self.tick(("checkpoint", name))
         self.device.checkpoints.append((name, copy.deepcopy(self.device.values)))
+        if name == "03-cold-relaunch" and self.device.fault == "literal_request_hint":
+            # A literal value appearing before pending input must not be treated as a hint.
+            self.device.values[REQUESTS] = "Unanswered"
 
 
 class CurrentAutosaveScenarioTest(unittest.TestCase):
@@ -249,6 +256,30 @@ class CurrentAutosaveScenarioTest(unittest.TestCase):
         log.assert_not_called()
         state.assert_not_called()
 
+    def test_hinted_and_unhinted_empty_raw_input_require_the_complete_entered_value(self):
+        for fault, accessible in ((None, "Unanswered"), ("unhinted_request_control", "")):
+            with self.subTest(accessible=accessible):
+                probe = ScenarioDevice(fault)
+                self.assertEqual("", probe.values[REQUESTS])
+                self.assertEqual(accessible, ScenarioUi(probe, None, None).editor(REQUESTS).get("text"))
+                device, receipt, error, log, state = self.run_scenario(fault)
+                self.assertIsNone(error, str(error))
+                self.assertEqual(["passed"] * 4, [row["status"] for row in receipt["cases"]])
+                self.assertIn(("enter", REQUESTS, "invalid"), device.actions)
+                self.assertEqual([1, 0], device.rotations)
+                for name, values in device.checkpoints[3:7]:
+                    self.assertEqual("invalid", values[REQUESTS], name)
+                log.assert_not_called()
+                state.assert_not_called()
+
+    def test_literal_hint_text_cannot_substitute_for_empty_raw_input(self):
+        device, receipt = self.require_failure("literal_request_hint", 2)
+        self.assertEqual("Unansweredinvalid", device.values[REQUESTS])
+        self.assertIn(("enter", REQUESTS, "invalid"), device.actions)
+        self.assertNotIn(("enter", TITLE, "_pending"), device.actions)
+        self.assertEqual("The complete invalid workload input was not retained",
+                         receipt["cases"][2]["error"])
+
     def test_missing_automatic_acknowledgment_fails_before_cold_restart(self):
         device, _ = self.require_failure("missing_ack", 1)
         self.assertEqual(0, device.restarts)
@@ -258,7 +289,9 @@ class CurrentAutosaveScenarioTest(unittest.TestCase):
 
     def test_nonempty_request_control_cannot_be_assumed_replaced(self):
         device, _ = self.require_failure("nonempty_request_baseline", 2)
-        self.assertNotIn(("enter", REQUESTS, "invalid"), device.actions)
+        self.assertIn(("enter", REQUESTS, "invalid"), device.actions)
+        self.assertEqual("1invalid", device.values[REQUESTS])
+        self.assertNotIn(("enter", TITLE, "_pending"), device.actions)
 
     def test_invalid_input_must_disable_saving_before_pending_edits(self):
         device, _ = self.require_failure("save_enabled_for_invalid", 2)

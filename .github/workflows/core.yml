@@ -60,6 +60,20 @@ jobs:
           import pathlib
           import xml.etree.ElementTree as ET
           expected = {
+              'ai.pickyour.core.preview.PreviewCatalogRetentionTest': {
+                  'retained pins survive replacement and reopen without changing another cache head()',
+                  'invalid unsupported and oversized snapshots never provision a cache()',
+                  'quota preserves all older pins and allows exact reuse without activation()',
+                  'missing root and foreign child preserve bytes until explicit repair()',
+                  'symbolic link roots and children never receive catalog writes()',
+                  'failed provisioning cannot acknowledge or publish and permits a fresh retry()',
+                  'readable interrupted pin requires directory sync before acknowledgement and retry preserves head()',
+                  'failed and uncertain publication preserve old pins and require separate reread()',
+                  'busy retention fails promptly without replacing existing snapshot()',
+                  'cancellation does no work and an explicit later request can proceed()',
+                  'corrupt immutable content is reported without repair or replacement()',
+                  'caller array mutations cannot rewrite retained original bytes()',
+              },
               'ai.pickyour.core.evaluation.RetainedSnapshotEvaluationTest': {
                   'actual retained bundle reproduces the complete no-evidence Python golden and keeps both times()',
                   'request captures every exact pin and remains independent of copied bytes and source deletion()',
@@ -156,6 +170,36 @@ jobs:
                   raise SystemExit("Retained-snapshot regression did not pass")
               total += len(cases)
           print(f"Verified {total} retained-snapshot and frozen evaluator cases; native execution remains separate")
+          PYTEST
+      - name: Require parser-derived workload field feedback regressions
+        run: |
+          python - <<'PYTEST'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          qualified = "ai.pickyour.core.preview.PreviewWorkloadValidationTest"
+          report = pathlib.Path("core/build/test-results/test/TEST-" + qualified + ".xml")
+          suite = ET.parse(report).getroot()
+          required = {
+              "emptyInputsStayUnansweredAndEveryTypedClassificationIsValid()",
+              "independentInvalidFieldsDoNotBlameValidOrUnansweredValues()",
+              "budgetFeedbackPreservesCanonicalDecimalPrecisionAndRejectsLocaleCoercion()",
+              "integerFeedbackUsesExactBoundsAndNeverTreatsUnknownAsAMeasurement()",
+              "textLimitsUseTheExistingStringBudgetWithoutTrimmingOrTruncation()",
+              "currencyFeedbackUsesTheExistingFullUppercasePattern()",
+              "rejectedWholeEditRemainsAFormFailureWithoutInventingAFieldFailure()",
+              "feedbackIsImmutableValueFreeAndIndependentOfLaterCorrections()",
+          }
+          cases = suite.findall("testcase")
+          names = [case.attrib["name"] for case in cases]
+          if suite.attrib.get("name") != qualified or any(case.attrib.get("classname") != qualified for case in cases):
+              raise SystemExit("Wrong workload field feedback suite")
+          if not required <= set(names) or len(names) != len(set(names)):
+              raise SystemExit("Missing or repeated workload field feedback regression")
+          if int(suite.attrib["tests"]) != len(cases) or any(int(suite.attrib[key]) != 0 for key in ("failures", "errors", "skipped")):
+              raise SystemExit("Workload field feedback totals do not match passing execution")
+          if any(case.findall("failure") or case.findall("error") or case.findall("skipped") for case in cases):
+              raise SystemExit("Workload field feedback regression did not pass")
+          print(f"Verified {len(cases)} parser-derived workload field feedback cases")
           PYTEST
       - name: Require every retained configuration golden
         run: |
@@ -653,6 +697,41 @@ jobs:
                   raise SystemExit("Component role regression did not pass")
               print(f"Verified {len(cases)} simulated {name} cases; no installed-device claim")
           PYTEST
+      - name: Require workload field error and saved-value regressions
+        run: |
+          python - <<'PYTEST'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          qualified = "ai.pickyour.android.preview.WorkloadFieldValidationActivityTest"
+          report = pathlib.Path("preview/build/test-results/testDebugUnitTest/TEST-" + qualified + ".xml")
+          suite = ET.parse(report).getroot()
+          required = {
+              "oversizedRegionIdentifiesTheLocalTextLimitWithoutChangingSavedBytes",
+              "invalidCurrencyIdentifiesItsUppercaseFormatWithoutEchoingInput",
+              "localeCommaBudgetIdentifiesTheCanonicalDecimalPoint",
+              "negativeRequestsIdentifyTheirNonnegativeDailyUnit",
+              "leadingZeroInputTokensIdentifyTheirWholeNumberFormat",
+              "oversizedOutputTokensIdentifyTheirExactDigitBound",
+              "zeroConcurrencyIdentifiesItsPositiveLowerBound",
+              "fractionalLatencyIdentifiesItsWholeMillisecondUnit",
+              "recreatedInvalidFieldsRecoverFeedbackAndReopenKeepsTheSavedRevision",
+              "correctingOneFieldKeepsOtherFeedbackUntilTheExactTypedSave",
+              "unansweredAndCanonicalWideValuesRoundTripWithoutFieldErrors",
+              "rejectedOversizedReplacementDoesNotBlameRetainedValidFields",
+              "explicitReopenOfValidPendingInputsDoesNotCreateARevision",
+          }
+          cases = suite.findall("testcase")
+          names = [case.attrib["name"] for case in cases]
+          if suite.attrib.get("name") != qualified or any(case.attrib.get("classname") != qualified for case in cases):
+              raise SystemExit("Wrong workload field error Activity suite")
+          if not required <= set(names) or len(names) != len(set(names)):
+              raise SystemExit("Missing or repeated workload field error Activity regression")
+          if int(suite.attrib["tests"]) != len(cases) or any(int(suite.attrib[key]) != 0 for key in ("failures", "errors", "skipped")):
+              raise SystemExit("Workload field error Activity totals do not match passing execution")
+          if any(case.findall("failure") or case.findall("error") or case.findall("skipped") for case in cases):
+              raise SystemExit("Workload field error Activity regression did not pass")
+          print(f"Verified {len(cases)} simulated workload field error cases; no installed-device claim")
+          PYTEST
       - name: Require explicit foundation selection regressions to execute
         run: |
           python - <<'PYTEST'
@@ -1049,6 +1128,37 @@ jobs:
               raise SystemExit("Current-draft summary totals contradict executed cases")
           print(f"Verified {len(cases)} simulated current-draft summary tests; no current-result or installed-device claim")
           PYTEST
+      - name: Require saved component summary inspection regressions to execute
+        run: |
+          python - <<'PYTEST'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          qualified = "ai.pickyour.android.preview.SummaryRecordedComponentsActivityTest"
+          report = pathlib.Path(f"preview/build/test-results/testDebugUnitTest/TEST-{qualified}.xml")
+          suite = ET.parse(report).getroot()
+          expected = {
+              "savedComponentDetailsExposeExactRecordedIdentityWithoutSaving",
+              "unsavedAndAcknowledgedEmptyComponentListsRemainDistinct",
+              "pendingEditsCanInspectSavedComponentsWithoutAcknowledgingThemAcrossRecreation",
+              "loadingWithholdsExpandedRecordsAndRetiredControlsCannotRevealThem",
+              "componentInspectionPreservesAutosaveDeadlineAndUsesOnlyItsAcknowledgedRevision",
+              "oldExpansionControlsCannotReplayAfterPauseOrIntoAnotherDraft",
+              "unconfirmedRestorationNeverUsesPriorComponentDetails",
+              "arbitraryRecordedVersionsRemainLiteralAndUnresolvedWithExplicitTruncation",
+              "narrowRtlLargeTextKeepsExpandedRecordsReadableAndToggleReachable",
+          }
+          cases = suite.findall("testcase")
+          names = [case.attrib.get("name") for case in cases]
+          if suite.attrib.get("name") != qualified or any(case.attrib.get("classname") != qualified for case in cases):
+              raise SystemExit("Foreign saved component summary results")
+          if set(names) != expected or len(names) != len(set(names)):
+              raise SystemExit("Missing, unexpected or repeated saved component summary regression")
+          if any(case.findall("failure") or case.findall("error") or case.findall("skipped") for case in cases):
+              raise SystemExit("Saved component summary regression did not pass")
+          if int(suite.attrib["tests"]) != len(cases) or any(int(suite.attrib[key]) != 0 for key in ("failures", "errors", "skipped")):
+              raise SystemExit("Saved component summary totals contradict executed cases")
+          print(f"Verified {len(cases)} simulated saved component summary tests; no catalog resolution or installed-device claim")
+          PYTEST
       - name: Require local help and public-report consent regressions to execute
         run: |
           python - <<'PYTEST'
@@ -1143,7 +1253,7 @@ jobs:
           report = pathlib.Path("preview/build/test-results/testDebugUnitTest/TEST-ai.pickyour.android.preview.CatalogPinRecoveryActivityTest.xml")
           suite = ET.parse(report).getroot()
           expected = {
-              "currentPinnedInspectionUsesCapturedDetailsWithoutCreatingACacheOrSaving",
+              "currentPinnedInspectionUsesCapturedDetailsWithoutChangingRetainedBytesOrSaving",
               "retainedRetiredVersionDisplaysExactOlderBytesWithoutActivatingOrReplacingComparisonPins",
               "missingSnapshotRetryRecoversOnlyTheSamePinAfterExactBytesBecomeAvailable",
               "unsupportedInvalidAndAbsentVersionsHaveDistinctRecoverableMessagesAndPreserveBytes",
@@ -1353,6 +1463,13 @@ jobs:
                   'dispatchRejectionIsRecoverableAndClosingDiscardsBothQueuedPhases',
                   'actualActivityPauseAndRecreationRetireQueuedInventoryAndOldDialogControls',
               },
+              'ai.pickyour.android.preview.SnapshotEvaluationPresentationActivityTest': {
+                  'ordinaryRetainedRuleKeepsOutcomeSeverityAndSourceBytes',
+                  'retainedFailingTextCannotInjectStatusLinesOrBidiControls',
+                  'retainedUnknownTextCannotImpersonateAbsentOrKnownStatus',
+                  'evaluatedPassRetainsSuppliedEmptyRemediation',
+                  'longRetainedTextDisclosesTruncationWithoutChangingSavedInputs',
+              },
           }
           total = 0
           for name, required in expected.items():
@@ -1409,6 +1526,30 @@ jobs:
               assert all(not case.findall("failure") and not case.findall("error") and not case.findall("skipped") for case in cases), f"{name} regression did not pass"
               assert int(suite.attrib["tests"]) >= len(expected)
               print(f"Verified {len(cases)} simulated {name} tests; no installed-device claim")
+          PYTEST
+      - name: Require bundled catalog retention Activity regressions to execute
+        run: |
+          python - <<'PYTEST'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          name = "ai.pickyour.android.preview.CatalogRetentionActivityTest"
+          suite = ET.parse(pathlib.Path("preview/build/test-results/testDebugUnitTest") / ("TEST-" + name + ".xml")).getroot()
+          expected = {
+              "bundledLoaderRetainsExactBytesAcrossRecreationWithoutSavingPendingDraft",
+              "failedRetentionKeepsCatalogUsableAndExplicitReloadRecoversWithoutSaving",
+              "fullHistoryPreservesEveryPinAndExplainsUnretainedCatalogWithoutBlockingBrowse",
+          }
+          cases = suite.findall("testcase")
+          identities = [(case.attrib.get("classname"), case.attrib["name"]) for case in cases]
+          if suite.attrib.get("name") != name or any(owner != name for owner, _ in identities):
+              raise SystemExit("Unexpected catalog retention regression owner")
+          if not {(name, method) for method in expected} <= set(identities) or len(identities) != len(set(identities)):
+              raise SystemExit("Missing or repeated catalog retention regression")
+          if int(suite.attrib["tests"]) != len(cases) or any(int(suite.attrib.get(key, "0")) != 0 for key in ("failures", "errors", "skipped")):
+              raise SystemExit("Catalog retention suite did not execute cleanly")
+          if any(case.findall("failure") or case.findall("error") or case.findall("skipped") for case in cases):
+              raise SystemExit("Catalog retention regression did not pass")
+          print(f"Verified {len(cases)} simulated bundled catalog retention tests; no installed-device claim")
           PYTEST
       - name: Require optional-tier dialog authority regressions
         run: |

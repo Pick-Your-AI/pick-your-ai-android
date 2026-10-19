@@ -2572,9 +2572,9 @@ The four case IDs remain, with the following explicit current-product inputs:
    process identity, complete three-field cold-reopen and acknowledgment checks
    remain. This is automatic-save evidence; it does not claim an installed
    manual-save action occurred.
-3. **Pending fields survive rotation** first requires an empty **Requests per
-   day** editor, enters the fixed literal `invalid`, and requires that exact raw
-   input, the visible invalid-workload explanation and disabled Save. Only then
+3. **Pending fields survive rotation** enters the fixed literal `invalid` into
+   **Requests per day**, then requires that complete exact raw value, the visible
+   invalid-workload explanation and disabled Save. Only then
    are the pending title/objective suffixes entered. Existing validation excludes
    this incomplete form from manual and automatic persistence; the harness
    changes no autosave setting, scheduler or application clock. Both strict
@@ -2622,3 +2622,69 @@ attributed. The combined source, configured execution, original artifacts and
 ordinary fresh receiving guards are required for final delivery; this section
 does not close an issue, establish physical-device behavior, or convert the
 earlier missing-navigation or failed-contrast originals into successes.
+
+### Empty input and accessibility hint correction
+
+The first autosave-compatible receiving source `948f3d58` executed as signed
+`8c1a9ec663fb082289394b256ba65f1c5d49533f`, tree
+`a096e3189de2dc6c586e0a0862065978a360b61a`. Core, Preview and scanner jobs
+passed, but installed job 118023567630 in run 39241000776 failed at
+2026-10-19 11:07:47 UTC. Its decoded log reports
+`The synthetic pending-input control must start unanswered`.
+Original artifact 12181822552 is 565,371 bytes, SHA256
+`794ea0a2d71c94318974791c11154cfb917b4ec85dcd862aa548f34bdf7466d5`.
+That run remains failed. Its actual Requests-per-day XML value and complete
+original case, image and ACL qualification were not available when this
+source correction was prepared; no specific observed value or cause is inferred.
+
+The existing WorkloadSection sets the empty editor's hint to **Unanswered**.
+[Android 15 TextView at immutable 4e43ad12](https://github.com/aosp-mirror/platform_frameworks_base/blob/4e43ad12e1b211f15152e9c5b16b0fe88e6b93f3/core/java/android/widget/TextView.java)
+sets accessibility node text through `getTextForAccessibility()`, which returns
+the hint when the underlying text is empty. The independently retrieved source
+blob is `f7e0ec8158f4e359457cb294d978b7e2d313aacb`. Thus requiring empty
+accessibility text before entering the fixed synthetic value is not a valid
+empty-input test, independently of the still-unverified 8c observation. The
+reference does not establish exact guest binary/source equivalence.
+
+The correction removes only that premature two-line assertion. The existing
+input command still appends the fixed literal, and the immediately following
+fresh editor observation must equal exactly **invalid**. It does not accept
+hint words, discard prefixes, clear unknown input or assume replacement. A
+nonempty underlying `1` or literal `Unanswered` becomes `1invalid` or
+`Unansweredinvalid` and fails before either pending title/objective suffix is
+entered. The invalid-workload message, disabled Save, exact complete pending
+fields, both locked rotations, original saved-library row, deletion,
+non-resurrection, pixel/provider and ACL gates remain unchanged.
+
+The corrected host UI model separates empty raw input from its displayed hint.
+All 12 methods passed in 0.012 seconds, with no failures, errors or skips. A
+separate paired replay uses the same model against unchanged 948 and the
+correction: the hinted empty value fails the old premature assertion and
+completes all four cases with the correction; the unhinted empty control passes
+both. Both sources reject actual nonempty numeric and literal hint values. The
+correction observes their complete appended values and stops before pending
+title edits. The other negative controls still require failures for lost saved
+or pending data, an incorrectly enabled Save, wrong library content and
+resurrection after deletion.
+
+These are host-only scenario results, with runtime process, fork and signal
+calls prohibited by the controls. They are separate from the earlier
+ten-method empty-text model and its hosted 311-method result. This source change
+does not turn any earlier installed failure into a pass or replace the next
+actual configured receiving and applicable original-output qualification.
+
+After this source was prepared, the independent original reader returned
+[qualification 6266220712](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/467#issuecomment-6266220712)
+for that same 565,371-byte archive and verified all 13 members. The retained
+`failure.xml` reports **Unanswered** in the exact Requests-per-day editor; its
+SHA256 is `54aef762a8d414fbf6e6b89dda3ac98295064062e58a65e9e1adb470df8314ec`.
+The reader also inspected the matching original PNG and found grey Unanswered,
+the saved acknowledgment and disabled Save. Both failure files equal their
+respective 03-cold-relaunch originals. JSON and JUnit agree on two passed cases,
+the pending-input case failing at the initial guard, and deletion not run.
+The complete ACL before and cleanup-after objects match, with child exit 1 and
+successful quiescent restoration. This is attributed original qualification,
+not another ZIP download or byte audit by the correction author. The XML does
+not expose the internal Editable value; it establishes the representation
+rejected by the old guard without assigning a persistence defect. The actual
+8c run remains failed, and no rotation, deletion or new-source pass is inferred.

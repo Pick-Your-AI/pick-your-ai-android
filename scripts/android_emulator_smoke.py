@@ -2393,8 +2393,6 @@ def exercise(device: Device, output: Path, receipt: dict):
             ui.checkpoint("03-cold-relaunch")
         with case(receipt, CASE_IDS[2]) as row:
             row["pending_input_constraint"] = "invalid-workload-requests"
-            require(ui.editor(REQUESTS_LABEL).get("text") == "",
-                    "The synthetic pending-input control must start unanswered")
             ui.enter(REQUESTS_LABEL, PENDING_REQUESTS)
             require(ui.editor(REQUESTS_LABEL).get("text") == PENDING_REQUESTS,
                     "The complete invalid workload input was not retained")
