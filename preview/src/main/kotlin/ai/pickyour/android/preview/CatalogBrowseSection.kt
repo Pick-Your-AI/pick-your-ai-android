@@ -202,7 +202,7 @@ class CatalogBrowseSection(
             page == null -> activity.getString(R.string.catalog_browse_waiting)
             page.total == 0 -> activity.getString(if (state.kind == null && state.tier == null)
                 R.string.catalog_search_empty else R.string.catalog_no_matches)
-            else -> activity.getString(R.string.catalog_page, page.page + 1, page.pages, page.total)
+            else -> activity.resources.getQuantityString(R.plurals.catalog_page, page.total, page.page + 1, page.pages, page.total)
         }
         status.text = listOfNotNull(
             if (snapshotChanged) activity.getString(R.string.catalog_snapshot_changed) else null,

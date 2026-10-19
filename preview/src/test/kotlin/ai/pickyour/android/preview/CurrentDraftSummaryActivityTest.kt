@@ -63,6 +63,61 @@ class CurrentDraftSummaryActivityTest {
     private fun output(id: Int) = summary().findViewById<TextView>(id).text.toString()
     private fun action(id: Int) = summary().findViewById<Button>(id)
     private fun dialog() = requireNotNull(ShadowAlertDialog.getLatestAlertDialog())
+    private fun dialogField(form: AlertDialog, label: Int): EditText {
+        val caption = views(requireNotNull(form.window).decorView).filterIsInstance<TextView>().single {
+            it.text.toString() == activity.getString(label)
+        }
+        assertNotEquals(View.NO_ID, caption.labelFor)
+        return form.findViewById(caption.labelFor)
+    }
+    private fun addFormFromSummary(): AlertDialog {
+        assertTrue(action(R.id.draft_summary_component_action).isEnabled)
+        action(R.id.draft_summary_component_action).performClick()
+        val picker = dialog()
+        val model = (0 until picker.listView.adapter.count).single {
+            picker.listView.adapter.getItem(it).toString().startsWith("model ·")
+        }
+        shadowOf(picker).clickOnItem(model)
+        await { dialog() !== picker && dialog().isShowing }
+        val choice = dialog()
+        shadowOf(choice).clickOnItem(0)
+        await { dialog() !== choice && dialog().isShowing }
+        return dialog()
+    }
+    private fun savedComponentFormFromSummary(actionIndex: Int): AlertDialog {
+        assertTrue(action(R.id.draft_summary_component_action).isEnabled)
+        action(R.id.draft_summary_component_action).performClick()
+        val picker = dialog()
+        assertEquals(1, picker.listView.adapter.count)
+        shadowOf(picker).clickOnItem(0)
+        await { dialog() !== picker && dialog().isShowing }
+        val choices = dialog()
+        shadowOf(choices).clickOnItem(actionIndex)
+        await { dialog() !== choices && dialog().isShowing }
+        return dialog()
+    }
+    private fun commitFormAndReviewCurrentComponents(form: AlertDialog, mode: String) {
+        val before = loaded()
+        val retired = action(R.id.draft_summary_component_action)
+        form.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+        await { !form.isShowing }
+        finishWork()
+        assertEquals(before.revision + 1, loaded().revision)
+        assertTrue(button(R.string.component_manage).isEnabled)
+        val previous = dialog()
+        retired.callOnClick()
+        assertSame(previous, dialog())
+        val current = action(R.id.draft_summary_component_action)
+        assertNotSame(retired, current)
+        assertTrue("Summary component action did not recover after the $mode form was saved", current.isEnabled)
+        current.performClick()
+        val review = dialog()
+        assertEquals(activity.getString(R.string.component_manage), shadowOf(review).title.toString())
+        assertEquals(1, review.listView.adapter.count)
+        assertTrue(review.listView.adapter.getItem(0).toString().contains(loaded().components.selections.single().id))
+        review.getButton(AlertDialog.BUTTON_NEGATIVE).performClick()
+        await { !review.isShowing }
+    }
     private fun adapter() = PreviewDraftLibrary(activity.noBackupFilesDir.toPath()).openLegacy()
     private fun loaded() = (adapter().load() as PreviewDraftLoad.Available).record
     private fun disk() = Files.walk(activity.noBackupFilesDir.toPath()).use { paths ->
@@ -245,6 +300,52 @@ class CurrentDraftSummaryActivityTest {
         assertSame(previous, dialog())
         assertEquals(current, disk())
         assertEquals(activity.getString(R.string.draft_summary_component_counts, 0, 0), output(R.id.draft_summary_components))
+        assertNoCurrentResults()
+    }
+
+    @Test fun successfulComponentFormsRefreshTheSummaryAfterEachAcknowledgedSave() {
+        save()
+        val add = addFormFromSummary()
+        dialogField(add, R.string.component_role).setText("primary")
+        commitFormAndReviewCurrentComponents(add, "add")
+        assertEquals("primary", loaded().components.selections.single().role)
+
+        val configure = savedComponentFormFromSummary(0)
+        dialogField(configure, R.string.component_settings).setText("{\"temperature\":0.5}")
+        commitFormAndReviewCurrentComponents(configure, "configure")
+        assertEquals("{\"temperature\":0.5}", PreviewSelectionForms.settingsText(loaded().components.selections.single()))
+
+        val role = savedComponentFormFromSummary(1)
+        dialogField(role, R.string.component_role).setText("secondary")
+        commitFormAndReviewCurrentComponents(role, "role")
+        assertEquals("secondary", loaded().components.selections.single().role)
+        assertNoCurrentResults()
+    }
+
+    @Test fun discardingRecoveredComponentInputRefreshesTheSummaryWithoutOtherEdits() {
+        save()
+        val form = addFormFromSummary()
+        dialogField(form, R.string.component_role).setText("pending role")
+        dialogField(form, R.string.component_settings).setText("{\"unfinished\":")
+        val retained = disk()
+        val baseline = loaded().baselineIdentity
+        recreate()
+        val retired = action(R.id.draft_summary_component_action)
+        assertFalse(retired.isEnabled)
+        assertEquals(View.VISIBLE, button(R.string.component_recovery_review).visibility)
+        button(R.string.component_recovery_discard).performClick()
+        assertTrue(button(R.string.component_choose_catalog).isEnabled)
+        assertEquals(retained, disk())
+        assertEquals(baseline, loaded().baselineIdentity)
+        val previous = ShadowAlertDialog.getLatestAlertDialog()
+        retired.callOnClick()
+        assertSame(previous, ShadowAlertDialog.getLatestAlertDialog())
+        val current = action(R.id.draft_summary_component_action)
+        assertTrue("Summary component action did not recover after pending input was discarded", current.isEnabled)
+        assertNotSame(retired, current)
+        current.performClick()
+        assertEquals(activity.getString(R.string.component_choose_catalog), shadowOf(dialog()).title.toString())
+        assertTrue(loaded().components.selections.isEmpty())
         assertNoCurrentResults()
     }
 
