@@ -412,11 +412,12 @@ class DeploymentPlanningGuidesActivityTest {
                     it.text.toString() == owner.getString(R.string.deployment_guide_open, owner.getString(R.string.deployment_guide_api))
                 }
                 // Give the explicitly chosen reference real focus before recording its viewport.
-                // The artificial leading gap otherwise leaves ScrollView holding focus; enabling
+                // The artificial leading gap can leave ScrollView holding focus; enabling
                 // rows may reveal a newly focusable descendant independently of restoration.
                 assertTrue(control.requestFocus())
                 layout()
-                assertSame(control, owner.currentFocus)
+                assertTrue("The chosen guide has actual View focus", control.isFocused)
+                assertSame(control, scroll.findFocus())
                 assertTrue(if (accessibility)
                     control.performAccessibilityAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK, null)
                     else control.performClick())
@@ -443,9 +444,9 @@ class DeploymentPlanningGuidesActivityTest {
                 val oldDestination = position + rowPoint[1] - viewPoint[1] + 17
                 assertNotEquals("The old catalog anchor must differ from explicit reference navigation",
                     position, oldDestination)
-                assertSame("The explicit reference owns focus before readiness", control, owner.currentFocus)
+                assertSame("The explicit reference owns focus before readiness", control, scroll.findFocus())
                 catalog.selectionEnabled(true)
-                assertSame("Readiness must not replace the explicit reference focus", control, owner.currentFocus)
+                assertSame("Readiness must not replace the explicit reference focus", control, scroll.findFocus())
                 assertEquals("Enabling catalog controls alone retains the reference viewport", position, scroll.scrollY)
                 scroll.viewTreeObserver.dispatchOnPreDraw()
                 if (cancelNavigation) {

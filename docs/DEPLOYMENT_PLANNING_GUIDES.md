@@ -223,3 +223,29 @@ the selected reference position. Both branches retain the filter/page, exact
 saved-baseline/disk and no-outgoing-Intent checks. No production, resource,
 workflow, test-method identity or authority boundary changes in this correction;
 actual corrected execution and review remain separate gates.
+
+
+### Actual View focus observation
+
+The focus-separated source also retained its failure: actual prepared
+`4bab7689`/tree `4c59e2d6`, native job `117905440209`, executed
+377 methods with one failure at the new line-419 focus observation. The chosen
+button's `requestFocus()` returned true, while `owner.currentFocus` returned null.
+That assertion occurs before the reference action and causal positive/negative
+branches, so none of their outcomes is claimed from this failed method. The
+other nine guide methods passed; the earlier two original failures remain
+separate.
+
+Inspection of the exact pinned Robolectric 4.17 `shadows-framework` JAR
+(SHA-256 `ee580073a51a045e3950280c16e7d07382cd47f9049053a01f7a6d1dcc6a0527`,
+verified against committed dependency metadata) shows that
+`ShadowActivity.getCurrentFocus()` returns only its separate `currentFocus`
+field; `setCurrentFocus()` directly assigns that field. This test therefore
+must observe the actual View hierarchy rather than populate a shadow value.
+
+The narrow correction checks the chosen button's actual `isFocused` state
+and uses `scroll.findFocus()` for all three focused-child observations. It
+does not set `ShadowActivity.currentFocus`. The real readiness, unchanged-scroll,
+old-anchor negative-control, storage/filter and direct/accessibility assertions
+remain unchanged. No production or configured guard changes, new execution
+claim or reinterpretation of the original failures is made.
