@@ -69,7 +69,7 @@ internal class CatalogPriceBrowser(
         }
         lateinit var dialog: AlertDialog
         val builder = AlertDialog.Builder(activity)
-            .setTitle(activity.getString(R.string.catalog_price_browser_page, page + 1, pages, rates.size))
+            .setTitle(activity.resources.getQuantityString(R.plurals.catalog_price_browser_page, rates.size, page + 1, pages, rates.size))
             .setItems(rows.toTypedArray()) { _, index ->
                 if (current(dialog) && index in rows.indices) showFields(start + index, 0)
             }
@@ -186,7 +186,7 @@ internal class CatalogPriceBrowser(
             Field(activity.getString(R.string.catalog_price_conditions_state), when {
                 conditions == null -> activity.getString(R.string.catalog_price_conditions_missing)
                 conditions.isEmpty() -> activity.getString(R.string.catalog_price_conditions_empty)
-                else -> activity.getString(R.string.catalog_price_all_conditions, conditions.size)
+                else -> activity.resources.getQuantityString(R.plurals.catalog_price_all_conditions, conditions.size, conditions.size)
             }, quoted = false),
         )
         val size: Int get() = fixed.size + (conditions?.size ?: 0)

@@ -28,5 +28,6 @@ path = ROOT / 'core/src/test/resources/evaluation/reference-reports.json'
 if '--write' in sys.argv:
     path.write_text(output)
 else:
-    assert path.read_text() == output, 'Reference adapter fixtures differ; inspect upstream before regenerating'
+    if path.read_text() != output:
+        raise SystemExit('Reference adapter fixtures differ; inspect upstream before regenerating')
     print(f'{len(cases)} reference report fixtures match frozen Python evaluator')

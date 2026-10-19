@@ -1,6 +1,9 @@
 <resources>
     <string name="catalog_price_browse">Review all recorded prices</string>
-    <string name="catalog_price_browser_page">Fictional recorded rates · page %1$d of %2$d · %3$d records</string>
+    <plurals name="catalog_price_browser_page">
+        <item quantity="one">Fictional recorded rates · page %1$d of %2$d · %3$d record</item>
+        <item quantity="other">Fictional recorded rates · page %1$d of %2$d · %3$d records</item>
+    </plurals>
     <string name="catalog_price_browser_row">Rate %1$d: %2$s\n%3$s · %4$s %5$s · recorded %6$s</string>
     <string name="catalog_price_fields_page">Recorded rate %1$d of %2$d · fields page %3$d of %4$d</string>
     <string name="catalog_price_field_row">%1$s\n%2$s</string>
@@ -8,7 +11,10 @@
     <string name="catalog_price_browser_limits">Read-only recorded metadata. Eligibility, source checks and current pricing are not established. Long literal values have numbered parts; displayed quotes and part labels are not stored content. Source URIs remain plain text.</string>
     <string name="catalog_price_unassessed_label">Unassessed display label</string>
     <string name="catalog_price_conditions_state">Recorded conditions state</string>
-    <string name="catalog_price_all_conditions">%1$d literal conditions retained in stored order. Each following condition can be inspected; eligibility is not established.</string>
+    <plurals name="catalog_price_all_conditions">
+        <item quantity="one">%1$d literal condition retained in stored order. Each following condition can be inspected; eligibility is not established.</item>
+        <item quantity="other">%1$d literal conditions retained in stored order. Each following condition can be inspected; eligibility is not established.</item>
+    </plurals>
     <string name="catalog_price_next_rates">Next rates</string>
     <string name="catalog_price_previous_rates">Previous rates</string>
     <string name="catalog_price_back_rates">Back to rates</string>
