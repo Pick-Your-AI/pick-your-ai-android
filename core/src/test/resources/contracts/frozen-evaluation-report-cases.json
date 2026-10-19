@@ -1,0 +1,2776 @@
+{
+  "profile": "android-frozen-evaluation-report-wire/v1",
+  "schema_sha256": "78935ec78848de7655bd972851aa0357c4426f6870fc028ba81739c85040359b",
+  "common_sha256": "0342ce2f1114e7276fc7f6a08ff5b86e8727caadd83ae4f443de9a7e1431c43c",
+  "example_sha256": "039626962ef0f2c4f706614d775ad47eda1d148c58f736c98ad169fc153221f3",
+  "cases": [
+    {
+      "name": "canonical complete synthetic report",
+      "expected": "decoded"
+    },
+    {
+      "name": "required top field absent schema_version",
+      "expected": "unsupported_version",
+      "remove": [
+        "schema_version"
+      ]
+    },
+    {
+      "name": "top field null schema_version",
+      "expected": "unsupported_version",
+      "set": {
+        "schema_version": null
+      }
+    },
+    {
+      "name": "top field object schema_version",
+      "expected": "unsupported_version",
+      "set": {
+        "schema_version": {
+          "synthetic": "value"
+        }
+      }
+    },
+    {
+      "name": "required top field absent id",
+      "expected": "schema_mismatch",
+      "remove": [
+        "id"
+      ]
+    },
+    {
+      "name": "top field null id",
+      "expected": "schema_mismatch",
+      "set": {
+        "id": null
+      }
+    },
+    {
+      "name": "top field object id",
+      "expected": "schema_mismatch",
+      "set": {
+        "id": {
+          "synthetic": "value"
+        }
+      }
+    },
+    {
+      "name": "required top field absent build_id",
+      "expected": "schema_mismatch",
+      "remove": [
+        "build_id"
+      ]
+    },
+    {
+      "name": "top field null build_id",
+      "expected": "schema_mismatch",
+      "set": {
+        "build_id": null
+      }
+    },
+    {
+      "name": "top field object build_id",
+      "expected": "schema_mismatch",
+      "set": {
+        "build_id": {
+          "synthetic": "value"
+        }
+      }
+    },
+    {
+      "name": "required top field absent build_revision",
+      "expected": "schema_mismatch",
+      "remove": [
+        "build_revision"
+      ]
+    },
+    {
+      "name": "top field null build_revision",
+      "expected": "schema_mismatch",
+      "set": {
+        "build_revision": null
+      }
+    },
+    {
+      "name": "top field object build_revision",
+      "expected": "schema_mismatch",
+      "set": {
+        "build_revision": {
+          "synthetic": "value"
+        }
+      }
+    },
+    {
+      "name": "required top field absent catalog_snapshot_id",
+      "expected": "schema_mismatch",
+      "remove": [
+        "catalog_snapshot_id"
+      ]
+    },
+    {
+      "name": "top field null catalog_snapshot_id",
+      "expected": "schema_mismatch",
+      "set": {
+        "catalog_snapshot_id": null
+      }
+    },
+    {
+      "name": "top field object catalog_snapshot_id",
+      "expected": "schema_mismatch",
+      "set": {
+        "catalog_snapshot_id": {
+          "synthetic": "value"
+        }
+      }
+    },
+    {
+      "name": "required top field absent ruleset_id",
+      "expected": "schema_mismatch",
+      "remove": [
+        "ruleset_id"
+      ]
+    },
+    {
+      "name": "top field null ruleset_id",
+      "expected": "schema_mismatch",
+      "set": {
+        "ruleset_id": null
+      }
+    },
+    {
+      "name": "top field object ruleset_id",
+      "expected": "schema_mismatch",
+      "set": {
+        "ruleset_id": {
+          "synthetic": "value"
+        }
+      }
+    },
+    {
+      "name": "required top field absent ruleset_version",
+      "expected": "schema_mismatch",
+      "remove": [
+        "ruleset_version"
+      ]
+    },
+    {
+      "name": "top field null ruleset_version",
+      "expected": "schema_mismatch",
+      "set": {
+        "ruleset_version": null
+      }
+    },
+    {
+      "name": "top field object ruleset_version",
+      "expected": "schema_mismatch",
+      "set": {
+        "ruleset_version": {
+          "synthetic": "value"
+        }
+      }
+    },
+    {
+      "name": "required top field absent dependency_graph_id",
+      "expected": "schema_mismatch",
+      "remove": [
+        "dependency_graph_id"
+      ]
+    },
+    {
+      "name": "top field null dependency_graph_id",
+      "expected": "schema_mismatch",
+      "set": {
+        "dependency_graph_id": null
+      }
+    },
+    {
+      "name": "top field object dependency_graph_id",
+      "expected": "schema_mismatch",
+      "set": {
+        "dependency_graph_id": {
+          "synthetic": "value"
+        }
+      }
+    },
+    {
+      "name": "required top field absent dependency_graph_revision",
+      "expected": "schema_mismatch",
+      "remove": [
+        "dependency_graph_revision"
+      ]
+    },
+    {
+      "name": "top field null dependency_graph_revision",
+      "expected": "schema_mismatch",
+      "set": {
+        "dependency_graph_revision": null
+      }
+    },
+    {
+      "name": "top field object dependency_graph_revision",
+      "expected": "schema_mismatch",
+      "set": {
+        "dependency_graph_revision": {
+          "synthetic": "value"
+        }
+      }
+    },
+    {
+      "name": "required top field absent evaluated_at",
+      "expected": "schema_mismatch",
+      "remove": [
+        "evaluated_at"
+      ]
+    },
+    {
+      "name": "top field null evaluated_at",
+      "expected": "schema_mismatch",
+      "set": {
+        "evaluated_at": null
+      }
+    },
+    {
+      "name": "top field object evaluated_at",
+      "expected": "schema_mismatch",
+      "set": {
+        "evaluated_at": {
+          "synthetic": "value"
+        }
+      }
+    },
+    {
+      "name": "required top field absent result",
+      "expected": "schema_mismatch",
+      "remove": [
+        "result"
+      ]
+    },
+    {
+      "name": "top field null result",
+      "expected": "schema_mismatch",
+      "set": {
+        "result": null
+      }
+    },
+    {
+      "name": "top field object result",
+      "expected": "schema_mismatch",
+      "set": {
+        "result": {
+          "synthetic": "value"
+        }
+      }
+    },
+    {
+      "name": "required top field absent deployment_readiness",
+      "expected": "schema_mismatch",
+      "remove": [
+        "deployment_readiness"
+      ]
+    },
+    {
+      "name": "top field null deployment_readiness",
+      "expected": "schema_mismatch",
+      "set": {
+        "deployment_readiness": null
+      }
+    },
+    {
+      "name": "top field object deployment_readiness",
+      "expected": "schema_mismatch",
+      "set": {
+        "deployment_readiness": {
+          "synthetic": "value"
+        }
+      }
+    },
+    {
+      "name": "required top field absent findings",
+      "expected": "schema_mismatch",
+      "remove": [
+        "findings"
+      ]
+    },
+    {
+      "name": "top field null findings",
+      "expected": "schema_mismatch",
+      "set": {
+        "findings": null
+      }
+    },
+    {
+      "name": "required top field absent summary",
+      "expected": "schema_mismatch",
+      "remove": [
+        "summary"
+      ]
+    },
+    {
+      "name": "top field null summary",
+      "expected": "schema_mismatch",
+      "set": {
+        "summary": null
+      }
+    },
+    {
+      "name": "unsupported schema new-major",
+      "expected": "unsupported_version",
+      "set": {
+        "schema_version": "2.0.0"
+      }
+    },
+    {
+      "name": "unsupported schema empty",
+      "expected": "unsupported_version",
+      "set": {
+        "schema_version": ""
+      }
+    },
+    {
+      "name": "unsupported schema numeric",
+      "expected": "unsupported_version",
+      "set": {
+        "schema_version": 1
+      }
+    },
+    {
+      "name": "unsupported schema boolean",
+      "expected": "unsupported_version",
+      "set": {
+        "schema_version": true
+      }
+    },
+    {
+      "name": "unsupported schema case-prefix",
+      "expected": "unsupported_version",
+      "set": {
+        "schema_version": "V1.0.0"
+      }
+    },
+    {
+      "name": "unsupported schema terminal-LF",
+      "expected": "unsupported_version",
+      "set": {
+        "schema_version": "1.0.0\n"
+      }
+    },
+    {
+      "name": "unknown top property",
+      "expected": "schema_mismatch",
+      "set": {
+        "extra": "synthetic-private-report-value"
+      }
+    },
+    {
+      "name": "id valid minimum",
+      "expected": "decoded",
+      "set": {
+        "id": "abc"
+      }
+    },
+    {
+      "name": "id valid maximum",
+      "expected": "decoded",
+      "set": {
+        "id": "a99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999"
+      }
+    },
+    {
+      "name": "id valid opaque-punctuation",
+      "expected": "decoded",
+      "set": {
+        "id": "a._:-9"
+      }
+    },
+    {
+      "name": "id valid terminal-LF",
+      "expected": "decoded",
+      "set": {
+        "id": "abc\n"
+      }
+    },
+    {
+      "name": "id invalid short",
+      "expected": "schema_mismatch",
+      "set": {
+        "id": "ab"
+      }
+    },
+    {
+      "name": "id invalid long",
+      "expected": "schema_mismatch",
+      "set": {
+        "id": "abbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    },
+    {
+      "name": "id invalid uppercase",
+      "expected": "schema_mismatch",
+      "set": {
+        "id": "ABC"
+      }
+    },
+    {
+      "name": "id invalid slash",
+      "expected": "schema_mismatch",
+      "set": {
+        "id": "abc/def"
+      }
+    },
+    {
+      "name": "id invalid space",
+      "expected": "schema_mismatch",
+      "set": {
+        "id": "abc def"
+      }
+    },
+    {
+      "name": "id invalid terminal-CR",
+      "expected": "schema_mismatch",
+      "set": {
+        "id": "abc\r"
+      }
+    },
+    {
+      "name": "build_id valid minimum",
+      "expected": "decoded",
+      "set": {
+        "build_id": "abc"
+      }
+    },
+    {
+      "name": "build_id valid maximum",
+      "expected": "decoded",
+      "set": {
+        "build_id": "a99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999"
+      }
+    },
+    {
+      "name": "build_id valid opaque-punctuation",
+      "expected": "decoded",
+      "set": {
+        "build_id": "a._:-9"
+      }
+    },
+    {
+      "name": "build_id valid terminal-LF",
+      "expected": "decoded",
+      "set": {
+        "build_id": "abc\n"
+      }
+    },
+    {
+      "name": "build_id invalid short",
+      "expected": "schema_mismatch",
+      "set": {
+        "build_id": "ab"
+      }
+    },
+    {
+      "name": "build_id invalid long",
+      "expected": "schema_mismatch",
+      "set": {
+        "build_id": "abbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    },
+    {
+      "name": "build_id invalid uppercase",
+      "expected": "schema_mismatch",
+      "set": {
+        "build_id": "ABC"
+      }
+    },
+    {
+      "name": "build_id invalid slash",
+      "expected": "schema_mismatch",
+      "set": {
+        "build_id": "abc/def"
+      }
+    },
+    {
+      "name": "build_id invalid space",
+      "expected": "schema_mismatch",
+      "set": {
+        "build_id": "abc def"
+      }
+    },
+    {
+      "name": "build_id invalid terminal-CR",
+      "expected": "schema_mismatch",
+      "set": {
+        "build_id": "abc\r"
+      }
+    },
+    {
+      "name": "catalog_snapshot_id valid minimum",
+      "expected": "decoded",
+      "set": {
+        "catalog_snapshot_id": "abc"
+      }
+    },
+    {
+      "name": "catalog_snapshot_id valid maximum",
+      "expected": "decoded",
+      "set": {
+        "catalog_snapshot_id": "a99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999"
+      }
+    },
+    {
+      "name": "catalog_snapshot_id valid opaque-punctuation",
+      "expected": "decoded",
+      "set": {
+        "catalog_snapshot_id": "a._:-9"
+      }
+    },
+    {
+      "name": "catalog_snapshot_id valid terminal-LF",
+      "expected": "decoded",
+      "set": {
+        "catalog_snapshot_id": "abc\n"
+      }
+    },
+    {
+      "name": "catalog_snapshot_id invalid short",
+      "expected": "schema_mismatch",
+      "set": {
+        "catalog_snapshot_id": "ab"
+      }
+    },
+    {
+      "name": "catalog_snapshot_id invalid long",
+      "expected": "schema_mismatch",
+      "set": {
+        "catalog_snapshot_id": "abbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    },
+    {
+      "name": "catalog_snapshot_id invalid uppercase",
+      "expected": "schema_mismatch",
+      "set": {
+        "catalog_snapshot_id": "ABC"
+      }
+    },
+    {
+      "name": "catalog_snapshot_id invalid slash",
+      "expected": "schema_mismatch",
+      "set": {
+        "catalog_snapshot_id": "abc/def"
+      }
+    },
+    {
+      "name": "catalog_snapshot_id invalid space",
+      "expected": "schema_mismatch",
+      "set": {
+        "catalog_snapshot_id": "abc def"
+      }
+    },
+    {
+      "name": "catalog_snapshot_id invalid terminal-CR",
+      "expected": "schema_mismatch",
+      "set": {
+        "catalog_snapshot_id": "abc\r"
+      }
+    },
+    {
+      "name": "ruleset_id valid minimum",
+      "expected": "decoded",
+      "set": {
+        "ruleset_id": "abc"
+      }
+    },
+    {
+      "name": "ruleset_id valid maximum",
+      "expected": "decoded",
+      "set": {
+        "ruleset_id": "a99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999"
+      }
+    },
+    {
+      "name": "ruleset_id valid opaque-punctuation",
+      "expected": "decoded",
+      "set": {
+        "ruleset_id": "a._:-9"
+      }
+    },
+    {
+      "name": "ruleset_id valid terminal-LF",
+      "expected": "decoded",
+      "set": {
+        "ruleset_id": "abc\n"
+      }
+    },
+    {
+      "name": "ruleset_id invalid short",
+      "expected": "schema_mismatch",
+      "set": {
+        "ruleset_id": "ab"
+      }
+    },
+    {
+      "name": "ruleset_id invalid long",
+      "expected": "schema_mismatch",
+      "set": {
+        "ruleset_id": "abbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    },
+    {
+      "name": "ruleset_id invalid uppercase",
+      "expected": "schema_mismatch",
+      "set": {
+        "ruleset_id": "ABC"
+      }
+    },
+    {
+      "name": "ruleset_id invalid slash",
+      "expected": "schema_mismatch",
+      "set": {
+        "ruleset_id": "abc/def"
+      }
+    },
+    {
+      "name": "ruleset_id invalid space",
+      "expected": "schema_mismatch",
+      "set": {
+        "ruleset_id": "abc def"
+      }
+    },
+    {
+      "name": "ruleset_id invalid terminal-CR",
+      "expected": "schema_mismatch",
+      "set": {
+        "ruleset_id": "abc\r"
+      }
+    },
+    {
+      "name": "dependency_graph_id valid minimum",
+      "expected": "decoded",
+      "set": {
+        "dependency_graph_id": "abc"
+      }
+    },
+    {
+      "name": "dependency_graph_id valid maximum",
+      "expected": "decoded",
+      "set": {
+        "dependency_graph_id": "a99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999"
+      }
+    },
+    {
+      "name": "dependency_graph_id valid opaque-punctuation",
+      "expected": "decoded",
+      "set": {
+        "dependency_graph_id": "a._:-9"
+      }
+    },
+    {
+      "name": "dependency_graph_id valid terminal-LF",
+      "expected": "decoded",
+      "set": {
+        "dependency_graph_id": "abc\n"
+      }
+    },
+    {
+      "name": "dependency_graph_id invalid short",
+      "expected": "schema_mismatch",
+      "set": {
+        "dependency_graph_id": "ab"
+      }
+    },
+    {
+      "name": "dependency_graph_id invalid long",
+      "expected": "schema_mismatch",
+      "set": {
+        "dependency_graph_id": "abbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    },
+    {
+      "name": "dependency_graph_id invalid uppercase",
+      "expected": "schema_mismatch",
+      "set": {
+        "dependency_graph_id": "ABC"
+      }
+    },
+    {
+      "name": "dependency_graph_id invalid slash",
+      "expected": "schema_mismatch",
+      "set": {
+        "dependency_graph_id": "abc/def"
+      }
+    },
+    {
+      "name": "dependency_graph_id invalid space",
+      "expected": "schema_mismatch",
+      "set": {
+        "dependency_graph_id": "abc def"
+      }
+    },
+    {
+      "name": "dependency_graph_id invalid terminal-CR",
+      "expected": "schema_mismatch",
+      "set": {
+        "dependency_graph_id": "abc\r"
+      }
+    },
+    {
+      "name": "build_revision exact one",
+      "expected": "decoded",
+      "set": {
+        "build_revision": 1
+      }
+    },
+    {
+      "name": "build_revision exact integral-decimal",
+      "expected": "decoded",
+      "set": {
+        "build_revision": 1.0
+      }
+    },
+    {
+      "name": "build_revision exact beyond-double",
+      "expected": "decoded",
+      "set": {
+        "build_revision": 9007199254740993
+      }
+    },
+    {
+      "name": "build_revision exact beyond-long",
+      "expected": "decoded",
+      "set": {
+        "build_revision": 123456789012345678901234567890123456789
+      }
+    },
+    {
+      "name": "build_revision exact 128digits",
+      "expected": "decoded",
+      "set": {
+        "build_revision": 99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999
+      }
+    },
+    {
+      "name": "build_revision rejects zero",
+      "expected": "schema_mismatch",
+      "set": {
+        "build_revision": 0
+      }
+    },
+    {
+      "name": "build_revision rejects negative",
+      "expected": "schema_mismatch",
+      "set": {
+        "build_revision": -1
+      }
+    },
+    {
+      "name": "build_revision rejects large-negative",
+      "expected": "schema_mismatch",
+      "set": {
+        "build_revision": -100000000000000000000000000000000000000
+      }
+    },
+    {
+      "name": "build_revision rejects fraction",
+      "expected": "schema_mismatch",
+      "set": {
+        "build_revision": 1.25
+      }
+    },
+    {
+      "name": "build_revision rejects string",
+      "expected": "schema_mismatch",
+      "set": {
+        "build_revision": "1"
+      }
+    },
+    {
+      "name": "build_revision rejects boolean",
+      "expected": "schema_mismatch",
+      "set": {
+        "build_revision": true
+      }
+    },
+    {
+      "name": "dependency_graph_revision exact one",
+      "expected": "decoded",
+      "set": {
+        "dependency_graph_revision": 1
+      }
+    },
+    {
+      "name": "dependency_graph_revision exact integral-decimal",
+      "expected": "decoded",
+      "set": {
+        "dependency_graph_revision": 1.0
+      }
+    },
+    {
+      "name": "dependency_graph_revision exact beyond-double",
+      "expected": "decoded",
+      "set": {
+        "dependency_graph_revision": 9007199254740993
+      }
+    },
+    {
+      "name": "dependency_graph_revision exact beyond-long",
+      "expected": "decoded",
+      "set": {
+        "dependency_graph_revision": 123456789012345678901234567890123456789
+      }
+    },
+    {
+      "name": "dependency_graph_revision exact 128digits",
+      "expected": "decoded",
+      "set": {
+        "dependency_graph_revision": 99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999
+      }
+    },
+    {
+      "name": "dependency_graph_revision rejects zero",
+      "expected": "schema_mismatch",
+      "set": {
+        "dependency_graph_revision": 0
+      }
+    },
+    {
+      "name": "dependency_graph_revision rejects negative",
+      "expected": "schema_mismatch",
+      "set": {
+        "dependency_graph_revision": -1
+      }
+    },
+    {
+      "name": "dependency_graph_revision rejects large-negative",
+      "expected": "schema_mismatch",
+      "set": {
+        "dependency_graph_revision": -100000000000000000000000000000000000000
+      }
+    },
+    {
+      "name": "dependency_graph_revision rejects fraction",
+      "expected": "schema_mismatch",
+      "set": {
+        "dependency_graph_revision": 1.25
+      }
+    },
+    {
+      "name": "dependency_graph_revision rejects string",
+      "expected": "schema_mismatch",
+      "set": {
+        "dependency_graph_revision": "1"
+      }
+    },
+    {
+      "name": "dependency_graph_revision rejects boolean",
+      "expected": "schema_mismatch",
+      "set": {
+        "dependency_graph_revision": true
+      }
+    },
+    {
+      "name": "ruleset version preserves zeros",
+      "expected": "decoded",
+      "set": {
+        "ruleset_version": "00.01.0002"
+      }
+    },
+    {
+      "name": "ruleset version preserves prerelease",
+      "expected": "decoded",
+      "set": {
+        "ruleset_version": "1.2.3-A.4-"
+      }
+    },
+    {
+      "name": "ruleset version preserves terminal-LF",
+      "expected": "decoded",
+      "set": {
+        "ruleset_version": "1.2.3\n"
+      }
+    },
+    {
+      "name": "ruleset version rejects empty",
+      "expected": "schema_mismatch",
+      "set": {
+        "ruleset_version": ""
+      }
+    },
+    {
+      "name": "ruleset version rejects missing-part",
+      "expected": "schema_mismatch",
+      "set": {
+        "ruleset_version": "1.2"
+      }
+    },
+    {
+      "name": "ruleset version rejects build-suffix",
+      "expected": "schema_mismatch",
+      "set": {
+        "ruleset_version": "1.2.3+build"
+      }
+    },
+    {
+      "name": "ruleset version rejects prefix",
+      "expected": "schema_mismatch",
+      "set": {
+        "ruleset_version": "v1.2.3"
+      }
+    },
+    {
+      "name": "ruleset version rejects CR",
+      "expected": "schema_mismatch",
+      "set": {
+        "ruleset_version": "1.2.3\r"
+      }
+    },
+    {
+      "name": "ruleset version rejects numeric",
+      "expected": "schema_mismatch",
+      "set": {
+        "ruleset_version": 1
+      }
+    },
+    {
+      "name": "timestamp preserves offset",
+      "expected": "decoded",
+      "set": {
+        "evaluated_at": "2026-10-16T10:30:00+01:30"
+      }
+    },
+    {
+      "name": "timestamp preserves fraction",
+      "expected": "decoded",
+      "set": {
+        "evaluated_at": "2026-10-16T09:00:00.123456789Z"
+      }
+    },
+    {
+      "name": "timestamp preserves past",
+      "expected": "decoded",
+      "set": {
+        "evaluated_at": "2000-01-01T00:00:00Z"
+      }
+    },
+    {
+      "name": "timestamp rejects empty",
+      "expected": "schema_mismatch",
+      "set": {
+        "evaluated_at": ""
+      }
+    },
+    {
+      "name": "timestamp rejects date-only",
+      "expected": "schema_mismatch",
+      "set": {
+        "evaluated_at": "2026-10-16"
+      }
+    },
+    {
+      "name": "timestamp rejects bad-month",
+      "expected": "schema_mismatch",
+      "set": {
+        "evaluated_at": "2026-13-01T00:00:00Z"
+      }
+    },
+    {
+      "name": "timestamp rejects zone-missing",
+      "expected": "schema_mismatch",
+      "set": {
+        "evaluated_at": "2026-10-16T09:00:00"
+      }
+    },
+    {
+      "name": "timestamp rejects numeric",
+      "expected": "schema_mismatch",
+      "set": {
+        "evaluated_at": 0
+      }
+    },
+    {
+      "name": "closed result accepts valid",
+      "expected": "decoded",
+      "set": {
+        "result": "valid"
+      }
+    },
+    {
+      "name": "closed result accepts invalid",
+      "expected": "decoded",
+      "set": {
+        "result": "invalid"
+      }
+    },
+    {
+      "name": "closed result accepts indeterminate",
+      "expected": "decoded",
+      "set": {
+        "result": "indeterminate"
+      }
+    },
+    {
+      "name": "closed result rejects unknown",
+      "expected": "schema_mismatch",
+      "set": {
+        "result": "other"
+      }
+    },
+    {
+      "name": "closed result rejects upper",
+      "expected": "schema_mismatch",
+      "set": {
+        "result": "VALID"
+      }
+    },
+    {
+      "name": "closed result rejects empty",
+      "expected": "schema_mismatch",
+      "set": {
+        "result": ""
+      }
+    },
+    {
+      "name": "closed result rejects boolean",
+      "expected": "schema_mismatch",
+      "set": {
+        "result": false
+      }
+    },
+    {
+      "name": "closed result rejects numeric",
+      "expected": "schema_mismatch",
+      "set": {
+        "result": 0
+      }
+    },
+    {
+      "name": "closed result rejects null",
+      "expected": "schema_mismatch",
+      "set": {
+        "result": null
+      }
+    },
+    {
+      "name": "closed deployment_readiness accepts ready",
+      "expected": "decoded",
+      "set": {
+        "deployment_readiness": "ready"
+      }
+    },
+    {
+      "name": "closed deployment_readiness accepts blocked",
+      "expected": "decoded",
+      "set": {
+        "deployment_readiness": "blocked"
+      }
+    },
+    {
+      "name": "closed deployment_readiness accepts needs_review",
+      "expected": "decoded",
+      "set": {
+        "deployment_readiness": "needs_review"
+      }
+    },
+    {
+      "name": "closed deployment_readiness rejects unknown",
+      "expected": "schema_mismatch",
+      "set": {
+        "deployment_readiness": "other"
+      }
+    },
+    {
+      "name": "closed deployment_readiness rejects upper",
+      "expected": "schema_mismatch",
+      "set": {
+        "deployment_readiness": "READY"
+      }
+    },
+    {
+      "name": "closed deployment_readiness rejects empty",
+      "expected": "schema_mismatch",
+      "set": {
+        "deployment_readiness": ""
+      }
+    },
+    {
+      "name": "closed deployment_readiness rejects boolean",
+      "expected": "schema_mismatch",
+      "set": {
+        "deployment_readiness": false
+      }
+    },
+    {
+      "name": "closed deployment_readiness rejects numeric",
+      "expected": "schema_mismatch",
+      "set": {
+        "deployment_readiness": 0
+      }
+    },
+    {
+      "name": "closed deployment_readiness rejects null",
+      "expected": "schema_mismatch",
+      "set": {
+        "deployment_readiness": null
+      }
+    },
+    {
+      "name": "closed outcome accepts pass",
+      "expected": "decoded",
+      "finding_set": {
+        "outcome": "pass"
+      }
+    },
+    {
+      "name": "closed outcome accepts fail",
+      "expected": "decoded",
+      "finding_set": {
+        "outcome": "fail"
+      }
+    },
+    {
+      "name": "closed outcome accepts unknown",
+      "expected": "decoded",
+      "finding_set": {
+        "outcome": "unknown"
+      }
+    },
+    {
+      "name": "closed outcome accepts skipped",
+      "expected": "decoded",
+      "finding_set": {
+        "outcome": "skipped"
+      }
+    },
+    {
+      "name": "closed outcome rejects unknown",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "outcome": "other"
+      }
+    },
+    {
+      "name": "closed outcome rejects upper",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "outcome": "PASS"
+      }
+    },
+    {
+      "name": "closed outcome rejects empty",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "outcome": ""
+      }
+    },
+    {
+      "name": "closed outcome rejects boolean",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "outcome": false
+      }
+    },
+    {
+      "name": "closed outcome rejects numeric",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "outcome": 0
+      }
+    },
+    {
+      "name": "closed outcome rejects null",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "outcome": null
+      }
+    },
+    {
+      "name": "closed severity accepts error",
+      "expected": "decoded",
+      "finding_set": {
+        "severity": "error"
+      }
+    },
+    {
+      "name": "closed severity accepts warning",
+      "expected": "decoded",
+      "finding_set": {
+        "severity": "warning"
+      }
+    },
+    {
+      "name": "closed severity accepts info",
+      "expected": "decoded",
+      "finding_set": {
+        "severity": "info"
+      }
+    },
+    {
+      "name": "closed severity rejects unknown",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "severity": "other"
+      }
+    },
+    {
+      "name": "closed severity rejects upper",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "severity": "ERROR"
+      }
+    },
+    {
+      "name": "closed severity rejects empty",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "severity": ""
+      }
+    },
+    {
+      "name": "closed severity rejects boolean",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "severity": false
+      }
+    },
+    {
+      "name": "closed severity rejects numeric",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "severity": 0
+      }
+    },
+    {
+      "name": "closed severity rejects null",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "severity": null
+      }
+    },
+    {
+      "name": "empty findings keeps declared summary",
+      "expected": "decoded",
+      "set": {
+        "findings": []
+      }
+    },
+    {
+      "name": "duplicate findings retained",
+      "expected": "decoded",
+      "set": {
+        "findings": [
+          {
+            "rule_id": "rule.required.foundation",
+            "outcome": "pass",
+            "severity": "error",
+            "code": "RULE_REQUIRED_FOUNDATION",
+            "message": "rule.required.foundation: pass",
+            "remediation": "",
+            "selection_ids": [
+              "sel_context_policy",
+              "sel_deployment_mode",
+              "sel_model",
+              "sel_workload"
+            ]
+          },
+          {
+            "rule_id": "rule.required.foundation",
+            "outcome": "pass",
+            "severity": "error",
+            "code": "RULE_REQUIRED_FOUNDATION",
+            "message": "rule.required.foundation: pass",
+            "remediation": "",
+            "selection_ids": [
+              "sel_context_policy",
+              "sel_deployment_mode",
+              "sel_model",
+              "sel_workload"
+            ]
+          },
+          {
+            "rule_id": "rule.model.provider.match",
+            "outcome": "pass",
+            "severity": "error",
+            "code": "RULE_MODEL_PROVIDER_MATCH",
+            "message": "rule.model.provider.match: pass",
+            "remediation": "",
+            "selection_ids": [
+              "sel_model",
+              "sel_model_provider"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "reordered findings retained",
+      "expected": "decoded",
+      "set": {
+        "findings": [
+          {
+            "rule_id": "rule.model.provider.match",
+            "outcome": "pass",
+            "severity": "error",
+            "code": "RULE_MODEL_PROVIDER_MATCH",
+            "message": "rule.model.provider.match: pass",
+            "remediation": "",
+            "selection_ids": [
+              "sel_model",
+              "sel_model_provider"
+            ]
+          },
+          {
+            "rule_id": "rule.required.foundation",
+            "outcome": "pass",
+            "severity": "error",
+            "code": "RULE_REQUIRED_FOUNDATION",
+            "message": "rule.required.foundation: pass",
+            "remediation": "",
+            "selection_ids": [
+              "sel_context_policy",
+              "sel_deployment_mode",
+              "sel_model",
+              "sel_workload"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "findings rejects object",
+      "expected": "schema_mismatch",
+      "set": {
+        "findings": {}
+      }
+    },
+    {
+      "name": "findings rejects string",
+      "expected": "schema_mismatch",
+      "set": {
+        "findings": "findings"
+      }
+    },
+    {
+      "name": "findings rejects scalar",
+      "expected": "schema_mismatch",
+      "set": {
+        "findings": 3
+      }
+    },
+    {
+      "name": "findings rejects null-entry",
+      "expected": "schema_mismatch",
+      "set": {
+        "findings": [
+          null
+        ]
+      }
+    },
+    {
+      "name": "findings rejects scalar-entry",
+      "expected": "schema_mismatch",
+      "set": {
+        "findings": [
+          1
+        ]
+      }
+    },
+    {
+      "name": "required finding field absent rule_id",
+      "expected": "schema_mismatch",
+      "finding_remove": [
+        "rule_id"
+      ]
+    },
+    {
+      "name": "finding field null rule_id",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "rule_id": null
+      }
+    },
+    {
+      "name": "required finding field absent outcome",
+      "expected": "schema_mismatch",
+      "finding_remove": [
+        "outcome"
+      ]
+    },
+    {
+      "name": "finding field null outcome",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "outcome": null
+      }
+    },
+    {
+      "name": "required finding field absent severity",
+      "expected": "schema_mismatch",
+      "finding_remove": [
+        "severity"
+      ]
+    },
+    {
+      "name": "finding field null severity",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "severity": null
+      }
+    },
+    {
+      "name": "required finding field absent code",
+      "expected": "schema_mismatch",
+      "finding_remove": [
+        "code"
+      ]
+    },
+    {
+      "name": "finding field null code",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "code": null
+      }
+    },
+    {
+      "name": "required finding field absent message",
+      "expected": "schema_mismatch",
+      "finding_remove": [
+        "message"
+      ]
+    },
+    {
+      "name": "finding field null message",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "message": null
+      }
+    },
+    {
+      "name": "required finding field absent selection_ids",
+      "expected": "schema_mismatch",
+      "finding_remove": [
+        "selection_ids"
+      ]
+    },
+    {
+      "name": "finding field null selection_ids",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "selection_ids": null
+      }
+    },
+    {
+      "name": "unknown finding property",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "extra": "synthetic-private-report-value"
+      }
+    },
+    {
+      "name": "rule id accepts minimum",
+      "expected": "decoded",
+      "finding_set": {
+        "rule_id": "abc"
+      }
+    },
+    {
+      "name": "rule id accepts maximum",
+      "expected": "decoded",
+      "finding_set": {
+        "rule_id": "abbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    },
+    {
+      "name": "rule id accepts terminal-LF",
+      "expected": "decoded",
+      "finding_set": {
+        "rule_id": "rule.fixture\n"
+      }
+    },
+    {
+      "name": "rule id rejects short",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "rule_id": "ab"
+      }
+    },
+    {
+      "name": "rule id rejects long",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "rule_id": "abbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    },
+    {
+      "name": "rule id rejects uppercase",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "rule_id": "Rule.fixture"
+      }
+    },
+    {
+      "name": "rule id rejects slash",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "rule_id": "rule/fixture"
+      }
+    },
+    {
+      "name": "code accepts minimum",
+      "expected": "decoded",
+      "finding_set": {
+        "code": "ABC"
+      }
+    },
+    {
+      "name": "code accepts maximum",
+      "expected": "decoded",
+      "finding_set": {
+        "code": "A00000000000000000000000000000000000000000000000000000000000000000000000000000000"
+      }
+    },
+    {
+      "name": "code accepts underscore",
+      "expected": "decoded",
+      "finding_set": {
+        "code": "A_0"
+      }
+    },
+    {
+      "name": "code accepts terminal-LF",
+      "expected": "decoded",
+      "finding_set": {
+        "code": "ABC\n"
+      }
+    },
+    {
+      "name": "code rejects short",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "code": "AB"
+      }
+    },
+    {
+      "name": "code rejects long",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "code": "A000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+      }
+    },
+    {
+      "name": "code rejects lowercase",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "code": "abc"
+      }
+    },
+    {
+      "name": "code rejects leading-digit",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "code": "1AB"
+      }
+    },
+    {
+      "name": "code rejects hyphen",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "code": "A-B"
+      }
+    },
+    {
+      "name": "code rejects terminal-CR",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "code": "ABC\r"
+      }
+    },
+    {
+      "name": "code rejects terminal-CRLF",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "code": "ABC\r\n"
+      }
+    },
+    {
+      "name": "code rejects terminal-NEL",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "code": "ABC"
+      }
+    },
+    {
+      "name": "code rejects terminal-line-separator",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "code": "ABC "
+      }
+    },
+    {
+      "name": "code rejects terminal-paragraph-separator",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "code": "ABC "
+      }
+    },
+    {
+      "name": "message preserves whitespace",
+      "expected": "decoded",
+      "finding_set": {
+        "message": " \n\t"
+      }
+    },
+    {
+      "name": "message preserves unicode",
+      "expected": "decoded",
+      "finding_set": {
+        "message": "Observed 状態 🧪"
+      }
+    },
+    {
+      "name": "message preserves plain",
+      "expected": "decoded",
+      "finding_set": {
+        "message": "synthetic-private-report-value"
+      }
+    },
+    {
+      "name": "message rejects numeric",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "message": 42
+      }
+    },
+    {
+      "name": "message rejects boolean",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "message": true
+      }
+    },
+    {
+      "name": "message rejects object",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "message": {}
+      }
+    },
+    {
+      "name": "message rejects null",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "message": null
+      }
+    },
+    {
+      "name": "remediation preserves whitespace",
+      "expected": "decoded",
+      "finding_set": {
+        "remediation": " \n\t"
+      }
+    },
+    {
+      "name": "remediation preserves unicode",
+      "expected": "decoded",
+      "finding_set": {
+        "remediation": "Observed 状態 🧪"
+      }
+    },
+    {
+      "name": "remediation preserves plain",
+      "expected": "decoded",
+      "finding_set": {
+        "remediation": "synthetic-private-report-value"
+      }
+    },
+    {
+      "name": "remediation rejects numeric",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "remediation": 42
+      }
+    },
+    {
+      "name": "remediation rejects boolean",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "remediation": true
+      }
+    },
+    {
+      "name": "remediation rejects object",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "remediation": {}
+      }
+    },
+    {
+      "name": "remediation rejects null",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "remediation": null
+      }
+    },
+    {
+      "name": "empty message rejected",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "message": ""
+      }
+    },
+    {
+      "name": "empty remediation retained",
+      "expected": "decoded",
+      "finding_set": {
+        "remediation": ""
+      }
+    },
+    {
+      "name": "absent remediation retained",
+      "expected": "decoded",
+      "finding_remove": [
+        "remediation"
+      ]
+    },
+    {
+      "name": "selection IDs preserve empty",
+      "expected": "decoded",
+      "finding_set": {
+        "selection_ids": []
+      }
+    },
+    {
+      "name": "selection IDs preserve ordered",
+      "expected": "decoded",
+      "finding_set": {
+        "selection_ids": [
+          "sel_z",
+          "sel_a"
+        ]
+      }
+    },
+    {
+      "name": "selection IDs preserve unbound",
+      "expected": "decoded",
+      "finding_set": {
+        "selection_ids": [
+          "sel_missing"
+        ]
+      }
+    },
+    {
+      "name": "selection IDs preserve maximum",
+      "expected": "decoded",
+      "finding_set": {
+        "selection_ids": [
+          "abbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        ]
+      }
+    },
+    {
+      "name": "selection IDs preserve terminal-LF",
+      "expected": "decoded",
+      "finding_set": {
+        "selection_ids": [
+          "sel_a\n"
+        ]
+      }
+    },
+    {
+      "name": "selection IDs reject duplicates",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "selection_ids": [
+          "sel_a",
+          "sel_a"
+        ]
+      }
+    },
+    {
+      "name": "selection IDs reject short",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "selection_ids": [
+          "ab"
+        ]
+      }
+    },
+    {
+      "name": "selection IDs reject long",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "selection_ids": [
+          "abbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        ]
+      }
+    },
+    {
+      "name": "selection IDs reject dot",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "selection_ids": [
+          "sel.a"
+        ]
+      }
+    },
+    {
+      "name": "selection IDs reject uppercase",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "selection_ids": [
+          "Sel_a"
+        ]
+      }
+    },
+    {
+      "name": "selection IDs reject null-entry",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "selection_ids": [
+          null
+        ]
+      }
+    },
+    {
+      "name": "selection IDs reject object",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "selection_ids": {}
+      }
+    },
+    {
+      "name": "selection IDs reject scalar",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "selection_ids": "sel_a"
+      }
+    },
+    {
+      "name": "absent evidence retained",
+      "expected": "decoded"
+    },
+    {
+      "name": "empty evidence retained",
+      "expected": "decoded",
+      "finding_set": {
+        "evidence": []
+      }
+    },
+    {
+      "name": "empty path is recorded evidence",
+      "expected": "decoded",
+      "finding_set": {
+        "evidence": [
+          {
+            "path": ""
+          }
+        ]
+      }
+    },
+    {
+      "name": "nonpointer path is recorded text",
+      "expected": "decoded",
+      "finding_set": {
+        "evidence": [
+          {
+            "path": "not a pointer or URI"
+          }
+        ]
+      }
+    },
+    {
+      "name": "duplicate evidence retained",
+      "expected": "decoded",
+      "finding_set": {
+        "evidence": [
+          {
+            "path": "z",
+            "observed": null
+          },
+          {
+            "path": "z",
+            "observed": null
+          },
+          {
+            "path": "a",
+            "expected": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "observed opaque null",
+      "expected": "decoded",
+      "finding_set": {
+        "evidence": [
+          {
+            "path": "",
+            "observed": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "observed opaque false",
+      "expected": "decoded",
+      "finding_set": {
+        "evidence": [
+          {
+            "path": "",
+            "observed": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "observed opaque true",
+      "expected": "decoded",
+      "finding_set": {
+        "evidence": [
+          {
+            "path": "",
+            "observed": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "observed opaque zero",
+      "expected": "decoded",
+      "finding_set": {
+        "evidence": [
+          {
+            "path": "",
+            "observed": 0
+          }
+        ]
+      }
+    },
+    {
+      "name": "observed opaque negative",
+      "expected": "decoded",
+      "finding_set": {
+        "evidence": [
+          {
+            "path": "",
+            "observed": -1
+          }
+        ]
+      }
+    },
+    {
+      "name": "observed opaque exact-large-integer",
+      "expected": "decoded",
+      "finding_set": {
+        "evidence": [
+          {
+            "path": "",
+            "observed": 123456789012345678901234567890123456789
+          }
+        ]
+      }
+    },
+    {
+      "name": "observed opaque empty-string",
+      "expected": "decoded",
+      "finding_set": {
+        "evidence": [
+          {
+            "path": "",
+            "observed": ""
+          }
+        ]
+      }
+    },
+    {
+      "name": "observed opaque unknown-string",
+      "expected": "decoded",
+      "finding_set": {
+        "evidence": [
+          {
+            "path": "",
+            "observed": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "name": "observed opaque decimal-string",
+      "expected": "decoded",
+      "finding_set": {
+        "evidence": [
+          {
+            "path": "",
+            "observed": "9007199254740993.123456789012"
+          }
+        ]
+      }
+    },
+    {
+      "name": "observed opaque empty-array",
+      "expected": "decoded",
+      "finding_set": {
+        "evidence": [
+          {
+            "path": "",
+            "observed": []
+          }
+        ]
+      }
+    },
+    {
+      "name": "observed opaque empty-object",
+      "expected": "decoded",
+      "finding_set": {
+        "evidence": [
+          {
+            "path": "",
+            "observed": {}
+          }
+        ]
+      }
+    },
+    {
+      "name": "observed opaque nested",
+      "expected": "decoded",
+      "finding_set": {
+        "evidence": [
+          {
+            "path": "",
+            "observed": [
+              null,
+              false,
+              0,
+              "",
+              {
+                "literal": null,
+                "$ref": "https://fixture.invalid/inert",
+                "op": "eq"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "expected opaque null",
+      "expected": "decoded",
+      "finding_set": {
+        "evidence": [
+          {
+            "path": "",
+            "expected": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "expected opaque false",
+      "expected": "decoded",
+      "finding_set": {
+        "evidence": [
+          {
+            "path": "",
+            "expected": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "expected opaque true",
+      "expected": "decoded",
+      "finding_set": {
+        "evidence": [
+          {
+            "path": "",
+            "expected": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "expected opaque zero",
+      "expected": "decoded",
+      "finding_set": {
+        "evidence": [
+          {
+            "path": "",
+            "expected": 0
+          }
+        ]
+      }
+    },
+    {
+      "name": "expected opaque negative",
+      "expected": "decoded",
+      "finding_set": {
+        "evidence": [
+          {
+            "path": "",
+            "expected": -1
+          }
+        ]
+      }
+    },
+    {
+      "name": "expected opaque exact-large-integer",
+      "expected": "decoded",
+      "finding_set": {
+        "evidence": [
+          {
+            "path": "",
+            "expected": 123456789012345678901234567890123456789
+          }
+        ]
+      }
+    },
+    {
+      "name": "expected opaque empty-string",
+      "expected": "decoded",
+      "finding_set": {
+        "evidence": [
+          {
+            "path": "",
+            "expected": ""
+          }
+        ]
+      }
+    },
+    {
+      "name": "expected opaque unknown-string",
+      "expected": "decoded",
+      "finding_set": {
+        "evidence": [
+          {
+            "path": "",
+            "expected": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "name": "expected opaque decimal-string",
+      "expected": "decoded",
+      "finding_set": {
+        "evidence": [
+          {
+            "path": "",
+            "expected": "9007199254740993.123456789012"
+          }
+        ]
+      }
+    },
+    {
+      "name": "expected opaque empty-array",
+      "expected": "decoded",
+      "finding_set": {
+        "evidence": [
+          {
+            "path": "",
+            "expected": []
+          }
+        ]
+      }
+    },
+    {
+      "name": "expected opaque empty-object",
+      "expected": "decoded",
+      "finding_set": {
+        "evidence": [
+          {
+            "path": "",
+            "expected": {}
+          }
+        ]
+      }
+    },
+    {
+      "name": "expected opaque nested",
+      "expected": "decoded",
+      "finding_set": {
+        "evidence": [
+          {
+            "path": "",
+            "expected": [
+              null,
+              false,
+              0,
+              "",
+              {
+                "literal": null,
+                "$ref": "https://fixture.invalid/inert",
+                "op": "eq"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "source version preserves empty",
+      "expected": "decoded",
+      "finding_set": {
+        "evidence": [
+          {
+            "path": "",
+            "source_version": ""
+          }
+        ]
+      }
+    },
+    {
+      "name": "source version preserves opaque",
+      "expected": "decoded",
+      "finding_set": {
+        "evidence": [
+          {
+            "path": "",
+            "source_version": "not-semver"
+          }
+        ]
+      }
+    },
+    {
+      "name": "source version preserves whitespace",
+      "expected": "decoded",
+      "finding_set": {
+        "evidence": [
+          {
+            "path": "",
+            "source_version": " \n"
+          }
+        ]
+      }
+    },
+    {
+      "name": "source version preserves uri-shaped",
+      "expected": "decoded",
+      "finding_set": {
+        "evidence": [
+          {
+            "path": "",
+            "source_version": "file:///synthetic/inert"
+          }
+        ]
+      }
+    },
+    {
+      "name": "source version rejects null",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "evidence": [
+          {
+            "path": "",
+            "source_version": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "source version rejects numeric",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "evidence": [
+          {
+            "path": "",
+            "source_version": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "source version rejects boolean",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "evidence": [
+          {
+            "path": "",
+            "source_version": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "source version rejects object",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "evidence": [
+          {
+            "path": "",
+            "source_version": {}
+          }
+        ]
+      }
+    },
+    {
+      "name": "evidence rejects null",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "evidence": null
+      }
+    },
+    {
+      "name": "evidence rejects object",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "evidence": {}
+      }
+    },
+    {
+      "name": "evidence rejects string",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "evidence": "evidence"
+      }
+    },
+    {
+      "name": "evidence rejects null-entry",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "evidence": [
+          null
+        ]
+      }
+    },
+    {
+      "name": "evidence rejects scalar-entry",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "evidence": [
+          1
+        ]
+      }
+    },
+    {
+      "name": "evidence rejects missing-path",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "evidence": [
+          {}
+        ]
+      }
+    },
+    {
+      "name": "evidence rejects null-path",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "evidence": [
+          {
+            "path": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "evidence rejects numeric-path",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "evidence": [
+          {
+            "path": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "evidence rejects extra-field",
+      "expected": "schema_mismatch",
+      "finding_set": {
+        "evidence": [
+          {
+            "path": "",
+            "extra": "synthetic-private-report-value"
+          }
+        ]
+      }
+    },
+    {
+      "name": "required summary counter absent passed",
+      "expected": "schema_mismatch",
+      "summary_remove": [
+        "passed"
+      ]
+    },
+    {
+      "name": "declared passed exact zero",
+      "expected": "decoded",
+      "summary_set": {
+        "passed": 0
+      }
+    },
+    {
+      "name": "declared passed exact one",
+      "expected": "decoded",
+      "summary_set": {
+        "passed": 1
+      }
+    },
+    {
+      "name": "declared passed exact integral-decimal",
+      "expected": "decoded",
+      "summary_set": {
+        "passed": 1.0
+      }
+    },
+    {
+      "name": "declared passed exact beyond-long",
+      "expected": "decoded",
+      "summary_set": {
+        "passed": 123456789012345678901234567890123456789
+      }
+    },
+    {
+      "name": "declared passed exact 128digits",
+      "expected": "decoded",
+      "summary_set": {
+        "passed": 99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999
+      }
+    },
+    {
+      "name": "summary passed rejects negative",
+      "expected": "schema_mismatch",
+      "summary_set": {
+        "passed": -1
+      }
+    },
+    {
+      "name": "summary passed rejects large-negative",
+      "expected": "schema_mismatch",
+      "summary_set": {
+        "passed": -100000000000000000000000000000000000000
+      }
+    },
+    {
+      "name": "summary passed rejects fraction",
+      "expected": "schema_mismatch",
+      "summary_set": {
+        "passed": 0.5
+      }
+    },
+    {
+      "name": "summary passed rejects string",
+      "expected": "schema_mismatch",
+      "summary_set": {
+        "passed": "0"
+      }
+    },
+    {
+      "name": "summary passed rejects boolean",
+      "expected": "schema_mismatch",
+      "summary_set": {
+        "passed": true
+      }
+    },
+    {
+      "name": "summary passed rejects null",
+      "expected": "schema_mismatch",
+      "summary_set": {
+        "passed": null
+      }
+    },
+    {
+      "name": "summary passed rejects array",
+      "expected": "schema_mismatch",
+      "summary_set": {
+        "passed": []
+      }
+    },
+    {
+      "name": "required summary counter absent failed",
+      "expected": "schema_mismatch",
+      "summary_remove": [
+        "failed"
+      ]
+    },
+    {
+      "name": "declared failed exact zero",
+      "expected": "decoded",
+      "summary_set": {
+        "failed": 0
+      }
+    },
+    {
+      "name": "declared failed exact one",
+      "expected": "decoded",
+      "summary_set": {
+        "failed": 1
+      }
+    },
+    {
+      "name": "declared failed exact integral-decimal",
+      "expected": "decoded",
+      "summary_set": {
+        "failed": 1.0
+      }
+    },
+    {
+      "name": "declared failed exact beyond-long",
+      "expected": "decoded",
+      "summary_set": {
+        "failed": 123456789012345678901234567890123456789
+      }
+    },
+    {
+      "name": "declared failed exact 128digits",
+      "expected": "decoded",
+      "summary_set": {
+        "failed": 99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999
+      }
+    },
+    {
+      "name": "summary failed rejects negative",
+      "expected": "schema_mismatch",
+      "summary_set": {
+        "failed": -1
+      }
+    },
+    {
+      "name": "summary failed rejects large-negative",
+      "expected": "schema_mismatch",
+      "summary_set": {
+        "failed": -100000000000000000000000000000000000000
+      }
+    },
+    {
+      "name": "summary failed rejects fraction",
+      "expected": "schema_mismatch",
+      "summary_set": {
+        "failed": 0.5
+      }
+    },
+    {
+      "name": "summary failed rejects string",
+      "expected": "schema_mismatch",
+      "summary_set": {
+        "failed": "0"
+      }
+    },
+    {
+      "name": "summary failed rejects boolean",
+      "expected": "schema_mismatch",
+      "summary_set": {
+        "failed": true
+      }
+    },
+    {
+      "name": "summary failed rejects null",
+      "expected": "schema_mismatch",
+      "summary_set": {
+        "failed": null
+      }
+    },
+    {
+      "name": "summary failed rejects array",
+      "expected": "schema_mismatch",
+      "summary_set": {
+        "failed": []
+      }
+    },
+    {
+      "name": "required summary counter absent unknown",
+      "expected": "schema_mismatch",
+      "summary_remove": [
+        "unknown"
+      ]
+    },
+    {
+      "name": "declared unknown exact zero",
+      "expected": "decoded",
+      "summary_set": {
+        "unknown": 0
+      }
+    },
+    {
+      "name": "declared unknown exact one",
+      "expected": "decoded",
+      "summary_set": {
+        "unknown": 1
+      }
+    },
+    {
+      "name": "declared unknown exact integral-decimal",
+      "expected": "decoded",
+      "summary_set": {
+        "unknown": 1.0
+      }
+    },
+    {
+      "name": "declared unknown exact beyond-long",
+      "expected": "decoded",
+      "summary_set": {
+        "unknown": 123456789012345678901234567890123456789
+      }
+    },
+    {
+      "name": "declared unknown exact 128digits",
+      "expected": "decoded",
+      "summary_set": {
+        "unknown": 99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999
+      }
+    },
+    {
+      "name": "summary unknown rejects negative",
+      "expected": "schema_mismatch",
+      "summary_set": {
+        "unknown": -1
+      }
+    },
+    {
+      "name": "summary unknown rejects large-negative",
+      "expected": "schema_mismatch",
+      "summary_set": {
+        "unknown": -100000000000000000000000000000000000000
+      }
+    },
+    {
+      "name": "summary unknown rejects fraction",
+      "expected": "schema_mismatch",
+      "summary_set": {
+        "unknown": 0.5
+      }
+    },
+    {
+      "name": "summary unknown rejects string",
+      "expected": "schema_mismatch",
+      "summary_set": {
+        "unknown": "0"
+      }
+    },
+    {
+      "name": "summary unknown rejects boolean",
+      "expected": "schema_mismatch",
+      "summary_set": {
+        "unknown": true
+      }
+    },
+    {
+      "name": "summary unknown rejects null",
+      "expected": "schema_mismatch",
+      "summary_set": {
+        "unknown": null
+      }
+    },
+    {
+      "name": "summary unknown rejects array",
+      "expected": "schema_mismatch",
+      "summary_set": {
+        "unknown": []
+      }
+    },
+    {
+      "name": "required summary counter absent skipped",
+      "expected": "schema_mismatch",
+      "summary_remove": [
+        "skipped"
+      ]
+    },
+    {
+      "name": "declared skipped exact zero",
+      "expected": "decoded",
+      "summary_set": {
+        "skipped": 0
+      }
+    },
+    {
+      "name": "declared skipped exact one",
+      "expected": "decoded",
+      "summary_set": {
+        "skipped": 1
+      }
+    },
+    {
+      "name": "declared skipped exact integral-decimal",
+      "expected": "decoded",
+      "summary_set": {
+        "skipped": 1.0
+      }
+    },
+    {
+      "name": "declared skipped exact beyond-long",
+      "expected": "decoded",
+      "summary_set": {
+        "skipped": 123456789012345678901234567890123456789
+      }
+    },
+    {
+      "name": "declared skipped exact 128digits",
+      "expected": "decoded",
+      "summary_set": {
+        "skipped": 99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999
+      }
+    },
+    {
+      "name": "summary skipped rejects negative",
+      "expected": "schema_mismatch",
+      "summary_set": {
+        "skipped": -1
+      }
+    },
+    {
+      "name": "summary skipped rejects large-negative",
+      "expected": "schema_mismatch",
+      "summary_set": {
+        "skipped": -100000000000000000000000000000000000000
+      }
+    },
+    {
+      "name": "summary skipped rejects fraction",
+      "expected": "schema_mismatch",
+      "summary_set": {
+        "skipped": 0.5
+      }
+    },
+    {
+      "name": "summary skipped rejects string",
+      "expected": "schema_mismatch",
+      "summary_set": {
+        "skipped": "0"
+      }
+    },
+    {
+      "name": "summary skipped rejects boolean",
+      "expected": "schema_mismatch",
+      "summary_set": {
+        "skipped": true
+      }
+    },
+    {
+      "name": "summary skipped rejects null",
+      "expected": "schema_mismatch",
+      "summary_set": {
+        "skipped": null
+      }
+    },
+    {
+      "name": "summary skipped rejects array",
+      "expected": "schema_mismatch",
+      "summary_set": {
+        "skipped": []
+      }
+    },
+    {
+      "name": "summary rejects array",
+      "expected": "schema_mismatch",
+      "set": {
+        "summary": []
+      }
+    },
+    {
+      "name": "summary rejects string",
+      "expected": "schema_mismatch",
+      "set": {
+        "summary": "summary"
+      }
+    },
+    {
+      "name": "summary rejects number",
+      "expected": "schema_mismatch",
+      "set": {
+        "summary": 0
+      }
+    },
+    {
+      "name": "unknown summary property",
+      "expected": "schema_mismatch",
+      "summary_set": {
+        "other": 0
+      }
+    }
+  ]
+}
