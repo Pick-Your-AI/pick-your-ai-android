@@ -3,6 +3,7 @@ package ai.pickyour.core.importing
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertInstanceOf
+import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -136,6 +137,33 @@ class BoundedJsonReaderTest {
         }
         rejected(BoundedJsonReader().read(failing), JsonRejection.IO_FAILURE)
         assertFalse(failing.closed)
+    }
+
+    @Test fun `successful parse diagnostics redact private values while callers retain the full document`() {
+        val text = """{"workload":"synthetic private workload","secret_ref":"fixture-secret-reference","share":"https://example.invalid/private-capability","nested":{"amount":1.2300,"label":"é😀"}}"""
+        val source = TrackingStream(text.toByteArray())
+        val parsed = assertInstanceOf(JsonInputResult.Parsed::class.java, BoundedJsonReader().read(source))
+        val (value) = parsed
+        val copied = parsed.copy()
+        assertSame(value, parsed.value)
+        assertSame(value, copied.value)
+        assertEquals(parsed, copied)
+        assertEquals(parsed.hashCode(), copied.hashCode())
+        assertEquals(text, value.toString())
+        assertEquals(BigDecimal("1.2300"), value["nested"]["amount"].decimalValue())
+        assertFalse(source.closed)
+
+        val originalDiagnostic = parsed.toString()
+        assertEquals(text, value.toString())
+        // Parsed values deliberately remain caller-owned and mutable, including through a copy.
+        value.put("workload", "changed synthetic private workload")
+        assertEquals("changed synthetic private workload", copied.value["workload"].textValue())
+        val changedDiagnostic = copied.toString()
+        assertEquals("fixture-secret-reference", value["secret_ref"].textValue())
+        assertEquals("https://example.invalid/private-capability", value["share"].textValue())
+        assertEquals("é😀", value["nested"]["label"].textValue())
+        assertEquals("JsonInputResult.Parsed", originalDiagnostic)
+        assertEquals("JsonInputResult.Parsed", changedDiagnostic)
     }
 
     @Test fun `treats embedded instructions and urls only as inert strings`() {

@@ -42,6 +42,44 @@ class VerifiedArtifactCacheTest {
         assertArrayEquals(second, bytes(store().active()))
     }
 
+    @Test fun `successful read diagnostics redact active and pinned payloads without changing storage`() {
+        val retained = "synthetic private retained workload".toByteArray()
+        val current = """{"workload":"synthetic current workload","secret_ref":"fixture-secret-reference"}""".toByteArray()
+        val retainedHash = hash(retained)
+        val currentHash = hash(current)
+        assertEquals(CacheInstall.Activated(retainedHash), install(retained))
+        assertEquals(CacheInstall.Activated(currentHash), install(current))
+        val files = Files.list(root).use { paths -> paths.toList().associate { it.fileName.toString() to Files.readAllBytes(it) } }
+        val active = assertInstanceOf(CacheRead.Available::class.java, store().active())
+        val pinned = assertInstanceOf(CacheRead.Available::class.java, store().pinned(retainedHash))
+        val diagnostics = listOf(active.toString(), pinned.toString())
+        for ((result, expectedHash, expectedBytes) in listOf(
+            Triple(active, currentHash, current), Triple(pinned, retainedHash, retained),
+        )) {
+            val (readHash, readBytes) = result
+            val copied = result.copy()
+            assertEquals(expectedHash, readHash)
+            assertArrayEquals(expectedBytes, readBytes)
+            assertSame(readBytes, result.bytes)
+            assertSame(readBytes, copied.bytes)
+            assertEquals(result, copied)
+            assertEquals(result.hashCode(), copied.hashCode())
+        }
+        // Copy/destructure keep their existing array semantics; neither can alter retained files.
+        val copied = active.copy()
+        copied.bytes[0] = 0
+        val changedDiagnostic = copied.toString()
+        assertEquals(0.toByte(), active.bytes[0])
+        assertArrayEquals(current, bytes(store().active()))
+        assertArrayEquals(retained, bytes(store().pinned(retainedHash)))
+        val after = Files.list(root).use { paths -> paths.toList().associate { it.fileName.toString() to Files.readAllBytes(it) } }
+        assertEquals(files.keys, after.keys)
+        files.forEach { (name, original) -> assertArrayEquals(original, after.getValue(name)) }
+        assertEquals(currentHash.hex, Files.readString(root.resolve("active")))
+        assertEquals(listOf("CacheRead.Available", "CacheRead.Available"), diagnostics)
+        assertEquals("CacheRead.Available", changedDiagnostic)
+    }
+
     @Test fun `repeat activation retains exactly one content addressed file and caller owns stream`() {
         val source = object : ByteArrayInputStream(first) {
             var closed = false

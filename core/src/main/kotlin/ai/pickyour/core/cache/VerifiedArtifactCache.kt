@@ -34,7 +34,10 @@ data class CacheRetentionLimits(val maxArtifacts: Int, val maxRetainedBytes: Lon
 sealed interface CacheRead {
     data object Missing : CacheRead
     /** Independent verified bytes; changing this array cannot alter stored artifacts. */
-    data class Available(val hash: ArtifactHash, val bytes: ByteArray) : CacheRead
+    data class Available(val hash: ArtifactHash, val bytes: ByteArray) : CacheRead {
+        // Payload bytes and their content identity stay available only through explicit access.
+        override fun toString() = "CacheRead.Available"
+    }
     data class Failed(val reason: CacheFailure) : CacheRead
 }
 
