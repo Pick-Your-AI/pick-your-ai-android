@@ -2,6 +2,13 @@ plugins {
     id("com.android.application")
     kotlin("android")
 }
+// Only the accepted synthetic application exists. Never reinterpret a real mode as preview.
+val selectedEnvironment = providers.gradleProperty("androidEnvironment").orElse("preview").get()
+when (selectedEnvironment) {
+    "preview" -> Unit
+    "staging", "production" -> throw GradleException("Android real-data configuration is unavailable: accepted endpoint, identity and capability handoffs are required by #35/#57.")
+    else -> throw GradleException("Unsupported Android environment. Select preview, staging or production; no value is echoed.")
+}
 android {
     namespace = "ai.pickyour.android.preview"
     buildFeatures.buildConfig = true
@@ -12,6 +19,7 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "0.0.1-synthetic"
+        buildConfigField("String", "PYAI_ENVIRONMENT", "\"preview\"")
     }
     buildTypes.getByName("debug") { signingConfig = null }
     testOptions.unitTests.isIncludeAndroidResources = true

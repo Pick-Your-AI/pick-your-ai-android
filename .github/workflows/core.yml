@@ -52,6 +52,40 @@ jobs:
         run: sha256sum --check gradle/wrapper/wrapper.sha256
       - name: Compile and test JVM core
         run: ./gradlew --no-daemon --dependency-verification=strict --init-script scripts/runtime_inventory.init.gradle.kts :core:check :core:assemble runtimeInventory
+      - name: Require environment admission core regressions
+        run: |
+          python - <<'PYENVIRONMENT'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          qualified = 'ai.pickyour.core.configuration.ClientEnvironmentAdmissionTest'
+          expected = {
+              'accepted preview exposes only finite configured identity and no remote authority()',
+              'real modes reject even plausible self declared endpoint identity and capabilities()',
+              'unknown and missing mode never default to preview or consume configuration()',
+              'missing configuration never manufactures preview defaults()',
+              'environment mismatch rejects independently of valid preview metadata()',
+              'actual package version and code must all match the admitted profile()',
+              'wrong contract catalog schema and configured catalog identity reject before use()',
+              'preview forbids endpoints and API declarations including empty strings()',
+              'capabilities cannot be added duplicated omitted or type coerced()',
+              'closed fields reject credentials unknown keys and missing explicit nulls()',
+              'duplicate escaped keys trailing roots invalid UTF8 and excessive nesting reject()',
+              'actual byte budget bounds reads and malformed or IO failures contain no input()',
+              'format and required scalar types are never guessed or coerced()',
+              'rejected read leaves caller stream open and fresh valid read can recover()',
+          }
+          path = pathlib.Path('core/build/test-results/test') / ("TEST-" + qualified + ".xml")
+          suite = ET.parse(path).getroot()
+          cases = suite.findall("testcase")
+          names = [case.attrib["name"] for case in cases]
+          if suite.attrib.get("name") != qualified or not expected <= set(names) or len(names) != len(set(names)):
+              raise SystemExit("Missing, foreign or duplicate environment regression")
+          if int(suite.attrib["tests"]) != len(cases) or any(int(suite.attrib.get(k, "0")) for k in ("failures", "errors", "skipped")):
+              raise SystemExit("Environment regressions did not execute cleanly")
+          if any(case.findall("failure") or case.findall("error") or case.findall("skipped") for case in cases):
+              raise SystemExit("Environment regression failed or skipped")
+          print(f"Verified {len(cases)} environment admission cases")
+          PYENVIRONMENT
       - name: Require complete retained-snapshot and frozen evaluator regressions
         run: |
           python - <<'PYTEST'
@@ -248,6 +282,51 @@ jobs:
         run: sha256sum --check gradle/wrapper/wrapper.sha256
       - name: Compile unsigned preview, run lint and simulated UI tests
         run: ./gradlew --no-daemon --dependency-verification=strict --init-script scripts/runtime_inventory.init.gradle.kts -PandroidPreview=true :preview:assembleDebug :preview:lintDebug :preview:testDebugUnitTest runtimeInventory
+      - name: Require configuration bootstrap and lifecycle regressions
+        run: |
+          python - <<'PYENVIRONMENT'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          qualified = 'ai.pickyour.android.preview.EnvironmentBootstrapTest'
+          expected = {
+              'actualPackagedProfileMatchesAppAndFrozenCatalogMetadata',
+              'realAndUnknownSelectionsCannotAdmitPackagedPreview',
+              'missingMalformedAndWrongContractAreActionableWithoutRawValues',
+              'blockedScreenContainsOnlyFiniteRecoveryAndCloseAction',
+              'admittedPreviewStillCreatesAndRestoresLocalControls',
+              'rejectedActivityCannotRestoreEditOrOpenDraftsAcrossLifecycle',
+              'configurationSourceClosesAndFreshAdmissionDoesNotRetainFailure',
+          }
+          path = pathlib.Path('preview/build/test-results/testDebugUnitTest') / ("TEST-" + qualified + ".xml")
+          suite = ET.parse(path).getroot()
+          cases = suite.findall("testcase")
+          names = [case.attrib["name"] for case in cases]
+          if suite.attrib.get("name") != qualified or not expected <= set(names) or len(names) != len(set(names)):
+              raise SystemExit("Missing, foreign or duplicate environment regression")
+          if int(suite.attrib["tests"]) != len(cases) or any(int(suite.attrib.get(k, "0")) for k in ("failures", "errors", "skipped")):
+              raise SystemExit("Environment regressions did not execute cleanly")
+          if any(case.findall("failure") or case.findall("error") or case.findall("skipped") for case in cases):
+              raise SystemExit("Environment regression failed or skipped")
+          print(f"Verified {len(cases)} environment admission cases")
+          PYENVIRONMENT
+      - name: Verify non-secret environment configuration and unavailable real selections
+        shell: bash
+        run: |
+          python -m unittest discover -s scripts/tests -p 'test_environment_configuration.py' -v
+          python -O -m unittest discover -s scripts/tests -p 'test_environment_configuration.py' -v
+          python scripts/check_environment_configuration.py
+          mkdir -p build/environment-selection
+          for selected in staging production; do
+            log="build/environment-selection/$selected.log"
+            if ./gradlew --no-daemon --dependency-verification=strict -PandroidPreview=true -PandroidEnvironment="$selected" :preview:tasks >"$log" 2>&1; then
+              echo "An unconfigured real environment was incorrectly accepted."
+              exit 1
+            fi
+            if ! grep -Fq 'Android real-data configuration is unavailable:' "$log"; then
+              echo "The real-environment build failed outside its admission guard."
+              exit 1
+            fi
+          done
       - name: Reject ignored packaged preview assets
         run: python scripts/check_runtime_inventory_guards.py --preview
       - name: Export and validate the current runtime SPDX document
@@ -1399,6 +1478,7 @@ jobs:
             preview/build/reports/lint-results-debug.*
             preview/build/reports/tests/testDebugUnitTest/
             preview/build/test-results/testDebugUnitTest/
+            build/environment-selection/
           retention-days: 7
           if-no-files-found: ignore
       - name: Retain artifact-linked runtime inventory
