@@ -74,8 +74,28 @@ command has a 30-second deadline; failed, malformed or over-budget output cannot
 produce a passing receipt. Binary-inspection stderr and arbitrary compiled string
 values do not enter the policy report. The SDK's successful version command writes
 to stderr; only its validated version string is accepted from that stream.
-A failed current inspection removes the previous policy
-receipt before starting.
+A failed current inspection removes an admitted previous policy receipt before
+starting. The policy and [environment configuration](ENVIRONMENT_CONFIGURATION.md)
+commands share a fixed receipt boundary for `build/inventory/preview-policy.json`
+and `build/inventory/environment-configuration.json`. Existing `build` and
+`inventory` entries must be ordinary directories; an existing receipt must be a
+singly linked regular file. A symlink, hardlink, directory or other nonregular
+destination is rejected before inspection or deletion, preserving the unsafe
+entry and any unrelated target. Environment `--source-only` does not touch a
+receipt.
+
+After successful inspection, the destination is checked again and a complete
+JSON document is written to a private sibling temporary file before replacement.
+Serialization or replacement failure removes that temporary file and cannot
+publish a new passing receipt. These checks assume the canonical checkout and its
+output namespace remain stable during filesystem operations; they do not claim
+protection against hostile concurrent directory replacement or power-loss
+durability. Real-filesystem controls, including changes made between inspection
+and publication, run with:
+
+```sh
+python -m unittest discover -s scripts/tests -p 'test_preview_policy.py'
+```
 
 The existing native CI job executes all three Python commands after producing its
 runtime inventory. The existing `android-runtime-inventory-<checkout>` archive retains

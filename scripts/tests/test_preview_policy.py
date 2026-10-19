@@ -1,9 +1,13 @@
 """Fail-closed checks for the packaged synthetic-preview declaration boundary."""
 import copy
+from contextlib import redirect_stdout
 import hashlib
 import importlib.util
+import io
 import json
+import os
 from pathlib import Path
+import stat
 import sys
 import tempfile
 import subprocess
@@ -11,6 +15,9 @@ import unittest
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "scripts"))
+import check_environment_configuration as environment
+
 spec = importlib.util.spec_from_file_location("preview_policy", ROOT / "scripts/check_preview_policy.py")
 policy = importlib.util.module_from_spec(spec)
 sys.modules[spec.name] = policy
@@ -326,6 +333,251 @@ class PreviewPolicyTest(unittest.TestCase):
                 self.assertEqual(1, policy.main())
                 self.assertFalse(output.exists())
                 self.assertNotIn("sentinel", str(printed.call_args_list))
+
+
+COMMANDS = (
+    (policy, "preview-policy.json", ["--aapt2", "/unused-synthetic-tool"]),
+    (environment, "environment-configuration.json", []),
+)
+SENTINEL = b"unrelated retained artifact\n"
+PEER = b"unrelated inventory peer\n"
+
+
+class InspectionReceiptTests(unittest.TestCase):
+    def invoke(self, module, root, arguments, *, inspect=None):
+        output = io.StringIO()
+        with patch.object(module, "ROOT", root), \
+             patch.object(sys, "argv", ["inspection", *arguments]), \
+             patch.object(module, "check", side_effect=inspect) as checked, \
+             redirect_stdout(output):
+            try:
+                result = module.main()
+            except Exception as error:
+                # An escaped exception is an observable failure, not a typed rejection.
+                result = error
+        self.assertNotIn("private input sentinel", output.getvalue())
+        return result, checked
+
+    def reject_inspection(self, *_):
+        raise ValueError("private input sentinel")
+
+    def test_ancestor_aliases_reject_before_inspection_or_unrelated_deletion(self):
+        for module, name, arguments in COMMANDS:
+            for ancestor in ("build", "build/inventory"):
+                with self.subTest(command=name, ancestor=ancestor), tempfile.TemporaryDirectory() as directory:
+                    root = Path(directory) / "checkout"
+                    root.mkdir()
+                    foreign = Path(directory) / "foreign"
+                    foreign.mkdir()
+                    alias = root / ancestor
+                    alias.parent.mkdir(parents=True, exist_ok=True)
+                    alias.symlink_to(foreign, target_is_directory=True)
+                    inventory = root / "build/inventory"
+                    inventory.mkdir(parents=True, exist_ok=True)
+                    target = inventory / name
+                    target.write_bytes(SENTINEL)
+                    peer = inventory / "peer.txt"
+                    peer.write_bytes(PEER)
+
+                    result, checked = self.invoke(module, root, arguments, inspect=self.reject_inspection)
+
+                    self.assertEqual(1, result)
+                    self.assertTrue(target.is_file(), "An unrelated aliased receipt must remain")
+                    self.assertEqual(SENTINEL, target.read_bytes())
+                    self.assertEqual(PEER, peer.read_bytes())
+                    self.assertTrue(alias.is_symlink())
+                    checked.assert_not_called()
+
+    def test_output_aliases_and_nonregular_files_reject_without_replacement(self):
+        for module, name, arguments in COMMANDS:
+            for kind in ("symlink", "dangling-symlink", "hardlink", "directory", "fifo"):
+                with self.subTest(command=name, kind=kind), tempfile.TemporaryDirectory() as directory:
+                    root = Path(directory) / "checkout"
+                    inventory = root / "build/inventory"
+                    inventory.mkdir(parents=True)
+                    target = inventory / name
+                    foreign = Path(directory) / "foreign-receipt.json"
+                    if kind != "dangling-symlink":
+                        foreign.write_bytes(SENTINEL)
+                    if kind in {"symlink", "dangling-symlink"}:
+                        target.symlink_to(foreign)
+                    elif kind == "hardlink":
+                        os.link(foreign, target)
+                    elif kind == "directory":
+                        target.mkdir()
+                        (target / "retained.txt").write_bytes(SENTINEL)
+                    else:
+                        os.mkfifo(target)
+                    before = target.lstat()
+                    peer = inventory / "peer.txt"
+                    peer.write_bytes(PEER)
+
+                    result, checked = self.invoke(module, root, arguments, inspect=self.reject_inspection)
+
+                    self.assertEqual(1, result)
+                    self.assertTrue(os.path.lexists(target))
+                    after = target.lstat()
+                    self.assertEqual((before.st_ino, before.st_mode, before.st_nlink),
+                                     (after.st_ino, after.st_mode, after.st_nlink))
+                    self.assertEqual(PEER, peer.read_bytes())
+                    if kind == "dangling-symlink":
+                        self.assertFalse(foreign.exists())
+                    else:
+                        self.assertEqual(SENTINEL, foreign.read_bytes())
+                    if kind == "directory":
+                        self.assertEqual(SENTINEL, (target / "retained.txt").read_bytes())
+                    checked.assert_not_called()
+
+    def test_aliased_root_and_nondirectory_ancestors_are_finite_rejections(self):
+        for module, name, arguments in COMMANDS:
+            for kind in ("root-symlink", "build-file", "inventory-file"):
+                with self.subTest(command=name, kind=kind), tempfile.TemporaryDirectory() as directory:
+                    root = Path(directory) / "checkout"
+                    if kind == "root-symlink":
+                        foreign = Path(directory) / "foreign"
+                        (foreign / "build/inventory").mkdir(parents=True)
+                        target = foreign / "build/inventory" / name
+                        target.write_bytes(SENTINEL)
+                        root.symlink_to(foreign, target_is_directory=True)
+                    else:
+                        target = root / ("build" if kind == "build-file" else "build/inventory")
+                        target.parent.mkdir(parents=True)
+                        target.write_bytes(SENTINEL)
+
+                    result, checked = self.invoke(module, root, arguments, inspect=self.reject_inspection)
+
+                    self.assertEqual(1, result)
+                    self.assertTrue(target.is_file())
+                    self.assertEqual(SENTINEL, target.read_bytes())
+                    checked.assert_not_called()
+
+    def test_ordinary_stale_receipt_is_retired_before_failed_inspection(self):
+        for module, name, arguments in COMMANDS:
+            with self.subTest(command=name), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                target = root / "build/inventory" / name
+                target.parent.mkdir(parents=True)
+                target.write_bytes(b'{"status":"passed","source":"old"}\n')
+                peer = target.parent / "peer.txt"
+                peer.write_bytes(PEER)
+
+                def fail(*_):
+                    self.assertFalse(target.exists())
+                    raise ValueError("private input sentinel")
+
+                result, checked = self.invoke(module, root, arguments, inspect=fail)
+
+                self.assertEqual(1, result)
+                checked.assert_called_once()
+                self.assertFalse(target.exists())
+                self.assertEqual({"peer.txt"}, {path.name for path in target.parent.iterdir()})
+                self.assertEqual(PEER, peer.read_bytes())
+
+    def test_failed_inspection_does_not_create_missing_receipt_directories(self):
+        for module, name, arguments in COMMANDS:
+            with self.subTest(command=name), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                result, checked = self.invoke(module, root, arguments, inspect=self.reject_inspection)
+                self.assertEqual(1, result)
+                checked.assert_called_once()
+                self.assertEqual([], list(root.iterdir()))
+
+    def test_success_publishes_exact_json_with_private_mode_and_preserves_peers(self):
+        receipt = {"status": "passed", "source": {"tree": "b" * 40, "commit": "a" * 40}}
+        expected = (json.dumps(receipt, indent=2, sort_keys=True) + "\n").encode("utf-8")
+        for module, name, arguments in COMMANDS:
+            for previous in (False, True):
+                with self.subTest(command=name, previous=previous), tempfile.TemporaryDirectory() as directory:
+                    root = Path(directory)
+                    target = root / "build/inventory" / name
+                    if previous:
+                        target.parent.mkdir(parents=True)
+                        target.write_bytes(SENTINEL)
+                        (target.parent / "peer.txt").write_bytes(PEER)
+
+                    def inspect(*_):
+                        self.assertFalse(target.exists())
+                        return receipt
+
+                    result, checked = self.invoke(module, root, arguments, inspect=inspect)
+
+                    self.assertEqual(0, result)
+                    checked.assert_called_once()
+                    self.assertEqual(expected, target.read_bytes())
+                    self.assertEqual(0o600, stat.S_IMODE(target.stat().st_mode))
+                    self.assertEqual({name, "peer.txt"} if previous else {name},
+                                     {path.name for path in target.parent.iterdir()})
+                    if previous:
+                        self.assertEqual(PEER, (target.parent / "peer.txt").read_bytes())
+
+    def test_serialization_and_replace_failures_remove_only_the_temporary_file(self):
+        for module, name, arguments in COMMANDS:
+            for failure in ("serialization", "replace"):
+                with self.subTest(command=name, failure=failure), tempfile.TemporaryDirectory() as directory:
+                    root = Path(directory)
+                    inventory = root / "build/inventory"
+                    inventory.mkdir(parents=True)
+                    target = inventory / name
+                    target.write_bytes(SENTINEL)
+                    peer = inventory / "peer.txt"
+                    peer.write_bytes(PEER)
+                    receipt = {"status": "passed", "value": object()} if failure == "serialization" else {"status": "passed"}
+                    with patch.object(Path, "replace", side_effect=OSError("private input sentinel")) as replaced:
+                        result, checked = self.invoke(module, root, arguments, inspect=lambda *_: receipt)
+
+                    self.assertEqual(1, result)
+                    checked.assert_called_once()
+                    if failure == "serialization":
+                        replaced.assert_not_called()
+                    else:
+                        replaced.assert_called_once()
+                    self.assertFalse(target.exists())
+                    self.assertEqual(PEER, peer.read_bytes())
+                    self.assertEqual({"peer.txt"}, {path.name for path in inventory.iterdir()})
+
+    def test_destination_rechecked_after_inspection_before_publication(self):
+        for module, name, arguments in COMMANDS:
+            with self.subTest(command=name), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory) / "checkout"
+                root.mkdir()
+                foreign = Path(directory) / "foreign"
+                foreign.mkdir()
+                target = foreign / name
+                target.write_bytes(SENTINEL)
+                (foreign / "peer.txt").write_bytes(PEER)
+
+                def changed_destination(*_):
+                    (root / "build").mkdir()
+                    (root / "build/inventory").symlink_to(foreign, target_is_directory=True)
+                    return {"status": "passed"}
+
+                result, checked = self.invoke(module, root, arguments, inspect=changed_destination)
+
+                self.assertEqual(1, result)
+                checked.assert_called_once()
+                self.assertEqual(SENTINEL, target.read_bytes())
+                self.assertEqual(PEER, (foreign / "peer.txt").read_bytes())
+                self.assertEqual({name, "peer.txt"}, {path.name for path in foreign.iterdir()})
+
+    def test_environment_source_only_never_touches_an_aliased_receipt(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / "checkout"
+            source = root / environment.SOURCE_PATH
+            source.parent.mkdir(parents=True)
+            source.write_text(json.dumps(environment.EXPECTED), encoding="utf-8")
+            foreign = Path(directory) / "foreign"
+            (foreign / "inventory").mkdir(parents=True)
+            target = foreign / "inventory/environment-configuration.json"
+            target.write_bytes(SENTINEL)
+            (root / "build").symlink_to(foreign, target_is_directory=True)
+
+            result, checked = self.invoke(environment, root, ["--source-only"], inspect=self.reject_inspection)
+
+            self.assertEqual(0, result)
+            checked.assert_not_called()
+            self.assertEqual(SENTINEL, target.read_bytes())
+            self.assertTrue((root / "build").is_symlink())
+
 
 
 if __name__ == "__main__":
