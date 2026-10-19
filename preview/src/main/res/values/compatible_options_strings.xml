@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="options_status" type="id" />
+    <item name="options_rows" type="id" />
+    <item name="options_include_incompatible" type="id" />
+    <item name="options_include_unknown" type="id" />
+    <item name="options_inherited" type="id" />
+    <item name="options_previous" type="id" />
+    <item name="options_next" type="id" />
+    <item name="options_form_compare" type="id" />
+    <string name="options_open">Compare choices for this slot</string>
+    <string name="options_retry">Recalculate</string>
+    <string name="options_scope">Only recorded selections and entered workload values are checked. Free text remains outside these checks. Optional tiers must have resolved activation before comparison; this picker never enables a tier. Compatible means no new conflict compared with leaving this slot empty; it does not mean the draft is complete. Resource and cost evidence remain unavailable. These bundled examples are synthetic.</string>
+    <string name="options_slot">Slot: %1$s · role: %2$s · selection: %3$s</string>
+    <string name="options_evaluating">Checking this page. Choices remain unresolved until the current calculation finishes.</string>
+    <string name="options_unavailable">Choices are unresolved. Check the entered role, enabled state and settings, then recalculate. Every required catalog and rule input must be available; no partial result is shown.</string>
+    <string name="options_optional_unresolved">Choices are unresolved. Resolve unknown optional tier settings and disabled tiers that contain an enabled selection. Enable the proposed tier explicitly before comparing its choices. Save those edits, then recalculate; this picker never changes tier activation.</string>
+    <string name="options_enabled_required">Enable this proposed selection before comparing active choices.</string>
+    <string name="options_include_incompatible">Show incompatible choices</string>
+    <string name="options_include_unknown">Show choices with unknown compatibility</string>
+    <string name="options_inherited">Inspect existing draft findings with this slot empty</string>
+    <plurals name="options_catalog_count">
+        <item quantity="one">%d choice in this kind.</item>
+        <item quantity="other">%d choices in this kind.</item>
+    </plurals>
+    <string name="options_counts">Page %1$d of %2$d · %3$s This page — Compatible: %4$d · Incompatible: %5$d · Unknown: %6$d.</string>
+    <string name="options_status_with_binding">%1$s\n%2$s</string>
+    <string name="options_binding">Saved local revision %1$s. Catalog %2$s revision %3$s. Rules %4$s version %5$s.</string>
+    <string name="options_no_visible">No compatible choices on this page. Use the filters to inspect excluded and unknown choices, or change page.</string>
+    <string name="options_compatible">Compatible</string>
+    <string name="options_incompatible">Incompatible</string>
+    <string name="options_unknown">Unknown compatibility</string>
+    <string name="options_row">%1$s · %2$s</string>
+    <string name="options_rule">Inspect rule %1$s · %2$s</string>
+    <string name="options_reason_baseline">With the slot empty, this rule was: %1$s.</string>
+    <string name="options_finding">Rule %1$s\nOutcome: %2$s\nSeverity: %3$s\nCode: %4$s\n%5$s\nSuggested action: %6$s\nSelections: %7$s</string>
+    <string name="options_choose">Use %1$s · %2$s</string>
+    <string name="options_confirm">Confirm this local choice</string>
+    <string name="options_confirm_message">Use %1$s (%2$s) in kind %3$s, role %4$s? Existing settings and the current local store checks still apply. This choice does not establish that the whole draft is valid.</string>
+</resources>

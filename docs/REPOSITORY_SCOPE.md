@@ -112,6 +112,16 @@ delivery. The original website spelling/path remain history. The existing
 the placement supplies no settings change, corrected installed result,
 credential-context review, whole-issue completion or ledger amendment.
 
+[ADR 0013](decisions/0013-android-96-acceptance-record.md) separately proposes
+placing only #96's [07.02 compatible-options receiving record](delivery/android/work-packages/07.02.md)
+in Android after independent receiving review and normal reviewed delivery. It
+preserves the historical website destination, all four literal criteria/tasks,
+the actual data-consumer and catalog/UX decisions, and exact source/original
+execution identities. The selected private stored-draft comparison leaves frozen
+archive admission and all shared authorities intact. Product/device and release
+qualification remain separate; this placement changes no other record, and
+strict-ledger reconciliation follows actual implementation and record delivery.
+
 [ADR 0014](decisions/0014-android-98-acceptance-record.md) separately places only
 #98's [07.05 selection handoff record](delivery/android/work-packages/07.05.md)
 in Android after independent receiving review and normal reviewed document

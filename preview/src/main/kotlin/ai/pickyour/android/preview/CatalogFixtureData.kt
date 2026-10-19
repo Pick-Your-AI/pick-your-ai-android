@@ -12,7 +12,10 @@ internal enum class HelpCatalogIdentity { BUNDLED_V1, UNRECOGNIZED, UNAVAILABLE_
 internal class CatalogFixtureData private constructor(
     val catalog: PreviewCatalogBrowser?,
     val pricebook: RecordedPricebook?,
+    private val catalogInput: ByteArray?,
 ) {
+    /** Exact admitted browse input for a finite local candidate calculation, never a mutable view. */
+    fun catalogBytes(): ByteArray? = catalogInput?.copyOf()
     // This private container is created only by read(). The public browse-row constructor
     // cannot supply this projection; labels require the existing reader's exact original-byte hash.
     val helpIdentity: HelpCatalogIdentity = when (catalog?.hash) {
@@ -27,12 +30,13 @@ internal class CatalogFixtureData private constructor(
         private const val BUNDLED_CATALOG_SHA256 = "2e9120db823faef3e1e330a7d2e8067b3ab064328e2faed699d15cf41880fbf8"
 
         fun read(catalogBytes: () -> ByteArray, pricebookInput: () -> InputStream): CatalogFixtureData {
-            val catalog = try { PreviewCatalogBrowser.read(catalogBytes()) } catch (_: Exception) { null }
+            val captured = try { catalogBytes().copyOf() } catch (_: Exception) { null }
+            val catalog = try { captured?.let(PreviewCatalogBrowser::read) } catch (_: Exception) { null }
             val prices = if (catalog == null) null else try {
                 pricebookInput().use { RecordedPricebook.read(it) }
                     .let { (it as? RecordedPricebookResult.Parsed)?.pricebook }
             } catch (_: Exception) { null }
-            return CatalogFixtureData(catalog, prices)
+            return CatalogFixtureData(catalog, prices, captured.takeIf { catalog != null })
         }
     }
 }
