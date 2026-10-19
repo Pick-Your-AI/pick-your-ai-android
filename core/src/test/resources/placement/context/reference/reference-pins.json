@@ -1,0 +1,33 @@
+{
+  "reference_repository": "Pick-Your-AI/pick-your-ai-research",
+  "reference_commit": "449a29be1752a3c545709da466c7d53fc18fef73",
+  "binding_profile": "cd11-0.1",
+  "answer_profile": "cd1-0.1",
+  "scope": "Exact original research inputs; synthetic and not a neutral producer or execution receipt",
+  "files": [
+    {
+      "resource": "context-budget-binding.json",
+      "source_path": "tests/fixtures/context-budget-binding.json",
+      "git_blob": "659821843ecd9db3c9d85469cfa89877329da684",
+      "bytes": 647
+    },
+    {
+      "resource": "context-budget-answers.json",
+      "source_path": "tests/fixtures/context-budget-answers.json",
+      "git_blob": "3006ada1fe0945649296b3e3f9a5fec0aa240f0b",
+      "bytes": 734
+    },
+    {
+      "resource": "context-budget-binding.schema.json",
+      "source_path": "tests/fixtures/context-budget-binding.schema.json",
+      "git_blob": "5480495d59bf9c41c9108c7d13934359420a088e",
+      "bytes": 1912
+    },
+    {
+      "resource": "t0-answer-states.schema.json",
+      "source_path": "tests/fixtures/t0-answer-states.schema.json",
+      "git_blob": "91aab5e6bae86f3b7dfb8e504a65c02502c6defb",
+      "bytes": 1370
+    }
+  ]
+}
