@@ -125,8 +125,13 @@ class WorkloadSection(context: Context, initial: PreviewWorkloadInputs,
         editors.forEach { it.isEnabled = value }; classification.isEnabled = value
         updateState()
     }
-    private fun classificationLabel(value: DraftDataClassification?): String = value?.encoded
-        ?: context.getString(R.string.workload_unanswered)
+    private fun classificationLabel(value: DraftDataClassification?): String = context.getString(when (value) {
+        null -> R.string.workload_unanswered
+        DraftDataClassification.PUBLIC -> R.string.workload_classification_public
+        DraftDataClassification.INTERNAL -> R.string.workload_classification_internal
+        DraftDataClassification.CONFIDENTIAL -> R.string.workload_classification_confidential
+        DraftDataClassification.RESTRICTED -> R.string.workload_classification_restricted
+    })
     private fun updateState() {
         classification.text = context.getString(R.string.workload_classification_value, classificationLabel(inputs.classification))
         state.setText(when {
