@@ -3,8 +3,13 @@
 The synthetic guest preview has **Review diagnostics**, followed by a separate
 **Choose an app to share this report** action. This contributes to
 [Android #33](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/33).
-Support delivery is explicitly unavailable: this preview advertises no monitored
-inbox, sends no support request itself and promises no receipt or response.
+Direct support submission is explicitly unavailable: this diagnostic component
+sends no support request and promises no chooser-recipient receipt or response.
+The separate [Help and public-report workflow](SUPPORT_HELP.md) offers reviewed
+browser navigation; its actual public intake and in-session triage are recorded
+in [17.04](delivery/android/work-packages/17.04.md). The diagnostic report's
+`support_submission=unavailable` field still describes the app's direct-submission
+boundary accurately.
 
 ## Exact disclosure boundary
 
@@ -76,11 +81,16 @@ JDK 21, SDK 35, locked dependencies and strict checksum verification:
 These are bounded local/SDK/JVM checks. They do not establish installed
 Sharesheet behavior, receipt by a support destination, network traffic from
 another app, manual TalkBack traversal, physical-device privacy, a release build
-or store acceptance. An authorized synthetic support submission with a verified
-recipient/triage receipt remains outstanding. The existing canonical #33
-acceptance path remains
-`docs/delivery/android/work-packages/17.04.md` in `Pick-Your-AI/pickyour.ai`;
-this engineering note does not relocate it or close the issue.
+or store acceptance. At the original diagnostic delivery, actual support receipt
+and triage were still outstanding. The later [17.04 receiving record](delivery/android/work-packages/17.04.md)
+separately records the accepted Help source, actual browser-created requests and
+independent in-session dispositions; those observations do not prove chooser
+recipient delivery. The historical intended path is
+`docs/delivery/android/work-packages/17.04.md` in `Pick-Your-AI/pickyour.ai`.
+[ADR 0009](decisions/0009-android-33-acceptance-record.md) proposes the same relative
+path in Android only after its independent receiving review and normal merge.
+The record retains all three criteria and required roles; this note does not
+change the criterion ledger or close the issue.
 
 Primary references checked 2026-10-18:
 

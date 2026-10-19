@@ -21,7 +21,6 @@ import android.view.View
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
-import android.widget.ScrollView
 import android.widget.TextView
 import ai.pickyour.core.contracts.FrozenDocument
 import ai.pickyour.core.contracts.FrozenSchemaValidator
@@ -357,9 +356,17 @@ class PreviewActivity : Activity() {
             )
         }, { !destroyed && diagnosticsResumed })
         diagnostics.attach(content)
-        help = LocalHelp(this, { !destroyed && diagnosticsResumed }, diagnostics::show)
+        help = LocalHelp(this, { !destroyed && diagnosticsResumed }, diagnostics::show,
+            captureCatalogIdentity = {
+                if (!retry.isEnabled) HelpCatalogIdentity.UNAVAILABLE_OR_LOADING
+                else catalogFixture?.helpIdentity ?: HelpCatalogIdentity.UNAVAILABLE_OR_LOADING
+            })
         help.attach(content)
-        setContentView(ScrollView(this).apply { addView(content) })
+        setContentView(CatalogViewportScrollView(this).apply {
+            onUserNavigation = catalog::cancelViewportRestore
+            addView(content)
+            catalog.attachViewport(this)
+        })
         content.setOnApplyWindowInsetsListener { view, insets ->
             val padding = (24 * resources.displayMetrics.density).toInt()
             view.setPadding(padding + insets.systemWindowInsetLeft, padding + insets.systemWindowInsetTop,

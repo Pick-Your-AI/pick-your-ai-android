@@ -1,5 +1,104 @@
 # Criterion evidence ledger
 
+## Proposed version 9: exact import-integrity criterion 21.2
+
+This contribution extends the accepted canonical version-8 ledger. Version 9
+records **25 reviewed design criteria, three reviewed implementation criteria and
+one reviewed import-integrity criterion complete, with 412 criteria incomplete**.
+The one new completed criterion is **21.2**:
+
+> The consumer records an exact upstream revision/hash and reproduces import integrity checks.
+
+The source-defined receipt belongs to that criterion, not to a whole issue.
+Criteria 21.1 and 21.3, all three #33 criteria and every other criterion retain
+their exact prior objects. Issue #21 remains open. The accepted design and model
+classifications retain their separate fixed receipts; no generic approval flag
+or receipt copied from another issue can grant this outcome.
+
+### Actual reviewed and delivered import evidence
+
+The [technical import record](../CONTRACT_IMPORT_EVIDENCE.md),
+[complete 45-entry mapping](../evidence/frozen-import-21.2-20261018.json),
+[consumer adoption boundary](../CONTRACT_ADOPTION.md) and
+[future revision handoff](../CONTRACT_REVISION_HANDOFF.md) were delivered unchanged
+in [#430](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/430), at signed
+`0765e3657a7d747b8f6f8f9a07e6117d3ff806f1`, tree
+`4be11a32c5770e99d655a278d86511d7cfbf8d15`, sole preceding accepted-main parent
+`cbe6367175bd264463d397dc8a8705c84980ad8d`. All four exact document blobs,
+lengths and SHA-256 values are bound by the receipt and checked by the ledger suite.
+
+The accepted upstream **commit** is
+`9769fcd9ea380b1211669b2753181c7782444178`; its frozen `contracts/v1` **tree** is
+`b1c4eaa4037f2a1e02103849064a947e758a2b40`. The source pins distinguish those
+object types. All 43 original package files and two metadata files retain the
+complete path/mode/blob/byte/SHA mapping. The deliberate Research `ADOPTION.md`
+exclusion and two archived prompt-name mappings remain explicit. The ledger's
+byte comparison does not execute the imported generators or accept a successor.
+
+The actual [criterion-specific technical receiving review5565527306](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/430#pullrequestreview-5565527306)
+is a disclosed in-session coordinating/shared-schema decision under the user's
+project delegation, anchored to `da3b095b51de209dba943f1bc0c478f9081de550` and
+tree `ceed506f4a03873486a02f185ddb3eb7efca2050`. Its actual COMMENT state, role,
+source and time are fixed; it is not a reply from an absent assignee or a separate
+account's formal approval. The [existing-writer handoff6257979438](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/460#issuecomment-6257979438)
+retains the same narrow criterion and the earlier #48 lane.
+
+The original hash-first reproduction remains at `40bd3d99`, run39166674498 /
+job117790951872: 21 reference tests in 0.672s and four named import-tamper tests in
+0.182s, all passing. The original log's 39,592 bytes and SHA-256 remain pinned.
+Each negative invokes the real runner in a temporary copy and requires rejection
+before the original reference suite executes. These historical outcomes do not
+become a new run of the proposed ledger.
+
+The [complete final default receipt6257757921](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/430#issuecomment-6257757921)
+keeps both actual source-bound observations:
+
+| Actual main source | Recorded configured outcomes |
+| --- | --- |
+| `0765e365`, tree `4be11a32` | Core 3,994 cases in 77 suites and scanner succeeded. Overall Core/Preview run and native job were **cancelled**; there are zero completed native XML reports. |
+| `a6db6862`, tree `84c8f62c`, sole 0765 parent | A separately accepted four-line contributor-document change preserves all import source. Its actual default completed Core 3,994/77, simulated Android 300/25 and scanner successfully. |
+
+Run/job/source identities, the six original artifact identities and cancellation
+limits are fixed separately. No cancelled result is promoted to success, no
+simulated case becomes installed-device evidence, and the ledger itself runs no
+product, scanner, generator, receiver or service.
+
+### Exact prior-ledger preservation and review boundary
+
+Only the one completion/attribution field set and its criterion-local receipt,
+one new `pr-430` evidence entry, the schema number and current summary change.
+The validator reverses exactly those fields and proves the complete prior v8
+ledger's canonical JSON digest, including all other 440 criterion objects,
+all 128 other issue objects, all 24 earlier evidence entries and historical
+metadata. Its original v7/v6 reconstruction and ordinary-coordinate guards remain.
+The fixed inputs match the [signed v8 delivery554e1984](https://github.com/Pick-Your-AI/pick-your-ai-android/blob/554e1984e8923c5f098887a01f64be9e87ce3961/docs/delivery/criterion-evidence.json).
+Unknown finite input metadata retains the earlier CLI behavior and supplies no
+completion authority. Validation and reconstruction do not mutate the input.
+
+The canonical 03.01 website coordinate is unchanged. This amendment supplies no
+21.1/21.3 API/storage/decimal completion, whole #21/#32 acceptance, #33 delivery,
+#48 installed qualification, #49 successor adoption, or operating/release outcome.
+The checker changes no issue, native relationship, Project field or owner. The
+amendment requires source review and ordinary delivery before its separate live
+criterion reconciliation. It preserves the existing canonical ledger paths and
+history; it claims no ownership transfer or additional main reservation.
+
+Use `python scripts/check_delivery_ledger.py` and
+`python -m unittest discover -s scripts/tests -p 'test_delivery_ledger.py' -v`.
+The current CLI reports the one import criterion separately and says when no
+fresh all-state source comparison occurred. The regression suite attempts to
+transplant this receipt into each of the other 440 criteria, preserves both
+neighbours and pending support, and rejects altered provenance, reviews,
+artifacts, scalar types, cancellation outcomes, placement and historical fields.
+Any future support-receipt class requires its own actual delivery/default and
+receiving evidence; it is not enabled by this import-only change.
+
+## Retained version 8 and earlier descriptions
+
+The complete previous text follows unchanged. Its version counts and current-state
+wording describe those historical versions; the proposed version-9 rules above
+change only the explicitly reviewed import criterion.
+
 ## Current version 8: integrated foundation decision
 
 Version 8 records **25 reviewed design criteria and three reviewed implementation

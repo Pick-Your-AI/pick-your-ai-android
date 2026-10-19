@@ -26,21 +26,29 @@ Under delegated project authority, the current implementation session accepts
 CompleteDotTech maintainer triage and category verification for these two public
 forms. This is a bounded in-session responsibility, with no invented ongoing
 support rota, incident commitment or SLA. Public form publication, actual receipt
-and controlled triage still need their own observations. The existing A13/G4
+and controlled triage have separate source-bound observations in the
+[17.04 receiving record](delivery/android/work-packages/17.04.md), including the
+actual browser submissions and independent in-session dispositions. The existing A13/G4
 operating acceptance in [ACCEPTANCE_BASELINE.md](ACCEPTANCE_BASELINE.md) is not
 supplied by this source change.
 
-The canonical #33 receiving record remains
+The original intended #33 receiving record is
 `Pick-Your-AI/pickyour.ai/docs/delivery/android/work-packages/17.04.md`.
-The narrow placement ADRs listed in [REPOSITORY_SCOPE.md](REPOSITORY_SCOPE.md)
-do not move it. This engineering note changes no acceptance path, criterion
-ledger, native issue relationship or completion state.
+[ADR 0009](decisions/0009-android-33-acceptance-record.md) explicitly proposes the
+same relative path in Android, effective only through its independent receiving
+review and normal reviewed merge. The [17.04 record](delivery/android/work-packages/17.04.md)
+preserves that historical destination and the original Help/diagnostic evidence.
+Earlier narrow placement ADRs did not move this record. This engineering-note
+reconciliation changes no criterion ledger, native relationship or completion state.
 
 ## Exact navigation and privacy contract
 
 [`LocalHelp`](../preview/src/main/kotlin/ai/pickyour/android/preview/LocalHelp.kt)
 accepts only an Activity, a current-owner predicate, an existing diagnostic-review
-callback and a browser launcher. It has no draft/store, file, log, network,
+callback, a browser launcher and a closed catalog-identity callback. The later
+[#57 identity contribution](LOCAL_PREVIEW_IDENTITY.md) renders only fixed public
+labels from the current loaded fixture state; no raw catalog ID, hash or private
+metadata enters Help. It has no draft/store, file, log, network,
 clipboard, account or arbitrary URL input. Its three destination enum values are
 the source-owned Android issues list and two exact issue-form selectors. Neither
 title, body, recipient nor diagnostic report is inserted into a link.
@@ -61,8 +69,10 @@ The browser controls any later navigation, sign-in and submission; this local
 policy makes no redirect-confinement or receipt claim.
 
 The app's **Review diagnostics** help action dismisses help and invokes the
-existing `LocalDiagnostics.show` method. The four original #307 source, strings,
-test and documentation files are preserved byte-for-byte. The report still says
+existing `LocalDiagnostics.show` method. At the original Help delivery, the four
+original #307 source, strings, test and documentation files were preserved
+byte-for-byte. This later receiving reconciliation changes documentation only.
+The report still says
 `support_submission=unavailable`: the preview does not submit a support request.
 Manually posting reviewed text in a separate public form is a distinct user
 action, and arbitrary text entered there is not redacted by this app.
