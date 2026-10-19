@@ -119,4 +119,17 @@ Copy this revision’s title and sample selection into the editor? This replaces
     <string name="planning_cost_step">Review spending limits, price coverage, and the action to take when a limit is reached.</string>
     <string name="planning_cost_evidence">A recorded policy does not establish price coverage or enforce a spending limit.</string>
     <string name="planning_browse_cost">Browse cost policies</string>
+    <string name="context_policy_editor_guidance">Enter the required token counts and any optional choices for this context policy.</string>
+    <string name="context_policy_requested">Requested context tokens</string>
+    <string name="context_policy_reserved">Reserved output tokens</string>
+    <string name="context_policy_truncation">Truncation strategy</string>
+    <string name="context_policy_precision">KV cache precision</string>
+    <string name="context_policy_not_supplied">Not supplied</string>
+    <string name="context_policy_integer_rule">%1$s · integer ≥ %2$s tokens</string>
+    <string name="context_policy_choice_rule">%1$s · optional; Not supplied removes this setting.</string>
+    <string name="context_policy_required">Enter the required whole number.</string>
+    <string name="context_policy_integer">Enter one whole number without grouping separators.</string>
+    <string name="context_policy_minimum">Enter a whole number of at least %1$s.</string>
+    <string name="context_policy_enum">Choose one of the listed values or Not supplied.</string>
+    <string name="context_policy_too_long">This input is too long for the editor.</string>
 </resources>

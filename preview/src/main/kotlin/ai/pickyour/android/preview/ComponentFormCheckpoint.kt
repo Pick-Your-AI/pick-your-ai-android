@@ -92,6 +92,7 @@ internal sealed interface ComponentFormRecovery {
     data object Unavailable : ComponentFormRecovery
     data object UriUserinfoExcluded : ComponentFormRecovery
     class Pending(val form: ComponentFormCheckpoint) : ComponentFormRecovery
+    class TypedContextPending(val form: ContextPolicyFormCheckpoint) : ComponentFormRecovery
 
     fun save(outState: Bundle) {
         outState.remove(KEY)
@@ -100,6 +101,7 @@ internal sealed interface ComponentFormRecovery {
             Unavailable -> outState.putBundle(KEY, unavailable())
             UriUserinfoExcluded -> outState.putBundle(KEY, unavailable().apply { putString("reason", URI_USERINFO) })
             is Pending -> outState.putBundle(KEY, form.bundle() ?: unavailable())
+            is TypedContextPending -> outState.putBundle(KEY, form.bundle() ?: unavailable())
         }
     }
 
@@ -117,7 +119,9 @@ internal sealed interface ComponentFormRecovery {
                 else if (value.get("unavailable") == true) {
                     if (value.get("version") == 1 && value.get("reason") == URI_USERINFO) UriUserinfoExcluded else Unavailable
                 }
-                else ComponentFormCheckpoint.read(value)?.let(::Pending) ?: Unavailable
+                else if (value.get("version") == ContextPolicyFormCheckpoint.VERSION) {
+                    ContextPolicyFormCheckpoint.read(value)?.let(::TypedContextPending) ?: Unavailable
+                } else ComponentFormCheckpoint.read(value)?.let(::Pending) ?: Unavailable
             }
         } catch (_: RuntimeException) {
             // No saved input is logged and malformed UI state never supplies a replacement identity.
