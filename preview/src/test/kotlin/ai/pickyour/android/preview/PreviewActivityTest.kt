@@ -68,7 +68,7 @@ class PreviewActivityTest {
     private fun await(condition: () -> Boolean) {
         val deadline = System.nanoTime() + 15_000_000_000L
         while (System.nanoTime() < deadline) {
-            shadowOf(Looper.getMainLooper()).idle()
+            AutosaveUiClock.idle()
             if (condition()) return
             Thread.sleep(10)
         }
@@ -128,11 +128,11 @@ class PreviewActivityTest {
 
     /** Settle the actual serial worker before asserting that a retired callback did no work. */
     private fun finishActivityWork() {
-        shadowOf(Looper.getMainLooper()).idle()
+        AutosaveUiClock.idle()
         val field = PreviewActivity::class.java.getDeclaredField("worker").apply { isAccessible = true }
         val worker = field.get(activity) as java.util.concurrent.ExecutorService
         worker.submit {}.get(15, java.util.concurrent.TimeUnit.SECONDS)
-        shadowOf(Looper.getMainLooper()).idle()
+        AutosaveUiClock.idle()
     }
 
     private fun sourceDetails(vararg sources: String?): PreviewCatalogDetails {
@@ -223,6 +223,238 @@ class PreviewActivityTest {
     private fun priceJson() = activity.assets.open("pricebook.json").bufferedReader(Charsets.UTF_8).use { org.json.JSONObject(it.readText()) }
     private fun recordedPrices(json: org.json.JSONObject) =
         (RecordedPricebook.read(json.toString().byteInputStream()) as RecordedPricebookResult.Parsed).pricebook
+
+    @Test fun systemBarInsetsStayOnViewportWhenContentScrolls() {
+        val viewport = views().filterIsInstance<android.widget.ScrollView>().single()
+        val content = viewport.getChildAt(0)
+        val originalPadding = listOf(content.paddingLeft, content.paddingTop, content.paddingRight, content.paddingBottom)
+        viewport.dispatchApplyWindowInsets(windowInsets(android.graphics.Rect(8, 24, 12, 48)))
+        viewport.measure(View.MeasureSpec.makeMeasureSpec(720, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(1280, View.MeasureSpec.EXACTLY))
+        viewport.layout(0, 0, 720, 1280)
+        viewport.scrollTo(0, 80)
+        assertEquals(80, viewport.scrollY)
+        assertTrue(viewport.clipToPadding)
+        assertEquals(listOf(8, 24, 12, 48), listOf(viewport.paddingLeft, viewport.paddingTop, viewport.paddingRight, viewport.paddingBottom))
+        assertEquals(originalPadding, listOf(content.paddingLeft, content.paddingTop, content.paddingRight, content.paddingBottom))
+    }
+
+    @Test fun repeatedAndRotatedSystemInsetsReplaceViewportPadding() {
+        val viewport = views().filterIsInstance<android.widget.ScrollView>().single()
+        val content = viewport.getChildAt(0)
+        val originalPadding = listOf(content.paddingLeft, content.paddingTop, content.paddingRight, content.paddingBottom)
+        repeat(2) { viewport.dispatchApplyWindowInsets(windowInsets(android.graphics.Rect(0, 24, 0, 48))) }
+        assertEquals(listOf(0, 24, 0, 48), listOf(viewport.paddingLeft, viewport.paddingTop, viewport.paddingRight, viewport.paddingBottom))
+        viewport.layoutDirection = View.LAYOUT_DIRECTION_RTL
+        viewport.dispatchApplyWindowInsets(windowInsets(android.graphics.Rect(16, 24, 48, 0)))
+        assertEquals(listOf(16, 24, 48, 0), listOf(viewport.paddingLeft, viewport.paddingTop, viewport.paddingRight, viewport.paddingBottom))
+        assertEquals(originalPadding, listOf(content.paddingLeft, content.paddingTop, content.paddingRight, content.paddingBottom))
+    }
+
+    @Test fun clearedSystemInsetsRemoveOnlyViewportPadding() {
+        val viewport = views().filterIsInstance<android.widget.ScrollView>().single()
+        val content = viewport.getChildAt(0)
+        val originalPadding = listOf(content.paddingLeft, content.paddingTop, content.paddingRight, content.paddingBottom)
+        viewport.dispatchApplyWindowInsets(windowInsets(android.graphics.Rect(8, 24, 12, 48)))
+        viewport.dispatchApplyWindowInsets(windowInsets(android.graphics.Rect()))
+        assertEquals(listOf(0, 0, 0, 0), listOf(viewport.paddingLeft, viewport.paddingTop, viewport.paddingRight, viewport.paddingBottom))
+        assertEquals(originalPadding, listOf(content.paddingLeft, content.paddingTop, content.paddingRight, content.paddingBottom))
+    }
+
+    // The pinned API 28 runtime exposes this fixture constructor; compileSdk 35 hides it.
+    private fun windowInsets(insets: android.graphics.Rect): android.view.WindowInsets =
+        android.view.WindowInsets::class.java
+            .getConstructor(android.graphics.Rect::class.java).newInstance(insets)
+
+    @Test fun lightPreviewThemeSelectsDarkSystemBarIcons() {
+        val attributes = activity.theme.obtainStyledAttributes(intArrayOf(
+            android.R.attr.windowLightStatusBar, android.R.attr.windowLightNavigationBar,
+            android.R.attr.colorBackground, android.R.attr.statusBarColor, android.R.attr.navigationBarColor))
+        try {
+            assertTrue(attributes.getBoolean(0, false))
+            assertTrue(attributes.getBoolean(1, false))
+            assertEquals(attributes.getColor(2, 0), attributes.getColor(3, 1))
+            assertEquals(attributes.getColor(2, 0), attributes.getColor(4, 2))
+        } finally { attributes.recycle() }
+    }
+
+    @Test fun emptyLibraryDialogKeepsDarkSystemIconsAndPendingForm() {
+        controller.visible()
+        val originalAppearance = activity.window.decorView.systemUiVisibility
+        assertTrue(originalAppearance and View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR != 0)
+        save()
+        deleteConfirmation(PreviewDraftId("guest-draft")).getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+        await { hasText(R.string.library_deleted_editor) && button(R.string.library_open).isEnabled }
+        dialog().getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+        finishActivityWork()
+        assertTrue(libraryIds().isEmpty())
+        val title = field(R.string.draft_title)
+        title.setText("pending empty library review")
+        title.setSelection(7)
+        val previous = ShadowAlertDialog.getLatestAlertDialog()
+        button(R.string.library_open).performClick()
+        await { ShadowAlertDialog.getLatestAlertDialog()?.let { it !== previous && it.isShowing } == true }
+        val empty = dialog()
+        assertEquals(activity.getString(R.string.library_empty), shadowOf(empty).message.toString())
+        assertDarkDialogSystemBarIcons(empty, originalAppearance)
+        empty.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+        finishActivityWork()
+        assertFalse(empty.isShowing)
+        assertEquals(originalAppearance, activity.window.decorView.systemUiVisibility)
+        assertEquals("pending empty library review", title.text.toString())
+        assertEquals(7, title.selectionStart)
+        assertEquals(7, title.selectionEnd)
+        assertTrue(libraryIds().isEmpty())
+        assertTrue(hasText(R.string.library_deleted_editor))
+        assertFalse(button(R.string.save_draft).isEnabled)
+    }
+
+    @Test fun deletionDialogKeepsDarkSystemIconsAcrossCancelReopenAndConfirmation() {
+        controller.visible()
+        val originalAppearance = activity.window.decorView.systemUiVisibility
+        assertTrue(originalAppearance and View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR != 0)
+        field(R.string.draft_title).setText("saved modal baseline")
+        save()
+        val saved = loaded()
+        val title = field(R.string.draft_title)
+        AutosaveUiClock.pause()
+        val pendingAt = android.os.SystemClock.uptimeMillis()
+        title.setText("pending modal edit")
+        title.setSelection(5)
+        val first = deleteConfirmation(PreviewDraftId("guest-draft"))
+        assertDarkDialogSystemBarIcons(first, originalAppearance)
+        first.getButton(AlertDialog.BUTTON_NEGATIVE).performClick()
+        finishActivityWork()
+        assertFalse(first.isShowing)
+        assertEquals(originalAppearance, activity.window.decorView.systemUiVisibility)
+        assertEquals(saved.baselineIdentity, loaded().baselineIdentity)
+        assertEquals("pending modal edit", title.text.toString())
+        assertEquals(5, title.selectionStart)
+        assertEquals(5, title.selectionEnd)
+
+        val second = deleteConfirmation(PreviewDraftId("guest-draft"))
+        assertNotSame(first, second)
+        assertDarkDialogSystemBarIcons(second, originalAppearance)
+        second.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+        await { hasText(R.string.library_deleted_editor) && button(R.string.library_open).isEnabled }
+        val result = dialog()
+        assertEquals(activity.getString(R.string.library_deleted), shadowOf(result).message.toString())
+        assertDarkDialogSystemBarIcons(result, originalAppearance)
+        result.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+        finishActivityWork()
+        assertFalse(result.isShowing)
+        assertEquals(originalAppearance, activity.window.decorView.systemUiVisibility)
+        assertEquals("pending modal edit", title.text.toString())
+        assertTrue(libraryIds().isEmpty())
+        assertFalse(button(R.string.save_draft).isEnabled)
+        assertTrue(android.os.SystemClock.uptimeMillis() - pendingAt < 750L)
+    }
+
+    @Test fun activityFocusChangesPreserveDarkModalSystemBarsAndPendingForm() {
+        val editor = field(R.string.draft_title)
+        editor.setText("saved focus baseline")
+        save()
+        val saved = loaded().baselineIdentity
+        AutosaveUiClock.pause()
+        val pendingAt = android.os.SystemClock.uptimeMillis()
+        editor.setText("pending focus edit")
+        editor.setSelection(4)
+        val decor = activity.window.decorView
+        val appearance = decor.systemUiVisibility
+        val navigation = View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
+        assertEquals(navigation, appearance and navigation)
+        val confirmation = deleteConfirmation(PreviewDraftId("guest-draft"))
+
+        // Robolectric does not dispatch the real WindowManager focus handoff.
+        // Exercise the actual Activity callback; installed pixels remain a separate gate.
+        activity.onWindowFocusChanged(false)
+        assertDarkDialogSystemBarIcons(confirmation, appearance)
+        assertEquals("pending focus edit", editor.text.toString())
+        assertEquals(4, editor.selectionStart)
+        assertEquals(4, editor.selectionEnd)
+        assertEquals(saved, loaded().baselineIdentity)
+
+        confirmation.getButton(AlertDialog.BUTTON_NEGATIVE).performClick()
+        finishActivityWork()
+        activity.onWindowFocusChanged(true)
+        assertFalse(confirmation.isShowing)
+        assertEquals(appearance, decor.systemUiVisibility)
+        assertEquals("pending focus edit", editor.text.toString())
+        assertEquals(saved, loaded().baselineIdentity)
+        assertTrue(android.os.SystemClock.uptimeMillis() - pendingAt < 750L)
+    }
+
+    @Test fun repeatedFocusChangesPreserveCurrentSystemBarAppearance() {
+        val decor = activity.window.decorView
+        val navigation = View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
+        val original = decor.systemUiVisibility
+        assertEquals(navigation, original and navigation)
+        activity.onWindowFocusChanged(false)
+        assertEquals(original, decor.systemUiVisibility)
+        activity.onWindowFocusChanged(false)
+        assertEquals(original, decor.systemUiVisibility)
+
+        // An unrelated change while unfocused must not be replaced by a stale full bitfield.
+        val unrelated = View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+        decor.systemUiVisibility = decor.systemUiVisibility or unrelated
+        activity.onWindowFocusChanged(true)
+        assertEquals(original or unrelated, decor.systemUiVisibility)
+        activity.onWindowFocusChanged(true)
+        assertEquals(original or unrelated, decor.systemUiVisibility)
+
+        // A window that already chose light icons must not be forced back to dark icons.
+        decor.systemUiVisibility = decor.systemUiVisibility and navigation.inv()
+        val alreadyLight = decor.systemUiVisibility
+        activity.onWindowFocusChanged(false)
+        activity.onWindowFocusChanged(false)
+        activity.onWindowFocusChanged(true)
+        assertEquals(alreadyLight, decor.systemUiVisibility)
+    }
+
+    @Test fun retiredWindowFocusCallbackLeavesCurrentAppearanceAfterRecreation() {
+        val navigation = View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
+        val retired = activity
+        val oldDecor = retired.window.decorView
+        val original = oldDecor.systemUiVisibility
+        AutosaveUiClock.pause()
+        val pendingAt = android.os.SystemClock.uptimeMillis()
+        field(R.string.draft_title).setText("pending across focused windows")
+        retired.onWindowFocusChanged(false)
+        assertEquals(original, oldDecor.systemUiVisibility)
+
+        recreate()
+        await { button(R.string.save_draft).isEnabled }
+        val currentAppearance = activity.window.decorView.systemUiVisibility
+        assertEquals(navigation, currentAppearance and navigation)
+        retired.onWindowFocusChanged(true)
+        assertEquals(original, oldDecor.systemUiVisibility)
+        assertEquals(currentAppearance, activity.window.decorView.systemUiVisibility)
+        assertEquals("pending across focused windows", field(R.string.draft_title).text.toString())
+        assertTrue(android.os.SystemClock.uptimeMillis() - pendingAt < 750L)
+    }
+
+    private fun assertDarkDialogSystemBarIcons(dialog: AlertDialog, activityAppearance: Int) {
+        assertTrue(dialog.isShowing)
+        val window = requireNotNull(dialog.window)
+        assertFalse(window.attributes.flags and android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND != 0)
+        assertFalse(window.attributes.flags and android.view.WindowManager.LayoutParams.FLAG_BLUR_BEHIND != 0)
+        val darkForegrounds = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
+        assertEquals("The undimmed light backing requires dark status and navigation icons", darkForegrounds,
+            window.decorView.systemUiVisibility and darkForegrounds)
+        assertEquals(darkForegrounds, activityAppearance and darkForegrounds)
+        assertEquals(activityAppearance, activity.window.decorView.systemUiVisibility)
+        val attributes = dialog.context.theme.obtainStyledAttributes(intArrayOf(
+            android.R.attr.windowLightNavigationBar, android.R.attr.windowLightStatusBar,
+            android.R.attr.windowIsFloating, android.R.attr.backgroundDimEnabled,
+            android.R.attr.backgroundDimAmount))
+        try {
+            assertTrue(attributes.getBoolean(0, false))
+            assertTrue(attributes.getBoolean(1, false))
+            assertTrue(attributes.getBoolean(2, false))
+            assertFalse(attributes.getBoolean(3, true))
+            assertEquals(0.0f, attributes.getFloat(4, -1.0f), 0.0f)
+        } finally { attributes.recycle() }
+    }
 
     @Test fun acknowledgedFieldsAndExplicitEmptySurviveRecreation() {
         field(R.string.draft_title).setText("saved title")

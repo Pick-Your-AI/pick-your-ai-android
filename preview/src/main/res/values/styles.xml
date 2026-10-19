@@ -1,0 +1,6 @@
+<resources>
+    <style name="PreviewTheme" parent="android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">?android:attr/colorBackground</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+</resources>

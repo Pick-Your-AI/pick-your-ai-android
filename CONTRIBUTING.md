@@ -33,4 +33,7 @@ Keep local build, simulator/emulator, physical device, store and production resu
 
 For preview/toolchain changes, also run the opt-in unsigned Android build and lint
 commands in [ANDROID_PREVIEW.md](docs/ANDROID_PREVIEW.md). Keep SDK/signing material
-out of source; the preview creates no signing key and proves no installation.
+out of source. The ordinary preview build remains unsigned. The separately bounded
+[installed-emulator CI lane](docs/EMULATOR_SMOKE.md) creates a disposable test key
+outside source and installs only in its own fresh AVD; its observed receipt is
+distinct from simulated tests, physical-device acceptance and release signing.
