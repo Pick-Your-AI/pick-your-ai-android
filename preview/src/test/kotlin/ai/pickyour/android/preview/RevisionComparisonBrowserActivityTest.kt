@@ -3,6 +3,7 @@ package ai.pickyour.android.preview
 import android.app.AlertDialog
 import android.os.Bundle
 import android.os.Looper
+import android.os.SystemClock
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
@@ -64,7 +65,7 @@ class RevisionComparisonBrowserActivityTest {
         .filterIsInstance<TextView>().filterNot { it is Button }.map { it.text.toString() }
     private fun controls(window: AlertDialog = dialog()) = views(window.window!!.decorView).filterIsInstance<Button>()
         .filter { it.visibility == View.VISIBLE && it.text.isNotBlank() }
-    private fun idle() = shadowOf(Looper.getMainLooper()).idle()
+    private fun idle() = AutosaveUiClock.idle()
     private fun click(label: Int, window: AlertDialog = dialog()) {
         button(label, window.window!!.decorView).performClick()
         idle()
@@ -160,6 +161,9 @@ class RevisionComparisonBrowserActivityTest {
     @Test fun actualSavedComparisonPreservesPendingInputsAndDurableBaseline() {
         prepareSavedHistory()
         val baseline = loaded().baselineIdentity
+        // Dialog frames must not advance this read-only case beyond the autosave deadline.
+        AutosaveUiClock.pause()
+        val pendingSince = SystemClock.uptimeMillis()
         field(R.string.draft_title).setText("pending title")
         field(R.string.context_objective).setText("pending objective")
         field(R.string.context_context).setText("")
@@ -179,6 +183,7 @@ class RevisionComparisonBrowserActivityTest {
         assertState(before)
         assertEquals(baseline, loaded().baselineIdentity)
         assertNull(shadowOf(activity).nextStartedActivity)
+        assertTrue("Read-only actions stay before autosave", SystemClock.uptimeMillis() in pendingSince until pendingSince + 750)
     }
 
     @Test fun everyChangedFieldAfterTheOldHundredRowLimitIsReachable() {
