@@ -41,6 +41,11 @@ including a direct accessibility action, cancels a pending restoration before
 opening details. Opening and closing that dialog keeps the existing viewport in
 place.
 
+An accepted T6 planning link also cancels the old anchor before changing the
+catalog kind and moving focus to the kind control. This explicit navigation takes
+precedence even if the old row still appears in the new filter. An unknown kind
+request changes neither the browse state nor a valid pending restoration.
+
 Changed snapshot bytes, a missing row, a different version or unsupported saved
 state cannot restore the old anchor. Existing catalog behavior still resets the
 page and identifies a changed snapshot to the user. Invalid browse state discards
@@ -69,7 +74,7 @@ callback and cost presentation gates.
 
 | Report | Required coverage |
 | --- | --- |
-| `CatalogViewportTest` (nine cases) | Same row and offset after upstream height changes; consumption after one draw; repeated recreation during loading; changed snapshot, missing row, wrong version and unsupported format; newer touch, key, wheel, accessibility or explicit navigation; retired owner and snapshot replacement before draw; callback removal after observer transfer during window attachment; direct/accessibility detail action cancellation; no off-catalog anchor; resized geometry and extreme offsets. |
+| `CatalogViewportTest` (eleven cases) | Same row and offset after upstream height changes; consumption after one draw; repeated recreation during loading; changed snapshot, missing row, wrong version and unsupported format; newer touch, key, wheel, accessibility or explicit navigation; retired owner and snapshot replacement before draw; callback removal after observer transfer during window attachment; direct/accessibility detail action cancellation; no off-catalog anchor; all five T6 planning links supersede the old anchor, while an unknown kind retains it; resized geometry and extreme offsets. |
 | `PreviewCatalogViewportTest` (one case) | Actual `PreviewActivity`, native text layout and explicit Bundle recreation: save a baseline, search the fictional fixture, reach page two, position a row at -19 pixels, open/close details, recreate, then verify the same query and exact row offset, unchanged durable baseline and disabled Save action. |
 
 These Robolectric cases use API 28. The actual Activity case measures a fixed

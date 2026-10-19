@@ -28,6 +28,33 @@ does not acknowledge persistence. Explicit Save uses the canonical revision
 store; the local library and recovery flows below retain their own validation
 limits. Autosave and installed process-death qualification remain separate.
 
+## Core planning guidance (#41 / #52, partial)
+
+The editable draft keeps guardrail, evaluation, deployment, monitoring and
+cost-policy planning visible when T3–T5 are disabled. The panel reports enabled
+and disabled choices from one saved revision. Unsaved edits are identified;
+loading or unavailable storage withholds old counts rather than treating them as
+missing choices. Each area describes the next configuration step and the evidence
+or external action that remains unestablished.
+
+Each browse action opens its exact frozen T6 kind, clears conflicting catalog
+search/facets and preserves the sort order. It neither selects a component nor
+changes pending fields, saved history or catalog pins. The existing synthetic
+catalog and incomplete T6 editing scope remain explicit. Recorded configuration
+does not establish measured safety/quality, executed deployment, active monitoring,
+price coverage or an enforced spending limit.
+
+`PreviewT6GuidanceTest` defines core registry, optional-tier and recorded-state
+regressions; `T6PlanningActivityTest` adds five named lifecycle, navigation and
+large-text/RTL cases to the existing simulated UI task and execution guard.
+Passing execution must be established by the corresponding test reports.
+The implementation follows Android's [Views accessibility guidance](https://developer.android.com/guide/topics/ui/accessibility/views/principles-views)
+for labelled system controls and section headings (source reviewed 2026-10-18).
+That source review is limited to these controls; it is not a TalkBack or device test. This
+slice adds no measured-result receiver, saved/shared evidence attachment,
+provisioning or production service. Full #41/#52 receiving criteria, installed
+Android/TalkBack and release evidence remain separate; acceptance paths are unchanged.
+
 ## Reproduce
 
 First run the frozen-import checks in [CORE_FOUNDATION.md](CORE_FOUNDATION.md).
@@ -933,7 +960,7 @@ acceptance remain separate; these observations do not close a delivery criterion
 list-position portion of #82 criterion 3. The Activity retains the first visible
 catalog row's exact ID, version, snapshot hash and offset in transient Bundle
 state. After the same snapshot and current layout load, it restores that row once;
-new navigation cancels a pending restoration. Ten required simulated tests cover
+new navigation cancels a pending restoration. Twelve required simulated tests cover
 the actual Activity's details/recreation path and the restoration, mismatch,
 loading, lifecycle and input boundaries. Installed navigation, accessibility,
 process-death and canonical receiving evidence remain separate requirements.

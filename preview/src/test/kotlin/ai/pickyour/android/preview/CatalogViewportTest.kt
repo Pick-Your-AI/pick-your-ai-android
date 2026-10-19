@@ -74,6 +74,49 @@ class CatalogViewportTest {
         }
     }
 
+    private data class BrowseHarness(val section: CatalogBrowseSection, val scroll: CatalogViewportScrollView,
+        val item: PreviewCatalogItem)
+
+    private fun planningHarness(kind: String): BrowseHarness {
+        val state = checkpoint()
+        val controller = Robolectric.buildActivity(Activity::class.java).setup().also(controllers::add)
+        val activity = controller.get()
+        val items = (0..5).map { PreviewCatalogItem("row-$it", "Synthetic row $it", kind, "v1", "T6") }
+        val section = CatalogBrowseSection(activity, state) { _, _ -> fail("Browsing must not select a row") }
+        val scroll = CatalogViewportScrollView(activity)
+        scroll.onUserNavigation = section::cancelViewportRestore
+        val content = LinearLayout(activity).apply { orientation = LinearLayout.VERTICAL }
+        content.addView(View(activity), LinearLayout.LayoutParams(-1, 600))
+        content.addView(section)
+        content.addView(View(activity), LinearLayout.LayoutParams(-1, 900))
+        scroll.addView(content)
+        activity.setContentView(scroll)
+        section.attachViewport(scroll)
+        section.show(PreviewCatalogBrowser(hash, items))
+        section.selectionEnabled(false)
+        layoutBrowse(scroll)
+        scroll.scrollTo(0, 111)
+        return BrowseHarness(section, scroll, items[2])
+    }
+
+    private fun layoutBrowse(scroll: CatalogViewportScrollView) {
+        scroll.measure(View.MeasureSpec.makeMeasureSpec(480, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(320, View.MeasureSpec.EXACTLY))
+        scroll.layout(0, 0, 480, 320)
+    }
+
+    private fun oldAnchorPosition(h: BrowseHarness): Int {
+        val matches = arrayListOf<View>()
+        h.section.findViewsWithText(matches,
+            h.section.context.getString(R.string.item_button, h.item.name, h.item.kind), View.FIND_VIEWS_WITH_TEXT)
+        val row = matches.filterIsInstance<Button>().single()
+        val rowLocation = IntArray(2)
+        val viewportLocation = IntArray(2)
+        row.getLocationInWindow(rowLocation)
+        h.scroll.getLocationInWindow(viewportLocation)
+        return h.scroll.scrollY + rowLocation[1] - viewportLocation[1] + 17
+    }
+
     @Test fun sameSnapshotRestoresExactRowOffsetAfterUpstreamLayoutChangesOnlyOnce() {
         val restored = harness(checkpoint(), leading = 757)
         layout(restored)
@@ -227,6 +270,35 @@ class CatalogViewportTest {
         layout(source)
         val state = Bundle().also(source.viewport::save)
         assertFalse(state.containsKey("catalogViewportFormat"))
+    }
+
+    @Test fun planningKindNavigationCancelsPendingRestoration() {
+        for (kind in listOf("guardrail", "evaluation_suite", "deployment_target", "monitoring_stack", "cost_policy")) {
+            val h = planningHarness(kind)
+            assertTrue(h.section.browseKind(kind))
+            layoutBrowse(h.scroll)
+            val userPosition = h.scroll.scrollY
+            assertNotEquals("The retained row must distinguish old restoration from the new $kind navigation",
+                userPosition, oldAnchorPosition(h))
+            h.section.selectionEnabled(true)
+            h.scroll.viewTreeObserver.dispatchOnPreDraw()
+            assertEquals("Explicit $kind browsing must retain the new viewport", userPosition, h.scroll.scrollY)
+            h.section.close()
+        }
+    }
+
+    @Test fun unknownPlanningKindKeepsPendingRestoration() {
+        val h = planningHarness("guardrail")
+        assertFalse(h.section.browseKind("unknown-planning-kind"))
+        val retained = Bundle().also(h.section::saveState)
+        assertEquals("row-2", retained.getString("catalogViewportId"))
+        assertEquals(-17, retained.getInt("catalogViewportOffset"))
+        val oldPosition = oldAnchorPosition(h)
+        assertNotEquals(h.scroll.scrollY, oldPosition)
+        h.section.selectionEnabled(true)
+        h.scroll.viewTreeObserver.dispatchOnPreDraw()
+        assertEquals("An invalid request must not consume valid pending restoration", oldPosition, h.scroll.scrollY)
+        h.section.close()
     }
 
     @Test fun changedGeometryAndExtremeOffsetsKeepTheExactRowVisibleWithoutOverflow() {
