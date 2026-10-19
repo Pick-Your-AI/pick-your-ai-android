@@ -361,6 +361,7 @@ jobs:
               "hostileLiteralTextCannotReplaceLabelsAndLongTextIsExplicitlyTruncated",
               "boundedLinesAndListsDiscloseCountsWhileTotalsRetainEveryLine",
               "oversizedDecimalUsesBoundedCanonicalDisclosureWithoutAFalseRoundedAmount",
+              "schemaPermittedTerminalNewlineQuantityRemainsLiteralWithoutCrashing",
               "absentLinesAndUnknownCoverageStayUnpricedWithoutManufacturedCompleteness",
           }
           cost_cases = cost_suite.findall("testcase")
@@ -1093,6 +1094,38 @@ jobs:
                   raise SystemExit("Retained-snapshot regression did not pass")
               total += len(cases)
           print(f"Verified {total} simulated saved-snapshot inspection cases; no installed-device claim")
+          PYTEST
+      - name: Require catalog viewport restoration regressions to execute
+        run: |
+          python - <<'PYTEST'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          expected_suites = {
+              "CatalogViewportTest": {
+                  "sameSnapshotRestoresExactRowOffsetAfterUpstreamLayoutChangesOnlyOnce",
+                  "incompleteLoadingRetainsAnchorAcrossAnotherRecreation",
+                  "changedSnapshotMissingRowWrongVersionAndUnknownFormatNeverRestore",
+                  "newUserNavigationCancelsPendingRestoration",
+                  "closedViewportAndSnapshotChangedBeforeDrawCannotMoveRetiredScroll",
+                  "observerTransferredDuringAttachmentIsRemovedAfterRestoration",
+                  "directAndAccessibilityDetailActionsCancelPendingRestoration",
+                  "editorOnlyPositionDoesNotInventACatalogAnchor",
+                  "planningKindNavigationCancelsPendingRestoration",
+                  "unknownPlanningKindKeepsPendingRestoration",
+                  "changedGeometryAndExtremeOffsetsKeepTheExactRowVisibleWithoutOverflow",
+              },
+              "PreviewCatalogViewportTest": {
+                  "catalogRowPositionSurvivesDetailsAndActivityRecreationWithoutDraftWrites",
+              },
+          }
+          for name, expected in expected_suites.items():
+              report = pathlib.Path(f"preview/build/test-results/testDebugUnitTest/TEST-ai.pickyour.android.preview.{name}.xml")
+              suite = ET.parse(report).getroot()
+              cases = suite.findall("testcase")
+              assert expected <= {case.attrib["name"] for case in cases}, f"Missing {name} regression"
+              assert all(not case.findall("failure") and not case.findall("error") and not case.findall("skipped") for case in cases), f"{name} regression did not pass"
+              assert int(suite.attrib["tests"]) >= len(expected)
+              print(f"Verified {len(cases)} simulated {name} tests; no installed-device claim")
           PYTEST
       - name: Require optional-tier dialog authority regressions
         run: |
