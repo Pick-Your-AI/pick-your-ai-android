@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="catalog_compare_inspect_value">Inspect component %1$d · %2$s · complete value</string>
+    <string name="catalog_compare_other_value">Inspect component %1$d value</string>
+    <string name="catalog_compare_back_values">Back to compared fields</string>
+    <string name="catalog_compare_value_part">Value part %1$d of %2$d · characters %3$d–%4$d of %5$d</string>
+    <item type="id" name="catalog_compare_value_literal" />
+</resources>

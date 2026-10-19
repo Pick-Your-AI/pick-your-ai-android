@@ -257,6 +257,7 @@ class PreviewActivity : Activity() {
             setText(R.string.reopen_draft)
             setOnClickListener {
                 if (destroyed || storageBusy || !selectionResolved) return@setOnClickListener
+                retireRevisionInspection()
                 val baseline = savedRecord
                 val draftId = currentDraftId
                 val authority = storageAuthority
@@ -991,6 +992,7 @@ class PreviewActivity : Activity() {
     }
 
     private fun retireRevisionInspection() {
+        if (::catalogComparison.isInitialized) catalogComparison.dismissInspection()
         revisionRequest = null
         revisionDialog?.dismiss()
         revisionDialog = null

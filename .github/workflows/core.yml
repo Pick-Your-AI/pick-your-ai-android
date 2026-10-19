@@ -1320,6 +1320,40 @@ jobs:
               raise SystemExit("A catalog comparison authority regression failed or did not execute")
           print(f"Verified {len(cases)} catalog comparison inspector retirement regressions")
           PYTEST
+      - name: Require complete catalog comparison value regressions to execute
+        run: |
+          python - <<'PYTEST'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          class_name = "ai.pickyour.android.preview.CatalogComparisonValueActivityTest"
+          report = pathlib.Path("preview/build/test-results/testDebugUnitTest/TEST-" + class_name + ".xml")
+          if not report.is_file():
+              raise SystemExit("Missing complete catalog comparison value regression report")
+          suite = ET.parse(report).getroot()
+          required = {
+              "longValuesRoundTripBothVersionsAndReturnToTheDifferencesFilter",
+              "completeValuePartsPreserveUnicodeEscapesAndCollectionOrderWithoutLinks",
+              "missingUnknownEmptyFalseAndZeroKeepTheirRecordedStates",
+              "differentKindsDoNotBorrowValuesForAnUndefinedField",
+              "replacedAndCancelledValueButtonsCannotReplaceTheirCurrentOwner",
+              "catalogReplacementAndPinRemovalRetireCompleteValueNavigation",
+              "detailAndStorageEntryRetireCompleteValueCallbacks",
+              "recreationKeepsTheExactTrayButRejectsAllOldValueControls",
+              "completeValueHeadingsAndActionsRemainReachableAtNarrowRtlLargeText",
+          }
+          cases = suite.findall("testcase")
+          names = [case.attrib.get("name") for case in cases]
+          if suite.attrib.get("name") != class_name or any(case.attrib.get("classname") != class_name for case in cases):
+              raise SystemExit("Wrong complete catalog comparison value regression suite")
+          if set(names) != required or len(names) != len(set(names)) or not all(names):
+              raise SystemExit("Missing, unexpected or duplicate complete catalog comparison value regression")
+          if int(suite.attrib.get("tests", "-1")) != len(cases):
+              raise SystemExit("Complete catalog comparison value regression count mismatch")
+          if any(int(suite.attrib.get(key, "-1")) != 0 for key in ("failures", "errors", "skipped")) or any(
+                  case.find(tag) is not None for case in cases for tag in ("failure", "error", "skipped")):
+              raise SystemExit("A complete catalog comparison value regression failed or did not execute")
+          print(f"Verified {len(cases)} complete catalog comparison value regressions; no installed-device claim")
+          PYTEST
       - name: Require complete local revision comparison regressions to execute
         run: |
           python - <<'PYTEST'

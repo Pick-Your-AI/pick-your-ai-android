@@ -1,13 +1,10 @@
 package ai.pickyour.android.preview
 
 import android.app.Activity
-import android.app.AlertDialog
 import android.os.Bundle
 import android.view.View
 import android.widget.Button
-import android.widget.CheckBox
 import android.widget.LinearLayout
-import android.widget.ScrollView
 import android.widget.TextView
 import ai.pickyour.core.preview.*
 import ai.pickyour.core.pricing.RecordedPricebook
@@ -38,7 +35,7 @@ class CatalogComparisonSection(
     private var browser: PreviewCatalogBrowser? = null
     private var pricebook: RecordedPricebook? = null
     private var closed = false
-    private var comparisonDialog: AlertDialog? = null
+    private var comparisonBrowser: CatalogComparisonBrowser? = null
     private val status: TextView
     private val entries: LinearLayout
     private val compare: Button
@@ -95,6 +92,7 @@ class CatalogComparisonSection(
     private fun render() {
         if (!active()) return
         dismissPinInspection()
+        dismissInspection()
         val current = tray.entries(browser)
         status.text = listOfNotNull(
             if (resetState) activity.getString(R.string.catalog_compare_reset) else null,
@@ -115,8 +113,7 @@ class CatalogComparisonSection(
                 setOnClickListener { control ->
                     val isCurrent = { active() && control.parent === entries && tray === originTray && browser === originBrowser }
                     if (isCurrent()) {
-                        comparisonDialog?.dismiss()
-                        comparisonDialog = null
+                        dismissInspection()
                         inspectPin.invoke(entry.pin, originBrowser, isCurrent)
                     }
                 }
@@ -137,73 +134,23 @@ class CatalogComparisonSection(
     private fun openComparison() {
         if (!active()) return
         dismissPinInspection()
+        dismissInspection()
         val current = tray.entries(browser)
         if (current.size != PreviewCatalogTray.LIMIT || current.any { it.detail == null }) return
         val comparison = PreviewCatalogComparison(requireNotNull(current[0].detail), requireNotNull(current[1].detail))
-        val content = LinearLayout(activity).apply {
-            orientation = VERTICAL
-            layoutDirection = resources.configuration.layoutDirection
-            val padding = (16 * resources.displayMetrics.density).toInt()
-            setPadding(padding, padding, padding, padding)
-        }
-        caption(content, activity.getString(R.string.catalog_compare_conditions))
-        if (!comparison.sameKind) caption(content, activity.getString(R.string.catalog_compare_different_kinds))
-        val toggle = CheckBox(activity).apply {
-            setText(R.string.catalog_compare_differences)
-            isChecked = differencesOnly
-            minHeight = (48 * resources.displayMetrics.density).toInt()
-            minWidth = (48 * resources.displayMetrics.density).toInt()
-        }.also(content::addView)
-        current.forEachIndexed { index, entry ->
-            caption(content, identity(index, entry), true)
-            val detail = requireNotNull(entry.detail)
-            caption(content, CatalogDetailText.describe(activity, detail, pricebook, includeSpecifications = false))
-            val conditions = detail.specs.filter { it.name in CONDITION_FIELDS }
-            if (conditions.isNotEmpty()) caption(content, activity.getString(R.string.catalog_compare_recorded_conditions,
-                conditions.joinToString("\n") { field -> activity.getString(R.string.catalog_detail_field,
-                    field.name, field.type, CatalogDetailText.fieldValue(activity, field)) }))
-        }
-        caption(content, activity.getString(R.string.catalog_compare_values), true)
-        val rows = LinearLayout(activity).apply { orientation = VERTICAL }.also(content::addView)
-        fun renderRows() {
-            rows.removeAllViews()
-            val shown = comparison.visibleRows(differencesOnly)
-            caption(rows, activity.getString(R.string.catalog_compare_row_count, shown.size, comparison.rows.size))
-            shown.forEach { row ->
-                val group = activity.getString(if (row.group == PreviewCatalogComparisonGroup.SPECIFICATION)
-                    R.string.catalog_compare_spec else R.string.catalog_compare_license)
-                caption(rows, activity.getString(R.string.catalog_compare_field, group, row.name), true)
-                listOf(row.left, row.right).forEachIndexed { index, field ->
-                    val value = if (field == null) activity.getString(R.string.catalog_compare_not_defined)
-                        else activity.getString(R.string.catalog_detail_field, field.name, field.type,
-                            CatalogDetailText.fieldValue(activity, field))
-                    // Repeat exact version/identity for each stacked cell, including identical display names.
-                    caption(rows, identity(index, current[index]) + "\n" + value)
-                }
-                caption(rows, activity.getString(when (row.match) {
-                    PreviewCatalogComparisonMatch.SAME_RECORDED_VALUE -> R.string.catalog_compare_same
-                    PreviewCatalogComparisonMatch.DIFFERENT_RECORDED_VALUE -> R.string.catalog_compare_different
-                    PreviewCatalogComparisonMatch.UNKNOWN -> R.string.catalog_compare_unknown
-                    PreviewCatalogComparisonMatch.NOT_COMPARABLE -> R.string.catalog_compare_not_comparable
-                }))
-            }
-        }
-        renderRows()
-        val dialog = AlertDialog.Builder(activity).setTitle(R.string.catalog_compare_open)
-            .setView(ScrollView(activity).apply { addView(content) })
-            .setPositiveButton(R.string.close, null).create()
-        comparisonDialog?.dismiss()
-        comparisonDialog = dialog
-        dialog.setOnDismissListener { if (comparisonDialog === dialog) comparisonDialog = null }
-        toggle.setOnCheckedChangeListener { _, checked ->
-            if (active() && comparisonDialog === dialog && dialog.isShowing) {
-                differencesOnly = checked
-                renderRows()
-            }
-        }
-        dialog.show()
-        // Carry the activity's resolved direction into the custom dialog window as well as its content.
-        dialog.window?.decorView?.layoutDirection = resources.configuration.layoutDirection
+        val originTray = tray
+        val originBrowser = browser
+        val originPricebook = pricebook
+        lateinit var viewer: CatalogComparisonBrowser
+        viewer = CatalogComparisonBrowser(activity, comparison, originPricebook, differencesOnly,
+            isCurrent = {
+                active() && comparisonBrowser === viewer && tray === originTray &&
+                    browser === originBrowser && pricebook === originPricebook
+            },
+            onDifferencesChanged = { differencesOnly = it },
+        )
+        comparisonBrowser = viewer
+        viewer.show()
     }
 
     fun save(out: Bundle) {
@@ -213,16 +160,12 @@ class CatalogComparisonSection(
         out.putBoolean("comparisonDifferencesOnly", differencesOnly)
     }
 
-    fun dismissInspection() { comparisonDialog?.dismiss(); comparisonDialog = null }
+    fun dismissInspection() {
+        val previous = comparisonBrowser
+        comparisonBrowser = null
+        previous?.retire()
+    }
 
     fun close() { closed = true; dismissPinInspection(); dismissInspection() }
 
-    companion object {
-        // Frozen v1 condition/reference fields stay visible even when matching values are hidden.
-        private val CONDITION_FIELDS = setOf("provider_ref", "hosting_ref", "accelerator_ref", "accelerator_count",
-            "supported_precisions", "precisions", "context_window_tokens", "max_output_tokens", "access_modes",
-            "weight_access", "model_formats", "region", "supported_regions", "workload_type", "modalities",
-            "concurrency", "requests_per_day", "avg_input_tokens", "avg_output_tokens", "latency_budget_ms",
-            "uptime_target_pct", "data_classification")
-    }
 }
