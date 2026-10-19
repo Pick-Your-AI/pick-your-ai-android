@@ -49,6 +49,7 @@ class PreviewActivity : Activity() {
     private var restoreContextFromDisk = false
     private lateinit var selection: TextView
     private lateinit var componentSection: SelectionEditSection
+    private lateinit var compatibleOptions: CompatibleOptionsPicker
     private var componentCatalog: ai.pickyour.core.drafts.SelectionCatalogSnapshot? = null
     private lateinit var catalog: CatalogBrowseSection
     private lateinit var catalogComparison: CatalogComparisonSection
@@ -90,6 +91,7 @@ class PreviewActivity : Activity() {
             if (value) {
                 storageAuthority = Any()
                 retireRevisionInspection()
+                if (::compatibleOptions.isInitialized) compatibleOptions.dismiss()
             }
             field = value
             if (value && ::catalogPinRecovery.isInitialized) catalogPinRecovery.dismiss()
@@ -256,7 +258,8 @@ class PreviewActivity : Activity() {
                 setDraftActivation(expected, tier, activation)
         }
         content.addView(tierSection)
-        componentSection = SelectionEditSection(this, ::commitSelection)
+        compatibleOptions = CompatibleOptionsPicker(this, worker) { !destroyed && diagnosticsResumed }
+        componentSection = SelectionEditSection(this, ::commitSelection, ::showCompatibleOptions, compatibleOptions::dismiss)
         componentSection.restore(savedInstanceState)
         content.addView(componentSection)
         planningSection = T6PlanningSection(this, { !destroyed }) { kind ->
@@ -415,6 +418,7 @@ class PreviewActivity : Activity() {
 
     private fun loadCatalog() {
         if (destroyed) return
+        compatibleOptions.dismiss()
         catalogPinRecovery.dismiss()
         catalogDetailBrowser?.retire()
         catalogDetailBrowser = null
@@ -611,6 +615,7 @@ class PreviewActivity : Activity() {
 
     private fun formChanged() {
         if (destroyed) return
+        if (::compatibleOptions.isInitialized) compatibleOptions.dismiss()
         updateContextState()
         if (restoringFields || !::saveStatus.isInitialized) return
         if (!storageBusy && storageReady) {
@@ -888,6 +893,23 @@ class PreviewActivity : Activity() {
                 }
             }
         }
+    }
+
+    private fun showCompatibleOptions(launch: CompatiblePickerLaunch) {
+        val fixture = catalogFixture ?: return
+        val bytes = fixture.catalogBytes() ?: return
+        val authority = storageAuthority
+        val id = currentDraftId
+        val capturedFields = fields()
+        val capturedContext = domainContext
+        val capturedWorkload = workloadSection.inputs
+        fun current() = !destroyed && !isFinishing && !isDestroyed && diagnosticsResumed &&
+            storageReady && !storageBusy && !entryBlocked && selectionResolved && retry.isEnabled &&
+            savedRecord === launch.source && matchesSaved() && currentDraftId == id && storageAuthority === authority &&
+            fields() == capturedFields && domainContext == capturedContext && workloadSection.inputs === capturedWorkload &&
+            catalogFixture === fixture && fixture.catalog?.hash == launch.catalogHash &&
+            componentCatalog?.hash?.hex == launch.catalogHash
+        if (current()) compatibleOptions.show(launch, bytes, ::current)
     }
 
     private fun setDraftActivation(expected: PreviewStoredDraft, tier: OptionalTier, activation: Activation) {
@@ -1393,6 +1415,7 @@ class PreviewActivity : Activity() {
 
     override fun onPause() {
         diagnosticsResumed = false
+        if (::compatibleOptions.isInitialized) compatibleOptions.dismiss()
         if (::draftSummary.isInitialized) draftSummary.retireActions()
         if (::diagnostics.isInitialized) diagnostics.dismiss()
         if (::help.isInitialized) help.dismiss()
@@ -1402,6 +1425,7 @@ class PreviewActivity : Activity() {
 
     override fun onDestroy() {
         destroyed = true
+        if (::compatibleOptions.isInitialized) compatibleOptions.close()
         if (::draftSummary.isInitialized) draftSummary.close()
         if (::findings.isInitialized) findings.close()
         if (::snapshots.isInitialized) snapshots.close()
