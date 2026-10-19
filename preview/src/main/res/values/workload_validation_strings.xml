@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="workload_error_region">Shorten the region to at most 16,384 characters (some symbols count as two), or clear it to leave it unanswered.</string>
+    <string name="workload_error_currency">Use exactly three uppercase letters (A-Z), or clear this field to leave it unanswered.</string>
+    <string name="workload_error_budget">Use a nonnegative number without leading zeros, optionally followed by a decimal point and 1 to 12 digits. Leave blank for unanswered. Limit: 16,384 characters.</string>
+    <string name="workload_error_requests">Use a whole number of requests per day, 0 or greater, with no leading zeros and at most 128 digits. Leave blank for unanswered.</string>
+    <string name="workload_error_input_tokens">Use a whole number of average input tokens, 0 or greater, with no leading zeros and at most 128 digits. Leave blank for unanswered.</string>
+    <string name="workload_error_output_tokens">Use a whole number of average output tokens, 0 or greater, with no leading zeros and at most 128 digits. Leave blank for unanswered.</string>
+    <string name="workload_error_concurrency">Use a whole concurrency count of at least 1, with no leading zeros and at most 128 digits. Leave blank for unanswered.</string>
+    <string name="workload_error_latency">Use a whole number of milliseconds, at least 1, with no leading zeros and at most 128 digits. Leave blank for unanswered.</string>
+</resources>

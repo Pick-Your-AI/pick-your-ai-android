@@ -41,3 +41,59 @@ Hosted execution must pass for the exact final candidate before merge.
 Remaining #83 work includes accepted placement guidance, required-input completion
 presentation, actual-device lifecycle/keyboard/accessibility checks and receiving
 acceptance. No issue is closed by this bounded editor.
+
+## Field errors (#99, partial)
+
+Each of the eight text inputs now identifies its own rejected value with a native
+field error. The message describes the accepted format, unit or limit and offers
+leaving the field unanswered. Messages use fixed resources and never include the
+entered value or a parser exception. The existing labels and classification
+picker retain their meanings.
+
+`PreviewWorkloadValidation` projects each raw field through
+`PreviewWorkloadInputs.parsed()`, with the other independently optional fields
+unanswered. The result contains only immutable local field identities. The complete
+form still uses `parsed()` for Save and recovery admission; an empty error set is
+not a separate admission result. In particular, a rejected oversized replacement
+can retain valid text while its existing form-level rejection marker blocks Save.
+
+| Field | Existing accepted representation |
+| --- | --- |
+| Region | Unchanged user text, at most 16,384 UTF-16 code units; blank is unanswered |
+| Currency | Exactly three ASCII uppercase letters; blank is unanswered |
+| Monthly budget amount | Canonical nonnegative decimal text, no extra leading zeros, optionally a decimal point followed by 1–12 digits; at most 16,384 code units |
+| Requests per day, average input tokens, average output tokens | Whole decimal integers from zero upward, no leading zeros, at most 128 digits |
+| Maximum concurrency, maximum latency in milliseconds | Whole decimal integers from one upward, no leading zeros, at most 128 digits |
+
+The numeric fields also allow blank as unanswered. Budget and currency remain
+independent. The feedback does not trim text, accept locale commas or exponent
+notation, round decimals, narrow integers, or interpret a literal `unknown` as a
+numeric measurement. Free text admitted by its existing field remains a user
+assumption. These local input limits do not establish complete snapshot, storage
+capacity, cost, compatibility or deployment readiness.
+
+The UI uses Android's existing
+[`TextView.setError`](https://developer.android.com/reference/android/widget/TextView#setError(java.lang.CharSequence))
+behavior on each labeled editor. It reapplies an invalid message during key edits
+because the framework can clear errors when text changes. Correcting a field
+clears its message; another invalid field keeps its own message. Recreating the
+Activity derives feedback from the preserved raw checkpoint. Confirming Reopen
+restores saved values and clears their errors without creating another revision;
+canceling that confirmation keeps the pending edits.
+
+The focused Core tests exercise exact decimal and integer boundaries, independent
+field attribution, Unicode text-budget accounting, immutable value-free results
+and the separate rejected-edit marker. The Activity suite uses the actual serial
+worker and canonical private store, verifies baseline identities and hashes of all
+private saved files, and covers each field, invalid-to-invalid keyboard editing,
+native accessibility error metadata, recreation, correction and explicit Reopen.
+The workflow requires every named regression to execute without failures, errors,
+skips, duplicate names or substituted suites. These are JVM and simulated API 28
+checks, with installed keyboard, TalkBack and physical lifecycle evidence separate.
+
+This is one bounded improvement to the existing workload controls. Remaining #99
+acceptance includes the general contract-driven component controls, governed
+answer-state storage/export handoffs, full sensitive-input/export acceptance and
+the required receiving and installed-device evidence. The existing acceptance
+record remains `docs/delivery/android/work-packages/08.04.md` in
+`Pick-Your-AI/pick-your-ai-leaderboard`; this implementation note does not relocate it.
