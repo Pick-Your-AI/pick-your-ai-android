@@ -80,6 +80,7 @@ enum class DraftProjectionProblem {
     CATALOG_REFERENCE_KIND_MISMATCH, MISSING_MODEL_PROVIDER_LINK, PRICEBOOK_CATALOG_MISMATCH,
     UNKNOWN_OPTIONAL_INTENT, CONTRADICTORY_OPTIONAL_INTENT, INCOMPLETE_OPTIONAL_SELECTIONS,
     CONFLICTING_WORKLOAD_INPUT, BUILD_SCHEMA_MISMATCH, INPUT_LIMIT,
+    ARTIFACT_UNSUPPORTED_SCHEMA_VERSION,
 }
 
 /** Bounded review data; toString never emits user content, IDs or artifact contents. */
@@ -290,13 +291,22 @@ internal object DraftSnapshotProjection {
         finding: (DraftProjectionProblem, String, List<String>) -> Unit): CheckedProjectionArtifact? {
         val path = "/artifacts/${kind.name.lowercase()}"
         val bytes = input.bytes()
+        if (projectionHash(bytes) != input.expectedHash) {
+            finding(DraftProjectionProblem.ARTIFACT_HASH_MISMATCH, path, emptyList())
+            return null
+        }
+        val node = try { SelectionJson.parse(bytes) } catch (_: IllegalArgumentException) {
+            finding(DraftProjectionProblem.ARTIFACT_SCHEMA_MISMATCH, path, emptyList())
+            return null
+        }
+        val schemaVersion = node["schema_version"]
         val problem = when {
-            projectionHash(bytes) != input.expectedHash -> DraftProjectionProblem.ARTIFACT_HASH_MISMATCH
+            schemaVersion?.isTextual == true && schemaVersion.textValue() != "1.0.0" ->
+                DraftProjectionProblem.ARTIFACT_UNSUPPORTED_SCHEMA_VERSION
             SelectionJson.validator.validate(kind.document, bytes.inputStream()) != FrozenValidation.Valid -> DraftProjectionProblem.ARTIFACT_SCHEMA_MISMATCH
             else -> null
         }
         if (problem != null) { finding(problem, path, emptyList()); return null }
-        val node = SelectionJson.parse(bytes)
         val version = if (kind == ProjectionArtifactKind.RULESET) node[kind.counter].textValue() else {
             // JSON Schema integer includes exactly integral decimal/exponent forms. Preserve the
             // original bytes, while comparing the typed counter without truncation or machine width.
