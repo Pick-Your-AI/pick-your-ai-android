@@ -1294,7 +1294,7 @@ class PreviewActivity : Activity() {
                         showSelection()
                     }
                     saveStatus.setText(when {
-                        !loadSucceeded -> R.string.draft_load_failed
+                        !loadSucceeded -> draftLoadRecoveryMessage((result as? PreviewDraftLoad.Failed)?.reason)
                         needsReopen -> R.string.draft_reconcile
                         matchesSaved() -> R.string.draft_saved
                         else -> R.string.draft_unsaved

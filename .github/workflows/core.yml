@@ -1014,6 +1014,33 @@ jobs:
               raise SystemExit("Retained-revision pair result count does not match executed cases")
           print(f"Verified {len(cases)} simulated retained-revision pair tests; no installed-device claim")
           PYTEST
+      - name: Require typed local draft load recovery regressions to execute
+        run: |
+          python - <<'PYTEST'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          class_name = "ai.pickyour.android.preview.DraftLoadRecoveryActivityTest"
+          report = pathlib.Path("preview/build/test-results/testDebugUnitTest") / f"TEST-{class_name}.xml"
+          suite = ET.parse(report).getroot()
+          expected = {
+              "futurePreviewFormatRequiresCompatibleReaderAndRetainsPendingForm",
+              "futureLocalFormatRequiresCompatibleReaderWithoutRewritingRetainedBytes",
+              "corruptRetainedBytesRequireReadableCopyAndRetainPendingForm",
+              "malformedPreviewMetadataRequiresReadableCopyWithoutReset",
+              "busyStoredDraftCanRetryExplicitlyAfterLockRelease",
+          }
+          cases = suite.findall("testcase")
+          names = [case.attrib["name"] for case in cases]
+          if suite.attrib.get("name") != class_name or any(case.attrib.get("classname") != class_name for case in cases):
+              raise SystemExit("Unexpected typed draft load recovery test identity")
+          if not expected <= set(names) or len(names) != len(set(names)):
+              raise SystemExit("Missing or repeated typed draft load recovery regression")
+          if any(case.findall("failure") or case.findall("error") or case.findall("skipped") for case in cases):
+              raise SystemExit("Typed draft load recovery regression did not pass")
+          if int(suite.attrib["tests"]) != len(cases) or any(int(suite.attrib[key]) != 0 for key in ("failures", "errors", "skipped")):
+              raise SystemExit("Typed draft load recovery result totals do not match passing cases")
+          print(f"Verified {len(cases)} simulated typed draft load recovery tests; no installed-device or complete #81 claim")
+          PYTEST
       - name: Require exact catalog pin recovery regressions to execute
         run: |
           python - <<'PYTEST'
