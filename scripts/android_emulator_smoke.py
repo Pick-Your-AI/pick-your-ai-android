@@ -8,6 +8,7 @@ from collections import Counter
 from decimal import Decimal, InvalidOperation
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import platform
@@ -69,6 +70,8 @@ SYSTEM_BAR_CHECKPOINTS = (
 SYSTEM_BAR_WINDOW_QUERY = ("shell", "dumpsys", "-t", "3", "window")
 SYSTEM_BAR_LIGHTBAR_QUERY = ("shell", "dumpsys", "-t", "3", "activity", "service",
                             "com.android.systemui/.SystemUIService", "LightBarController")
+SYSTEM_BAR_TASKBAR_QUERY = ("shell", "dumpsys", "-t", "3", "activity", "service",
+                           "com.android.launcher3/com.android.quickstep.TouchInteractionService")
 SYSTEM_BAR_WINDOW_LIMIT = 262144
 SYSTEM_BAR_PNG_LIMIT = 8388608
 SYSTEM_BAR_MINIMUM_CONTRAST = 3.0
@@ -1314,11 +1317,15 @@ def retain_system_bar_window(device: Device, output: Path, receipt: dict, name: 
     observed = {"phase": "after_original_png_capture", "command": {},
                 "png_sha256": digest(output / (name + ".png")), "xml_sha256": digest(output / (name + ".xml"))}
     observations[name] = observed
+    observed["png_capture"] = receipt.get("system_bar_png_captures", {}).get(name)
+    observed["timing"] = {"clock": "host_monotonic", "start": time.monotonic()}
     try:
         observe_interactive_command(device, SYSTEM_BAR_WINDOW_QUERY, observed["command"],
                                     timeout=5, retained_limit=SYSTEM_BAR_WINDOW_LIMIT)
     except Exception as error:
         observed["error"] = {"type": type(error).__name__, "message": bounded_text(str(error), 1200)}
+    finally:
+        observed["timing"]["end"] = time.monotonic()
     # Keep every partial result and all later original checkpoints. Final acceptance
     # rejects an incomplete query; this observation cannot rescue a product failure.
     retained = observed["command"].get("stdout_tail", "")
@@ -1334,16 +1341,40 @@ def retain_system_bar_window(device: Device, output: Path, receipt: dict, name: 
     light = {"phase": "after_original_png_and_window_observation", "command": {},
              "png_sha256": observed["png_sha256"], "xml_sha256": observed["xml_sha256"]}
     light_observations[name] = light
+    light["timing"] = {"clock": "host_monotonic", "start": time.monotonic()}
     try:
         observe_interactive_command(device, SYSTEM_BAR_LIGHTBAR_QUERY, light["command"],
                                     timeout=5, retained_limit=SYSTEM_BAR_WINDOW_LIMIT)
     except Exception as error:
         light["error"] = {"type": type(error).__name__, "message": bounded_text(str(error), 1200)}
+    finally:
+        light["timing"]["end"] = time.monotonic()
     retained = light["command"].get("stdout_tail", "")
     path = output / (name + ".lightbar.txt")
     path.write_text(retained, encoding="utf-8")
     light["retained_text_file"] = path.name
     light["retained_text_sha256"] = hashlib.sha256(retained.encode("utf-8")).hexdigest()
+
+    # The original WMS records identify Launcher3's Taskbar as the navigation
+    # window owner. Its state is a third sequential read, not the earlier PNG.
+    taskbars = state.setdefault("taskbar_observations", {})
+    require(name not in taskbars, "Duplicate Launcher Taskbar checkpoint")
+    taskbar = {"phase": "after_original_png_window_and_lightbar_observations", "command": {},
+               "png_sha256": observed["png_sha256"], "xml_sha256": observed["xml_sha256"],
+               "timing": {"clock": "host_monotonic", "start": time.monotonic()}}
+    taskbars[name] = taskbar
+    try:
+        observe_interactive_command(device, SYSTEM_BAR_TASKBAR_QUERY, taskbar["command"],
+                                    timeout=5, retained_limit=SYSTEM_BAR_WINDOW_LIMIT)
+    except Exception as error:
+        taskbar["error"] = {"type": type(error).__name__, "message": bounded_text(str(error), 1200)}
+    finally:
+        taskbar["timing"]["end"] = time.monotonic()
+    retained = taskbar["command"].get("stdout_tail", "")
+    path = output / (name + ".taskbar.txt")
+    path.write_text(retained, encoding="utf-8")
+    taskbar["retained_text_file"] = path.name
+    taskbar["retained_text_sha256"] = hashlib.sha256(retained.encode("utf-8")).hexdigest()
 
 
 def qualify_system_bar_evidence(output: Path, receipt: dict) -> None:
@@ -1390,6 +1421,62 @@ def lightbar_intensity_fields_pass(text: str) -> bool:
     return True
 
 
+def system_bar_interval_passes(value: dict, maximum: int) -> bool:
+    """These intervals share this host process's monotonic clock, not guest time."""
+    return (isinstance(value, dict) and set(value) == {"clock", "start", "end"}
+            and value.get("clock") == "host_monotonic"
+            and all(type(value.get(key)) is float and math.isfinite(value[key]) for key in ("start", "end"))
+            and 0 <= value["start"] <= value["end"] and value["end"] - value["start"] <= maximum)
+
+
+def taskbar_state_fields_pass(text: str) -> bool:
+    """Require one complete, named Taskbar controller; values are not pixel evidence."""
+    lines = text.splitlines()
+    services = [(index, line) for index, line in enumerate(lines)
+                if re.match(r"^[ \t]*SERVICE\b", line)]
+    if (len(services) != 1 or re.fullmatch(
+            r"SERVICE com\.android\.launcher3/com\.android\.quickstep\.TouchInteractionService "
+            r"\S+ pid=[1-9][0-9]* user=0", services[0][1].strip()) is None):
+        return False
+    parent_line, service_header = services[0]
+    parent_indent = len(service_header) - len(service_header.lstrip(" \t"))
+    for name in ("TaskbarManager", "TaskbarActivityContext", "TaskbarControllers", "NavbarButtonsViewController"):
+        matches = [(index, len(line) - len(line.lstrip(" \t"))) for index, line in enumerate(lines)
+                   if re.fullmatch(r"[ \t]*" + name + r":[ \t]*", line)]
+        if len(matches) != 1:
+            return False
+        header, indent = matches[0]
+        if header <= parent_line or indent <= parent_indent:
+            return False
+        if parent_line >= 0 and any(line.strip() and len(line) - len(line.lstrip(" \t")) <= parent_indent
+                                    for line in lines[parent_line + 1:header]):
+            return False
+        parent_line, parent_indent = header, indent
+    body = []
+    for line in lines[header + 1:]:
+        if line.strip() and len(line) - len(line.lstrip(" \t")) <= indent:
+            break
+        body.append(line)
+    controller = "\n".join(body)
+    if len(re.findall(r"^[ \t]*mState=[^\r\n]*$", controller, re.M)) != 1:
+        return False
+    for field in ("mTaskbarNavButtonDarkIntensity", "mSlideInViewVisibleNavButtonColorOverride",
+                  "mOnTaskbarBackgroundNavButtonColorOverride", "mOnBackgroundNavButtonColorOverrideMultiplier"):
+        values = re.findall(r"\b" + field + r"=(\S*)", controller)
+        if (len(values) != 1 or len(re.findall(r"^[ \t]*" + field + r"=\S*[ \t]*$", controller, re.M)) != 1):
+            return False
+        if len(values[0]) > 32 or re.fullmatch(
+                r"[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?", values[0]) is None:
+            return False
+        try:
+            number = Decimal(values[0])
+            if not number.is_finite() or not 0 <= number <= 1:
+                return False
+        except InvalidOperation:
+            return False
+    return True
+
+
 def system_bar_evidence_passes(state: dict) -> bool:
     if not (isinstance(state, dict) and state.get("scope") == "fixed-rig-navigation-contrast"
             and state.get("profile") == "raster-720x1280-280" and state.get("serial") == SERIAL
@@ -1398,6 +1485,8 @@ def system_bar_evidence_passes(state: dict) -> bool:
             and set(state["window_observations"]) == set(SYSTEM_BAR_CHECKPOINTS)
             and isinstance(state.get("light_bar_observations"), dict)
             and set(state["light_bar_observations"]) == set(SYSTEM_BAR_CHECKPOINTS)
+            and isinstance(state.get("taskbar_observations"), dict)
+            and set(state["taskbar_observations"]) == set(SYSTEM_BAR_CHECKPOINTS)
             and isinstance(state.get("pairs"), dict)
             and set(state["pairs"]) == {SYSTEM_BAR_CHECKPOINTS[1], SYSTEM_BAR_CHECKPOINTS[3]}
             and isinstance(state.get("source_commit"), str)
@@ -1408,6 +1497,10 @@ def system_bar_evidence_passes(state: dict) -> bool:
     for name, observation in state["window_observations"].items():
         if not (isinstance(observation, dict) and observation.get("phase") == "after_original_png_capture"
                 and "error" not in observation and isinstance(observation.get("command"), dict)):
+            return False
+        capture, window_time = observation.get("png_capture"), observation.get("timing")
+        if not (system_bar_interval_passes(capture, 15) and system_bar_interval_passes(window_time, 5)
+                and capture["end"] <= window_time["start"]):
             return False
         command = observation["command"]
         if not (interactive_command_passes(command, SYSTEM_BAR_WINDOW_QUERY, SYSTEM_BAR_WINDOW_LIMIT)
@@ -1423,7 +1516,9 @@ def system_bar_evidence_passes(state: dict) -> bool:
         if not (isinstance(light, dict) and "error" not in light
                 and light.get("phase") == "after_original_png_and_window_observation"
                 and isinstance(light.get("command"), dict)
-                and all(light.get(key) == observation.get(key) for key in ("png_sha256", "xml_sha256"))):
+                and all(light.get(key) == observation.get(key) for key in ("png_sha256", "xml_sha256"))
+                and system_bar_interval_passes(light.get("timing"), 5)
+                and window_time["end"] <= light["timing"]["start"]):
             return False
         command = light["command"]
         if not (interactive_command_passes(command, SYSTEM_BAR_LIGHTBAR_QUERY, SYSTEM_BAR_WINDOW_LIMIT)
@@ -1451,6 +1546,25 @@ def system_bar_evidence_passes(state: dict) -> bool:
         if not (all(re.search(r"\b" + field + r"=(true|false)\b", navigation)
                     for field in ("mTransitionDeferring", "mTransitionPending", "mTintChangePending"))
                 and lightbar_intensity_fields_pass(navigation)):
+            return False
+        taskbar = state["taskbar_observations"][name]
+        if not (isinstance(taskbar, dict) and "error" not in taskbar
+                and taskbar.get("phase") == "after_original_png_window_and_lightbar_observations"
+                and isinstance(taskbar.get("command"), dict)
+                and all(taskbar.get(key) == observation.get(key) for key in ("png_sha256", "xml_sha256"))
+                and system_bar_interval_passes(taskbar.get("timing"), 5)
+                and light["timing"]["end"] <= taskbar["timing"]["start"]):
+            return False
+        command = taskbar["command"]
+        if not (interactive_command_passes(command, SYSTEM_BAR_TASKBAR_QUERY, SYSTEM_BAR_WINDOW_LIMIT)
+                and command.get("timeout_seconds") == 5
+                and type(command.get("seconds")) in (int, float) and 0 <= command["seconds"] <= 5
+                and "DUMP TIMEOUT" not in command["stdout_tail"]
+                and "Error dumping service info:" not in command["stdout_tail"]
+                and taskbar.get("retained_text_file") == name + ".taskbar.txt"
+                and taskbar.get("retained_text_sha256")
+                == hashlib.sha256(command["stdout_tail"].encode("utf-8")).hexdigest()
+                and taskbar_state_fields_pass(command["stdout_tail"])):
             return False
     for modal, row in state["pairs"].items():
         reference = SYSTEM_BAR_CHECKPOINTS[SYSTEM_BAR_CHECKPOINTS.index(modal) - 1]
@@ -1713,10 +1827,19 @@ class Ui:
     def checkpoint(self, name: str):
         root = self.snapshot()
         ET.ElementTree(root).write(self.output / (name + ".xml"), encoding="utf-8", xml_declaration=True)
-        result = subprocess.run(
-            [str(self.device.adb_path), "-s", SERIAL, "exec-out", "screencap", "-p"],
-            env=self.device.env, capture_output=True, timeout=15, check=True,
-        )
+        capture = None
+        if name in SYSTEM_BAR_CHECKPOINTS:
+            captures = self.receipt.setdefault("system_bar_png_captures", {})
+            require(name not in captures, "Duplicate original system-bar PNG")
+            capture = captures[name] = {"clock": "host_monotonic", "start": time.monotonic()}
+        try:
+            result = subprocess.run(
+                [str(self.device.adb_path), "-s", SERIAL, "exec-out", "screencap", "-p"],
+                env=self.device.env, capture_output=True, timeout=15, check=True,
+            )
+        finally:
+            if capture is not None:
+                capture["end"] = time.monotonic()
         require(result.stdout.startswith(b"\x89PNG\r\n\x1a\n"), "Screenshot is not PNG")
         (self.output / (name + ".png")).write_bytes(result.stdout)
         if name in SYSTEM_BAR_CHECKPOINTS:

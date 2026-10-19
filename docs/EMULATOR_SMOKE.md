@@ -2159,3 +2159,119 @@ fields remain unqualified; raw spellings remain unchanged. This avoids rejecting
 legitimate animation-state observation and does not round, interpret or replace
 the independently measured screenshot contrast. New tests reproduce the prior
 scientific-format rejection and retain ordinary/end-point positive controls.
+
+
+### Launcher Taskbar observation after the current modal failure
+
+The fixed `e947a23c` source ran as signed `0a1ca2a`, tree
+`2cad77104aadd76d31a3eed0b2462fcff9e3f109`, in run39196075393,
+installed job117880718926. The [independent original review5566890465](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/467#pullrequestreview-5566890465),
+[second original review5566924067](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/467#pullrequestreview-5566924067)
+and [source-owner qualification6259592161](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/467#issuecomment-6259592161)
+bind original artifact12162198782: 1,069,644 bytes, SHA-256
+`35b2dcf98e487f2dc68b94230610be4de752e49f28ffef6b693ed3a1bafa9395`.
+All28 original members and eight raw diagnostic files were qualified. This
+continuation relies on those attributed original-byte reviews; it does not
+claim another local materialization or emulator run.
+
+All four product cases passed. The two modal pairs still have dark glyph
+RGB69/70/79 over RGB100/100/100: each of the three matched glyphs in each
+modal has unrounded contrast1.5828461084972716:1. Ordinary05/07 remain
+8.97386058887348:1. The original JUnit contains four passed product rows
+plus the existing overall-failure row, five rows with one failure. Its
+`environment_setup_or_cleanup` label does not identify a cleanup cause:
+the independently qualified full ACL after-object equals the original
+before-object, while child exit1 and the failed installed result remain.
+
+The eight complete raw reads are sequential after each original PNG.
+Modal WindowManager and SystemUI report no LIGHT_NAVIGATION request,
+SystemUI navigation current/next intensity0.0 and no pending transition;
+the visible navigation window belongs to Launcher3's Taskbar, PID1332 /
+UID10122. These records do not include the actual Taskbar controller's
+internal intensity/override values. They establish neither a forced-light
+override nor an app callback or specific renderer defect. The previous
+PNG file/ZIP times cannot reconstruct capture boundaries or synchronize
+the host and guest clocks.
+
+The independently reviewed [header donor a72eb23c](https://github.com/Pick-Your-AI/pick-your-ai-android/commit/a72eb23c5c0d5be9cc41b0b1d770f466ece08050)
+admits the existing exact WindowManager prefix and exactly one preceding
+LF, as observed in all four originals. It preserves the complete raw text
+and its hashes, rejects unsupported prefixes, and leaves the failed
+modal-pixel predicate unchanged. Its own original test-only baseline
+has one causal failure and two controls passing; its source-owner full
+host command has265 distinct passes. Those executed donor results
+are separate from this diagnostic continuation's eventual checks.
+
+#### Bounded observation of the actual navigation-window owner
+
+The selected diagnostic addition uses the exact owned serial and:
+
+```text
+shell dumpsys -t 3 activity service com.android.launcher3/com.android.quickstep.TouchInteractionService
+```
+
+It follows each original05/06/07/08 PNG, existing WindowManager query and
+existing SystemUI query, once per checkpoint. Each query retains its
+5-second host budget, Android dumpsys3-second bound and262,144-character
+decoded-text retention cap. The added four queries contribute at most20
+requested timeout seconds; all12 queries total60 requested timeout
+seconds. There is no polling, alternate command or post-failure retry.
+These are retention limits, not a new subprocess stream-memory bound.
+The screenshot15-second timeout, boot/readiness/rotation/case assertions,
+owned cleanup and configured job timeout remain unchanged.
+
+The [qualified proposal6259688443](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/467#issuecomment-6259688443)
+traces the official Android15-r1
+[TouchInteractionService dump](https://android.googlesource.com/platform/packages/apps/Launcher3/+/refs/tags/android-15.0.0_r1/quickstep/src/com/android/quickstep/TouchInteractionService.java)
+through TaskbarManager and its context/controllers to
+[NavbarButtonsViewController](https://android.googlesource.com/platform/packages/apps/Launcher3/+/refs/tags/android-15.0.0_r1/quickstep/src/com/android/launcher3/taskbar/NavbarButtonsViewController.java).
+The qualified readers retain76107-byte/SHA256
+`efdb0c50645b5c77ca417b1b69faaed4c459a591800bd64dff046ac2954e45a2`
+and57876-byte/SHA256
+`fd5ef3f4a12986334648be44ce29d589fcbcbed084c501e9a0e51ca1233e8fbd`
+source files respectively. The publicly readable immutable
+[898b9af9 reference controller](https://android.googlesource.com/platform/packages/apps/Launcher3/+/898b9af9a28663b5bd4ab19e1db8fc43adb5fb52/quickstep/src/com/android/launcher3/taskbar/NavbarButtonsViewController.java)
+also exposes the same four numeric fields and color computation.
+Neither reference is claimed as an exact source mapping for the actual
+AE3A build12368160 image.
+
+Admission requires one named user0 Launcher TouchInteractionService,
+one nested TaskbarManager/context/controllers/NavbarButtonsViewController
+chain, the controller's explicit raw `mState`, and one finite value in
+[0,1] for each of:
+
+- `mTaskbarNavButtonDarkIntensity`
+- `mSlideInViewVisibleNavButtonColorOverride`
+- `mOnTaskbarBackgroundNavButtonColorOverride`
+- `mOnBackgroundNavButtonColorOverrideMultiplier`
+
+Raw values are retained, including finite Java scientific notation;
+missing, duplicate, blank, malformed, out-of-range or foreign-context
+values remain unqualified. The parser does not predict successful pixels
+from a tint value. A complete intensity0 with an active override could
+support a different next hypothesis from a retained intensity1 while
+SystemUI reports0; neither is an observation from the failed0a1 run.
+
+Each raw Taskbar result has the same source/APK/serial/profile and original
+PNG/XML hash binding as the existing two observations, a distinct
+`.taskbar.txt` member, exact decoded-text SHA, command/status/elapsed
+fields, and retained partial/error output. Missing service, stderr,
+timeout, truncation or ambiguous state remains unqualified. Errors do not
+erase later original checkpoints or substitute for a product-case result.
+The four product cases finish before final image/observation qualification.
+
+The same host process now records explicit `host_monotonic` start/end
+intervals around each original screencap and each separate query.
+Admission verifies finite ordered intervals within the existing15-second
+capture/5-second query limits, in the exact PNG → WMS → SystemUI →
+Taskbar order. It retains failure capture boundaries before rethrowing
+the original capture failure. These numbers have no UTC or guest-clock
+meaning; guest dump labels remain raw text. No clock-calibration query is
+added, and no cross-clock subtraction or atomic-rendering claim is made.
+
+The continuation's focused tests use the unchanged original444 bad
+strips, explicit synthetic positive canvases and reference-shaped mocked
+service text. A corrected installed modal remains required. The header
+donor, reviewed62df padding source and any accepted-main carry keep their
+separate source/execution attribution. No current run, fixed pixels,
+physical-device matrix or release acceptance is granted here.

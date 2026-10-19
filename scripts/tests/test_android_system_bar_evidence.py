@@ -110,6 +110,24 @@ def white_glyph_fixture():
     return canvas(bad)
 
 
+def taskbar_text():
+    # Pinned-reference field layout; this is synthetic, not a captured guest dump.
+    return (
+        'SERVICE com.android.launcher3/com.android.quickstep.TouchInteractionService abc pid=1332 user=0\n'
+        '  TaskbarManager:\n'
+        '    TaskbarActivityContext:\n'
+        '      TaskbarControllers:\n'
+        '        NavbarButtonsViewController:\n'
+        '          mState=FLAG_SMALL_SCREEN\n'
+        '          mTaskbarNavButtonDarkIntensity=0.0\n'
+        '          mSlideInViewVisibleNavButtonColorOverride=0.0\n'
+        '          mOnTaskbarBackgroundNavButtonColorOverride=0.0\n'
+        '          mOnBackgroundNavButtonColorOverrideMultiplier=1.0\n'
+        '        OtherController:\n'
+        '          mState=unchanged\n'
+    )
+
+
 class WindowDevice:
     def __init__(self):
         self.calls = []
@@ -120,6 +138,8 @@ class WindowDevice:
             'mNavBarBackgroundWindowCandidate=Window{456 u0 synthetic}\n', '')
         self.error = None
         self.light_error = None
+        self.taskbar_error = None
+        self.taskbar_result = subprocess.CompletedProcess([], 0, taskbar_text(), '')
         self.light_result = subprocess.CompletedProcess([], 0,
             'SERVICE com.android.systemui/.SystemUIService synthetic pid=123 user=0\n'
             'Dump starting: synthetic fixture\nLightBarController:\n'
@@ -133,6 +153,10 @@ class WindowDevice:
 
     def adb(self, *arguments, timeout, check):
         self.calls.append((arguments, timeout, check))
+        if arguments == getattr(SMOKE, 'SYSTEM_BAR_TASKBAR_QUERY', None):
+            if self.taskbar_error:
+                raise self.taskbar_error
+            return self.taskbar_result
         if arguments == SMOKE.SYSTEM_BAR_LIGHTBAR_QUERY:
             if self.light_error:
                 raise self.light_error
@@ -173,7 +197,9 @@ class SystemBarEvidenceTests(unittest.TestCase):
 
     def receipt(self):
         return {'source_commit': '1' * 40, 'unsigned_apk_sha256': '2' * 64,
-                'startup_display': {'profile': 'raster-720x1280-280'}}
+                'startup_display': {'profile': 'raster-720x1280-280'},
+                'system_bar_png_captures': {name: {'clock': 'host_monotonic', 'start': 0.0, 'end': 0.001}
+                                            for name in SMOKE.SYSTEM_BAR_CHECKPOINTS}}
 
     def passing_state(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -351,14 +377,15 @@ class SystemBarEvidenceTests(unittest.TestCase):
             original = (output / (name + '.png')).read_bytes()
             SMOKE.retain_system_bar_window(device, output, receipt, name)
             self.assertEqual(device.calls, [(SMOKE.SYSTEM_BAR_WINDOW_QUERY, 5, False),
-                                             (SMOKE.SYSTEM_BAR_LIGHTBAR_QUERY, 5, False)])
+                                             (SMOKE.SYSTEM_BAR_LIGHTBAR_QUERY, 5, False),
+                                             (SMOKE.SYSTEM_BAR_TASKBAR_QUERY, 5, False)])
             observed = receipt['system_bar_evidence']['window_observations'][name]
             self.assertEqual(observed['png_sha256'], hashlib.sha256(original).hexdigest())
             self.assertEqual((output / (name + '.png')).read_bytes(), original)
             self.assertEqual((output / observed['retained_text_file']).read_text(), device.result.stdout)
             with self.assertRaisesRegex(SMOKE.SmokeFailure, 'Duplicate'):
                 SMOKE.retain_system_bar_window(device, output, receipt, name)
-            self.assertEqual(len(device.calls), 2)
+            self.assertEqual(len(device.calls), 3)
 
     def test_observed_window_leading_linefeed_preserves_complete_raw_evidence(self):
         # Original0a1 full dumpsys window output has one leading LF. The PNGs
@@ -383,7 +410,7 @@ class SystemBarEvidenceTests(unittest.TestCase):
                 failure = str(error)
             self.assertIsNone(failure, 'Complete observed leading-LF window output must qualify')
             self.assertTrue(SMOKE.system_bar_evidence_passes(receipt['system_bar_evidence']))
-            self.assertEqual(len(device.calls), 8)
+            self.assertEqual(len(device.calls), 12)
 
     def test_window_header_does_not_admit_unobserved_prefixes(self):
         state = self.passing_state()
@@ -421,7 +448,7 @@ class SystemBarEvidenceTests(unittest.TestCase):
             self.assertEqual(observed['command']['stdout_tail'], 'WINDOW MANAGER partial')
             self.assertEqual(observed['command']['stderr']['prefix'], 'late')
             self.assertIn('command_timeout_seconds', observed['command'])
-            self.assertEqual(len(device.calls), 2)
+            self.assertEqual(len(device.calls), 3)
             self.assertEqual((output / observed['retained_text_file']).read_text(), 'WINDOW MANAGER partial')
 
     def test_window_failure_does_not_prevent_later_modal_observations(self):
@@ -431,8 +458,8 @@ class SystemBarEvidenceTests(unittest.TestCase):
             device.result.returncode = 1
             for name in SMOKE.SYSTEM_BAR_CHECKPOINTS:
                 SMOKE.retain_system_bar_window(device, output, receipt, name)
-            self.assertEqual(len(device.calls), 8)
-            self.assertEqual(sum(call[1] for call in device.calls), 40)
+            self.assertEqual(len(device.calls), 12)
+            self.assertEqual(sum(call[1] for call in device.calls), 60)
             with self.assertRaises(SMOKE.SmokeFailure):
                 SMOKE.qualify_system_bar_evidence(output, receipt)
             self.assertEqual(receipt['system_bar_evidence']['status'], 'failed')
@@ -488,6 +515,7 @@ class SystemBarEvidenceTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory)
             device, receipt, events = WindowDevice(), self.receipt(), []
+            receipt.pop('system_bar_png_captures')
             device.adb_path, device.env = Path('/never-executed/adb'), {}
             name = '05-pending-portrait'
             original_query = device.adb
@@ -501,7 +529,8 @@ class SystemBarEvidenceTests(unittest.TestCase):
                 return subprocess.CompletedProcess(args[0], 0, self.ordinary, b'')
 
             def query(*args, **kwargs):
-                events.append('lightbar' if args == SMOKE.SYSTEM_BAR_LIGHTBAR_QUERY else 'window')
+                events.append('lightbar' if args == SMOKE.SYSTEM_BAR_LIGHTBAR_QUERY else
+                              'taskbar' if args == SMOKE.SYSTEM_BAR_TASKBAR_QUERY else 'window')
                 self.assertEqual((output / (name + '.png')).read_bytes(), self.ordinary)
                 return original_query(*args, **kwargs)
 
@@ -510,7 +539,7 @@ class SystemBarEvidenceTests(unittest.TestCase):
             with mock.patch.object(ui, 'snapshot', return_value=ET.fromstring(self.reference_xml)), \
                     mock.patch.object(SMOKE.subprocess, 'run', side_effect=capture):
                 ui.checkpoint(name)
-            self.assertEqual(events, ['png', 'window', 'lightbar'])
+            self.assertEqual(events, ['png', 'window', 'lightbar', 'taskbar'])
             self.assertEqual((output / (name + '.png')).read_bytes(), self.ordinary)
 
 
@@ -524,7 +553,8 @@ class SystemBarEvidenceTests(unittest.TestCase):
             state = receipt['system_bar_evidence']
             light, window = state['light_bar_observations'][name], state['window_observations'][name]
             self.assertEqual(device.calls, [(SMOKE.SYSTEM_BAR_WINDOW_QUERY, 5, False),
-                                            (SMOKE.SYSTEM_BAR_LIGHTBAR_QUERY, 5, False)])
+                                            (SMOKE.SYSTEM_BAR_LIGHTBAR_QUERY, 5, False),
+                                             (SMOKE.SYSTEM_BAR_TASKBAR_QUERY, 5, False)])
             self.assertEqual(light['phase'], 'after_original_png_and_window_observation')
             self.assertEqual(light['png_sha256'], window['png_sha256'])
             self.assertEqual(light['xml_sha256'], window['xml_sha256'])
@@ -543,8 +573,8 @@ class SystemBarEvidenceTests(unittest.TestCase):
                 output=b'SERVICE com.android.systemui/.SystemUIService partial', stderr=b'late tint')
             for name in SMOKE.SYSTEM_BAR_CHECKPOINTS:
                 SMOKE.retain_system_bar_window(device, output, receipt, name)
-            self.assertEqual(len(device.calls), 8)
-            self.assertEqual(sum(call[1] for call in device.calls), 40)
+            self.assertEqual(len(device.calls), 12)
+            self.assertEqual(sum(call[1] for call in device.calls), 60)
             for row in receipt['system_bar_evidence']['light_bar_observations'].values():
                 self.assertIn('command_timeout_seconds', row['command'])
                 self.assertEqual(row['command']['stderr']['prefix'], 'late tint')
@@ -697,6 +727,223 @@ class SystemBarEvidenceTests(unittest.TestCase):
                 receipt['startup_display'] = display
             SMOKE.complete_receipt(receipt, 'a' * 40)
 
+
+    def rebound_taskbar(self, state, text, *, name=None):
+        name = name or SMOKE.SYSTEM_BAR_CHECKPOINTS[0]
+        row = state['taskbar_observations'][name]
+        row['command'].update(stdout=SMOKE.ui_stream_observation(text), stdout_tail=text)
+        row['retained_text_sha256'] = hashlib.sha256(text.encode('utf-8')).hexdigest()
+        return row
+
+    def test_taskbar_is_required_even_when_previous_images_and_queries_pass(self):
+        state = self.passing_state()
+        state.pop('taskbar_observations', None)
+        self.assertFalse(SMOKE.system_bar_evidence_passes(state),
+                         'SystemUI evidence cannot replace the actual Taskbar observation')
+
+    def test_taskbar_is_captured_once_after_existing_queries_without_replacing_originals(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory); self.write_checkpoints(output)
+            original = {p.name: p.read_bytes() for p in output.iterdir()}
+            device, receipt = WindowDevice(), self.receipt()
+            for name in SMOKE.SYSTEM_BAR_CHECKPOINTS:
+                SMOKE.retain_system_bar_window(device, output, receipt, name)
+            state = receipt['system_bar_evidence']
+            self.assertIn('taskbar_observations', state, 'Each original needs its actual renderer observation')
+            self.assertEqual(device.calls, [(query, 5, False) for _ in range(4) for query in
+                (SMOKE.SYSTEM_BAR_WINDOW_QUERY, SMOKE.SYSTEM_BAR_LIGHTBAR_QUERY, SMOKE.SYSTEM_BAR_TASKBAR_QUERY)])
+            for name, row in state['taskbar_observations'].items():
+                self.assertEqual(row['command']['stdout_tail'], device.taskbar_result.stdout)
+                self.assertEqual((output / row['retained_text_file']).read_bytes(),
+                                 device.taskbar_result.stdout.encode('utf-8'))
+                self.assertEqual(row['retained_text_sha256'],
+                                 hashlib.sha256(device.taskbar_result.stdout.encode('utf-8')).hexdigest())
+                self.assertEqual(row['png_sha256'], hashlib.sha256(original[name + '.png']).hexdigest())
+                self.assertEqual(row['xml_sha256'], hashlib.sha256(original[name + '.xml']).hexdigest())
+            self.assertEqual({name: (output / name).read_bytes() for name in original}, original)
+            SMOKE.qualify_system_bar_evidence(output, receipt)
+
+    def test_taskbar_timeout_retains_partial_error_and_all_later_original_checkpoints(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory); self.write_checkpoints(output, bad=True)
+            device, receipt = WindowDevice(), self.receipt()
+            device.taskbar_error = subprocess.TimeoutExpired(['owned'], 5,
+                output=b'SERVICE com.android.launcher3/com.android.quickstep.TouchInteractionService partial',
+                stderr=b'late taskbar')
+            for name in SMOKE.SYSTEM_BAR_CHECKPOINTS:
+                SMOKE.retain_system_bar_window(device, output, receipt, name)
+            self.assertEqual(len(device.calls), 12)
+            for row in receipt['system_bar_evidence']['taskbar_observations'].values():
+                self.assertEqual(row['error']['type'], 'TimeoutExpired')
+                self.assertIn('command_timeout_seconds', row['command'])
+                self.assertEqual(row['command']['stderr']['prefix'], 'late taskbar')
+                self.assertEqual((output / row['retained_text_file']).read_text(),
+                                 device.taskbar_error.stdout.decode('utf-8'))
+                self.assertTrue(SMOKE.system_bar_interval_passes(row['timing'], 5))
+            with self.assertRaises(SMOKE.SmokeFailure):
+                SMOKE.qualify_system_bar_evidence(output, receipt)
+            self.assertEqual([p['status'] for p in receipt['system_bar_evidence']['pairs'].values()],
+                             ['failed_contrast', 'failed_contrast'])
+
+    def test_taskbar_failed_transport_and_unbound_identity_never_qualify(self):
+        original = self.passing_state()
+        name = SMOKE.SYSTEM_BAR_CHECKPOINTS[0]
+        for mutate in (
+                lambda s: s['taskbar_observations'].pop(name),
+                lambda s: s['taskbar_observations'][name].update(png_sha256='0' * 64),
+                lambda s: s['taskbar_observations'][name].update(xml_sha256='0' * 64),
+                lambda s: s['taskbar_observations'][name].update(retained_text_sha256='0' * 64),
+                lambda s: s['taskbar_observations'][name].update(retained_text_file='foreign.txt'),
+                lambda s: s['taskbar_observations'][name].update(phase='before_original_png'),
+                lambda s: s['taskbar_observations'][name].update(error={'type': 'OSError'}),
+                lambda s: s['taskbar_observations'][name]['command'].update(exit_code=1),
+                lambda s: s['taskbar_observations'][name]['command'].update(exit_code=True),
+                lambda s: s['taskbar_observations'][name]['command'].update(timeout_seconds=6),
+                lambda s: s['taskbar_observations'][name]['command'].update(seconds=5.001),
+                lambda s: s['taskbar_observations'][name]['command'].update(stdout_tail_truncated=True),
+                lambda s: s['taskbar_observations'][name]['command'].update(stderr=SMOKE.ui_stream_observation('error')),
+                lambda s: s['taskbar_observations'][name]['command'].update(arguments=['shell', 'dumpsys', 'activity'])):
+            candidate = copy.deepcopy(original); mutate(candidate)
+            self.assertFalse(SMOKE.system_bar_evidence_passes(candidate))
+        for marker in ('DUMP TIMEOUT', 'Error dumping service info:'):
+            candidate = copy.deepcopy(original)
+            self.rebound_taskbar(candidate, taskbar_text() + marker + '\n')
+            self.assertFalse(SMOKE.system_bar_evidence_passes(candidate))
+
+    def test_taskbar_unambiguous_target_and_controller_scope_are_required(self):
+        original = self.passing_state()
+        raw = taskbar_text()
+        candidates = (
+            raw.replace('com.android.launcher3/', 'foreign.package/'),
+            raw.replace('user=0', 'user=10'),
+            raw.replace('pid=1332', 'pid=0'),
+            raw + raw.splitlines()[0] + '\n',
+            '\n'.join(raw.splitlines()[1:]) + '\n' + raw.splitlines()[0] + '\n',
+            raw.replace('TaskbarActivityContext:\n', 'TaskbarActivityContext: null\n'),
+            raw.replace('TaskbarControllers:\n', 'DestroyedTaskbarControllers:\n'),
+            raw.replace('      TaskbarControllers:\n', '  TaskbarControllers:\n'),
+            raw.replace('    TaskbarActivityContext:\n', '    OtherContext:\n') + 'TaskbarActivityContext:\n',
+            raw.replace('          mTaskbarNavButtonDarkIntensity=', '          unrelated.mTaskbarNavButtonDarkIntensity='),
+            raw + 'NavbarButtonsViewController:\n',
+            raw.replace('          mTaskbarNavButtonDarkIntensity=0.0\n', '') +
+                'mTaskbarNavButtonDarkIntensity=0.0\n',
+            raw.replace('          mState=FLAG_SMALL_SCREEN\n', ''),
+            raw.replace('          mState=FLAG_SMALL_SCREEN\n', '          mState=\n          mState=\n'),
+        )
+        for text in candidates:
+            candidate = copy.deepcopy(original); self.rebound_taskbar(candidate, text)
+            with self.subTest(text=text):
+                self.assertFalse(SMOKE.system_bar_evidence_passes(candidate))
+
+    def test_taskbar_finite_fields_accept_reference_float_forms_without_defaulting(self):
+        original = self.passing_state()
+        fields = ('mTaskbarNavButtonDarkIntensity', 'mSlideInViewVisibleNavButtonColorOverride',
+                  'mOnTaskbarBackgroundNavButtonColorOverride', 'mOnBackgroundNavButtonColorOverrideMultiplier')
+        for field in fields:
+            for value in ('0.0', '1.0', '1.0E-4', '9.999999E-4', '+.5', '-0.0'):
+                candidate = copy.deepcopy(original)
+                raw = re.sub(r'\b' + field + r'=\S*', field + '=' + value, taskbar_text())
+                self.rebound_taskbar(candidate, raw)
+                with self.subTest(field=field, value=value):
+                    self.assertTrue(SMOKE.system_bar_evidence_passes(candidate))
+        # These values record a possible override; they are not interpreted as
+        # a pass/fail tint prediction. Only the paired original pixels decide it.
+        candidate = copy.deepcopy(original)
+        raw = taskbar_text().replace('mOnTaskbarBackgroundNavButtonColorOverride=0.0',
+                                    'mOnTaskbarBackgroundNavButtonColorOverride=1.0')
+        self.rebound_taskbar(candidate, raw)
+        self.assertTrue(SMOKE.system_bar_evidence_passes(candidate))
+
+    def test_taskbar_missing_duplicate_blank_or_invalid_floats_fail_full_admission(self):
+        original = self.passing_state()
+        fields = ('mTaskbarNavButtonDarkIntensity', 'mSlideInViewVisibleNavButtonColorOverride',
+                  'mOnTaskbarBackgroundNavButtonColorOverride', 'mOnBackgroundNavButtonColorOverrideMultiplier')
+        for field in fields:
+            for value in ('', 'NaN', 'Infinity', '-0.0001', '1.0001', '1e999', '1..0', '0,5', '1.0f'):
+                candidate = copy.deepcopy(original)
+                raw = re.sub(r'\b' + field + r'=\S*', field + '=' + value, taskbar_text())
+                self.rebound_taskbar(candidate, raw)
+                with self.subTest(field=field, value=value):
+                    self.assertFalse(SMOKE.system_bar_evidence_passes(candidate))
+            for duplicate in (field + '=\n', field + '=0.0\n'):
+                candidate = copy.deepcopy(original)
+                raw = taskbar_text().replace('        OtherController:\n', '          ' + duplicate +
+                                             '        OtherController:\n')
+                self.rebound_taskbar(candidate, raw)
+                self.assertFalse(SMOKE.system_bar_evidence_passes(candidate))
+
+    def test_host_intervals_preserve_png_window_lightbar_taskbar_order(self):
+        original = self.passing_state()
+        name = SMOKE.SYSTEM_BAR_CHECKPOINTS[0]
+        for kind in ('png_capture', 'window', 'lightbar', 'taskbar'):
+            for value in (None, {}, {'clock': 'guest_uptime', 'start': 1.0, 'end': 2.0},
+                          {'clock': 'host_monotonic', 'start': True, 'end': 2.0},
+                          {'clock': 'host_monotonic', 'start': float('nan'), 'end': 2.0},
+                          {'clock': 'host_monotonic', 'start': 1.0, 'end': float('inf')},
+                          {'clock': 'host_monotonic', 'start': 2.0, 'end': 1.0},
+                          {'clock': 'host_monotonic', 'start': -1.0, 'end': 0.0},
+                          {'clock': 'host_monotonic', 'start': 1.0, 'end': 16.001}):
+                candidate = copy.deepcopy(original)
+                if kind == 'png_capture':
+                    candidate['window_observations'][name]['png_capture'] = value
+                else:
+                    key = {'window': 'window_observations', 'lightbar': 'light_bar_observations',
+                           'taskbar': 'taskbar_observations'}[kind]
+                    candidate[key][name]['timing'] = value
+                with self.subTest(kind=kind, value=value):
+                    self.assertFalse(SMOKE.system_bar_evidence_passes(candidate))
+        for earlier, later in (('capture', 'window'), ('window', 'lightbar'), ('lightbar', 'taskbar')):
+            candidate = copy.deepcopy(original)
+            rows = {'capture': candidate['window_observations'][name]['png_capture'],
+                    'window': candidate['window_observations'][name]['timing'],
+                    'lightbar': candidate['light_bar_observations'][name]['timing'],
+                    'taskbar': candidate['taskbar_observations'][name]['timing']}
+            rows[later].update(start=rows[earlier]['start'], end=rows[earlier]['start'])
+            self.assertFalse(SMOKE.system_bar_evidence_passes(candidate))
+
+    def test_actual_capture_records_monotonic_bounds_and_unchanged_screencap_budget(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory); device, receipt = WindowDevice(), self.receipt()
+            receipt.pop('system_bar_png_captures')
+            device.adb_path, device.env = Path('/never-executed/adb'), {}
+            ui = SMOKE.Ui(device, output, receipt)
+            name = SMOKE.SYSTEM_BAR_CHECKPOINTS[0]
+            clock = iter(float(n) / 100 for n in range(100))
+            with mock.patch.object(SMOKE.time, 'monotonic', side_effect=lambda: next(clock)), \
+                    mock.patch.object(ui, 'snapshot', return_value=ET.fromstring(self.reference_xml)), \
+                    mock.patch.object(SMOKE.subprocess, 'run',
+                                      return_value=subprocess.CompletedProcess([], 0, self.ordinary, b'')) as run:
+                ui.checkpoint(name)
+            self.assertEqual(run.call_args.args[0],
+                ['/never-executed/adb', '-s', SMOKE.SERIAL, 'exec-out', 'screencap', '-p'])
+            self.assertEqual(run.call_args.kwargs['timeout'], 15)
+            self.assertTrue(run.call_args.kwargs['check'])
+            state = receipt['system_bar_evidence']
+            times = [state['window_observations'][name]['png_capture']] + [
+                state[k][name]['timing'] for k in
+                ('window_observations', 'light_bar_observations', 'taskbar_observations')]
+            self.assertEqual(times[0], {'clock': 'host_monotonic', 'start': 0.0, 'end': 0.01})
+            self.assertTrue(all(SMOKE.system_bar_interval_passes(t, 15 if i == 0 else 5)
+                                for i, t in enumerate(times)))
+            self.assertTrue(all(a['end'] <= b['start'] for a, b in zip(times, times[1:])))
+            self.assertEqual((output / (name + '.png')).read_bytes(), self.ordinary)
+
+    def test_failed_original_png_retains_its_interval_without_starting_diagnostics(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory); device, receipt = WindowDevice(), self.receipt()
+            receipt.pop('system_bar_png_captures')
+            device.adb_path, device.env = Path('/never-executed/adb'), {}
+            ui = SMOKE.Ui(device, output, receipt)
+            original = subprocess.TimeoutExpired(['owned'], 15, output=b'partial png')
+            with mock.patch.object(ui, 'snapshot', return_value=ET.fromstring(self.reference_xml)), \
+                    mock.patch.object(SMOKE.subprocess, 'run', side_effect=original):
+                with self.assertRaises(subprocess.TimeoutExpired) as raised:
+                    ui.checkpoint(SMOKE.SYSTEM_BAR_CHECKPOINTS[0])
+            self.assertIs(raised.exception, original)
+            self.assertEqual(device.calls, [])
+            self.assertNotIn('system_bar_evidence', receipt)
+            capture = receipt['system_bar_png_captures'][SMOKE.SYSTEM_BAR_CHECKPOINTS[0]]
+            self.assertTrue(SMOKE.system_bar_interval_passes(capture, 15))
 
 
 if __name__ == '__main__':
