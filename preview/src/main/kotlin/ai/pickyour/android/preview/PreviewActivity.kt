@@ -99,6 +99,7 @@ class PreviewActivity : Activity() {
     private lateinit var findings: FindingsInspectionSection
     private lateinit var snapshots: SnapshotEvaluationSection
     private lateinit var diagnostics: LocalDiagnostics
+    private lateinit var help: LocalHelp
     private var diagnosticsResumed = false
     private var entryBlocked = false
     private var unsupportedEntry = false
@@ -347,6 +348,8 @@ class PreviewActivity : Activity() {
             )
         }, { !destroyed && diagnosticsResumed })
         diagnostics.attach(content)
+        help = LocalHelp(this, { !destroyed && diagnosticsResumed }, diagnostics::show)
+        help.attach(content)
         setContentView(ScrollView(this).apply { addView(content) })
         content.setOnApplyWindowInsetsListener { view, insets ->
             val padding = (24 * resources.displayMetrics.density).toInt()
@@ -1334,6 +1337,7 @@ class PreviewActivity : Activity() {
     override fun onPause() {
         diagnosticsResumed = false
         if (::diagnostics.isInitialized) diagnostics.dismiss()
+        if (::help.isInitialized) help.dismiss()
         if (::snapshots.isInitialized) snapshots.dismiss()
         super.onPause()
     }
@@ -1343,6 +1347,7 @@ class PreviewActivity : Activity() {
         if (::findings.isInitialized) findings.close()
         if (::snapshots.isInitialized) snapshots.close()
         if (::diagnostics.isInitialized) diagnostics.close()
+        if (::help.isInitialized) help.close()
         if (::catalogPinRecovery.isInitialized) catalogPinRecovery.close()
         catalogDetailDialog?.dismiss()
         catalogDetailDialog = null
