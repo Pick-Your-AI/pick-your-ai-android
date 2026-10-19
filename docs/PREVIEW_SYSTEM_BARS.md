@@ -2,7 +2,8 @@
 
 This correction is a bounded continuation of [Android #80](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/80)
 and [Android #64](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/64).
-It fixes the preview's fixed viewport insets and light-theme system-bar contrast.
+It fixes the preview's fixed viewport insets and ordinary light-theme system-bar contrast.
+The modal navigation-icon defect remains unresolved in the installed evidence below.
 The existing owners retain the separate scroll/focus/caret checkpoint and checked-choice work.
 
 ## Observed defect
@@ -16,7 +17,7 @@ Its eight original PNG/XML pairs show scrolled form content behind the system ba
 the status icons are light against the preview's light background. This visual
 observation does not change the passing lifecycle results or qualify later source.
 
-The same setup remains in accepted main `e8241ef4ea75071339e6a945e48fc6d433819ffa`.
+The same setup was present in then-accepted main `e8241ef4ea75071339e6a945e48fc6d433819ffa`.
 The inset listener pads the inner `LinearLayout`, so that protection moves with the
 content when its `ScrollView` scrolls. The platform light theme does not explicitly
 select dark status-bar icons. Android 15 enforces edge-to-edge for target SDK 35,
@@ -50,7 +51,7 @@ Primary platform references checked on 2026-10-18:
 - [Insets for Views](https://developer.android.com/develop/ui/views/layout/edge-to-edge#system-bars-insets)
 - [System-bar theme appearance](https://developer.android.com/develop/ui/views/layout/edge-to-edge-manually)
 
-## Floating-dialog navigation icons
+## Historical theme-only dialog correction
 
 The combined installed [run 39174016224](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39174016224)
 on actual checkout `97824529d15e6a2d6c8e9189eca74aa622008396`, tree
@@ -63,20 +64,23 @@ measured pixel-pair contrast of 1.583:1. The six nonmodal screenshots use the sa
 icons over RGB 250,250,250, measuring 8.974:1. These bounded measurements do not
 establish full accessibility compliance or invalidate the passing lifecycle cases.
 
-The API 27 theme now selects an alert-dialog overlay that explicitly requests
-light navigation icons for the floating window. Its parent remains the platform
+The theme-only [donor 59b](https://github.com/Pick-Your-AI/pick-your-ai-android/commit/59b003334530f7afb56b988993b67f36f203af06)
+selected an API 27 alert-dialog overlay that explicitly requests light navigation
+icons for the floating window. Its parent remains the platform
 `ThemeOverlay.Material.Dialog.Alert`; normal modal dimming and all existing dialog
-behavior remain. The underlying Activity retains its own light-background/dark-icon
-appearance throughout showing, dismissal and repeated dialogs. The API 26 theme
-and its inherited navigation appearance are unchanged. No per-dialog callback,
-Activity focus hook or global system-UI state mutation is introduced.
+behavior remain. The underlying Activity kept its own light-background/dark-icon
+appearance throughout showing, dismissal and repeated dialogs in that revision. The API 26 theme
+and its inherited navigation appearance are unchanged in that revision. The
+theme-only donor introduced no per-dialog callback or Activity focus hook; the
+subsequent focus-callback revision is described below.
 
-This follows the pinned Android 15 framework's
+That proposal followed the pinned Android 15 framework's
 [dialog theme overlay](https://android.googlesource.com/platform/frameworks/base/+/android-15.0.0_r1/core/res/res/values/themes_material.xml),
 [window appearance initialization](https://android.googlesource.com/platform/frameworks/base/+/android-15.0.0_r1/core/java/com/android/internal/policy/PhoneWindow.java)
 and [dimming-window navigation appearance selection](https://android.googlesource.com/platform/frameworks/base/+/android-15.0.0_r1/services/core/java/com/android/server/wm/DisplayPolicy.java),
-inspected on 2026-10-18. Corrected installed pixels require a new run of the selected
-source; the original 978 screenshots remain the before-correction evidence.
+inspected on 2026-10-18. This source reasoning did not establish corrected installed
+pixels: the subsequent 444 result below retained the defect. The original 978
+screenshots remain evidence of the earlier source.
 
 ## Validation scope
 
@@ -133,6 +137,20 @@ not proof that a particular dialog owns focus. Existing dialog instances,
 listeners, dim amount, pending form and persistence behavior are retained. Three
 API28 native simulations explicitly drive the real Activity callback through a
 shown confirmation, repeated focus changes and recreation. They cover the
-legacy branch and local state, not API30+ WindowManager propagation. The effective
-API35 appearance, both modal frames and restored ordinary bars still require
-fresh original installed evidence from the chosen receiving source.
+legacy branch and local state, not API30+ WindowManager propagation.
+
+The subsequent installed [run 39185018484](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39185018484)
+used actual receiving commit `929e5ff80261389d1fe6dedf02155ab639201505`, tree
+`450f9f827f18f987b1e101dcfa4e41d240417624`, containing this callback. Its original
+artifact `12157967432` is 985,700 bytes, SHA-256
+`48de1986eab336410a20650971de12f5c2f060fb6f1c429b59fe21eb22ed1116`.
+The [independent original review](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/467#issuecomment-6257903467)
+qualified all four functional cases and exact cleanup, while both modal 06/08
+images still showed RGB 69,70,79 icons on RGB 100,100,100, measuring 1.582846:1.
+The six ordinary samples measured 8.973861:1 on RGB 250,250,250. These observations
+do not establish whether the callback ran or which window controlled the tint.
+
+Both original 444 and 929 modal failures remain regression evidence. A further
+window correction requires actual source-bound WindowManager and SystemUI
+observations and new original installed modal and restored ordinary images;
+source reasoning and passing callback simulations do not establish that outcome.
