@@ -54,6 +54,109 @@ jobs:
         run: sha256sum --check gradle/wrapper/wrapper.sha256
       - name: Compile and test JVM core
         run: ./gradlew --no-daemon --dependency-verification=strict --init-script scripts/runtime_inventory.init.gradle.kts :core:check :core:assemble runtimeInventory
+      - name: Require complete retained-snapshot and frozen evaluator regressions
+        run: |
+          python - <<'PYTEST'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          expected = {
+              'ai.pickyour.core.evaluation.RetainedSnapshotEvaluationTest': {
+                  'actual retained bundle reproduces the complete no-evidence Python golden and keeps both times()',
+                  'request captures every exact pin and remains independent of copied bytes and source deletion()',
+                  'mathematical revisions above Long remain exact in request report and digest()',
+                  'same Build bytes with different retained-only source and retry authority stay distinct()',
+                  'retained Pricebook changes exact input identity without supplying cost metrics()',
+                  'missing requested evidence does not erase independently checked supplied evidence()',
+                  'even fully bound declared complete and calibrated estimates are explicitly withheld()',
+                  'optional evidence distinguishes malformed wrong-version wrong-type foreign and wrong-hash inputs()',
+                  'malformed Build and foreign exact graph locks reject without hiding other binding diagnostics()',
+                  'original artifact hash mismatch rejects before a report can be prepared()',
+                  'schema-valid integral decimal Build spelling stays explicitly unsupported by the local evaluator()',
+                  'unknown profile and reader budgets withhold instead of silently selecting another version()',
+                  'cancelled work and unavailable observation clock do not return a report()',
+              },
+              'ai.pickyour.core.preview.PreviewSnapshotAnalysisTest': {
+                  'real archived input runs on the worker and only the delivered request becomes current()',
+                  'cancel before queued read prevents evaluation and late work cannot restore state()',
+                  'cancel after computation but before delivery rejects the completed report()',
+                  'switching snapshots prevents an older delivered result from replacing the selected identity()',
+                  'same entry retry and ABA selection require new opaque request authority()',
+                  'a real result for another Build or revision is rejected by the active delivery boundary()',
+                  'a result from an equivalent earlier request cannot complete a newer attempt()',
+                  'source deletion does not revoke an independently retained historical read()',
+                  'captured old index permits historical inspection without repairing missing current index()',
+                  'foreign archive receipt and missing retained bytes never select a replacement()',
+                  'unsupported numeric profile produces a recoverable explicit failure()',
+                  'worker and delivery rejection expose failure instead of an apparent current result()',
+                  'evaluator and observer exceptions cannot manufacture a report or strand a completed attempt()',
+                  'close retires both queued phases and cannot be reopened by an old or fresh caller()',
+              },
+              'ai.pickyour.core.drafts.SnapshotArchiveInspectionTest': {
+                  'inspection cannot initialize an unused namespace or reconstruct a lost seal or index()',
+                  'inspection captures the exact existing index without activation or source liveness()',
+              },
+              'ai.pickyour.core.evaluation.FrozenDiagnosticEvaluatorTest': {
+                  'raw numeric spelling reaches the strict reader unchanged()',
+                  'streams remain open and repeated runs have independent budgets()',
+                  'ambiguous selections remain unknown without guessing first match()',
+                  'derived VRAM accepts exact 28 digits and rejects a rounded 29 digit product()',
+                  'string scans charge their full work before execution()',
+                  'foreign catalog and rules locks reject before report creation()',
+                  'schema valid swapped catalog identities reject kind mismatch()',
+                  'raw floating and exponent operands reject even nested or opposite missing()',
+                  'original-strict-False',
+                  'original-strict-True',
+                  'decimal-equal',
+                  'decimal-boundary',
+                  'decimal-zero',
+                  'decimal-string-nonnumeric',
+                  'bool-python-equality',
+                  'nested-container-equality',
+                  'nested-no-string-coercion',
+                  'nested-containment',
+                  'substring',
+                  'empty-substring',
+                  'in-array',
+                  'subset',
+                  'intersection',
+                  'empty-intersection',
+                  'missing',
+                  'all-false-dominates',
+                  'any-true-dominates',
+                  'not-unknown',
+                  'implies-false',
+                  'exists-null',
+                  'exists-false',
+                  'skipped',
+                  'unknown-applicability',
+                  'warning-failure',
+                  'set operands stay unsupported with opposite missing()',
+                  'duplicate identities reject across all three documents()',
+                  'budget exhaustion never emits a partial compatible report()',
+                  'unsupported version and malformed field reject()',
+                  'selected item version mismatch is rejected before metrics()',
+                  'reference exceptions stay unsupported rather than invented verdicts()',
+                  'recursive container containment charges nested comparisons()',
+                  'nested string comparisons consume containment work()',
+                  'float encoded identity revisions remain unsupported()',
+                  'ASCII array pointer preserves leading zeros and missing paths()',
+              },
+          }
+          total = 0
+          for name, required in expected.items():
+              path = pathlib.Path('core/build/test-results/test') / ("TEST-" + name + ".xml")
+              suite = ET.parse(path).getroot()
+              cases = suite.findall("testcase")
+              names = [case.attrib["name"] for case in cases]
+              if suite.attrib.get("name") != name or not required <= set(names) or len(names) != len(set(names)):
+                  raise SystemExit("Missing, foreign or repeated retained-snapshot regression")
+              if int(suite.attrib["tests"]) != len(cases) or any(int(suite.attrib.get(key, "0")) != 0 for key in ("failures", "errors", "skipped")):
+                  raise SystemExit("Retained-snapshot suite did not execute cleanly")
+              if any(case.findall("failure") or case.findall("error") or case.findall("skipped") for case in cases):
+                  raise SystemExit("Retained-snapshot regression did not pass")
+              total += len(cases)
+          print(f"Verified {total} retained-snapshot and frozen evaluator cases; native execution remains separate")
+          PYTEST
       - name: Require every conformance fixture and private migration observation
         run: |
           mkdir -p build/conformance
@@ -272,6 +375,7 @@ jobs:
               "hostileLiteralTextCannotReplaceLabelsAndLongTextIsExplicitlyTruncated",
               "boundedLinesAndListsDiscloseCountsWhileTotalsRetainEveryLine",
               "oversizedDecimalUsesBoundedCanonicalDisclosureWithoutAFalseRoundedAmount",
+              "schemaPermittedTerminalNewlineQuantityRemainsLiteralWithoutCrashing",
               "absentLinesAndUnknownCoverageStayUnpricedWithoutManufacturedCompleteness",
           }
           cost_cases = cost_suite.findall("testcase")
@@ -492,6 +596,33 @@ jobs:
               raise SystemExit("Foundation selection regression did not pass")
           print(f"Verified {len(cases)} simulated foundation selection cases; no installed-device claim")
           PYTEST
+      - name: Require core planning guidance regressions to execute
+        run: |
+          python - <<'PYTEST'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          qualified = "ai.pickyour.android.preview.T6PlanningActivityTest"
+          report = pathlib.Path("preview/build/test-results/testDebugUnitTest/TEST-" + qualified + ".xml")
+          suite = ET.parse(report).getroot()
+          required = {
+              "coreOnlyPlanningStaysVisibleBeforeSaveAfterSaveAndAfterRecreation",
+              "savedChoicesRemainConfigurationAndPendingEditsNeverReplaceTheirRevision",
+              "openingDraftWithholdsOldCountsUntilTheReadCompletes",
+              "eachPlanningActionReachesItsExactKindWithoutChangingPendingOrSavedDrafts",
+              "narrowRtlLargeTextKeepsPlanningActionsAndTheirCatalogDestinationsReachable",
+          }
+          cases = suite.findall("testcase")
+          names = [case.attrib["name"] for case in cases]
+          if suite.attrib.get("name") != qualified or any(case.attrib.get("classname") != qualified for case in cases):
+              raise SystemExit("Wrong core planning guidance test suite")
+          if not required <= set(names) or len(names) != len(set(names)):
+              raise SystemExit("Missing or repeated core planning guidance regression")
+          if int(suite.attrib["tests"]) != len(cases) or any(int(suite.attrib[key]) != 0 for key in ("failures", "errors", "skipped")):
+              raise SystemExit("Core planning guidance report totals do not match passing execution")
+          if any(case.findall("failure") or case.findall("error") or case.findall("skipped") for case in cases):
+              raise SystemExit("Core planning guidance regression did not pass")
+          print(f"Verified {len(cases)} simulated core planning guidance cases; no installed-device claim")
+          PYTEST
       - name: Require explicit retrieval selection regressions to execute
         run: |
           python - <<'PYTEST'
@@ -553,6 +684,71 @@ jobs:
           if any(case.findall("failure") or case.findall("error") or case.findall("skipped") for case in cases):
               raise SystemExit("Agent selection regression did not pass")
           print(f"Verified {len(cases)} simulated agent selection cases; no installed-device claim")
+          PYTEST
+      - name: Require explicit training selection regressions to execute
+        run: |
+          python - <<'PYTEST'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          qualified = "ai.pickyour.android.preview.TrainingSelectionActivityTest"
+          report = pathlib.Path("preview/build/test-results/testDebugUnitTest/TEST-" + qualified + ".xml")
+          suite = ET.parse(report).getroot()
+          required = {
+              "allTrainingKindsExposeExplicitInputAndReopenWithoutCreatingAnotherComponent",
+              "invalidMethodsRangesLineageAndUrisKeepTheEntireFormWithoutSavingOrOpeningAnArtifact",
+              "exactTrainingSettingsAndComponentStatesSurviveExplicitTierDisableReopenAndReenable",
+              "severalEnabledTrainingRolesCoexistWhileDuplicateRolesAndRemovalPreserveOtherSelections",
+              "unchangedTrainingSettingsRoleAndExactCatalogReplacementDoNotCreateRevisions",
+              "pendingTrainingFormsKeepAllFourKindsAndExactInputAcrossParcelRecreationWithoutOldConsent",
+              "canceledAndCatalogStaleTrainingControlsCannotSaveOrSubstituteAnotherSnapshot",
+              "aNewerSavedHeadKeepsRecoveredTrainingInputReadOnlyWithoutRebasingIt",
+              "aSavingTrainingCheckpointCannotReplayAfterItsOriginalWriteIsAcknowledged",
+              "narrowRtlLargeTextKeepsTrainingGuidanceFieldsAndConfirmationReachable",
+          }
+          cases = suite.findall("testcase")
+          names = [case.attrib["name"] for case in cases]
+          if suite.attrib.get("name") != qualified or any(case.attrib.get("classname") != qualified for case in cases):
+              raise SystemExit("Wrong training selection test suite")
+          if not required <= set(names) or len(names) != len(set(names)):
+              raise SystemExit("Missing or repeated training selection regression")
+          if int(suite.attrib["tests"]) != len(cases) or any(int(suite.attrib[key]) != 0 for key in ("failures", "errors", "skipped")):
+              raise SystemExit("Training selection report totals do not match passing execution")
+          if any(case.findall("failure") or case.findall("error") or case.findall("skipped") for case in cases):
+              raise SystemExit("Training selection regression did not pass")
+          print(f"Verified {len(cases)} simulated training selection cases; no installed-device claim")
+          PYTEST
+      - name: Require core guardrail and evaluation selection regressions to execute
+        run: |
+          python - <<'PYTEST'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          qualified = "ai.pickyour.android.preview.GuardrailSelectionActivityTest"
+          report = pathlib.Path("preview/build/test-results/testDebugUnitTest/TEST-" + qualified + ".xml")
+          suite = ET.parse(report).getroot()
+          required = {
+              "coreGuidanceRemainsPresentBeforeSavingAndWhenCatalogChoicesAreUnavailable",
+              "bothCoreKindsRequireExplicitInputsAndReopenWithoutAnotherSelectionOrGate",
+              "invalidEnumsUnknownsAndProposedEvidenceKeepExactInputWithoutSaving",
+              "exactCoreInputsAndGuidanceSurviveEveryOptionalTierStateAndRecreation",
+              "severalEnabledGuardrailRolesCoexistAndDuplicateRolesCannotDisplaceAnotherControl",
+              "unchangedCoreSettingsRoleAndCatalogReplacementKeepTheExistingRevision",
+              "pendingCoreFormsKeepBothKindsAndExactInputAcrossParcelRecreationWithoutOldConsent",
+              "canceledOrCatalogStaleCoreControlsCannotSaveOrSubstituteAnotherSnapshot",
+              "aNewerSavedHeadKeepsRecoveredEvaluationInputReadOnlyWithoutRebasingIt",
+              "aSavingGuardrailCheckpointCannotReplayAfterItsOriginalWriteIsAcknowledged",
+              "narrowRtlLargeTextKeepsCoreGuidanceAndBothFormsReachable",
+          }
+          cases = suite.findall("testcase")
+          names = [case.attrib["name"] for case in cases]
+          if suite.attrib.get("name") != qualified or any(case.attrib.get("classname") != qualified for case in cases):
+              raise SystemExit("Wrong guardrail and evaluation selection test suite")
+          if not required <= set(names) or len(names) != len(set(names)):
+              raise SystemExit("Missing or repeated guardrail and evaluation selection regression")
+          if int(suite.attrib["tests"]) != len(cases) or any(int(suite.attrib[key]) != 0 for key in ("failures", "errors", "skipped")):
+              raise SystemExit("Guardrail and evaluation selection report totals do not match passing execution")
+          if any(case.findall("failure") or case.findall("error") or case.findall("skipped") for case in cases):
+              raise SystemExit("Guardrail and evaluation selection regression did not pass")
+          print(f"Verified {len(cases)} simulated guardrail and evaluation selection cases; no installed-device claim")
           PYTEST
       - name: Require complete recorded-price browser regressions to execute
         run: |
@@ -898,6 +1094,76 @@ jobs:
           assert all(not case.findall("failure") and not case.findall("error") and not case.findall("skipped") for case in cases), "Current-choice accessibility regression did not pass"
           assert int(suite.attrib["tests"]) >= len(expected)
           print(f"Verified {len(cases)} simulated current-choice accessibility tests; no installed TalkBack claim")
+          PYTEST
+      - name: Require real saved-snapshot inspection regressions
+        run: |
+          python - <<'PYTEST'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          expected = {
+              'ai.pickyour.android.preview.SnapshotEvaluationActivityTest': {
+                  'actualActivityMissingArchiveRemainsMissingAndPendingEditorIsPreserved',
+                  'actualActivityReadsExactRetainedInputsAfterSourceDeletionWithoutEvaluatingPendingEdits',
+                  'emptyAndPartiallyLostNamespacesAreExplicitWithoutIndexOrSealRepair',
+                  'cancelledAndReplacedPickersCannotOpenRetainedItemCallbacks',
+                  'cancelBeforeQueuedEvaluationPreventsEngineWorkAndFreshRetryWorks',
+                  'cancelAfterComputationBeforeDeliveryDropsReportAndRetryHasFreshAuthority',
+                  'replacementRejectsOldResultAndOldRetryEvenWhenTheSameEntryIsSelectedAgain',
+                  'switchingBuildRevisionsCannotShowThePreviousCompletedReport',
+                  'currentIndexLossAfterSelectionKeepsOnlyHistoricalReadAuthority',
+                  'missingRetainedBundleHasNoFallbackAndExactRestorationRequiresExplicitRetry',
+                  'actualForeignBuildAndRevisionResultsAreRejectedBeforeBecomingVisible',
+                  'schemaValidUnsupportedRuleOperandIsExplicitAndDoesNotAlterSavedBytes',
+                  'dispatchRejectionIsRecoverableAndClosingDiscardsBothQueuedPhases',
+                  'actualActivityPauseAndRecreationRetireQueuedInventoryAndOldDialogControls',
+              },
+          }
+          total = 0
+          for name, required in expected.items():
+              path = pathlib.Path('preview/build/test-results/testDebugUnitTest') / ("TEST-" + name + ".xml")
+              suite = ET.parse(path).getroot()
+              cases = suite.findall("testcase")
+              names = [case.attrib["name"] for case in cases]
+              if suite.attrib.get("name") != name or not required <= set(names) or len(names) != len(set(names)):
+                  raise SystemExit("Missing, foreign or repeated retained-snapshot regression")
+              if int(suite.attrib["tests"]) != len(cases) or any(int(suite.attrib.get(key, "0")) != 0 for key in ("failures", "errors", "skipped")):
+                  raise SystemExit("Retained-snapshot suite did not execute cleanly")
+              if any(case.findall("failure") or case.findall("error") or case.findall("skipped") for case in cases):
+                  raise SystemExit("Retained-snapshot regression did not pass")
+              total += len(cases)
+          print(f"Verified {total} simulated saved-snapshot inspection cases; no installed-device claim")
+          PYTEST
+      - name: Require catalog viewport restoration regressions to execute
+        run: |
+          python - <<'PYTEST'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          expected_suites = {
+              "CatalogViewportTest": {
+                  "sameSnapshotRestoresExactRowOffsetAfterUpstreamLayoutChangesOnlyOnce",
+                  "incompleteLoadingRetainsAnchorAcrossAnotherRecreation",
+                  "changedSnapshotMissingRowWrongVersionAndUnknownFormatNeverRestore",
+                  "newUserNavigationCancelsPendingRestoration",
+                  "closedViewportAndSnapshotChangedBeforeDrawCannotMoveRetiredScroll",
+                  "observerTransferredDuringAttachmentIsRemovedAfterRestoration",
+                  "directAndAccessibilityDetailActionsCancelPendingRestoration",
+                  "editorOnlyPositionDoesNotInventACatalogAnchor",
+                  "planningKindNavigationCancelsPendingRestoration",
+                  "unknownPlanningKindKeepsPendingRestoration",
+                  "changedGeometryAndExtremeOffsetsKeepTheExactRowVisibleWithoutOverflow",
+              },
+              "PreviewCatalogViewportTest": {
+                  "catalogRowPositionSurvivesDetailsAndActivityRecreationWithoutDraftWrites",
+              },
+          }
+          for name, expected in expected_suites.items():
+              report = pathlib.Path(f"preview/build/test-results/testDebugUnitTest/TEST-ai.pickyour.android.preview.{name}.xml")
+              suite = ET.parse(report).getroot()
+              cases = suite.findall("testcase")
+              assert expected <= {case.attrib["name"] for case in cases}, f"Missing {name} regression"
+              assert all(not case.findall("failure") and not case.findall("error") and not case.findall("skipped") for case in cases), f"{name} regression did not pass"
+              assert int(suite.attrib["tests"]) >= len(expected)
+              print(f"Verified {len(cases)} simulated {name} tests; no installed-device claim")
           PYTEST
       - name: Record the unsigned APK handoff after successful build and simulation
         id: apk-handoff
