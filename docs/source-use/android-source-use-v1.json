@@ -1,0 +1,1052 @@
+{
+  "profile": "android-source-use/v1",
+  "register_version": 1,
+  "purpose": "Offline intake planning for the selected Android guest-local text-planning slice. This is not a frozen-v1 contract, publisher permission or production approval.",
+  "research": {
+    "repository": "Pick-Your-AI/pick-your-ai-research",
+    "revision": "2dd26314de99f8e4c7f12d63215f95f1c10d1646",
+    "inputs": {
+      "rights": {
+        "path": "research/market/rights-validation.md",
+        "git_blob": "2fb0aa8d4c51448f111dbc82a8123206646f61c6",
+        "bytes": 24965,
+        "sha256": "83b031b721205d6f88d4d27b5bbc003045c524372aea7127b2e9627fae556873"
+      },
+      "source_policy": {
+        "path": "research/T0-configuration/catalog-data-sources.md",
+        "git_blob": "c862112312d45bbe13b9e9261b8f83ee581cafa6",
+        "bytes": 76248,
+        "sha256": "42dc339caf0eb4c77b480e1e1be3bf84bea9bf983b585878623d5d23cc311bb7"
+      },
+      "integrations": {
+        "path": "research/market/integrations.json",
+        "git_blob": "159766a48d7ec4460cbdc327dd5033d9f1b137a7",
+        "bytes": 36320,
+        "sha256": "2fd9692555a41518fc372a541923a0285766b74709a5e5d8f657d862ebd8b5ad"
+      }
+    },
+    "receiving_receipt": "https://github.com/Pick-Your-AI/pick-your-ai-research/issues/60#issuecomment-6248616771"
+  },
+  "android_scope": {
+    "issue": 24,
+    "accepted_revision": "93bebf787a091fe4858c1c70fd07cabefe17170f",
+    "record": "docs/delivery/android/work-packages/01.02.md",
+    "current_source": "554e1984e8923c5f098887a01f64be9e87ce3961"
+  },
+  "intended_uses": [
+    "automated_retrieval",
+    "commercial_display",
+    "offline_caching",
+    "retention",
+    "redistribution",
+    "export"
+  ],
+  "promotion_profile": "no_approved_sources",
+  "records": [
+    {
+      "id": "models-dev",
+      "source_id": "src-models-dev",
+      "label": "models.dev",
+      "material_id": "repository-compilation",
+      "material_scope": "Repository model/provider compilation data at the reviewed repository scope.",
+      "excluded_materials": [
+        "Third-party model binaries, provider branding and upstream measurements are not licensed by this compilation."
+      ],
+      "primary_references": [
+        "https://github.com/anomalyco/models.dev/blob/84a113860a478edfbbf42c8cce4d7ad76fa48d9d/LICENSE"
+      ],
+      "inventory_observed_on": "2026-10-16",
+      "material_review_observed_on": "2026-10-18",
+      "research_record_sha256": "83ab1616bd241189b6f83f41e30b23b9847ba0118ef843894cc7505b464efa06",
+      "research_integration_status": "Not approved for integration",
+      "ingestion_path": "conditional_source_basis",
+      "uses": {
+        "automated_retrieval": {
+          "disposition": "conditional_basis",
+          "research_value": "yes",
+          "basis": {
+            "input": "integrations",
+            "section": "Per-source reuse decisions",
+            "record": "models-dev",
+            "use": "reuse_permitted.automated_retrieval"
+          },
+          "conditions": [
+            "Public repository and site JSON"
+          ]
+        },
+        "commercial_display": {
+          "disposition": "conditional_basis",
+          "research_value": "yes",
+          "basis": {
+            "input": "integrations",
+            "section": "Per-source reuse decisions",
+            "record": "models-dev",
+            "use": "reuse_permitted.display"
+          },
+          "conditions": [
+            "Keep the MIT copyright and permission notice with copied data"
+          ]
+        },
+        "offline_caching": {
+          "disposition": "not_reviewed",
+          "research_value": "unrepresented_android_use",
+          "basis": {
+            "input": "source_policy",
+            "section": "Typed source-policy inventory (proposal)",
+            "record": "rights eligibility",
+            "use": "offline_caching"
+          },
+          "conditions": [
+            "No accepted Android-specific offline-cache use and conditions are supplied by this finite input. Do not infer them from another use or licence label."
+          ]
+        },
+        "retention": {
+          "disposition": "not_reviewed",
+          "research_value": "unrepresented_android_use",
+          "basis": {
+            "input": "source_policy",
+            "section": "Typed source-policy inventory (proposal)",
+            "record": "rights eligibility",
+            "use": "retention"
+          },
+          "conditions": [
+            "No accepted Android-specific retention period, deletion trigger and retained-material terms are supplied by this finite input. Do not infer them from another use or licence label."
+          ]
+        },
+        "redistribution": {
+          "disposition": "conditional_basis",
+          "research_value": "yes",
+          "basis": {
+            "input": "integrations",
+            "section": "Per-source reuse decisions",
+            "record": "models-dev",
+            "use": "reuse_permitted.redistribution"
+          },
+          "conditions": [
+            "Keep the MIT copyright and permission notice"
+          ]
+        },
+        "export": {
+          "disposition": "conditional_basis",
+          "research_value": "yes",
+          "basis": {
+            "input": "integrations",
+            "section": "Per-source reuse decisions",
+            "record": "models-dev",
+            "use": "reuse_permitted.redistribution"
+          },
+          "conditions": [
+            "Keep the MIT copyright and permission notice",
+            "The reviewed rights definition includes bulk export within redistribution; no grant is transferred to a different material or profile."
+          ]
+        }
+      }
+    },
+    {
+      "id": "modelfit",
+      "source_id": "src-modelfit",
+      "label": "ModelFit dataset",
+      "material_id": "licensed-dataset",
+      "material_scope": "Publisher-licensed hardware-fit dataset; retain the estimate label. The mirror licence check did not verify payload equivalence.",
+      "excluded_materials": [
+        "Generator/CLI code has a separate licence. Upstream benchmark measurements and actual fit accuracy are not accepted by this dataset decision."
+      ],
+      "primary_references": [
+        "https://modelfit.io/terms/",
+        "https://modelfit.io/data/",
+        "https://github.com/Wecko-ai/modelfit-hardware-dataset/blob/6fa130db0efa61a5b7ac242fb400c632ab730c52/LICENSE"
+      ],
+      "inventory_observed_on": "2026-10-18",
+      "material_review_observed_on": "2026-10-18",
+      "research_record_sha256": "c2b941e0362fdae49c2c4353b7b383f6edde725ee656e0fadc5d4c7654fdac1f",
+      "research_integration_status": "Not approved for integration",
+      "ingestion_path": "conditional_source_basis",
+      "uses": {
+        "automated_retrieval": {
+          "disposition": "conditional_basis",
+          "research_value": "yes",
+          "basis": {
+            "input": "integrations",
+            "section": "Per-source reuse decisions",
+            "record": "modelfit",
+            "use": "reuse_permitted.automated_retrieval"
+          },
+          "conditions": [
+            "Use the documented export or mirrors"
+          ]
+        },
+        "commercial_display": {
+          "disposition": "conditional_basis",
+          "research_value": "yes",
+          "basis": {
+            "input": "integrations",
+            "section": "Per-source reuse decisions",
+            "record": "modelfit",
+            "use": "reuse_permitted.display"
+          },
+          "conditions": [
+            "Credit 'ModelFit (modelfit.io)', link the licence, indicate changes"
+          ]
+        },
+        "offline_caching": {
+          "disposition": "not_reviewed",
+          "research_value": "unrepresented_android_use",
+          "basis": {
+            "input": "source_policy",
+            "section": "Typed source-policy inventory (proposal)",
+            "record": "rights eligibility",
+            "use": "offline_caching"
+          },
+          "conditions": [
+            "No accepted Android-specific offline-cache use and conditions are supplied by this finite input. Do not infer them from another use or licence label."
+          ]
+        },
+        "retention": {
+          "disposition": "not_reviewed",
+          "research_value": "unrepresented_android_use",
+          "basis": {
+            "input": "source_policy",
+            "section": "Typed source-policy inventory (proposal)",
+            "record": "rights eligibility",
+            "use": "retention"
+          },
+          "conditions": [
+            "No accepted Android-specific retention period, deletion trigger and retained-material terms are supplied by this finite input. Do not infer them from another use or licence label."
+          ]
+        },
+        "redistribution": {
+          "disposition": "conditional_basis",
+          "research_value": "yes",
+          "basis": {
+            "input": "integrations",
+            "section": "Per-source reuse decisions",
+            "record": "modelfit",
+            "use": "reuse_permitted.redistribution"
+          },
+          "conditions": [
+            "Same attribution; keep the licence notice"
+          ]
+        },
+        "export": {
+          "disposition": "conditional_basis",
+          "research_value": "yes",
+          "basis": {
+            "input": "integrations",
+            "section": "Per-source reuse decisions",
+            "record": "modelfit",
+            "use": "reuse_permitted.redistribution"
+          },
+          "conditions": [
+            "Same attribution; keep the licence notice",
+            "The reviewed rights definition includes bulk export within redistribution; no grant is transferred to a different material or profile."
+          ]
+        }
+      }
+    },
+    {
+      "id": "llmfit",
+      "source_id": "src-llmfit",
+      "label": "llmfit",
+      "material_id": "repository-data",
+      "material_scope": "Data in the reviewed llmfit repository, retaining its MIT notice.",
+      "excluded_materials": [
+        "The llmfit.org website, model binaries and independent fit measurements are separate material."
+      ],
+      "primary_references": [
+        "https://github.com/AlexsJones/llmfit/blob/e915091dd58f7fefaa9814d2d34ee61bd754fdc0/LICENSE"
+      ],
+      "inventory_observed_on": "2026-10-16",
+      "material_review_observed_on": "2026-10-18",
+      "research_record_sha256": "7147c8b8002756baebc48700aa560f6afcee5769fa5dba6685ab120aba141c41",
+      "research_integration_status": "Not approved for integration",
+      "ingestion_path": "conditional_source_basis",
+      "uses": {
+        "automated_retrieval": {
+          "disposition": "conditional_basis",
+          "research_value": "yes",
+          "basis": {
+            "input": "integrations",
+            "section": "Per-source reuse decisions",
+            "record": "llmfit",
+            "use": "reuse_permitted.automated_retrieval"
+          },
+          "conditions": [
+            "Repository, local CLI JSON or local REST (/api/v1/models)"
+          ]
+        },
+        "commercial_display": {
+          "disposition": "conditional_basis",
+          "research_value": "yes",
+          "basis": {
+            "input": "integrations",
+            "section": "Per-source reuse decisions",
+            "record": "llmfit",
+            "use": "reuse_permitted.display"
+          },
+          "conditions": [
+            "Keep the MIT notice; use repository data, not llmfit.org website content"
+          ]
+        },
+        "offline_caching": {
+          "disposition": "not_reviewed",
+          "research_value": "unrepresented_android_use",
+          "basis": {
+            "input": "source_policy",
+            "section": "Typed source-policy inventory (proposal)",
+            "record": "rights eligibility",
+            "use": "offline_caching"
+          },
+          "conditions": [
+            "No accepted Android-specific offline-cache use and conditions are supplied by this finite input. Do not infer them from another use or licence label."
+          ]
+        },
+        "retention": {
+          "disposition": "not_reviewed",
+          "research_value": "unrepresented_android_use",
+          "basis": {
+            "input": "source_policy",
+            "section": "Typed source-policy inventory (proposal)",
+            "record": "rights eligibility",
+            "use": "retention"
+          },
+          "conditions": [
+            "No accepted Android-specific retention period, deletion trigger and retained-material terms are supplied by this finite input. Do not infer them from another use or licence label."
+          ]
+        },
+        "redistribution": {
+          "disposition": "conditional_basis",
+          "research_value": "yes",
+          "basis": {
+            "input": "integrations",
+            "section": "Per-source reuse decisions",
+            "record": "llmfit",
+            "use": "reuse_permitted.redistribution"
+          },
+          "conditions": [
+            "Keep the MIT notice"
+          ]
+        },
+        "export": {
+          "disposition": "conditional_basis",
+          "research_value": "yes",
+          "basis": {
+            "input": "integrations",
+            "section": "Per-source reuse decisions",
+            "record": "llmfit",
+            "use": "reuse_permitted.redistribution"
+          },
+          "conditions": [
+            "Keep the MIT notice",
+            "The reviewed rights definition includes bulk export within redistribution; no grant is transferred to a different material or profile."
+          ]
+        }
+      }
+    },
+    {
+      "id": "openrouter",
+      "source_id": "src-openrouter",
+      "label": "OpenRouter",
+      "material_id": "service-information",
+      "material_scope": "Site/service and model-metadata information covered by the reviewed service terms.",
+      "excluded_materials": [
+        "A public API does not override the automated-copying exclusion; no written permission was acquired."
+      ],
+      "primary_references": [
+        "https://openrouter.ai/terms"
+      ],
+      "inventory_observed_on": "2026-10-16",
+      "material_review_observed_on": "2026-10-18",
+      "research_record_sha256": "12ab9a6b8ec4c1321faf22a942603e81a9615da2865b7120d35a5f5c7cfa8faf",
+      "research_integration_status": "Not approved for integration",
+      "ingestion_path": "manual_research_only",
+      "uses": {
+        "automated_retrieval": {
+          "disposition": "excluded",
+          "research_value": "no",
+          "basis": {
+            "input": "integrations",
+            "section": "Per-source reuse decisions",
+            "record": "openrouter",
+            "use": "reuse_permitted.automated_retrieval"
+          },
+          "conditions": [
+            "Needs written permission, including for collecting model metadata through the public API"
+          ]
+        },
+        "commercial_display": {
+          "disposition": "excluded",
+          "research_value": "no",
+          "basis": {
+            "input": "integrations",
+            "section": "Per-source reuse decisions",
+            "record": "openrouter",
+            "use": "reuse_permitted.display"
+          },
+          "conditions": [
+            "Link only"
+          ]
+        },
+        "offline_caching": {
+          "disposition": "not_reviewed",
+          "research_value": "unrepresented_android_use",
+          "basis": {
+            "input": "source_policy",
+            "section": "Typed source-policy inventory (proposal)",
+            "record": "rights eligibility",
+            "use": "offline_caching"
+          },
+          "conditions": [
+            "No accepted Android-specific offline-cache use and conditions are supplied by this finite input. Do not infer them from another use or licence label."
+          ]
+        },
+        "retention": {
+          "disposition": "not_reviewed",
+          "research_value": "unrepresented_android_use",
+          "basis": {
+            "input": "source_policy",
+            "section": "Typed source-policy inventory (proposal)",
+            "record": "rights eligibility",
+            "use": "retention"
+          },
+          "conditions": [
+            "No accepted Android-specific retention period, deletion trigger and retained-material terms are supplied by this finite input. Do not infer them from another use or licence label."
+          ]
+        },
+        "redistribution": {
+          "disposition": "excluded",
+          "research_value": "no",
+          "basis": {
+            "input": "integrations",
+            "section": "Per-source reuse decisions",
+            "record": "openrouter",
+            "use": "reuse_permitted.redistribution"
+          },
+          "conditions": [
+            "None"
+          ]
+        },
+        "export": {
+          "disposition": "excluded",
+          "research_value": "no",
+          "basis": {
+            "input": "integrations",
+            "section": "Per-source reuse decisions",
+            "record": "openrouter",
+            "use": "reuse_permitted.redistribution"
+          },
+          "conditions": [
+            "None",
+            "The reviewed rights definition includes bulk export within redistribution; no grant is transferred to a different material or profile."
+          ]
+        }
+      }
+    },
+    {
+      "id": "mcp-registry",
+      "source_id": "src-mcp-registry",
+      "label": "MCP registry",
+      "material_id": "registry-metadata",
+      "material_scope": "Official registry metadata, with provenance and project annotations kept separate.",
+      "excluded_materials": [
+        "Server packages/binaries and repository code/documentation licences are separate. Listing is not trust, security, compatibility or execution certification."
+      ],
+      "primary_references": [
+        "https://github.com/modelcontextprotocol/registry/blob/11b7b0e274d518b6f449c5ee3518a6151d9848b9/LICENSE",
+        "https://github.com/modelcontextprotocol/registry/blob/11b7b0e274d518b6f449c5ee3518a6151d9848b9/docs/design/ecosystem-vision.md",
+        "https://github.com/modelcontextprotocol/registry/blob/11b7b0e274d518b6f449c5ee3518a6151d9848b9/docs/design/design-principles.md"
+      ],
+      "inventory_observed_on": "2026-10-16",
+      "material_review_observed_on": "2026-10-18",
+      "research_record_sha256": "c35f8f566710863e23c713123ef7ff51b6ab67dd34f091c0dec1109c55f1752a",
+      "research_integration_status": "Not approved for integration",
+      "ingestion_path": "conditional_source_basis",
+      "uses": {
+        "automated_retrieval": {
+          "disposition": "conditional_basis",
+          "research_value": "yes",
+          "basis": {
+            "input": "integrations",
+            "section": "Per-source reuse decisions",
+            "record": "mcp-registry",
+            "use": "reuse_permitted.automated_retrieval"
+          },
+          "conditions": [
+            "Respect rate limits; cache (design tolerates 24h downtime)"
+          ]
+        },
+        "commercial_display": {
+          "disposition": "conditional_basis",
+          "research_value": "yes",
+          "basis": {
+            "input": "integrations",
+            "section": "Per-source reuse decisions",
+            "record": "mcp-registry",
+            "use": "reuse_permitted.display"
+          },
+          "conditions": [
+            "A listing is not a compatibility or security certification; keep our annotations separate from publisher metadata"
+          ]
+        },
+        "offline_caching": {
+          "disposition": "not_reviewed",
+          "research_value": "unrepresented_android_use",
+          "basis": {
+            "input": "source_policy",
+            "section": "Typed source-policy inventory (proposal)",
+            "record": "rights eligibility",
+            "use": "offline_caching"
+          },
+          "conditions": [
+            "No accepted Android-specific offline-cache use and conditions are supplied by this finite input. Do not infer them from another use or licence label.",
+            "The research row explicitly supports downstream metadata caching; an Android offline-copy/retention application has not been received. Its 24-hour downtime observation is not a retention TTL."
+          ]
+        },
+        "retention": {
+          "disposition": "not_reviewed",
+          "research_value": "unrepresented_android_use",
+          "basis": {
+            "input": "source_policy",
+            "section": "Typed source-policy inventory (proposal)",
+            "record": "rights eligibility",
+            "use": "retention"
+          },
+          "conditions": [
+            "No accepted Android-specific retention period, deletion trigger and retained-material terms are supplied by this finite input. Do not infer them from another use or licence label."
+          ]
+        },
+        "redistribution": {
+          "disposition": "conditional_basis",
+          "research_value": "yes",
+          "basis": {
+            "input": "integrations",
+            "section": "Per-source reuse decisions",
+            "record": "mcp-registry",
+            "use": "reuse_permitted.redistribution"
+          },
+          "conditions": [
+            "As a downstream registry; credit the official registry; same separation"
+          ]
+        },
+        "export": {
+          "disposition": "conditional_basis",
+          "research_value": "yes",
+          "basis": {
+            "input": "integrations",
+            "section": "Per-source reuse decisions",
+            "record": "mcp-registry",
+            "use": "reuse_permitted.redistribution"
+          },
+          "conditions": [
+            "As a downstream registry; credit the official registry; same separation",
+            "The reviewed rights definition includes bulk export within redistribution; no grant is transferred to a different material or profile."
+          ]
+        }
+      }
+    },
+    {
+      "id": "hugging-face",
+      "source_id": "src-hugging-face",
+      "label": "Hugging Face Hub",
+      "material_id": "public-factual-identifiers",
+      "material_scope": "Public factual repository identifiers, revisions, declared licence and size with links, within the Services scope.",
+      "excluded_materials": [
+        "Model-card text, weights, datasets, private/gated content, branding and other repository material need their own applicable basis."
+      ],
+      "primary_references": [
+        "https://huggingface.co/terms-of-service"
+      ],
+      "inventory_observed_on": "2026-10-16",
+      "material_review_observed_on": "2026-10-18",
+      "research_record_sha256": "57fb5c3c7a45539491525b798a7956df70065ed7ced7027119d79c8f5c833ea1",
+      "research_integration_status": "Not approved for integration",
+      "ingestion_path": "conditional_source_basis",
+      "uses": {
+        "automated_retrieval": {
+          "disposition": "conditional_basis",
+          "research_value": "yes",
+          "basis": {
+            "input": "integrations",
+            "section": "Per-source reuse decisions",
+            "record": "hugging-face",
+            "use": "reuse_permitted.automated_retrieval"
+          },
+          "conditions": [
+            "Documented Hub API; respect rate limits; exclude gated and private repositories unless their terms are accepted"
+          ]
+        },
+        "commercial_display": {
+          "disposition": "conditional_basis",
+          "research_value": "yes",
+          "basis": {
+            "input": "integrations",
+            "section": "Per-source reuse decisions",
+            "record": "hugging-face",
+            "use": "reuse_permitted.display"
+          },
+          "conditions": [
+            "Factual identifiers only (repository id, revision, declared licence, size) with a link; model-card text and files only as the repository's licence allows"
+          ]
+        },
+        "offline_caching": {
+          "disposition": "not_reviewed",
+          "research_value": "unrepresented_android_use",
+          "basis": {
+            "input": "source_policy",
+            "section": "Typed source-policy inventory (proposal)",
+            "record": "rights eligibility",
+            "use": "offline_caching"
+          },
+          "conditions": [
+            "No accepted Android-specific offline-cache use and conditions are supplied by this finite input. Do not infer them from another use or licence label."
+          ]
+        },
+        "retention": {
+          "disposition": "not_reviewed",
+          "research_value": "unrepresented_android_use",
+          "basis": {
+            "input": "source_policy",
+            "section": "Typed source-policy inventory (proposal)",
+            "record": "rights eligibility",
+            "use": "retention"
+          },
+          "conditions": [
+            "No accepted Android-specific retention period, deletion trigger and retained-material terms are supplied by this finite input. Do not infer them from another use or licence label."
+          ]
+        },
+        "redistribution": {
+          "disposition": "excluded",
+          "research_value": "no",
+          "basis": {
+            "input": "integrations",
+            "section": "Per-source reuse decisions",
+            "record": "hugging-face",
+            "use": "reuse_permitted.redistribution"
+          },
+          "conditions": [
+            "Allowed per repository only where its licence permits"
+          ]
+        },
+        "export": {
+          "disposition": "excluded",
+          "research_value": "no",
+          "basis": {
+            "input": "integrations",
+            "section": "Per-source reuse decisions",
+            "record": "hugging-face",
+            "use": "reuse_permitted.redistribution"
+          },
+          "conditions": [
+            "Allowed per repository only where its licence permits",
+            "The reviewed rights definition includes bulk export within redistribution; no grant is transferred to a different material or profile."
+          ]
+        }
+      }
+    },
+    {
+      "id": "artificial-analysis",
+      "source_id": "src-artificial-analysis",
+      "label": "Artificial Analysis",
+      "material_id": "site-and-platform-data",
+      "material_scope": "Site and Data Platform data under the reviewed product-category exclusions.",
+      "excluded_materials": [
+        "Manual market-research citation is separate from developing a model/provider-selection product. No written consent was acquired."
+      ],
+      "primary_references": [
+        "https://artificialanalysis.ai/docs/legal/Terms-of-Use.pdf",
+        "https://artificialanalysiscdn.com/legal/ProDataPlatformTerms.pdf"
+      ],
+      "inventory_observed_on": "2026-10-16",
+      "material_review_observed_on": "2026-10-18",
+      "research_record_sha256": "73899be2e27399068bae9e9c7c9a48ca6b9c7190ef8e6533288a55a52a9267df",
+      "research_integration_status": "Not approved for integration",
+      "ingestion_path": "manual_research_only",
+      "uses": {
+        "automated_retrieval": {
+          "disposition": "excluded",
+          "research_value": "no",
+          "basis": {
+            "input": "integrations",
+            "section": "Per-source reuse decisions",
+            "record": "artificial-analysis",
+            "use": "reuse_permitted.automated_retrieval"
+          },
+          "conditions": [
+            "Needs written consent"
+          ]
+        },
+        "commercial_display": {
+          "disposition": "excluded",
+          "research_value": "no",
+          "basis": {
+            "input": "integrations",
+            "section": "Per-source reuse decisions",
+            "record": "artificial-analysis",
+            "use": "reuse_permitted.display"
+          },
+          "conditions": [
+            "Link only"
+          ]
+        },
+        "offline_caching": {
+          "disposition": "not_reviewed",
+          "research_value": "unrepresented_android_use",
+          "basis": {
+            "input": "source_policy",
+            "section": "Typed source-policy inventory (proposal)",
+            "record": "rights eligibility",
+            "use": "offline_caching"
+          },
+          "conditions": [
+            "No accepted Android-specific offline-cache use and conditions are supplied by this finite input. Do not infer them from another use or licence label."
+          ]
+        },
+        "retention": {
+          "disposition": "not_reviewed",
+          "research_value": "unrepresented_android_use",
+          "basis": {
+            "input": "source_policy",
+            "section": "Typed source-policy inventory (proposal)",
+            "record": "rights eligibility",
+            "use": "retention"
+          },
+          "conditions": [
+            "No accepted Android-specific retention period, deletion trigger and retained-material terms are supplied by this finite input. Do not infer them from another use or licence label."
+          ]
+        },
+        "redistribution": {
+          "disposition": "excluded",
+          "research_value": "no",
+          "basis": {
+            "input": "integrations",
+            "section": "Per-source reuse decisions",
+            "record": "artificial-analysis",
+            "use": "reuse_permitted.redistribution"
+          },
+          "conditions": [
+            "None"
+          ]
+        },
+        "export": {
+          "disposition": "excluded",
+          "research_value": "no",
+          "basis": {
+            "input": "integrations",
+            "section": "Per-source reuse decisions",
+            "record": "artificial-analysis",
+            "use": "reuse_permitted.redistribution"
+          },
+          "conditions": [
+            "None",
+            "The reviewed rights definition includes bulk export within redistribution; no grant is transferred to a different material or profile."
+          ]
+        }
+      }
+    },
+    {
+      "id": "benchlm",
+      "source_id": "src-benchlm",
+      "label": "BenchLM",
+      "material_id": "owned-service-outputs",
+      "material_scope": "BenchLM-owned service outputs and compiled feeds.",
+      "excluded_materials": [
+        "Original-publisher measurements and separately permitted quotations/embeds retain their own scopes. No account, plan or display/feed agreement was acquired."
+      ],
+      "primary_references": [
+        "https://benchlm.ai/data/access",
+        "https://benchlm.ai/terms"
+      ],
+      "inventory_observed_on": "2026-10-18",
+      "material_review_observed_on": "2026-10-18",
+      "research_record_sha256": "01b44f02ee9849ba8f4dc3bf29f9f3420d5656e2f1ba9d7bf34932a5aef21701",
+      "research_integration_status": "Not approved for integration",
+      "ingestion_path": "separate_agreement_required",
+      "uses": {
+        "automated_retrieval": {
+          "disposition": "excluded",
+          "research_value": "yes",
+          "basis": {
+            "input": "integrations",
+            "section": "Per-source reuse decisions",
+            "record": "benchlm",
+            "use": "reuse_permitted.automated_retrieval"
+          },
+          "conditions": [
+            "REST or MCP with an account key, within plan limits",
+            "This access basis covers internal queries/analysis, not the proposed Android product feed. A separate applicable agreement is absent."
+          ]
+        },
+        "commercial_display": {
+          "disposition": "excluded",
+          "research_value": "no",
+          "basis": {
+            "input": "integrations",
+            "section": "Per-source reuse decisions",
+            "record": "benchlm",
+            "use": "reuse_permitted.display"
+          },
+          "conditions": [
+            "Needs a separate display agreement; individual quotations and attributed embeds keep their existing permissions"
+          ]
+        },
+        "offline_caching": {
+          "disposition": "not_reviewed",
+          "research_value": "unrepresented_android_use",
+          "basis": {
+            "input": "source_policy",
+            "section": "Typed source-policy inventory (proposal)",
+            "record": "rights eligibility",
+            "use": "offline_caching"
+          },
+          "conditions": [
+            "No accepted Android-specific offline-cache use and conditions are supplied by this finite input. Do not infer them from another use or licence label."
+          ]
+        },
+        "retention": {
+          "disposition": "not_reviewed",
+          "research_value": "unrepresented_android_use",
+          "basis": {
+            "input": "source_policy",
+            "section": "Typed source-policy inventory (proposal)",
+            "record": "rights eligibility",
+            "use": "retention"
+          },
+          "conditions": [
+            "No accepted Android-specific retention period, deletion trigger and retained-material terms are supplied by this finite input. Do not infer them from another use or licence label."
+          ]
+        },
+        "redistribution": {
+          "disposition": "excluded",
+          "research_value": "no",
+          "basis": {
+            "input": "integrations",
+            "section": "Per-source reuse decisions",
+            "record": "benchlm",
+            "use": "reuse_permitted.redistribution"
+          },
+          "conditions": [
+            "Needs separately agreed scope"
+          ]
+        },
+        "export": {
+          "disposition": "excluded",
+          "research_value": "no",
+          "basis": {
+            "input": "integrations",
+            "section": "Per-source reuse decisions",
+            "record": "benchlm",
+            "use": "reuse_permitted.redistribution"
+          },
+          "conditions": [
+            "Needs separately agreed scope",
+            "The reviewed rights definition includes bulk export within redistribution; no grant is transferred to a different material or profile."
+          ]
+        }
+      }
+    },
+    {
+      "id": "harness-bench",
+      "source_id": "src-harness-bench",
+      "label": "Harness-Bench paper",
+      "material_id": "paper-v2",
+      "material_scope": "Only the licensed arXiv v2 paper material; preserve author, title and version identity.",
+      "excluded_materials": [
+        "The separately unlicensed repository tasks, code, trajectories and catalog files are not covered by the paper licence. No benchmark validity or result comparability is inferred."
+      ],
+      "primary_references": [
+        "https://arxiv.org/abs/2605.27922v2",
+        "https://creativecommons.org/licenses/by/4.0/legalcode.en",
+        "https://github.com/Qihoo360/harness-bench/tree/b8d89634c6f445fcc68ceb6744a59bef6cdf4863"
+      ],
+      "inventory_observed_on": "2026-10-18",
+      "material_review_observed_on": "2026-10-18",
+      "research_record_sha256": "a2961e00ded006e2b94fd7c827d3f471e7f8a1c95167f7e1d41219864befc42c",
+      "research_integration_status": "Not approved for integration",
+      "ingestion_path": "manual_research_only",
+      "uses": {
+        "automated_retrieval": {
+          "disposition": "excluded",
+          "research_value": "yes",
+          "basis": {
+            "input": "integrations",
+            "section": "Per-source reuse decisions",
+            "record": "harness-bench",
+            "use": "reuse_permitted.automated_retrieval"
+          },
+          "conditions": [
+            "The recorded automated access is for internal research only. It is not a product-ingestion grant."
+          ]
+        },
+        "commercial_display": {
+          "disposition": "conditional_basis",
+          "research_value": "paper_only",
+          "basis": {
+            "input": "rights",
+            "section": "Decisions; bounded source recheck",
+            "record": "Harness Bench",
+            "use": "commercial_display"
+          },
+          "conditions": [
+            "Only licensed paper v2 material: retain authors/title/version, source and licence links, supplied notices and change indications. No endorsement or rights to separate repository files is supplied."
+          ]
+        },
+        "offline_caching": {
+          "disposition": "not_reviewed",
+          "research_value": "unrepresented_android_use",
+          "basis": {
+            "input": "source_policy",
+            "section": "Typed source-policy inventory (proposal)",
+            "record": "rights eligibility",
+            "use": "offline_caching"
+          },
+          "conditions": [
+            "No accepted Android-specific offline-cache use and conditions are supplied by this finite input. Do not infer them from another use or licence label."
+          ]
+        },
+        "retention": {
+          "disposition": "not_reviewed",
+          "research_value": "unrepresented_android_use",
+          "basis": {
+            "input": "source_policy",
+            "section": "Typed source-policy inventory (proposal)",
+            "record": "rights eligibility",
+            "use": "retention"
+          },
+          "conditions": [
+            "No accepted Android-specific retention period, deletion trigger and retained-material terms are supplied by this finite input. Do not infer them from another use or licence label."
+          ]
+        },
+        "redistribution": {
+          "disposition": "conditional_basis",
+          "research_value": "paper_only",
+          "basis": {
+            "input": "rights",
+            "section": "Decisions; bounded source recheck",
+            "record": "Harness Bench",
+            "use": "redistribution"
+          },
+          "conditions": [
+            "Only licensed paper v2 material: retain authors/title/version, source and licence links, supplied notices and change indications. No endorsement or rights to separate repository files is supplied."
+          ]
+        },
+        "export": {
+          "disposition": "conditional_basis",
+          "research_value": "paper_only",
+          "basis": {
+            "input": "rights",
+            "section": "Decisions; bounded source recheck",
+            "record": "Harness Bench",
+            "use": "redistribution"
+          },
+          "conditions": [
+            "Only licensed paper v2 material: retain authors/title/version, source and licence links, supplied notices and change indications. No endorsement or rights to separate repository files is supplied.",
+            "The reviewed redistribution definition includes export of the licensed material only."
+          ]
+        }
+      }
+    },
+    {
+      "id": "gpus-io",
+      "source_id": "src-gpus-io",
+      "label": "GPUs.io",
+      "material_id": "service-data",
+      "material_scope": "Product API data, displayed values and exported data remain explicitly excluded.",
+      "excluded_materials": [
+        "Conditional paid-API/display clauses do not establish this product's eligibility under the competing-product restriction. A build estimate is not an exemption."
+      ],
+      "primary_references": [
+        "https://gpus.io/en/terms"
+      ],
+      "inventory_observed_on": "2026-10-18",
+      "material_review_observed_on": "2026-10-18",
+      "research_record_sha256": "50a02b01515053c3bdf8e7953bb7975998236bc7b75a415d4428c6eca0df09b3",
+      "research_integration_status": "Not approved for integration",
+      "ingestion_path": "excluded_for_product",
+      "uses": {
+        "automated_retrieval": {
+          "disposition": "excluded",
+          "research_value": "yes",
+          "basis": {
+            "input": "integrations",
+            "section": "Accepted current-product exclusion",
+            "record": "gpus-io",
+            "use": "project_use_decision"
+          },
+          "conditions": [
+            "The accepted current-product exclusion overrides conditional API/display access. Reconsider only with a specific permitted-use basis covering this product and new Research #39/#41/#60 review."
+          ]
+        },
+        "commercial_display": {
+          "disposition": "excluded",
+          "research_value": "yes",
+          "basis": {
+            "input": "integrations",
+            "section": "Accepted current-product exclusion",
+            "record": "gpus-io",
+            "use": "project_use_decision"
+          },
+          "conditions": [
+            "The accepted current-product exclusion overrides conditional API/display access. Reconsider only with a specific permitted-use basis covering this product and new Research #39/#41/#60 review."
+          ]
+        },
+        "offline_caching": {
+          "disposition": "not_reviewed",
+          "research_value": "unrepresented_android_use",
+          "basis": {
+            "input": "source_policy",
+            "section": "Typed source-policy inventory (proposal)",
+            "record": "rights eligibility",
+            "use": "offline_caching"
+          },
+          "conditions": [
+            "No accepted Android-specific offline-cache use and conditions are supplied by this finite input. Do not infer them from another use or licence label."
+          ]
+        },
+        "retention": {
+          "disposition": "not_reviewed",
+          "research_value": "unrepresented_android_use",
+          "basis": {
+            "input": "source_policy",
+            "section": "Typed source-policy inventory (proposal)",
+            "record": "rights eligibility",
+            "use": "retention"
+          },
+          "conditions": [
+            "No accepted Android-specific retention period, deletion trigger and retained-material terms are supplied by this finite input. Do not infer them from another use or licence label."
+          ]
+        },
+        "redistribution": {
+          "disposition": "excluded",
+          "research_value": "no",
+          "basis": {
+            "input": "integrations",
+            "section": "Accepted current-product exclusion",
+            "record": "gpus-io",
+            "use": "project_use_decision"
+          },
+          "conditions": [
+            "The accepted current-product exclusion overrides conditional API/display access. Reconsider only with a specific permitted-use basis covering this product and new Research #39/#41/#60 review."
+          ]
+        },
+        "export": {
+          "disposition": "excluded",
+          "research_value": "no",
+          "basis": {
+            "input": "integrations",
+            "section": "Accepted current-product exclusion",
+            "record": "gpus-io",
+            "use": "project_use_decision"
+          },
+          "conditions": [
+            "The accepted current-product exclusion overrides conditional API/display access. Reconsider only with a specific permitted-use basis covering this product and new Research #39/#41/#60 review."
+          ]
+        }
+      }
+    }
+  ],
+  "change_handling": [
+    "Changed source material, governing terms or intended use requires a new Research #60/#41 review; pricing exclusions also retain #39.",
+    "A changed register has a new digest; old proposals are rejected. Historical research observations are not silently refreshed.",
+    "Rights withdrawal requires affected current, cached, historical and shared disclosures to be reviewed and hidden as required; permitted audit history is separate. No live data exists in this artifact.",
+    "Notice fulfilment, exact data-artifact identity, normalized claim validation and canonical publication/consumer acceptance remain separate unfilled gates for every row."
+  ]
+}

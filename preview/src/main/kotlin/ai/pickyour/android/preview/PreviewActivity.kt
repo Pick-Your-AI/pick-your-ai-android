@@ -49,6 +49,7 @@ class PreviewActivity : Activity() {
     private lateinit var workloadSection: WorkloadSection
     private var restoreWorkloadFromDisk = false
     private lateinit var tierSection: OptionalTierSection
+    private lateinit var planningSection: T6PlanningSection
     private var selectedId: String? = null
     private var selectedVersion: String? = null
     private var selectedCatalogHash: String? = null
@@ -110,6 +111,7 @@ class PreviewActivity : Activity() {
     private var restoringFields = false
     private var restoration: PreviewDraftRestoration? = null
     private lateinit var findings: FindingsInspectionSection
+    private lateinit var snapshots: SnapshotEvaluationSection
     private lateinit var diagnostics: LocalDiagnostics
     private lateinit var help: LocalHelp
     private var diagnosticsResumed = false
@@ -270,6 +272,10 @@ class PreviewActivity : Activity() {
         componentSection = SelectionEditSection(this, ::commitSelection)
         componentSection.restore(savedInstanceState)
         content.addView(componentSection)
+        planningSection = T6PlanningSection(this, { !destroyed }) { kind ->
+            if (!destroyed && !isFinishing && catalog.browseKind(kind.catalogKind)) catalogSearch.setText("")
+        }
+        content.addView(planningSection)
         title.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { formChanged() }
@@ -303,6 +309,10 @@ class PreviewActivity : Activity() {
         catalogComparison = CatalogComparisonSection(this, savedInstanceState, ::showPinnedDetails) {
             retireRevisionInspection()
             catalogPinRecovery.dismiss()
+            catalogDetailDialog?.dismiss()
+            catalogDetailDialog = null
+            catalogPriceBrowser?.retire()
+            catalogPriceBrowser = null
             catalogDetailBrowser?.retire()
         }
         content.addView(catalogComparison)
@@ -347,6 +357,8 @@ class PreviewActivity : Activity() {
         CostInspectionSection(this, worker) { !destroyed }.attach(content)
         findings = FindingsInspectionSection(this, worker) { !destroyed }
         findings.attach(content)
+        snapshots = SnapshotEvaluationSection(this, worker) { !destroyed && diagnosticsResumed }
+        snapshots.attach(content)
         diagnostics = LocalDiagnostics(this, {
             LocalDiagnosticReport(
                 when {
@@ -647,6 +659,13 @@ class PreviewActivity : Activity() {
         if (::tierSection.isInitialized) tierSection.update(savedRecord, storageReady && !storageBusy && matchesSaved())
         if (::catalog.isInitialized) catalog.selectionEnabled(!storageBusy)
         if (::componentSection.isInitialized) componentSection.update(savedRecord, storageReady && !storageBusy && matchesSaved(), currentDraftId.value)
+        if (::planningSection.isInitialized) planningSection.update(savedRecord, when {
+            storageBusy -> PlanningDraftState.LOADING
+            !storageReady -> PlanningDraftState.UNAVAILABLE
+            savedRecord == null -> PlanningDraftState.UNSAVED
+            !matchesSaved() -> PlanningDraftState.PENDING_EDITS
+            else -> PlanningDraftState.SAVED
+        })
         updateAutosave()
     }
 
@@ -1399,6 +1418,7 @@ class PreviewActivity : Activity() {
         diagnosticsResumed = false
         if (::diagnostics.isInitialized) diagnostics.dismiss()
         if (::help.isInitialized) help.dismiss()
+        if (::snapshots.isInitialized) snapshots.dismiss()
         super.onPause()
     }
 
@@ -1407,6 +1427,7 @@ class PreviewActivity : Activity() {
         autosave.close()
         savingInput = null
         if (::findings.isInitialized) findings.close()
+        if (::snapshots.isInitialized) snapshots.close()
         if (::diagnostics.isInitialized) diagnostics.close()
         if (::help.isInitialized) help.close()
         if (::catalogPinRecovery.isInitialized) catalogPinRecovery.close()

@@ -405,6 +405,9 @@ class CatalogPinRecoveryActivityTest {
     @Test fun comparisonAndPinInspectionRetireEachOthersRetainedActionsAndPreserveTrayPreferences() {
         save()
         val baseline = loaded().baselineIdentity
+        // Dialog frames must not advance this read-only case beyond the autosave deadline.
+        AutosaveUiClock.pause()
+        val pendingSince = SystemClock.uptimeMillis()
         field(R.string.context_objective).setText("pending comparison origin")
         addPin("model")
         addPin("accelerator")
@@ -429,6 +432,7 @@ class CatalogPinRecoveryActivityTest {
         assertFalse(views(currentComparison.window!!.decorView).filterIsInstance<android.widget.CheckBox>().single().isChecked)
         assertDraftState(before)
         assertEquals(baseline, loaded().baselineIdentity)
+        assertTrue("Read-only actions stay before autosave", SystemClock.uptimeMillis() in pendingSince until pendingSince + 750)
     }
 
     @Test fun snapshotReplacementRemovalReloadAndRecreationRetireTheActualInspectionOrigin() {
