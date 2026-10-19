@@ -27,6 +27,7 @@ class CatalogBrowseSection(
     private var browser: PreviewCatalogBrowser? = null
     private var selectable = false
     private var closed = false
+    private var rowAuthority = Any()
     private val tier: Button
     private val kind: Button
     private val sort: Button
@@ -80,6 +81,17 @@ class CatalogBrowseSection(
         if (!active() || query == state.query) return
         state = state.copy(query = query, page = 0)
         render()
+    }
+
+    /** An explicit planning action clears conflicting search/facets without selecting an item. */
+    fun browseKind(kindId: String): Boolean {
+        if (!active()) return false
+        val requested = PreviewCatalogKinds.all.singleOrNull { it.id == kindId } ?: return false
+        state = state.copy(query = "", tier = requested.tier, kind = requested.id, page = 0)
+        render()
+        kind.requestFocus()
+        kind.requestRectangleOnScreen(android.graphics.Rect(0, 0, kind.width, kind.height), true)
+        return true
     }
 
     fun selectionEnabled(value: Boolean) {
@@ -147,6 +159,7 @@ class CatalogBrowseSection(
 
     private fun render() {
         if (!active()) return
+        val renderedRows = Any().also { rowAuthority = it }
         tier.text = activity.getString(R.string.catalog_tier, state.tier ?: activity.getString(R.string.catalog_all_tiers))
         kind.text = activity.getString(R.string.catalog_kind, state.kind ?: activity.getString(R.string.catalog_all_kinds))
         sort.text = activity.getString(R.string.catalog_sort, sortName(state.sort))
@@ -159,7 +172,8 @@ class CatalogBrowseSection(
                 text = activity.getString(R.string.item_button, item.name, item.kind)
                 isEnabled = selectable
                 setOnClickListener {
-                    if (active() && selectable && browser === current) openDetails(item, current.hash)
+                    if (active() && selectable && browser === current && rowAuthority === renderedRows)
+                        openDetails(item, current.hash)
                 }
             })
         }
