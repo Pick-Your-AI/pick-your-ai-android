@@ -257,9 +257,14 @@ def classify_reviewed_findings(target: Path, source_commit: str, result: dict) -
                 isinstance(commit, str) and re.fullmatch(r"[0-9a-f]{40}", commit) is not None,
                 "Finding disposition has malformed metadata")
         identity = (rule, path, line, commit)
-        require(identity not in seen, "Finding disposition cannot classify repeated metadata")
+        checksum_candidate = (rule, path, line) == ("generic-api-key", CHECKSUM_PROOF[0][0], 5)
+        # Separate parent diffs can repeat one literal public checksum finding.
+        # Preserve every occurrence; only its already verified immutable commit
+        # evidence permits repetition. Unknown duplicate metadata still fails.
+        require(identity not in seen or (checksum_candidate and commit in verified_commits),
+                "Finding disposition cannot classify repeated metadata")
         seen.add(identity)
-        if (rule, path, line) != ("generic-api-key", CHECKSUM_PROOF[0][0], 5):
+        if not checksum_candidate:
             unresolved.append(dict(row))
             continue
         if commit not in verified_commits:

@@ -233,9 +233,15 @@ actual immutable commit is always recorded; the original two commit IDs are neve
 substituted for a new occurrence.
 
 The added evidence reads have five-second process deadlines and a 64 KiB output
-bound, with at most 32 distinct reviewed finding commits per scan. Unknown,
-duplicate, malformed or inconsistent finding metadata fails closed; an unknown
-well-formed finding remains unresolved. Source-provided allow comments, ignore
+bound, with at most 32 distinct reviewed finding commits per scan. Repeated
+unreviewed metadata, malformed metadata and inconsistent counts fail closed; an
+unknown well-formed finding remains unresolved. The configured separate-parent
+history diffs can report the same public checksum at the same merge commit more
+than once. Each occurrence remains in the raw and reviewed finding lists, in its
+original order, and contributes to their counts. Repetition is accepted only
+after that actual commit has passed the complete immutable public-byte proof
+above; no raw finding is deduplicated and no additional content becomes eligible.
+Source-provided allow comments, ignore
 files, generic path/rule exceptions and automatic policy updates remain forbidden.
 The scanner's existing rules, Git history command, report limits, private Trace2
 limits, disclosure boundary and seeded controls are unchanged.

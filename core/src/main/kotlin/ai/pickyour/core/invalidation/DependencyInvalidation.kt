@@ -36,7 +36,7 @@ class InvalidationContext(
 
 data class InvalidationResult(
     val changedKinds: List<String>,
-    /** Direct neighbours only, excluding changedKinds, as in the website reference. */
+    /** Direct-edge neighbours and activation-transition endpoints, excluding changedKinds. */
     val affectedKinds: List<String>,
     /** Includes changed kinds and both old/new identities, even when removed or disabled. */
     val selectionIdsToRecheck: List<String>,
@@ -44,7 +44,8 @@ data class InvalidationResult(
 )
 
 /**
- * Pure direct-adjacency invalidation, never compatibility evaluation or selection mutation.
+ * Pure invalidation through direct edges, never compatibility evaluation or selection mutation.
+ * A context-only activation transition rechecks both endpoints even when neither kind was edited.
  * Every edge is inspected once; cycles and self-loops cannot schedule recursive work.
  * Full evaluation remains the safe fallback when callers cannot identify all changed kinds.
  * Input graph must be schema/version validated before projecting its edges into this API.
@@ -85,8 +86,11 @@ object DependencyInvalidation {
         val affected = mutableSetOf<String>()
         val via = mutableSetOf<String>()
         for (edge in edges) {
-            if (edge.dependentKind !in changed && edge.dependsOnKind !in changed) continue
-            if (active(edge, before) == false && active(edge, after) == false) continue
+            val beforeActive = active(edge, before)
+            val afterActive = active(edge, after)
+            val incident = edge.dependentKind in changed || edge.dependsOnKind in changed
+            if (!incident && beforeActive == afterActive) continue
+            if (beforeActive == false && afterActive == false) continue
             affected.add(edge.dependentKind)
             affected.add(edge.dependsOnKind)
             via.add(edge.id)
