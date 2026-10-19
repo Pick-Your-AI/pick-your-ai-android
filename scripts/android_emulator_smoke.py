@@ -1430,47 +1430,124 @@ def system_bar_interval_passes(value: dict, maximum: int) -> bool:
 
 
 def taskbar_state_fields_pass(text: str) -> bool:
-    """Require one complete, named Taskbar controller; values are not pixel evidence."""
+    """Require the selected Taskbar subsection and raw fields, not a tint verdict."""
+    if not isinstance(text, str) or any(marker in text for marker in (
+            "DUMP TIMEOUT", "Error dumping service info:",
+            "Failure while dumping the service:", "Got a RemoteException while dumping the service")):
+        return False
     lines = text.splitlines()
+
+    def indentation(line):
+        return len(line) - len(line.lstrip(" \t"))
+
+    def heading(name, start=0, stop=None):
+        stop = len(lines) if stop is None else stop
+        matches = [index for index in range(start, stop)
+                   if re.match(r"^[ \t]*" + re.escape(name) + r":", lines[index])]
+        if (len(matches) != 1 or re.fullmatch(
+                r"[ \t]*" + re.escape(name) + r":[ \t]*", lines[matches[0]]) is None):
+            return None
+        index = matches[0]
+        return index, indentation(lines[index])
+
+    def nested(child, parent):
+        return (child[0] > parent[0] and child[1] > parent[1]
+                and not any(line.strip() and indentation(line) <= parent[1]
+                            for line in lines[parent[0] + 1:child[0]]))
+
     services = [(index, line) for index, line in enumerate(lines)
                 if re.match(r"^[ \t]*SERVICE\b", line)]
     if (len(services) != 1 or re.fullmatch(
             r"SERVICE com\.android\.launcher3/com\.android\.quickstep\.TouchInteractionService "
             r"\S+ pid=[1-9][0-9]* user=0", services[0][1].strip()) is None):
         return False
-    parent_line, service_header = services[0]
-    parent_indent = len(service_header) - len(service_header.lstrip(" \t"))
-    for name in ("TaskbarManager", "TaskbarActivityContext", "TaskbarControllers", "NavbarButtonsViewController"):
-        matches = [(index, len(line) - len(line.lstrip(" \t"))) for index, line in enumerate(lines)
-                   if re.fullmatch(r"[ \t]*" + name + r":[ \t]*", line)]
-        if len(matches) != 1:
+    service = services[0][0], indentation(services[0][1])
+    names = ("Client", "TaskbarManager", "TaskbarActivityContext",
+             "TaskbarControllers", "NavbarButtonsViewController", "AssistStateManager")
+    selected = [heading(name) for name in names]
+    if any(item is None for item in selected):
+        return False
+    client, manager, context, controllers, navbar, completion = selected
+    if not all(nested(child, parent) for child, parent in (
+            (client, service), (manager, client), (context, manager),
+            (controllers, context), (navbar, controllers))):
+        return False
+    # TouchInteractionService prints this peer only after TaskbarManager returns.
+    # Later service output still follows: this is not a whole-service footer.
+    if (completion[0] <= navbar[0] or completion[1] != manager[1]
+            or any(line.strip() and indentation(line) <= manager[1]
+                   for line in lines[manager[0] + 1:completion[0]])):
+        return False
+    # An overview activity may have an earlier DeviceProfile. Only the one after
+    # this context's controllers, at this context's own prefix, is relevant.
+    profile = heading("DeviceProfile", context[0] + 1, completion[0])
+    if (profile is None or profile[0] <= navbar[0] or profile[1] != context[1]
+            or any(line.strip() and indentation(line) <= context[1]
+                   for line in lines[context[0] + 1:profile[0]])
+            or any(line.strip() and indentation(line) <= profile[1]
+                   for line in lines[profile[0] + 1:completion[0]])):
+        return False
+
+    def field(section, name, separator, pattern, depth):
+        prefix = re.escape(name + separator)
+        matches = [line for line in section if re.match(r"^[ \t]*" + prefix, line)]
+        if len(matches) != 1 or indentation(matches[0]) != depth:
+            return None
+        return re.fullmatch(r"[ \t]*" + prefix + pattern + r"[ \t]*", matches[0])
+
+    context_fields = lines[context[0] + 1:controllers[0]]
+    depth = controllers[1]
+    if field(context_fields, "mNavMode", "=", r"([A-Z][A-Z0-9_]{0,63})", depth) is None:
+        return False
+    for name in ("mImeDrawsImeNavBar", "mIsUserSetupComplete", "mBindInProgress"):
+        if field(context_fields, name, "=", r"(true|false)", depth) is None:
             return False
-        header, indent = matches[0]
-        if header <= parent_line or indent <= parent_indent:
+    height = field(context_fields, "mWindowLayoutParams.height", "=",
+                   r"([+-]?[0-9]{1,10})px", depth)
+    if height is None or not -(2 ** 31) <= int(height[1]) < 2 ** 31:
+        return False
+
+    number = r"[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?"
+
+    def positive(values):
+        try:
+            return all(len(value) <= 32 and re.fullmatch(number, value) is not None
+                       and Decimal(value).is_finite() and Decimal(value) > 0 for value in values)
+        except InvalidOperation:
             return False
-        if parent_line >= 0 and any(line.strip() and len(line) - len(line.lstrip(" \t")) <= parent_indent
-                                    for line in lines[parent_line + 1:header]):
+
+    profile_fields = lines[profile[0] + 1:completion[0]]
+    density = field(profile_fields, "1 dp", " = ", r"(\S+) px", depth)
+    if density is None or not positive((density[1],)):
+        return False
+    for name in ("widthPx", "heightPx", "availableWidthPx", "availableHeightPx"):
+        dimensions = field(profile_fields, name, ": ", r"(\S+)px \((\S+)dp\)", depth)
+        if dimensions is None or not positive(dimensions.groups()):
             return False
-        parent_line, parent_indent = header, indent
+    for name in ("isTablet", "isPhone", "transposeLayoutWithOrientation", "isGestureMode",
+                 "isLandscape", "isMultiWindowMode", "isTwoPanels", "isLeftRightSplit",
+                 "isTaskbarPresent", "isTaskbarPresentInApps"):
+        if field(profile_fields, name, ":", r"(true|false)", depth) is None:
+            return False
+
     body = []
-    for line in lines[header + 1:]:
-        if line.strip() and len(line) - len(line.lstrip(" \t")) <= indent:
+    for line in lines[navbar[0] + 1:]:
+        if line.strip() and indentation(line) <= navbar[1]:
             break
         body.append(line)
     controller = "\n".join(body)
     if len(re.findall(r"^[ \t]*mState=[^\r\n]*$", controller, re.M)) != 1:
         return False
-    for field in ("mTaskbarNavButtonDarkIntensity", "mSlideInViewVisibleNavButtonColorOverride",
-                  "mOnTaskbarBackgroundNavButtonColorOverride", "mOnBackgroundNavButtonColorOverrideMultiplier"):
-        values = re.findall(r"\b" + field + r"=(\S*)", controller)
-        if (len(values) != 1 or len(re.findall(r"^[ \t]*" + field + r"=\S*[ \t]*$", controller, re.M)) != 1):
+    for name in ("mTaskbarNavButtonDarkIntensity", "mSlideInViewVisibleNavButtonColorOverride",
+                 "mOnTaskbarBackgroundNavButtonColorOverride", "mOnBackgroundNavButtonColorOverrideMultiplier"):
+        values = re.findall(r"\b" + name + r"=(\S*)", controller)
+        if (len(values) != 1 or len(re.findall(r"^[ \t]*" + name + r"=\S*[ \t]*$", controller, re.M)) != 1):
             return False
-        if len(values[0]) > 32 or re.fullmatch(
-                r"[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?", values[0]) is None:
+        if len(values[0]) > 32 or re.fullmatch(number, values[0]) is None:
             return False
         try:
-            number = Decimal(values[0])
-            if not number.is_finite() or not 0 <= number <= 1:
+            value = Decimal(values[0])
+            if not value.is_finite() or not 0 <= value <= 1:
                 return False
         except InvalidOperation:
             return False

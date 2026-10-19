@@ -111,22 +111,47 @@ def white_glyph_fixture():
 
 
 def taskbar_text():
-    # Pinned-reference field layout; this is synthetic, not a captured guest dump.
+    # Synthetic selected-subsection layout, not a captured or full guest dump.
+    # The earlier overview profile is deliberately distinct from Taskbar's own.
     return (
         'SERVICE com.android.launcher3/com.android.quickstep.TouchInteractionService abc pid=1332 user=0\n'
-        '  TaskbarManager:\n'
-        '    TaskbarActivityContext:\n'
-        '      TaskbarControllers:\n'
-        '        NavbarButtonsViewController:\n'
-        '          mState=FLAG_SMALL_SCREEN\n'
-        '          mTaskbarNavButtonDarkIntensity=0.0\n'
-        '          mSlideInViewVisibleNavButtonColorOverride=0.0\n'
-        '          mOnTaskbarBackgroundNavButtonColorOverride=0.0\n'
-        '          mOnBackgroundNavButtonColorOverrideMultiplier=1.0\n'
-        '        OtherController:\n'
-        '          mState=unchanged\n'
+        '  Client:\n'
+        '    DeviceProfile:\n'
+        '      widthPx: 1280.0px (731.4286dp)\n'
+        '    TaskbarManager:\n'
+        '      TaskbarActivityContext:\n'
+        '        mNavMode=THREE_BUTTONS\n'
+        '        mImeDrawsImeNavBar=false\n'
+        '        mIsUserSetupComplete=true\n'
+        '        mWindowLayoutParams.height=84px\n'
+        '        mBindInProgress=false\n'
+        '        TaskbarControllers:\n'
+        '          NavbarButtonsViewController:\n'
+        '            mState=FLAG_SMALL_SCREEN\n'
+        '            mTaskbarNavButtonDarkIntensity=0.0\n'
+        '            mSlideInViewVisibleNavButtonColorOverride=0.0\n'
+        '            mOnTaskbarBackgroundNavButtonColorOverride=0.0\n'
+        '            mOnBackgroundNavButtonColorOverrideMultiplier=1.0\n'
+        '          OtherController:\n'
+        '            mState=unchanged\n'
+        '      DeviceProfile:\n'
+        '        1 dp = 1.75 px\n'
+        '        isTablet:false\n'
+        '        isPhone:true\n'
+        '        transposeLayoutWithOrientation:true\n'
+        '        isGestureMode:false\n'
+        '        isLandscape:false\n'
+        '        isMultiWindowMode:false\n'
+        '        isTwoPanels:false\n'
+        '        isLeftRightSplit:false\n'
+        '        widthPx: 720.0px (411.42856dp)\n'
+        '        heightPx: 1280.0px (731.4286dp)\n'
+        '        availableWidthPx: 720.0px (411.42856dp)\n'
+        '        availableHeightPx: 1196.0px (683.4286dp)\n'
+        '        isTaskbarPresent:false\n'
+        '        isTaskbarPresentInApps:false\n'
+        '    AssistStateManager:\n'
     )
-
 
 class WindowDevice:
     def __init__(self):
@@ -945,6 +970,170 @@ class SystemBarEvidenceTests(unittest.TestCase):
             capture = receipt['system_bar_png_captures'][SMOKE.SYSTEM_BAR_CHECKPOINTS[0]]
             self.assertTrue(SMOKE.system_bar_interval_passes(capture, 15))
 
+
+
+    def test_taskbar_wrapper_failures_reject_even_after_complete_clean_stdout(self):
+        original = self.passing_state()
+        self.assertTrue(SMOKE.system_bar_evidence_passes(original))
+        for marker in ('Failure while dumping the service: java.io.IOException: Timeout',
+                       'Got a RemoteException while dumping the service'):
+            state = copy.deepcopy(original)
+            raw = taskbar_text() + '    ' + marker + '\n'
+            self.rebound_taskbar(state, raw)
+            observation = state['taskbar_observations'][SMOKE.SYSTEM_BAR_CHECKPOINTS[0]]
+            retained = copy.deepcopy(observation)
+            with self.subTest(marker=marker):
+                self.assertEqual(observation['command']['exit_code'], 0)
+                self.assertFalse(SMOKE.taskbar_state_fields_pass(raw))
+                self.assertFalse(SMOKE.system_bar_evidence_passes(state))
+                self.assertEqual(observation, retained)
+
+    def test_taskbar_prefix_eof_cannot_replace_its_completed_subsection(self):
+        original = self.passing_state()
+        for boundary in ('          OtherController:\n', '      DeviceProfile:\n',
+                         '        isTaskbarPresent:false\n', '    AssistStateManager:\n'):
+            state = copy.deepcopy(original)
+            raw = taskbar_text().split(boundary)[0]
+            self.rebound_taskbar(state, raw)
+            with self.subTest(boundary=boundary):
+                self.assertFalse(SMOKE.taskbar_state_fields_pass(raw))
+                self.assertFalse(SMOKE.system_bar_evidence_passes(state))
+        # This peer proves only that TaskbarManager returned, not that every
+        # later TouchInteractionService / SystemUiProxy line was produced.
+        self.assertTrue(SMOKE.system_bar_evidence_passes(original))
+
+    def test_taskbar_client_context_profile_and_peer_boundary_are_uniquely_scoped(self):
+        original = self.passing_state()
+        raw = taskbar_text()
+        profile = raw[raw.index('      DeviceProfile:\n'):raw.index('    AssistStateManager:\n')]
+        candidates = {
+            'missing_client': raw.replace('  Client:\n', ''),
+            'null_client': raw.replace('  Client:\n', '  Client: null\n'),
+            'duplicate_client': raw.replace('  Client:\n', '  Client:\n  Client:\n'),
+            'null_duplicate_context': raw + '      TaskbarActivityContext: null\n',
+            'missing_context_profile': raw.replace(profile, ''),
+            'foreign_context_profile': raw.replace('      DeviceProfile:\n', '      OtherDeviceProfile:\n'),
+            'null_context_profile': raw.replace('      DeviceProfile:\n', '      DeviceProfile: null\n'),
+            'duplicate_context_profile': raw.replace(profile, profile + profile),
+            'profile_at_overview_depth': raw.replace(profile, profile.replace('      ', '    ', 1)),
+            'profile_before_controller': raw.replace(profile, '').replace('        TaskbarControllers:\n',
+                                                                           profile + '        TaskbarControllers:\n'),
+            'missing_peer': raw.replace('    AssistStateManager:\n', ''),
+            'duplicate_peer': raw + '    AssistStateManager:\n',
+            'null_peer': raw.replace('    AssistStateManager:\n', '    AssistStateManager: null\n'),
+            'nested_peer': raw.replace('    AssistStateManager:\n', '        AssistStateManager:\n'),
+            'foreign_sibling_before_profile': raw.replace(profile, '    ForeignTaskbar:\n' + profile),
+            'foreign_sibling_inside_profile': raw.replace('        isPhone:true\n',
+                                                          '      ForeignProfile:\n        isPhone:true\n'),
+        }
+        for label, text in candidates.items():
+            state = copy.deepcopy(original); self.rebound_taskbar(state, text)
+            with self.subTest(label=label):
+                self.assertFalse(SMOKE.taskbar_state_fields_pass(text))
+                self.assertFalse(SMOKE.system_bar_evidence_passes(state))
+
+    def test_taskbar_context_fields_are_explicit_without_defaulting_runtime_values(self):
+        original = self.passing_state()
+        fields = {'mNavMode': 'THREE_BUTTONS', 'mImeDrawsImeNavBar': 'false',
+                  'mIsUserSetupComplete': 'true', 'mWindowLayoutParams.height': '84px',
+                  'mBindInProgress': 'false'}
+        for field, value in fields.items():
+            line = '        ' + field + '=' + value + '\n'
+            for replacement in ('', '        ' + field + '=\n',
+                                line + line, line + '        ' + field + '=\n',
+                                '          ' + field + '=' + value + '\n'):
+                state = copy.deepcopy(original)
+                self.rebound_taskbar(state, taskbar_text().replace(line, replacement))
+                with self.subTest(field=field, replacement=replacement):
+                    self.assertFalse(SMOKE.system_bar_evidence_passes(state))
+        for value in ('84.0px', '2147483648px', '-2147483649px', 'NaNpx', '84', 'null'):
+            state = copy.deepcopy(original)
+            self.rebound_taskbar(state, taskbar_text().replace('height=84px', 'height=' + value))
+            with self.subTest(height=value):
+                self.assertFalse(SMOKE.system_bar_evidence_passes(state))
+        for old, new in (('mImeDrawsImeNavBar=false', 'mImeDrawsImeNavBar=true'),
+                         ('mIsUserSetupComplete=true', 'mIsUserSetupComplete=false'),
+                         ('mBindInProgress=false', 'mBindInProgress=true'),
+                         ('mWindowLayoutParams.height=84px', 'mWindowLayoutParams.height=-1px')):
+            state = copy.deepcopy(original)
+            self.rebound_taskbar(state, taskbar_text().replace(old, new))
+            self.assertTrue(SMOKE.system_bar_evidence_passes(state))
+
+    def test_taskbar_own_profile_requires_positive_finite_literal_dimensions(self):
+        original = self.passing_state()
+        source = taskbar_text()
+        profile_start = source.index('      DeviceProfile:\n')
+        prefix, profile = source[:profile_start], source[profile_start:]
+        values = {'1 dp = ': '1.75 px', 'widthPx: ': '720.0px (411.42856dp)',
+                  'heightPx: ': '1280.0px (731.4286dp)',
+                  'availableWidthPx: ': '720.0px (411.42856dp)',
+                  'availableHeightPx: ': '1196.0px (683.4286dp)'}
+        for name, value in values.items():
+            line = '        ' + name + value + '\n'
+            for replacement in ('', '        ' + name + '\n', line + line,
+                                line + '        ' + name + '\n',
+                                '          ' + name + value + '\n'):
+                state = copy.deepcopy(original)
+                self.rebound_taskbar(state, prefix + profile.replace(line, replacement))
+                with self.subTest(name=name, replacement=replacement):
+                    self.assertFalse(SMOKE.system_bar_evidence_passes(state))
+        for value in ('0', '-1', 'NaN', 'Infinity', '1e999999999999999999999999999999999999',
+                      '1..0', '1,75', '1.75f'):
+            for old, replacement in (('1.75 px', value + ' px'),
+                                     ('720.0px', value + 'px'),
+                                     ('411.42856dp', value + 'dp')):
+                state = copy.deepcopy(original)
+                self.rebound_taskbar(state, prefix + profile.replace(old, replacement))
+                with self.subTest(value=value, target=old):
+                    self.assertFalse(SMOKE.system_bar_evidence_passes(state))
+        for old, replacement in (('1.75 px', '1.75E0 px'),
+                                 ('720.0px', '7.2E2px'),
+                                 ('411.42856dp', '4.1142856E2dp'),
+                                 ('1280.0px', '2560.0px')):
+            state = copy.deepcopy(original)
+            self.rebound_taskbar(state, prefix + profile.replace(old, replacement))
+            self.assertTrue(SMOKE.system_bar_evidence_passes(state))
+
+    def test_taskbar_profile_flags_are_explicit_and_not_replaced_by_overview_flags(self):
+        original = self.passing_state()
+        source = taskbar_text(); start = source.index('      DeviceProfile:\n')
+        prefix, profile = source[:start], source[start:]
+        names = ('isTablet', 'isPhone', 'transposeLayoutWithOrientation', 'isGestureMode',
+                 'isLandscape', 'isMultiWindowMode', 'isTwoPanels', 'isLeftRightSplit',
+                 'isTaskbarPresent', 'isTaskbarPresentInApps')
+        for name in names:
+            line = re.search(r'^        ' + name + r':(?:true|false)\n', profile, re.M)[0]
+            for replacement in ('', '        ' + name + ':\n', line + line,
+                                line + '        ' + name + ':\n',
+                                '        ' + name + ':null\n', '        ' + name + ':1\n'):
+                state = copy.deepcopy(original)
+                # A complete-looking value in the unrelated earlier profile
+                # must never supply this context's missing or malformed value.
+                raw = prefix.replace('    DeviceProfile:\n', '    DeviceProfile:\n' + line)
+                self.rebound_taskbar(state, raw + profile.replace(line, replacement))
+                with self.subTest(name=name, replacement=replacement):
+                    self.assertFalse(SMOKE.system_bar_evidence_passes(state))
+            state = copy.deepcopy(original)
+            alternate = line.replace('true', 'false') if ':true' in line else line.replace('false', 'true')
+            self.rebound_taskbar(state, prefix + profile.replace(line, alternate))
+            self.assertTrue(SMOKE.system_bar_evidence_passes(state))
+
+    def test_taskbar_reference_tabs_and_unrelated_earlier_profile_remain_admitted(self):
+        original = self.passing_state()
+        raw = taskbar_text()
+        # ActiveServices contributes four spaces; nested Launcher dump prefixes
+        # add tabs. Preserve that real lexical layout as well as expanded spaces.
+        lines = []
+        for line in raw.splitlines():
+            spaces = len(line) - len(line.lstrip(' '))
+            lines.append('    ' + '\t' * ((spaces - 4) // 2) + line.lstrip(' ')
+                         if spaces >= 4 else line)
+        tabbed = '\n'.join(lines) + '\n'
+        for text in (raw, tabbed, tabbed.expandtabs(8)):
+            state = copy.deepcopy(original); self.rebound_taskbar(state, text)
+            with self.subTest(text=text):
+                self.assertTrue(SMOKE.taskbar_state_fields_pass(text))
+                self.assertTrue(SMOKE.system_bar_evidence_passes(state))
 
 if __name__ == '__main__':
     unittest.main()

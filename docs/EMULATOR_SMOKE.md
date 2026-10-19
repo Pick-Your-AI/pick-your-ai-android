@@ -2235,9 +2235,16 @@ also exposes the same four numeric fields and color computation.
 Neither reference is claimed as an exact source mapping for the actual
 AE3A build12368160 image.
 
-Admission requires one named user0 Launcher TouchInteractionService,
-one nested TaskbarManager/context/controllers/NavbarButtonsViewController
-chain, the controller's explicit raw `mState`, and one finite value in
+Admission requires one named running user0 Launcher TouchInteractionService
+and its unique Client wrapper, followed by the nested TaskbarManager/context/
+controllers/NavbarButtonsViewController chain. The context must retain its
+explicit navigation mode, IME/setup/bind flags and integer window height.
+Its own later DeviceProfile, at the context's prefix, must provide finite
+positive density and px/dp dimensions plus explicit profile/Taskbar flags.
+A later peer AssistStateManager heading establishes that TaskbarManager's
+dump returned; it is not a whole-service footer. An earlier overview
+activity's DeviceProfile cannot supply the context's fields. The selected
+controller still requires explicit raw `mState` and one finite value in
 [0,1] for each of:
 
 - `mTaskbarNavButtonDarkIntensity`
@@ -2268,6 +2275,9 @@ Taskbar order. It retains failure capture boundaries before rethrowing
 the original capture failure. These numbers have no UTC or guest-clock
 meaning; guest dump labels remain raw text. No clock-calibration query is
 added, and no cross-clock subtraction or atomic-rendering claim is made.
+The checks bound individual operation durations and their order; they do
+not impose a maximum idle gap between operations or a capture-to-query
+freshness ceiling. Actual recorded gaps remain part of the evidence.
 
 The continuation's focused tests use the unchanged original444 bad
 strips, explicit synthetic positive canvases and reference-shaped mocked
@@ -2275,3 +2285,69 @@ service text. A corrected installed modal remains required. The header
 donor, reviewed62df padding source and any accepted-main carry keep their
 separate source/execution attribution. No current run, fixed pixels,
 physical-device matrix or release acceptance is granted here.
+
+
+#### Taskbar subsection completeness correction
+
+The [post-publication review6260149710](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/467#issuecomment-6260149710)
+identified a real admission gap in the published41e/e792 source. The
+signed298 attempt39202932375 was already executing and remained fixed.
+Pure host replays of unchanged smoke blob
+`ad0c57cf8df81b4035674b7414fb44486e9e56fb` admitted both Android service-dump
+failure suffixes and a prefix ending immediately after the required
+navigation values, even with the complete retained stream metadata and
+its correctly rebound hashes. These witnesses use synthetic positive
+pixels; they do not change or reattribute any installed original.
+
+The exact Android15-r1
+[ActiveServices selected-service dump](https://github.com/aosp-mirror/platform_frameworks_base/blob/android-15.0.0_r1/services/core/java/com/android/server/am/ActiveServices.java)
+prints Client before forwarding application output and prints
+`Failure while dumping the service:` or
+`Got a RemoteException while dumping the service` to stdout when forwarding
+fails. Its outer success status and empty stderr are insufficient. The
+corrected parser rejects both markers anywhere in the retained Taskbar
+text, in addition to the existing timeout/error markers, while retaining
+that original text and its failure provenance unchanged.
+
+The directly read immutable898b9af9
+[TaskbarActivityContext](https://android.googlesource.com/platform/packages/apps/Launcher3/+/898b9af9a28663b5bd4ab19e1db8fc43adb5fb52/quickstep/src/com/android/launcher3/taskbar/TaskbarActivityContext.java)
+dumps context fields, then nested controllers, then its own
+[DeviceProfile](https://android.googlesource.com/platform/packages/apps/Launcher3/+/898b9af9a28663b5bd4ab19e1db8fc43adb5fb52/src/com/android/launcher3/DeviceProfile.java)
+at the context's same indentation. The
+[TouchInteractionService](https://android.googlesource.com/platform/packages/apps/Launcher3/+/898b9af9a28663b5bd4ab19e1db8fc43adb5fb52/quickstep/src/com/android/quickstep/TouchInteractionService.java)
+can emit a separate earlier overview profile and emits AssistStateManager
+only after TaskbarManager returns. These reference formats corroborate
+the separately qualified Android15-r1 read; neither maps the actual
+build12368160 binary to an exact source revision.
+
+Only that selected context's later profile may satisfy admission.
+Density and width/height/available-width/available-height retain their
+literal finite positive float px/dp forms, including Java exponents.
+The ten required booleans include both explicit Taskbar-present flags;
+their values are recorded, not forced to an expected phone/tablet or tint
+state. Context navigation mode must be a present bounded enum-shaped
+token, its three flags must be explicit booleans, and its window height
+must be an integer in Java's signed-int range. The height remains a raw
+layout parameter: a negative match-parent value is not defaulted to a
+pixel height. Unknown fields remain in the original dump.
+
+The changed parser rejects missing, blank, duplicate, null, malformed,
+mis-indented or foreign-context fields, missing profile/completion
+boundaries, nonfinite/nonpositive dimensions and both wrapper failures.
+It preserves the earlier overview profile as unrelated evidence.
+No fixed whole-service success footer is invented: later
+AssistStateManager/SystemUiProxy output is outside this Taskbar-subsection
+claim. All capture/query commands, retention limits, timing intervals,
+four product cases, original PNG/XML, decoder/contrast assertions,
+rotation and ACL cleanup are unchanged.
+
+The isolated source continuation's normal discovery ran all53 system-bar
+methods with zero failures/errors/skips in8.110seconds, including all46
+previous method bodies unchanged and seven new completeness methods.
+Eight full-gate causal controls independently admit under unchangedad0c
+and reject under the candidate, with the complete reference-shaped
+synthetic positive admitted by both. Separate malformed/profile/flag
+controls retain real blank-assignment and earlier-profile witnesses.
+No new SDK/ADB/emulator or privileged command was executed for these
+tests. Current hosted originals and any future corrected modal remain
+separate receiving requirements.
