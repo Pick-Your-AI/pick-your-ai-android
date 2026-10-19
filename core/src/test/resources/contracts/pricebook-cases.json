@@ -1,0 +1,1780 @@
+{
+  "profile": "android-frozen-pricebook-wire/v1",
+  "schema_sha256": "169e1a48847bee8b6af4b266a55bcebe317b5655dd6abb7718e06331b1df6288",
+  "common_sha256": "0342ce2f1114e7276fc7f6a08ff5b86e8727caadd83ae4f443de9a7e1431c43c",
+  "example_sha256": "716a848822fc2b182d226c597f7e50f4b00a0fe01ba5c03879e858ca6f0c9b46",
+  "cases": [
+    {
+      "name": "canonical_synthetic_pricebook",
+      "expected": "decoded"
+    },
+    {
+      "name": "minimum_optional_fields_absent",
+      "expected": "decoded",
+      "rate_remove": [
+        "region"
+      ],
+      "rate_set": {
+        "provenance": {
+          "checked_at": "2026-10-16T09:00:00Z",
+          "verification_status": "estimated"
+        }
+      }
+    },
+    {
+      "name": "all_optional_fields_recorded",
+      "expected": "decoded",
+      "rate_set": {
+        "region": "synthetic-private-price",
+        "valid_until": "2025-01-01T00:00:00Z",
+        "conditions": [
+          "synthetic-private-price",
+          "",
+          "same",
+          "same"
+        ],
+        "provenance": {
+          "checked_at": "2026-10-16T09:00:00Z",
+          "verification_status": "estimated",
+          "notes": "synthetic-private-price",
+          "source_uri": "https://example.invalid/synthetic-private-price"
+        }
+      }
+    },
+    {
+      "name": "empty_region_retained",
+      "expected": "decoded",
+      "rate_set": {
+        "region": ""
+      }
+    },
+    {
+      "name": "whitespace_region_retained",
+      "expected": "decoded",
+      "rate_set": {
+        "region": " \n "
+      }
+    },
+    {
+      "name": "explicit_empty_conditions_retained",
+      "expected": "decoded",
+      "rate_set": {
+        "conditions": []
+      }
+    },
+    {
+      "name": "ordered_duplicate_and_empty_conditions_retained",
+      "expected": "decoded",
+      "rate_set": {
+        "conditions": [
+          "b",
+          "",
+          "a",
+          "b"
+        ]
+      }
+    },
+    {
+      "name": "empty_provenance_notes_retained",
+      "expected": "decoded",
+      "rate_set": {
+        "provenance": {
+          "checked_at": "2026-10-16T09:00:00Z",
+          "verification_status": "estimated",
+          "notes": ""
+        }
+      }
+    },
+    {
+      "name": "whitespace_provenance_notes_retained",
+      "expected": "decoded",
+      "rate_set": {
+        "provenance": {
+          "checked_at": "2026-10-16T09:00:00Z",
+          "verification_status": "estimated",
+          "notes": " \n "
+        }
+      }
+    },
+    {
+      "name": "https_source_uri_is_inert",
+      "expected": "decoded",
+      "rate_set": {
+        "provenance": {
+          "checked_at": "2026-10-16T09:00:00Z",
+          "verification_status": "estimated",
+          "notes": "Illustrative price, NOT a live market quote.",
+          "source_uri": "https://example.invalid/synthetic-private-price?x=1#note"
+        }
+      }
+    },
+    {
+      "name": "urn_source_uri_is_inert",
+      "expected": "decoded",
+      "rate_set": {
+        "provenance": {
+          "checked_at": "2026-10-16T09:00:00Z",
+          "verification_status": "estimated",
+          "notes": "Illustrative price, NOT a live market quote.",
+          "source_uri": "urn:synthetic:private-price"
+        }
+      }
+    },
+    {
+      "name": "file_source_uri_is_inert",
+      "expected": "decoded",
+      "rate_set": {
+        "provenance": {
+          "checked_at": "2026-10-16T09:00:00Z",
+          "verification_status": "estimated",
+          "notes": "Illustrative price, NOT a live market quote.",
+          "source_uri": "file:///synthetic-private-price"
+        }
+      }
+    },
+    {
+      "name": "mailto_source_uri_is_inert",
+      "expected": "decoded",
+      "rate_set": {
+        "provenance": {
+          "checked_at": "2026-10-16T09:00:00Z",
+          "verification_status": "estimated",
+          "notes": "Illustrative price, NOT a live market quote.",
+          "source_uri": "mailto:synthetic@example.invalid"
+        }
+      }
+    },
+    {
+      "name": "reverse_rate_order_retained",
+      "expected": "decoded",
+      "set": {
+        "rates": [
+          {
+            "id": "rate.storage.fixture",
+            "catalog_item_id": "cat.storage.fixture",
+            "catalog_item_version": "2026.10-demo",
+            "meter": "storage_gb_month",
+            "region": "us-east-fixture",
+            "unit_price": {
+              "amount": "0.05",
+              "currency": "USD"
+            },
+            "valid_from": "2026-10-16T09:00:00Z",
+            "provenance": {
+              "checked_at": "2026-10-16T09:00:00Z",
+              "verification_status": "estimated",
+              "notes": "Illustrative price, NOT a live market quote."
+            },
+            "price_type": "estimate"
+          },
+          {
+            "id": "rate.compute_profile.fixture",
+            "catalog_item_id": "cat.compute_profile.fixture",
+            "catalog_item_version": "2026.10-demo",
+            "meter": "gpu_hour",
+            "region": "us-east-fixture",
+            "unit_price": {
+              "amount": "0.80",
+              "currency": "USD"
+            },
+            "valid_from": "2026-10-16T09:00:00Z",
+            "provenance": {
+              "checked_at": "2026-10-16T09:00:00Z",
+              "verification_status": "estimated",
+              "notes": "Illustrative price, NOT a live market quote."
+            },
+            "price_type": "estimate"
+          }
+        ]
+      }
+    },
+    {
+      "name": "identical_duplicate_rate_ids_retained",
+      "expected": "decoded",
+      "set": {
+        "rates": [
+          {
+            "id": "rate.compute_profile.fixture",
+            "catalog_item_id": "cat.compute_profile.fixture",
+            "catalog_item_version": "2026.10-demo",
+            "meter": "gpu_hour",
+            "region": "us-east-fixture",
+            "unit_price": {
+              "amount": "0.80",
+              "currency": "USD"
+            },
+            "valid_from": "2026-10-16T09:00:00Z",
+            "provenance": {
+              "checked_at": "2026-10-16T09:00:00Z",
+              "verification_status": "estimated",
+              "notes": "Illustrative price, NOT a live market quote."
+            },
+            "price_type": "estimate"
+          },
+          {
+            "id": "rate.compute_profile.fixture",
+            "catalog_item_id": "cat.compute_profile.fixture",
+            "catalog_item_version": "2026.10-demo",
+            "meter": "gpu_hour",
+            "region": "us-east-fixture",
+            "unit_price": {
+              "amount": "0.80",
+              "currency": "USD"
+            },
+            "valid_from": "2026-10-16T09:00:00Z",
+            "provenance": {
+              "checked_at": "2026-10-16T09:00:00Z",
+              "verification_status": "estimated",
+              "notes": "Illustrative price, NOT a live market quote."
+            },
+            "price_type": "estimate"
+          },
+          {
+            "id": "rate.storage.fixture",
+            "catalog_item_id": "cat.storage.fixture",
+            "catalog_item_version": "2026.10-demo",
+            "meter": "storage_gb_month",
+            "region": "us-east-fixture",
+            "unit_price": {
+              "amount": "0.05",
+              "currency": "USD"
+            },
+            "valid_from": "2026-10-16T09:00:00Z",
+            "provenance": {
+              "checked_at": "2026-10-16T09:00:00Z",
+              "verification_status": "estimated",
+              "notes": "Illustrative price, NOT a live market quote."
+            },
+            "price_type": "estimate"
+          }
+        ]
+      }
+    },
+    {
+      "name": "distinct_duplicate_rate_ids_retained",
+      "expected": "decoded",
+      "set": {
+        "rates": [
+          {
+            "id": "rate.compute_profile.fixture",
+            "catalog_item_id": "cat.compute_profile.fixture",
+            "catalog_item_version": "2026.10-demo",
+            "meter": "gpu_hour",
+            "region": "us-east-fixture",
+            "unit_price": {
+              "amount": "0.80",
+              "currency": "USD"
+            },
+            "valid_from": "2026-10-16T09:00:00Z",
+            "provenance": {
+              "checked_at": "2026-10-16T09:00:00Z",
+              "verification_status": "estimated",
+              "notes": "Illustrative price, NOT a live market quote."
+            },
+            "price_type": "estimate"
+          },
+          {
+            "id": "rate.compute_profile.fixture",
+            "catalog_item_id": "cat.compute_profile.fixture",
+            "catalog_item_version": "2026.10-demo",
+            "meter": "request",
+            "region": "us-east-fixture",
+            "unit_price": {
+              "amount": "123.4500",
+              "currency": "EUR"
+            },
+            "valid_from": "2026-10-16T09:00:00Z",
+            "provenance": {
+              "checked_at": "2026-10-16T09:00:00Z",
+              "verification_status": "estimated",
+              "notes": "Illustrative price, NOT a live market quote."
+            },
+            "price_type": "estimate",
+            "conditions": [
+              "other"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "same_catalog_identity_alternatives_retained",
+      "expected": "decoded",
+      "set": {
+        "rates": [
+          {
+            "id": "rate.compute_profile.fixture",
+            "catalog_item_id": "cat.compute_profile.fixture",
+            "catalog_item_version": "2026.10-demo",
+            "meter": "gpu_hour",
+            "region": "us-east-fixture",
+            "unit_price": {
+              "amount": "0.80",
+              "currency": "USD"
+            },
+            "valid_from": "2026-10-16T09:00:00Z",
+            "provenance": {
+              "checked_at": "2026-10-16T09:00:00Z",
+              "verification_status": "estimated",
+              "notes": "Illustrative price, NOT a live market quote."
+            },
+            "price_type": "estimate"
+          },
+          {
+            "id": "rate.alternative.fixture",
+            "catalog_item_id": "cat.compute_profile.fixture",
+            "catalog_item_version": "2026.10-demo",
+            "meter": "gpu_hour",
+            "region": "us-east-fixture",
+            "unit_price": {
+              "amount": "0",
+              "currency": "JPY"
+            },
+            "valid_from": "2026-10-16T09:00:00Z",
+            "provenance": {
+              "checked_at": "2026-10-16T09:00:00Z",
+              "verification_status": "estimated",
+              "notes": "Illustrative price, NOT a live market quote."
+            },
+            "price_type": "list"
+          }
+        ]
+      }
+    },
+    {
+      "name": "valid_until_before_valid_from_is_structural",
+      "expected": "decoded",
+      "rate_set": {
+        "valid_until": "2025-01-01T00:00:00Z"
+      }
+    },
+    {
+      "name": "valid_until_equal_valid_from_is_structural",
+      "expected": "decoded",
+      "rate_set": {
+        "valid_until": "2026-10-16T09:00:00Z"
+      }
+    },
+    {
+      "name": "checked_after_valid_until_is_structural",
+      "expected": "decoded",
+      "rate_set": {
+        "valid_until": "2026-10-17T09:00:00Z",
+        "provenance": {
+          "checked_at": "2030-01-01T00:00:00Z",
+          "verification_status": "estimated",
+          "notes": "Illustrative price, NOT a live market quote."
+        }
+      }
+    },
+    {
+      "name": "capture_before_every_rate_is_structural",
+      "expected": "decoded",
+      "set": {
+        "captured_at": "2000-01-01T00:00:00Z"
+      }
+    },
+    {
+      "name": "arbitrary_non_semver_catalog_version",
+      "expected": "decoded",
+      "rate_set": {
+        "catalog_item_version": "synthetic/private version ?+"
+      }
+    },
+    {
+      "name": "whitespace_catalog_version",
+      "expected": "decoded",
+      "rate_set": {
+        "catalog_item_version": " "
+      }
+    },
+    {
+      "name": "mixed_rate_currencies_are_structural",
+      "expected": "decoded",
+      "set": {
+        "rates": [
+          {
+            "id": "rate.compute_profile.fixture",
+            "catalog_item_id": "cat.compute_profile.fixture",
+            "catalog_item_version": "2026.10-demo",
+            "meter": "gpu_hour",
+            "region": "us-east-fixture",
+            "unit_price": {
+              "amount": "0.80",
+              "currency": "USD"
+            },
+            "valid_from": "2026-10-16T09:00:00Z",
+            "provenance": {
+              "checked_at": "2026-10-16T09:00:00Z",
+              "verification_status": "estimated",
+              "notes": "Illustrative price, NOT a live market quote."
+            },
+            "price_type": "estimate"
+          },
+          {
+            "id": "rate.different.currency",
+            "catalog_item_id": "cat.compute_profile.fixture",
+            "catalog_item_version": "2026.10-demo",
+            "meter": "gpu_hour",
+            "region": "us-east-fixture",
+            "unit_price": {
+              "amount": "0.00",
+              "currency": "EUR"
+            },
+            "valid_from": "2026-10-16T09:00:00Z",
+            "provenance": {
+              "checked_at": "2026-10-16T09:00:00Z",
+              "verification_status": "estimated",
+              "notes": "Illustrative price, NOT a live market quote."
+            },
+            "price_type": "estimate"
+          }
+        ]
+      }
+    },
+    {
+      "name": "unregistered_currency_code_is_structural",
+      "expected": "decoded",
+      "rate_set": {
+        "unit_price": {
+          "amount": "0.00",
+          "currency": "ZZZ"
+        }
+      }
+    },
+    {
+      "name": "wide_positive_revision",
+      "expected": "decoded",
+      "set": {
+        "revision": 9223372036854775808
+      }
+    },
+    {
+      "name": "128_digit_positive_revision",
+      "expected": "decoded",
+      "set": {
+        "revision": 99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999
+      }
+    },
+    {
+      "name": "revision_zero",
+      "expected": "schema_mismatch",
+      "set": {
+        "revision": 0
+      }
+    },
+    {
+      "name": "revision_negative",
+      "expected": "schema_mismatch",
+      "set": {
+        "revision": -1
+      }
+    },
+    {
+      "name": "revision_negative_wide",
+      "expected": "schema_mismatch",
+      "set": {
+        "revision": -9223372036854775809
+      }
+    },
+    {
+      "name": "revision_fractional",
+      "expected": "schema_mismatch",
+      "set": {
+        "revision": 1.5
+      }
+    },
+    {
+      "name": "revision_boolean",
+      "expected": "schema_mismatch",
+      "set": {
+        "revision": true
+      }
+    },
+    {
+      "name": "revision_text",
+      "expected": "schema_mismatch",
+      "set": {
+        "revision": "1"
+      }
+    },
+    {
+      "name": "missing_schema_version",
+      "expected": "unsupported_version",
+      "remove": [
+        "schema_version"
+      ]
+    },
+    {
+      "name": "null_schema_version",
+      "expected": "unsupported_version",
+      "set": {
+        "schema_version": null
+      }
+    },
+    {
+      "name": "missing_id",
+      "expected": "schema_mismatch",
+      "remove": [
+        "id"
+      ]
+    },
+    {
+      "name": "null_id",
+      "expected": "schema_mismatch",
+      "set": {
+        "id": null
+      }
+    },
+    {
+      "name": "missing_revision",
+      "expected": "schema_mismatch",
+      "remove": [
+        "revision"
+      ]
+    },
+    {
+      "name": "null_revision",
+      "expected": "schema_mismatch",
+      "set": {
+        "revision": null
+      }
+    },
+    {
+      "name": "missing_captured_at",
+      "expected": "schema_mismatch",
+      "remove": [
+        "captured_at"
+      ]
+    },
+    {
+      "name": "null_captured_at",
+      "expected": "schema_mismatch",
+      "set": {
+        "captured_at": null
+      }
+    },
+    {
+      "name": "missing_rates",
+      "expected": "schema_mismatch",
+      "remove": [
+        "rates"
+      ]
+    },
+    {
+      "name": "null_rates",
+      "expected": "schema_mismatch",
+      "set": {
+        "rates": null
+      }
+    },
+    {
+      "name": "version_future",
+      "expected": "unsupported_version",
+      "set": {
+        "schema_version": "2.0.0"
+      }
+    },
+    {
+      "name": "version_numeric",
+      "expected": "unsupported_version",
+      "set": {
+        "schema_version": 1
+      }
+    },
+    {
+      "name": "version_boolean",
+      "expected": "unsupported_version",
+      "set": {
+        "schema_version": false
+      }
+    },
+    {
+      "name": "version_empty",
+      "expected": "unsupported_version",
+      "set": {
+        "schema_version": ""
+      }
+    },
+    {
+      "name": "unknown_top_field",
+      "expected": "schema_mismatch",
+      "set": {
+        "synthetic_unknown": true
+      }
+    },
+    {
+      "name": "empty_rates_rejected",
+      "expected": "schema_mismatch",
+      "set": {
+        "rates": []
+      }
+    },
+    {
+      "name": "rates_wrong_container",
+      "expected": "schema_mismatch",
+      "set": {
+        "rates": {}
+      }
+    },
+    {
+      "name": "rates_wrong_item",
+      "expected": "schema_mismatch",
+      "set": {
+        "rates": [
+          0
+        ]
+      }
+    },
+    {
+      "name": "rate_missing_id",
+      "expected": "schema_mismatch",
+      "rate_remove": [
+        "id"
+      ]
+    },
+    {
+      "name": "rate_null_id",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "id": null
+      }
+    },
+    {
+      "name": "rate_missing_catalog_item_id",
+      "expected": "schema_mismatch",
+      "rate_remove": [
+        "catalog_item_id"
+      ]
+    },
+    {
+      "name": "rate_null_catalog_item_id",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "catalog_item_id": null
+      }
+    },
+    {
+      "name": "rate_missing_catalog_item_version",
+      "expected": "schema_mismatch",
+      "rate_remove": [
+        "catalog_item_version"
+      ]
+    },
+    {
+      "name": "rate_null_catalog_item_version",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "catalog_item_version": null
+      }
+    },
+    {
+      "name": "rate_missing_meter",
+      "expected": "schema_mismatch",
+      "rate_remove": [
+        "meter"
+      ]
+    },
+    {
+      "name": "rate_null_meter",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "meter": null
+      }
+    },
+    {
+      "name": "rate_missing_unit_price",
+      "expected": "schema_mismatch",
+      "rate_remove": [
+        "unit_price"
+      ]
+    },
+    {
+      "name": "rate_null_unit_price",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "unit_price": null
+      }
+    },
+    {
+      "name": "rate_missing_valid_from",
+      "expected": "schema_mismatch",
+      "rate_remove": [
+        "valid_from"
+      ]
+    },
+    {
+      "name": "rate_null_valid_from",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "valid_from": null
+      }
+    },
+    {
+      "name": "rate_missing_provenance",
+      "expected": "schema_mismatch",
+      "rate_remove": [
+        "provenance"
+      ]
+    },
+    {
+      "name": "rate_null_provenance",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "provenance": null
+      }
+    },
+    {
+      "name": "rate_missing_price_type",
+      "expected": "schema_mismatch",
+      "rate_remove": [
+        "price_type"
+      ]
+    },
+    {
+      "name": "rate_null_price_type",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "price_type": null
+      }
+    },
+    {
+      "name": "optional_rate_null_region",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "region": null
+      }
+    },
+    {
+      "name": "optional_rate_null_valid_until",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "valid_until": null
+      }
+    },
+    {
+      "name": "optional_rate_null_conditions",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "conditions": null
+      }
+    },
+    {
+      "name": "rate_unknown_field",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "synthetic_unknown": true
+      }
+    },
+    {
+      "name": "region_wrong_type",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "region": 42
+      }
+    },
+    {
+      "name": "conditions_wrong_container",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "conditions": ""
+      }
+    },
+    {
+      "name": "conditions_wrong_item",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "conditions": [
+          "valid",
+          42
+        ]
+      }
+    },
+    {
+      "name": "catalog_version_empty",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "catalog_item_version": ""
+      }
+    },
+    {
+      "name": "catalog_version_numeric",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "catalog_item_version": 1
+      }
+    },
+    {
+      "name": "provenance_missing_checked_at",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "provenance": {
+          "verification_status": "estimated",
+          "notes": "Illustrative price, NOT a live market quote."
+        }
+      }
+    },
+    {
+      "name": "provenance_missing_verification_status",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "provenance": {
+          "checked_at": "2026-10-16T09:00:00Z",
+          "notes": "Illustrative price, NOT a live market quote."
+        }
+      }
+    },
+    {
+      "name": "provenance_null_source_uri",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "provenance": {
+          "checked_at": "2026-10-16T09:00:00Z",
+          "verification_status": "estimated",
+          "notes": "Illustrative price, NOT a live market quote.",
+          "source_uri": null
+        }
+      }
+    },
+    {
+      "name": "provenance_null_checked_at",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "provenance": {
+          "checked_at": null,
+          "verification_status": "estimated",
+          "notes": "Illustrative price, NOT a live market quote."
+        }
+      }
+    },
+    {
+      "name": "provenance_null_verification_status",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "provenance": {
+          "checked_at": "2026-10-16T09:00:00Z",
+          "verification_status": null,
+          "notes": "Illustrative price, NOT a live market quote."
+        }
+      }
+    },
+    {
+      "name": "provenance_null_notes",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "provenance": {
+          "checked_at": "2026-10-16T09:00:00Z",
+          "verification_status": "estimated",
+          "notes": null
+        }
+      }
+    },
+    {
+      "name": "provenance_unknown_field",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "provenance": {
+          "checked_at": "2026-10-16T09:00:00Z",
+          "verification_status": "estimated",
+          "notes": "Illustrative price, NOT a live market quote.",
+          "synthetic_unknown": true
+        }
+      }
+    },
+    {
+      "name": "provenance_wrong_container",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "provenance": "synthetic-private-price"
+      }
+    },
+    {
+      "name": "notes_wrong_type",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "provenance": {
+          "checked_at": "2026-10-16T09:00:00Z",
+          "verification_status": "estimated",
+          "notes": 0
+        }
+      }
+    },
+    {
+      "name": "source_uri_empty",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "provenance": {
+          "checked_at": "2026-10-16T09:00:00Z",
+          "verification_status": "estimated",
+          "notes": "Illustrative price, NOT a live market quote.",
+          "source_uri": ""
+        }
+      }
+    },
+    {
+      "name": "source_uri_relative",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "provenance": {
+          "checked_at": "2026-10-16T09:00:00Z",
+          "verification_status": "estimated",
+          "notes": "Illustrative price, NOT a live market quote.",
+          "source_uri": "relative/path"
+        }
+      }
+    },
+    {
+      "name": "source_uri_spaces",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "provenance": {
+          "checked_at": "2026-10-16T09:00:00Z",
+          "verification_status": "estimated",
+          "notes": "Illustrative price, NOT a live market quote.",
+          "source_uri": "https://example.invalid/a b"
+        }
+      }
+    },
+    {
+      "name": "source_uri_number",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "provenance": {
+          "checked_at": "2026-10-16T09:00:00Z",
+          "verification_status": "estimated",
+          "notes": "Illustrative price, NOT a live market quote.",
+          "source_uri": 42
+        }
+      }
+    },
+    {
+      "name": "recorded_verification_verified",
+      "expected": "decoded",
+      "rate_set": {
+        "provenance": {
+          "checked_at": "2026-10-16T09:00:00Z",
+          "verification_status": "verified",
+          "notes": "Illustrative price, NOT a live market quote."
+        }
+      }
+    },
+    {
+      "name": "recorded_verification_user_supplied",
+      "expected": "decoded",
+      "rate_set": {
+        "provenance": {
+          "checked_at": "2026-10-16T09:00:00Z",
+          "verification_status": "user_supplied",
+          "notes": "Illustrative price, NOT a live market quote."
+        }
+      }
+    },
+    {
+      "name": "recorded_verification_estimated",
+      "expected": "decoded",
+      "rate_set": {
+        "provenance": {
+          "checked_at": "2026-10-16T09:00:00Z",
+          "verification_status": "estimated",
+          "notes": "Illustrative price, NOT a live market quote."
+        }
+      }
+    },
+    {
+      "name": "recorded_verification_unverified",
+      "expected": "decoded",
+      "rate_set": {
+        "provenance": {
+          "checked_at": "2026-10-16T09:00:00Z",
+          "verification_status": "unverified",
+          "notes": "Illustrative price, NOT a live market quote."
+        }
+      }
+    },
+    {
+      "name": "verification_unknown",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "provenance": {
+          "checked_at": "2026-10-16T09:00:00Z",
+          "verification_status": "accepted",
+          "notes": "Illustrative price, NOT a live market quote."
+        }
+      }
+    },
+    {
+      "name": "verification_wrong_type",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "provenance": {
+          "checked_at": "2026-10-16T09:00:00Z",
+          "verification_status": true,
+          "notes": "Illustrative price, NOT a live market quote."
+        }
+      }
+    },
+    {
+      "name": "meter_input_tokens_1m",
+      "expected": "decoded",
+      "rate_set": {
+        "meter": "input_tokens_1m"
+      }
+    },
+    {
+      "name": "meter_output_tokens_1m",
+      "expected": "decoded",
+      "rate_set": {
+        "meter": "output_tokens_1m"
+      }
+    },
+    {
+      "name": "meter_cached_input_tokens_1m",
+      "expected": "decoded",
+      "rate_set": {
+        "meter": "cached_input_tokens_1m"
+      }
+    },
+    {
+      "name": "meter_embedding_tokens_1m",
+      "expected": "decoded",
+      "rate_set": {
+        "meter": "embedding_tokens_1m"
+      }
+    },
+    {
+      "name": "meter_request",
+      "expected": "decoded",
+      "rate_set": {
+        "meter": "request"
+      }
+    },
+    {
+      "name": "meter_gpu_hour",
+      "expected": "decoded",
+      "rate_set": {
+        "meter": "gpu_hour"
+      }
+    },
+    {
+      "name": "meter_cpu_hour",
+      "expected": "decoded",
+      "rate_set": {
+        "meter": "cpu_hour"
+      }
+    },
+    {
+      "name": "meter_storage_gb_month",
+      "expected": "decoded",
+      "rate_set": {
+        "meter": "storage_gb_month"
+      }
+    },
+    {
+      "name": "meter_vector_gb_month",
+      "expected": "decoded",
+      "rate_set": {
+        "meter": "vector_gb_month"
+      }
+    },
+    {
+      "name": "meter_agent_run",
+      "expected": "decoded",
+      "rate_set": {
+        "meter": "agent_run"
+      }
+    },
+    {
+      "name": "meter_seat_month",
+      "expected": "decoded",
+      "rate_set": {
+        "meter": "seat_month"
+      }
+    },
+    {
+      "name": "meter_license_month",
+      "expected": "decoded",
+      "rate_set": {
+        "meter": "license_month"
+      }
+    },
+    {
+      "name": "meter_one_time",
+      "expected": "decoded",
+      "rate_set": {
+        "meter": "one_time"
+      }
+    },
+    {
+      "name": "meter_unknown_member",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "meter": "synthetic-private-price"
+      }
+    },
+    {
+      "name": "meter_wrong_type",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "meter": 42
+      }
+    },
+    {
+      "name": "price_type_list",
+      "expected": "decoded",
+      "rate_set": {
+        "price_type": "list"
+      }
+    },
+    {
+      "name": "price_type_contract",
+      "expected": "decoded",
+      "rate_set": {
+        "price_type": "contract"
+      }
+    },
+    {
+      "name": "price_type_estimate",
+      "expected": "decoded",
+      "rate_set": {
+        "price_type": "estimate"
+      }
+    },
+    {
+      "name": "price_type_unknown_member",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "price_type": "synthetic-private-price"
+      }
+    },
+    {
+      "name": "price_type_wrong_type",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "price_type": 42
+      }
+    },
+    {
+      "name": "amount_zero",
+      "expected": "decoded",
+      "rate_set": {
+        "unit_price": {
+          "amount": "0",
+          "currency": "USD"
+        }
+      }
+    },
+    {
+      "name": "amount_one_fraction",
+      "expected": "decoded",
+      "rate_set": {
+        "unit_price": {
+          "amount": "0.1",
+          "currency": "USD"
+        }
+      }
+    },
+    {
+      "name": "amount_trailing_zeroes",
+      "expected": "decoded",
+      "rate_set": {
+        "unit_price": {
+          "amount": "12.3400",
+          "currency": "USD"
+        }
+      }
+    },
+    {
+      "name": "amount_twelve_fractional_digits",
+      "expected": "decoded",
+      "rate_set": {
+        "unit_price": {
+          "amount": "1.123456789012",
+          "currency": "USD"
+        }
+      }
+    },
+    {
+      "name": "amount_large_plain_decimal",
+      "expected": "decoded",
+      "rate_set": {
+        "unit_price": {
+          "amount": "999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999.00",
+          "currency": "USD"
+        }
+      }
+    },
+    {
+      "name": "amount_terminal_lf",
+      "expected": "decoded",
+      "rate_set": {
+        "unit_price": {
+          "amount": "0.80\n",
+          "currency": "USD"
+        }
+      }
+    },
+    {
+      "name": "amount_negative",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "unit_price": {
+          "amount": "-1",
+          "currency": "USD"
+        }
+      }
+    },
+    {
+      "name": "amount_plus",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "unit_price": {
+          "amount": "+1",
+          "currency": "USD"
+        }
+      }
+    },
+    {
+      "name": "amount_exponent",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "unit_price": {
+          "amount": "1e2",
+          "currency": "USD"
+        }
+      }
+    },
+    {
+      "name": "amount_leading_zero",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "unit_price": {
+          "amount": "01",
+          "currency": "USD"
+        }
+      }
+    },
+    {
+      "name": "amount_empty",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "unit_price": {
+          "amount": "",
+          "currency": "USD"
+        }
+      }
+    },
+    {
+      "name": "amount_fraction_only",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "unit_price": {
+          "amount": ".1",
+          "currency": "USD"
+        }
+      }
+    },
+    {
+      "name": "amount_missing_fraction",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "unit_price": {
+          "amount": "1.",
+          "currency": "USD"
+        }
+      }
+    },
+    {
+      "name": "amount_thirteen_fractional_digits",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "unit_price": {
+          "amount": "1.1234567890123",
+          "currency": "USD"
+        }
+      }
+    },
+    {
+      "name": "amount_unicode_digits",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "unit_price": {
+          "amount": "١",
+          "currency": "USD"
+        }
+      }
+    },
+    {
+      "name": "amount_whitespace",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "unit_price": {
+          "amount": " 1",
+          "currency": "USD"
+        }
+      }
+    },
+    {
+      "name": "amount_terminal_cr",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "unit_price": {
+          "amount": "1\r",
+          "currency": "USD"
+        }
+      }
+    },
+    {
+      "name": "amount_terminal_crlf",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "unit_price": {
+          "amount": "1\r\n",
+          "currency": "USD"
+        }
+      }
+    },
+    {
+      "name": "amount_two_terminal_lf",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "unit_price": {
+          "amount": "1\n\n",
+          "currency": "USD"
+        }
+      }
+    },
+    {
+      "name": "amount_number",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "unit_price": {
+          "amount": 1,
+          "currency": "USD"
+        }
+      }
+    },
+    {
+      "name": "currency_terminal_lf",
+      "expected": "decoded",
+      "rate_set": {
+        "unit_price": {
+          "amount": "0.80",
+          "currency": "USD\n"
+        }
+      }
+    },
+    {
+      "name": "currency_lowercase",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "unit_price": {
+          "amount": "0.80",
+          "currency": "usd"
+        }
+      }
+    },
+    {
+      "name": "currency_wrong_length",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "unit_price": {
+          "amount": "0.80",
+          "currency": "US"
+        }
+      }
+    },
+    {
+      "name": "currency_empty",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "unit_price": {
+          "amount": "0.80",
+          "currency": ""
+        }
+      }
+    },
+    {
+      "name": "currency_number",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "unit_price": {
+          "amount": "0.80",
+          "currency": 1
+        }
+      }
+    },
+    {
+      "name": "currency_terminal_cr",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "unit_price": {
+          "amount": "0.80",
+          "currency": "USD\r"
+        }
+      }
+    },
+    {
+      "name": "money_missing_amount",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "unit_price": {
+          "currency": "USD"
+        }
+      }
+    },
+    {
+      "name": "money_null_amount",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "unit_price": {
+          "amount": null,
+          "currency": "USD"
+        }
+      }
+    },
+    {
+      "name": "money_missing_currency",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "unit_price": {
+          "amount": "0.80"
+        }
+      }
+    },
+    {
+      "name": "money_null_currency",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "unit_price": {
+          "amount": "0.80",
+          "currency": null
+        }
+      }
+    },
+    {
+      "name": "money_unknown_field",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "unit_price": {
+          "amount": "0.80",
+          "currency": "USD",
+          "synthetic_unknown": true
+        }
+      }
+    },
+    {
+      "name": "money_wrong_container",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "unit_price": "0.80"
+      }
+    },
+    {
+      "name": "book_id_terminal_lf",
+      "expected": "decoded",
+      "set": {
+        "id": "abc\n"
+      }
+    },
+    {
+      "name": "book_id_minimum_length",
+      "expected": "decoded",
+      "set": {
+        "id": "abc"
+      }
+    },
+    {
+      "name": "book_id_maximum_length",
+      "expected": "decoded",
+      "set": {
+        "id": "abbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    },
+    {
+      "name": "book_id_too_short",
+      "expected": "schema_mismatch",
+      "set": {
+        "id": "ab"
+      }
+    },
+    {
+      "name": "book_id_too_long",
+      "expected": "schema_mismatch",
+      "set": {
+        "id": "abbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    },
+    {
+      "name": "book_id_uppercase",
+      "expected": "schema_mismatch",
+      "set": {
+        "id": "Abc"
+      }
+    },
+    {
+      "name": "book_id_wrong_type",
+      "expected": "schema_mismatch",
+      "set": {
+        "id": 7
+      }
+    },
+    {
+      "name": "rate_id_terminal_lf",
+      "expected": "decoded",
+      "rate_set": {
+        "id": "abc\n"
+      }
+    },
+    {
+      "name": "rate_id_minimum_length",
+      "expected": "decoded",
+      "rate_set": {
+        "id": "abc"
+      }
+    },
+    {
+      "name": "rate_id_maximum_length",
+      "expected": "decoded",
+      "rate_set": {
+        "id": "abbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    },
+    {
+      "name": "rate_id_too_short",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "id": "ab"
+      }
+    },
+    {
+      "name": "rate_id_too_long",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "id": "abbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    },
+    {
+      "name": "rate_id_uppercase",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "id": "Abc"
+      }
+    },
+    {
+      "name": "rate_id_wrong_type",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "id": 7
+      }
+    },
+    {
+      "name": "rate_catalog_item_id_terminal_lf",
+      "expected": "decoded",
+      "rate_set": {
+        "catalog_item_id": "abc\n"
+      }
+    },
+    {
+      "name": "rate_catalog_item_id_minimum_length",
+      "expected": "decoded",
+      "rate_set": {
+        "catalog_item_id": "abc"
+      }
+    },
+    {
+      "name": "rate_catalog_item_id_maximum_length",
+      "expected": "decoded",
+      "rate_set": {
+        "catalog_item_id": "abbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    },
+    {
+      "name": "rate_catalog_item_id_too_short",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "catalog_item_id": "ab"
+      }
+    },
+    {
+      "name": "rate_catalog_item_id_too_long",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "catalog_item_id": "abbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    },
+    {
+      "name": "rate_catalog_item_id_uppercase",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "catalog_item_id": "Abc"
+      }
+    },
+    {
+      "name": "rate_catalog_item_id_wrong_type",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "catalog_item_id": 7
+      }
+    },
+    {
+      "name": "captured_at_offset",
+      "expected": "decoded",
+      "set": {
+        "captured_at": "2026-10-16T12:00:00+03:00"
+      }
+    },
+    {
+      "name": "captured_at_lowercase",
+      "expected": "decoded",
+      "set": {
+        "captured_at": "2026-10-16t09:00:00z"
+      }
+    },
+    {
+      "name": "captured_at_invalid",
+      "expected": "schema_mismatch",
+      "set": {
+        "captured_at": "synthetic-private-price"
+      }
+    },
+    {
+      "name": "captured_at_date_only",
+      "expected": "schema_mismatch",
+      "set": {
+        "captured_at": "2026-10-16"
+      }
+    },
+    {
+      "name": "captured_at_number",
+      "expected": "schema_mismatch",
+      "set": {
+        "captured_at": 42
+      }
+    },
+    {
+      "name": "valid_from_offset",
+      "expected": "decoded",
+      "rate_set": {
+        "valid_from": "2026-10-16T12:00:00+03:00"
+      }
+    },
+    {
+      "name": "valid_from_lowercase",
+      "expected": "decoded",
+      "rate_set": {
+        "valid_from": "2026-10-16t09:00:00z"
+      }
+    },
+    {
+      "name": "valid_from_invalid",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "valid_from": "synthetic-private-price"
+      }
+    },
+    {
+      "name": "valid_from_date_only",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "valid_from": "2026-10-16"
+      }
+    },
+    {
+      "name": "valid_from_number",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "valid_from": 42
+      }
+    },
+    {
+      "name": "valid_until_offset",
+      "expected": "decoded",
+      "rate_set": {
+        "valid_until": "2026-10-16T12:00:00+03:00"
+      }
+    },
+    {
+      "name": "valid_until_lowercase",
+      "expected": "decoded",
+      "rate_set": {
+        "valid_until": "2026-10-16t09:00:00z"
+      }
+    },
+    {
+      "name": "valid_until_invalid",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "valid_until": "synthetic-private-price"
+      }
+    },
+    {
+      "name": "valid_until_date_only",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "valid_until": "2026-10-16"
+      }
+    },
+    {
+      "name": "valid_until_number",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "valid_until": 42
+      }
+    },
+    {
+      "name": "checked_at_offset",
+      "expected": "decoded",
+      "rate_set": {
+        "provenance": {
+          "checked_at": "2026-10-16T12:00:00+03:00",
+          "verification_status": "estimated",
+          "notes": "Illustrative price, NOT a live market quote."
+        }
+      }
+    },
+    {
+      "name": "checked_at_lowercase",
+      "expected": "decoded",
+      "rate_set": {
+        "provenance": {
+          "checked_at": "2026-10-16t09:00:00z",
+          "verification_status": "estimated",
+          "notes": "Illustrative price, NOT a live market quote."
+        }
+      }
+    },
+    {
+      "name": "checked_at_invalid",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "provenance": {
+          "checked_at": "synthetic-private-price",
+          "verification_status": "estimated",
+          "notes": "Illustrative price, NOT a live market quote."
+        }
+      }
+    },
+    {
+      "name": "checked_at_date_only",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "provenance": {
+          "checked_at": "2026-10-16",
+          "verification_status": "estimated",
+          "notes": "Illustrative price, NOT a live market quote."
+        }
+      }
+    },
+    {
+      "name": "checked_at_number",
+      "expected": "schema_mismatch",
+      "rate_set": {
+        "provenance": {
+          "checked_at": 42,
+          "verification_status": "estimated",
+          "notes": "Illustrative price, NOT a live market quote."
+        }
+      }
+    }
+  ]
+}

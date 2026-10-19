@@ -1,21 +1,32 @@
 # Opt-in synthetic Android diagnostic
 
-The `preview` module is an engineering experiment using platform Android Views,
-not an approved product UI/framework, production package registration, support
-matrix or release policy. It browses the unmodified frozen-v1 `catalog.json` fixture and offers a guest title and one sample selection with explicit local save/reopen. A separate diagnostic validates the original
-`build.json`, not the edited guest draft. All verdicts stay **unknown**. Fixtures
-are bundled directly from the verified import, never copied into a real catalog.
-There is no real-data mode or promotion path, account, network, import or telemetry.
-Release variants are disabled. Explicit local save/reopen is described below.
+The [versioned synthetic scenario data](SYNTHETIC_PREVIEW_SCENARIOS.md) supplies
+#77's separate fixture foundation; its scenario screen and #58 adapter integration
+remain pending.
+
+The `preview` module is the bounded guest-local engineering diagnostic. The
+accepted [native decision](proposals/02-native-architecture.md) selects its
+Kotlin/platform Views approach and existing local revision store. Product UI
+acceptance, publisher registration, device qualification and release remain
+separate gates in the [repository scope](REPOSITORY_SCOPE.md).
+
+The current diagnostic browses the unmodified frozen-v1 catalog and supports typed
+draft editing, explicit local save/reopen, a local library, retained history and
+read-only comparison and report inspection. The fixture diagnostics operate on
+the original bundled inputs; they do not evaluate the edited guest draft, whose
+compatibility remains **unknown**. Fixtures are bundled directly from the verified
+import, never copied into a real catalog. There is no real-data mode or promotion
+path, account, network, import or telemetry. Release variants are disabled.
 
 The launcher is the only exported component. The manifest requests no permissions,
 disables backup and cleartext traffic. Catalog and build structural validation run on a worker thread. A destroyed
-Activity discards worker results. A small saved-state Bundle carries only the
-bounded title, selected fixture ID/version and catalog hash; the catalog is reloaded
-and validated after recreation. A missing exact selection is shown as unavailable,
-never silently replaced. Bundle restoration does not acknowledge persistence. The
-explicit local Save path now uses the canonical revision store; full library,
-autosave and installed process-death qualification remain separate.
+Activity discards worker results. An explicit saved-state Bundle carries bounded
+pending inputs, draft identity, the acknowledged baseline and exact catalog pins;
+the catalog and durable state are reloaded after recreation. A missing exact
+selection is shown as unavailable, never silently replaced. Bundle restoration
+does not acknowledge persistence. Explicit Save uses the canonical revision
+store; the local library and recovery flows below retain their own validation
+limits. Autosave and installed process-death qualification remain separate.
 
 ## Reproduce
 
@@ -50,8 +61,8 @@ alone does not establish those results.
 
 | Exact criterion | This slice | Remaining prerequisite and why engineering discretion is insufficient |
 | --- | --- | --- |
-| #48: Pinned compatible JDK/Gradle/Android/Kotlin dependencies, package ID decision, modular build, documented developer setup and clean-checkout build | Pinned opt-in experimental module, setup, bytecode compatibility and build evidence | #34 receiving acceptance must select product framework/package/support policy; this diagnostic cannot claim that stakeholder decision |
-| #48: A fresh checkout builds with the documented pinned toolchain and installs/launches under the approved package identity | Debug build can be independently reproduced with the documented SDK | Approved production identity is absent; actual emulator/device installation and launch evidence must be collected rather than inferred |
+| #48: Pinned compatible JDK/Gradle/Android/Kotlin dependencies, package ID decision, modular build, documented developer setup and clean-checkout build | Pinned opt-in experimental module, setup, bytecode compatibility and build evidence; accepted #34 native/package/module decision | The selected future product namespace is not a registered publisher identity or a built product module; supported-device qualification and #48 receiving acceptance remain separate |
+| #48: A fresh checkout builds with the documented pinned toolchain and installs/launches under the approved package identity | Debug build can be independently reproduced with the documented SDK | The unsigned preview is not the future product application; actual installed build/launch evidence under the applicable identity must be collected rather than inferred |
 | #48: Existing website checks remain independently runnable; no developer-specific configuration is required in source | No website edits; SDK opt-in and environment-only local configuration | Website CI remains separate; no website checks are claimed by this Android run |
 | #77: Each preview visibly identifies synthetic data and validates against its version or is marked as a negative test | Persistent synthetic notice, schema-validated catalog browse/detail, empty/incomplete guest draft and explicit unknown compatibility | Failed-rule and partial-quote product previews are not implemented; #58 product UI/repository integration remains pending |
 | #77: Explicitly synthetic sample data, isolated test contracts, no accidental promotion of fictional prices/components into real-data mode | Only bundled fixture assets, no real-data or publication path | Production catalog/promotion adapter must enforce contamination rejection when implemented; absence of a path is not a tested rejection at a real boundary |
@@ -95,8 +106,11 @@ trust-store bypass or machine path was added.
 
 ## Guest UI scaffolding and acceptance limits
 
-The incremental screen intentionally reuses platform Views and the existing toolchain;
-it does not settle the eventual Compose decision. The catalog is read only from
+The initial screen scaffold reused platform Views and the existing toolchain;
+the later accepted [native decision](proposals/02-native-architecture.md) retains
+that choice for the bounded slice. The original scaffold observations below are
+historical; subsequent sections record later editing, library and inspection work.
+The catalog is read only from
 bundled assets, capped at 1 MiB and schema-validated before display. Only identity,
 name, kind and version are displayed. No fictional price, quality or capacity becomes
 a real vendor claim. Details require explicit selection; selection does not trigger
@@ -607,8 +621,13 @@ One scrollable column keeps complete labels and controls reachable at narrow wid
 and large text sizes. Dismissed, replaced and retired controls cannot navigate again.
 A same-revision comparison explicitly shows no supported-field changes while retaining
 the separate metadata and historical-availability disclosures.
-Comparison is within one retained history only: report, cost, rules and evidence
-comparison and cross-build semantics remain the separate accepted receiving work.
+These two entry points compare one retained history. The separate
+**Compare saved local drafts** action now supports explicitly choosing a local
+draft and retained revision for each side, while keeping both identities and
+historical titles on every field/value page. It leaves the active editor and
+pending inputs untouched. See [saved-library comparison](LOCAL_LIBRARY_COMPARISON.md)
+for capture, unavailable-source and lifetime boundaries. Report, cost, rules and
+evidence comparison and shared cross-build semantics remain separate receiving work.
 It supplies no new evaluation, price or recommendation and is not full #117 closure.
 
 JVM cases cover exact missing/empty/opaque values, same-setting changes,

@@ -103,6 +103,24 @@ class PreviewDraftPersistence internal constructor(private val store: LocalDraft
     fun createSnapshotCandidate(review: DraftProjectionPreparation.Review, acknowledgment: DraftProjectionAcknowledgment?): DraftProjectionCreation =
         guarded({ DraftProjectionCreation.Failed(it) }) { store.createSnapshotCandidate(review, acknowledgment) }
 
+    /** Library liveness stays locked through the source/archive transaction; no pending UI is read. */
+    fun archiveSnapshotCandidate(review: DraftProjectionPreparation.Review, acknowledgment: DraftProjectionAcknowledgment?,
+        archive: LocalSnapshotArchive, expectedArchive: SnapshotArchiveVersion): DraftSnapshotArchival {
+        var attempted: SnapshotArchiveEntry? = null
+        return guarded({ reason -> attempted?.let { DraftSnapshotArchival.Uncertain(it) }
+            ?: DraftSnapshotArchival.SourceUnavailable(reason) }) {
+            if (access?.permitsArchive(archive) == false)
+                return@guarded DraftSnapshotArchival.ArchiveUnavailable(SnapshotArchiveFailure.CORRUPT)
+            val result = store.archiveSnapshotCandidate(review, acknowledgment, archive, expectedArchive)
+            attempted = when (result) {
+                is DraftSnapshotArchival.Archived -> result.entry
+                is DraftSnapshotArchival.Uncertain -> result.entry
+                else -> null
+            }
+            result
+        }
+    }
+
     fun save(expected: PreviewStoredDraft?, fields: PreviewDraftFields, contextInput: PreviewDraftContext? = null,
         workloadInput: DraftWorkload? = null): PreviewDraftSave = write {
         val previous = expected?.draft?.content ?: DraftContent()
@@ -242,6 +260,8 @@ class PreviewDraftPersistence internal constructor(private val store: LocalDraft
 /** Library-bound adapters recheck identity liveness while holding the library transaction lock. */
 internal interface PreviewDraftAccess {
     fun <T> run(failed: (DraftStorageFailure) -> T, action: () -> T): T
+    /** Managed libraries exclude their entire deletion/provisioning namespace from archives. */
+    fun permitsArchive(archive: LocalSnapshotArchive): Boolean = true
 }
 
 /** Lifecycle state is not a save acknowledgement. A changed baseline always needs explicit reopen. */

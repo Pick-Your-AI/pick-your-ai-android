@@ -6,6 +6,7 @@ Read-only: never calls GitHub, changes issue state, or interprets checks as acce
 import argparse
 import hashlib
 import json
+import math
 from pathlib import Path
 import re
 import sys
@@ -216,6 +217,417 @@ REVIEWED_DESIGNS[35] = {
 }
 
 
+# Version 8 receives only the delivered #2 product-decision integration.
+# These are fixed reviewed source receipts. Main CI observes the delivered tree;
+# the D1–D8 desk demonstration remains a separately scoped decision outcome.
+DESIGN_2_ACCEPTANCE = {'scope': 'android_integrated_product_scope_and_decision_outcome',
+ 'classification': 'reviewed_design_outcome',
+ 'evidence_ref': 'pr-412',
+ 'decision_revision': 'c0278410f5a8a90776df9de2f466103cba48f9f1',
+ 'decision_tree': '49fd5b522999f3042bfa5894320575b9ee96b144',
+ 'decision_url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/blob/c0278410f5a8a90776df9de2f466103cba48f9f1/docs/decisions/0006-android-2-acceptance-record.md',
+ 'record_url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/blob/c0278410f5a8a90776df9de2f466103cba48f9f1/docs/delivery/android/epics/01.md',
+ 'record': {'path': 'docs/delivery/android/epics/01.md',
+            'blob': 'f2e1716e35354f12d116b8ee22844ab19eb4f219',
+            'bytes': 24875,
+            'sha256': '003fdebbdb81eb62bd8f707718ba83e52efdf0e765b6956022398940802fd7c3'},
+ 'decision': {'path': 'docs/decisions/0006-android-2-acceptance-record.md',
+              'blob': '8d215f622e910adfa9720d4556213e21be9f8a8d',
+              'bytes': 4208,
+              'sha256': '634ee503eed6d25c8d55db306be34f90510a4c223e2ceaccabe3f8f76610985b'},
+ 'source_review_revision': 'a961c66e391c931e84ce8925eb78e42141abe18b',
+ 'receiving_reviews': [{'role': 'product_decision_authority_and_Android_technical_lead',
+                        'identity': 'in_session_coordinating_agent_under_maintainer_delegation',
+                        'url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/pull/404#pullrequestreview-5564615467',
+                        'reviewed_revision': 'a961c66e391c931e84ce8925eb78e42141abe18b',
+                        'disposition': 'accept_all_four_literal_decision_criteria_and_D1_to_D8_integration_with_recorded_limits'},
+                       {'role': 'independent_Android_receiving_source_and_composition_review',
+                        'identity': 'in_session_Android_agent_under_maintainer_delegation',
+                        'url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/pull/412#pullrequestreview-5564841847',
+                        'reviewed_revision': 'b59112e97d32f8af5bd873415dd39de4e8defa6f',
+                        'disposition': 'accept_exact_nine_path_receiving_composition_including_four_unchanged_foundation_blobs'}],
+ 'decision_demonstration': {'source_baseline': '80f8c9f5a8e682874131a603002c44046583bbde',
+                            'scope': 'completed_synthetic_desk_traversal_of_the_six_accepted_decisions',
+                            'cases': ['D1', 'D2', 'D3', 'D4', 'D5', 'D6', 'D7', 'D8'],
+                            'result': 'selected_local_outcomes_and_explicit_failure_recovery_conditional_authority_and_later_qualification_requirements',
+                            'installed_or_physical_execution_claimed': False,
+                            'production_service_or_operating_acceptance_claimed': False},
+ 'consumed_children': [{'issue': 20,
+                        'issue_url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/issues/20',
+                        'record_revision': '93bebf787a091fe4858c1c70fd07cabefe17170f',
+                        'record_url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/blob/93bebf787a091fe4858c1c70fd07cabefe17170f/docs/delivery/android/work-packages/01.01.md',
+                        'record_blob': 'ac8b72e51d03575634b7fab36821000ee0592777',
+                        'accepted_design_evidence_ref': 'pr-297',
+                        'issue_state_at_2026_10_18_2048_UTC': 'closed'},
+                       {'issue': 24,
+                        'issue_url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/issues/24',
+                        'record_revision': '93bebf787a091fe4858c1c70fd07cabefe17170f',
+                        'record_url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/blob/93bebf787a091fe4858c1c70fd07cabefe17170f/docs/delivery/android/work-packages/01.02.md',
+                        'record_blob': '68df8f7e759dd416838bd43eed03cf9f98980fa4',
+                        'accepted_design_evidence_ref': 'pr-297',
+                        'issue_state_at_2026_10_18_2048_UTC': 'closed'},
+                       {'issue': 34,
+                        'issue_url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/issues/34',
+                        'record_revision': '93bebf787a091fe4858c1c70fd07cabefe17170f',
+                        'record_url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/blob/93bebf787a091fe4858c1c70fd07cabefe17170f/docs/delivery/android/work-packages/01.03.md',
+                        'record_blob': '1c6486fd9a2e1497cb0645db05588ebb62239da4',
+                        'accepted_design_evidence_ref': 'pr-297',
+                        'issue_state_at_2026_10_18_2048_UTC': 'closed'},
+                       {'issue': 35,
+                        'issue_url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/issues/35',
+                        'record_revision': '4c753bd69f3857d9b15051be86078948e61074ac',
+                        'record_url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/blob/4c753bd69f3857d9b15051be86078948e61074ac/docs/delivery/android/work-packages/01.04.md',
+                        'record_blob': 'cb3ba3e5d7892c90cd2507b0c18fa3f85a2b55c4',
+                        'accepted_design_evidence_ref': 'pr-347',
+                        'issue_state_at_2026_10_18_2048_UTC': 'closed'},
+                       {'issue': 25,
+                        'issue_url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/issues/25',
+                        'record_revision': '68e52dd9c79cefe97af65e8fd1e86e4b72d2c42c',
+                        'record_url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/blob/68e52dd9c79cefe97af65e8fd1e86e4b72d2c42c/docs/delivery/android/work-packages/01.05.md',
+                        'record_blob': '45a7653c92be9f26a4afd148826625436c4b6b40',
+                        'accepted_design_evidence_ref': 'pr-322',
+                        'issue_state_at_2026_10_18_2048_UTC': 'closed'},
+                       {'issue': 47,
+                        'issue_url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/issues/47',
+                        'record_revision': 'b6935a8ee7843831f90b0219c8794071557c71d4',
+                        'record_url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/blob/b6935a8ee7843831f90b0219c8794071557c71d4/docs/delivery/android/work-packages/01.06.md',
+                        'record_blob': '3748c6540f2dd431f38d52e3ecc272e846b07037',
+                        'accepted_design_evidence_ref': 'pr-318',
+                        'issue_state_at_2026_10_18_2048_UTC': 'closed'}],
+ 'accepted_handoff_scope': ['Six delivered Android decision children and their actual delegated receiving '
+                            'reviews form one accepted input sequence.',
+                            'Research #58 accepted MVP comparison and #66 bounded substitute observation '
+                            'retain their pinned record and receiving limits.',
+                            'Apple journey, platform and guest decisions and its affected-client service '
+                            'review remain Apple decisions; no Android binary equivalence is inferred.',
+                            'Website shared-service ownership and original frozen Research contract, '
+                            'evidence, pricing, lifecycle and source-rights authority remain canonical.'],
+ 'record_observation': {'execution_revision': 'c0278410f5a8a90776df9de2f466103cba48f9f1',
+                        'execution_tree': '49fd5b522999f3042bfa5894320575b9ee96b144',
+                        'signature_verified': True,
+                        'sole_preceding_main_parent': 'ced002ddb32ceaad2a2a2dcdf4fb438f2a1c0bc9',
+                        'main_run_url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39165208547',
+                        'scanner_run_url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39165208546',
+                        'completed_receipt': 'https://github.com/Pick-Your-AI/pick-your-ai-android/pull/412#issuecomment-6255080145',
+                        'runtime_scope': 'actual_default_main_JVM_and_simulated_Android_unsigned_build_and_packaged_policy_checks; '
+                                         'separate_from_the_documented_desk_decision_demonstration',
+                        'core_cases': 2933,
+                        'simulated_android_cases': 265,
+                        'required_report_programs': 17,
+                        'policy_host_methods': 18,
+                        'compiled_policy_controls': 12,
+                        'scanner_reachable_commits': 167,
+                        'original_artifacts': [{'kind': 'native',
+                                                'id': 12150756217,
+                                                'bytes': 2959884,
+                                                'sha256': '6588ea77186ed4d897b378f1de83c91e3992f444902d88b2767cce0d9b22c498'},
+                                               {'kind': 'runtime',
+                                                'id': 12150039772,
+                                                'bytes': 3704448,
+                                                'sha256': '57e3da8410834f5ebcc1c46a09b980605e159d4f0a40e40ae87dc194c4178bab'},
+                                               {'kind': 'core',
+                                                'id': 12149823620,
+                                                'bytes': 1105233,
+                                                'sha256': '4fad4df795f2e2387f25081c56bce701f4c49007bf7375dddc696fc43eb77260'},
+                                               {'kind': 'scanner',
+                                                'id': 12149593973,
+                                                'bytes': 941,
+                                                'sha256': 'f806080a4e7a6c5589aa06d33b99bcc6a81160ca107545bc00fd1afb1155197f'}],
+                        'unsigned_apk': {'bytes': 2931697,
+                                         'sha256': '18e3483ff13736bcef1c493035454d5d5c74923ca25842ff77a99e247cfc92b6'},
+                        'outcome': 'passed_in_recorded_scope; '
+                                   'no_failed_errored_skipped_or_duplicate_required_case'},
+ 'outcome_boundaries': ['Decision preparation accountability and actual delegated review do not assign a '
+                        'GitHub user, impersonate a human reviewer or create an ongoing operating '
+                        'commitment.',
+                        'D1–D8 demonstrate the product-decision integration; synthetic CI and the scenario '
+                        'RAM input are not executed product journeys, model fit, compatibility or physical '
+                        'witnesses.',
+                        'Local guest planning and mandatory foundation/T6 remain selected; optional tiers '
+                        'and conditional exchange retain explicit scope and unsupported-evidence outcomes.',
+                        'Accounts, payments, telemetry, notifications, downloads, inference execution, '
+                        'purchases and deployment are not activated by the foundation decision.',
+                        'The shared service keeps its explicit operating gates; device, source-rights, '
+                        'resource, accessibility and release qualification remain in their own work '
+                        'packages.',
+                        'No other issue criterion, dependency, Project value, assignment, frozen artifact or '
+                        'cross-client authority is changed.'],
+ 'historical_acceptance_record': {'repository': 'Pick-Your-AI/pickyour.ai',
+                                  'path': 'docs/delivery/android/epics/01.md'}}
+DESIGN_2_EVIDENCE = {'pr_url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/pull/412',
+ 'observed_state': 'merged',
+ 'revision': 'c0278410f5a8a90776df9de2f466103cba48f9f1',
+ 'artifact_url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/blob/c0278410f5a8a90776df9de2f466103cba48f9f1/docs/decisions/0006-android-2-acceptance-record.md',
+ 'scope_limit': 'Delivered integrated Android product-decision record and ADR0006 within the nine-path '
+                'guide/foundation/scanner receiver. Completion here is only the four #2 decision criteria; '
+                'actual default-main JVM/simulated checks do not establish installed-device, live-service, '
+                'operating, source-rights or release acceptance.'}
+PRIOR_2_ISSUE_SHA256 = 'aba30d2b9450b5a6cf6bafa7cd974a89305f8ec894db0d0b4c70164b26835bb6'
+PRIOR_2_REMAINING = ('Implement and validate this exact criterion in the selected scope; record negative/recovery cases and '
+ 'receiving evidence.')
+PRIOR_2_EXTERNAL_PREREQUISITES = {'2.1': [{'kind': 'owner_acceptance',
+          'requirement': 'Actual accountable owner and required receiving review for selected child outputs; '
+                         'unassigned issues do not imply implementation ownership.'}],
+ '2.2': [],
+ '2.3': [],
+ '2.4': [{'kind': 'shared_handoff',
+          'requirement': 'Affected clients/research authorities must accept applicable shared outputs; no '
+                         'unilateral contract changes.'}]}
+REVIEWED_DESIGNS[2] = {
+    'record': {'repository': REPOSITORY, 'path': 'docs/delivery/android/epics/01.md'},
+    'acceptance': DESIGN_2_ACCEPTANCE,
+    'criteria': ['e6668145b1a7b022783885f0f1a839f514b467a4516a10bfc6af36ff801042a6',
+ '14997b25399709aa6dc2380fc29621dd8730a82e1c4f7def01f56e257b9bc7bf',
+ '42fda215339d8d442cb1fef114233b2a6cce9867519f47c4642ca028c258db09',
+ '2a08411645bf0ca56bf2edc5cd560342ef805b53c3853db5dca97b92db82df3e'],
+    'artifact_url': DESIGN_2_ACCEPTANCE['decision_url'],
+}
+
+
+# Version 7 receives only the already delivered #26 local-model implementation.
+# These literals are reviewed source authority, never inferred from ledger input,
+# checkbox state, an arbitrary approval flag or a successful check. Observation
+# revisions and original artifact identities stay separate from the record delivery.
+COMPLETE_IMPLEMENTATION_RELATION = 'criterion_complete_reviewed_implementation_outcome'
+LEDGER_PURPOSE = 'Living evidence index: 25 reviewed documentary/design criteria for Android #2/#20/#23/#24/#25/#34/#35/#47 and 3 reviewed local-model implementation criteria for #26 are complete; 413 criteria remain incomplete. This does not replace acceptance receipts, GitHub issue status or native dependencies.'
+IMPLEMENTATION_26_EVIDENCE = {'pr-407': {'pr_url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/pull/407',
+            'observed_state': 'merged',
+            'revision': '5cb0729889dd56f8e14af356f0547683d1c511a2',
+            'artifact_url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/blob/5cb0729889dd56f8e14af356f0547683d1c511a2/docs/LOCAL_SNAPSHOT_ARCHIVE.md',
+            'scope_limit': 'Delivered local draft/projection/private archive with the ordinary-install '
+                           'checkpoint integration correction. Actual JVM and simulated Android model '
+                           'evidence; no installed-device, physical power-loss, shared-wire, source-rights '
+                           'or release acceptance.'},
+ 'pr-418': {'pr_url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/pull/418',
+            'observed_state': 'merged',
+            'revision': '785a9330f4260892ea28a9bc5045372b01ba6717',
+            'artifact_url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/blob/785a9330f4260892ea28a9bc5045372b01ba6717/docs/delivery/android/work-packages/03.02.md',
+            'scope_limit': 'Delivered #26 local-model criterion/receiving record and ADR 0007 only. The '
+                           'distinct implementation acceptance consumes the separately pinned #407 model and '
+                           'actual reviews; this documentation delivery alone implements no behavior and '
+                           'changes no other issue.'}}
+IMPLEMENTATION_26_ACCEPTANCE = {'scope': 'android_local_draft_projection_and_private_immutable_archive',
+ 'classification': 'reviewed_implementation_outcome',
+ 'evidence_refs': ['pr-407', 'pr-418'],
+ 'implementation_revision': '5cb0729889dd56f8e14af356f0547683d1c511a2',
+ 'implementation_tree': '8db4534ce21d177540e83510cd5f343af712a5db',
+ 'implementation_observation': {'execution_revision': '5cb0729889dd56f8e14af356f0547683d1c511a2',
+                                'execution_tree': '8db4534ce21d177540e83510cd5f343af712a5db',
+                                'runtime_scope': 'JVM filesystem and process tests; simulated Android; '
+                                                 'unsigned build/lint',
+                                'main_run_url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39153908679',
+                                'scanner_run_url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39153908537',
+                                'completed_receipt': 'https://github.com/Pick-Your-AI/pick-your-ai-android/pull/407#issuecomment-6253592295',
+                                'core_cases': 2679,
+                                'simulated_android_cases': 222,
+                                'model_cases': 50,
+                                'original_artifacts': [{'id': '12145339801',
+                                                        'bytes': 910,
+                                                        'sha256': 'a838e07d502d6d97020df57cdd51b8b47f8d19c337e706e44aa2f54109457e7f'},
+                                                       {'id': '12146034260',
+                                                        'bytes': 2911428,
+                                                        'sha256': 'c8acf7d9985aa112945058cb681ebf6c6541dad5dd7397fc6ec4495c7c6287e5'},
+                                                       {'id': '12146327399',
+                                                        'bytes': 1012828,
+                                                        'sha256': '156e3263a0c18008a77b94ee1c0cba0e1d5f8c820c0ee5a18e9b0ba32a1b8abc'},
+                                                       {'id': '12146945389',
+                                                        'bytes': 3598077,
+                                                        'sha256': '756338ddb9c007201d6a8c1938397afc576639ca20389d10e29718e4e1a7c555'}],
+                                'unsigned_apk': {'bytes': 2890733,
+                                                 'sha256': '3bfc738aa8cce849eda17bd7f4409ef88e2c7637649eeb92a4821b21d1b06f7e'},
+                                'outcome': 'passed_in_recorded_scope; no skipped required cases'},
+ 'record_revision': '785a9330f4260892ea28a9bc5045372b01ba6717',
+ 'record_tree': '02bd681dded3f1e21e5a3dbbe2a4d48a55ca6acf',
+ 'record_url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/blob/785a9330f4260892ea28a9bc5045372b01ba6717/docs/delivery/android/work-packages/03.02.md',
+ 'record_blob': 'db60ec73b41df4f4be8f12af1d52f4833c65293b',
+ 'decision_url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/blob/785a9330f4260892ea28a9bc5045372b01ba6717/docs/decisions/0007-android-26-acceptance-record.md',
+ 'decision_blob': '34c3248aeb9e942ff1ef339cba82ea5c87761fe1',
+ 'source_review_revision': '8133e29b9da5d0843ee6c682786ec8c9df0f91a2',
+ 'source_reviews': ['https://github.com/Pick-Your-AI/pick-your-ai-android/pull/414#pullrequestreview-5564414746',
+                    'https://github.com/Pick-Your-AI/pick-your-ai-android/pull/418#pullrequestreview-5564531065',
+                    'https://github.com/Pick-Your-AI/pick-your-ai-android/pull/418#pullrequestreview-5564567253'],
+ 'record_observation': {'execution_revision': '785a9330f4260892ea28a9bc5045372b01ba6717',
+                        'execution_tree': '02bd681dded3f1e21e5a3dbbe2a4d48a55ca6acf',
+                        'runtime_scope': 'JVM and simulated Android checks of the delivered documentation '
+                                         'composition; packaged-policy controls',
+                        'main_run_url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39158315808',
+                        'scanner_run_url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39158315963',
+                        'completed_receipt': 'https://github.com/Pick-Your-AI/pick-your-ai-android/pull/418#issuecomment-6254157043',
+                        'core_cases': 2881,
+                        'simulated_android_cases': 222,
+                        'model_cases': 50,
+                        'original_artifacts': [{'id': '12148360350',
+                                                'bytes': 2922352,
+                                                'sha256': 'b629ef778e811f5a08f81816cb2d497d6150a02807403c7e7c9c9a8baaf1a726'},
+                                               {'id': '12148077055',
+                                                'bytes': 3645297,
+                                                'sha256': 'e6538acd67007fe5583534e1f48cbf499f5291e1fd1135909822b5c90d7cb2a7'},
+                                               {'id': '12148036844',
+                                                'bytes': 1058972,
+                                                'sha256': 'fdbd3e83109115d42cefd49d1b56b3486883f417f1d362d788286cccb06185de'},
+                                               {'id': '12147477324',
+                                                'bytes': 910,
+                                                'sha256': '406c3932c6136d3ef21e2ab4160ecdbdc01c39e4ec4f392319655aae8666465b'}],
+                        'unsigned_apk': {'bytes': 2901849,
+                                         'sha256': '49f13bcdef015dfea5a08848d53ba95e884a300f4bcf4abbe679c97623fac264'},
+                        'outcome': 'passed_in_recorded_scope; no skipped required cases'},
+ 'receiving_reviews': [{'role': 'affected_iOS_and_local_model',
+                        'url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/issues/26#issuecomment-6253612135',
+                        'reviewed_revision': '3a61d9c025c552838d4e9345a4dcdf7b63bee526',
+                        'disposition': 'accept_three_local_model_criteria_and_four_subtasks_with_recorded_limits'},
+                       {'role': 'central_contract_and_saved_build',
+                        'url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/issues/26#issuecomment-6253664529',
+                        'reviewed_revision': '3a61d9c025c552838d4e9345a4dcdf7b63bee526',
+                        'disposition': 'accept_explicit_frozen_projection_private_archive_and_narrow_placement_with_constraints'},
+                       {'role': 'coordinating_affected_web_and_Android_model',
+                        'url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/issues/26#issuecomment-6253699903',
+                        'reviewed_revision': '3a61d9c025c552838d4e9345a4dcdf7b63bee526',
+                        'disposition': 'accept_three_local_model_criteria_four_subtasks_and_ADR_0007_with_recorded_limits'}],
+ 'receiving_attribution': 'Actual delegated in-session technical decisions; not absent named-assignee '
+                          'replies, new native execution or operating commitments.',
+ 'consumed_prerequisites': [{'issue_url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/issues/21',
+                             'scope': 'exact_available_output_intake_only',
+                             'issue_state_at_receiving': 'open',
+                             'whole_issue_completion': 'not_claimed',
+                             'research_revision': '9769fcd9ea380b1211669b2753181c7782444178',
+                             'frozen_package': 'ai-builder-contract-v1/1.0.0',
+                             'import_manifest_sha256': 'ef6d5801eec10f3169e2bf84653e7026b33088e305a987991ec52faadcd7f554',
+                             'upstream_sha256sums_sha256': '0587a133436268bc03684ad61ff29f3bd1a12eb83db8a497eabdbb8fd8803e15',
+                             'pattern_revision': 'ee3f64f90b1da38bdbda1d4e8d5c561477881254',
+                             'numeric_revision': '29e176c46ea613fe0098b12a786af771a36b1a38',
+                             'numeric_tree': 'd23426108616e9c8108a681e634c38ec2a758261',
+                             'numeric_receipt': 'https://github.com/Pick-Your-AI/pick-your-ai-android/pull/326#issuecomment-6250961297',
+                             'outputs': 'Unchanged frozen hashes/schemas, bounded strict reader, fixed '
+                                        'offline validator, canonical kinds, exact decimal/numeric nodes, '
+                                        'LF/search semantics and explicit failure/local-revision admission.'},
+                            {'issue_url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/issues/34',
+                             'scope': 'accepted_native_repository_and_canonical_local_store_boundary',
+                             'revision': '93bebf787a091fe4858c1c70fd07cabefe17170f',
+                             'record_url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/blob/93bebf787a091fe4858c1c70fd07cabefe17170f/docs/delivery/android/work-packages/01.03.md'}],
+ 'implemented_subtasks': ['Define draft state for incomplete selections, unanswered objectives and local '
+                          'editing metadata.',
+                          'Specify snapshot conversion with semantic cardinality, reference integrity, pins '
+                          'and revision identity.',
+                          'Define edit/undo/autosave without mutating a saved immutable revision.',
+                          'Specify draft/snapshot migrations that retain input unsupported by a newer '
+                          'version.'],
+ 'outcome_boundaries': ['Nullable/partial durable editing and local formats 1–5 remain separate from '
+                        'unchanged frozen Build 1.0.0.',
+                        'Explicit typed identity, foundation/cardinality/references and immutable pins are '
+                        'required; free text and unknown inputs never fabricate facts.',
+                        'Complete retained-only acknowledgment binds the exact durable source/review; '
+                        'pending form values and stale authority cannot publish a snapshot.',
+                        'Created is memory-only; Archived is a separate complete-bundle transaction with '
+                        'source/archive CAS and explicit uncertain recovery.',
+                        'The private archive retains the exact current envelope and represented typed '
+                        'history; a legacy_source_hash does not promise every predecessor serialization.',
+                        'Mathematical revision aliases reserve one Build identity; different complete bundle '
+                        'bytes conflict, including retained unreferenced bundles.',
+                        'Source edits, restore and deletion preserve independent archive bytes; managed '
+                        'publication is disjoint from the whole library root.',
+                        'Malformed, unsupported, missing, conflicting and uncertain states remain explicit, '
+                        'without guessed repair or saved/compatible/ready claims.',
+                        'No creation/removal UI, shared wire/service, evaluation replay, source-rights, '
+                        'installed-device/physical power-loss, release or whole #21 acceptance is recorded.'],
+ 'historical_acceptance_record': {'repository': 'Pick-Your-AI/pickyour.ai',
+                                  'path': 'docs/delivery/android/work-packages/03.02.md'},
+ 'preserved_prior_ledger': {'revision': '785a9330f4260892ea28a9bc5045372b01ba6717',
+                            'artifact_url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/blob/785a9330f4260892ea28a9bc5045372b01ba6717/docs/delivery/criterion-evidence.json',
+                            'blob': '3b09af77f17b72785ec8aaef9e8fb38caedf09c8',
+                            'sha256': '28f2ecb0ff81d630cbfeca29b68d07b501719b5edcdac81e1aa3a4a9e54700f1',
+                            'other_issue_records_sha256': 'b865df9204bf36788c3304750f21b6211b9eca048f1c4f818b5a4aee08afa338',
+                            'earlier_evidence_sha256': '097b08ba3e346eda96f21010314321d22f6145c21169b27bc7b8034cfa9e6cf6'}}
+# The save-policy correction supplements, without relabeling, the signed historical record.
+IMPLEMENTATION_26_SAVE_POLICY_CORRECTION = {'source_revision': '945b6c51a6ac0096594a6605ac770b0dea12ee09',
+ 'source_tree': '108a28444775908626b8f56ad163d5948e9133cb',
+ 'source_url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/commit/945b6c51a6ac0096594a6605ac770b0dea12ee09',
+ 'source_observed_state': 'unsigned_review_preparation',
+ 'record_path': 'docs/delivery/android/work-packages/03.02.md',
+ 'record_blob': 'e0d2d13f63cbdb361c8fc8ee517d7d2faa1c5dc8',
+ 'finding_url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/pull/418#issuecomment-6254224564',
+ 'disposition': 'accept_model_definition_without_claiming_an_implemented_autosave_scheduler',
+ 'current_preview_policy': 'explicit_guarded_Save_and_confirmed_domain_commands; '
+                           'field_changes_and_Bundle_lifecycle_checkpoints_are_not_durable_autosave',
+ 'automatic_caller_contract': 'captured_complete_input_and_exact_current_source_authority; managed_liveness; '
+                              'format_2_to_5_noop_and_declared_format_1_migration; append_only_edit_restore; '
+                              'retain_pending_on_conflict_failure; '
+                              'reconcile_uncertainty_before_retry_or_acknowledgment; '
+                              'no_archived_write_authority',
+ 'scheduler_implementation': 'not_implemented_or_accepted',
+ 'remaining_interaction_issue': 'https://github.com/Pick-Your-AI/pick-your-ai-android/issues/122',
+ 'remaining_interaction_scope': 'automatic_timing_queue_order_background_completion_retries_lifecycle_triggering_and_autosave_feedback_remain_separate; '
+                                'no_scope_or_completion_change_to_122_or_storage_67',
+ 'historical_execution_relabelled': False,
+ 'new_native_execution_claimed': False,
+ 'receiving_reviews': [{'role': 'central_contract_and_saved_build',
+                        'url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/issues/26#issuecomment-6254828125',
+                        'created_at': '2026-10-18T20:34:38Z',
+                        'reviewed_revision': '945b6c51a6ac0096594a6605ac770b0dea12ee09',
+                        'disposition': 'accept_bounded_model_policy_correction_and_exact_source_preservation_without_scheduler_or_new_execution'},
+                       {'role': 'coordinating_affected_web_and_Android_model',
+                        'url': 'https://github.com/Pick-Your-AI/pick-your-ai-android/issues/26#issuecomment-6254901761',
+                        'created_at': '2026-10-18T20:41:47Z',
+                        'reviewed_revision': '945b6c51a6ac0096594a6605ac770b0dea12ee09',
+                        'disposition': 'accept_literal_model_definition_with_explicit_current_saves_and_scheduler_feedback_retained_under_122'}],
+ 'record_bytes': 30346,
+ 'record_sha256': 'aa65256ffb0968eefef449f702c0ac8022d316d946e93e0a605806c1045d9af5'}
+IMPLEMENTATION_26_ACCEPTANCE['save_policy_correction'] = IMPLEMENTATION_26_SAVE_POLICY_CORRECTION
+
+REVIEWED_IMPLEMENTATIONS = {
+    26: {
+        'record': {'repository': 'Pick-Your-AI/pick-your-ai-android', 'path': 'docs/delivery/android/work-packages/03.02.md'},
+        'acceptance': IMPLEMENTATION_26_ACCEPTANCE,
+        'criteria': [
+            '0d9fd65079fefafd62227d018cad0f7c47d9fc8466194a53e3f1c68848a0f5b3',
+            '23301b03f1fafb6b051bdd4a9448f7afeb160e06ecb463aa9a7b22f2bb990552',
+            'ddf9e739476fabb455cd8273cdff3b065cbafb4aebdfe340119c936f2c37e513',
+        ],
+    },
+}
+
+# Preserve the prior v6 snapshot at signed 785a, including all 128 other issue
+# objects, 21 earlier evidence objects and the original #26 partial-history data.
+# A subsequent amendment needs deliberate source review; a matching live capture
+# does not grant completion, relocation or permission to rewrite old observations.
+PRIOR_26_ISSUE_SHA256 = 'fd6d29a632f364c9c3897d72be29e946c27aeb55ca4c757d02bff9da231cdc33'
+PRIOR_26_REMAINING = 'Review proposed draft history, then implement durable persistence and explicit valid-snapshot transition.'
+OTHER_ISSUE_RECORDS_SHA256 = 'b865df9204bf36788c3304750f21b6211b9eca048f1c4f818b5a4aee08afa338'
+EARLIER_EVIDENCE_SHA256 = '097b08ba3e346eda96f21010314321d22f6145c21169b27bc7b8034cfa9e6cf6'
+PRESERVED_METADATA_KEYS = ('observed_on', 'repository', 'implementation_baseline', 'source')
+PRESERVED_METADATA_SHA256 = '81a7ffc4531f20237aef4e61123b4fb3e6deaef42b88a595b3cb7e05280dde21'
+# The 120 ordinary coordinates exclude the eight designs and only #26.
+ORDINARY_RECORD_COORDINATES_SHA256 = 'b7c0d2b1a30a75013cce5473a991cea4d47ce3732c3918530fdde1b888c2908a'
+
+
+def json_digest(value):
+    """Canonical JSON identity also distinguishes integers, floats and booleans."""
+    encoded = json.dumps(value, sort_keys=True, separators=(',', ':'), allow_nan=False)
+    return hashlib.sha256(encoded.encode('utf-8')).hexdigest()
+
+
+def read_json(path):
+    """Read one unambiguous JSON value without accepting non-finite numbers."""
+    def unique_members(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError('duplicate JSON member')
+            result[key] = value
+        return result
+
+    def reject_constant(_value):
+        raise ValueError('non-finite JSON number')
+
+    def finite_float(value):
+        parsed = float(value)
+        if not math.isfinite(parsed):
+            raise ValueError('non-finite JSON number')
+        return parsed
+
+    return json.loads(path.read_text(encoding='utf-8'), object_pairs_hook=unique_members,
+                      parse_constant=reject_constant, parse_float=finite_float)
+
+
 def require(condition, message):
     if not condition:
         raise ValueError(message)
@@ -228,8 +640,9 @@ def source_criteria(body):
 
 
 def validate(ledger, source=None):
-    require(type(ledger['schema_version']) is int and ledger['schema_version'] == 6, 'unsupported schema version')
+    require(type(ledger['schema_version']) is int and ledger['schema_version'] == 8, 'unsupported schema version')
     require(ledger['repository'] == REPOSITORY, 'wrong repository')
+    require(ledger['purpose'] == LEDGER_PURPOSE, 'unsupported ledger completion summary')
     evidence = ledger['evidence']
     require(bool(evidence), 'missing evidence catalog')
     for key, artifact in evidence.items():
@@ -256,10 +669,13 @@ def validate(ledger, source=None):
         require(issue['url'] == f'{BASE}/issues/{number}', f'wrong issue URL: {number}')
         record = issue['canonical_acceptance_record']
         accepted_design = REVIEWED_DESIGNS.get(number)
+        accepted_implementation = REVIEWED_IMPLEMENTATIONS.get(number)
+        require(accepted_implementation or 'accepted_implementation_outcome' not in issue,
+                f'unsupported implementation acceptance: {number}')
         if accepted_design:
             expected = accepted_design['acceptance']
             require(record == accepted_design['record'], f'unreviewed acceptance placement: {number}')
-            require(issue.get('accepted_design_outcome') == expected,
+            require(json_digest(issue.get('accepted_design_outcome')) == json_digest(expected),
                     f'missing or changed reviewed design acceptance: {number}')
             require([c['text_sha256'] for c in issue['criteria']] == accepted_design['criteria'],
                     f'reviewed design criterion set changed: {number}')
@@ -268,6 +684,20 @@ def validate(ledger, source=None):
                     receipt.get('revision') == expected['decision_revision'] and
                     receipt.get('artifact_url') == accepted_design['artifact_url'],
                     f'accepted design receipt is not the reviewed merged artifact: {number}')
+            if number == 2:
+                require(json_digest(receipt) == json_digest(DESIGN_2_EVIDENCE),
+                        'integrated foundation receipt is not the exact reviewed delivery')
+        elif accepted_implementation:
+            expected = accepted_implementation['acceptance']
+            require('accepted_design_outcome' not in issue, f'unsupported design acceptance: {number}')
+            require(record == accepted_implementation['record'], f'unreviewed acceptance placement: {number}')
+            require(json_digest(issue.get('accepted_implementation_outcome')) == json_digest(expected),
+                    f'missing or changed reviewed implementation acceptance: {number}')
+            require([c['text_sha256'] for c in issue['criteria']] == accepted_implementation['criteria'],
+                    f'reviewed implementation criterion set changed: {number}')
+            for evidence_ref in expected['evidence_refs']:
+                require(json_digest(evidence.get(evidence_ref)) == json_digest(IMPLEMENTATION_26_EVIDENCE[evidence_ref]),
+                        f'implementation receipt is not the reviewed merged artifact: {number}')
         else:
             require('accepted_design_outcome' not in issue, f'unsupported design acceptance: {number}')
             require(record['repository'] == 'Pick-Your-AI/pickyour.ai', f'acceptance repository moved: {number}')
@@ -287,6 +717,14 @@ def validate(ledger, source=None):
                         f'completed criterion still has unfinished requirements: {key}')
                 require(criterion['evidence_relation'] == COMPLETE_DESIGN_RELATION,
                         f'unsupported design completion attribution: {key}')
+            elif accepted_implementation:
+                require(criterion['status'] == 'complete' and
+                        criterion['completion_evidence'] == accepted_implementation['acceptance']['evidence_refs'],
+                        f'missing reviewed implementation completion evidence: {key}')
+                require(criterion['remaining_engineering'] == '' and criterion['external_prerequisites'] == [],
+                        f'completed criterion still has unfinished requirements: {key}')
+                require(criterion['evidence_relation'] == COMPLETE_IMPLEMENTATION_RELATION,
+                        f'unsupported implementation completion attribution: {key}')
             else:
                 require(criterion['status'] == 'incomplete' and criterion['completion_evidence'] == [], f'unreviewed completion claim: {key}')
                 require(bool(criterion['remaining_engineering'].strip()), f'missing remaining work: {key}')
@@ -308,6 +746,56 @@ def validate(ledger, source=None):
             paths = re.findall(r'`(docs/delivery/android/[^`\n]+\.md)`', original['body'])
             require(record['path'] in paths, f'live acceptance path differs: {number}')
 
+    ordinary_coordinates = [
+        {'number': issue['number'],
+         'repository': issue['canonical_acceptance_record']['repository'],
+         'path': issue['canonical_acceptance_record']['path']}
+        for issue in issues if issue['number'] not in REVIEWED_DESIGNS
+        and issue['number'] not in REVIEWED_IMPLEMENTATIONS
+    ]
+    coordinate_bytes = json.dumps(ordinary_coordinates, sort_keys=True,
+                                  separators=(',', ':')).encode('utf-8')
+    require(hashlib.sha256(coordinate_bytes).hexdigest() == ORDINARY_RECORD_COORDINATES_SHA256,
+            'unreviewed acceptance coordinates; reconcile placement explicitly')
+
+    # Reverse only the reviewed #2 completion/placement fields and compare
+    # the entire prior object, including its distinct receiving prerequisites.
+    # The existing v7 reconstruction of #26 and all v6 digests stay unchanged.
+    previous_foundation = dict(issues[1])
+    previous_foundation.pop('accepted_design_outcome')
+    previous_foundation['canonical_acceptance_record'] = DESIGN_2_ACCEPTANCE['historical_acceptance_record']
+    previous_foundation['criteria'] = [
+        dict(criterion, status='incomplete', completion_evidence=[],
+             remaining_engineering=PRIOR_2_REMAINING,
+             external_prerequisites=PRIOR_2_EXTERNAL_PREREQUISITES[criterion['id']],
+             evidence_relation='issue_context_only; inspect artifact scope before attributing any criterion result')
+        for criterion in previous_foundation['criteria']
+    ]
+    require(json_digest(previous_foundation) == PRIOR_2_ISSUE_SHA256,
+            'unreviewed change to another issue record: preserve prior #2 context and partial history')
+    previous_issue_records = [previous_foundation if issue['number'] == 2 else issue
+                              for issue in issues if issue['number'] != 26]
+    require(json_digest(previous_issue_records) == OTHER_ISSUE_RECORDS_SHA256,
+            'unreviewed change to another issue record; preserve prior v6 history')
+    earlier_evidence = {key: value for key, value in evidence.items() if key not in IMPLEMENTATION_26_EVIDENCE and key != 'pr-412'}
+    require(json_digest(earlier_evidence) == EARLIER_EVIDENCE_SHA256,
+            'unreviewed change to earlier evidence; preserve prior v6 history')
+    require(json_digest({key: ledger[key] for key in PRESERVED_METADATA_KEYS}) == PRESERVED_METADATA_SHA256,
+            'unreviewed change to historical ledger metadata')
+    # Undo only this reviewed amendment's allowed fields, then compare the entire
+    # original issue object. This preserves pr-138 and every earlier local field.
+    previous_model = dict(issues[25])
+    previous_model.pop('accepted_implementation_outcome')
+    previous_model['canonical_acceptance_record'] = IMPLEMENTATION_26_ACCEPTANCE['historical_acceptance_record']
+    previous_model['criteria'] = [
+        dict(criterion, status='incomplete', completion_evidence=[],
+             remaining_engineering=PRIOR_26_REMAINING, external_prerequisites=[],
+             evidence_relation='issue_context_only; inspect artifact scope before attributing any criterion result')
+        for criterion in previous_model['criteria']
+    ]
+    require(json_digest(previous_model) == PRIOR_26_ISSUE_SHA256,
+            'unreviewed change to prior #26 context or partial history')
+
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
@@ -315,12 +803,12 @@ def main():
     parser.add_argument('--issues', type=Path, help='fresh gh issue list --state all JSON for authoritative text/path comparison')
     args = parser.parse_args()
     try:
-        source = json.loads(args.issues.read_text()) if args.issues else None
-        validate(json.loads(args.ledger.read_text()), source)
+        source = read_json(args.issues) if args.issues else None
+        validate(read_json(args.ledger), source)
     except (OSError, ValueError, KeyError, TypeError) as error:
         print(f'Delivery ledger check failed: {error}', file=sys.stderr)
         return 1
-    print('PASS: 129 unique issue URLs, 420 incomplete criteria, 21 reviewed design criteria, pinned evidence and canonical paths' +
+    print('PASS: 129 unique issue URLs, 413 incomplete criteria, 25 reviewed design criteria, 3 reviewed implementation criteria, pinned evidence and canonical paths' +
           ('; exact source criteria matched.' if source is not None else '; live source comparison NOT performed.'))
     return 0
 

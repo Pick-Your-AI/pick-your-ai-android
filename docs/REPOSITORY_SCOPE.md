@@ -58,6 +58,31 @@ decision. Android's guest-local first-slice scope and conditional remote feature
 remain; Apple and website activation follows their own accepted scope, without
 waiting for Android feature or product completion.
 
+[ADR 0006](decisions/0006-android-2-acceptance-record.md) proposes placement of only
+#2's [integrated epic 01 receiving record](delivery/android/epics/01.md) here after
+independent product/Android review and normal merge. The record connects all six
+accepted decision children and their exact handoffs through a concrete decision
+demonstration. It preserves all four parent criteria and the original website
+placement, and supplies no application, device, operator or service acceptance.
+Its later strict current-ledger reconciliation remains a separate reviewed step.
+
+[ADR 0007](decisions/0007-android-26-acceptance-record.md) proposes the separate
+placement of only #26's [03.02 local-model receiving record](delivery/android/work-packages/03.02.md)
+in Android, effective through its independent receiving review and normal merge.
+It preserves the original website path as history and changes no shared contract,
+service placement or other work package. The executed draft/projection/private-
+archive model and its exact evidence remain distinct from future creation/removal
+UI, shared saved-build services, installed devices and release qualification.
+
+[ADR 0008](decisions/0008-android-48-acceptance-record.md) separately proposes
+placing only #48's [02.01 foundation record](delivery/android/work-packages/02.01.md)
+in Android. Placement becomes effective only after independent receiving review
+and normal reviewed delivery into Android main. The original website path remains
+history; all other work-package locations retain their existing authority. The
+selected `:core`/`:preview` toolchain and preview package evidence remain distinct
+from future product, device and release qualification; full #48 acceptance stays
+pending its literal criteria and current installed-delivery evidence.
+
 The existing website remains static. The selected future server package is
 separately built/deployed at `Pick-Your-AI/pickyour.ai/services/planner-api` only
 through canonical owner/coordinator and operations review before dependent code;

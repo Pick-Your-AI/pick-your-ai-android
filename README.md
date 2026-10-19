@@ -22,6 +22,7 @@ and verification work. It remains pending receiving review under Android #23.
 - Repository and framework decision: [Pick-Your-AI/pick-your-ai-android#34](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/34). The bounded native preview decision is implemented; full product architecture and receiving acceptance remain open in the scope record.
 - Shared-service decision: [Pick-Your-AI/pick-your-ai-android#35](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/35); reuse canonical services rather than create a competing backend.
 - [Repository scope](docs/REPOSITORY_SCOPE.md), [contributing](CONTRIBUTING.md), [agent instructions](AGENTS.md), [MIT license](LICENSE).
+- [Local help and public app-bug/evidence-correction reports](SUPPORT.md); private reporting and direct in-app support submission remain unavailable.
 
 ## Maintainer execution guidance
 

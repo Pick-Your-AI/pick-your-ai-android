@@ -40,7 +40,9 @@ object PreviewSelectionForms {
                 .put("catalog_item_id", item.id).put("catalog_item_version", item.version)
                 .put("role", form.role).put("enabled", form.enabled)
             node.set<JsonNode>("settings", requireNotNull(settings(form.settingsJson)))
-            SelectionCommand.Add(LocalSelection.fromJson(node), CatalogSelectionChoice(ArtifactHash(hash), item.kind, item.id, item.version))
+            val selection = LocalSelection.fromJson(node)
+            require(PreviewSelectionSensitiveInput.allows(selection.kind, selection.settings))
+            SelectionCommand.Add(selection, CatalogSelectionChoice(ArtifactHash(hash), item.kind, item.id, item.version))
         }
 
     fun configure(selection: LocalSelection, settingsJson: String, role: String? = null): PreviewSelectionPreparation = prepare {
@@ -51,6 +53,7 @@ object PreviewSelectionForms {
             it.set<JsonNode>("settings", value)
             if (role != null) it.put("role", role)
         })
+        require(PreviewSelectionSensitiveInput.allows(selection.kind, value))
         SelectionCommand.Configure(selection.id, value, role)
     }
 
@@ -66,7 +69,7 @@ object PreviewSelectionForms {
         SelectionCommand.Replace(selection.id, CatalogSelectionChoice(ArtifactHash(hash), item.kind, item.id, item.version))
     }
 
-    fun supported(kind: String) = PreviewCatalogKinds.all.any { it.id == kind && it.tier in setOf("T1", "T2") }
+    fun supported(kind: String) = PreviewCatalogKinds.all.any { it.id == kind && it.tier in setOf("T0", "T1", "T2", "T3", "T4") }
     fun settingsText(selection: LocalSelection): String = selection.settings.toString()
     private fun prepare(action: () -> SelectionCommand): PreviewSelectionPreparation = try {
         PreviewSelectionPreparation.Ready(action())

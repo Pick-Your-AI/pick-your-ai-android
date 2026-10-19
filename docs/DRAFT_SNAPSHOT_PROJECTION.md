@@ -1,5 +1,13 @@
 # Local draft to frozen Build candidate
 
+Current issue-level reconciliation is in the proposed
+[03.02 receiving record](delivery/android/work-packages/03.02.md), under
+[ADR 0007](decisions/0007-android-26-acceptance-record.md). The slice coverage and
+remaining-input statements below retain their original implementation scope and
+dated evidence; the receiving record separately maps the complete current model
+and its remaining delivery/review gates. This crosslink does not relabel an
+earlier run or close another work package.
+
 This is bounded implementation for
 [Android #26](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/26).
 It supplies a callable local conversion boundary in the existing Kotlin core and
@@ -83,12 +91,15 @@ catalog and pricebook revisions/hashes omitted by the frozen Build locks. These
 descriptors are an in-memory client type, not an invented shared sidecar or an
 assertion of research CD-7 publication/qualification acceptance.
 
-`Created` means that independent candidate bytes exist in memory. A future saved
-snapshot archive must enforce immutable Build ID/revision bindings, its own CAS
-and acknowledgment, atomic retention of required inputs, recovery and supported
-migrations before showing saved feedback. Earlier legacy anchor artifacts remain
-in the canonical draft store by their retained hashes; this candidate does not
-copy every historical cache file into a new archive. There is no new archive here.
+`Created` means that independent candidate bytes exist in memory. The separate
+[private archive](LOCAL_SNAPSHOT_ARCHIVE.md) now supplies a durable transaction,
+immutable Build ID/revision bindings, its own CAS, complete-bundle retention and
+read-only recovery. Candidate creation alone still provides no saved feedback.
+The archive reuses this pure projection admission without granting live draft
+write authority to a reopened snapshot. This candidate and archive retain the
+exact current envelope and represented typed history, not every historical cache
+file. A legacy-source hash remains a historical provenance reference whose older
+raw serialization is not a declared archive member.
 
 ## Semantic and local admission checks
 
@@ -194,9 +205,9 @@ an explicit version, migration decision and affected-consumer review.
 
 | Literal #26 criterion | Bounded coverage here | Remaining acceptance |
 | --- | --- | --- |
-| Allow empty and partially selected editing without fabricated fields; explicit transition to valid BuildSnapshot with versioned migration rules. | Canonical persistence plus explicit retained-draft/frozen-candidate transition and supported predecessor checks | Complete saved snapshot creation/identity/archive transaction, product disclosure UI, accepted shared handoffs and exact receiving record |
+| Allow empty and partially selected editing without fabricated fields; explicit transition to valid BuildSnapshot with versioned migration rules. | Canonical persistence plus explicit retained-draft/frozen-candidate transition and supported predecessor checks | The linked private archive supplies the core creation/identity transaction; product disclosure/removal UI, accepted shared handoffs and the exact receiving record remain |
 | Empty/partial drafts persist without fabricated catalog IDs, facts or zero substitutes. | Empty/partial persistence→preparation keeps source bytes, nulls and exact entered zero/decimal distinctions | Full #21 prerequisite reconciliation and issue-level receiving acceptance remain required |
-| Snapshot creation checks semantic requirements beyond minimum array counts; later edits preserve the original snapshot. | Foundation/reference/pin preflight, immutable independent candidate bytes and stale-review checks; later edits leave the candidate and original local revision intact | Durable immutable snapshot archive and its concurrency/recovery evidence; a memory candidate is not a saved snapshot |
+| Snapshot creation checks semantic requirements beyond minimum array counts; later edits preserve the original snapshot. | Foundation/reference/pin preflight, immutable independent candidate bytes and stale-review checks; later edits leave the candidate and original local revision intact | See the linked private archive for durable concurrency/recovery evidence; a memory candidate remains distinct from an acknowledged archive transaction |
 
 The regression suite covers the four implementation subtasks through the existing
 incomplete draft, edit/restore history and migration boundaries plus this explicit

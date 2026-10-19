@@ -213,7 +213,9 @@ class CatalogComparisonSection(
         out.putBoolean("comparisonDifferencesOnly", differencesOnly)
     }
 
-    fun close() { closed = true; dismissPinInspection(); comparisonDialog?.dismiss(); comparisonDialog = null }
+    fun dismissInspection() { comparisonDialog?.dismiss(); comparisonDialog = null }
+
+    fun close() { closed = true; dismissPinInspection(); dismissInspection() }
 
     companion object {
         // Frozen v1 condition/reference fields stay visible even when matching values are hidden.
