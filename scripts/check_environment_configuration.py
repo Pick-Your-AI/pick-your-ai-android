@@ -5,9 +5,9 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
-import tempfile
 import zipfile
 from check_preview_policy import APK_PATH, PolicyFailure, require, sha256, source_identity
+from inspection_receipts import publish_receipt, retire_receipt
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE_PATH = "preview/src/main/assets/client-environment.json"
@@ -97,22 +97,15 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source-only", action="store_true")
     args = parser.parse_args()
-    output = ROOT / "build/inventory/environment-configuration.json"
-    if not args.source_only:
-        output.unlink(missing_ok=True)
     try:
         if args.source_only:
             source_bytes(ROOT)
         else:
+            retire_receipt(ROOT, "environment-configuration.json")
             receipt = check(ROOT)
-            output.parent.mkdir(parents=True, exist_ok=True)
-            with tempfile.NamedTemporaryFile(mode="w", dir=output.parent, delete=False) as temporary:
-                json.dump(receipt, temporary, indent=2, sort_keys=True)
-                temporary.write("\n")
-                temporary_path = Path(temporary.name)
-            temporary_path.replace(output)
+            publish_receipt(ROOT, "environment-configuration.json", receipt)
     except (PolicyFailure, OSError, ValueError, KeyError, TypeError, zipfile.BadZipFile, RuntimeError):
-        print("Environment configuration rejected; no input values or passing receipt retained.")
+        print("Environment configuration rejected; no input values disclosed or new passing receipt published.")
         return 1
     print("PASS: finite source configuration." if args.source_only else
           "PASS: exact inventoried APK contains the finite non-secret preview configuration.")

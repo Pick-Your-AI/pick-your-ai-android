@@ -15,6 +15,7 @@ import re
 import subprocess
 import tempfile
 import zipfile
+from inspection_receipts import publish_receipt, retire_receipt
 
 ROOT = Path(__file__).resolve().parents[1]
 ANDROID = "http://schemas.android.com/apk/res/android:"
@@ -300,19 +301,13 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--aapt2", type=Path, required=True)
     args = parser.parse_args()
-    output = ROOT / "build/inventory/preview-policy.json"
-    # An unsuccessful current inspection must not leave an older passing receipt.
-    output.unlink(missing_ok=True)
     try:
+        # Retire an admitted stale receipt before inspecting the current artifact.
+        retire_receipt(ROOT, "preview-policy.json")
         receipt = check(ROOT, args.aapt2)
-        output.parent.mkdir(parents=True, exist_ok=True)
-        with tempfile.NamedTemporaryFile(mode="w", dir=output.parent, delete=False) as temporary:
-            json.dump(receipt, temporary, indent=2, sort_keys=True)
-            temporary.write("\n")
-            temporary_path = Path(temporary.name)
-        temporary_path.replace(output)
+        publish_receipt(ROOT, "preview-policy.json", receipt)
     except (PolicyFailure, OSError, ValueError, KeyError, TypeError):
-        print("Packaged preview policy failed; no passing receipt retained.")
+        print("Packaged preview policy failed; no new passing receipt published.")
         return 1
     print("PASS: exact inventoried APK retains the synthetic preview manifest and backup policy.")
     return 0
