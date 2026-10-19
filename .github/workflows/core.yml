@@ -1160,6 +1160,28 @@ jobs:
               raise SystemExit("Complete catalog detail result count does not match passing executed cases")
           print(f"Verified {len(cases)} simulated complete catalog detail tests; no installed-device claim")
           PYTEST
+      - name: Require all findings presentation regressions to execute
+        run: |
+          python - <<'FINDINGS_TESTS'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          report = pathlib.Path("preview/build/test-results/testDebugUnitTest/TEST-ai.pickyour.android.preview.FindingsInspectionTextTest.xml")
+          suite = ET.parse(report).getroot()
+          expected = {
+              "recordedEmptyRemediationDoesNotBecomeAnAbsentValue",
+              "absentValuesJsonNullStringsAndWideNumbersKeepDistinctMeaning",
+              "hostileSourceCannotInjectLabelsAndLongValuesDiscloseTruncation",
+              "nestedDisplayCapsDiscloseAllRetainedEvidenceAndSelectionCounts",
+              "summaryCountsAllFindingsAndNeverConvertsWarningFailureOrUnknownToPass",
+              "literalUnknownIdentityAndWideRevisionRemainExactInSummaryAndTitle",
+              "rtlScreenAddsOnlyTrustedDirectionControlsAroundEscapedSource",
+          }
+          cases = suite.findall("testcase")
+          assert expected <= {case.attrib["name"] for case in cases}, "Missing findings presentation regression"
+          assert all(not case.findall("failure") and not case.findall("error") and not case.findall("skipped") for case in cases), "Findings presentation regression did not pass"
+          assert int(suite.attrib["tests"]) >= len(expected)
+          print(f"Verified {len(cases)} simulated findings presentation tests; no installed-device claim")
+          FINDINGS_TESTS
       - name: Require recorded findings selection context regressions to execute
         run: |
           python - <<'PYTEST'
