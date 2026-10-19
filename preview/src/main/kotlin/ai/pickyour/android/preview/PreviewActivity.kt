@@ -34,6 +34,8 @@ import ai.pickyour.core.evidence.EvidenceLabel
 class PreviewActivity : Activity() {
     private val worker = Executors.newSingleThreadExecutor()
     private var destroyed = false
+    private var navigationAppearanceBeforeFocusLoss: Int? = null
+    private var navigationInsetsBeforeFocusLoss: Int? = null
     private lateinit var workloadSection: WorkloadSection
     private var restoreWorkloadFromDisk = false
     private lateinit var tierSection: OptionalTierSection
@@ -368,6 +370,39 @@ class PreviewActivity : Activity() {
             saveStatus.setText(R.string.entry_choose_local)
             updateEditingEnabled()
         } else if (selectionResolved) loadDraft(true) else restoreActiveDraft(savedInstanceState != null)
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (destroyed || android.os.Build.VERSION.SDK_INT < 27) return
+        val decor = window.decorView
+        val legacyMask = View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
+        val insetsMask = android.view.WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS
+        val insetsController = if (android.os.Build.VERSION.SDK_INT >= 30)
+            window.insetsController else null
+        if (!hasFocus) {
+            // Focus can move through several windows before this Activity receives it again.
+            if (navigationAppearanceBeforeFocusLoss == null)
+                navigationAppearanceBeforeFocusLoss = decor.systemUiVisibility and legacyMask
+            if (android.os.Build.VERSION.SDK_INT >= 30 && insetsController != null &&
+                navigationInsetsBeforeFocusLoss == null)
+                navigationInsetsBeforeFocusLoss = insetsController.systemBarsAppearance and insetsMask
+            decor.systemUiVisibility = decor.systemUiVisibility and legacyMask.inv()
+            if (android.os.Build.VERSION.SDK_INT >= 30)
+                insetsController?.setSystemBarsAppearance(0, insetsMask)
+        } else {
+            navigationAppearanceBeforeFocusLoss?.let { original ->
+                // Preserve unrelated appearance/layout changes made while this window was unfocused.
+                decor.systemUiVisibility = (decor.systemUiVisibility and legacyMask.inv()) or original
+                navigationAppearanceBeforeFocusLoss = null
+            }
+            if (android.os.Build.VERSION.SDK_INT >= 30 && insetsController != null) {
+                navigationInsetsBeforeFocusLoss?.let { original ->
+                    insetsController.setSystemBarsAppearance(original, insetsMask)
+                    navigationInsetsBeforeFocusLoss = null
+                }
+            }
+        }
     }
 
     private fun isLocalEntry(value: Intent?): Boolean = value == null ||

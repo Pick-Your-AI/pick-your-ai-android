@@ -347,6 +347,83 @@ class PreviewActivityTest {
         assertFalse(button(R.string.save_draft).isEnabled)
     }
 
+    @Test fun activityFocusLossKeepsLightModalNavigationAndPendingForm() {
+        val editor = field(R.string.draft_title)
+        editor.setText("saved focus baseline")
+        save()
+        val saved = loaded().baselineIdentity
+        editor.setText("pending focus edit")
+        editor.setSelection(4)
+        val decor = activity.window.decorView
+        val appearance = decor.systemUiVisibility
+        val navigation = View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
+        assertEquals(navigation, appearance and navigation)
+        val confirmation = deleteConfirmation(PreviewDraftId("guest-draft"))
+
+        // Robolectric does not dispatch the real WindowManager focus handoff.
+        // Exercise the actual Activity callback; installed pixels remain a separate gate.
+        activity.onWindowFocusChanged(false)
+        assertLightDialogNavigationIcons(confirmation, appearance and navigation.inv())
+        assertEquals("pending focus edit", editor.text.toString())
+        assertEquals(4, editor.selectionStart)
+        assertEquals(4, editor.selectionEnd)
+        assertEquals(saved, loaded().baselineIdentity)
+
+        confirmation.getButton(AlertDialog.BUTTON_NEGATIVE).performClick()
+        finishActivityWork()
+        activity.onWindowFocusChanged(true)
+        assertFalse(confirmation.isShowing)
+        assertEquals(appearance, decor.systemUiVisibility)
+        assertEquals("pending focus edit", editor.text.toString())
+        assertEquals(saved, loaded().baselineIdentity)
+    }
+
+    @Test fun repeatedFocusLossRestoresOnlyTheOriginalNavigationAppearanceBit() {
+        val decor = activity.window.decorView
+        val navigation = View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
+        val original = decor.systemUiVisibility
+        assertEquals(navigation, original and navigation)
+        activity.onWindowFocusChanged(false)
+        assertEquals(original and navigation.inv(), decor.systemUiVisibility)
+        activity.onWindowFocusChanged(false)
+        assertEquals(original and navigation.inv(), decor.systemUiVisibility)
+
+        // An unrelated change while unfocused must not be replaced by a stale full bitfield.
+        val unrelated = View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+        decor.systemUiVisibility = decor.systemUiVisibility or unrelated
+        activity.onWindowFocusChanged(true)
+        assertEquals(original or unrelated, decor.systemUiVisibility)
+        activity.onWindowFocusChanged(true)
+        assertEquals(original or unrelated, decor.systemUiVisibility)
+
+        // A window that already chose light icons must not be forced back to dark icons.
+        decor.systemUiVisibility = decor.systemUiVisibility and navigation.inv()
+        val alreadyLight = decor.systemUiVisibility
+        activity.onWindowFocusChanged(false)
+        activity.onWindowFocusChanged(false)
+        activity.onWindowFocusChanged(true)
+        assertEquals(alreadyLight, decor.systemUiVisibility)
+    }
+
+    @Test fun retiredWindowFocusCallbackCannotRestoreItsAppearanceAfterRecreation() {
+        val navigation = View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
+        val retired = activity
+        val oldDecor = retired.window.decorView
+        val original = oldDecor.systemUiVisibility
+        field(R.string.draft_title).setText("pending across focused windows")
+        retired.onWindowFocusChanged(false)
+        assertEquals(original and navigation.inv(), oldDecor.systemUiVisibility)
+
+        recreate()
+        await { button(R.string.save_draft).isEnabled }
+        val currentAppearance = activity.window.decorView.systemUiVisibility
+        assertEquals(navigation, currentAppearance and navigation)
+        retired.onWindowFocusChanged(true)
+        assertEquals(original and navigation.inv(), oldDecor.systemUiVisibility)
+        assertEquals(currentAppearance, activity.window.decorView.systemUiVisibility)
+        assertEquals("pending across focused windows", field(R.string.draft_title).text.toString())
+    }
+
     private fun assertLightDialogNavigationIcons(dialog: AlertDialog, activityAppearance: Int) {
         assertTrue(dialog.isShowing)
         val window = requireNotNull(dialog.window)

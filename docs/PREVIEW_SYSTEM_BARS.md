@@ -109,3 +109,30 @@ and lifecycle evidence when it consumes this source. The old screenshots above a
 failure evidence only for the display behavior they show; they are not a new-source
 visual pass. Physical devices, TalkBack, gesture-navigation/cutout matrices, keyboard
 transitions and full #80/#64 acceptance remain separate.
+
+## Activity focus and effective navigation appearance
+
+The later installed receiving commit `44423a63aeaeff35f051053dbf0c37283dff3d01`
+(tree `10b709d5c2c66e98c394dc6b3e1ca0f19dd0c343`) includes the dialog overlay
+above, but its original modal06/08 images still show the same dark navigation
+glyphs over the dimmed bar. Its four functional cases, native results and viewport
+clipping remain separate from the uncorrected navigation appearance. Reading a
+dialog's resource/legacy bit alone did not establish effective WindowManager
+appearance on that API35 guest.
+
+The Activity now responds to its own window-focus lifecycle. On the first focus
+loss it remembers only the navigation appearance bits, then requests light
+navigation icons through the legacy flag and, on API30+, the public
+`WindowInsetsController` appearance API. When focus returns it restores the
+original navigation bits while preserving unrelated current flags. Repeated
+focus-loss callbacks do not replace the saved value, and a destroyed Activity
+cannot restore a retired window. API26 retains its existing resource behavior.
+
+Focus loss can also occur for system overlays or backgrounding; this callback is
+not proof that a particular dialog owns focus. Existing dialog instances,
+listeners, dim amount, pending form and persistence behavior are retained. Three
+API28 native simulations explicitly drive the real Activity callback through a
+shown confirmation, repeated focus changes and recreation. They cover the
+legacy branch and local state, not API30+ WindowManager propagation. The effective
+API35 appearance, both modal frames and restored ordinary bars still require
+fresh original installed evidence from the chosen receiving source.
