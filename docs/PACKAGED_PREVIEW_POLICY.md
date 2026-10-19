@@ -27,8 +27,13 @@ It does not modify the app, artifact, SDK, permissions, emulator or device.
 
 The inspector reads literal Git objects for both commit/tree identity and checkout
 cleanliness. Local replacement refs cannot substitute a different source tree or
-conceal staged edits under the inventoried identity. This consumer check is separate
-from the runtime inventory producer's own source admission.
+conceal staged edits under the inventoried identity. Before and after inspection,
+every tracked regular file must also match its literal Git blob size and raw-byte
+digest. Index hints such as `assume-unchanged` and `skip-worktree`, or Git text
+normalization, cannot make different bytes eligible. Tracked symlinks, gitlinks and
+symlink components in tracked paths fail; regular `100644` and `100755` blobs are
+supported. The byte comparison follows the runtime inventory producer's existing
+source admission, while this consumer separately verifies its own two source fences.
 
 Every accepted Android-qualified attribute must also carry its exact API 35
 framework resource ID. Missing, zero or mismatched IDs cannot be replaced by a
@@ -109,6 +114,12 @@ actually committed and the inventory identifies that new source. A replacement
 commit cannot change the receipt's literal commit/tree identity even when the
 actual checkout remains clean. These controls use real Git subprocesses and leave
 the synthetic APK bytes unchanged; they do not claim an Android build or execution.
+Both index-hint flags also have unchanged-byte positive controls and concealed-edit
+negative controls before and during inspection. The preinspection edits preserve
+file length, so their rejection depends on the literal blob digest. A real commit
+and refreshed inventory restore eligibility. Further controls distinguish normalized
+line endings from raw committed bytes, accept empty/binary/executable files and
+literal whitespace/Unicode paths, and reject symlink paths and nonregular tree entries.
 These assertions are supplemented by actual binary packaging: the AAPT2 guard driver
 builds twelve disposable resource APKs with a positive control and eleven single-condition
 changes. They add INTERNET, add an exported receiver, enable cleartext traffic, remove
