@@ -1472,20 +1472,42 @@ def taskbar_state_fields_pass(text: str) -> bool:
             (client, service), (manager, client), (context, manager),
             (controllers, context), (navbar, controllers))):
         return False
+    number = r"[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?"
+
+    def positive(values):
+        try:
+            return all(len(value) <= 32 and re.fullmatch(number, value) is not None
+                       and Decimal(value).is_finite() and Decimal(value) > 0 for value in values)
+        except InvalidOperation:
+            return False
+
     # TouchInteractionService prints this peer only after TaskbarManager returns.
     # Later service output still follows: this is not a whole-service footer.
-    if (completion[0] <= navbar[0] or completion[1] != manager[1]
-            or any(line.strip() and indentation(line) <= manager[1]
-                   for line in lines[manager[0] + 1:completion[0]])):
+    if completion[0] <= navbar[0] or completion[1] != manager[1]:
         return False
     # An overview activity may have an earlier DeviceProfile. Only the one after
     # this context's controllers, at this context's own prefix, is relevant.
     profile = heading("DeviceProfile", context[0] + 1, completion[0])
-    if (profile is None or profile[0] <= navbar[0] or profile[1] != context[1]
+    if profile is None or profile[0] <= navbar[0] or profile[1] != context[1]:
+        return False
+
+    # Original298 dump08 retains one unrelated scalar without ActiveServices'
+    # four wrapper spaces. Admit only that observed lexical form, inside this
+    # selected profile, without normalizing text or treating it as a required field.
+    optional = [index for index in range(profile[0] + 1, completion[0])
+                if re.match(r"^[ \t]*folderChildIconSizePx:", lines[index])]
+    scalar_index = None
+    if len(optional) == 1:
+        match = re.fullmatch(r"\t\tfolderChildIconSizePx: (\S+)px \((\S+)dp\)", lines[optional[0]])
+        if match is not None and positive(match.groups()):
+            scalar_index = optional[0]
+
+    if (any(lines[index].strip() and indentation(lines[index]) <= manager[1]
+            for index in range(manager[0] + 1, completion[0]) if index != scalar_index)
             or any(line.strip() and indentation(line) <= context[1]
                    for line in lines[context[0] + 1:profile[0]])
-            or any(line.strip() and indentation(line) <= profile[1]
-                   for line in lines[profile[0] + 1:completion[0]])):
+            or any(lines[index].strip() and indentation(lines[index]) <= profile[1]
+                   for index in range(profile[0] + 1, completion[0]) if index != scalar_index)):
         return False
 
     def field(section, name, separator, pattern, depth):
@@ -1506,15 +1528,6 @@ def taskbar_state_fields_pass(text: str) -> bool:
                    r"([+-]?[0-9]{1,10})px", depth)
     if height is None or not -(2 ** 31) <= int(height[1]) < 2 ** 31:
         return False
-
-    number = r"[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?"
-
-    def positive(values):
-        try:
-            return all(len(value) <= 32 and re.fullmatch(number, value) is not None
-                       and Decimal(value).is_finite() and Decimal(value) > 0 for value in values)
-        except InvalidOperation:
-            return False
 
     profile_fields = lines[profile[0] + 1:completion[0]]
     density = field(profile_fields, "1 dp", " = ", r"(\S+) px", depth)

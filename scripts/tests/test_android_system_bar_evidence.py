@@ -1135,5 +1135,63 @@ class SystemBarEvidenceTests(unittest.TestCase):
                 self.assertTrue(SMOKE.taskbar_state_fields_pass(text))
                 self.assertTrue(SMOKE.system_bar_evidence_passes(state))
 
+
+    def test_taskbar_observed_unrelated_property_prefix_keeps_original_raw_text(self):
+        original = self.passing_state()
+        source = taskbar_text()
+        tabbed = []
+        for line in source.splitlines():
+            spaces = len(line) - len(line.lstrip(' '))
+            tabbed.append('    ' + '\t' * ((spaces - 4) // 2) + line.lstrip(' ')
+                          if spaces >= 4 else line)
+        for raw in (source, '\n'.join(tabbed) + '\n'):
+            # This single scalar spelling/prefix is from original298 dump08.
+            # The surrounding fixture is synthetic; no original is rewritten.
+            marker = '    AssistStateManager:\n'
+            outlier = '\t\tfolderChildIconSizePx: 98.0px (56.0dp)\n'
+            raw = raw.replace(marker, outlier + marker)
+            state = copy.deepcopy(original); self.rebound_taskbar(state, raw)
+            saved = copy.deepcopy(state)
+            with self.subTest(raw=raw):
+                self.assertTrue(SMOKE.taskbar_state_fields_pass(raw))
+                self.assertTrue(SMOKE.system_bar_evidence_passes(state))
+                self.assertEqual(state, saved)
+
+    def test_taskbar_property_outlier_cannot_hide_structural_or_required_field_loss(self):
+        original = self.passing_state()
+        outlier = '\t\tfolderChildIconSizePx: 98.0px (56.0dp)\n'
+        source = taskbar_text().replace('    AssistStateManager:\n',
+                                       outlier + '    AssistStateManager:\n')
+        candidates = {
+            'foreign_property': source.replace('folderChildIconSizePx:', 'ForeignProfile:'),
+            'one_tab': source.replace(outlier, outlier[1:]),
+            'spaces_instead_of_observed_tabs': source.replace(outlier, outlier.replace('\t', ' ')),
+            'duplicate_scalar': source.replace(outlier, outlier + outlier),
+            'duplicate_correct_prefix': source.replace(outlier, '        ' + outlier.lstrip('\t') + outlier),
+            'malformed_scalar': source.replace('98.0px (56.0dp)', 'not-a-dimension'),
+            'nonfinite_scalar': source.replace('98.0px', 'NaNpx'),
+            'zero_scalar': source.replace('98.0px', '0px'),
+            'negative_scalar': source.replace('56.0dp', '-1dp'),
+            'before_own_profile': source.replace(outlier, '').replace('      DeviceProfile:\n',
+                                                                     outlier + '      DeviceProfile:\n'),
+            'foreign_boundary': source.replace('        isPhone:true\n',
+                                                '      ForeignProfile:\n        isPhone:true\n'),
+            'missing_peer': source.replace('    AssistStateManager:\n', ''),
+            'missing_own_profile': source.replace('      DeviceProfile:\n', ''),
+            'missing_required_dimension': source.replace('        widthPx: 720.0px (411.42856dp)\n', ''),
+            'duplicate_required_dimension': source.replace('        widthPx: 720.0px (411.42856dp)\n',
+                '        widthPx: 720.0px (411.42856dp)\n        widthPx: 720.0px (411.42856dp)\n'),
+            'missing_required_flag': source.replace('        isTaskbarPresentInApps:false\n', ''),
+            'actual_wrapper_failure': source + '    Failure while dumping the service: java.io.IOException: Timeout\n',
+            'actual_remote_failure': source + '    Got a RemoteException while dumping the service\n',
+        }
+        for label, raw in candidates.items():
+            state = copy.deepcopy(original); self.rebound_taskbar(state, raw)
+            saved = copy.deepcopy(state)
+            with self.subTest(label=label):
+                self.assertFalse(SMOKE.taskbar_state_fields_pass(raw))
+                self.assertFalse(SMOKE.system_bar_evidence_passes(state))
+                self.assertEqual(state, saved)
+
 if __name__ == '__main__':
     unittest.main()

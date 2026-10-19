@@ -2351,3 +2351,46 @@ controls retain real blank-assignment and earlier-profile witnesses.
 No new SDK/ADB/emulator or privileged command was executed for these
 tests. Current hosted originals and any future corrected modal remain
 separate receiving requirements.
+
+#### Observed optional DeviceProfile scalar prefix
+
+The [original298 compatibility read6260624912](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/467#issuecomment-6260624912)
+replayed the immutable a0e completeness parser against all four unchanged
+Taskbar streams. Checkpoints05,06 and07 qualified; checkpoint08 did not.
+Its complete service/context/controllers, required own-profile fields and
+later peer boundary were present. One unrelated line retained two literal
+leading tabs without the service wrapper's four spaces:
+`folderChildIconSizePx: 98.0px (56.0dp)`. The broad low-indentation test
+mistook that scalar for a structural escape. Adding only the four wrapper
+spaces in a separately labelled causal derivative admitted it; that
+derivative does not replace the original25,648-byte stream
+SHA256 `bf0509a34ae8a73a0d781df927b3968393295b7187cce194d69dc90ac20e5238`.
+
+The follow-up admits at most one occurrence of that exact optional field
+with the observed two-tab lexical prefix, only between the selected own
+DeviceProfile and its completed peer boundary. Both px/dp values must
+retain bounded finite positive numeric forms. Only that one unrelated
+scalar may be excluded from the two broad indentation scans. The parser
+does not normalize, discard or rewrite raw text, use this value as a
+required field, or relax any required heading, field, depth, completion or
+service-error check. A duplicate scalar, unexpected prefix, foreign
+boundary, missing own required field, or either actual service forwarding
+failure still rejects. Ordinary correctly prefixed optional fields remain
+unrelated retained evidence.
+
+Two focused methods cover the observed prefix in both space and mixed-tab
+synthetic reference layouts, unchanged raw receipt objects, and eighteen
+structural/value/error negatives. The surrounding reference layouts are
+synthetic; only the stated scalar spelling and prefix come from the
+qualified original. These new methods have not executed locally: the
+first isolated source write failed when the workspace filled, followed by
+sandbox startup ENOSPC before process creation. The earlier53-method a0e
+result remains attributed only to that source. The new source requires
+its configured host checks and a separately recorded parser-only replay
+of all four unchanged original298 streams.
+
+This compatibility correction does not alter the actual failed modal
+pixels or grant installed acceptance. The original four passed product
+rows and existing overall-failure JUnit row remain failed receiving
+evidence. Query order/budgets, image thresholds, source/APK bindings,
+rotation, viewport and ACL cleanup are unchanged.
