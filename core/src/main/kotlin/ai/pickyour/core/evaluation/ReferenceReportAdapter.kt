@@ -16,9 +16,12 @@ sealed interface ReportReception {
     class Accepted internal constructor(
         val json: String,
         private val selectionContexts: Map<String, ReferenceSelectionContext>,
+        private val findingGuidance: Map<String, ProvisionalFindingGuidance>,
     ) : ReportReception {
         internal fun selectionContext(id: String): ReferenceSelectionContext = selectionContexts[id]
             ?: ReferenceSelectionContext.Unavailable(id, ReferenceSelectionUnavailable.MISSING)
+        internal fun guidanceFor(ruleId: String): ProvisionalFindingGuidance = findingGuidance[ruleId]
+            ?: ProvisionalFindingGuidance.UNCLASSIFIED
     }
 }
 
@@ -73,7 +76,7 @@ class ReferenceReportAdapter {
             "blocked" else "needs_review"
         if (r["result"].asText() != result || r["deployment_readiness"].asText() != readiness)
             return reject(ReportRejection.INCONSISTENT_FINDINGS)
-        return ReportReception.Accepted(r.toString(), recordedSelectionContexts(b))
+        return ReportReception.Accepted(r.toString(), recordedSelectionContexts(b), recordedProvisionalGuidance(b, rules, r))
     }
 
     private fun parse(type: FrozenDocument, stream: InputStream): JsonNode? {

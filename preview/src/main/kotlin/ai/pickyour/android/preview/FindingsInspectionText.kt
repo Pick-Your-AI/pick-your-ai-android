@@ -4,6 +4,7 @@ import android.content.Context
 import android.text.BidiFormatter
 import android.text.TextDirectionHeuristics
 import ai.pickyour.core.evaluation.ReferenceFindingView
+import ai.pickyour.core.evaluation.ProvisionalFindingGuidance
 import ai.pickyour.core.evaluation.ReferenceReportView
 import ai.pickyour.core.preview.PreviewComparedValue
 import ai.pickyour.core.preview.PreviewComparedValueKind
@@ -16,6 +17,12 @@ internal object FindingsInspectionText {
 
     fun row(context: Context, finding: ReferenceFindingView): String = context.getString(
         R.string.findings_row, title(context, finding), finding.outcome, finding.severity)
+
+    fun guidance(context: Context, finding: ReferenceFindingView): String? = when (finding.provisionalGuidance) {
+        ProvisionalFindingGuidance.INCOMPLETE -> context.getString(R.string.findings_guidance_incomplete)
+        ProvisionalFindingGuidance.REPORTED_INCOMPATIBILITY -> context.getString(R.string.findings_guidance_incompatible)
+        ProvisionalFindingGuidance.UNCLASSIFIED -> null
+    }
 
     fun describe(context: Context, report: ReferenceReportView): String = listOf(
         context.getString(R.string.findings_notice),
@@ -45,7 +52,7 @@ internal object FindingsInspectionText {
             context.resources.getQuantityString(R.plurals.findings_display_evidence, finding.evidence.size,
                 shownEvidence.size, finding.evidence.size) + "\n\n" + entries.joinToString("\n\n")
         }
-        return listOf(row(context, finding), context.getString(R.string.findings_display_policy),
+        return listOfNotNull(row(context, finding), guidance(context, finding), context.getString(R.string.findings_display_policy),
             context.getString(R.string.findings_reason, literal(context, finding.code), literal(context, finding.message)),
             context.getString(R.string.findings_remediation, literal(context, finding.remediation)),
             context.getString(R.string.findings_selections, selections), evidence,
