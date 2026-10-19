@@ -181,6 +181,19 @@ by their resource text instead of the former two-child layout. All eight
 arithmetic method identities and original observation assertions remain. This
 was a source integration finding, with no uncorrected execution claimed.
 
+The source-stage preparation `197b0f6` later executed the complete Preview suite:
+648 cases, with one failure in the pre-existing
+`destroyedCostIgnoresRetainedInspectControl` regression. That method still chose
+the fixture disclosure as its mutable output and timed out waiting for that
+permanent text to change. Its later assertions did not execute. The corrected
+method observes the separate idle/live output, establishes that the original
+read completed, then asserts that destruction clears the old output and disables
+the old Inspect control. It replays that retained control, settles the actual
+Activity worker, and checks both retired and fresh output, the fresh Browse
+state, the unchanged disclosure and missing saved draft. This changes no
+production behavior. The original 647-pass/one-failure report remains separate
+from the correction's subsequent execution.
+
 ## Exact #103 acceptance boundaries
 
 All four literal criteria remain open. This work adds complete readable recorded
