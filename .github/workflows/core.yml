@@ -58,6 +58,20 @@ jobs:
           import pathlib
           import xml.etree.ElementTree as ET
           expected = {
+              'ai.pickyour.core.preview.PreviewCatalogRetentionTest': {
+                  'retained pins survive replacement and reopen without changing another cache head()',
+                  'invalid unsupported and oversized snapshots never provision a cache()',
+                  'quota preserves all older pins and allows exact reuse without activation()',
+                  'missing root and foreign child preserve bytes until explicit repair()',
+                  'symbolic link roots and children never receive catalog writes()',
+                  'failed provisioning cannot acknowledge or publish and permits a fresh retry()',
+                  'readable interrupted pin requires directory sync before acknowledgement and retry preserves head()',
+                  'failed and uncertain publication preserve old pins and require separate reread()',
+                  'busy retention fails promptly without replacing existing snapshot()',
+                  'cancellation does no work and an explicit later request can proceed()',
+                  'corrupt immutable content is reported without repair or replacement()',
+                  'caller array mutations cannot rewrite retained original bytes()',
+              },
               'ai.pickyour.core.evaluation.RetainedSnapshotEvaluationTest': {
                   'actual retained bundle reproduces the complete no-evidence Python golden and keeps both times()',
                   'request captures every exact pin and remains independent of copied bytes and source deletion()',
@@ -1194,7 +1208,7 @@ jobs:
           report = pathlib.Path("preview/build/test-results/testDebugUnitTest/TEST-ai.pickyour.android.preview.CatalogPinRecoveryActivityTest.xml")
           suite = ET.parse(report).getroot()
           expected = {
-              "currentPinnedInspectionUsesCapturedDetailsWithoutCreatingACacheOrSaving",
+              "currentPinnedInspectionUsesCapturedDetailsWithoutChangingRetainedBytesOrSaving",
               "retainedRetiredVersionDisplaysExactOlderBytesWithoutActivatingOrReplacingComparisonPins",
               "missingSnapshotRetryRecoversOnlyTheSamePinAfterExactBytesBecomeAvailable",
               "unsupportedInvalidAndAbsentVersionsHaveDistinctRecoverableMessagesAndPreserveBytes",
@@ -1434,6 +1448,30 @@ jobs:
               assert all(not case.findall("failure") and not case.findall("error") and not case.findall("skipped") for case in cases), f"{name} regression did not pass"
               assert int(suite.attrib["tests"]) >= len(expected)
               print(f"Verified {len(cases)} simulated {name} tests; no installed-device claim")
+          PYTEST
+      - name: Require bundled catalog retention Activity regressions to execute
+        run: |
+          python - <<'PYTEST'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          name = "ai.pickyour.android.preview.CatalogRetentionActivityTest"
+          suite = ET.parse(pathlib.Path("preview/build/test-results/testDebugUnitTest") / ("TEST-" + name + ".xml")).getroot()
+          expected = {
+              "bundledLoaderRetainsExactBytesAcrossRecreationWithoutSavingPendingDraft",
+              "failedRetentionKeepsCatalogUsableAndExplicitReloadRecoversWithoutSaving",
+              "fullHistoryPreservesEveryPinAndExplainsUnretainedCatalogWithoutBlockingBrowse",
+          }
+          cases = suite.findall("testcase")
+          identities = [(case.attrib.get("classname"), case.attrib["name"]) for case in cases]
+          if suite.attrib.get("name") != name or any(owner != name for owner, _ in identities):
+              raise SystemExit("Unexpected catalog retention regression owner")
+          if not {(name, method) for method in expected} <= set(identities) or len(identities) != len(set(identities)):
+              raise SystemExit("Missing or repeated catalog retention regression")
+          if int(suite.attrib["tests"]) != len(cases) or any(int(suite.attrib.get(key, "0")) != 0 for key in ("failures", "errors", "skipped")):
+              raise SystemExit("Catalog retention suite did not execute cleanly")
+          if any(case.findall("failure") or case.findall("error") or case.findall("skipped") for case in cases):
+              raise SystemExit("Catalog retention regression did not pass")
+          print(f"Verified {len(cases)} simulated bundled catalog retention tests; no installed-device claim")
           PYTEST
       - name: Require optional-tier dialog authority regressions
         run: |
