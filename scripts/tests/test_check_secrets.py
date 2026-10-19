@@ -1,8 +1,10 @@
 """Rejection and disclosure boundaries; real scanner fixtures run separately in CI."""
 
 import copy
+import contextlib
 import hashlib
 import importlib.util
+import io
 import json
 import os
 from pathlib import Path
@@ -154,6 +156,7 @@ class SecretCheckTest(unittest.TestCase):
                 self.assertEqual(str(private / "history-git-trace.json"), kwargs["env"]["GIT_TRACE2_EVENT"])
                 self.assertEqual("1", kwargs["env"]["GIT_TRACE2_EVENT_BRIEF"])
                 self.assertEqual("1", kwargs["env"]["GIT_TRACE2_EVENT_NESTING"])
+                self.assertEqual("1", kwargs["env"]["GIT_NO_REPLACE_OBJECTS"])
                 self.assertEqual("[extend]\nuseDefault = true\n", (private / "built-in-rules.toml").read_text())
                 self.assertEqual("", (private / "empty-ignore").read_text())
                 (private / "history.json").write_text("[]")
@@ -161,7 +164,7 @@ class SecretCheckTest(unittest.TestCase):
                 return subprocess.CompletedProcess(args, 0, "", "")
             with patch.dict(os.environ, {"GITLEAKS_CONFIG": "unreviewed", "GITLEAKS_CONFIG_TOML": "unreviewed",
                                          "GIT_TRACE2_EVENT": "unreviewed", "GIT_TRACE2_EVENT_BRIEF": "0",
-                                         "GIT_TRACE2_EVENT_NESTING": "0"}), \
+                                         "GIT_TRACE2_EVENT_NESTING": "0", "GIT_NO_REPLACE_OBJECTS": "0"}), \
                     patch.object(check.subprocess, "run", side_effect=run):
                 self.assertEqual({"exit_code": 0, "finding_count": 0, "findings": []},
                                  check.scan(Path("scanner"), Path("repository"), private, "history", history=True))
@@ -221,6 +224,31 @@ class SecretCheckTest(unittest.TestCase):
                     patch.object(check, "git", side_effect=lambda *args: inputs[args]):
                 with self.assertRaises(check.ScanFailure):
                     check.inspect_source()
+
+    def test_source_metadata_uses_literal_objects_with_replacement_refs(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            repository = Path(temporary)
+            env = dict(os.environ, GIT_AUTHOR_NAME="Synthetic Source Fixture",
+                       GIT_AUTHOR_EMAIL="fixture@example.invalid", GIT_COMMITTER_NAME="Synthetic Source Fixture",
+                       GIT_COMMITTER_EMAIL="fixture@example.invalid")
+            def fixture_git(*args, input=None):
+                result = subprocess.run(["git", *args], cwd=repository, env=env, input=input,
+                                        capture_output=True, text=True, timeout=10)
+                self.assertEqual(0, result.returncode, "Temporary source fixture construction failed")
+                return result.stdout.strip()
+            fixture_git("init", "--bare", "--quiet")
+            empty = fixture_git("mktree", input="")
+            first = fixture_git("commit-tree", empty, "-m", "Synthetic initial source")
+            blob = fixture_git("hash-object", "-w", "--stdin", input="Synthetic source metadata control.\n")
+            tree = fixture_git("mktree", input="100644 blob " + blob + "\tfixture.txt\n")
+            head = fixture_git("commit-tree", tree, "-p", first, "-m", "Synthetic current source")
+            fixture_git("update-ref", "refs/heads/main", head)
+            fixture_git("symbolic-ref", "HEAD", "refs/heads/main")
+            fixture_git("replace", head, first)
+            with patch.object(check, "ROOT", repository):
+                self.assertEqual(head, check.git("rev-parse", "HEAD"))
+                self.assertEqual(tree, check.git("rev-parse", "HEAD^{tree}"))
+                self.assertEqual("2", check.git("rev-list", "--count", "HEAD"))
 
 
 class HistoryCompletionTest(unittest.TestCase):
@@ -319,6 +347,173 @@ class HistoryCompletionTest(unittest.TestCase):
         rows = [{"sid": f"synthetic-process-{number}", "event": "version"} for number in range(65)]
         self.rejected(rows + self.rows)
         self.rejected(self.rows[:2] + [self.rows[2]] * 7 + self.rows[3:])
+
+
+class PublicChecksumDispositionTest(unittest.TestCase):
+    def row(self, commit="a" * 40):
+        return {"rule_id": "generic-api-key", "file": check.CHECKSUM_PROOF[0][0],
+                "line": 5, "commit": commit}
+
+    def result(self, rows):
+        return {"exit_code": 10 if rows else 0, "finding_count": len(rows), "findings": rows}
+
+    def test_exact_review_keeps_raw_exit_count_findings_and_actual_commit(self):
+        raw = self.result([self.row()])
+        before = copy.deepcopy(raw)
+        with patch.object(check, "verify_checksum_finding") as verify:
+            disposition = check.classify_reviewed_findings(Path("source"), "b" * 40, raw)
+        verify.assert_called_once_with(Path("source"), "a" * 40, "b" * 40)
+        self.assertEqual(before, raw)
+        self.assertEqual(1, disposition["reviewed_count"])
+        self.assertEqual(0, disposition["unresolved_count"])
+        self.assertEqual([{**self.row(), "disposition": check.CHECKSUM_DISPOSITION,
+                           "file_blob": check.CHECKSUM_PROOF[0][1],
+                           "file_sha256": check.CHECKSUM_PROOF[0][3]}], disposition["reviewed_findings"])
+
+    def test_other_rule_path_or_line_remains_unresolved_without_evidence_lookup(self):
+        for key, value in (("rule_id", "github-pat"), ("file", "other.json"), ("line", 6)):
+            row = {**self.row(), key: value}
+            with self.subTest(key=key), patch.object(check, "verify_checksum_finding") as verify:
+                disposition = check.classify_reviewed_findings(Path("source"), "a" * 40, self.result([row]))
+            verify.assert_not_called()
+            self.assertEqual(0, disposition["reviewed_count"])
+            self.assertEqual([row], disposition["unresolved_findings"])
+
+    def test_mixed_findings_preserve_the_unresolved_finding(self):
+        unknown = {**self.row(), "file": "unreviewed.txt", "rule_id": "github-pat"}
+        raw = self.result([self.row(), unknown])
+        with patch.object(check, "verify_checksum_finding"):
+            disposition = check.classify_reviewed_findings(Path("source"), "a" * 40, raw)
+        self.assertEqual(2, raw["finding_count"])
+        self.assertEqual(1, disposition["reviewed_count"])
+        self.assertEqual(1, disposition["unresolved_count"])
+        self.assertEqual([unknown], disposition["unresolved_findings"])
+
+    def test_malformed_duplicate_or_inconsistent_disposition_input_fails(self):
+        valid = self.result([self.row()])
+        invalid = [None, {}, {**valid, "extra": "PRIVATE_METADATA"},
+                   {**valid, "exit_code": 0}, {**valid, "exit_code": True},
+                   {**valid, "finding_count": 0}, {**valid, "finding_count": True},
+                   self.result([self.row(), self.row()])]
+        for key, value in (("line", True), ("line", 0), ("commit", "unknown"),
+                           ("rule_id", "unstructured private text"), ("file", "")):
+            invalid.append(self.result([{**self.row(), key: value}]))
+        invalid.append(self.result([{**self.row(), "extra": "PRIVATE_METADATA"}]))
+        for value in invalid:
+            with self.subTest(value=type(value).__name__), patch.object(check, "verify_checksum_finding"), \
+                    self.assertRaises(check.ScanFailure) as raised:
+                check.classify_reviewed_findings(Path("source"), "a" * 40, value)
+            self.assertNotIn("PRIVATE_", str(raised.exception))
+        with self.assertRaises(check.ScanFailure):
+            check.classify_reviewed_findings(Path("source"), "HEAD", self.result([]))
+
+    def test_blob_mode_identity_size_and_complete_bytes_are_bound(self):
+        raw = b"public source bytes\n"
+        proof = ("public.txt", "b" * 40, len(raw), hashlib.sha256(raw).hexdigest())
+        entry = f"100644 blob {proof[1]}\t{proof[0]}\0".encode()
+        with patch.object(check, "checksum_git", side_effect=[entry, f"{len(raw)}\n".encode(), raw]) as read:
+            self.assertEqual(raw, check.reviewed_checksum_blob(Path("source"), "a" * 40, proof))
+        self.assertEqual([
+            ((Path("source"), "ls-tree", "-z", "a" * 40, "--", "public.txt"),),
+            ((Path("source"), "cat-file", "-s", "b" * 40),),
+            ((Path("source"), "cat-file", "blob", "b" * 40),),
+        ], [(call.args,) for call in read.call_args_list])
+        variants = [
+            [entry.replace(b"100644", b"100755")], [entry.replace(b"100644", b"120000")],
+            [entry.replace(b"blob", b"tree")], [entry.replace(b"b" * 40, b"c" * 40)],
+            [entry.replace(b"public.txt", b"different.txt")], [entry + entry],
+            [entry, b"999\n"], [entry, f"{len(raw)}\n".encode(), raw + b"x"],
+            [entry, f"{len(raw)}\n".encode(), b"P" + raw[1:]],
+        ]
+        for values in variants:
+            with self.subTest(values=len(values)), patch.object(check, "checksum_git", side_effect=values), \
+                    self.assertRaises(check.ScanFailure) as raised:
+                check.reviewed_checksum_blob(Path("source"), "a" * 40, proof)
+            self.assertEqual(check.CHECKSUM_EVIDENCE_ERROR, str(raised.exception))
+
+    def test_git_evidence_disables_replacements_and_rejects_errors_or_oversize(self):
+        target = Path("source")
+        with patch.object(check.subprocess, "run", return_value=subprocess.CompletedProcess([], 0, b"data", b"")) as run:
+            self.assertEqual(b"data", check.checksum_git(target, "cat-file", "blob", "a" * 40))
+        self.assertEqual(["git", "--no-replace-objects", "-C", "source", "cat-file", "blob", "a" * 40], run.call_args.args[0])
+        self.assertEqual({"capture_output": True, "timeout": 5}, run.call_args.kwargs)
+        for result in (subprocess.CompletedProcess([], 1, b"", b""),
+                       subprocess.CompletedProcess([], 0, b"", b"PRIVATE_ERROR"),
+                       subprocess.CompletedProcess([], 0, b"x" * 65537, b"")):
+            with patch.object(check.subprocess, "run", return_value=result), self.assertRaises(check.ScanFailure) as raised:
+                check.checksum_git(target, "cat-file", "blob", "a" * 40)
+            self.assertEqual(check.CHECKSUM_EVIDENCE_ERROR, str(raised.exception))
+        for error in (OSError("PRIVATE_PATH"), subprocess.TimeoutExpired("PRIVATE_COMMAND", 5)):
+            with patch.object(check.subprocess, "run", side_effect=error), self.assertRaises(check.ScanFailure) as raised:
+                check.checksum_git(target, "cat-file", "blob", "a" * 40)
+            self.assertEqual(check.CHECKSUM_EVIDENCE_ERROR, str(raised.exception))
+
+    def test_each_actual_commit_binds_all_frozen_proof_inputs(self):
+        schema = (ROOT / check.CHECKSUM_PROOF[1][0]).read_bytes()
+        manifest = (ROOT / check.CHECKSUM_PROOF[2][0]).read_bytes()
+        upstream = (ROOT / check.CHECKSUM_PROOF[3][0]).read_bytes()
+        data = {"case_format": "shape", "contract_version": "shape", "upstream_revision": "shape",
+                "openapi_sha256": hashlib.sha256(schema).hexdigest(), "cases": []}
+        fixture = (json.dumps(data, indent=2) + "\n").encode()
+        with patch.object(check, "checksum_git", side_effect=[b"b" * 40 + b"\n", b"commit\n", b""]) as git, \
+                patch.object(check, "reviewed_checksum_blob", side_effect=[fixture, schema, manifest, upstream]) as read:
+            check.verify_checksum_finding(Path("source"), "a" * 40, "b" * 40)
+        self.assertEqual([proof for proof in check.CHECKSUM_PROOF], [call.args[2] for call in read.call_args_list])
+        self.assertTrue(all(call.args[:2] == (Path("source"), "a" * 40) for call in read.call_args_list))
+        self.assertEqual((Path("source"), "merge-base", "--is-ancestor", "a" * 40, "b" * 40), git.call_args.args)
+        for wrong in ("head", "type", "ancestry"):
+            replies = [b"b" * 40 + b"\n", b"commit\n", b""]
+            replies[{"head": 0, "type": 1, "ancestry": 2}[wrong]] = b"different\n"
+            with self.subTest(wrong=wrong), patch.object(check, "checksum_git", side_effect=replies), \
+                    patch.object(check, "reviewed_checksum_blob") as read, self.assertRaises(check.ScanFailure):
+                check.verify_checksum_finding(Path("source"), "a" * 40, "b" * 40)
+            read.assert_not_called()
+        for index in range(4):
+            with self.subTest(proof=index), patch.object(check, "checksum_git", side_effect=[b"b" * 40 + b"\n", b"commit\n", b""]), \
+                    patch.object(check, "reviewed_checksum_blob", side_effect=[fixture, schema, manifest, upstream][:index] + [check.ScanFailure(check.CHECKSUM_EVIDENCE_ERROR)]), \
+                    self.assertRaises(check.ScanFailure):
+                check.verify_checksum_finding(Path("source"), "a" * 40, "b" * 40)
+
+    def test_public_value_or_frozen_digest_relationship_cannot_change(self):
+        schema = (ROOT / check.CHECKSUM_PROOF[1][0]).read_bytes()
+        upstream = (ROOT / check.CHECKSUM_PROOF[3][0]).read_bytes()
+        data = {"case_format": "shape", "contract_version": "shape", "upstream_revision": "shape",
+                "openapi_sha256": hashlib.sha256(schema).hexdigest(), "cases": []}
+        fixture = (json.dumps(data, indent=2) + "\n").encode()
+        for inputs in ([fixture.replace(b"6a08d723", b"7a08d723"), schema, b"pinned", upstream],
+                       [fixture, schema + b"\n", b"pinned", upstream],
+                       [fixture, schema, b"pinned", upstream + upstream]):
+            with patch.object(check, "checksum_git", side_effect=[b"a" * 40 + b"\n", b"commit\n", b""]), \
+                    patch.object(check, "reviewed_checksum_blob", side_effect=inputs), self.assertRaises(check.ScanFailure):
+                check.verify_checksum_finding(Path("source"), "a" * 40, "a" * 40)
+
+    def test_reviewed_commit_work_is_bounded(self):
+        raw = self.result([self.row(f"{index:040x}") for index in range(check.MAX_REVIEWED_COMMITS + 1)])
+        with patch.object(check, "verify_checksum_finding") as verify, self.assertRaisesRegex(check.ScanFailure, "commit limit"):
+            check.classify_reviewed_findings(Path("source"), "a" * 40, raw)
+        self.assertEqual(check.MAX_REVIEWED_COMMITS, verify.call_count)
+
+    def test_entrypoint_never_calls_reviewed_or_mixed_findings_zero_raw(self):
+        other = {**self.row(), "file": "other.txt", "rule_id": "github-pat"}
+        cases = [([], 0, "passed", 0), ([self.row()], 0, "passed_with_reviewed_findings", 0),
+                 ([self.row(), other], 1, "failed", 1), ([other], 1, "failed", 1)]
+        for rows, exit_code, status, unresolved in cases:
+            with self.subTest(status=status, rows=len(rows)), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                raw = self.result(rows)
+                with patch.object(check, "ROOT", root), patch.object(check.platform, "system", return_value="Linux"), \
+                        patch.object(check.platform, "machine", return_value="x86_64"), \
+                        patch.object(check, "inspect_source", return_value={"commit": "a" * 40}), \
+                        patch.object(check, "install_scanner", return_value=Path("scanner")), \
+                        patch.object(check, "verify_detection_and_removal", return_value={}), \
+                        patch.object(check, "scan", return_value=raw), patch.object(check, "verify_checksum_finding"), \
+                        contextlib.redirect_stdout(io.StringIO()):
+                    self.assertEqual(exit_code, check.main())
+                receipt = json.loads((root / "build/security/secret-scan.json").read_text())
+                self.assertEqual(status, receipt["status"])
+                self.assertEqual(raw, receipt["scan"])
+                self.assertEqual(unresolved, receipt["triage"]["unresolved_count"])
+                self.assertEqual(len(rows), receipt["triage"]["reviewed_count"] + receipt["triage"]["unresolved_count"])
 
 
 if __name__ == "__main__":
