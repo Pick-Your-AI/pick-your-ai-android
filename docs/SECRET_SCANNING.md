@@ -174,6 +174,31 @@ not printed; raw finding JSON and Git traces stay in the temporary directory and
 are removed on exit.
 The CLI also receives `--redact=100` as a separate precaution.
 
+The entry point admits the repository root, `build`, `build/security` and the
+fixed `secret-scan.json` entry before starting source or scanner work. Existing
+directory aliases, non-directory ancestors, nonregular outputs and multiply
+linked regular outputs fail without retiring or overwriting their targets. An
+ordinary stale report is removed only after admission, so it cannot describe an
+interrupted current inspection. Unrelated peer files remain untouched.
+
+Complete JSON is written into a mode-0600 private sibling, closed, rechecked
+against the admitted destination and then replaced into the final name. A
+serialization or replacement failure removes the temporary sibling and fails
+the command without publishing a partial report. Ordinary source/scanner errors
+still publish a sanitized `failed` receipt and return failure; unexpected error
+details remain excluded. Missing final evidence is not a successful scan.
+This is a stable-checkout filesystem safeguard. It does not establish protection
+against hostile concurrent namespace replacement or crash-durable publication.
+
+The seven output-boundary methods use 23 real disposable filesystem controls
+with scanner work controlled and process/network execution prohibited. They
+cover unsafe entries, unreadable metadata, stale retirement, a replaced output
+before publication, private success/failed reports and publication failures.
+These controls do not execute the pinned CLI or replace the real scanner and
+history fixtures in the configured check. The scanner pins, original finding
+and history algorithms, reviewed-checksum disposition and disclosure rules stay
+unchanged by this output correction.
+
 The seven-day `secret-scan-<workflow commit>` artifact contains only that sanitized
 receipt. The ordinary log prints the overall result and receipt path. Inspect the
 job status together with the exact receipt before calling a version clean; an
