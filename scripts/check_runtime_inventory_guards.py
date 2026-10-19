@@ -6,12 +6,13 @@ from __future__ import annotations
 import argparse
 import hashlib
 import io
-import json
 from pathlib import Path
 import subprocess
 import tarfile
 import tempfile
 import zipfile
+
+from inspection_receipts import publish_receipt, retire_receipt
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -107,10 +108,11 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--preview", action="store_true", help="Check an ignored APK asset")
     arguments = parser.parse_args()
+    receipt_name = ("guard-ignored-preview-asset.json" if arguments.preview
+                    else "guard-ignored-core-schema.json")
+    retire_receipt(ROOT, receipt_name)
     report = check_guard(arguments.preview)
-    output = ROOT / "build/inventory" / f"guard-{report['case']}.json"
-    output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
+    publish_receipt(ROOT, receipt_name, report)
     print(f"Verified {report['case']}: real packaged input rejected; no fresh inventory")
 
 
