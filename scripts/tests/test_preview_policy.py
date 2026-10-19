@@ -263,7 +263,7 @@ class PreviewPolicyTest(unittest.TestCase):
                 inspect.assert_not_called()
 
     def test_source_changes_during_inspection_cannot_receive_a_pass(self):
-        for mutation in ["none", "tracked-file", "head"]:
+        for mutation in ["none", "tracked-file", "head", "replacement-tree"]:
             with self.subTest(mutation=mutation), tempfile.TemporaryDirectory() as temporary:
                 root = Path(temporary)
                 def git(*arguments):
@@ -301,17 +301,96 @@ class PreviewPolicyTest(unittest.TestCase):
                         tracked.write_text("changed during inspection\n")
                         if mutation == "head":
                             commit("Synthetic concurrent source advance")
+                        elif mutation == "replacement-tree":
+                            git("add", "tracked.txt")
+                            git("replace", source["tree"], git("write-tree"))
+                            self.assertEqual("", git("status", "--porcelain", "--untracked-files=all"))
+                            self.assertNotEqual("", git("--no-replace-objects", "status", "--porcelain"))
                     return {"sha256": apk_hash}
                 with patch.object(policy, "command", side_effect=commands), \
                      patch.object(policy, "inspect_apk", side_effect=inspect):
                     if mutation == "none":
                         self.assertEqual("passed", policy.check(root, aapt2)["status"])
                     else:
-                        expected = "SOURCE_CHANGED" if mutation == "tracked-file" else "SOURCE_CHANGED_DURING_INSPECTION"
+                        expected = "SOURCE_CHANGED_DURING_INSPECTION" if mutation == "head" else "SOURCE_CHANGED"
                         with self.assertRaisesRegex(policy.PolicyFailure, "^" + expected + "$"):
                             policy.check(root, aapt2)
                 self.assertEqual(apk_hash, policy.sha256(apk))
                 self.assertEqual(inventory_hash, policy.sha256(inventory_path))
+
+    def test_replacement_objects_cannot_redefine_the_inventory_source(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            def git(*arguments):
+                return subprocess.run(["git", *arguments], cwd=root, check=True, timeout=30,
+                                      stdout=subprocess.PIPE, stderr=subprocess.PIPE).stdout.decode().strip()
+            def authored_git(*arguments):
+                return git("-c", "user.name=Policy test", "-c", "user.email=policy@example.invalid",
+                           "-c", "commit.gpgsign=false", *arguments)
+            def literal_source():
+                return {"commit": git("--no-replace-objects", "rev-parse", "HEAD"),
+                        "tree": git("--no-replace-objects", "rev-parse", "HEAD^{tree}")}
+            git("init", "--quiet")
+            (root / ".gitignore").write_text("build/\n**/build/\n")
+            tracked = root / "tracked.txt"
+            tracked.write_text("original\n")
+            aapt2 = root / "aapt2-fixture"
+            aapt2.write_bytes(b"synthetic tool identity")
+            git("add", "--all")
+            authored_git("commit", "--quiet", "--no-verify", "-m", "Synthetic source baseline")
+            source = literal_source()
+            apk = root / policy.APK_PATH
+            apk.parent.mkdir(parents=True)
+            apk.write_bytes(b"unchanged synthetic artifact")
+            apk_hash = policy.sha256(apk)
+            inventory_path = root / "build/inventory/runtime-inventory.json"
+            inventory_path.parent.mkdir(parents=True)
+            inventory = {"schema_version": 1, "scope": "resolved-runtime-classpaths", "source": source,
+                         "outputs": [{"kind": "unsigned-debug-preview", "file": policy.APK_PATH,
+                                      "sha256": apk_hash, "bytes": apk.stat().st_size}]}
+            inventory_path.write_text(json.dumps(inventory))
+            inventory_hash = policy.sha256(inventory_path)
+            run_command = policy.command
+            def commands(arguments, cwd=None, **options):
+                if arguments == [str(aapt2), "version"]:
+                    return "Android Asset Packaging Tool (aapt) 2.19-11948202"
+                return run_command(arguments, cwd, **options)
+            with patch.object(policy, "command", side_effect=commands), \
+                 patch.object(policy, "inspect_apk", return_value={"sha256": apk_hash}) as inspect:
+                self.assertEqual(source, policy.check(root, aapt2)["source"])
+                tracked.write_text("changed behind a replacement tree\n")
+                git("add", "tracked.txt")
+                git("replace", source["tree"], git("write-tree"))
+                self.assertEqual("", git("status", "--porcelain", "--untracked-files=all"))
+                self.assertNotEqual("", git("--no-replace-objects", "status", "--porcelain"))
+                inspect.reset_mock()
+                with self.assertRaisesRegex(policy.PolicyFailure, "^SOURCE_CHANGED$"):
+                    policy.check(root, aapt2)
+                inspect.assert_not_called()
+                self.assertEqual(inventory_hash, policy.sha256(inventory_path))
+                self.assertEqual(apk_hash, policy.sha256(apk))
+
+                # The same edit becomes eligible after a real commit and inventory
+                # update; replacement refs themselves are not a blanket rejection.
+                git("replace", "-d", source["tree"])
+                authored_git("commit", "--quiet", "--no-verify", "-m", "Actually committed changed source")
+                current_source = literal_source()
+                self.assertNotEqual(source, current_source)
+                inventory["source"] = current_source
+                inventory_path.write_text(json.dumps(inventory))
+                current_inventory_hash = policy.sha256(inventory_path)
+                self.assertEqual(current_source, policy.check(root, aapt2)["source"])
+                replacement = authored_git("commit-tree", source["tree"], "-p", current_source["commit"],
+                                           "-m", "Synthetic alternate commit view")
+                git("replace", current_source["commit"], replacement)
+                self.assertEqual(source["tree"], git("show", "-s", "--format=%T", "HEAD"))
+                self.assertNotEqual("", git("status", "--porcelain"))
+                self.assertEqual("", git("--no-replace-objects", "status", "--porcelain"))
+                receipt = policy.check(root, aapt2)
+                self.assertEqual("passed", receipt["status"])
+                self.assertEqual(current_source, receipt["source"])
+                self.assertEqual(current_inventory_hash, policy.sha256(inventory_path))
+                self.assertEqual(apk_hash, policy.sha256(apk))
 
     def test_failed_current_check_removes_previous_pass_without_disclosing_error(self):
         with tempfile.TemporaryDirectory() as temporary:
