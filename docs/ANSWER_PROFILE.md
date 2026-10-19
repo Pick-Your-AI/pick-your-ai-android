@@ -190,6 +190,19 @@ into an isolated temporary directory and executes the selected Python 3.12 /
 jsonschema 4.25.1 API. It performs no network request. Its check mode reproduces
 the exact two committed fixture files; writing requires an explicit `--write`.
 
+Both modes admit the fixed fixture and lock destinations before reference work,
+then check the complete pair again before reading or publishing either file.
+Existing checkout ancestors must be directories; existing final files must be regular,
+singly linked files. Symlinks, hard links and nonregular destinations reject
+without following them. Each binary write publishes a complete private sibling
+by atomic replacement. A rejected destination or failed generation leaves both
+previous files intact. If the second publication itself fails, the first may
+already be replaced; the command fails without a success receipt, and the pair
+must be regenerated and verified together. This is not a two-file transaction or
+a crash-durability guarantee, and assumes no concurrent hostile replacement of
+checkout directories. These output checks do not change source admission,
+reference observations or the committed fixture bytes.
+
 ```sh
 # Use an isolated environment with the accepted Research requirements installed.
 python scripts/build_answer_profile_fixtures.py --research-root /path/to/pinned/research
