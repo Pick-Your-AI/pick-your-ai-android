@@ -43,8 +43,9 @@
     <string name="label_estimated">Estimated</string>
     <string name="save_draft">Save locally</string>
     <string name="reopen_draft">Reopen saved copy</string>
-    <string name="reopen_warning">Reopening replaces the current form with the last saved copy. Any unsaved edits in this form will be discarded. Cancel to keep them.</string>
+    <string name="reopen_warning">Reopen replaces the current form with the last saved copy and discards unsaved edits. Retry keeping edits reads the saved copy while retaining your entered fields. If the saved copy changed or cannot be matched, saving stays blocked. Keep edits returns without reading or changing anything.</string>
     <string name="keep_edits">Keep edits</string>
+    <string name="retry_keep_edits">Retry keeping edits</string>
     <string name="reopen_confirm">Reopen</string>
     <string name="draft_loading">Opening local guest draft…</string>
     <string name="draft_saving">Saving locally…</string>
