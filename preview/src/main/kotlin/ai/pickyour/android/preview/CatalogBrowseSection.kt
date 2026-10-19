@@ -27,6 +27,7 @@ class CatalogBrowseSection(
     private var browser: PreviewCatalogBrowser? = null
     private var selectable = false
     private var closed = false
+    private var rowAuthority = Any()
     private val tier: Button
     private val kind: Button
     private val sort: Button
@@ -147,6 +148,7 @@ class CatalogBrowseSection(
 
     private fun render() {
         if (!active()) return
+        val renderedRows = Any().also { rowAuthority = it }
         tier.text = activity.getString(R.string.catalog_tier, state.tier ?: activity.getString(R.string.catalog_all_tiers))
         kind.text = activity.getString(R.string.catalog_kind, state.kind ?: activity.getString(R.string.catalog_all_kinds))
         sort.text = activity.getString(R.string.catalog_sort, sortName(state.sort))
@@ -159,7 +161,8 @@ class CatalogBrowseSection(
                 text = activity.getString(R.string.item_button, item.name, item.kind)
                 isEnabled = selectable
                 setOnClickListener {
-                    if (active() && selectable && browser === current) openDetails(item, current.hash)
+                    if (active() && selectable && browser === current && rowAuthority === renderedRows)
+                        openDetails(item, current.hash)
                 }
             })
         }
