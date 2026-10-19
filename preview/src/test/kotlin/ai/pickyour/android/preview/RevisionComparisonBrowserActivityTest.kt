@@ -380,6 +380,45 @@ class RevisionComparisonBrowserActivityTest {
         assertState(before)
     }
 
+    @Test fun privacyDisclosureRetiresAnOlderQueuedComparison() {
+        prepareSavedHistory()
+        val baseline = loaded().baselineIdentity
+        AutosaveUiClock.pause()
+        val pendingSince = SystemClock.uptimeMillis()
+        field(R.string.context_objective).setText("pending privacy inspection")
+        field(R.string.workload_budget).setText("12.00")
+        val before = state()
+        val original = picker()
+        val release = blockWorker()
+        try {
+            select(original, 1)
+            val preparing = dialog()
+            assertTrue(shadowOf(preparing).message.toString().contains("Preparing local revision 0"))
+            activity.findViewById<Button>(R.id.privacy_open).performClick(); idle()
+            val privacy = dialog()
+            assertNotSame(preparing, privacy)
+            assertNotNull(privacy.findViewById<View>(R.id.privacy_scroll))
+            assertFalse("Privacy must retire the pending comparison before its worker completes", preparing.isShowing)
+            release.countDown(); finishWork()
+            select(original, 0)
+            assertSame(privacy, dialog())
+            assertTrue(privacy.isShowing)
+            assertEquals(baseline, loaded().baselineIdentity)
+            assertState(before)
+            privacy.getButton(AlertDialog.BUTTON_NEGATIVE).performClick(); idle()
+            select(original, 1); finishWork()
+            assertSame(privacy, dialog())
+            assertFalse(privacy.isShowing)
+            openComparison()
+            assertTrue(dialog().isShowing)
+            assertEquals(baseline, loaded().baselineIdentity)
+            assertState(before)
+            assertTrue("Privacy inspection must stay before the real autosave deadline",
+                SystemClock.uptimeMillis() in pendingSince until pendingSince + 750)
+            assertNull(shadowOf(activity).nextStartedActivity)
+        } finally { release.countDown() }
+    }
+
     @Test fun cancelledPreparationCannotDisplayLateWorkerResult() {
         prepareSavedHistory()
         val picker = picker()

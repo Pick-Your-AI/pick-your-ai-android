@@ -1021,8 +1021,8 @@ The [complete cost browser](COMPLETE_COST_INSPECTION.md) makes every retained
 fixed-example line, assumption, warning, reference and input value reachable
 behind the existing bounded summary. New request/window identities and Activity
 pause/destroy retirement fence canceled or replaced reads and controls. The
-unchanged cost adapter and formatter retain exact declared values and unestablished
+canonical cost adapter and formatter retain exact declared values and unestablished
 freshness/free/included/budget status; guest input, autosave and current-draft
-evaluation remain separately owned. The 14 named simulated Activity regressions
+evaluation remain separately owned. The 18 named simulated Activity regressions
 and strict attendance step cover this boundary; actual source/execution receipts
 and installed/physical/release results remain distinct. Partial refs #103.

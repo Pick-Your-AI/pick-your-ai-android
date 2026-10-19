@@ -26,6 +26,16 @@ the comparison, or destroying the Activity retires the old comparison controls.
 Open a new comparison to inspect the currently available pair. This prevents a
 button retained from an older page from replacing a newer dialog.
 
+New Draft, Duplicate, Recovery Copy, library entry, delete or cleanup-retry,
+retained-history details, and revision-restore confirmations also close the value
+inspector. Cancel the storage confirmation and open a new comparison to continue
+reading the captured pair.
+
+Opening **Privacy & data** also retires the value inspector and any pending local
+revision comparison. Its disclosure stays in front of controls retained from an
+older comparison. Closing it leaves pending draft fields and the saved baseline
+unchanged; open a new comparison to continue inspection.
+
 Headings identify the component and field on every page. Navigation labels wrap
 inside the scrolling view. This guide describes the synthetic preview; supported
 installed-device and screen-reader acceptance, real-data semantics and the

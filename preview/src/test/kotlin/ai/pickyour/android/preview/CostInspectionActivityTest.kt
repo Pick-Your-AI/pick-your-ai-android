@@ -519,6 +519,152 @@ class CostInspectionActivityTest {
         assertEquals(5, rows().size)
     }
 
+    @Test fun laterStorageConfirmationRetiresCompleteCostValueCallbacks() {
+        save()
+        val baseline = loaded().baselineIdentity
+        field(R.string.draft_title).setText("pending cost storage confirmation")
+        actualOpen(); choose(4); findField("cost_estimate")
+        val value = dialog()
+        val back = value.getButton(AlertDialog.BUTTON_NEGATIVE)
+        val next = value.getButton(AlertDialog.BUTTON_POSITIVE)
+        assertEquals(View.VISIBLE, next.visibility)
+        val before = disk()
+
+        button(R.string.library_new).performClick(); idle()
+        val storage = dialog()
+        assertNotSame(value, storage)
+        assertTrue(storage.isShowing)
+        assertEquals(activity.getString(R.string.library_new_warning), shadowOf(storage).message.toString())
+        back.performClick(); idle()
+        assertSame("A captured cost Back action must not replace the later storage confirmation", storage, dialog())
+        next.performClick(); idle()
+        assertSame(storage, dialog())
+        assertTrue(storage.isShowing)
+        assertFalse(value.isShowing)
+        assertEquals("pending cost storage confirmation", field(R.string.draft_title).text.toString())
+        assertEquals(baseline, loaded().baselineIdentity)
+        assertEquals(before, disk())
+
+        storage.getButton(AlertDialog.BUTTON_NEGATIVE).performClick(); idle()
+        back.performClick(); next.performClick(); idle()
+        assertSame(storage, dialog())
+        assertFalse(storage.isShowing)
+        assertEquals(baseline, loaded().baselineIdentity)
+        assertEquals(before, disk())
+        actualOpen()
+        assertTrue(dialog().isShowing)
+        assertNotSame(value, dialog())
+        assertEquals(before, disk())
+    }
+
+    @Test fun laterStorageConfirmationRetiresAPendingCostReadBeforeItsLateResult() {
+        save()
+        val baseline = loaded().baselineIdentity
+        field(R.string.draft_title).setText("pending cost read and storage")
+        val before = disk()
+        val entered = CountDownLatch(1)
+        val release = CountDownLatch(1)
+        worker().execute { entered.countDown(); release.await(15, TimeUnit.SECONDS) }
+        assertTrue(entered.await(15, TimeUnit.SECONDS))
+        try {
+            button(R.string.cost_inspect).performClick(); idle()
+            assertFalse(button(R.string.cost_inspect).isEnabled)
+            button(R.string.library_new).performClick(); idle()
+            val storage = dialog()
+            assertTrue(storage.isShowing)
+            assertEquals(activity.getString(R.string.library_new_warning), shadowOf(storage).message.toString())
+            release.countDown(); finishWork()
+            assertSame(storage, dialog())
+            assertTrue(storage.isShowing)
+            assertFalse(button(R.string.cost_inspection_browse).isEnabled)
+            assertTrue(views().filterIsInstance<TextView>().any { it.text.toString() == activity.getString(R.string.cost_inspection_idle) })
+            assertEquals("pending cost read and storage", field(R.string.draft_title).text.toString())
+            assertEquals(baseline, loaded().baselineIdentity)
+            assertEquals(before, disk())
+            storage.getButton(AlertDialog.BUTTON_NEGATIVE).performClick(); idle()
+            actualOpen()
+            assertTrue(dialog().isShowing)
+            assertEquals(before, disk())
+        } finally { release.countDown() }
+    }
+
+    @Test fun laterPrivacyDisclosureRetiresCompleteCostValueCallbacks() {
+        save()
+        val baseline = loaded().baselineIdentity
+        val pendingSince = SystemClock.uptimeMillis()
+        field(R.string.draft_title).setText("pending cost privacy disclosure")
+        actualOpen(); choose(4); findField("cost_estimate")
+        val value = dialog()
+        val back = value.getButton(AlertDialog.BUTTON_NEGATIVE)
+        val next = value.getButton(AlertDialog.BUTTON_POSITIVE)
+        assertEquals(View.VISIBLE, next.visibility)
+        val before = disk()
+
+        activity.findViewById<Button>(R.id.privacy_open).performClick(); idle()
+        val privacy = dialog()
+        assertNotSame(value, privacy)
+        assertTrue(privacy.isShowing)
+        assertNotNull(privacy.findViewById<View>(R.id.privacy_scroll))
+        back.performClick(); idle()
+        assertSame("A captured cost Back action must not replace the later privacy disclosure", privacy, dialog())
+        next.performClick(); idle()
+        assertSame(privacy, dialog())
+        assertTrue(privacy.isShowing)
+        assertFalse(value.isShowing)
+        assertEquals("pending cost privacy disclosure", field(R.string.draft_title).text.toString())
+        assertEquals(baseline, loaded().baselineIdentity)
+        assertEquals(before, disk())
+
+        privacy.getButton(AlertDialog.BUTTON_NEGATIVE).performClick(); idle()
+        back.performClick(); next.performClick(); idle()
+        assertSame(privacy, dialog())
+        assertFalse(privacy.isShowing)
+        assertEquals(baseline, loaded().baselineIdentity)
+        assertEquals(before, disk())
+        actualOpen()
+        assertTrue(dialog().isShowing)
+        assertNotSame(value, dialog())
+        assertEquals(before, disk())
+        assertTrue("Privacy inspection must stay before the actual autosave deadline",
+            SystemClock.uptimeMillis() in pendingSince until pendingSince + 750)
+        assertNull(shadowOf(activity).nextStartedActivity)
+    }
+
+    @Test fun laterPrivacyDisclosureRetiresAPendingCostReadBeforeItsLateResult() {
+        save()
+        val baseline = loaded().baselineIdentity
+        val pendingSince = SystemClock.uptimeMillis()
+        field(R.string.draft_title).setText("pending cost read and privacy")
+        val before = disk()
+        val entered = CountDownLatch(1)
+        val release = CountDownLatch(1)
+        worker().execute { entered.countDown(); release.await(15, TimeUnit.SECONDS) }
+        assertTrue(entered.await(15, TimeUnit.SECONDS))
+        try {
+            button(R.string.cost_inspect).performClick(); idle()
+            assertFalse(button(R.string.cost_inspect).isEnabled)
+            activity.findViewById<Button>(R.id.privacy_open).performClick(); idle()
+            val privacy = dialog()
+            assertTrue(privacy.isShowing)
+            assertNotNull(privacy.findViewById<View>(R.id.privacy_scroll))
+            release.countDown(); finishWork()
+            assertSame(privacy, dialog())
+            assertTrue(privacy.isShowing)
+            assertFalse(button(R.string.cost_inspection_browse).isEnabled)
+            assertTrue(views().filterIsInstance<TextView>().any { it.text.toString() == activity.getString(R.string.cost_inspection_idle) })
+            assertEquals("pending cost read and privacy", field(R.string.draft_title).text.toString())
+            assertEquals(baseline, loaded().baselineIdentity)
+            assertEquals(before, disk())
+            privacy.getButton(AlertDialog.BUTTON_NEGATIVE).performClick(); idle()
+            actualOpen()
+            assertTrue(dialog().isShowing)
+            assertEquals(before, disk())
+            assertTrue("Privacy inspection must stay before the actual autosave deadline",
+                SystemClock.uptimeMillis() in pendingSince until pendingSince + 750)
+            assertNull(shadowOf(activity).nextStartedActivity)
+        } finally { release.countDown() }
+    }
+
     @Test fun pauseRetiresAPendingActualReadBeforeResumeAndRequiresExplicitReinspection() {
         val entered = CountDownLatch(1); val release = CountDownLatch(1)
         worker().submit { entered.countDown(); release.await(15, TimeUnit.SECONDS) }

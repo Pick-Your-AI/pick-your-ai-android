@@ -9,7 +9,7 @@ pricing calculation, real-data source, current-draft estimate or budget decision
 
 ## Complete records behind the bounded summary
 
-The existing [summary formatter](COST_PRESENTATION.md) remains unchanged. Its
+The browser preserves the existing [summary formatter](COST_PRESENTATION.md). Its
 eight-row/eight-entry limits and 160-unit excerpts keep the overview bounded.
 The new **Review all recorded cost fields** action supplies complete inspection:
 
@@ -61,6 +61,21 @@ reopen a retired browser. Activity pause retires the request and its pages;
 resume requires an explicit new inspection. Recreation restores the existing
 guest editor through its own canonical recovery path, not the old cost window.
 
+The canonical storage-dialog presentation helper also retires this section
+immediately before displaying a storage confirmation, including a delayed
+presentation. Both a pending read and a captured complete-value window lose
+their authority. Canceling the storage confirmation cannot reactivate those
+old controls; a fresh explicit inspection remains available. This presentation
+boundary does not change storage eligibility or callbacks and does not retire
+the fixed cost inspection merely because an ordinary autosave is acknowledged.
+
+The admitted **Privacy & data** before-display callback also retires this cost
+section before showing its disclosure. A captured cost Back/Next control or a
+late cost read cannot replace or repopulate the older inspection behind that
+disclosure. Closing Privacy requires a fresh explicit cost inspection; the
+privacy view, its lifecycle admission, pending guest data and autosave deadline
+remain governed by their existing owners.
+
 These controls read the fixed examples and affect only this inspection and
 catalog viewport restoration intent. They neither acquire draft/save authority
 nor change pending input, durable acknowledgment, revision history, autosave
@@ -77,7 +92,7 @@ They do not depend on onDestroy being delivered to preserve guest data.
 
 ## Meaningful validation
 
-The 14 methods in
+The 18 methods in
 [CostInspectionActivityTest](../preview/src/test/kotlin/ai/pickyour/android/preview/CostInspectionActivityTest.kt)
 exercise real Views, the unchanged frozen input adapter, queued workers and the
 canonical local store in a simulated Activity:
@@ -96,6 +111,10 @@ canonical local store in a simulated Activity:
   input, source-open failure, retry, executor rejection and caller stream closure.
 - Cancellation/reversed completion, same-revision replacement, old menus/rows and
   page controls, actual pause/recreation, pending input and unchanged disk.
+- A later real storage confirmation while complete-value controls or an actual
+  queued read are retained, followed by cancellation and explicit reinspection.
+- A later real Privacy disclosure with the same retained-window and queued-read
+  boundaries, unchanged pending data and disk, and the actual autosave deadline.
 - The actual 749 ms plus 1 ms autosave boundary and exactly one resulting revision;
   a 320 dp RTL window at 200% font scale with complete reachable value lines and
   reachable controls.
@@ -125,6 +144,42 @@ Unicode parts and every browsing assertion remain. This is a fixture correction;
 the production reader and its limits are unchanged. The earlier loopback-socket
 setup failure executed no project tests. Both originals remain separate from
 the corrected source's later execution.
+
+The additional test-only `8ee6b4b` checkpoint reproduced a separate presentation
+failure against unchanged `a1642c2` production: the captured cost Back action
+replaced the later visible New Draft confirmation. Its one-case failed original
+is retained; the subsequent state/disk/retry assertions were not executed in
+that failed run. The correction adds this section's retirement to the existing
+`showStorageDialog` boundary prepared by the canonical #612 controller, and
+requires both the complete-value and delayed-read regressions. The comparison
+controller's original omission, test-dispatch correction, reviews and execution
+receipts remain attributed to their actual source; this contribution does not
+rewrite that branch or treat its proposed source as an accepted main. The
+canonical storage correction was later delivered in #612 as `0728137d`.
+The separate local `a954820` composition executed 16 cost, 17 comparison and
+eight formatter cases successfully, followed by unsigned assembly and lint
+with 12 warnings and no errors. Those results do not qualify a later union.
+
+The later `f78ca6f` checkpoint adds only two cost tests on the isolated accepted
+`12f1737b` and canonical #622 `3999ef16` composition. Both actually failed before
+the cost-specific Privacy callback was added: captured Back replaced the visible
+disclosure, and a late read enabled complete browsing after that disclosure had
+opened. Their original assertions and reports are retained; later state, retry
+and deadline checks did not run in those failing cases. The correction adds
+only this section's dismissal inside the existing admitted before-display
+callback and requires both names in the additive cost attendance guard. The
+canonical comparison/privacy source, tests and receiver remain untouched.
+Fresh corrected execution is attributed separately in its actual receipts.
+
+The accepted #621 recorded-arithmetic contribution is preserved separately at
+`95e74a6a`: its Core profile, formatter, resources and exact attendance programs
+remain canonical. The complete browser continues to expose the original operands
+and declared amounts; the existing summary retains its separately versioned
+arithmetic observations. Its real inspector-button regression now supplies the
+explicit lifecycle argument and locates the Inspect button and resulting summary
+by their resource text instead of the former two-child layout. All eight
+arithmetic method identities and original observation assertions remain. This
+was a source integration finding, with no uncorrected execution claimed.
 
 ## Exact #103 acceptance boundaries
 
