@@ -155,6 +155,36 @@ jobs:
               total += len(cases)
           print(f"Verified {total} retained-snapshot and frozen evaluator cases; native execution remains separate")
           PYTEST
+      - name: Require parser-derived workload field feedback regressions
+        run: |
+          python - <<'PYTEST'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          qualified = "ai.pickyour.core.preview.PreviewWorkloadValidationTest"
+          report = pathlib.Path("core/build/test-results/test/TEST-" + qualified + ".xml")
+          suite = ET.parse(report).getroot()
+          required = {
+              "emptyInputsStayUnansweredAndEveryTypedClassificationIsValid()",
+              "independentInvalidFieldsDoNotBlameValidOrUnansweredValues()",
+              "budgetFeedbackPreservesCanonicalDecimalPrecisionAndRejectsLocaleCoercion()",
+              "integerFeedbackUsesExactBoundsAndNeverTreatsUnknownAsAMeasurement()",
+              "textLimitsUseTheExistingStringBudgetWithoutTrimmingOrTruncation()",
+              "currencyFeedbackUsesTheExistingFullUppercasePattern()",
+              "rejectedWholeEditRemainsAFormFailureWithoutInventingAFieldFailure()",
+              "feedbackIsImmutableValueFreeAndIndependentOfLaterCorrections()",
+          }
+          cases = suite.findall("testcase")
+          names = [case.attrib["name"] for case in cases]
+          if suite.attrib.get("name") != qualified or any(case.attrib.get("classname") != qualified for case in cases):
+              raise SystemExit("Wrong workload field feedback suite")
+          if not required <= set(names) or len(names) != len(set(names)):
+              raise SystemExit("Missing or repeated workload field feedback regression")
+          if int(suite.attrib["tests"]) != len(cases) or any(int(suite.attrib[key]) != 0 for key in ("failures", "errors", "skipped")):
+              raise SystemExit("Workload field feedback totals do not match passing execution")
+          if any(case.findall("failure") or case.findall("error") or case.findall("skipped") for case in cases):
+              raise SystemExit("Workload field feedback regression did not pass")
+          print(f"Verified {len(cases)} parser-derived workload field feedback cases")
+          PYTEST
       - name: Require every retained configuration golden
         run: |
           python - <<'PYCONFIGURATION'
@@ -638,6 +668,41 @@ jobs:
               if any(case.findall("failure") or case.findall("error") or case.findall("skipped") for case in cases):
                   raise SystemExit("Component role regression did not pass")
               print(f"Verified {len(cases)} simulated {name} cases; no installed-device claim")
+          PYTEST
+      - name: Require workload field error and saved-value regressions
+        run: |
+          python - <<'PYTEST'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          qualified = "ai.pickyour.android.preview.WorkloadFieldValidationActivityTest"
+          report = pathlib.Path("preview/build/test-results/testDebugUnitTest/TEST-" + qualified + ".xml")
+          suite = ET.parse(report).getroot()
+          required = {
+              "oversizedRegionIdentifiesTheLocalTextLimitWithoutChangingSavedBytes",
+              "invalidCurrencyIdentifiesItsUppercaseFormatWithoutEchoingInput",
+              "localeCommaBudgetIdentifiesTheCanonicalDecimalPoint",
+              "negativeRequestsIdentifyTheirNonnegativeDailyUnit",
+              "leadingZeroInputTokensIdentifyTheirWholeNumberFormat",
+              "oversizedOutputTokensIdentifyTheirExactDigitBound",
+              "zeroConcurrencyIdentifiesItsPositiveLowerBound",
+              "fractionalLatencyIdentifiesItsWholeMillisecondUnit",
+              "recreatedInvalidFieldsRecoverFeedbackAndReopenKeepsTheSavedRevision",
+              "correctingOneFieldKeepsOtherFeedbackUntilTheExactTypedSave",
+              "unansweredAndCanonicalWideValuesRoundTripWithoutFieldErrors",
+              "rejectedOversizedReplacementDoesNotBlameRetainedValidFields",
+              "explicitReopenOfValidPendingInputsDoesNotCreateARevision",
+          }
+          cases = suite.findall("testcase")
+          names = [case.attrib["name"] for case in cases]
+          if suite.attrib.get("name") != qualified or any(case.attrib.get("classname") != qualified for case in cases):
+              raise SystemExit("Wrong workload field error Activity suite")
+          if not required <= set(names) or len(names) != len(set(names)):
+              raise SystemExit("Missing or repeated workload field error Activity regression")
+          if int(suite.attrib["tests"]) != len(cases) or any(int(suite.attrib[key]) != 0 for key in ("failures", "errors", "skipped")):
+              raise SystemExit("Workload field error Activity totals do not match passing execution")
+          if any(case.findall("failure") or case.findall("error") or case.findall("skipped") for case in cases):
+              raise SystemExit("Workload field error Activity regression did not pass")
+          print(f"Verified {len(cases)} simulated workload field error cases; no installed-device claim")
           PYTEST
       - name: Require explicit foundation selection regressions to execute
         run: |
