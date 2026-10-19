@@ -1810,6 +1810,16 @@ jobs:
                   'englishLocaleWithRtlLayoutIsolatesRecordedIdentifiersInTheVisibleSection',
                   'arabicLocaleWithLtrLayoutKeepsRecordedIdentifiersInTheVisibleSectionLtr',
               },
+              'ai.pickyour.android.preview.SiblingInspectionActivityTest': {
+                  'snapshotEntryRetiresCurrentRowsAndBackWithoutChangingSavedAnalysis',
+                  'currentFindingsRetireSnapshotRowsAndReportRetryWhileFreshInspectionWorks',
+                  'lateSnapshotInventoryCannotReopenOverNewCurrentFindings',
+                  'resourceInspectionRetiresSiblingControlsButPreservesAcceptedInlineRecord',
+                  'fixedFindingsRetireSiblingControlsButPreserveAcceptedReportAndChildNavigation',
+                  'helpDestinationsRetireSiblingControlsAndOldExternalActionsStayRevoked',
+                  'diagnosticsRetireSiblingControlsAndOnlyFreshReviewedTextCanReachTheChooser',
+                  'privacyEntryRetiresSnapshotResourceFindingHelpAndDiagnosticsCallbacks',
+              },
           }
           for name, expected in required.items():
               path = pathlib.Path('preview/build/test-results/testDebugUnitTest') / ("TEST-" + name + ".xml")
