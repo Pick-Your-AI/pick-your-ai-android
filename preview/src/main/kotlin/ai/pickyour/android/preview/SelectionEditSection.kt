@@ -32,6 +32,8 @@ class SelectionEditSection(private val activity: Activity,
     private val discardRecovery = Button(activity)
     private var catalogHash: String? = null
     private var catalogItems: List<PreviewCatalogItem> = emptyList()
+    private var reviewAvailable = false
+    internal var onReviewAvailabilityChanged: (() -> Unit)? = null
 
     init {
         orientation = VERTICAL
@@ -78,6 +80,13 @@ class SelectionEditSection(private val activity: Activity,
     internal fun canReviewCurrentChoices(expected: PreviewStoredDraft): Boolean = canOpen(expected) &&
         (if (expected.components.selections.isEmpty()) choose.isEnabled else manage.isEnabled)
 
+    private fun publishReviewAvailability() {
+        val available = baseline?.let(::canReviewCurrentChoices) == true
+        if (available == reviewAvailable) return
+        reviewAvailable = available
+        onReviewAvailabilityChanged?.invoke()
+    }
+
     /** Navigate through the existing current-record controls; all later editor checks still apply. */
     internal fun reviewCurrentChoices(expected: PreviewStoredDraft) {
         if (!canReviewCurrentChoices(expected)) return
@@ -99,6 +108,7 @@ class SelectionEditSection(private val activity: Activity,
         })
         reviewRecovery.visibility = if (recovery is ComponentFormRecovery.Pending) View.VISIBLE else View.GONE
         discardRecovery.visibility = if (noRecovery) View.GONE else View.VISIBLE
+        publishReviewAvailability()
     }
     fun restore(state: Bundle?) {
         if (closed) return
@@ -120,6 +130,8 @@ class SelectionEditSection(private val activity: Activity,
         reviewRecovery.isEnabled = false; discardRecovery.isEnabled = false
         dialogs.toList().forEach { it.dismiss() }; dialogs.clear()
         formBinding = null; recovery = ComponentFormRecovery.None
+        publishReviewAvailability()
+        onReviewAvailabilityChanged = null
     }
     private fun show(dialog: AlertDialog, feedback: TextView? = null): AlertDialog {
         dialogs += dialog
@@ -299,12 +311,25 @@ class SelectionEditSection(private val activity: Activity,
         layout.addView(TextView(activity).apply { setText(R.string.component_core_input_guidance) })
         layout.addView(TextView(activity).apply { setText(R.string.component_core_guidance_unavailable) })
     }
+    private fun operationalGuidanceResource(kind: String): Int? = when (kind) {
+        "deployment_target" -> R.string.component_deployment_target_guidance
+        "monitoring_stack" -> R.string.component_monitoring_stack_guidance
+        "cost_policy" -> R.string.component_cost_policy_guidance
+        else -> null
+    }
+    private fun operationalGuidance(layout: LinearLayout, kind: String) {
+        val guidance = operationalGuidanceResource(kind) ?: return
+        layout.addView(TextView(activity).apply { setText(guidance) })
+        layout.addView(TextView(activity).apply { setText(R.string.component_core_input_guidance) })
+        layout.addView(TextView(activity).apply { setText(R.string.component_operational_guidance_unavailable) })
+    }
     private fun toggleWarning(kind: String): String = activity.getString(R.string.component_toggle_warning) +
         when {
             retrievalGuidanceResource(kind) != null -> "\n\n" + activity.getString(R.string.component_retrieval_intent_guidance)
             agentGuidanceResource(kind) != null -> "\n\n" + activity.getString(R.string.component_agent_intent_guidance)
             trainingGuidanceResource(kind) != null -> "\n\n" + activity.getString(R.string.component_training_intent_guidance)
             guardrailGuidanceResource(kind) != null -> "\n\n" + activity.getString(R.string.component_core_input_guidance)
+            operationalGuidanceResource(kind) != null -> "\n\n" + activity.getString(R.string.component_core_input_guidance)
             else -> ""
         }
     private fun field(layout: LinearLayout, title: Int, value: String): EditText {
@@ -329,6 +354,7 @@ class SelectionEditSection(private val activity: Activity,
         agentGuidance(layout, item.kind)
         trainingGuidance(layout, item.kind)
         guardrailGuidance(layout, item.kind)
+        operationalGuidance(layout, item.kind)
         layout.addView(TextView(activity).apply { setText(R.string.component_recovery_limit) })
         layout.addView(TextView(activity).apply { setText(R.string.component_recovery_userinfo_limit) })
         val role = field(layout, R.string.component_role, restored?.role.orEmpty())
@@ -368,6 +394,7 @@ class SelectionEditSection(private val activity: Activity,
         agentGuidance(layout, selection.kind)
         trainingGuidance(layout, selection.kind)
         guardrailGuidance(layout, selection.kind)
+        operationalGuidance(layout, selection.kind)
         layout.addView(TextView(activity).apply { setText(R.string.component_recovery_limit) })
         layout.addView(TextView(activity).apply { setText(R.string.component_recovery_userinfo_limit) })
         val settings = field(layout, R.string.component_settings, text)

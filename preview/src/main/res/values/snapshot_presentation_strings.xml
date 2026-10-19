@@ -1,0 +1,4 @@
+<resources>
+    <string name="snapshot_literal_empty">Supplied empty text (\"\")</string>
+    <string name="snapshot_literal_truncated">%1$s [display truncated; full original retained]</string>
+</resources>

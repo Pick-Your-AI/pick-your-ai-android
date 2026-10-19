@@ -70,7 +70,8 @@ object PreviewSelectionForms {
     }
 
     fun supported(kind: String) = PreviewCatalogKinds.all.any { it.id == kind &&
-        (it.tier in setOf("T0", "T1", "T2", "T3", "T4", "T5") || it.id in setOf("guardrail", "evaluation_suite")) }
+        (it.tier in setOf("T0", "T1", "T2", "T3", "T4", "T5") ||
+            it.id in setOf("guardrail", "evaluation_suite", "deployment_target", "monitoring_stack", "cost_policy")) }
     fun settingsText(selection: LocalSelection): String = selection.settings.toString()
     private fun prepare(action: () -> SelectionCommand): PreviewSelectionPreparation = try {
         PreviewSelectionPreparation.Ready(action())

@@ -124,7 +124,6 @@ class RecordedPricebookTest {
 
     @Test fun `whole document rejects duplicate IDs and unusable intervals even on unrelated items`() {
         val mutations: List<(ObjectNode) -> Unit> = listOf(
-            { it.put("schema_version", "2.0.0") },
             { it.put("captured_at", "2026-10-16T09:00:00.1234567891Z") },
             { (it["rates"][1] as ObjectNode).put("id", first(it)["id"].textValue()) },
             { (it["rates"][1] as ObjectNode).put("valid_until", "2026-10-16T09:00:00Z") },

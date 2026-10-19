@@ -6,6 +6,19 @@ Partial implementation for [Android #117](https://github.com/Pick-Your-AI/pick-y
 
 `ComparisonSnapshot.read` requires the expected build ID and revision. It uses `BoundedJsonReader` and the unchanged bundled Build schema, rejects identity mismatches, and keeps a private parsed copy. Duplicate selection IDs or link IDs are rejected before indexing so none can be silently dropped. This extra integrity check is not a claim of complete cross-document semantic validation: catalog existence, reference eligibility, cardinality beyond the schema and shared receiving acceptance remain outside this reader.
 
+At this public `InputStream` boundary, a present textual `schema_version` other
+than the exact supported `"1.0.0"` returns `UNSUPPORTED_SCHEMA_VERSION`. This is
+an additive diagnostic for [Android #21](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/21).
+The complete bounded strict parse still runs first: malformed UTF-8, duplicate
+keys, trailing values, invalid roots and exceeded input limits retain
+`INVALID_INPUT`, even if an earlier field spells an unsupported version. Missing,
+null or nontextual version fields retain `SCHEMA_MISMATCH`. A supported version
+still requires the unchanged complete frozen schema and the existing identity
+and duplicate-ID checks. The generic frozen validator and all other readers are
+unchanged; this result does not authorize a version migration or manufacture a
+snapshot. The stream remains caller-owned on every outcome, and rejection does
+not mutate retained snapshots or provide a comparison result.
+
 The snapshot exposes its identity and an immutable copy of every recorded lock. Revision uses `BigInteger`, preserving the contract's integer range rather than narrowing it to a JVM Long. No mutable source nodes escape. Diagnostic `toString` methods omit build contents; consumers must still apply privacy and disclosure rules to explicit diff values.
 
 Selections and relationships are matched by their actual IDs, independently of array position. Added/removed members get one marker at their ID path. Existing members are compared recursively by sorted object keys. Role changes have their own category even when the catalog item is unchanged; selection settings, relationships, objectives, locks and policy remain separate categories. Other top-level changes, including identity/version and extension fields, are metadata. Nested arrays are compared atomically: their order/element identities are not inferred.
@@ -93,3 +106,32 @@ implementation was composed without conflicts and the entire core suite ran
 again. All **410 JVM cases** in 44 reports passed with zero failures, errors or
 skips under strict offline verification; core assembly also passed. The earlier
 407-case result remains scoped to its original `952eb015` base.
+
+The comparison-specific version regression on 2026-10-19 first ran against the
+unchanged accepted `f8e9995e` Core source, using the byte-verified Core JAR from
+the actual signed `9cb68614` receiving checkout. All 164 tracked Core entries
+matched between those sources. The test-only checkpoint `a159fde3` executed
+**55 comparison cases: 45 passed and 10 failed**, with every failure showing
+the existing generic schema result instead of the required explicit version
+diagnostic. All 14 pre-existing comparison methods remain present; the only
+changed old expectation is that unsupported-version result.
+
+The corrected checkpoint `e8597f9e` then passed the **same 55 case identities**,
+with zero failures, errors, skipped cases or container failures. Its production
+comparison file and the unchanged test source were selectively compiled against
+that same verified Core artifact; the observer confirmed that the corrected
+comparison classes loaded from the new output. Both original logs and per-case
+reports are retained separately. The 22 strict-parser cases cover supported and
+unsupported version prefixes before malformed JSON/UTF-8, duplicate keys,
+trailing values, unpaired surrogates and every configured input budget; the
+remaining controls retain missing/nontext field rejection, full schema checks,
+identity/duplicate checks, immutable snapshots and exact numeric distinctions.
+
+This causal run used a selective Kotlin 2.1.20 compilation and the existing
+JUnit launcher under the cached Temurin 21.0.12.1 toolchain. Compiler, runtime
+and JUnit dependencies matched the accepted dependency-verification pins. It
+did not run Gradle, the full Core suite, Android, the scanner or a model generator.
+The shared filesystem reported zero unreserved available bytes; small isolated
+source and class outputs succeeded. Required full checks remain assigned to
+the ordinary published PR's configured workflows. Frozen imports, other stream
+readers, network/storage adapters and the incomplete #21 criteria are unchanged.

@@ -2,7 +2,7 @@ package ai.pickyour.android.preview
 
 import android.app.AlertDialog
 import android.os.Bundle
-import android.os.Looper
+import android.os.SystemClock
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
@@ -15,6 +15,7 @@ import ai.pickyour.core.drafts.DraftLoad
 import ai.pickyour.core.drafts.DraftSave
 import ai.pickyour.core.drafts.DraftStorageFailure
 import ai.pickyour.core.drafts.LocalDraftStore
+import ai.pickyour.core.preview.PreviewDraftAutosave
 import ai.pickyour.core.preview.PreviewDraftLibrary
 import ai.pickyour.core.preview.PreviewDraftLoad
 import org.json.JSONObject
@@ -25,7 +26,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
-import org.robolectric.Shadows.shadowOf
 import org.robolectric.android.controller.ActivityController
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.LooperMode
@@ -45,6 +45,7 @@ import java.util.concurrent.TimeUnit
 class DraftLoadRecoveryActivityTest {
     private lateinit var controller: ActivityController<PreviewActivity>
     private lateinit var expectedRetained: Map<String, String>
+    private var pendingSince = 0L
     private val activity get() = controller.get()
     private val root get() = activity.noBackupFilesDir.toPath()
     private val draftRoot get() = root.resolve("guest-draft")
@@ -60,11 +61,15 @@ class DraftLoadRecoveryActivityTest {
         field(R.string.draft_title).setText("saved synthetic title")
         button(R.string.save_draft).performClick()
         await { hasText(activity.getString(R.string.draft_saved)) && !button(R.string.save_draft).isEnabled }
+        // These recovery controls intentionally precede the automatic save deadline.
+        AutosaveUiClock.pause()
+        pendingSince = SystemClock.uptimeMillis()
         field(R.string.draft_title).setText("pending synthetic title")
         field(R.string.context_objective).setText("pending synthetic objective")
         field(R.string.context_context).setText("pending synthetic context")
         field(R.string.workload_region).setText("pending synthetic region")
         field(R.string.workload_budget).setText("12.00")
+        assertBeforeAutosave()
     }
 
     @After fun close() { controller.pause().stop().destroy() }
@@ -134,12 +139,14 @@ class DraftLoadRecoveryActivityTest {
         assertEquals("saved synthetic title", field(R.string.draft_title).text.toString())
         assertEquals(expected, (adapter().load() as PreviewDraftLoad.Available).record.baselineIdentity)
         assertEquals(retained, retainedBytes())
+        assertBeforeAutosave()
     }
 
     private fun stopAndChangeRetainedDraft(change: (Path) -> Unit) {
         val path = draftRoot
         val state = Bundle()
         settleWorker()
+        assertBeforeAutosave()
         controller.pause().saveInstanceState(state).stop().destroy()
         change(path)
         expectedRetained = retainedBytes(path.parent)
@@ -177,6 +184,7 @@ class DraftLoadRecoveryActivityTest {
     }
 
     private fun assertPendingForm() {
+        assertBeforeAutosave()
         assertEquals("pending synthetic title", field(R.string.draft_title).text.toString())
         assertEquals("pending synthetic objective", field(R.string.context_objective).text.toString())
         assertEquals("pending synthetic context", field(R.string.context_context).text.toString())
@@ -184,6 +192,11 @@ class DraftLoadRecoveryActivityTest {
         assertEquals("12.00", field(R.string.workload_budget).text.toString())
         assertTrue(hasText(activity.getString(R.string.selected_sample, "FICTIONAL Model")))
         assertTrue(hasText(activity.getString(R.string.library_active, "guest-draft")))
+    }
+
+    private fun assertBeforeAutosave() {
+        assertTrue("Recovery controls stay before autosave",
+            SystemClock.uptimeMillis() in pendingSince until pendingSince + PreviewDraftAutosave.DELAY_MILLIS)
     }
 
     private fun reopen() {
@@ -212,15 +225,15 @@ class DraftLoadRecoveryActivityTest {
         return activity.findViewById(caption.labelFor)
     }
     private fun settleWorker() {
-        shadowOf(Looper.getMainLooper()).idle()
+        AutosaveUiClock.idle()
         val worker = PreviewActivity::class.java.getDeclaredField("worker").apply { isAccessible = true }.get(activity) as ExecutorService
         worker.submit {}.get(15, TimeUnit.SECONDS)
-        shadowOf(Looper.getMainLooper()).idle()
+        AutosaveUiClock.idle()
     }
     private fun await(condition: () -> Boolean) {
         val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(15)
         while (System.nanoTime() < deadline) {
-            shadowOf(Looper.getMainLooper()).idle()
+            AutosaveUiClock.idle()
             if (condition()) return
             Thread.sleep(10)
         }

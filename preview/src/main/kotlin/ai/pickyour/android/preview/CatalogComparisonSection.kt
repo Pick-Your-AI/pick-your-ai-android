@@ -47,7 +47,7 @@ class CatalogComparisonSection(
     init {
         orientation = VERTICAL
         caption(this, activity.getString(R.string.catalog_compare_heading), true)
-        caption(this, activity.getString(R.string.catalog_compare_limit, PreviewCatalogTray.LIMIT))
+        caption(this, activity.resources.getQuantityString(R.plurals.catalog_compare_limit, PreviewCatalogTray.LIMIT, PreviewCatalogTray.LIMIT))
         status = caption(this, "").apply { accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE }
         entries = LinearLayout(activity).apply { orientation = VERTICAL }.also(::addView)
         compare = Button(activity).apply {

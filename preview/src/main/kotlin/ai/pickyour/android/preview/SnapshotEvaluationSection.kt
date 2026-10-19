@@ -2,6 +2,8 @@ package ai.pickyour.android.preview
 
 import android.app.Activity
 import android.app.AlertDialog
+import android.text.BidiFormatter
+import android.text.TextDirectionHeuristics
 import android.view.View
 import android.widget.Button
 import android.widget.LinearLayout
@@ -16,6 +18,8 @@ import ai.pickyour.core.evaluation.RetainedEvaluationProfile
 import ai.pickyour.core.evaluation.SnapshotEvaluationOutcome
 import ai.pickyour.core.evaluation.SnapshotEvaluator
 import ai.pickyour.core.evaluation.inspect
+import ai.pickyour.core.preview.PreviewComparedValue
+import ai.pickyour.core.preview.PreviewComparedValueKind
 import ai.pickyour.core.preview.PreviewSnapshotAnalysis
 import ai.pickyour.core.preview.PreviewSnapshotAnalysisState
 import java.nio.file.Files
@@ -206,12 +210,26 @@ internal class SnapshotEvaluationSection(
             activity.getString(R.string.snapshot_limits),
             report.findings.joinToString("\n\n") { finding -> listOf(
                 activity.getString(R.string.findings_row, finding.ruleId, finding.outcome, finding.severity),
-                activity.getString(R.string.findings_reason, finding.code, finding.message),
-                activity.getString(R.string.findings_remediation, finding.remediation?.takeIf(String::isNotEmpty)
-                    ?: activity.getString(R.string.findings_not_supplied)),
+                activity.getString(R.string.findings_reason, finding.code, literalText(finding.message)),
+                activity.getString(R.string.findings_remediation, literalText(finding.remediation)),
                 activity.getString(R.string.snapshot_affected, finding.selectionIds.joinToString(", ").ifEmpty {
                     activity.getString(R.string.findings_not_supplied) }),
             ).joinToString("\n") },
         ).joinToString("\n\n")
+    }
+
+    /** Display only: retained rule text cannot supply status lines or directional controls. */
+    private fun literalText(raw: String?): String {
+        val value = PreviewComparedValue.from(raw)
+        return when (value.kind) {
+            PreviewComparedValueKind.ABSENT -> activity.getString(R.string.findings_not_supplied)
+            PreviewComparedValueKind.EMPTY -> activity.getString(R.string.snapshot_literal_empty)
+            PreviewComparedValueKind.TEXT -> {
+                // Input controls have already been escaped; only our formatter may add bidi marks.
+                val literal = BidiFormatter.getInstance(activity.resources.configuration.locales[0])
+                    .unicodeWrap(requireNotNull(value.quotedLiteral), TextDirectionHeuristics.LTR)
+                if (value.truncated) activity.getString(R.string.snapshot_literal_truncated, literal) else literal
+            }
+        }
     }
 }
