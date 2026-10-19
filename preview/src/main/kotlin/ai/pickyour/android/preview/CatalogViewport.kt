@@ -56,11 +56,12 @@ internal class CatalogViewport(savedState: Bundle?, private val active: () -> Bo
     private fun capture(): Anchor? {
         val scroll = host ?: return null
         val hash = snapshot ?: return null
-        if (!active() || scroll.height <= 0) return null
+        if (!active()) return null
+        val visible = drawableBounds(scroll) ?: return null
         for ((item, view) in rows) {
             val top = offset(view, scroll)
-            if (view.height > 0 && top < scroll.height && top.toLong() + view.height > 0)
-                return Anchor(hash, item.id, item.version, top)
+            if (view.height > 0 && top < visible.bottom && top + view.height > visible.top)
+                return Anchor(hash, item.id, item.version, top.toInt())
         }
         return null // The user is outside catalog rows; do not jump them into the catalog.
     }
@@ -81,13 +82,17 @@ internal class CatalogViewport(savedState: Bundle?, private val active: () -> Bo
             } else if (ready) {
                 val target = rows.singleOrNull { it.first.id == current.id && it.first.version == current.version }?.second
                 if (target == null) cancel()
-                else if (scroll.height > 0 && target.height > 0) {
-                    // Use the new layout's row position, so changes above the catalog do not shift its anchor.
-                    // A resized viewport or wrapped row retains the nearest offset that still exposes that row.
-                    val restoredOffset = current.offset.coerceIn(1 - target.height, scroll.height - 1)
-                    val destination = scroll.scrollY.toLong() + offset(target, scroll) - restoredOffset.toLong()
-                    cancel() // Consume once before scrolling; later layouts must respect new user movement.
-                    scroll.scrollTo(scroll.scrollX, destination.coerceIn(0L, Int.MAX_VALUE.toLong()).toInt())
+                else {
+                    val visible = drawableBounds(scroll)
+                    if (visible != null && target.height > 0) {
+                        // Keep format-1 offsets relative to the outer host, including its current padding.
+                        // An empty drawable interval defers this intent until a later usable layout.
+                        val restoredOffset = current.offset.toLong().coerceIn(
+                            visible.top - target.height + 1, visible.bottom - 1)
+                        val destination = scroll.scrollY.toLong() + offset(target, scroll) - restoredOffset
+                        cancel() // Consume once before scrolling; later layouts must respect new user movement.
+                        scroll.scrollTo(scroll.scrollX, destination.coerceIn(0L, Int.MAX_VALUE.toLong()).toInt())
+                    }
                 }
             }
             true
@@ -107,12 +112,22 @@ internal class CatalogViewport(savedState: Bundle?, private val active: () -> Bo
         observer = null
     }
 
-    private fun offset(view: View, scroll: ScrollView): Int {
+    private data class DrawableBounds(val top: Long, val bottom: Long)
+
+    private fun drawableBounds(scroll: ScrollView): DrawableBounds? {
+        val height = scroll.height.toLong()
+        if (height <= 0) return null
+        val top = if (scroll.clipToPadding) scroll.paddingTop.toLong().coerceIn(0L, height) else 0L
+        val bottom = if (scroll.clipToPadding) (height - scroll.paddingBottom).coerceIn(0L, height) else height
+        return if (top < bottom) DrawableBounds(top, bottom) else null
+    }
+
+    private fun offset(view: View, scroll: ScrollView): Long {
         val row = IntArray(2)
         val viewport = IntArray(2)
         view.getLocationInWindow(row)
         scroll.getLocationInWindow(viewport)
-        return row[1] - viewport[1]
+        return row[1].toLong() - viewport[1].toLong()
     }
 }
 
