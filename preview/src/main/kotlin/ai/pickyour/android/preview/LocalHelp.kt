@@ -31,6 +31,7 @@ internal class LocalHelp(
     private val alive: () -> Boolean,
     private val reviewDiagnostics: () -> Unit,
     private val launch: (Intent) -> Unit = { activity.startActivity(it) },
+    private val captureCatalogIdentity: () -> HelpCatalogIdentity = { HelpCatalogIdentity.UNAVAILABLE_OR_LOADING },
 ) {
     private var currentDialog: AlertDialog? = null
     private var closed = false
@@ -47,9 +48,17 @@ internal class LocalHelp(
 
     fun show() {
         if (!current()) return
+        val catalogIdentity = captureCatalogIdentity() // One finite snapshot per current Help dialog.
         val content = content()
         content.addView(text(activity.getString(R.string.help_build,
             BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE, Build.VERSION.SDK_INT)))
+        content.addView(text(activity.getString(R.string.help_environment, BuildConfig.APPLICATION_ID)))
+        val catalogMessage = when (catalogIdentity) {
+            HelpCatalogIdentity.BUNDLED_V1 -> R.string.help_catalog_known
+            HelpCatalogIdentity.UNRECOGNIZED -> R.string.help_catalog_unrecognized
+            HelpCatalogIdentity.UNAVAILABLE_OR_LOADING -> R.string.help_catalog_unavailable
+        }
+        content.addView(text(activity.getString(catalogMessage)).apply { id = R.id.help_catalog_identity })
         section(content, R.string.help_local_title, R.string.help_local)
         section(content, R.string.help_recovery_title, R.string.help_recovery)
         section(content, R.string.help_reproduction_title, R.string.help_reproduction)
