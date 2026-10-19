@@ -56,7 +56,10 @@ earlier project scan.
 `fetch-depth: 0` supplies reachable history. The driver rejects shallow history,
 changed tracked source, a driver not present at the recorded commit, or a mismatch
 between the workflow SHA and checkout. It records the exact source commit/tree and
-reachable commit count. Gitleaks receives `--full-history --diff-merges=separate
+reachable commit count. Scanner traversal and source metadata disable local Git
+replacement objects, matching the immutable checksum-evidence reader. Replacement
+refs cannot substitute a different source tree or ancestry for those checks.
+Gitleaks receives `--full-history --diff-merges=separate
 --text --no-ext-diff --no-textconv HEAD` as its Git log options. Explicit per-parent merge
 diffs include values introduced only by a merge resolution; the default Git patch
 log can omit them. Forced text patches prevent repository `-diff`/`binary`
@@ -102,6 +105,11 @@ no remote and are never published as project contributions. The pre-correction
 default patch log incorrectly returned no finding for this actual merge fixture;
 the corrected merge-diff command detects it. These are seeded pattern and history
 coverage checks, not a production credential-revocation exercise.
+
+The same temporary history is scanned again with local replacement metadata
+present. Its original finding identities must remain identical. A separate real
+Git regression checks that source metadata still names the literal tree and
+reachable commit count. These fixtures never change project references.
 
 Another private Git fixture has two token-bearing files: plain text explicitly
 marked `-diff` by its own `.gitattributes`, and a NUL-bearing file automatically
