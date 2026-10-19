@@ -40,6 +40,7 @@ enum class RateGap {
 }
 sealed interface RateScreenResult {
     data object InvalidDocument : RateScreenResult
+    data object UnsupportedSchemaVersion : RateScreenResult
     class Screened(val candidates: RateCandidates) : RateScreenResult {
         override fun toString() = "RateScreenResult.Screened"
     }
@@ -55,6 +56,7 @@ class RateScreen {
     fun screen(input: InputStream, query: RateQuery): RateScreenResult =
         when (val parsed = RecordedPricebook.read(input)) {
             RecordedPricebookResult.InvalidDocument -> RateScreenResult.InvalidDocument
+            RecordedPricebookResult.UnsupportedSchemaVersion -> RateScreenResult.UnsupportedSchemaVersion
             is RecordedPricebookResult.Parsed -> screen(parsed.pricebook, query)
         }
 

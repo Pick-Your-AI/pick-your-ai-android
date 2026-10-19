@@ -13,6 +13,29 @@ No amount, free/included classification, estimate, subtotal or budget verdict is
 produced. A zero-length candidate list means no match, never free. Results and
 queries redact their values in diagnostic `toString` output.
 
+## Version admission
+
+The stream entry points `RecordedPricebook.read(input)` and
+`RateScreen.screen(input, query)` return their respective
+`UnsupportedSchemaVersion` result for a present textual `schema_version` that
+is not exactly `1.0.0`. Classification follows complete strict bounded parsing
+and end-of-input verification. Invalid UTF-8, duplicate keys, malformed or trailing
+input, read failure and exceeded parser budgets retain `InvalidDocument`, even
+when an unsupported version appeared earlier. Missing, null and nontext versions
+also remain invalid documents. No input value or exception is copied into either
+result's diagnostic string.
+
+The version distinction does not admit a future schema or interpret its fields.
+Supported-version documents still pass the full frozen-schema, exact money,
+interval, duplicate-ID and local revision checks. The parsed-object screening
+overload is unchanged. Exhaustive consumers of either sealed result must handle
+the added rejection case; the Android fixture loader continues to use only a
+successful parsed record. `PricebookVersionAdmissionTest` covers both stream
+entry points, all six parser budgets, malformed and failed-read precedence,
+caller-owned streams and supported-version metadata/candidate behavior.
+This completes one bounded part of [Android #21](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/21);
+other API/storage boundaries and that issue's receiving acceptance remain open.
+
 ## Conservative boundaries
 
 - Exact component version, meter, currency and region matching; missing/blank
