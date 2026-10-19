@@ -99,18 +99,32 @@ class WorkloadSection(context: Context, initial: PreviewWorkloadInputs,
         nextObjective = Button(context).apply {
             setText(R.string.objective_next_input)
             setOnClickListener {
-                if (!alive() || !editable) return@setOnClickListener
-                val next = (PreviewObjectiveGuidance.assess(inputs) as? PreviewObjectiveGuidance.Missing)?.inputs?.firstOrNull()
-                when (next) {
-                    RequiredObjectiveInput.REGION -> editors[0].requestFocus()
-                    RequiredObjectiveInput.CURRENCY -> editors[1].requestFocus()
-                    RequiredObjectiveInput.DATA_CLASSIFICATION -> classification.performClick()
-                    null -> Unit
-                }
+                reviewObjectiveInputs(inputs)
             }
         }
         addView(nextObjective)
         updateState()
+    }
+
+    /** Reuse the current input/error control, never substitute a guessed invalid field or old form. */
+    internal fun reviewObjectiveInputs(expected: PreviewWorkloadInputs) {
+        if (!alive() || !editable || inputs !== expected) return
+        val guidance = PreviewObjectiveGuidance.assess(inputs)
+        val target: View = when (guidance) {
+            is PreviewObjectiveGuidance.Missing -> when (guidance.inputs.firstOrNull()) {
+                RequiredObjectiveInput.REGION -> editors[0]
+                RequiredObjectiveInput.CURRENCY -> editors[1]
+                RequiredObjectiveInput.DATA_CLASSIFICATION -> classification
+                null -> return
+            }
+            PreviewObjectiveGuidance.InvalidInputs -> state
+            PreviewObjectiveGuidance.Answered -> return
+        }
+        if (!target.isEnabled) return
+        target.isFocusableInTouchMode = true
+        target.requestFocus()
+        target.requestRectangleOnScreen(android.graphics.Rect(0, 0, target.width, target.height), true)
+        if (target === classification) classification.performClick()
     }
 
     fun apply(value: PreviewWorkloadInputs) {
