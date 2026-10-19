@@ -52,12 +52,17 @@ quoted data, distinct from the application's empty-list status. Source text
 cannot inject a newline, directional override or unquoted status label into the
 surrounding display. Legitimate text is not executed, linkified or navigated.
 
-The inspector displays at most eight cost lines and eight entries from each
+The summary displays at most eight cost lines and eight entries from each
 assumption, warning or selection-ID collection. Translatable plural resources
 show both displayed and retained counts. The declared subtotal, tax and total
 still come from the complete inspected record, not a recomputation over the
 displayed prefix. The record retains every line and original decimal string.
 These are rendering bounds, not retention, accounting or policy limits.
+
+The [complete recorded-cost browser](COMPLETE_COST_INSPECTION.md) now exposes every
+retained line, assumption, warning, selection reference and input document in
+bounded pages and complete escaped value parts. It uses the same immutable result
+as this summary and preserves all of the numeric and evidence limits above.
 
 Declared complete, partial and unknown coverage retain their existing meanings.
 Unclassified selections remain visible; an empty list, a recorded zero and
