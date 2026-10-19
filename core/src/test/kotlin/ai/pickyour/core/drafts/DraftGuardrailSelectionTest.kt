@@ -64,7 +64,9 @@ class DraftGuardrailSelectionTest {
                 assertTrue(original.components.selections.isEmpty())
             }
         }
-        for (kind in listOf("deployment_target", "monitoring_stack", "cost_policy", "future_guardrail", "unknown"))
+        for (kind in listOf("deployment_target", "monitoring_stack", "cost_policy"))
+            assertTrue(PreviewSelectionForms.supported(kind))
+        for (kind in listOf("future_guardrail", "future_deployment_target", "unknown"))
             assertFalse(PreviewSelectionForms.supported(kind))
     }
 
