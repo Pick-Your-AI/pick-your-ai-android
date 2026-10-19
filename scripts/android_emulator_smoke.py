@@ -1771,10 +1771,55 @@ def taskbar_state_fields_pass(text: str) -> bool:
                 and measurement_names[match[1]] == 1 and finite_measurements(match.groups()[1:])):
             scalar_indices.add(index)
 
+    # Only complete optional Insets records in this context's own controller
+    # may use the retained four-tab form without the four-space wrapper.
+    # This observes the raw prefix; it does not identify the writer or transport.
+    inset_indices = set()
+    inset_headings = [index for index in range(controllers[0] + 1, profile[0])
+                      if re.match(r"^[ \t]*TaskbarInsetsController:", lines[index])]
+    if inset_headings:
+        insets = heading("TaskbarInsetsController", controllers[0] + 1, profile[0])
+        if (insets is None or insets[0] <= navbar[0] or insets[1] != navbar[1]
+                or not nested(insets, controllers)):
+            return False
+        end = next((index for index in range(insets[0] + 1, profile[0])
+                    if lines[index].strip() and indentation(lines[index]) <= insets[1]
+                    and re.match(r"^[ \t]*providedInsets:", lines[index]) is None), profile[0])
+        integer = r"(0|-?[1-9][0-9]{0,9})"
+        size = (r"Insets\{left=" + integer + r", top=" + integer
+                + r", right=" + integer + r", bottom=" + integer + r"\}")
+        override = (r" insetsSizeOverrides=\{TypedInsetsSize: \{windowType=INPUT_METHOD, insetsSize="
+                    + size + r"\}, TypedInsetsSize: \{windowType=VOICE_INTERACTION, insetsSize="
+                    + size + r"\}\}\)")
+        record = (r"[ \t]*providedInsets: \(type="
+                  r"(navigationBars|tappableElement|mandatorySystemGestures|systemGestures)"
+                  r" insetsSize=" + size + r"(?:" + override + r")?")
+        seen = Counter()
+        limits = {"navigationBars": 1, "tappableElement": 1,
+                  "mandatorySystemGestures": 1, "systemGestures": 2}
+        for index in range(insets[0] + 1, end):
+            line = lines[index]
+            if re.match(r"^[ \t]*providedInsets:", line) is None:
+                continue
+            match = re.fullmatch(record, line)
+            if (match is None
+                    or (match[1] == "systemGestures") == (" insetsSizeOverrides=" in line)
+                    or any(not -(2 ** 31) <= int(value) < 2 ** 31
+                           for value in match.groups()[1:] if value is not None)):
+                return False
+            seen[match[1]] += 1
+            if seen[match[1]] > limits[match[1]]:
+                return False
+            if line.startswith("\t\t\t\tprovidedInsets:"):
+                inset_indices.add(index)
+            elif indentation(line) <= insets[1]:
+                return False
+
     if (any(lines[index].strip() and indentation(lines[index]) <= manager[1]
-            for index in range(manager[0] + 1, completion[0]) if index not in scalar_indices)
-            or any(line.strip() and indentation(line) <= context[1]
-                   for line in lines[context[0] + 1:profile[0]])
+            for index in range(manager[0] + 1, completion[0])
+            if index not in scalar_indices and index not in inset_indices)
+            or any(lines[index].strip() and indentation(lines[index]) <= context[1]
+                   for index in range(context[0] + 1, profile[0]) if index not in inset_indices)
             or any(lines[index].strip() and indentation(lines[index]) <= profile[1]
                    for index in range(profile[0] + 1, completion[0]) if index not in scalar_indices)):
         return False

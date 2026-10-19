@@ -153,6 +153,38 @@ def taskbar_text():
         '    AssistStateManager:\n'
     )
 
+
+def taskbar_inset_text(outliers=('tappableElement',)):
+    # The surrounding state is synthetic. The five record shapes and the four-tab
+    # tappableElement prefix are qualified original fb621 observations.
+    size = 'Insets{left=0, top=0, right=0, bottom=84}'
+    records = []
+    for kind in ('navigationBars', 'tappableElement', 'mandatorySystemGestures',
+                 'systemGestures', 'systemGestures'):
+        value = 'Insets{left=0, top=0, right=0, bottom=0}' if kind == 'systemGestures' else size
+        line = '            providedInsets: (type=' + kind + ' insetsSize=' + value
+        if kind != 'systemGestures':
+            line += (' insetsSizeOverrides={TypedInsetsSize: {windowType=INPUT_METHOD, insetsSize='
+                     + size + '}, TypedInsetsSize: {windowType=VOICE_INTERACTION, insetsSize='
+                     + size + '}})')
+        # The reference printer omits the final ')' when no overrides exist.
+        records.append(line + '\n')
+    block = ('          TaskbarInsetsController:\n            windowHeight=84\n'
+             + ''.join(records)
+             + '            lastSetTouchableBounds=Rect(83, 3 - 635, 80)\n'
+             + '            lastSetTouchableReason=\n')
+    raw = taskbar_text().replace('          OtherController:\n', block + '          OtherController:\n')
+    lines = []
+    for line in raw.splitlines():
+        spaces = len(line) - len(line.lstrip(' '))
+        line = ('    ' + '\t' * ((spaces - 4) // 2) + line.lstrip(' ')
+                if spaces >= 4 else line)
+        if any(line.startswith('    \t\t\t\tprovidedInsets: (type=' + kind + ' ')
+               for kind in outliers):
+            line = line[4:]
+        lines.append(line)
+    return '\n'.join(lines) + '\n'
+
 class WindowDevice:
     def __init__(self):
         self.calls = []
@@ -1397,6 +1429,165 @@ class SystemBarEvidenceTests(unittest.TestCase):
                 self.assertFalse(SMOKE.taskbar_state_fields_pass(raw))
                 self.assertFalse(SMOKE.system_bar_evidence_passes(state))
                 self.assertEqual(state, saved)
+
+
+    def test_taskbar_optional_inset_prefix_preserves_raw_and_complete_gate(self):
+        original = self.passing_state()
+        for kinds in ((), ('tappableElement',), ('navigationBars',), ('mandatorySystemGestures',),
+                      ('systemGestures',),
+                      ('navigationBars', 'tappableElement', 'mandatorySystemGestures', 'systemGestures')):
+            raw = taskbar_inset_text(kinds)
+            state = copy.deepcopy(original)
+            for name in SMOKE.SYSTEM_BAR_CHECKPOINTS:
+                self.rebound_taskbar(state, raw, name=name)
+            saved = copy.deepcopy(state)
+            with self.subTest(outliers=kinds):
+                self.assertTrue(SMOKE.taskbar_state_fields_pass(raw))
+                self.assertTrue(SMOKE.system_bar_evidence_passes(state))
+                self.assertEqual(state, saved)
+        self.assertTrue(SMOKE.taskbar_state_fields_pass(taskbar_text()))
+
+    def test_taskbar_optional_inset_signed_integer_data_cannot_set_authority(self):
+        original = self.passing_state()
+        raw = taskbar_inset_text(('systemGestures',))
+        for before, after in (('left=0', 'left=-2147483648'), ('top=0', 'top=2147483647'),
+                              ('right=0', 'right=-1'), ('bottom=84', 'bottom=0')):
+            text = raw.replace(before, after)
+            state = copy.deepcopy(original); self.rebound_taskbar(state, text)
+            saved = copy.deepcopy(state)
+            with self.subTest(value=after):
+                self.assertTrue(SMOKE.taskbar_state_fields_pass(text))
+                self.assertTrue(SMOKE.system_bar_evidence_passes(state))
+                self.assertEqual(state, saved)
+        self.assertIn('type=systemGestures insetsSize=Insets{left=0, top=0, right=0, bottom=0}\n', raw)
+
+    def test_taskbar_optional_inset_malformed_records_and_prefixes_reject(self):
+        original = self.passing_state()
+        raw = taskbar_inset_text()
+        line = next(line for line in raw.splitlines(True) if line.startswith('\t\t\t\tprovidedInsets:'))
+        changes = {
+            'three_tabs': line[1:], 'five_tabs': '\t' + line,
+            'spaces_only': line.replace('\t', ' '), 'same_controller_depth': '    \t\t\t' + line.lstrip('\t'),
+            'foreign_type': line.replace('type=tappableElement', 'type=ForeignInsets'),
+            'missing_brace': line.replace('bottom=84}', 'bottom=84', 1),
+            'missing_close': line[:-2] + '\n', 'trailing_data': line.rstrip('\n') + ' extra\n',
+            'missing_override': line.split(' insetsSizeOverrides=')[0] + '\n',
+            'wrong_override': line.replace('windowType=INPUT_METHOD', 'windowType=APPLICATION'),
+            'duplicate_override': line.replace('windowType=VOICE_INTERACTION', 'windowType=INPUT_METHOD'),
+            'int_overflow': line.replace('left=0', 'left=2147483648', 1),
+            'negative_overflow': line.replace('left=0', 'left=-2147483649', 1),
+            'leading_zero': line.replace('left=0', 'left=00', 1),
+            'negative_zero': line.replace('left=0', 'left=-0', 1),
+            'plus_sign': line.replace('left=0', 'left=+0', 1),
+            'fraction': line.replace('left=0', 'left=0.0', 1),
+            'nonfinite': line.replace('left=0', 'left=NaN', 1),
+        }
+        for label, replacement in changes.items():
+            text = raw.replace(line, replacement)
+            state = copy.deepcopy(original); self.rebound_taskbar(state, text)
+            saved = copy.deepcopy(state)
+            with self.subTest(change=label):
+                self.assertFalse(SMOKE.taskbar_state_fields_pass(text))
+                self.assertFalse(SMOKE.system_bar_evidence_passes(state))
+                self.assertEqual(state, saved)
+
+    def test_taskbar_optional_inset_duplicate_limits_preserve_two_system_gestures(self):
+        original = self.passing_state()
+        raw = taskbar_inset_text()
+        self.assertEqual(raw.count('providedInsets: (type=systemGestures '), 2)
+        for kind in ('navigationBars', 'tappableElement', 'mandatorySystemGestures', 'systemGestures'):
+            line = next(line for line in raw.splitlines(True) if 'providedInsets: (type=' + kind + ' ' in line)
+            for duplicate in (line, '    ' + line if line.startswith('\t') else line):
+                text = raw.replace(line, line + duplicate, 1)
+                state = copy.deepcopy(original); self.rebound_taskbar(state, text)
+                with self.subTest(kind=kind, duplicate=duplicate):
+                    self.assertFalse(SMOKE.taskbar_state_fields_pass(text))
+                    self.assertFalse(SMOKE.system_bar_evidence_passes(state))
+
+    def test_taskbar_optional_inset_cannot_escape_its_unique_own_controller(self):
+        original = self.passing_state()
+        raw = taskbar_inset_text()
+        line = next(line for line in raw.splitlines(True) if line.startswith('\t\t\t\tprovidedInsets:'))
+        owner = '    \t\t\tTaskbarInsetsController:\n'
+        peer = '    \t\t\tOtherController:\n'
+        candidates = {
+            'absent_owner': raw.replace(owner, ''),
+            'foreign_owner': raw.replace(owner, owner.replace('TaskbarInsetsController', 'ForeignController')),
+            'duplicate_owner': raw.replace(owner, owner + owner),
+            'wrong_owner_depth': raw.replace(owner, '    \t\t' + owner.lstrip(' \t')),
+            'before_owner': raw.replace(line, '').replace(owner, line + owner),
+            'after_peer': raw.replace(line, '').replace(peer, peer + line),
+            'inside_navbar': raw.replace(line, '').replace('    \t\t\t\tmState=FLAG_SMALL_SCREEN\n',
+                                                          '    \t\t\t\tmState=FLAG_SMALL_SCREEN\n' + line),
+            'inside_profile': raw.replace(line, '').replace('    \tDeviceProfile:\n', '    \tDeviceProfile:\n' + line),
+            'after_manager': raw.replace(line, '').replace('    AssistStateManager:\n',
+                                                          line + '    AssistStateManager:\n'),
+            'structural_escape': raw.replace(line, line + '    \tForeignContext:\n'),
+        }
+        for label, text in candidates.items():
+            state = copy.deepcopy(original); self.rebound_taskbar(state, text)
+            with self.subTest(change=label):
+                self.assertFalse(SMOKE.taskbar_state_fields_pass(text))
+                self.assertFalse(SMOKE.system_bar_evidence_passes(state))
+
+    def test_taskbar_optional_inset_keeps_all_required_field_admissions(self):
+        original = self.passing_state()
+        raw = taskbar_inset_text()
+        fields = ('mNavMode=', 'mImeDrawsImeNavBar=', 'mIsUserSetupComplete=',
+                  'mWindowLayoutParams.height=', 'mBindInProgress=', '1 dp = ',
+                  'widthPx:', 'heightPx:', 'availableWidthPx:', 'availableHeightPx:',
+                  'isTablet:', 'isPhone:', 'transposeLayoutWithOrientation:', 'isGestureMode:',
+                  'isLandscape:', 'isMultiWindowMode:', 'isTwoPanels:', 'isLeftRightSplit:',
+                  'isTaskbarPresent:', 'isTaskbarPresentInApps:', 'mState=FLAG_SMALL_SCREEN',
+                  'mTaskbarNavButtonDarkIntensity=', 'mSlideInViewVisibleNavButtonColorOverride=',
+                  'mOnTaskbarBackgroundNavButtonColorOverride=', 'mOnBackgroundNavButtonColorOverrideMultiplier=')
+        for field in fields:
+            line = next(line for line in reversed(raw.splitlines(True)) if line.lstrip(' \t').startswith(field))
+            for label, replacement in (('missing', ''), ('duplicate', line + line)):
+                text = raw.replace(line, replacement)
+                state = copy.deepcopy(original); self.rebound_taskbar(state, text)
+                with self.subTest(field=field, change=label):
+                    self.assertFalse(SMOKE.taskbar_state_fields_pass(text))
+                    self.assertFalse(SMOKE.system_bar_evidence_passes(state))
+
+    def test_taskbar_optional_inset_keeps_completion_and_service_failures(self):
+        original = self.passing_state()
+        raw = taskbar_inset_text()
+        candidates = {
+            'missing_peer': raw.replace('    AssistStateManager:\n', ''),
+            'missing_profile': raw.replace('    \tDeviceProfile:\n', ''),
+            'truncated_before_profile': raw.split('    \tDeviceProfile:\n')[0],
+            'wrong_service': raw.replace('com.android.launcher3/', 'foreign.app/'),
+            'null_context': raw.replace('TaskbarActivityContext:', 'TaskbarActivityContext: null'),
+        }
+        for marker in ('DUMP TIMEOUT', 'Error dumping service info:',
+                       'Failure while dumping the service:', 'Got a RemoteException while dumping the service'):
+            candidates[marker] = raw + '    ' + marker + '\n'
+        for label, text in candidates.items():
+            state = copy.deepcopy(original); self.rebound_taskbar(state, text)
+            with self.subTest(change=label):
+                self.assertFalse(SMOKE.taskbar_state_fields_pass(text))
+                self.assertFalse(SMOKE.system_bar_evidence_passes(state))
+
+    def test_taskbar_optional_inset_does_not_relax_original_bad_modal_pixels(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory); self.write_checkpoints(output, bad=True)
+            originals = {path.name: path.read_bytes() for path in output.iterdir()}
+            device, receipt = WindowDevice(), self.receipt()
+            device.taskbar_result = subprocess.CompletedProcess([], 0, taskbar_inset_text(), '')
+            for name in SMOKE.SYSTEM_BAR_CHECKPOINTS:
+                SMOKE.retain_system_bar_window(device, output, receipt, name)
+            with self.assertRaises(SMOKE.SmokeFailure):
+                SMOKE.qualify_system_bar_evidence(output, receipt)
+            state = receipt['system_bar_evidence']
+            self.assertEqual(state['status'], 'failed')
+            self.assertFalse(SMOKE.system_bar_evidence_passes(state))
+            for pair in state['pairs'].values():
+                self.assertEqual(pair['status'], 'failed_contrast')
+                self.assertEqual([glyph['contrast'] for glyph in pair['glyphs']], [1.5828461084972716] * 3)
+            for name, data in originals.items():
+                self.assertEqual((output / name).read_bytes(), data)
+
 
 if __name__ == '__main__':
     unittest.main()

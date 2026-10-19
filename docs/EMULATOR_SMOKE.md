@@ -2688,3 +2688,73 @@ not another ZIP download or byte audit by the correction author. The XML does
 not expose the internal Editable value; it establishes the representation
 rejected by the old guard without assigning a persistence defect. The actual
 8c run remains failed, and no rotation, deletion or new-source pass is inferred.
+
+### Optional Taskbar inset record prefix correction
+
+The actual signed receiving commit `fb621e769594f147f35779699af0a2c59b6e4e80`
+(tree `b29cdb1f3bebff00b1c218e6035e7122b04c286c`) failed the final installed
+evidence gate in run 39247758487. The complete
+[original qualification 6267487148](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/467#issuecomment-6267487148)
+binds artifact 12186225289 to 1,117,873 bytes and SHA256
+`ba612437bddd0a573001b6a2534670275928fea0dcd2916eda2541a8a44e41be`.
+That original run remains failed.
+
+Its four product cases passed, including acknowledged automatic persistence,
+the exact invalid raw workload during pending-input checks, both locked
+rotations and deletion without resurrection. Both original navigation image
+pairs passed the unchanged fixed-rig pixel gate at contrast
+8.97386058887348:1; grant/restoration records returned the complete ACL
+observation to its original state. JUnit retains four passed product rows and
+the separate overall-failure row, for five entries and one failure. These
+case, image and cleanup findings are attributed to that original qualifier.
+
+The isolated rejection is in `taskbar_state_fields_pass`. Original05/06/07
+Taskbar stdout is byte-identical, SHA256
+`7f6fe68e171c640205f60b71a5b519c7fad92af146ca2c75f34ad32e8d4d36c2`.
+One complete optional `tappableElement` record inside
+`TaskbarInsetsController` starts with four literal TABs, without the four
+SPACE wrapper prefix present on adjacent records. The original parser mistakes
+that low indentation for an escape from the selected Taskbar context. Original08
+has the ordinary prefix and passes. The qualifier's explicitly derived control
+adds only those four spaces and makes the three rejected streams pass; neither
+that derivative nor a reconstructed pre-final-error receipt changes the
+original run's failed status. No original text is rewritten by this correction.
+
+The immutable corroborating
+[Launcher3 TaskbarInsetsController.kt at 898b9af9](https://android.googlesource.com/platform/packages/apps/Launcher3/+/898b9af9a28663b5bd4ab19e1db8fc43adb5fb52/quickstep/src/com/android/launcher3/taskbar/TaskbarInsetsController.kt)
+prints one navigation, tappable and mandatory-gesture provider and two
+system-gesture providers. The non-system providers have the two typed overrides
+for INPUT_METHOD and VOICE_INTERACTION. Its printer closes the outer record
+only in the non-null override branch, so the observed system-gesture lines
+legitimately end after the Insets closing brace. This primary source supports
+the finite record grammar; it does not establish exact guest/source identity.
+Every source line receives the same passed-in prefix. The actual reason one
+retained line lacks the wrapper spaces remains unknown.
+
+The correction admits that four-TAB form only for a complete optional record
+inside the unique own Insets controller, after the selected Navbar controller
+and before the next controller boundary and this context's own DeviceProfile.
+It checks the four provider types, their finite occurrence limits, canonical
+signed 32-bit Insets values and the two expected override types. Missing,
+malformed, duplicate, foreign or displaced records cannot use the exception.
+It does not normalize text, infer values, replace an authoritative field or
+treat optional Insets as proof of an attached or visible navigation window.
+
+The service identity, context/controller ownership, required fields and their
+exact depths, own DeviceProfile, subsequent AssistStateManager boundary,
+failure markers, command/raw hashes, capture ordering and all pixel thresholds
+remain unchanged. No image, window, provider, readiness, case, timer, rotation
+or ACL requirement is relaxed.
+
+Eight new host methods cover the complete gate and raw immutability, finite
+signed optional values, malformed grammar/prefixes, provider counts,
+controller ownership, every required field, completion/transport failures and
+the retained older bad-modal pixels. All 29 Taskbar-focused methods passed,
+with zero failures, errors or skips. The complete test module declares 68
+methods, preserving all 60 existing method bodies; the other 39 methods were
+not rerun in this focused check. The paired unchanged-source run retains nine failing subcases across the two
+positive methods; those same two methods pass with the correction. The normally
+prefixed control passes both sources. A replay against all four unaltered
+original streams remains separate and was not completed at this source freeze. A future configured receiving run must still
+qualify its own exact source and originals; this source correction cannot
+convert the earlier installed failure into a pass.
