@@ -118,6 +118,7 @@ class PreviewActivity : Activity() {
     private lateinit var diagnostics: LocalDiagnostics
     private lateinit var help: LocalHelp
     private var diagnosticsResumed = false
+    private var environmentAdmitted = false
     private var entryBlocked = false
     private var unsupportedEntry = false
     private lateinit var entryNotice: TextView
@@ -125,6 +126,8 @@ class PreviewActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        environmentAdmitted = EnvironmentBootstrap.admit(this, EnvironmentBootstrap.read(this))
+        if (!environmentAdmitted) return
         autosaveRequested = savedInstanceState?.getBoolean("autosaveRequested", false) == true
         if (savedInstanceState?.getBoolean("autosavePaused", false) == true) autosave.pause()
         // The checkpoint records a deliberate local recovery; it contains no incoming URI or payload.
@@ -418,7 +421,7 @@ class PreviewActivity : Activity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        if (destroyed) return
+        if (destroyed || !environmentAdmitted) return
         // A new entry never replaces an already open editor, its pending fields or its save authority.
         if (!isLocalEntry(intent)) unsupportedEntry = true
         else if (!entryBlocked) unsupportedEntry = false
@@ -1442,6 +1445,7 @@ class PreviewActivity : Activity() {
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
+        if (!environmentAdmitted) { super.onSaveInstanceState(outState); return }
         outState.putBoolean("entryBlocked", entryBlocked)
         outState.putBoolean("unsupportedEntry", unsupportedEntry)
         catalog.saveState(outState)
