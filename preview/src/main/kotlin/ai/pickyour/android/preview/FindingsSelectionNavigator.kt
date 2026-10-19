@@ -52,7 +52,7 @@ internal class FindingsSelectionNavigator(
         val start = page * PAGE_SIZE
         val end = minOf(start + PAGE_SIZE, contexts.size)
         present {
-            text(activity.getString(R.string.findings_context_page, page + 1, pages,
+            text(activity.resources.getQuantityString(R.plurals.findings_context_page, contexts.size, page + 1, pages,
                 if (contexts.isEmpty()) 0 else start + 1, end, contexts.size))
             if (contexts.isEmpty()) text(activity.getString(R.string.findings_context_none))
             for (index in start until end) {

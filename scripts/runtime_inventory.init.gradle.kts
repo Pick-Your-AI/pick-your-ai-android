@@ -102,7 +102,7 @@ gradle.projectsEvaluated {
                 val output = File.createTempFile("runtime-inventory-git-", ".out")
                 val error = File.createTempFile("runtime-inventory-git-", ".err")
                 try {
-                    val process = ProcessBuilder(listOf("git", *arguments)).directory(root.rootDir)
+                    val process = ProcessBuilder(listOf("git", "--no-replace-objects", *arguments)).directory(root.rootDir)
                         .redirectOutput(output).redirectError(error).start()
                     val finished = process.waitFor(30, TimeUnit.SECONDS)
                     if (!finished) process.destroyForcibly().waitFor(5, TimeUnit.SECONDS)
