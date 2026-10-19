@@ -130,7 +130,12 @@ class SummaryRecordedComponentsActivityTest {
     }
     private fun assertCurrentResultLimits() {
         val evaluation = summary().findViewById<TextView>(R.id.draft_summary_evaluation).text.toString()
-        val record = (adapter().load() as? PreviewDraftLoad.Available)?.record
+        val id = PreviewActivity::class.java.getDeclaredField("currentDraftId")
+            .apply { isAccessible = true }.get(activity) as PreviewDraftId
+        val record = (readDraftAfterOwnedWork(activity) {
+            val library = PreviewDraftLibrary(activity.noBackupFilesDir.toPath())
+            if (id.value == "guest-draft") library.openLegacy() else library.open(id)
+        } as? PreviewDraftLoad.Available)?.record
         val acknowledged = record != null && summary().findViewById<TextView>(R.id.draft_summary_source).text.toString() ==
             activity.getString(R.string.draft_summary_saved, record.revision.toString())
         val unavailable = setOf(

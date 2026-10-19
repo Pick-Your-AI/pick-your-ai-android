@@ -72,7 +72,7 @@ class PreviewAutosaveActivityTest {
         AutosaveUiClock.idle()
     }
     private fun adapter() = PreviewDraftLibrary(activity.noBackupFilesDir.toPath()).openLegacy()
-    private fun loaded() = (adapter().load() as PreviewDraftLoad.Available).record
+    private fun loaded() = (readDraftAfterOwnedWork(activity, ::adapter) as PreviewDraftLoad.Available).record
     private fun dialog() = checkNotNull(ShadowAlertDialog.getLatestAlertDialog())
     private fun saveNow() {
         assertTrue(button(R.string.save_draft).isEnabled)

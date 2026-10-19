@@ -93,7 +93,7 @@ class PreviewActivityTest {
         await { button(R.string.library_open).isEnabled && button(R.string.library_retry_delete).isEnabled }
     }
     private fun adapter() = PreviewDraftLibrary(activity.noBackupFilesDir.toPath()).openLegacy()
-    private fun loaded() = (adapter().load() as PreviewDraftLoad.Available).record
+    private fun loaded() = (readDraftAfterOwnedWork(activity, ::adapter) as PreviewDraftLoad.Available).record
     private fun dialog() = ShadowAlertDialog.getLatestAlertDialog()!!
     private fun samples() = views().filterIsInstance<Button>().filter { it.text.toString().startsWith("Open FICTIONAL") }
     private fun comparisonSection() = views().filterIsInstance<CatalogComparisonSection>().single()

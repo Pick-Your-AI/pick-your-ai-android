@@ -119,7 +119,7 @@ class CurrentDraftSummaryActivityTest {
         await { !review.isShowing }
     }
     private fun adapter() = PreviewDraftLibrary(activity.noBackupFilesDir.toPath()).openLegacy()
-    private fun loaded() = (adapter().load() as PreviewDraftLoad.Available).record
+    private fun loaded() = (readDraftAfterOwnedWork(activity, ::adapter) as PreviewDraftLoad.Available).record
     private fun disk() = Files.walk(activity.noBackupFilesDir.toPath()).use { paths ->
         paths.filter { Files.isRegularFile(it) }.toList().associate {
             activity.noBackupFilesDir.toPath().relativize(it).toString() to
@@ -162,7 +162,12 @@ class CurrentDraftSummaryActivityTest {
     }
     private fun assertCurrentResultLimits() {
         val evaluation = output(R.id.draft_summary_evaluation)
-        val record = (adapter().load() as? PreviewDraftLoad.Available)?.record
+        val id = PreviewActivity::class.java.getDeclaredField("currentDraftId")
+            .apply { isAccessible = true }.get(activity) as PreviewDraftId
+        val record = (readDraftAfterOwnedWork(activity) {
+            val library = PreviewDraftLibrary(activity.noBackupFilesDir.toPath())
+            if (id.value == "guest-draft") library.openLegacy() else library.open(id)
+        } as? PreviewDraftLoad.Available)?.record
         val acknowledged = record != null && output(R.id.draft_summary_source) ==
             activity.getString(R.string.draft_summary_saved, record.revision.toString())
         val unavailable = setOf(
@@ -209,7 +214,7 @@ class CurrentDraftSummaryActivityTest {
     @Test fun emptyDraftHasASummaryWithExplicitCurrentResultLimits() {
         val text = views().filterIsInstance<TextView>().map { it.text.toString() }
         assertTrue("The loaded editable draft has no current-draft summary", "Current draft summary" in text)
-        assertTrue("Evaluation availability must describe this draft", "No evaluation is available for the current draft." in text)
+        assertCurrentResultLimits()
         assertTrue("Unknown price coverage is not a zero or complete total", "No cost estimate or price coverage is available for the current draft." in text)
         assertEquals(activity.getString(R.string.draft_summary_unsaved), output(R.id.draft_summary_source))
         assertEquals(activity.getString(R.string.draft_summary_components_unavailable), output(R.id.draft_summary_components))
