@@ -104,6 +104,16 @@ only at their stated scope; this decision changes no prerequisite edge or other
 work package. Shared services, qualified external metrics and product/device
 release retain their existing authorities.
 
+[ADR 0012](decisions/0012-android-37-acceptance-record.md) places only Android
+#37's [03.04 record](delivery/android/work-packages/03.04.md) in Android after its
+independent criterion/placement receiving review and normal reviewed delivery.
+It records the already selected synthetic normalized deployment, graph, memory,
+workload and context consumer, exact-version evidence and frozen-v1 preservation.
+The original intended website location remains history. This narrow decision
+changes no shared-service/contract authority, default dispatcher, prerequisite
+edge, other acceptance record or release boundary; exact #21 outputs and affected
+Android/web/iOS receiving remain explicit in the record.
+
 The existing website remains static. The selected future server package is
 separately built/deployed at `Pick-Your-AI/pickyour.ai/services/planner-api` only
 through canonical owner/coordinator and operations review before dependent code;
