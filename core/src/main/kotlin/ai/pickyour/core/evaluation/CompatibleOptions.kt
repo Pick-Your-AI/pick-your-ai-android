@@ -19,12 +19,12 @@ data class CompatibleOptionSlot(val kind: String, val role: String, val selectio
 enum class CompatibleOptionVerdict { COMPATIBLE, INCOMPATIBLE, UNKNOWN }
 enum class CompatibleOptionsUnavailable {
     INVALID_INPUT, BINDING_MISMATCH, INVALID_SLOT, BASELINE_UNAVAILABLE,
-    WORK_LIMIT, UNSUPPORTED_OPERATION, INVALID_OUTPUT, CANCELLED,
+    WORK_LIMIT, UNSUPPORTED_OPERATION, INVALID_OUTPUT, CANCELLED, OPTIONAL_INTENT_UNRESOLVED,
 }
 data class CompatibleOptionsBinding(
     val buildId: String, val buildRevision: BigInteger, val catalogSnapshotId: String, val catalogRevision: BigInteger,
     val rulesetId: String, val rulesetVersion: String, val dependencyGraphId: String,
-    val dependencyGraphRevision: BigInteger, val pricebookId: String,
+    val dependencyGraphRevision: BigInteger, val pricebookId: String?,
     val slot: CompatibleOptionSlot, val inputDigest: String,
 )
 data class CompatibleOptionIdentity(val catalogItemId: String, val catalogItemVersion: String)
@@ -75,13 +75,20 @@ class CompatibleOptionsRequest private constructor(
         private val rolePattern = Regex(slotSchema["role"]["pattern"].asText())
         private val idPattern = Regex(bundled("common.schema.json")["\$defs"]["selection_id"]["pattern"].asText())
 
+        internal fun validSlot(slot: CompatibleOptionSlot): Boolean =
+            slot.kind.length <= 80 && slot.role.length <= 80 && slot.selectionId.length <= 80 &&
+                slot.kind in kinds && rolePattern.matches(slot.role) && idPattern.matches(slot.selectionId)
+
+        /** Same bounded numeric-type-preserving transport for the separate private draft caller. */
+        internal fun encodeLocalContext(node: JsonNode): String? = try { encode(node) }
+            catch (_: PreparationFailure) { null }
+
         /** Candidates are complete Selection documents: no guessed settings, defaults or roles. */
         fun prepare(
             build: ByteArray, catalog: ByteArray, ruleset: ByteArray,
             slot: CompatibleOptionSlot, candidates: List<ByteArray>,
         ): CompatibleOptionsPreparation = try {
-            if (slot.kind.length > 80 || slot.role.length > 80 || slot.selectionId.length > 80 ||
-                slot.kind !in kinds || !rolePattern.matches(slot.role) || !idPattern.matches(slot.selectionId))
+            if (!validSlot(slot))
                 reject(CompatibleOptionsUnavailable.INVALID_SLOT)
             if (candidates.size > MAX_CANDIDATES) reject(CompatibleOptionsUnavailable.WORK_LIMIT)
             fun capture(bytes: ByteArray): ByteArray {
@@ -152,7 +159,7 @@ class CompatibleOptionsRequest private constructor(
             listOf(bBytes, cBytes, rBytes).forEach(::frame); candidateBytes.forEach(::frame)
             val binding = CompatibleOptionsBinding(b["id"].asText(), b["revision"].bigIntegerValue(), c["id"].asText(), c["revision"].bigIntegerValue(),
                 r["id"].asText(), r["version"].asText(), locks["dependency_graph_id"].asText(),
-                locks["dependency_graph_revision"].bigIntegerValue(), locks["pricebook_id"].asText(),
+                locks["dependency_graph_revision"].bigIntegerValue(), locks["pricebook_id"]?.textValue(),
                 slot, digest.digest().joinToString("") { "%02x".format(it.toInt() and 255) })
             val affected = r["rules"].filter { rule -> rule["affected_kinds"].any { it.asText() == slot.kind } }
                 .map { it["id"].asText() }.toSet()
