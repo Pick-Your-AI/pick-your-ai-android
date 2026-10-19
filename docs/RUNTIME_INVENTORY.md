@@ -7,6 +7,10 @@ build and links those inputs to the exact core JAR and optional unsigned
 synthetic-preview APK produced in that checkout. This is a custom diagnostic
 inventory, not a release SBOM or a completed license review.
 
+The companion [SPDX runtime export](RUNTIME_SBOM.md) converts a qualified receipt
+to standard SPDX 2.3 JSON. The original inventory remains the source observation;
+the export preserves its scope and does not establish release or license acceptance.
+
 ## Reproduce from a clean checkout
 
 Use the [JVM core toolchain](CORE_FOUNDATION.md) and, for the optional preview, the

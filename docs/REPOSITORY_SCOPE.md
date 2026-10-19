@@ -74,6 +74,15 @@ service placement or other work package. The executed draft/projection/private-
 archive model and its exact evidence remain distinct from future creation/removal
 UI, shared saved-build services, installed devices and release qualification.
 
+[ADR 0008](decisions/0008-android-48-acceptance-record.md) separately proposes
+placing only #48's [02.01 foundation record](delivery/android/work-packages/02.01.md)
+in Android. Placement becomes effective only after independent receiving review
+and normal reviewed delivery into Android main. The original website path remains
+history; all other work-package locations retain their existing authority. The
+selected `:core`/`:preview` toolchain and preview package evidence remain distinct
+from future product, device and release qualification; full #48 acceptance stays
+pending its literal criteria and current installed-delivery evidence.
+
 The existing website remains static. The selected future server package is
 separately built/deployed at `Pick-Your-AI/pickyour.ai/services/planner-api` only
 through canonical owner/coordinator and operations review before dependent code;

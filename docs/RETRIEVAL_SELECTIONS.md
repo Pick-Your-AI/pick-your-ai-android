@@ -121,8 +121,11 @@ same-kind multiple roles; catalog hash/identity/version substitution; retained
 relationships; format-4/5 history and old bytes; optional intent and existing
 projection findings; structurally valid in-memory candidate preservation; and
 managed stale/foreign/deleted write authority. That source checkpoint left T4–T6
-outside the command subset. The later [agent editor](AGENT_SELECTIONS.md) admits
-T4; the existing unsupported-kind regressions continue to cover T5–T6.
+outside the command subset. The later agent, training and guardrail/evaluation
+editors expand the [current command subset](TYPED_LOCAL_SELECTIONS.md); these
+unsupported-kind regressions retain the three remaining deployment, monitoring
+and cost-policy kinds. The original retrieval source and execution counts keep
+their historical scope.
 
 Nine mandatory paused-looper Activity cases cover explicit all-kind creation and
 reopen; required vector correction; exact settings through T3 enable/disable,

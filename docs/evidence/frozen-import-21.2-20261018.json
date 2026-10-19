@@ -1,0 +1,498 @@
+{
+  "record_version": 1,
+  "criterion": {
+    "issue": "https://github.com/Pick-Your-AI/pick-your-ai-android/issues/21",
+    "id": "21.2",
+    "text": "The consumer records an exact upstream revision/hash and reproduces import integrity checks.",
+    "text_sha256": "d55fb9faa949130917f48f5a8e913cf87b55f26859ac1909f5ae712da5d055ba",
+    "scope": "technical evidence supplement; not a canonical acceptance-record relocation, ledger update or issue closure"
+  },
+  "upstream": {
+    "repository": "Pick-Your-AI/pick-your-ai-research",
+    "accepted_pr": 44,
+    "merge_commit": "9769fcd9ea380b1211669b2753181c7782444178",
+    "root_tree": "6320941c0437b6f069272955afafe96b198817f3",
+    "contract_subtree": "b1c4eaa4037f2a1e02103849064a947e758a2b40",
+    "contract_subtree_object_type": "tree",
+    "package": "ai-builder-contract-v1",
+    "contract_version": "1.0.0",
+    "excluded_research_document": {
+      "path": "ADOPTION.md",
+      "git_blob": "ef8906b5d21fb28c67ece8c5eb9019d30dcd040b",
+      "reason": "Research receiving policy is documented by that repository; Android records its own consumer boundary."
+    }
+  },
+  "consumer": {
+    "repository": "Pick-Your-AI/pick-your-ai-android",
+    "executed_main": "40bd3d99dd7286f4b2fba0d6b17eb4e89b869657",
+    "executed_tree": "11432a4017e41f1c7bdfe97482ee7a78561a5b8b",
+    "source_inventory_observed_at": "e8241ef4ea75071339e6a945e48fc6d433819ffa",
+    "source_inventory_tree": "65632754b334745765bb2d6bc2fbac86420f7769",
+    "import_directory": "contracts/v1",
+    "original_package_files": 43,
+    "pinned_metadata_files": 2,
+    "exact_import_leaves": 45,
+    "entries": [
+      {
+        "path": "IMPORT_MANIFEST.json",
+        "source_path": null,
+        "role": "pinned_import_metadata",
+        "mode": "100644",
+        "git_blob": "955704740fa9b16eb9b319726bfcb9ed1f8bbf47",
+        "bytes": 8426,
+        "sha256": "ef6d5801eec10f3169e2bf84653e7026b33088e305a987991ec52faadcd7f554"
+      },
+      {
+        "path": "README.md",
+        "source_path": "README.md",
+        "role": "original_package_file",
+        "mode": "100644",
+        "git_blob": "38713fc7e9d315139a9de6948383518a952172b4",
+        "bytes": 9009,
+        "sha256": "12cb302ea7b87e39489f1f443890dd34435ddab543cce0c3bb23bf9db1cca4fd"
+      },
+      {
+        "path": "UPSTREAM_SHA256SUMS",
+        "source_path": null,
+        "role": "pinned_import_metadata",
+        "mode": "100644",
+        "git_blob": "26fd660b5161a9b93607bab7d3279991a2e90fa4",
+        "bytes": 4044,
+        "sha256": "0587a133436268bc03684ad61ff29f3bd1a12eb83db8a497eabdbb8fd8803e15"
+      },
+      {
+        "path": "api/openapi.yaml",
+        "source_path": "api/openapi.yaml",
+        "role": "original_package_file",
+        "mode": "100644",
+        "git_blob": "117483451e00ac7d87260565b509f81bf383e405",
+        "bytes": 12079,
+        "sha256": "6a08d7230c23576889167da6cff48d95093da9dc04d4bfa6ece443ff35089a79"
+      },
+      {
+        "path": "baseline/core-dependency-graph.json",
+        "source_path": "baseline/core-dependency-graph.json",
+        "role": "original_package_file",
+        "mode": "100644",
+        "git_blob": "cc4f1e9571e2ff30224b1ebf00989ab0333095ce",
+        "bytes": 17959,
+        "sha256": "e9b3bca19a9cf8241fd74f6618824882a3413649822add88be1ac93cb3f1bacc"
+      },
+      {
+        "path": "baseline/core-ruleset.json",
+        "source_path": "baseline/core-ruleset.json",
+        "role": "original_package_file",
+        "mode": "100644",
+        "git_blob": "d768d7121e1e29519da5ee25823e0e85ad3dcb07",
+        "bytes": 63614,
+        "sha256": "e60e43c0abc3c5d927e10c578a39fdedfa76e00fce6242e2db3a46e4b1da907e"
+      },
+      {
+        "path": "docs/AGENT_PROTOCOL.md",
+        "source_path": "docs/AGENT_PROTOCOL.md",
+        "role": "original_package_file",
+        "mode": "100644",
+        "git_blob": "190caab12bf162af4358cad00881bcef0a8ef3f2",
+        "bytes": 6101,
+        "sha256": "f431cd0f8fa679c9aa9babf744791f3c08f66399f9a07320818a4ffa20efd309"
+      },
+      {
+        "path": "docs/COMPONENTS.md",
+        "source_path": "docs/COMPONENTS.md",
+        "role": "original_package_file",
+        "mode": "100644",
+        "git_blob": "e7ebf9a61427517041859fb8ff697918b3826fe4",
+        "bytes": 6218,
+        "sha256": "27f2016696ca9466dc09cd4d84641f02e43252151bdc2c038bb673baa9b345fe"
+      },
+      {
+        "path": "docs/DEPENDENCIES.md",
+        "source_path": "docs/DEPENDENCIES.md",
+        "role": "original_package_file",
+        "mode": "100644",
+        "git_blob": "ff8c81e2f183f767b882cecf9b21e55fd503f64c",
+        "bytes": 9275,
+        "sha256": "542154f672ea1e08449122e04b33ac9f210ce38adf41a70a4c9ab29408b9d903"
+      },
+      {
+        "path": "docs/IMPLEMENTATION_AGENTS.md",
+        "source_path": "AGENTS.md",
+        "role": "original_package_file",
+        "mode": "100644",
+        "git_blob": "e446ea6b2c28dfce7baf0f767e52d986f6c1d6f9",
+        "bytes": 5681,
+        "sha256": "646ff4792d6386ba92ba6b21167fa216372968900afd95dab5e8dd14df778b3a"
+      },
+      {
+        "path": "docs/IMPLEMENTATION_HANDOFF.md",
+        "source_path": "HANDOFF_PROMPT.md",
+        "role": "original_package_file",
+        "mode": "100644",
+        "git_blob": "78daad2762c172bdac711a87dd5b78436a228ebc",
+        "bytes": 1964,
+        "sha256": "3214a7fe3552c32f859a6d9939cedea7b41976f9840b2e03a6ab964374586f5c"
+      },
+      {
+        "path": "docs/PRICING_AND_GATES.md",
+        "source_path": "docs/PRICING_AND_GATES.md",
+        "role": "original_package_file",
+        "mode": "100644",
+        "git_blob": "1e9e64ffe1138ffab456fd8b39c832d9f41e11ea",
+        "bytes": 5890,
+        "sha256": "59db419d25bfbbc6695ad4548b6c406d26343b97cb9ed5544d56b2b1f5425943"
+      },
+      {
+        "path": "examples/build.json",
+        "source_path": "examples/build.json",
+        "role": "original_package_file",
+        "mode": "100644",
+        "git_blob": "8309dfa05518fe86b86cae790299977473942eb4",
+        "bytes": 14681,
+        "sha256": "26762208769a8cf1012b4f33b1c1608556d275187ce21117d0b9632cdf951864"
+      },
+      {
+        "path": "examples/catalog.json",
+        "source_path": "examples/catalog.json",
+        "role": "original_package_file",
+        "mode": "100644",
+        "git_blob": "062af97f42f32dc4358748f6c45ac35b602a3d2b",
+        "bytes": 23827,
+        "sha256": "2e9120db823faef3e1e330a7d2e8067b3ab064328e2faed699d15cf41880fbf8"
+      },
+      {
+        "path": "examples/cost-estimate.json",
+        "source_path": "examples/cost-estimate.json",
+        "role": "original_package_file",
+        "mode": "100644",
+        "git_blob": "5b391054ab4d29d7ef2c8101a847a33192e3115c",
+        "bytes": 1708,
+        "sha256": "4b7c3889881d3c424ed98cc47b146b25b05df21c5459c9558717f21b6198b7e4"
+      },
+      {
+        "path": "examples/dependency-graph.json",
+        "source_path": "examples/dependency-graph.json",
+        "role": "original_package_file",
+        "mode": "100644",
+        "git_blob": "cc4f1e9571e2ff30224b1ebf00989ab0333095ce",
+        "bytes": 17959,
+        "sha256": "e9b3bca19a9cf8241fd74f6618824882a3413649822add88be1ac93cb3f1bacc"
+      },
+      {
+        "path": "examples/deployment-manifest.json",
+        "source_path": "examples/deployment-manifest.json",
+        "role": "original_package_file",
+        "mode": "100644",
+        "git_blob": "c9c82451f49da5aaadf1c2b0aed7ced9c34857ae",
+        "bytes": 674,
+        "sha256": "c05603388efc50a15274d1e6fa8e25dac3c205377a1989bfb5b3a3e64face8ab"
+      },
+      {
+        "path": "examples/evaluation-report.json",
+        "source_path": "examples/evaluation-report.json",
+        "role": "original_package_file",
+        "mode": "100644",
+        "git_blob": "b6b0122fa6367be91c3b1a5527d9ef03e886352d",
+        "bytes": 16244,
+        "sha256": "039626962ef0f2c4f706614d775ad47eda1d148c58f736c98ad169fc153221f3"
+      },
+      {
+        "path": "examples/event.json",
+        "source_path": "examples/event.json",
+        "role": "original_package_file",
+        "mode": "100644",
+        "git_blob": "bced540886536ef3a7d89eabba358cbfc0d02453",
+        "bytes": 599,
+        "sha256": "ed0a9e96da773bc74bceb774f576971275f6da525fa9b425c3b8d6e5f7406068"
+      },
+      {
+        "path": "examples/pricebook.json",
+        "source_path": "examples/pricebook.json",
+        "role": "original_package_file",
+        "mode": "100644",
+        "git_blob": "2845350e4e45e4500a897e142ab8b0288c55615f",
+        "bytes": 1255,
+        "sha256": "716a848822fc2b182d226c597f7e50f4b00a0fe01ba5c03879e858ca6f0c9b46"
+      },
+      {
+        "path": "examples/quality-evaluation-run.json",
+        "source_path": "examples/quality-evaluation-run.json",
+        "role": "original_package_file",
+        "mode": "100644",
+        "git_blob": "db84d3952f214498da2484a5ea0e37576364bf87",
+        "bytes": 684,
+        "sha256": "bc0abc0b33e2b6bf77fc4609ac88a73981068eac6fabf604c255f58fec954a6d"
+      },
+      {
+        "path": "examples/resource-estimate.json",
+        "source_path": "examples/resource-estimate.json",
+        "role": "original_package_file",
+        "mode": "100644",
+        "git_blob": "99f8a6b6e41375185178569133c995a8ae049c2b",
+        "bytes": 1207,
+        "sha256": "41469a377c0b428e779c269eb052fa8f455b4768e2add3c137b5e465a79a362f"
+      },
+      {
+        "path": "examples/ruleset.json",
+        "source_path": "examples/ruleset.json",
+        "role": "original_package_file",
+        "mode": "100644",
+        "git_blob": "913f91513e02341b2757db67893387d2bcb61174",
+        "bytes": 63617,
+        "sha256": "05474568204fdbfd407cb4e4cfc9334e22fdf24e75111bed8990868926fab418"
+      },
+      {
+        "path": "reference/create_examples.py",
+        "source_path": "reference/create_examples.py",
+        "role": "original_package_file",
+        "mode": "100644",
+        "git_blob": "f41d5559aa87e3d444c23e65a86a66ccb24261cb",
+        "bytes": 35965,
+        "sha256": "a59e488eded39c2d38151b55ac2522136a90a35adcd069f517d4fd4761eaf45a"
+      },
+      {
+        "path": "reference/evaluate.py",
+        "source_path": "reference/evaluate.py",
+        "role": "original_package_file",
+        "mode": "100644",
+        "git_blob": "0e01df6ada663b41019ffb7825290b47b142fa38",
+        "bytes": 10946,
+        "sha256": "092c8a99495f9b5ae960df40b27e33f15eefe6d1a7cd80119658fdc79ada1a5a"
+      },
+      {
+        "path": "reference/generate_component_docs.py",
+        "source_path": "reference/generate_component_docs.py",
+        "role": "original_package_file",
+        "mode": "100644",
+        "git_blob": "2a21c68feb6ad9161418711650ddf670807a9b7c",
+        "bytes": 4662,
+        "sha256": "b0b81f9b596acf1f5b8859ab0c65c758b36d43587051d7bb095ad3bf21fbc9e7"
+      },
+      {
+        "path": "reference/generate_schemas.py",
+        "source_path": "reference/generate_schemas.py",
+        "role": "original_package_file",
+        "mode": "100644",
+        "git_blob": "b23fc9231574dbfcf6ab1742869819912ffaa59a",
+        "bytes": 38285,
+        "sha256": "07186d2cb57b9861670f5265071e3fa2d75bd2dd62b6074a4f8b55c681c1b01a"
+      },
+      {
+        "path": "reference/validate_payload.py",
+        "source_path": "reference/validate_payload.py",
+        "role": "original_package_file",
+        "mode": "100644",
+        "git_blob": "1893544fef2e46cc7bc0f87ace1900a7646f9194",
+        "bytes": 1363,
+        "sha256": "5ecbb2b9d8ffd72eb38fde0a45064cdde24f82ef251e30df37c638f45aed4cd5"
+      },
+      {
+        "path": "schemas/build.schema.json",
+        "source_path": "schemas/build.schema.json",
+        "role": "original_package_file",
+        "mode": "100644",
+        "git_blob": "2b173755b1665dea3d9cddf0d33062cf1adc94b5",
+        "bytes": 5121,
+        "sha256": "1beacb0b01fcdea0b8b47357cdf2e99d80a10b8a4218aaac9e3b6af55391b42a"
+      },
+      {
+        "path": "schemas/catalog-item.schema.json",
+        "source_path": "schemas/catalog-item.schema.json",
+        "role": "original_package_file",
+        "mode": "100644",
+        "git_blob": "d4576e9044b5675a06d1d0d922afd129682fd501",
+        "bytes": 45569,
+        "sha256": "81c960c6e7dfe046634062e3f9ce5a1089b1d88adbd9fd45d9a67dcfc0339a25"
+      },
+      {
+        "path": "schemas/catalog-snapshot.schema.json",
+        "source_path": "schemas/catalog-snapshot.schema.json",
+        "role": "original_package_file",
+        "mode": "100644",
+        "git_blob": "88af389f4f2b72e38f5c25e4cabd73df2d6c6225",
+        "bytes": 760,
+        "sha256": "a5af428386768b698d280a18bf99c0e52364ee397a2075685213b3d0762693a4"
+      },
+      {
+        "path": "schemas/common.schema.json",
+        "source_path": "schemas/common.schema.json",
+        "role": "original_package_file",
+        "mode": "100644",
+        "git_blob": "fc55e2aa32a9cd63a16ee1ea90709b6ca733f6b5",
+        "bytes": 2490,
+        "sha256": "0342ce2f1114e7276fc7f6a08ff5b86e8727caadd83ae4f443de9a7e1431c43c"
+      },
+      {
+        "path": "schemas/component-registry.json",
+        "source_path": "schemas/component-registry.json",
+        "role": "original_package_file",
+        "mode": "100644",
+        "git_blob": "56dd96f98ff04130d7672e87eeb9deaba2cb934b",
+        "bytes": 5428,
+        "sha256": "cd60070e912a60504f605f2fd9f86c64520160cce7f4184c8ea200209c6b1918"
+      },
+      {
+        "path": "schemas/cost-estimate.schema.json",
+        "source_path": "schemas/cost-estimate.schema.json",
+        "role": "original_package_file",
+        "mode": "100644",
+        "git_blob": "1031d53c3b9d71fcfa28f9054792f83f0155d9cb",
+        "bytes": 3763,
+        "sha256": "ef7cf8c0492022c1a8a1f971e49eb86dfad5b66ce6a4b2cf72a965fc9ba81259"
+      },
+      {
+        "path": "schemas/dependency-graph.schema.json",
+        "source_path": "schemas/dependency-graph.schema.json",
+        "role": "original_package_file",
+        "mode": "100644",
+        "git_blob": "8bb30e002ccb13339e8e3061c89e8d5cf4df3b5e",
+        "bytes": 3668,
+        "sha256": "fb6a8bb42a9424d4ff2b520301f816c247789a3d70d1124afea1a8dc5ed5bd75"
+      },
+      {
+        "path": "schemas/deployment-manifest.schema.json",
+        "source_path": "schemas/deployment-manifest.schema.json",
+        "role": "original_package_file",
+        "mode": "100644",
+        "git_blob": "5290ae6a40e9a957e8055b440a041f9c3becd98e",
+        "bytes": 2798,
+        "sha256": "86bc716c906aca1299d9129eec08abec44378c26b5a97317d6310afe84d6b374"
+      },
+      {
+        "path": "schemas/evaluation-report.schema.json",
+        "source_path": "schemas/evaluation-report.schema.json",
+        "role": "original_package_file",
+        "mode": "100644",
+        "git_blob": "77875a71a6b7440d5228a1b9880c2651c5bae20f",
+        "bytes": 3972,
+        "sha256": "78935ec78848de7655bd972851aa0357c4426f6870fc028ba81739c85040359b"
+      },
+      {
+        "path": "schemas/event.schema.json",
+        "source_path": "schemas/event.schema.json",
+        "role": "original_package_file",
+        "mode": "100644",
+        "git_blob": "b15b739c8a2e4db2d973a3f5f6ef1eab616bb3dc",
+        "bytes": 3506,
+        "sha256": "e169ad8d2f7417580ef63a5098f8ec54dd514af3ce609c59bdb7780b89d6039a"
+      },
+      {
+        "path": "schemas/pricebook.schema.json",
+        "source_path": "schemas/pricebook.schema.json",
+        "role": "original_package_file",
+        "mode": "100644",
+        "git_blob": "fc6e3e74eda33325f68e6e820b3b2700dbda9a73",
+        "bytes": 2586,
+        "sha256": "169e1a48847bee8b6af4b266a55bcebe317b5655dd6abb7718e06331b1df6288"
+      },
+      {
+        "path": "schemas/quality-evaluation-run.schema.json",
+        "source_path": "schemas/quality-evaluation-run.schema.json",
+        "role": "original_package_file",
+        "mode": "100644",
+        "git_blob": "8dd515b03e07916115a0864a8347968d6dd0dc20",
+        "bytes": 2588,
+        "sha256": "ed6b3f60805428e3788ce27fa224fb3d5008998f0637f24723bf65eea546a959"
+      },
+      {
+        "path": "schemas/resource-estimate.schema.json",
+        "source_path": "schemas/resource-estimate.schema.json",
+        "role": "original_package_file",
+        "mode": "100644",
+        "git_blob": "9dbafa69f59f8667a4e124ec34d8df17606c8f2e",
+        "bytes": 2713,
+        "sha256": "39ab5d061f9021ce14e1f987717441cff04d1a40f76db5582d343d599a5d876c"
+      },
+      {
+        "path": "schemas/ruleset.schema.json",
+        "source_path": "schemas/ruleset.schema.json",
+        "role": "original_package_file",
+        "mode": "100644",
+        "git_blob": "dfbbc2284925b101fe56eb03adf1b2c6530505d7",
+        "bytes": 8726,
+        "sha256": "b251e49774d7e6a34522555adefd40f56f5e647a8a2b4a69a0be0a4618b1a8d3"
+      },
+      {
+        "path": "schemas/selection.schema.json",
+        "source_path": "schemas/selection.schema.json",
+        "role": "original_package_file",
+        "mode": "100644",
+        "git_blob": "9a66cceb442c50c93c6e214b760a357146fa3c69",
+        "bytes": 27630,
+        "sha256": "f8f189c6555fec41e616c32f081d06fab9f966b0fa4891ddca55580f577d51a8"
+      },
+      {
+        "path": "sql/postgres_reference.sql",
+        "source_path": "sql/postgres_reference.sql",
+        "role": "original_package_file",
+        "mode": "100644",
+        "git_blob": "3a0c7a6d5150ea053efead8db0bf5babefb373df",
+        "bytes": 8058,
+        "sha256": "72d9fbde25f47fb9aa6f79ab33dd0be7588b7556b019a9c75c44f28949e8bb53"
+      },
+      {
+        "path": "tests/test_contract.py",
+        "source_path": "tests/test_contract.py",
+        "role": "original_package_file",
+        "mode": "100644",
+        "git_blob": "59b13bf9016f8ca72e00fbba022119ee7bb763e3",
+        "bytes": 16522,
+        "sha256": "237fef187e553cac3e7e42c8dd38f5ac0a76e9166e5851d3c75ff1eb32135f77"
+      }
+    ]
+  },
+  "executed_integrity": {
+    "workflow_run": 39166674498,
+    "workflow_event": "push",
+    "run_attempt": 1,
+    "core_job": 117790951872,
+    "url": "https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39166674498/job/117790951872",
+    "checkout": "40bd3d99dd7286f4b2fba0d6b17eb4e89b869657",
+    "positive_command": "python scripts/check_contracts.py",
+    "verified_original_hashes": 43,
+    "verified_metadata_hashes": 2,
+    "unmodified_reference_cases": 21,
+    "reference_seconds": "0.672",
+    "negative_command": "python -m unittest discover -s tests -v",
+    "negative_methods": [
+      "test_modified_schema_fails_before_reference_execution",
+      "test_modified_manifest_cannot_redefine_accepted_hashes",
+      "test_missing_artifact_fails",
+      "test_extra_schema_is_not_silently_bundled"
+    ],
+    "negative_seconds": "0.182",
+    "outcome": "success",
+    "log_bytes": 39592,
+    "log_sha256": "82662a001afb0bbfc335ccbeb408fd26547290e654974fc523df5689f633e113",
+    "failure_semantics": "Each negative invokes the real runner in an isolated copy, requires exit1 plus Contract integrity failure, and rejects evidence of the original21-case suite having executed.",
+    "evidence_audit": "Original hosted decoded log and preserved exact source inspected; no project test rerun was performed for this document."
+  },
+  "historical_receipts": [
+    {
+      "pr": 133,
+      "merge_commit": "ad0cc3a3eaf7f36bba722bee3254db2b8c1e5bb6",
+      "review_id": 5560798942,
+      "reviewed_head": "8b4197a3023fc1d1fd53684b3e29bba28bcf390e",
+      "scope": "Initial import and bounded core review; reported 33 JVM / 21 reference cases at its own source."
+    },
+    {
+      "pr": 134,
+      "merge_commit": "d4c190d0f01f66a994cf8b5fa4eaa5beedc2074f",
+      "review_id": 5560808403,
+      "reviewed_head": "417e22abafb3803cab76286e79ff568063e385ce",
+      "scope": "Extra-file inventory rejection and four isolated tamper checks; test source is exact at executed 40bd."
+    },
+    {
+      "pr": 406,
+      "merge_commit": "40bd3d99dd7286f4b2fba0d6b17eb4e89b869657",
+      "final_default_comment_id": 6255317950,
+      "scope": "Actual default-main identity, complete original artifacts and current execution; imported bytes remain unchanged."
+    }
+  ],
+  "limits": [
+    "This record supplies only exact import provenance and positive/negative reproduction evidence for21.2.",
+    "It does not complete21.1/21.3 actual API, storage, import, enum or money boundary coverage.",
+    "It does not complete32/49 conformance, agreed successor semantics, cross-client numeric transport or migration acceptance.",
+    "No new contract version, generator output, shared service, device execution, rights or release is accepted.",
+    "The canonical03.01 record remains docs/delivery/android/work-packages/03.01.md in Pick-Your-AI/pickyour.ai pending its existing placement authority."
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "profile": "android-source-promotion-proposal/v1",
+  "register_sha256": "928129a2cc7353b2fa8451ced26066eba6425902dd133f4c1d9ed7f2f7791fcb",
+  "source_id": "src-models-dev",
+  "material_id": "repository-compilation",
+  "uses": [
+    "automated_retrieval",
+    "commercial_display",
+    "offline_caching"
+  ]
+}

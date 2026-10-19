@@ -1,4 +1,4 @@
-# Explicit local T0/T1/T2/T3/T4 selection controls
+# Explicit local selection controls
 
 Partial [#112](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/112) and
 [#98](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/98), using the
@@ -17,6 +17,17 @@ The [agent selection continuation](AGENT_SELECTIONS.md) adds the five frozen T4
 kinds for partial [#128](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/128).
 Declared scopes, endpoints and memory inputs remain local planning values; saving
 does not connect an account, invoke a tool or grant external permissions.
+The [training selection continuation](TRAINING_SELECTIONS.md) adds the four frozen
+T5 kinds for partial [#129](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/129).
+Its fourteen optional settings retain explicit training assumptions and artifact
+references without adopting proposed fields, approving rights or starting a job.
+The [guardrail and evaluation continuation](GUARDRAIL_EVALUATION_SELECTIONS.md)
+adds those two frozen T6 kinds for partial
+[#41](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/41). The shared T6
+planning section keeps guidance visible before saving and with T3–T5 disabled;
+these forms also explain evidence conditions. Their five optional settings
+remain requested inputs; applicable requirements and measured coverage stay
+unavailable, with no safety, quality or readiness verdict.
 
 The saved-component section exposes a separate exact-fixture component chooser.
 It does not reinterpret the old guest sample-selection metadata as a typed domain
@@ -68,8 +79,9 @@ the same kind reject the whole edit, including a collision with a disabled
 selection. See [explicit selection roles](LOCAL_SELECTION_ROLES.md) for the local
 history format and recovery boundaries. Disable/re-enable retains settings and links. Removal confirms the exact
 selection and lists its incident link IDs; only that selection and those links are
-removed. No secondary selection is promoted. All other frozen kinds remain stored
-and visible but outside this T0/T1/T2/T3/T4 mutation UI.
+removed. No secondary selection is promoted. The remaining frozen
+`deployment_target`, `monitoring_stack` and `cost_policy` kinds stay stored and
+visible outside this mutation UI.
 
 Controls require a clean acknowledged guest form. A dialog captures the exact
 record object, draft context and applicable catalog snapshot. Dispatch checks
