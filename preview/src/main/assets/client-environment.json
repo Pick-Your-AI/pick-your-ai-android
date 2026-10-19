@@ -1,0 +1,14 @@
+{
+  "configuration_version": "pyai.android.environment.v1",
+  "environment": "preview",
+  "application_id": "ai.pickyour.android.preview",
+  "application_version": "0.0.1-synthetic",
+  "application_version_code": 1,
+  "api_base_url": null,
+  "api_version": null,
+  "contract_version": "1.0.0",
+  "catalog_schema_version": "1.0.0",
+  "catalog_id": "catalog.fixture.1",
+  "catalog_revision": 1,
+  "capabilities": ["local_drafts", "synthetic_catalog"]
+}

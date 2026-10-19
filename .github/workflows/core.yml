@@ -52,6 +52,143 @@ jobs:
         run: sha256sum --check gradle/wrapper/wrapper.sha256
       - name: Compile and test JVM core
         run: ./gradlew --no-daemon --dependency-verification=strict --init-script scripts/runtime_inventory.init.gradle.kts :core:check :core:assemble runtimeInventory
+      - name: Require environment admission core regressions
+        run: |
+          python - <<'PYENVIRONMENT'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          qualified = 'ai.pickyour.core.configuration.ClientEnvironmentAdmissionTest'
+          expected = {
+              'accepted preview exposes only finite configured identity and no remote authority()',
+              'real modes reject even plausible self declared endpoint identity and capabilities()',
+              'unknown and missing mode never default to preview or consume configuration()',
+              'missing configuration never manufactures preview defaults()',
+              'environment mismatch rejects independently of valid preview metadata()',
+              'actual package version and code must all match the admitted profile()',
+              'wrong contract catalog schema and configured catalog identity reject before use()',
+              'preview forbids endpoints and API declarations including empty strings()',
+              'capabilities cannot be added duplicated omitted or type coerced()',
+              'closed fields reject credentials unknown keys and missing explicit nulls()',
+              'duplicate escaped keys trailing roots invalid UTF8 and excessive nesting reject()',
+              'actual byte budget bounds reads and malformed or IO failures contain no input()',
+              'format and required scalar types are never guessed or coerced()',
+              'rejected read leaves caller stream open and fresh valid read can recover()',
+          }
+          path = pathlib.Path('core/build/test-results/test') / ("TEST-" + qualified + ".xml")
+          suite = ET.parse(path).getroot()
+          cases = suite.findall("testcase")
+          names = [case.attrib["name"] for case in cases]
+          if suite.attrib.get("name") != qualified or not expected <= set(names) or len(names) != len(set(names)):
+              raise SystemExit("Missing, foreign or duplicate environment regression")
+          if int(suite.attrib["tests"]) != len(cases) or any(int(suite.attrib.get(k, "0")) for k in ("failures", "errors", "skipped")):
+              raise SystemExit("Environment regressions did not execute cleanly")
+          if any(case.findall("failure") or case.findall("error") or case.findall("skipped") for case in cases):
+              raise SystemExit("Environment regression failed or skipped")
+          print(f"Verified {len(cases)} environment admission cases")
+          PYENVIRONMENT
+      - name: Require complete retained-snapshot and frozen evaluator regressions
+        run: |
+          python - <<'PYTEST'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          expected = {
+              'ai.pickyour.core.evaluation.RetainedSnapshotEvaluationTest': {
+                  'actual retained bundle reproduces the complete no-evidence Python golden and keeps both times()',
+                  'request captures every exact pin and remains independent of copied bytes and source deletion()',
+                  'mathematical revisions above Long remain exact in request report and digest()',
+                  'same Build bytes with different retained-only source and retry authority stay distinct()',
+                  'retained Pricebook changes exact input identity without supplying cost metrics()',
+                  'missing requested evidence does not erase independently checked supplied evidence()',
+                  'even fully bound declared complete and calibrated estimates are explicitly withheld()',
+                  'optional evidence distinguishes malformed wrong-version wrong-type foreign and wrong-hash inputs()',
+                  'malformed Build and foreign exact graph locks reject without hiding other binding diagnostics()',
+                  'original artifact hash mismatch rejects before a report can be prepared()',
+                  'schema-valid integral decimal Build spelling stays explicitly unsupported by the local evaluator()',
+                  'unknown profile and reader budgets withhold instead of silently selecting another version()',
+                  'cancelled work and unavailable observation clock do not return a report()',
+              },
+              'ai.pickyour.core.preview.PreviewSnapshotAnalysisTest': {
+                  'real archived input runs on the worker and only the delivered request becomes current()',
+                  'cancel before queued read prevents evaluation and late work cannot restore state()',
+                  'cancel after computation but before delivery rejects the completed report()',
+                  'switching snapshots prevents an older delivered result from replacing the selected identity()',
+                  'same entry retry and ABA selection require new opaque request authority()',
+                  'a real result for another Build or revision is rejected by the active delivery boundary()',
+                  'a result from an equivalent earlier request cannot complete a newer attempt()',
+                  'source deletion does not revoke an independently retained historical read()',
+                  'captured old index permits historical inspection without repairing missing current index()',
+                  'foreign archive receipt and missing retained bytes never select a replacement()',
+                  'unsupported numeric profile produces a recoverable explicit failure()',
+                  'worker and delivery rejection expose failure instead of an apparent current result()',
+                  'evaluator and observer exceptions cannot manufacture a report or strand a completed attempt()',
+                  'close retires both queued phases and cannot be reopened by an old or fresh caller()',
+              },
+              'ai.pickyour.core.drafts.SnapshotArchiveInspectionTest': {
+                  'inspection cannot initialize an unused namespace or reconstruct a lost seal or index()',
+                  'inspection captures the exact existing index without activation or source liveness()',
+              },
+              'ai.pickyour.core.evaluation.FrozenDiagnosticEvaluatorTest': {
+                  'raw numeric spelling reaches the strict reader unchanged()',
+                  'streams remain open and repeated runs have independent budgets()',
+                  'ambiguous selections remain unknown without guessing first match()',
+                  'derived VRAM accepts exact 28 digits and rejects a rounded 29 digit product()',
+                  'string scans charge their full work before execution()',
+                  'foreign catalog and rules locks reject before report creation()',
+                  'schema valid swapped catalog identities reject kind mismatch()',
+                  'raw floating and exponent operands reject even nested or opposite missing()',
+                  'original-strict-False',
+                  'original-strict-True',
+                  'decimal-equal',
+                  'decimal-boundary',
+                  'decimal-zero',
+                  'decimal-string-nonnumeric',
+                  'bool-python-equality',
+                  'nested-container-equality',
+                  'nested-no-string-coercion',
+                  'nested-containment',
+                  'substring',
+                  'empty-substring',
+                  'in-array',
+                  'subset',
+                  'intersection',
+                  'empty-intersection',
+                  'missing',
+                  'all-false-dominates',
+                  'any-true-dominates',
+                  'not-unknown',
+                  'implies-false',
+                  'exists-null',
+                  'exists-false',
+                  'skipped',
+                  'unknown-applicability',
+                  'warning-failure',
+                  'set operands stay unsupported with opposite missing()',
+                  'duplicate identities reject across all three documents()',
+                  'budget exhaustion never emits a partial compatible report()',
+                  'unsupported version and malformed field reject()',
+                  'selected item version mismatch is rejected before metrics()',
+                  'reference exceptions stay unsupported rather than invented verdicts()',
+                  'recursive container containment charges nested comparisons()',
+                  'nested string comparisons consume containment work()',
+                  'float encoded identity revisions remain unsupported()',
+                  'ASCII array pointer preserves leading zeros and missing paths()',
+              },
+          }
+          total = 0
+          for name, required in expected.items():
+              path = pathlib.Path('core/build/test-results/test') / ("TEST-" + name + ".xml")
+              suite = ET.parse(path).getroot()
+              cases = suite.findall("testcase")
+              names = [case.attrib["name"] for case in cases]
+              if suite.attrib.get("name") != name or not required <= set(names) or len(names) != len(set(names)):
+                  raise SystemExit("Missing, foreign or repeated retained-snapshot regression")
+              if int(suite.attrib["tests"]) != len(cases) or any(int(suite.attrib.get(key, "0")) != 0 for key in ("failures", "errors", "skipped")):
+                  raise SystemExit("Retained-snapshot suite did not execute cleanly")
+              if any(case.findall("failure") or case.findall("error") or case.findall("skipped") for case in cases):
+                  raise SystemExit("Retained-snapshot regression did not pass")
+              total += len(cases)
+          print(f"Verified {total} retained-snapshot and frozen evaluator cases; native execution remains separate")
+          PYTEST
       - name: Require every conformance fixture and private migration observation
         run: |
           mkdir -p build/conformance
@@ -106,6 +243,51 @@ jobs:
         run: sha256sum --check gradle/wrapper/wrapper.sha256
       - name: Compile unsigned preview, run lint and simulated UI tests
         run: ./gradlew --no-daemon --dependency-verification=strict --init-script scripts/runtime_inventory.init.gradle.kts -PandroidPreview=true :preview:assembleDebug :preview:lintDebug :preview:testDebugUnitTest runtimeInventory
+      - name: Require configuration bootstrap and lifecycle regressions
+        run: |
+          python - <<'PYENVIRONMENT'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          qualified = 'ai.pickyour.android.preview.EnvironmentBootstrapTest'
+          expected = {
+              'actualPackagedProfileMatchesAppAndFrozenCatalogMetadata',
+              'realAndUnknownSelectionsCannotAdmitPackagedPreview',
+              'missingMalformedAndWrongContractAreActionableWithoutRawValues',
+              'blockedScreenContainsOnlyFiniteRecoveryAndCloseAction',
+              'admittedPreviewStillCreatesAndRestoresLocalControls',
+              'rejectedActivityCannotRestoreEditOrOpenDraftsAcrossLifecycle',
+              'configurationSourceClosesAndFreshAdmissionDoesNotRetainFailure',
+          }
+          path = pathlib.Path('preview/build/test-results/testDebugUnitTest') / ("TEST-" + qualified + ".xml")
+          suite = ET.parse(path).getroot()
+          cases = suite.findall("testcase")
+          names = [case.attrib["name"] for case in cases]
+          if suite.attrib.get("name") != qualified or not expected <= set(names) or len(names) != len(set(names)):
+              raise SystemExit("Missing, foreign or duplicate environment regression")
+          if int(suite.attrib["tests"]) != len(cases) or any(int(suite.attrib.get(k, "0")) for k in ("failures", "errors", "skipped")):
+              raise SystemExit("Environment regressions did not execute cleanly")
+          if any(case.findall("failure") or case.findall("error") or case.findall("skipped") for case in cases):
+              raise SystemExit("Environment regression failed or skipped")
+          print(f"Verified {len(cases)} environment admission cases")
+          PYENVIRONMENT
+      - name: Verify non-secret environment configuration and unavailable real selections
+        shell: bash
+        run: |
+          python -m unittest discover -s scripts/tests -p 'test_environment_configuration.py' -v
+          python -O -m unittest discover -s scripts/tests -p 'test_environment_configuration.py' -v
+          python scripts/check_environment_configuration.py
+          mkdir -p build/environment-selection
+          for selected in staging production; do
+            log="build/environment-selection/$selected.log"
+            if ./gradlew --no-daemon --dependency-verification=strict -PandroidPreview=true -PandroidEnvironment="$selected" :preview:tasks >"$log" 2>&1; then
+              echo "An unconfigured real environment was incorrectly accepted."
+              exit 1
+            fi
+            if ! grep -Fq 'Android real-data configuration is unavailable:' "$log"; then
+              echo "The real-environment build failed outside its admission guard."
+              exit 1
+            fi
+          done
       - name: Reject ignored packaged preview assets
         run: python scripts/check_runtime_inventory_guards.py --preview
       - name: Export and validate the current runtime SPDX document
@@ -953,6 +1135,44 @@ jobs:
           assert int(suite.attrib["tests"]) >= len(expected)
           print(f"Verified {len(cases)} simulated current-choice accessibility tests; no installed TalkBack claim")
           PYTEST
+      - name: Require real saved-snapshot inspection regressions
+        run: |
+          python - <<'PYTEST'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          expected = {
+              'ai.pickyour.android.preview.SnapshotEvaluationActivityTest': {
+                  'actualActivityMissingArchiveRemainsMissingAndPendingEditorIsPreserved',
+                  'actualActivityReadsExactRetainedInputsAfterSourceDeletionWithoutEvaluatingPendingEdits',
+                  'emptyAndPartiallyLostNamespacesAreExplicitWithoutIndexOrSealRepair',
+                  'cancelledAndReplacedPickersCannotOpenRetainedItemCallbacks',
+                  'cancelBeforeQueuedEvaluationPreventsEngineWorkAndFreshRetryWorks',
+                  'cancelAfterComputationBeforeDeliveryDropsReportAndRetryHasFreshAuthority',
+                  'replacementRejectsOldResultAndOldRetryEvenWhenTheSameEntryIsSelectedAgain',
+                  'switchingBuildRevisionsCannotShowThePreviousCompletedReport',
+                  'currentIndexLossAfterSelectionKeepsOnlyHistoricalReadAuthority',
+                  'missingRetainedBundleHasNoFallbackAndExactRestorationRequiresExplicitRetry',
+                  'actualForeignBuildAndRevisionResultsAreRejectedBeforeBecomingVisible',
+                  'schemaValidUnsupportedRuleOperandIsExplicitAndDoesNotAlterSavedBytes',
+                  'dispatchRejectionIsRecoverableAndClosingDiscardsBothQueuedPhases',
+                  'actualActivityPauseAndRecreationRetireQueuedInventoryAndOldDialogControls',
+              },
+          }
+          total = 0
+          for name, required in expected.items():
+              path = pathlib.Path('preview/build/test-results/testDebugUnitTest') / ("TEST-" + name + ".xml")
+              suite = ET.parse(path).getroot()
+              cases = suite.findall("testcase")
+              names = [case.attrib["name"] for case in cases]
+              if suite.attrib.get("name") != name or not required <= set(names) or len(names) != len(set(names)):
+                  raise SystemExit("Missing, foreign or repeated retained-snapshot regression")
+              if int(suite.attrib["tests"]) != len(cases) or any(int(suite.attrib.get(key, "0")) != 0 for key in ("failures", "errors", "skipped")):
+                  raise SystemExit("Retained-snapshot suite did not execute cleanly")
+              if any(case.findall("failure") or case.findall("error") or case.findall("skipped") for case in cases):
+                  raise SystemExit("Retained-snapshot regression did not pass")
+              total += len(cases)
+          print(f"Verified {total} simulated saved-snapshot inspection cases; no installed-device claim")
+          PYTEST
       - name: Retain unsigned diagnostic and lint reports
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -963,6 +1183,7 @@ jobs:
             preview/build/reports/lint-results-debug.*
             preview/build/reports/tests/testDebugUnitTest/
             preview/build/test-results/testDebugUnitTest/
+            build/environment-selection/
           retention-days: 7
           if-no-files-found: ignore
       - name: Retain artifact-linked runtime inventory

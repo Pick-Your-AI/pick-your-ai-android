@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="environment_blocked_title">Configuration unavailable</string>
+    <string name="environment_real_unconfigured">Staging and production service configuration has not been accepted for this app. The synthetic preview cannot substitute for it.</string>
+    <string name="environment_wrong_mode">The selected environment does not match this app configuration.</string>
+    <string name="environment_wrong_application">The configuration does not match the installed application identity or version.</string>
+    <string name="environment_wrong_contract">The configured contract or synthetic catalog version is unsupported.</string>
+    <string name="environment_wrong_capabilities">This preview cannot use a remote endpoint or enable additional service capabilities.</string>
+    <string name="environment_invalid_configuration">The packaged configuration is missing, malformed or unsupported.</string>
+    <string name="environment_recovery">No catalog or draft has been opened. Close this app and obtain a correctly configured build. Changing incoming links or saved screen state cannot enable another environment.</string>
+    <string name="environment_close">Close app</string>
+</resources>
