@@ -416,7 +416,7 @@ class PreviewActivity : Activity() {
         CostInspectionSection(this, worker) { !destroyed }.attach(content)
         resourceInspection = ResourceInspectionSection(this, worker, { !destroyed && diagnosticsResumed }, catalog::cancelViewportRestore)
         resourceInspection.attach(content)
-        findings = FindingsInspectionSection(this, worker) { !destroyed }
+        findings = FindingsInspectionSection(this, worker) { !destroyed && diagnosticsResumed }
         findings.attach(content)
         snapshots = SnapshotEvaluationSection(this, worker) { !destroyed && diagnosticsResumed }
         snapshots.attach(content)
@@ -1648,6 +1648,7 @@ class PreviewActivity : Activity() {
         if (::diagnostics.isInitialized) diagnostics.dismiss()
         if (::help.isInitialized) help.dismiss()
         if (::privacy.isInitialized) privacy.dismiss()
+        if (::findings.isInitialized) findings.dismiss()
         if (::snapshots.isInitialized) snapshots.dismiss()
         if (::resourceInspection.isInitialized) resourceInspection.dismiss()
         super.onPause()
