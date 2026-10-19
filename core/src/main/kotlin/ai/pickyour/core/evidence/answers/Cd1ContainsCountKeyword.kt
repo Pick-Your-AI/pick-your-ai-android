@@ -12,8 +12,8 @@ import com.networknt.schema.ValidationContext
 import com.networknt.schema.ValidationMessage
 
 /**
- * Draft 2020-12 section 10.3.1.4: minContains and maxContains only qualify a
- * sibling "contains" and are ignored without one. networknt's own validator
+ * JSON Schema Validation 2020-12 sections 6.4.4–6.4.5: minContains and maxContains
+ * only qualify a sibling "contains" and are ignored without one. networknt's own validator
  * reports the minContains/maxContains consistency error (minContains defaults
  * to 1) whatever the schema and instance are, so a lone maxContains of 0, or
  * a "contains" schema applied to a non-array, rejected values the selected

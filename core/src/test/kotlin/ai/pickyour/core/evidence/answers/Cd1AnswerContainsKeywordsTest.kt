@@ -4,8 +4,9 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
 /**
- * minContains and maxContains are only meaningful together with "contains" (Draft 2020-12
- * section 10.3.1.4). Without it they must be ignored, as the selected Python reference does.
+ * minContains and maxContains are only meaningful together with "contains" (JSON Schema
+ * Validation 2020-12 sections 6.4.4–6.4.5). Without it they must be ignored, as the
+ * selected Python reference does.
  * Expected verdicts were generated with jsonschema's Draft202012Validator
  * (see the keyword cases below: contains present, absent, non-array instances, min above max).
  */
