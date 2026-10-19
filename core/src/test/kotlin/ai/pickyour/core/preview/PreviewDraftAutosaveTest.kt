@@ -102,7 +102,7 @@ class PreviewDraftAutosaveTest {
         val pending = input("pending", "context")
         val request = PreviewAutosaveRequest(id, first, authority, pending)
         assertTrue(request.matches(id, first, authority, input("pending", "context")))
-        assertFalse(request.matches(PreviewDraftId("other-draft"), first, authority, pending))
+        assertFalse(request.matches(PreviewDraftId("draft-00000000-0000-0000-0000-000000000001"), first, authority, pending))
         assertFalse(request.matches(id, loaded(), authority, pending)) // Equal hash is not this receipt.
         assertFalse(request.matches(id, first, Any(), pending))
         assertFalse(request.matches(id, first, authority, input("newer", "context")))

@@ -145,6 +145,8 @@ jobs:
               "invalidWorkloadCancelsThePendingSaveAndCorrectionCommitsTheWholeForm",
               "failedAutosavePreservesTheHeadAndPauseAcrossRecreationUntilExplicitRetry",
               "aConcurrentWriterBlocksAutomaticRetryAndRecreationCannotAdoptItsAuthority",
+              "aLibraryOpeningFailureRequiresExplicitReconciliationBeforeAutosaveCanResume",
+              "autosaveRetiresVisibleInspectionAndPreservesNewerInputUntilItsOwnAcknowledgement",
               "recreationBeforeTheDelayRetainsPendingInputAndOnlyTheNewEditorCanSaveIt",
               "aCommittedWriteWithoutUiAcknowledgementRequiresExplicitReconciliationAfterRecreation",
               "selectingANewDraftRetiresThePriorTimerAndItsPendingInput",

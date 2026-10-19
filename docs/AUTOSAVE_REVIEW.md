@@ -164,3 +164,82 @@ are qualified together. The canonical record remains
 `Pick-Your-AI/pickyour.ai/docs/delivery/android/work-packages/08.06.md`.
 This local review document relocates no acceptance path, changes no issue checkbox
 and supplies no release authority.
+
+## First hosted run and focused correction — 2026-10-19
+
+The local-execution limits above describe the original preparation. The first
+hosted run subsequently compiled the actual valid-signed prepared checkout
+`c12b9b1f155040a6c730e0861df09fbd3bfadc69`, exact reviewed tree
+`ba59b5381a20bc2958825ceacc75941110d2a626`, for public source
+`135e3fcfaac002091a868d60fda00451582dc19a`. The original
+[run39181633314](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39181633314)
+failed: its 77 core XML suites contain 3,644 cases with one failure, and its 24
+preview XML suites contain 303 cases with nine failures. Both sets have zero
+errors and skips. The new autosave suites account for eight core cases (one
+failure) and eleven Activity cases (one failure); the other eight failures are
+existing catalog/pin/choice/comparison cases. No failed result is relabeled as a
+successful receiving or installed result.
+
+The original Core artifact12156835995 is 1,206,450 bytes, SHA-256
+`5977727758080ff2fd00d1564fdd27a7ed98bd8e9e10f51e91ee12afa65bb1e3`.
+The original preview artifact12156816432 is 3,007,394 bytes, SHA-256
+`87c0a72ff3a9c47f1bd315a496f0083b162220f25e62347ce4edc1a6de816228`.
+Both downloaded archives matched GitHub's digests. All 24 original preview XML
+members remain byte-exact in a smaller local archive after removing only the
+reproducible full download for workspace capacity; the full GitHub artifact and
+its original digest remain authoritative. Original failed XML, logs and source
+identities are retained. The same-source scanner run39181633318 passed; its
+original artifact12156746017 (941 bytes, SHA-256
+`209055f00a567b4c01866f350063081b59edbc72f4de11ecd4ff941380fb7592`)
+binds `c12b9b1`/`ba59b538`, 179 reachable commits, pinned scanner8.30.1 and zero
+findings. That scoped scanner success does not qualify the failed application.
+
+The correction preserves all production, resource and canonical-store bytes:
+
+- The core identity test supplied `other-draft`, which the existing
+  `PreviewDraftId` constructor rejects before the assertion. It now supplies a
+  valid, distinct deterministic `draft-UUID` identity and retains every
+  identity/receipt/token/complete-input assertion.
+- The known-failure Activity fixture held the outer library lock. Opening a
+  library-bound adapter therefore threw before `save` was called; the existing
+  conservative caller correctly presented uncertainty and disabled saving.
+  Holding `guest-draft/transaction.lock` instead lets opening succeed and makes
+  the canonical save return known `BUSY` before its transaction body. The full
+  unchanged-head, paused-retry, recreation and explicit-retry assertions remain.
+  A separate added case retains the original outer-lock condition and requires
+  uncertainty, preserved pending input, no automatic retry through recreation,
+  and explicit reopen before a later edit can autosave.
+- Eight existing read-only cases edited a valid pending form while expecting
+  unchanged stored bytes and inspection authority. In exact Robolectric4.17,
+  [ShadowChoreographer](https://github.com/robolectric/robolectric/blob/robolectric-4.17/shadows/framework/src/main/java/org/robolectric/shadows/ShadowChoreographer.java)
+  defaults to unpaused frame scheduling independently of `LooperMode.PAUSED`.
+  [ShadowDisplayEventReceiver](https://github.com/robolectric/robolectric/blob/robolectric-4.17/shadows/framework/src/main/java/org/robolectric/shadows/ShadowDisplayEventReceiver.java)
+  advances virtual time by the default 15 ms for each scheduled frame. Rich
+  dialog operations can therefore cross the real 750 ms deadline during plain
+  looper idling. Those eight cases now pause that implicit frame clock before
+  pending edits and assert that virtual elapsed time stays below 750 ms. Every
+  original baseline, private-file, field, checked-choice and retired-control
+  assertion remains. The autosave suite also uses an explicit frame clock.
+- An added interaction uses the actual Handler scheduler and canonical file
+  writes: an inspector remains visible at 749 ms, retires when saving starts at
+  750 ms, and cannot be reopened through captured stale controls. A held real
+  worker allows newer input to arrive while the earlier immutable input saves.
+  Each input receives its own single durable revision; fresh explicit inspection
+  works afterward, and later idle time creates no duplicate save. This preserves
+  the existing rule that any storage operation retires baseline-bound inspection;
+  it introduces no modal deferral policy or persistence bypass.
+
+The exact Activity admission set is now the original eleven plus the two added
+methods, thirteen total. All previous admission logic and other inventories stay
+intact. Local portable checks parsed YAML and the exact admission program,
+matched all thirteen declared identities, accepted one valid report and rejected
+84 malformed report fixtures. Removing only the documented additions reconstructed
+the prior workflow and all four legacy test files exactly; the original eleven
+autosave methods reconstructed exactly after reversing the single lock-fixture
+correction. The core delta is one ID substitution and this note is append-only.
+These checks executed the report qualifier and source comparisons, not Kotlin.
+The first failed run cannot qualify this corrected source: a new actual
+configured run, complete original-result review and guarded receiving delivery
+are still required. Source inspection and portable admission checks remain
+distinct from Kotlin execution and installed Android UX acceptance. All four
+whole-issue criteria and the canonical acceptance path above remain unchanged.

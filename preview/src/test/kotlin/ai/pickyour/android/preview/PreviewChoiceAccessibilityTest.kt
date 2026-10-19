@@ -3,6 +3,7 @@ package ai.pickyour.android.preview
 import android.app.AlertDialog
 import android.os.Bundle
 import android.os.Looper
+import android.os.SystemClock
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
@@ -27,6 +28,7 @@ import org.robolectric.android.controller.ActivityController
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.LooperMode
 import org.robolectric.shadows.ShadowAlertDialog
+import org.robolectric.shadows.ShadowChoreographer
 
 /** Actual native list/row semantics in a JVM simulation, not an installed TalkBack run. */
 @RunWith(RobolectricTestRunner::class)
@@ -140,6 +142,9 @@ class PreviewChoiceAccessibilityTest {
     }
 
     @Test fun catalogPickersExposeCurrentCheckedChoicesWithoutSaving() {
+        // Dialog frames must not advance this read-only case beyond the autosave deadline.
+        ShadowChoreographer.setPaused(true)
+        val pendingSince = SystemClock.uptimeMillis()
         field(R.string.draft_title).setText("Pending title remains local")
         val choices = listOf(PreviewCatalogKinds.tiers.indexOf("T1") + 1,
             PreviewCatalogKinds.all.indexOfFirst { it.id == "model" } + 1, PreviewCatalogSort.NAME.ordinal)
@@ -157,6 +162,7 @@ class PreviewChoiceAccessibilityTest {
         }
         assertEquals("Pending title remains local", field(R.string.draft_title).text.toString())
         assertNoSavedDraft()
+        assertTrue("Read-only actions stay before autosave", SystemClock.uptimeMillis() in pendingSince until pendingSince + 750)
     }
 
     @Test fun workloadPickerExposesUnansweredAndCurrentClassificationWithoutSaving() {

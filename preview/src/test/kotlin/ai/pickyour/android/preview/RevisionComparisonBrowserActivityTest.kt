@@ -3,6 +3,7 @@ package ai.pickyour.android.preview
 import android.app.AlertDialog
 import android.os.Bundle
 import android.os.Looper
+import android.os.SystemClock
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
@@ -25,6 +26,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import org.robolectric.annotation.LooperMode
 import org.robolectric.shadows.ShadowAlertDialog
+import org.robolectric.shadows.ShadowChoreographer
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.TimeUnit
@@ -160,6 +162,9 @@ class RevisionComparisonBrowserActivityTest {
     @Test fun actualSavedComparisonPreservesPendingInputsAndDurableBaseline() {
         prepareSavedHistory()
         val baseline = loaded().baselineIdentity
+        // Dialog frames must not advance this read-only case beyond the autosave deadline.
+        ShadowChoreographer.setPaused(true)
+        val pendingSince = SystemClock.uptimeMillis()
         field(R.string.draft_title).setText("pending title")
         field(R.string.context_objective).setText("pending objective")
         field(R.string.context_context).setText("")
@@ -179,6 +184,7 @@ class RevisionComparisonBrowserActivityTest {
         assertState(before)
         assertEquals(baseline, loaded().baselineIdentity)
         assertNull(shadowOf(activity).nextStartedActivity)
+        assertTrue("Read-only actions stay before autosave", SystemClock.uptimeMillis() in pendingSince until pendingSince + 750)
     }
 
     @Test fun everyChangedFieldAfterTheOldHundredRowLimitIsReachable() {

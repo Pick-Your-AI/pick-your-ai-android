@@ -3,6 +3,7 @@ package ai.pickyour.android.preview
 import android.app.AlertDialog
 import android.os.Bundle
 import android.os.Looper
+import android.os.SystemClock
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
@@ -34,6 +35,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import org.robolectric.annotation.LooperMode
 import org.robolectric.shadows.ShadowAlertDialog
+import org.robolectric.shadows.ShadowChoreographer
 import java.nio.file.Files
 import java.nio.file.Path
 import java.security.MessageDigest
@@ -409,6 +411,9 @@ class CatalogDetailBrowserActivityTest {
     @Test fun actualNewDetailAndSiblingInspectionRetireAllEarlierDetailControls() {
         save()
         val baseline = loaded().baselineIdentity
+        // Dialog frames must not advance this read-only case beyond the autosave deadline.
+        ShadowChoreographer.setPaused(true)
+        val pendingSince = SystemClock.uptimeMillis()
         field(R.string.draft_title).setText("pending sibling navigation")
         val previous = openActualDetail()
         val oldEntry = button(R.string.catalog_detail_browser_open, previous.window!!.decorView)
@@ -436,11 +441,15 @@ class CatalogDetailBrowserActivityTest {
         assertEquals(listOf("cat.model.fixture"), state().getStringArrayList("comparisonIds"))
         assertEquals(baseline, loaded().baselineIdentity)
         assertNull(shadowOf(activity).nextStartedActivity)
+        assertTrue("Read-only actions stay before autosave", SystemClock.uptimeMillis() in pendingSince until pendingSince + 750)
     }
 
     @Test fun actualReloadSnapshotReplacementAndRecreationRetireCapturedFullValues() {
         save()
         val baseline = loaded().baselineIdentity
+        // Dialog frames must not advance this read-only case beyond the autosave deadline.
+        ShadowChoreographer.setPaused(true)
+        val pendingSince = SystemClock.uptimeMillis()
         field(R.string.context_objective).setText("pending recorded detail")
         val first = openActualBrowser()
         val before = state()
@@ -466,6 +475,7 @@ class CatalogDetailBrowserActivityTest {
         openActualBrowser(); inspectField("catalog_snapshot.revision")
         assertEquals("1", completeValue())
         assertNull(shadowOf(activity).nextStartedActivity)
+        assertTrue("Read-only actions stay before autosave", SystemClock.uptimeMillis() in pendingSince until pendingSince + 750)
     }
 
     @Test fun storageReconciliationPermanentlyRetiresFullValuesWithAnUnchangedMissingBaseline() {
@@ -494,6 +504,9 @@ class CatalogDetailBrowserActivityTest {
     @Test fun exactRetainedDetailOpensEveryOldValueWithoutActivatingOrSubstitutingCurrentData() {
         save()
         val baseline = loaded().baselineIdentity
+        // Dialog frames must not advance this read-only case beyond the autosave deadline.
+        ShadowChoreographer.setPaused(true)
+        val pendingSince = SystemClock.uptimeMillis()
         field(R.string.context_context).setText("pending retained fields")
         val older = document().put("revision", 3)
         val raw = "retired historical " + "o".repeat(450) + " exact older tail"
@@ -527,6 +540,7 @@ class CatalogDetailBrowserActivityTest {
         assertDraftState(before)
         assertEquals(baseline, loaded().baselineIdentity)
         assertNull(shadowOf(activity).nextStartedActivity)
+        assertTrue("Read-only actions stay before autosave", SystemClock.uptimeMillis() in pendingSince until pendingSince + 750)
     }
 
     @Test fun retiredPinFullValueCallbacksCannotReplaceNewPinsOrSurviveRemovalAndStorage() {
@@ -604,6 +618,9 @@ class CatalogDetailBrowserActivityTest {
         save()
         addPin()
         PreviewDraftLibrary(activity.noBackupFilesDir.toPath()).list()
+        // Dialog frames must not advance this read-only case beyond the autosave deadline.
+        ShadowChoreographer.setPaused(true)
+        val pendingSince = SystemClock.uptimeMillis()
         field(R.string.context_objective).setText("pending library transition")
         val baseline = loaded().baselineIdentity
         val disk = privateFiles()
@@ -628,6 +645,7 @@ class CatalogDetailBrowserActivityTest {
             library.cancel(); idle()
         }
         assertNull(shadowOf(activity).nextStartedActivity)
+        assertTrue("Read-only actions stay before autosave", SystemClock.uptimeMillis() in pendingSince until pendingSince + 750)
     }
 
     @Test fun newCatalogDetailsAndPinsRetireQueuedAndVisibleLibraryComparisons() {
@@ -636,6 +654,9 @@ class CatalogDetailBrowserActivityTest {
         save()
         addPin()
         PreviewDraftLibrary(activity.noBackupFilesDir.toPath()).list()
+        // Dialog frames must not advance this read-only case beyond the autosave deadline.
+        ShadowChoreographer.setPaused(true)
+        val pendingSince = SystemClock.uptimeMillis()
         field(R.string.context_objective).setText("pending incoming catalog inspection")
         val baseline = loaded().baselineIdentity
         val disk = privateFiles()
@@ -690,6 +711,7 @@ class CatalogDetailBrowserActivityTest {
             } finally { release?.countDown() }
         }
         assertNull(shadowOf(activity).nextStartedActivity)
+        assertTrue("Read-only actions stay before autosave", SystemClock.uptimeMillis() in pendingSince until pendingSince + 750)
     }
 
     @Test fun savedLibraryAndCatalogComparisonsRetireOpposingCallbacksWithoutChangingTheTray() {

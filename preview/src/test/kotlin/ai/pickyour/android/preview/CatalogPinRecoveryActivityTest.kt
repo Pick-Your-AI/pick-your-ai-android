@@ -3,6 +3,7 @@ package ai.pickyour.android.preview
 import android.app.AlertDialog
 import android.os.Bundle
 import android.os.Looper
+import android.os.SystemClock
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
@@ -25,6 +26,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import org.robolectric.annotation.LooperMode
 import org.robolectric.shadows.ShadowAlertDialog
+import org.robolectric.shadows.ShadowChoreographer
 import java.nio.channels.FileChannel
 import java.nio.file.Files
 import java.nio.file.Path
@@ -433,6 +435,9 @@ class CatalogPinRecoveryActivityTest {
     @Test fun snapshotReplacementRemovalReloadAndRecreationRetireTheActualInspectionOrigin() {
         save()
         val baseline = loaded().baselineIdentity
+        // Dialog frames must not advance this read-only case beyond the autosave deadline.
+        ShadowChoreographer.setPaused(true)
+        val pendingSince = SystemClock.uptimeMillis()
         field(R.string.draft_title).setText("pending lifecycle recovery")
         addPin()
         val before = state()
@@ -479,6 +484,7 @@ class CatalogPinRecoveryActivityTest {
         assertTrue(state().getStringArrayList("comparisonIds")!!.isEmpty())
         assertDraftState(before, includeTray = false)
         assertEquals(baseline, loaded().baselineIdentity)
+        assertTrue("Read-only actions stay before autosave", SystemClock.uptimeMillis() in pendingSince until pendingSince + 750)
     }
 
     @Test fun changedSavedBaselineRejectsRetainedRetryAndBrowseWithoutReplacingPendingInputs() {

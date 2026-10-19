@@ -21,6 +21,7 @@ import org.robolectric.android.controller.ActivityController
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.LooperMode
 import org.robolectric.shadows.ShadowAlertDialog
+import org.robolectric.shadows.ShadowChoreographer
 import java.nio.channels.FileChannel
 import java.nio.file.StandardOpenOption.WRITE
 import java.util.concurrent.CountDownLatch
@@ -36,6 +37,8 @@ class PreviewAutosaveActivityTest {
     private val activity get() = controller.get()
 
     @Before fun launch() {
+        // Only explicit clock advances may cross a debounce deadline in these scheduler cases.
+        ShadowChoreographer.setPaused(true)
         controller = Robolectric.buildActivity(PreviewActivity::class.java).setup()
         await { button(R.string.save_draft).isEnabled }
         assertEquals(PreviewDraftLoad.Missing, adapter().load())
@@ -191,7 +194,8 @@ class PreviewAutosaveActivityTest {
     @Test fun failedAutosavePreservesTheHeadAndPauseAcrossRecreationUntilExplicitRetry() {
         val first = seed()
         val root = activity.noBackupFilesDir.toPath()
-        FileChannel.open(root.resolve(".preview-library.lock"), WRITE).use { channel ->
+        // Opening the library still succeeds; the canonical save rejects before its transaction starts.
+        FileChannel.open(root.resolve("guest-draft").resolve("transaction.lock"), WRITE).use { channel ->
             channel.lock().use {
                 field(R.string.draft_title).setText("retry this exact text")
                 advance(750)
@@ -238,6 +242,104 @@ class PreviewAutosaveActivityTest {
         advance(750)
         await { hasText(R.string.draft_saved) }
         assertEquals(external.revision + 1, loaded().revision)
+    }
+
+    @Test fun aLibraryOpeningFailureRequiresExplicitReconciliationBeforeAutosaveCanResume() {
+        val first = seed()
+        val root = activity.noBackupFilesDir.toPath()
+        FileChannel.open(root.resolve(".preview-library.lock"), WRITE).use { channel ->
+            channel.lock().use {
+                field(R.string.draft_title).setText("pending through opening uncertainty")
+                advance(750)
+                await { hasText(R.string.draft_uncertain) }
+                assertFalse(button(R.string.save_draft).isEnabled)
+                assertFalse(hasText(R.string.draft_saved))
+            }
+        }
+        assertEquals(first.baselineIdentity, loaded().baselineIdentity)
+        advance(60_000)
+        drain()
+        assertEquals(first.baselineIdentity, loaded().baselineIdentity)
+        recreate()
+        await { hasText(R.string.draft_reconcile) }
+        assertFalse(button(R.string.save_draft).isEnabled)
+        assertEquals("pending through opening uncertainty", field(R.string.draft_title).text.toString())
+        advance(60_000)
+        drain()
+        assertEquals(first.baselineIdentity, loaded().baselineIdentity)
+        reopen()
+        assertEquals("acknowledged", field(R.string.draft_title).text.toString())
+        assertEquals(first.baselineIdentity, loaded().baselineIdentity)
+        field(R.string.draft_title).setText("edit after explicit reconciliation")
+        advance(750)
+        await { hasText(R.string.draft_saved) }
+        assertEquals(first.revision + 1, loaded().revision)
+        assertEquals("edit after explicit reconciliation", loaded().fields.title)
+    }
+
+    @Test fun autosaveRetiresVisibleInspectionAndPreservesNewerInputUntilItsOwnAcknowledgement() {
+        val first = seed()
+        fun openFields(): AlertDialog {
+            field(R.string.catalog_search).setText("cat.model.fixture")
+            fun samples() = views().filterIsInstance<Button>().filter { it.text.toString().startsWith("Open FICTIONAL") }
+            await { button(R.string.retry_catalog).isEnabled && samples().size == 1 }
+            samples().single().performClick()
+            val parent = dialog()
+            views(parent.window!!.decorView).filterIsInstance<Button>().single {
+                it.text.toString() == activity.getString(R.string.catalog_detail_browser_open)
+            }.performClick()
+            shadowOf(Looper.getMainLooper()).idle()
+            return dialog().also { assertTrue(it.isShowing) }
+        }
+        field(R.string.draft_title).setText("captured while inspecting")
+        val oldFields = openFields()
+        shadowOf(oldFields).clickOnItem(0)
+        shadowOf(Looper.getMainLooper()).idle()
+        val oldValue = dialog()
+        assertNotSame(oldFields, oldValue)
+        assertTrue(oldValue.isShowing)
+        val oldBack = oldValue.getButton(AlertDialog.BUTTON_NEGATIVE)
+        val entered = CountDownLatch(1)
+        val release = CountDownLatch(1)
+        val blocked = worker().submit { entered.countDown(); assertTrue(release.await(15, TimeUnit.SECONDS)) }
+        assertTrue(entered.await(15, TimeUnit.SECONDS))
+        try {
+            advance(749)
+            assertTrue(oldValue.isShowing)
+            assertEquals(first.baselineIdentity, loaded().baselineIdentity)
+            advance(1)
+            assertTrue(hasText(R.string.draft_saving))
+            assertFalse(oldValue.isShowing)
+            assertTrue(field(R.string.draft_title).isEnabled)
+            field(R.string.draft_title).setText("newer input during inspection save")
+            assertTrue(hasText(R.string.draft_saving_pending))
+        } finally { release.countDown() }
+        blocked.get(15, TimeUnit.SECONDS)
+        await { hasText(R.string.draft_unsaved) && button(R.string.save_draft).isEnabled }
+        val intermediate = loaded()
+        assertEquals(first.revision + 1, intermediate.revision)
+        assertEquals("captured while inspecting", intermediate.fields.title)
+        shadowOf(oldFields).clickOnItem(0); oldBack.performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+        assertSame(oldValue, dialog())
+        assertFalse(oldValue.isShowing)
+        assertEquals("newer input during inspection save", field(R.string.draft_title).text.toString())
+        assertEquals(intermediate.baselineIdentity, loaded().baselineIdentity)
+        val fresh = openFields()
+        assertNotSame(oldFields, fresh)
+        assertTrue(fresh.isShowing)
+        advance(750)
+        await { hasText(R.string.draft_saved) }
+        assertFalse(fresh.isShowing)
+        val last = loaded()
+        assertEquals(first.revision + 2, last.revision)
+        assertEquals("newer input during inspection save", last.fields.title)
+        assertEquals(listOf("acknowledged", "captured while inspecting", "newer input during inspection save"),
+            last.history.map { it.fields?.title })
+        assertTrue(openFields().isShowing)
+        advance(60_000)
+        drain()
+        assertEquals(last.baselineIdentity, loaded().baselineIdentity)
     }
 
     @Test fun recreationBeforeTheDelayRetainsPendingInputAndOnlyTheNewEditorCanSaveIt() {
