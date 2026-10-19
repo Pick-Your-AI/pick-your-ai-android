@@ -1193,5 +1193,146 @@ class SystemBarEvidenceTests(unittest.TestCase):
                 self.assertFalse(SMOKE.system_bar_evidence_passes(state))
                 self.assertEqual(state, saved)
 
+
+    def test_taskbar_optional_measurement_prefixes_do_not_depend_on_one_property_name(self):
+        source = taskbar_text()
+        tabbed = []
+        for line in source.splitlines():
+            spaces = len(line) - len(line.lstrip(' '))
+            tabbed.append('    ' + '\t' * ((spaces - 4) // 2) + line.lstrip(' ')
+                          if spaces >= 4 else line)
+        metrics = (
+            '\t\tfolderChildIconSizePx: 98.0px (56.0dp)\n',
+            '\t\tdesiredWorkspaceHorizontalMarginPx: 14.0px (8.0dp)\n',
+            '\t\tadditionalMeasurementPx: 1.0E2px (5.0E1dp)\n',
+        )
+        for reference in (source, '\n'.join(tabbed) + '\n'):
+            for subset in (metrics[:1], metrics[1:2], metrics[2:], metrics):
+                raw = reference.replace('    AssistStateManager:\n',
+                                        ''.join(subset) + '    AssistStateManager:\n')
+                state = self.passing_state()
+                self.rebound_taskbar(state, raw)
+                saved = copy.deepcopy(state)
+                with self.subTest(reference=reference, metrics=subset):
+                    self.assertTrue(SMOKE.taskbar_state_fields_pass(raw))
+                    self.assertTrue(SMOKE.system_bar_evidence_passes(state))
+                    self.assertEqual(state, saved)
+
+    def test_taskbar_optional_measurement_prefix_never_supplies_authoritative_fields(self):
+        metric = '\t\tdesiredWorkspaceHorizontalMarginPx: 14.0px (8.0dp)\n'
+        reference = taskbar_text()
+        source = reference.replace('    AssistStateManager:\n',
+                                   metric + '    AssistStateManager:\n')
+        candidates = {
+            'duplicate_unprefixed': source.replace(metric, metric + metric),
+            'duplicate_regular_prefix': source.replace(metric, '        ' + metric.lstrip('\t') + metric),
+            'foreign_heading': source.replace('desiredWorkspaceHorizontalMarginPx:', 'ForeignProfile:'),
+            'capitalized_name': source.replace('desiredWorkspaceHorizontalMarginPx:', 'DesiredWorkspaceHorizontalMarginPx:'),
+            'underscore_name': source.replace('desiredWorkspaceHorizontalMarginPx:', 'workspace_marginPx:'),
+            'missing_px_name_suffix': source.replace('desiredWorkspaceHorizontalMarginPx:', 'desiredWorkspaceHorizontalMargin:'),
+            'overlong_name': source.replace('desiredWorkspaceHorizontalMarginPx:', 'a' * 66 + 'Px:'),
+            'one_tab': source.replace(metric, metric[1:]),
+            'spaces_only': source.replace(metric, metric.replace('\t', ' ')),
+            'three_tabs': source.replace(metric, '\t' + metric),
+            'missing_value': source.replace('14.0px (8.0dp)', ''),
+            'extra_suffix': source.replace('14.0px (8.0dp)', '14.0px (8.0dp) extra'),
+            'nonfinite_px': source.replace('14.0px', 'NaNpx'),
+            'nonfinite_dp': source.replace('8.0dp', 'Infinitydp'),
+            'zero_px': source.replace('14.0px', '0px'),
+            'negative_dp': source.replace('8.0dp', '-8.0dp'),
+            'overlong_number': source.replace('14.0px', '1' * 33 + 'px'),
+            'before_profile': source.replace(metric, '').replace('      DeviceProfile:\n',
+                                                                 metric + '      DeviceProfile:\n'),
+            'foreign_boundary': source.replace('        isPhone:true\n',
+                                                '      ForeignProfile:\n        isPhone:true\n'),
+            'missing_peer': source.replace('    AssistStateManager:\n', ''),
+            'missing_own_profile': source.replace('      DeviceProfile:\n', ''),
+            'missing_required_flag': source.replace('        isTaskbarPresentInApps:false\n', ''),
+            'actual_io_failure': source + '    Failure while dumping the service: java.io.IOException: Timeout\n',
+            'actual_remote_failure': source + '    Got a RemoteException while dumping the service\n',
+        }
+        for name in ('widthPx', 'heightPx', 'availableWidthPx', 'availableHeightPx'):
+            existing = next(line for line in source.splitlines(True) if line.startswith('        ' + name + ':'))
+            unprefixed = '\t\t' + existing.lstrip(' ')
+            candidates['required_depth_' + name] = source.replace(existing, unprefixed)
+            candidates['required_duplicate_' + name] = source.replace(existing, existing + unprefixed)
+        for label, raw in candidates.items():
+            state = self.passing_state()
+            self.rebound_taskbar(state, raw)
+            saved = copy.deepcopy(state)
+            with self.subTest(label=label):
+                self.assertFalse(SMOKE.taskbar_state_fields_pass(raw))
+                self.assertFalse(SMOKE.system_bar_evidence_passes(state))
+                self.assertEqual(state, saved)
+
+    def test_taskbar_optional_measurement_handles_reference_transfer_pipe_read_boundary(self):
+        # A direct transcription of Android15-r1 TransferPipe.run's byte loop,
+        # limited to this harmless in-memory fixture; no pipe/process is opened.
+        def transfer(chunks):
+            output = bytearray()
+            need_prefix = True
+            for buffer in chunks:
+                self.assertTrue(0 < len(buffer) <= 1024)
+                start = 0
+                index = 0
+                while index < len(buffer):
+                    if buffer[index] != 10:
+                        if index > start:
+                            output.extend(buffer[start:index])
+                        start = index
+                        if need_prefix:
+                            output.extend(b'    ')
+                            need_prefix = False
+                        index += 1
+                        while index < len(buffer) and buffer[index] != 10:
+                            index += 1
+                        if index < len(buffer):
+                            need_prefix = True
+                    index += 1
+                if len(buffer) > start:
+                    output.extend(buffer[start:])
+            return bytes(output)
+
+        def bounded_chunks(segment):
+            chunks = []
+            while len(segment) > 1024:
+                cut = segment.rfind(b'\n', 0, 1024) + 1
+                self.assertGreater(cut, 0)
+                chunks.append(segment[:cut])
+                segment = segment[cut:]
+            if segment:
+                chunks.append(segment)
+            return chunks
+
+        lines = []
+        for line in taskbar_text().splitlines():
+            spaces = len(line) - len(line.lstrip(' '))
+            lines.append('    ' + '\t' * ((spaces - 4) // 2) + line.lstrip(' ')
+                         if spaces >= 4 else line)
+        raw = '\n'.join(lines) + '\n'
+        header, client_body = raw.split('  Client:\n', 1)
+        header += '  Client:\n'
+        client_body = ''.join(line[4:] if line.startswith('    ') else line
+                              for line in client_body.splitlines(True))
+        metric = '\t\tdesiredWorkspaceHorizontalMarginPx: 14.0px (8.0dp)\n'
+        client_body = client_body.replace('AssistStateManager:\n', metric + 'AssistStateManager:\n')
+        payload = client_body.encode()
+        split = payload.index(metric.encode()) - 1
+        self.assertEqual(payload[split:split + 1], b'\n')
+        normal = header + transfer(bounded_chunks(payload[:split + 1]) +
+                                   bounded_chunks(payload[split + 1:])).decode()
+        lost_wrapper = header + transfer(bounded_chunks(payload[:split]) +
+                                         bounded_chunks(payload[split:])).decode()
+        self.assertIn('    ' + metric, normal)
+        self.assertEqual(lost_wrapper, normal.replace('    ' + metric, metric, 1))
+        for result in (normal, lost_wrapper):
+            state = self.passing_state()
+            self.rebound_taskbar(state, result)
+            saved = copy.deepcopy(state)
+            with self.subTest(raw=result):
+                self.assertTrue(SMOKE.taskbar_state_fields_pass(result))
+                self.assertTrue(SMOKE.system_bar_evidence_passes(state))
+                self.assertEqual(state, saved)
+
 if __name__ == '__main__':
     unittest.main()

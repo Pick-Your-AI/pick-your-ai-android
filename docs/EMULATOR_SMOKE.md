@@ -2394,3 +2394,64 @@ pixels or grant installed acceptance. The original four passed product
 rows and existing overall-failure JUnit row remain failed receiving
 evidence. Query order/budgets, image thresholds, source/APK bindings,
 rotation, viewport and ACL cleanup are unchanged.
+
+#### Optional measurement data at a TransferPipe read boundary
+
+The [complete original555 qualification6261810524](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/467#issuecomment-6261810524)
+independently recomputed both navigation pairs from original PNG/XML bytes and
+qualified all four product cases on exact555242a4 / e683cddb. Its separate
+status-bar measurement used each original WMS42-pixel visible rectangle;
+shown-dialog attributes omitted both DIM_BEHIND and BLUR_BEHIND. The overall job remains failed: the current parser admits
+05/06/07 and rejects08 because a different unrelated own-profile scalar,
+`desiredWorkspaceHorizontalMarginPx: 14.0px (8.0dp)`, retains only its two client
+tabs. Original06 has the same property/value with the four wrapper spaces.
+The old folder-specific exception therefore does not address the transport
+boundary. The exact original ZIP remains1,137,755bytes, SHA256
+`b0b2f023c5a0d4e0432c332298d4c77ee6e1dd5a2ef52a552f74a3c30a2baa1d`.
+The full original qualification and new-source receiving gate remain separate.
+
+The directly read pinned
+[Android15-r1 TransferPipe](https://github.com/aosp-mirror/platform_frameworks_base/blob/4e43ad12e1b211f15152e9c5b16b0fe88e6b93f3/core/java/com/android/internal/os/TransferPipe.java),
+Git blob `1c09bd6a2a66978a55447492ef9b29e598a778b4`,10,000bytes,
+provides a concrete reference mechanism. Its1024-byte read loop does not reset
+`needPrefix` when a continuation read starts with LF. If the preceding read
+ended before that LF, the next client line can lose the wrapper prefix. This
+is a byte-framing property, not a property-name exception. The source is a
+reference; it is not an exact installed-binary identity.
+
+The parser now recognizes optional measurement-shaped data in the completed
+own-profile interval: exactly two tabs, a bounded lower-camel identifier ending
+in `Px`, and the existing bounded finite-positive px/dp syntax. Per-key
+occurrence counts are collected once; two linear passes avoid rescanning the
+entire section for each property. Distinct optional measurements may coexist,
+but a repaired key duplicated with either lexical prefix remains unqualified.
+Raw lines and all original hashes stay unchanged.
+
+The four required dimension names are explicitly excluded from this allowance.
+An outlying line cannot supply density, a required dimension or boolean,
+context/controller fields, any heading or the later peer. Their original exact
+depth, uniqueness and value checks remain. Wrong prefixes, malformed or
+nonpositive measurements, structural escapes, missing boundaries and both
+service-forwarding failures still reject. This is an allowance for ignorable
+positive measurement data, not general whitespace repair or a claim of complete
+service output. It changes no product appearance, pixel threshold, image/data
+binding, command/budget, rotation, viewport or ACL behavior.
+
+All55 prior method bodies are retained. Three new methods cover both observed
+properties, a clearly synthetic additional measurement, simultaneous optional
+measurements, authoritative-field and malformed-input controls, and a direct
+in-memory transcription of the pinned TransferPipe loop. The reference framing
+control produces the exact lost-prefix form by moving a read boundary across
+one LF; it opens no process, pipe, device or network. Normal local discovery
+ran all58 methods in15.103seconds with zero failures/errors/skips. The same three
+new methods, executed against unchanged4007 and then this candidate, produce
+seven causal subcase failures on the unchanged parser and zero failures on the
+candidate. The correctly prefixed reference remains a passing control; the
+required-field/malformed-input method passes under both implementations. All55
+previous test bodies are byte-identical. These are host-only synthetic receipt
+and image-fixture checks, without SDK/ADB/emulator or privilege execution.
+
+All four unchanged original555 parser replays and a new configured receiving
+result remain separately required. The earlier efe55-pass
+qualification6260931149 remains attributed to its own source and original298
+streams; it does not qualify this continuation automatically.

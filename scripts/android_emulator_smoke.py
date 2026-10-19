@@ -1491,23 +1491,29 @@ def taskbar_state_fields_pass(text: str) -> bool:
     if profile is None or profile[0] <= navbar[0] or profile[1] != context[1]:
         return False
 
-    # Original298 dump08 retains one unrelated scalar without ActiveServices'
-    # four wrapper spaces. Admit only that observed lexical form, inside this
-    # selected profile, without normalizing text or treating it as a required field.
-    optional = [index for index in range(profile[0] + 1, completion[0])
-                if re.match(r"^[ \t]*folderChildIconSizePx:", lines[index])]
-    scalar_index = None
-    if len(optional) == 1:
-        match = re.fullmatch(r"\t\tfolderChildIconSizePx: (\S+)px \((\S+)dp\)", lines[optional[0]])
-        if match is not None and positive(match.groups()):
-            scalar_index = optional[0]
+    # TransferPipe can omit its wrapper prefix after a read starts with LF.
+    # Only optional positive measurement data in this completed own profile
+    # may use the observed two-tab client prefix. Raw text is never rewritten,
+    # and these indices cannot supply a required field or a structural heading.
+    required_dimensions = {"widthPx", "heightPx", "availableWidthPx", "availableHeightPx"}
+    measurement_names = {}
+    for index in range(profile[0] + 1, completion[0]):
+        name = re.match(r"^[ \t]*([a-z][A-Za-z0-9]{0,63}Px):", lines[index])
+        if name is not None:
+            measurement_names[name[1]] = measurement_names.get(name[1], 0) + 1
+    scalar_indices = set()
+    for index in range(profile[0] + 1, completion[0]):
+        match = re.fullmatch(r"\t\t([a-z][A-Za-z0-9]{0,63}Px): (\S+)px \((\S+)dp\)", lines[index])
+        if (match is not None and match[1] not in required_dimensions
+                and measurement_names[match[1]] == 1 and positive(match.groups()[1:])):
+            scalar_indices.add(index)
 
     if (any(lines[index].strip() and indentation(lines[index]) <= manager[1]
-            for index in range(manager[0] + 1, completion[0]) if index != scalar_index)
+            for index in range(manager[0] + 1, completion[0]) if index not in scalar_indices)
             or any(line.strip() and indentation(line) <= context[1]
                    for line in lines[context[0] + 1:profile[0]])
             or any(lines[index].strip() and indentation(lines[index]) <= profile[1]
-                   for index in range(profile[0] + 1, completion[0]) if index != scalar_index)):
+                   for index in range(profile[0] + 1, completion[0]) if index not in scalar_indices)):
         return False
 
     def field(section, name, separator, pattern, depth):
