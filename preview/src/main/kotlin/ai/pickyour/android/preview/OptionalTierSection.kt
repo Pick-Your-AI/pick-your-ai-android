@@ -31,10 +31,11 @@ class OptionalTierSection(context: Context,
                     if (closed || !editable) return@setOnClickListener
                     val expected = savedBaseline ?: return@setOnClickListener
                     val choices = Activation.entries
+                    val checked = choices.indexOf(expected.optionalTiers.getValue(tier).activation)
                     lateinit var picker: AlertDialog
                     picker = AlertDialog.Builder(context).setTitle(tier.name)
-                        .setItems(choices.map { label(it) }.toTypedArray()) { _, index ->
-                            if (!current(picker, expected)) return@setItems
+                        .setSingleChoiceItems(choices.map { label(it) }.toTypedArray(), checked) { _, index ->
+                            if (!current(picker, expected)) return@setSingleChoiceItems
                             val next = choices[index]
                             lateinit var confirmation: AlertDialog
                             confirmation = AlertDialog.Builder(context).setTitle(tier.name)
