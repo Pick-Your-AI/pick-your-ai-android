@@ -169,6 +169,10 @@ admits those two T6 kinds. It retains every command rejection assertion for
 foundation method to `retained deployment monitoring and cost policy kinds stay
 outside this command subset`. That later admission and its new dedicated tests
 do not change the historical T5 source or execution attribution above.
+The further [operational continuation](OPERATIONAL_SELECTIONS.md) admits those
+three remaining frozen kinds and explicitly retitles the foundation case again.
+Their new positive/negative coverage preserves unknown future-kind rejection;
+the historical T5 and two-kind T6 results retain their original source boundaries.
 
 | Original #129 criterion | Delivered local scope and remaining acceptance |
 | --- | --- |
