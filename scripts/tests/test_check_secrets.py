@@ -379,6 +379,37 @@ class PublicChecksumDispositionTest(unittest.TestCase):
             self.assertEqual(0, disposition["reviewed_count"])
             self.assertEqual([row], disposition["unresolved_findings"])
 
+    def test_repeated_public_findings_preserve_every_parent_diff_observation(self):
+        # --diff-merges=separate can report one literal public line once per
+        # parent diff. Keep all occurrences, including their original order.
+        rows = [self.row()] * 3 + [self.row("b" * 40), self.row("c" * 40)]
+        raw = self.result(copy.deepcopy(rows))
+        before = copy.deepcopy(raw)
+        with patch.object(check, "verify_checksum_finding") as verify:
+            disposition = check.classify_reviewed_findings(Path("source"), "d" * 40, raw)
+        self.assertEqual(before, raw)
+        self.assertEqual(5, disposition["reviewed_count"])
+        self.assertEqual(0, disposition["unresolved_count"])
+        self.assertEqual(rows, [
+            {key: finding[key] for key in ("rule_id", "file", "line", "commit")}
+            for finding in disposition["reviewed_findings"]
+        ])
+        self.assertEqual(["a" * 40, "b" * 40, "c" * 40],
+                         [call.args[1] for call in verify.call_args_list])
+        self.assertTrue(all(call.args[0] == Path("source") and call.args[2] == "d" * 40
+                            for call in verify.call_args_list))
+
+    def test_repeated_public_findings_cannot_bypass_any_commit_evidence(self):
+        rows = [self.row()] * 3 + [self.row("b" * 40), self.row("c" * 40)]
+        for failed_commit in ("a" * 40, "b" * 40, "c" * 40):
+            def verify(target, commit, source_commit):
+                if commit == failed_commit:
+                    raise check.ScanFailure(check.CHECKSUM_EVIDENCE_ERROR)
+            with self.subTest(commit=failed_commit), \
+                    patch.object(check, "verify_checksum_finding", side_effect=verify), \
+                    self.assertRaisesRegex(check.ScanFailure, check.CHECKSUM_EVIDENCE_ERROR):
+                check.classify_reviewed_findings(Path("source"), "d" * 40, self.result(rows))
+
     def test_mixed_findings_preserve_the_unresolved_finding(self):
         unknown = {**self.row(), "file": "unreviewed.txt", "rule_id": "github-pat"}
         raw = self.result([self.row(), unknown])
@@ -391,10 +422,11 @@ class PublicChecksumDispositionTest(unittest.TestCase):
 
     def test_malformed_duplicate_or_inconsistent_disposition_input_fails(self):
         valid = self.result([self.row()])
+        unreviewed = {**self.row(), "file": "unreviewed.txt"}
         invalid = [None, {}, {**valid, "extra": "PRIVATE_METADATA"},
                    {**valid, "exit_code": 0}, {**valid, "exit_code": True},
                    {**valid, "finding_count": 0}, {**valid, "finding_count": True},
-                   self.result([self.row(), self.row()])]
+                   self.result([unreviewed, unreviewed])]
         for key, value in (("line", True), ("line", 0), ("commit", "unknown"),
                            ("rule_id", "unstructured private text"), ("file", "")):
             invalid.append(self.result([{**self.row(), key: value}]))
@@ -496,7 +528,9 @@ class PublicChecksumDispositionTest(unittest.TestCase):
     def test_entrypoint_never_calls_reviewed_or_mixed_findings_zero_raw(self):
         other = {**self.row(), "file": "other.txt", "rule_id": "github-pat"}
         cases = [([], 0, "passed", 0), ([self.row()], 0, "passed_with_reviewed_findings", 0),
-                 ([self.row(), other], 1, "failed", 1), ([other], 1, "failed", 1)]
+                 ([self.row()] * 3, 0, "passed_with_reviewed_findings", 0),
+                 ([self.row(), other], 1, "failed", 1),
+                 ([self.row()] * 3 + [other], 1, "failed", 1), ([other], 1, "failed", 1)]
         for rows, exit_code, status, unresolved in cases:
             with self.subTest(status=status, rows=len(rows)), tempfile.TemporaryDirectory() as temporary:
                 root = Path(temporary)
