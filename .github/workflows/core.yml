@@ -922,6 +922,8 @@ jobs:
               "acknowledgedCountsAndPendingInputsStayDistinctAcrossRecreation",
               "aDelayedReadWithholdsCountsAndOldActionsUntilActualCompletion",
               "componentActionsUseCurrentEditorsAndNeverReplayIntoANewDraft",
+              "successfulComponentFormsRefreshTheSummaryAfterEachAcknowledgedSave",
+              "discardingRecoveredComponentInputRefreshesTheSummaryWithoutOtherEdits",
               "pauseAndRecreationRetireSummaryActionsWithoutDroppingPendingText",
               "unconfirmedRestorationCannotBorrowTheOldRevisionOrItsActions",
               "fixedReportsCannotPopulateCurrentEvaluationOrCostAfterEditsOrSave",
