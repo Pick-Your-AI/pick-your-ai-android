@@ -188,3 +188,38 @@ assertion, the distinct old-anchor destination, filter/page state, real saved
 identity and disk bytes remain required. No production, resource or workflow
 byte changes in this correction. Its actual new execution must be qualified
 separately; the original 377-method/one-failure observation remains retained.
+
+
+### Focus-separated causal navigation fixture
+
+The first correction also remained red: source `9b137afe`, actual prepared
+`b98863a0`/tree `0a97a121`, run `39203297813` and native job
+`117900657150` executed all 377 native methods with one failure. The original
+XML again identifies the direct branch, expected scroll 111 and actual 2328,
+at line 430. All ten method identities were present; nine guide methods passed.
+The new before/after saved-state checks passed, so the actual old anchor was
+present before the reference action and absent afterward, before read-ready.
+This does not turn the final failed scroll assertion into a pass, nor prove that
+a catalog restoration callback caused the remaining movement. The accessibility
+branch of that failed method was still not reached.
+
+The next test-only correction explicitly gives the chosen guide button focus
+and settles that navigation before recording its position. Android's pinned
+[API-28 ScrollView implementation](https://android.googlesource.com/platform/frameworks/base/+/android-9.0.0_r3/core/java/android/widget/ScrollView.java)
+can reveal a descendant when focus changes, separately from the catalog's
+pre-draw restoration. The artificial leading gap and a programmatic click do
+not themselves establish a focused guide. This is a source-based explanation
+of a confound to isolate, not an observed original focus trace.
+
+For both direct and accessibility actions, the fixture now verifies the actual
+guide focus before and after catalog readiness, separately checks that enabling
+the controls does not move that focused viewport, and retains the original
+final unchanged-scroll assertion after pre-draw. Each action also has a causal
+negative control with the same real catalog, view hierarchy and guide: only the
+test-supplied navigation cancellation is omitted. That branch must preserve the
+exact pending hash/row/offset and actually restore the old, distinct destination.
+The successful branch must consume the old anchor before readiness and preserve
+the selected reference position. Both branches retain the filter/page, exact
+saved-baseline/disk and no-outgoing-Intent checks. No production, resource,
+workflow, test-method identity or authority boundary changes in this correction;
+actual corrected execution and review remain separate gates.

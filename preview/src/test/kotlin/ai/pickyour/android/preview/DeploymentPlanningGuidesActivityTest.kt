@@ -361,7 +361,7 @@ class DeploymentPlanningGuidesActivityTest {
         save()
         val record = loaded()
         val retained = disk()
-        for (accessibility in listOf(false, true)) {
+        for (accessibility in listOf(false, true)) for (cancelNavigation in listOf(true, false)) {
             val extra = Robolectric.buildActivity(android.app.Activity::class.java).setup()
             val owner = extra.get()
             try {
@@ -378,7 +378,11 @@ class DeploymentPlanningGuidesActivityTest {
                 val scroll = CatalogViewportScrollView(owner).apply { onUserNavigation = catalog::cancelViewportRestore }
                 val content = android.widget.LinearLayout(owner).apply { orientation = android.widget.LinearLayout.VERTICAL }
                 content.addView(View(owner), android.widget.LinearLayout.LayoutParams(-1, 600))
-                val section = T6PlanningSection(owner, { !owner.isDestroyed }, catalog::cancelViewportRestore) { kind ->
+                val section = T6PlanningSection(owner, { !owner.isDestroyed }, {
+                    // The false branch is a causal negative control: the same guide opens,
+                    // but the real catalog keeps its original pending restoration.
+                    if (cancelNavigation) catalog.cancelViewportRestore()
+                }) { kind ->
                     assertTrue(catalog.browseKind(kind.catalogKind))
                 }
                 content.addView(section)
@@ -407,13 +411,26 @@ class DeploymentPlanningGuidesActivityTest {
                 val control = views(reference).filterIsInstance<Button>().single {
                     it.text.toString() == owner.getString(R.string.deployment_guide_open, owner.getString(R.string.deployment_guide_api))
                 }
+                // Give the explicitly chosen reference real focus before recording its viewport.
+                // The artificial leading gap otherwise leaves ScrollView holding focus; enabling
+                // rows may reveal a newly focusable descendant independently of restoration.
+                assertTrue(control.requestFocus())
+                layout()
+                assertSame(control, owner.currentFocus)
                 assertTrue(if (accessibility)
                     control.performAccessibilityAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK, null)
                     else control.performClick())
                 assertTrue(control.isSelected)
                 val afterReference = Bundle().also(catalog::saveState)
-                assertFalse("Explicit reference navigation retires the pending anchor before read-ready",
-                    afterReference.containsKey("catalogViewportHash"))
+                if (cancelNavigation) {
+                    assertFalse("Explicit reference navigation retires the pending anchor before read-ready",
+                        afterReference.containsKey("catalogViewportHash"))
+                } else {
+                    assertEquals("Without cancellation the actual old anchor must remain pending",
+                        hash, afterReference.getString("catalogViewportHash"))
+                    assertEquals("guide-row-2", afterReference.getString("catalogViewportId"))
+                    assertEquals(-17, afterReference.getInt("catalogViewportOffset"))
+                }
                 layout()
                 val position = scroll.scrollY
                 val row = views(catalog).filterIsInstance<Button>().single {
@@ -423,11 +440,22 @@ class DeploymentPlanningGuidesActivityTest {
                 val viewPoint = IntArray(2)
                 row.getLocationInWindow(rowPoint)
                 scroll.getLocationInWindow(viewPoint)
+                val oldDestination = position + rowPoint[1] - viewPoint[1] + 17
                 assertNotEquals("The old catalog anchor must differ from explicit reference navigation",
-                    position, position + rowPoint[1] - viewPoint[1] + 17)
+                    position, oldDestination)
+                assertSame("The explicit reference owns focus before readiness", control, owner.currentFocus)
                 catalog.selectionEnabled(true)
+                assertSame("Readiness must not replace the explicit reference focus", control, owner.currentFocus)
+                assertEquals("Enabling catalog controls alone retains the reference viewport", position, scroll.scrollY)
                 scroll.viewTreeObserver.dispatchOnPreDraw()
-                assertEquals("Reference action accessibility=$accessibility supersedes delayed catalog restoration", position, scroll.scrollY)
+                if (cancelNavigation) {
+                    assertEquals("Reference action accessibility=$accessibility supersedes delayed catalog restoration",
+                        position, scroll.scrollY)
+                } else {
+                    assertEquals("Without cancellation accessibility=$accessibility must restore the real old anchor",
+                        oldDestination, scroll.scrollY)
+                    assertNotEquals("The negative control must visibly move away from the reference", position, scroll.scrollY)
+                }
                 val after = Bundle().also(catalog::saveState)
                 assertEquals("", after.getString("catalogQuery"))
                 assertNull(after.getString("catalogKind"))
