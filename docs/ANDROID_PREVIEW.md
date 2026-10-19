@@ -775,8 +775,8 @@ and the current draft remain unchanged.
 
 These are bounded in-memory fixture pages, not a remote pagination protocol. API
 cursor contracts, cancellable remote search, next-page network failure/retry,
-reverse-order transport responses, real catalog publication/labels, exact pixel
-scroll restoration and installed navigation/accessibility/process-death evidence
+reverse-order transport responses, real catalog publication/labels and installed
+navigation/accessibility/process-death evidence
 remain separate #82 acceptance work. The generic catalog-loading worker applies
 the current query state when a fixture read finishes, so an earlier query cannot
 append rows into a newer query. No search request is sent to a service and no
@@ -955,3 +955,12 @@ Lint retained zero errors and nine warning entries across the same three kinds.
 Frozen/reference and delivery-ledger checks passed. Hosted exact-head verification,
 reviewed signed delivery, installed-device evidence and complete work-package
 acceptance remain separate; these observations do not close a delivery criterion.
+
+[Catalog viewport restoration](CATALOG_VIEWPORT.md) supplies the bounded local
+list-position portion of #82 criterion 3. The Activity retains the first visible
+catalog row's exact ID, version, snapshot hash and offset in transient Bundle
+state. After the same snapshot and current layout load, it restores that row once;
+new navigation cancels a pending restoration. Twelve required simulated tests cover
+the actual Activity's details/recreation path and the restoration, mismatch,
+loading, lifecycle and input boundaries. Installed navigation, accessibility,
+process-death and canonical receiving evidence remain separate requirements.
