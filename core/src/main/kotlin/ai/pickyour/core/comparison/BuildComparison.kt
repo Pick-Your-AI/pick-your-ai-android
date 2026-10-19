@@ -17,7 +17,7 @@ data class SnapshotIdentity(val buildId: String, val revision: BigInteger) {
     init { require(buildId.isNotBlank() && revision.signum() > 0) }
     override fun toString(): String = "SnapshotIdentity"
 }
-enum class SnapshotProblem { INVALID_INPUT, SCHEMA_MISMATCH, IDENTITY_MISMATCH, DUPLICATE_SELECTION_ID, DUPLICATE_LINK_ID }
+enum class SnapshotProblem { INVALID_INPUT, SCHEMA_MISMATCH, IDENTITY_MISMATCH, DUPLICATE_SELECTION_ID, DUPLICATE_LINK_ID, UNSUPPORTED_SCHEMA_VERSION }
 sealed interface SnapshotRead {
     class Available(val snapshot: ComparisonSnapshot) : SnapshotRead
     data class Rejected(val reason: SnapshotProblem) : SnapshotRead
@@ -42,6 +42,10 @@ class ComparisonSnapshot private constructor(private val document: ObjectNode, v
             val parsed = BoundedJsonReader().read(input) as? JsonInputResult.Parsed
                 ?: return SnapshotRead.Rejected(SnapshotProblem.INVALID_INPUT)
             val node = parsed.value
+            val version = node["schema_version"]
+            if (version?.isTextual == true && version.textValue() != "1.0.0") {
+                return SnapshotRead.Rejected(SnapshotProblem.UNSUPPORTED_SCHEMA_VERSION)
+            }
             if (validator.validate(FrozenDocument.BUILD, mapper.writeValueAsBytes(node).inputStream()) != FrozenValidation.Valid) {
                 return SnapshotRead.Rejected(SnapshotProblem.SCHEMA_MISMATCH)
             }
