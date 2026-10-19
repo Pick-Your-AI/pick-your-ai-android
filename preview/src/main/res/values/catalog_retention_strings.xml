@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The bundled synthetic catalog remains usable now; the exact bytes may be unavailable later. -->
+    <string name="catalog_retention_unconfirmed">Keeping this catalog version for later inspection could not be confirmed. You can still browse it now. Reload the bundled catalog to retry.</string>
+    <string name="catalog_retention_limit">Catalog history storage is full. Existing retained versions are preserved. You can browse this catalog now, but this version could not be kept for later inspection.</string>
+</resources>
