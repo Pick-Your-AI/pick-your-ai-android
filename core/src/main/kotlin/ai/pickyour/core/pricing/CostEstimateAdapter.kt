@@ -10,7 +10,8 @@ import java.math.BigInteger
 import java.util.Collections
 
 enum class CostRejection { INVALID_BUILD, INVALID_ESTIMATE, MISSING_PRICEBOOK_PIN, BINDING_MISMATCH,
-    DUPLICATE_ID, UNKNOWN_SELECTION, MIXED_CURRENCY, INCONSISTENT_AMOUNTS, INCONSISTENT_COVERAGE }
+    DUPLICATE_ID, UNKNOWN_SELECTION, MIXED_CURRENCY, INCONSISTENT_AMOUNTS, INCONSISTENT_COVERAGE,
+    UNSUPPORTED_BUILD_SCHEMA_VERSION, UNSUPPORTED_ESTIMATE_SCHEMA_VERSION }
 enum class DeclaredCoverage { COMPLETE, PARTIAL, UNKNOWN }
 enum class CostEvidence { NOT_ESTABLISHED }
 sealed interface CostReception {
@@ -72,8 +73,14 @@ class CostEstimateAdapter {
     private val validator = FrozenSchemaValidator()
 
     fun inspect(build: InputStream, estimate: InputStream): CostReception {
-        val b = parse(FrozenDocument.BUILD, build) ?: return reject(CostRejection.INVALID_BUILD)
-        val e = parse(FrozenDocument.COST_ESTIMATE, estimate) ?: return reject(CostRejection.INVALID_ESTIMATE)
+        val b = parse(build) ?: return reject(CostRejection.INVALID_BUILD)
+        if (unsupportedVersion(b)) return reject(CostRejection.UNSUPPORTED_BUILD_SCHEMA_VERSION)
+        if (validator.validate(FrozenDocument.BUILD, b.toString().byteInputStream()) != FrozenValidation.Valid)
+            return reject(CostRejection.INVALID_BUILD)
+        val e = parse(estimate) ?: return reject(CostRejection.INVALID_ESTIMATE)
+        if (unsupportedVersion(e)) return reject(CostRejection.UNSUPPORTED_ESTIMATE_SCHEMA_VERSION)
+        if (validator.validate(FrozenDocument.COST_ESTIMATE, e.toString().byteInputStream()) != FrozenValidation.Valid)
+            return reject(CostRejection.INVALID_ESTIMATE)
         val pricebook = b["locks"]["pricebook_id"] ?: return reject(CostRejection.MISSING_PRICEBOOK_PIN)
         if (e["build_id"] != b["id"] || e["build_revision"].bigIntegerValue() != b["revision"].bigIntegerValue() ||
             e["pricebook_id"] != pricebook) return reject(CostRejection.BINDING_MISMATCH)
@@ -108,9 +115,8 @@ class CostEstimateAdapter {
             return reject(CostRejection.INCONSISTENT_AMOUNTS)
         return CostReception.Inspected(InspectedCostEstimate(e, active - priced - unpriced))
     }
-    private fun parse(type: FrozenDocument, input: InputStream): JsonNode? {
-        val node = (reader.read(input) as? JsonInputResult.Parsed)?.value ?: return null
-        return if (validator.validate(type, node.toString().byteInputStream()) == FrozenValidation.Valid) node else null
-    }
+    private fun parse(input: InputStream): JsonNode? = (reader.read(input) as? JsonInputResult.Parsed)?.value
+    private fun unsupportedVersion(node: JsonNode): Boolean =
+        node["schema_version"]?.let { it.isTextual && it.textValue() != "1.0.0" } == true
     private fun reject(reason: CostRejection) = CostReception.Rejected(reason)
 }

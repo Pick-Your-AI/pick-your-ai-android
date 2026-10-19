@@ -52,7 +52,7 @@ internal class CatalogSourceNavigation(
         }
         lateinit var dialog: AlertDialog
         val builder = AlertDialog.Builder(activity)
-            .setTitle(activity.getString(R.string.catalog_source_page, page + 1, pages, detail.provenance.size))
+            .setTitle(activity.resources.getQuantityString(R.plurals.catalog_source_page, detail.provenance.size, page + 1, pages, detail.provenance.size))
             .setItems(rows.toTypedArray()) { _, index ->
                 if (current(dialog) && index in rows.indices) confirm(start + index)
             }
