@@ -20,7 +20,12 @@ evidence.
 | --- | --- | --- | --- |
 | `Frozen contracts and JVM core` | [core.yml](../.github/workflows/core.yml), `core` | Frozen-byte/reference and tamper checks, delivery-ledger checks, wrapper integrity, JVM core check and assembly | Core JUnit results, test reports and library output |
 | `Unsigned synthetic Android preview` | [core.yml](../.github/workflows/core.yml), `android-preview` | Wrapper integrity, strict dependency verification, unsigned APK assembly, Android lint and all named Activity simulations without failures or skips | Original unsigned APK, lint report and simulated Activity results |
-| `Pinned secret scanning` | [secrets.yml](../.github/workflows/secrets.yml), `secrets` | Scanner guards, the actual pinned CLI's required negative fixtures and a clean scan of the exact checked-out source's reachable history | Sanitized `secret-scan.json` with source/tree, tool hashes, fixture results and finding metadata |
+| `Pinned secret scanning` | [secrets.yml](../.github/workflows/secrets.yml), `secrets` | Scanner guards, the actual pinned CLI's required negative fixtures and a scan of the exact checked-out source's reachable history with zero unresolved findings | Sanitized `secret-scan.json` with source/tree, tool hashes, fixture results and finding metadata |
+
+`passed` means zero raw findings. `passed_with_reviewed_findings` retains the raw
+findings and means every finding satisfied the exact reviewed public-checksum
+proof with zero unresolved findings. These outcomes must remain distinct in
+reviews and downstream summaries.
 
 These unique names were observed on baseline `3850018` as GitHub Actions checks
 (application slug `github-actions`, application ID `15368`). Both workflows run
@@ -53,6 +58,13 @@ retains its actual four-case gate and failed diagnostic receipts. Its future che
 name must not be configured as required until the reviewed job exists on main.
 
 ## Intended main policy and observed configuration
+
+### Historical unsaved proposal (2026-10-18)
+
+The following proposal and authentication attempt are historical. Do not replay
+their zero-approval or empty-bypass settings over the later live review rules.
+The [current additive correction](#current-required-status-gap-2026-10-19-observation)
+preserves those rules after a fresh read; neither proposal is applied by this file.
 
 The independent source review and coordinating-agent review accepted this
 concrete, prepared ruleset configuration on 2026-10-18. It has not been saved:
@@ -107,6 +119,32 @@ does not substitute for this saved-settings readback.
 The migrated issue's historical website `ci-required` rule is a separate setting.
 Android work must preserve the website's existing checks and protections; it does
 not rename, replace or modify them.
+
+### Current required-status gap (2026-10-19 observation)
+
+The [current settings receipt](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/59#issuecomment-6257619397)
+records four active Android rulesets but no required-status rule. Main is protected
+by its other rules; its classic summary also has empty required contexts. The
+existing review ruleset `25362700` requires one approving review, latest-push
+approval and extra approval for unattributed changes, and retains its sole
+OrganizationAdmin/always exception. These settings supersede the unsaved proposal
+above, not its preserved historical observation.
+
+The reviewed correction is to append the three exact check names above, each with
+ruleset `integration_id: 15368`, while retaining the entire current rule,
+default-branch condition and existing exception. Proposed status parameters are
+`strict_required_status_checks_policy: true` and `do_not_enforce_on_create: false`.
+Leave rulesets `25359638`, `25359637` and `25359641`, and the separate website rule,
+unchanged. This is a preservation strategy, not authority to replay a stale body:
+fresh-read all settings, reconcile concurrent edits, perform only the authorized
+additive action, then verify the complete result and unchanged other rules.
+
+Actual application remains blocked by the available administration surface. No
+setting or authentication bypass is supplied by this documentation. The installed
+correction remains with [#467](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/467);
+append its fourth check only after corrected source is accepted on main and an
+applicable actual check exists. The [02.05 receiving record](delivery/android/work-packages/02.05.md)
+keeps settings, credential-context and installed evidence separately incomplete.
 
 ## Credential and review boundary
 
@@ -184,8 +222,11 @@ gates. The named prerequisite from #48 supplies
 the pinned build/module outputs; a CI result does not invent a production package
 or supported-device release decision.
 
-The canonical receiving record remains
-`docs/delivery/android/work-packages/02.05.md` in `Pick-Your-AI/pickyour.ai`.
-This Android operations reference does not replace or relocate that record.
-Complete its authorized publication and receiving review before treating the full
-work package as accepted. Existing destination/deployment holds remain in force.
+[ADR 0011](decisions/0011-android-59-acceptance-record.md) proposes placing only
+the [02.05 receiving record](delivery/android/work-packages/02.05.md) in Android,
+effective after independent receiving review and normal reviewed main delivery.
+Until that event, its intended `docs/delivery/android/work-packages/02.05.md` path
+in `Pick-Your-AI/pickyour.ai` remains authoritative; the original spelling/path
+remain history afterward. This operations reference is not a second acceptance
+record. Placement does not complete settings, installed or credential-context
+work, whole-issue receiving or any destination/deployment gate.
