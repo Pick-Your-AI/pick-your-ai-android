@@ -113,14 +113,14 @@ a separate repository setting; publishing this workflow does not make it require
 | #49 versioned fixtures and reference expectations | Exact upstream examples and 21 reference tests | Cross-language comparison, successor migration cases and accepted new semantics; frozen reference tests cannot approve queued changes |
 | #58 cancelled/superseded work and typed failures | Synchronized identity/ticket coordinator and race tests | UI observation, dispatchers, storage/network adapters and cancellation propagation |
 | #30/#31 untrusted import boundary | Bounded parser and adversarial tests | Disclosure projection, explicit user acceptance, Android document-provider lifecycle, actual draft import/export and receiving security review |
-| #59 reproducible checks and untrusted execution | Reference/JVM workflow with restricted token and retained artifacts | Product Android/emulator coverage, required-status setting and observed controlled hosted failure; the unsigned fixture preview has a separate build/lint lane |
+| #59 reproducible checks and untrusted execution | Reference/JVM workflow, unsigned preview build/lint, restricted token, retained artifacts and the recorded frozen-byte failure in [02.05](delivery/android/work-packages/02.05.md) | Required-status application/readback, actual credential-context review, corrected installed delivery and complete receiving acceptance |
 | #115 late/out-of-order analysis | Unique attempt identity, all input pins, cancellation and duplicate tests | Automatic reevaluation, durable-save sequencing, historical report persistence and integrated UI behavior |
 
 The implementation acceptance records listed below retain their canonical paths
 in `pickyour.ai`; the separately accepted decision-record placements are listed in
 [repository scope](REPOSITORY_SCOPE.md). Parent coordination can
 copy the criterion evidence above into `03.01.md`, `03.06.md`, `02.04.md`,
-`11.03.md`, `14.05.md`, `02.05.md` and `09.06.md` under
+`11.03.md`, `14.05.md` and `09.06.md` under
 `docs/delivery/android/work-packages/`, linking the merged PR and exact test runs.
 These are partial entries, not issue-closing receipts. No website changes are made
 by this repository.
@@ -131,6 +131,13 @@ in Android, effective after independent review and normal delivery into Android
 main. The record preserves the original website path and distinguishes the selected
 preview identity from future product qualification. Full #48 acceptance remains
 pending its literal criteria and current installed-delivery evidence.
+
+[ADR 0011](decisions/0011-android-59-acceptance-record.md) separately proposes
+placing only #59's [02.05 CI record](delivery/android/work-packages/02.05.md) in
+Android after independent review and normal main delivery. It preserves the
+original website path as history and keeps required-status, credential-context,
+corrected installed and full receiving gaps explicit. All other record locations
+and the existing shared-ledger writing route remain unchanged.
 
 ## Observed local verification (2026-10-18)
 
