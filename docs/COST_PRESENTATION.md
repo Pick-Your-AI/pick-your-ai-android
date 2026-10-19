@@ -26,6 +26,14 @@ to infer freshness. Long decimal strings beyond 160 UTF-16 units skip localized
 formatting and show a bounded canonical excerpt with an explicit truncation
 notice. That excerpt is not represented as the complete value.
 
+The frozen schema also permits quantity strings such as `"720\n"`, which the
+accepted reader deliberately retains literally. Such a quantity is not a
+whole-string `ContractDecimal`. The display keeps its quoted, escaped recorded
+value and explicitly says decimal display is unavailable. It neither removes
+the newline nor throws while presenting the accepted record. This fallback uses
+the same literal bounds and leaves the estimate, money validation, declared
+amounts and evidence classifications unchanged.
+
 This follows the current Android
 [DecimalFormat reference](https://developer.android.com/reference/java/text/DecimalFormat)
 and [BidiFormatter reference](https://developer.android.com/reference/android/text/BidiFormatter),
@@ -63,7 +71,11 @@ twelve fractional places, tiny nonzero values, trailing zeroes, JPY precision,
 German and Arabic screen locales, independence from the process default locale,
 hostile literal strings including U+2028/U+2029 without changing the retained
 record, truncation, bounded collections, totals retaining all lines, and unknown
-coverage. The existing retired-Activity cost callback test
+coverage. An accepted terminal-newline quantity reaches the native formatter
+without crashing or changing the retained quantity, estimate or budget status.
+This regression failed with `ContractRejected(INVALID_DECIMAL)` at that actual
+formatter boundary on accepted main `80f8c9f5a8e682874131a603002c44046583bbde`
+before the fallback was added. The existing retired-Activity cost callback test
 continues to cover the actual inspector adoption. The hosted report gate now
 requires every dedicated cost case to execute without failures or skips.
 
