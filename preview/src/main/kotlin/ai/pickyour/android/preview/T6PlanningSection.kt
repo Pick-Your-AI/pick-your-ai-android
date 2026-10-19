@@ -17,16 +17,17 @@ internal class T6PlanningSection(
     private val alive: () -> Boolean,
     browse: (PreviewT6Kind) -> Unit,
 ) : LinearLayout(activity) {
+    private val heading: TextView
     private val source: TextView
     private val choices: Map<PreviewT6Kind, TextView>
 
     init {
         orientation = VERTICAL
-        addView(TextView(activity).apply {
+        heading = TextView(activity).apply {
             setText(R.string.planning_heading)
             textSize = 22f
             if (android.os.Build.VERSION.SDK_INT >= 28) isAccessibilityHeading = true
-        })
+        }.also(::addView)
         addView(TextView(activity).apply { setText(R.string.planning_notice) })
         source = TextView(activity).apply {
             accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
@@ -63,6 +64,13 @@ internal class T6PlanningSection(
     }
 
     private fun active() = alive() && !activity.isFinishing && !activity.isDestroyed
+
+    internal fun reviewGuidance() {
+        if (!active()) return
+        heading.isFocusableInTouchMode = true
+        heading.requestFocus()
+        heading.requestRectangleOnScreen(android.graphics.Rect(0, 0, heading.width, heading.height), true)
+    }
 
     fun update(record: PreviewStoredDraft?, state: PlanningDraftState) {
         if (!active()) return
