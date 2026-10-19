@@ -83,6 +83,14 @@ selected `:core`/`:preview` toolchain and preview package evidence remain distin
 from future product, device and release qualification; full #48 acceptance stays
 pending its literal criteria and current installed-delivery evidence.
 
+[ADR 0009](decisions/0009-android-59-acceptance-record.md) separately proposes
+placing only #59's [02.05 CI receiving record](delivery/android/work-packages/02.05.md)
+in Android, effective after independent receiving review and normal reviewed main
+delivery. The original website spelling/path remain history. The existing
+[CI operations reference](CI_BASELINE.md) stays distinct from criterion acceptance;
+the placement supplies no settings change, corrected installed result,
+credential-context review, whole-issue completion or ledger amendment.
+
 The existing website remains static. The selected future server package is
 separately built/deployed at `Pick-Your-AI/pickyour.ai/services/planner-api` only
 through canonical owner/coordinator and operations review before dependent code;
