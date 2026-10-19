@@ -261,10 +261,11 @@ def inspect_apk(apk: Path, aapt2: Path) -> dict[str, object]:
 def source_identity(root: Path) -> dict[str, str]:
     # One resolved commit supplies both fields; a separate current-tree check
     # rejects a tracked edit instead of attributing it to the committed source.
-    fields = command(["git", "show", "-s", "--format=%H%n%T", "HEAD"], root).strip().splitlines()
+    # Replacement objects must not relabel that commit or conceal an index edit.
+    fields = command(["git", "--no-replace-objects", "show", "-s", "--format=%H%n%T", "HEAD"], root).strip().splitlines()
     require(len(fields) == 2 and all(re.fullmatch(r"[0-9a-f]{40}", value) for value in fields),
             "SOURCE_IDENTITY_INVALID")
-    require(not command(["git", "status", "--porcelain", "--untracked-files=all"], root).strip(), "SOURCE_CHANGED")
+    require(not command(["git", "--no-replace-objects", "status", "--porcelain", "--untracked-files=all"], root).strip(), "SOURCE_CHANGED")
     return {"commit": fields[0], "tree": fields[1]}
 
 
