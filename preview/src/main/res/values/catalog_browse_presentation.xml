@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 1: canonical tier; 2: canonical kind. Both values keep their exact text and
+         are directionally wrapped for the screen before interpolation. Translators
+         own the complete pattern and may reorder its numbered placeholders. -->
+    <string name="catalog_browse_kind_choice">%1$s · %2$s</string>
+</resources>
