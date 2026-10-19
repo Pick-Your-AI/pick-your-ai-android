@@ -44,19 +44,22 @@ internal object FindingsInspectionText {
         val selections = if (selected.isEmpty()) context.getString(R.string.findings_no_selections) else
             context.resources.getQuantityString(R.plurals.findings_display_selections, finding.selectionIds.size,
                 selected.size, finding.selectionIds.size, selected.joinToString("\n") { literal(context, it) })
+        return listOfNotNull(row(context, finding), guidance(context, finding), context.getString(R.string.findings_display_policy),
+            context.getString(R.string.findings_reason, literal(context, finding.code), literal(context, finding.message)),
+            context.getString(R.string.findings_remediation, literal(context, finding.remediation)),
+            context.getString(R.string.findings_selections, selections), evidence(context, finding),
+            context.getString(R.string.findings_limits)).joinToString("\n\n")
+    }
+
+    fun evidence(context: Context, finding: ReferenceFindingView): String {
         val shownEvidence = finding.evidence.take(MAX_NESTED_ENTRIES)
-        val evidence = if (shownEvidence.isEmpty()) context.getString(R.string.findings_no_evidence) else {
+        return if (shownEvidence.isEmpty()) context.getString(R.string.findings_no_evidence) else {
             val entries = shownEvidence.map { context.getString(R.string.findings_evidence,
                 literal(context, it.path), literal(context, it.observedJson), literal(context, it.expectedJson),
                 literal(context, it.sourceVersion)) }
             context.resources.getQuantityString(R.plurals.findings_display_evidence, finding.evidence.size,
                 shownEvidence.size, finding.evidence.size) + "\n\n" + entries.joinToString("\n\n")
         }
-        return listOfNotNull(row(context, finding), guidance(context, finding), context.getString(R.string.findings_display_policy),
-            context.getString(R.string.findings_reason, literal(context, finding.code), literal(context, finding.message)),
-            context.getString(R.string.findings_remediation, literal(context, finding.remediation)),
-            context.getString(R.string.findings_selections, selections), evidence,
-            context.getString(R.string.findings_limits)).joinToString("\n\n")
     }
 
     private fun literal(context: Context, raw: String?): String {

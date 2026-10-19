@@ -34,6 +34,7 @@ internal class SnapshotEvaluationSection(
     private val worker: Executor,
     private val evaluator: SnapshotEvaluator = LocalSnapshotEvaluator(),
     private val archiveRoot: () -> Path = { activity.filesDir.toPath().resolve("retained-snapshots") },
+    private val beforeInspect: () -> Unit = {},
     private val alive: () -> Boolean,
 ) {
     private var closed = false
@@ -52,7 +53,7 @@ internal class SnapshotEvaluationSection(
             accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
         }
         open = Button(activity).apply { id = R.id.snapshot_open; setText(R.string.snapshot_open) }
-        open.setOnClickListener { if (active()) loadInventory() }
+        open.setOnClickListener { if (active()) { beforeInspect(); loadInventory() } }
         container.addView(open); container.addView(status)
     }
 
@@ -215,6 +216,7 @@ internal class SnapshotEvaluationSection(
                 activity.getString(R.string.findings_remediation, literalText(finding.remediation)),
                 activity.getString(R.string.snapshot_affected, finding.selectionIds.joinToString(", ").ifEmpty {
                     activity.getString(R.string.findings_not_supplied) }),
+                FindingsInspectionText.evidence(activity, finding),
             ).joinToString("\n") },
         ).joinToString("\n\n")
     }

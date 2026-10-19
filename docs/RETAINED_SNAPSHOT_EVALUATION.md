@@ -92,7 +92,7 @@ source text changes the bundle identity even when the projected Build is identic
 | Unchanged frozen Python evaluator | `092c8a99495f9b5ae960df40b27e33f15eefe6d1a7cd80119658fdc79ada1a5a` |
 | Existing 14-schema CD-7 descriptor | `eaaf51a04c9bd0c7fce23e7ecc75724226e26b337cc1da04b88a59d2a912914f` |
 | Kotlin `FrozenDiagnosticEvaluator.kt` | `b0bc63de8d6d4fed412344c4cb58864248782edf74aa9fb0fa75df9f3e80667f` |
-| Kotlin `ReferenceReportAdapter.kt` | `50f1e1ab16d63fde5363d6aedd24e5fd6460b3de534d7b10c38a933777dd1821` |
+| Kotlin `ReferenceReportAdapter.kt` | `d39e266490ffb7814b0bb2cc05a108d60206f036a3be7beb6c340b29723fa525` |
 
 The previous interpreter descriptor
 `5d01c0851f3731519869cb8a546d92de10a717c4a5236a557ff70091a1db8fb6`
@@ -102,6 +102,13 @@ caller; frozen Build admission, complete report construction and archived-report
 re-admission remain intact. This new source descriptor does not relabel the
 earlier runs or admit incomplete draft contexts into this retained profile. See
 [the local compatible-options boundary](COMPATIBLE_OPTIONS.md).
+
+The previous report-receiver descriptor
+`50f1e1ab16d63fde5363d6aedd24e5fd6460b3de534d7b10c38a933777dd1821`
+remains the identity of the earlier report-reader source and the executions
+originally bound to it. The current descriptor binds the accepted strict
+report-reader correction; it does not reassign any earlier observation to these
+bytes.
 
 The canonical `scripts/check_diagnostic_fixtures.py` now verifies these declared
 source pins before reproducing its unchanged twenty-six complete Python reports.

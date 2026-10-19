@@ -108,6 +108,23 @@ ownership only:
 the acknowledged analysis, binding and saved bytes remain available, and a fresh
 inspection can be opened after closing the newer view.
 
+Explicit entry into saved-snapshot inspection, recorded resource details, fixed
+Findings, Help or Diagnostics shares this window retirement. Retained sibling
+rows, Back, retry and external-action controls cannot replace the newer view.
+Retiring a snapshot inventory also clears its request identity before a queued
+result can arrive. Resource and fixed-Findings window retirement preserves the
+accepted inline record or report and its read state; normal parent-to-child
+navigation remains available within a fresh inspection.
+
+Automatic storage or catalog refresh keeps the existing current/revision cleanup
+separate from explicit presentation entry. In particular, an open Help report
+keeps the catalog identity captured when it opened; only a fresh Help request
+captures a completed catalog load. Opening an admitted catalog comparison retires
+sibling inspection windows while preserving the accepted History route. A live
+History child can then retire that comparison through its existing navigation.
+Pause and destruction retain their separate lifecycle retirement, including
+fixed Findings and exact catalog-pin recovery.
+
 The existing private context represents typed selections, links and workload
 fields. Free-text objective/context, opaque primary-model choice, optional intent,
 metadata and history are bound for invalidation but are not silently interpreted
@@ -149,6 +166,15 @@ workflow guards require every named new core and simulated Activity case, with
 exact class/name attendance and zero failed/error/skipped records. Test source and
 expected attendance are not passing execution; exact runs and source hashes are
 reported in the PR and retained original receipts.
+
+The nine required `SiblingInspectionActivityTest` methods exercise actual current
+and archived findings, retained callback replay, late inventory delivery, inline
+record preservation, reviewed text/public-destination actions, explicit catalog
+comparison and Privacy entry. They keep the acknowledged analysis, binding,
+baseline and private draft/archive bytes unchanged. The original eight callback
+regressions, later comparison/History control and intermediate failed executions
+retain their distinct source-bound receipts; their expectations are not a claim
+of configured receiving or installed success.
 
 The unchanged-source baseline has no current caller of `DependencyInvalidation`
 and no saved-draft check receiver. This is implementation of that missing consumer,

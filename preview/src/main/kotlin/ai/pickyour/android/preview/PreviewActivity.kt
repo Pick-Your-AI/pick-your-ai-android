@@ -200,7 +200,7 @@ class PreviewActivity : Activity() {
         draftSummary = CurrentDraftSummarySection(this) { !destroyed && diagnosticsResumed }
         content.addView(draftSummary)
         currentChecks = CurrentDraftCheckSection(this, worker, { !destroyed && diagnosticsResumed },
-            draftSummary::currentCheckStatus, ::prepareCurrentCheckInspection)
+            draftSummary::currentCheckStatus, ::prepareInspection)
         content.addView(currentChecks)
         val titleLabel = text(R.string.draft_title)
         title = EditText(this).apply {
@@ -271,7 +271,7 @@ class PreviewActivity : Activity() {
             setText(R.string.reopen_draft)
             setOnClickListener {
                 if (destroyed || storageBusy || !selectionResolved) return@setOnClickListener
-                retireRevisionInspection()
+                retireInspectionWindows()
                 val baseline = savedRecord
                 val draftId = currentDraftId
                 val authority = storageAuthority
@@ -378,7 +378,8 @@ class PreviewActivity : Activity() {
                 catalogSearch.requestRectangleOnScreen(android.graphics.Rect(0, 0, catalogSearch.width, catalogSearch.height), true)
             }
         }
-        catalogComparison = CatalogComparisonSection(this, savedInstanceState, ::showPinnedDetails) {
+        catalogComparison = CatalogComparisonSection(this, savedInstanceState, ::showPinnedDetails,
+            beforeInspect = ::retireInspectionWindows) {
             retireRevisionInspection()
             catalogPinRecovery.dismiss()
             catalogDetailDialog?.dismiss()
@@ -427,11 +428,12 @@ class PreviewActivity : Activity() {
         }
         content.addView(run)
         CostInspectionSection(this, worker) { !destroyed }.attach(content)
-        resourceInspection = ResourceInspectionSection(this, worker, { !destroyed && diagnosticsResumed }, catalog::cancelViewportRestore)
+        resourceInspection = ResourceInspectionSection(this, worker, { !destroyed && diagnosticsResumed },
+            { catalog.cancelViewportRestore(); prepareInspection() })
         resourceInspection.attach(content)
-        findings = FindingsInspectionSection(this, worker) { !destroyed }
+        findings = FindingsInspectionSection(this, worker, beforeInspect = ::prepareInspection) { !destroyed && diagnosticsResumed }
         findings.attach(content)
-        snapshots = SnapshotEvaluationSection(this, worker) { !destroyed && diagnosticsResumed }
+        snapshots = SnapshotEvaluationSection(this, worker, beforeInspect = ::prepareInspection) { !destroyed && diagnosticsResumed }
         snapshots.attach(content)
         diagnostics = LocalDiagnostics(this, {
             LocalDiagnosticReport(
@@ -444,15 +446,15 @@ class PreviewActivity : Activity() {
                 if (catalogFixture?.catalog != null) DiagnosticCatalogState.SYNTHETIC_LOADED
                 else DiagnosticCatalogState.UNAVAILABLE_OR_LOADING,
             )
-        }, { !destroyed && diagnosticsResumed })
+        }, { !destroyed && diagnosticsResumed }, beforeShow = ::prepareInspection)
         diagnostics.attach(content)
         help = LocalHelp(this, { !destroyed && diagnosticsResumed }, diagnostics::show,
             captureCatalogIdentity = {
                 if (!retry.isEnabled) HelpCatalogIdentity.UNAVAILABLE_OR_LOADING
                 else catalogFixture?.helpIdentity ?: HelpCatalogIdentity.UNAVAILABLE_OR_LOADING
-            })
+            }, beforeShow = ::prepareInspection)
         help.attach(content)
-        privacy = LocalPrivacy(this, beforeShow = { retireRevisionInspection() }) {
+        privacy = LocalPrivacy(this, beforeShow = { retireInspectionWindows() }) {
             !destroyed && diagnosticsResumed
         }
         privacy.attach(content)
@@ -601,7 +603,7 @@ class PreviewActivity : Activity() {
 
     private fun showDetails(item: PreviewCatalogItem, catalogHash: String) {
         if (destroyed) return
-        retireRevisionInspection()
+        retireInspectionWindows()
         catalogPinRecovery.dismiss()
         catalogDetailDialog?.dismiss()
         catalogDetailDialog = null
@@ -740,8 +742,8 @@ class PreviewActivity : Activity() {
     }
 
     private fun showPinnedDetails(pin: PreviewCatalogPin, captured: PreviewCatalogBrowser?, originIsCurrent: () -> Boolean) {
-        if (destroyed || storageBusy || !originIsCurrent()) return
-        retireRevisionInspection()
+        if (destroyed || !diagnosticsResumed || storageBusy || !originIsCurrent()) return
+        retireInspectionWindows()
         catalogDetailDialog?.dismiss()
         catalogDetailDialog = null
         catalogPriceBrowser?.retire()
@@ -751,7 +753,7 @@ class PreviewActivity : Activity() {
         val baseline = savedRecord
         val draftId = currentDraftId
         catalogPinRecovery.open(pin, captured) {
-            !destroyed && !storageBusy && savedRecord === baseline && currentDraftId == draftId && originIsCurrent()
+            !destroyed && diagnosticsResumed && !storageBusy && savedRecord === baseline && currentDraftId == draftId && originIsCurrent()
         }
     }
 
@@ -930,7 +932,7 @@ class PreviewActivity : Activity() {
         if (destroyed) return
         val baseline = savedRecord ?: return
         if (!storageReady || storageBusy) return
-        retireRevisionInspection()
+        retireInspectionWindows()
         val revisions = baseline.history.reversed()
         val rows = revisions.map { revision ->
             getString(if (revision.fields == null) R.string.history_unavailable else R.string.history_revision,
@@ -982,7 +984,7 @@ class PreviewActivity : Activity() {
 
     private fun AlertDialog.Builder.showHistoryDialog(): AlertDialog {
         // Preserve the shared inspection retirement used by the accepted storage-dialog path.
-        retireRevisionInspection()
+        retireInspectionWindows()
         val next = create()
         val previous = historyDialog
         historyDialog = next
@@ -1001,7 +1003,7 @@ class PreviewActivity : Activity() {
     private fun showComparisonPicker(baseline: PreviewStoredDraft, pickBoth: Boolean = false) {
         if (destroyed || isFinishing) return
         if (!storageReady || storageBusy || savedRecord !== baseline) return
-        retireRevisionInspection()
+        retireInspectionWindows()
         val request = Any()
         revisionRequest = request
         val authority = storageAuthority
@@ -1030,7 +1032,7 @@ class PreviewActivity : Activity() {
                         revisionDialog = null
                         preparing.dismiss()
                         if (comparison == null) {
-                            retireRevisionInspection()
+                            retireInspectionWindows()
                             AlertDialog.Builder(this).setMessage(R.string.revision_compare_changed)
                                 .setPositiveButton(R.string.close, null).show()
                         } else {
@@ -1079,9 +1081,9 @@ class PreviewActivity : Activity() {
         dialog.show()
     }
 
-    private fun prepareCurrentCheckInspection() {
+    private fun prepareInspection() {
         retireHistoryInspection()
-        retireRevisionInspection()
+        retireInspectionWindows()
         if (::catalogPinRecovery.isInitialized) catalogPinRecovery.dismiss()
         val previous = catalogDetailDialog
         catalogDetailDialog = null
@@ -1090,6 +1092,16 @@ class PreviewActivity : Activity() {
         catalogPriceBrowser = null
         catalogDetailBrowser?.retire()
         catalogDetailBrowser = null
+    }
+
+    /** A new inspection owns its sibling windows; data refresh alone does not revoke fixed reports. */
+    private fun retireInspectionWindows() {
+        retireRevisionInspection()
+        if (::snapshots.isInitialized) snapshots.dismiss()
+        if (::resourceInspection.isInitialized) resourceInspection.dismissInspection()
+        if (::findings.isInitialized) findings.dismissInspection()
+        if (::help.isInitialized) help.dismiss()
+        if (::diagnostics.isInitialized) diagnostics.dismiss()
     }
 
     private fun retireRevisionInspection() {
@@ -1106,7 +1118,7 @@ class PreviewActivity : Activity() {
 
     private fun showLibraryComparison() {
         if (destroyed || isFinishing || storageBusy || entryBlocked || !selectionResolved) return
-        retireRevisionInspection()
+        retireInspectionWindows()
         catalogComparison.dismissInspection()
         catalogPinRecovery.dismiss()
         catalogDetailDialog?.dismiss()
@@ -1345,7 +1357,7 @@ class PreviewActivity : Activity() {
 
     /** Retire inspections when the storage dialog is presented, including delayed results. */
     private fun AlertDialog.Builder.showStorageDialog(): AlertDialog {
-        retireRevisionInspection()
+        retireInspectionWindows()
         return show()
     }
 
@@ -1732,11 +1744,13 @@ class PreviewActivity : Activity() {
         diagnosticsResumed = false
         retireHistoryInspection()
         invalidateCurrentChecks(PreviewCurrentUnavailable.BACKGROUND)
+        if (::catalogPinRecovery.isInitialized) catalogPinRecovery.dismiss()
         if (::compatibleOptions.isInitialized) compatibleOptions.dismiss()
         if (::draftSummary.isInitialized) draftSummary.retireActions()
         if (::diagnostics.isInitialized) diagnostics.dismiss()
         if (::help.isInitialized) help.dismiss()
         if (::privacy.isInitialized) privacy.dismiss()
+        if (::findings.isInitialized) findings.dismiss()
         if (::snapshots.isInitialized) snapshots.dismiss()
         if (::resourceInspection.isInitialized) resourceInspection.dismiss()
         super.onPause()

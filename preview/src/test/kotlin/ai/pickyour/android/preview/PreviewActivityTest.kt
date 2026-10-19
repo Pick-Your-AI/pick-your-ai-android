@@ -95,7 +95,9 @@ class PreviewActivityTest {
     private fun adapter() = PreviewDraftLibrary(activity.noBackupFilesDir.toPath()).openLegacy()
     private fun loaded() = (readDraftAfterOwnedWork(activity, ::adapter) as PreviewDraftLoad.Available).record
     private fun dialog() = ShadowAlertDialog.getLatestAlertDialog()!!
-    private fun samples() = views().filterIsInstance<Button>().filter { it.text.toString().startsWith("Open FICTIONAL") }
+    // Find the same synthetic catalog rows without assuming unwrapped LTR captions.
+    private fun samples() = views().filterIsInstance<CatalogBrowseSection>().single().let(::views)
+        .filterIsInstance<Button>().filter { it.text.toString().contains("FICTIONAL") }
     private fun comparisonSection() = views().filterIsInstance<CatalogComparisonSection>().single()
     private fun comparisonAdd(detail: AlertDialog = dialog()) = views(detail.window!!.decorView).filterIsInstance<Button>()
         .single { it.text.toString() == activity.getString(R.string.catalog_compare_add) }
@@ -1416,11 +1418,14 @@ class PreviewActivityTest {
         val retiredOutput = views().filterIsInstance<TextView>().single {
             it.text.toString().startsWith(activity.getString(R.string.findings_notice))
         }
-        val before = retiredOutput.text.toString()
+        val retiredNotice = activity.getString(R.string.findings_notice)
         retiredBrowse.performClick()
         val pendingPicker = dialog()
         recreate()
         await { button(R.string.save_draft).isEnabled }
+        assertFalse(retiredInspect.isEnabled)
+        assertFalse(retiredBrowse.isEnabled)
+        assertEquals(retiredNotice, retiredOutput.text.toString())
 
         // None of these callbacks may submit work or open a window for the destroyed owner.
         retiredInspect.performClick()
@@ -1431,8 +1436,10 @@ class PreviewActivityTest {
 
         assertSame(pendingPicker, dialog())
         assertFalse(pendingPicker.isShowing)
-        assertTrue(retiredInspect.isEnabled)
-        assertEquals(before, retiredOutput.text.toString())
+        assertFalse(retiredInspect.isEnabled)
+        assertFalse(retiredBrowse.isEnabled)
+        assertEquals(retiredNotice, retiredOutput.text.toString())
+        assertTrue(button(R.string.findings_inspect).isEnabled)
         assertFalse(button(R.string.findings_browse).isEnabled)
         assertTrue(hasText(R.string.findings_notice))
         assertTrue(adapter().load() is PreviewDraftLoad.Missing)
