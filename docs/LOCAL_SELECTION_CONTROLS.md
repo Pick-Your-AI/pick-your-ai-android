@@ -28,6 +28,12 @@ planning section keeps guidance visible before saving and with T3–T5 disabled;
 these forms also explain evidence conditions. Their five optional settings
 remain requested inputs; applicable requirements and measured coverage stay
 unavailable, with no safety, quality or readiness verdict.
+The [operational planning continuation](OPERATIONAL_SELECTIONS.md) adds the three
+remaining frozen T6 kinds for partial
+[#52](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/52).
+Its twelve optional deployment, monitoring and cost settings remain declared
+inputs. Approval, capacity, observation, price coverage and runtime actions still
+require separate evidence; one shared planning panel retains that distinction.
 
 The saved-component section exposes a separate exact-fixture component chooser.
 It does not reinterpret the old guest sample-selection metadata as a typed domain
@@ -86,9 +92,10 @@ the same kind reject the whole edit, including a collision with a disabled
 selection. See [explicit selection roles](LOCAL_SELECTION_ROLES.md) for the local
 history format and recovery boundaries. Disable/re-enable retains settings and links. Removal confirms the exact
 selection and lists its incident link IDs; only that selection and those links are
-removed. No secondary selection is promoted. The remaining frozen
-`deployment_target`, `monitoring_stack` and `cost_policy` kinds stay stored and
-visible outside this mutation UI.
+removed. No secondary selection is promoted. All frozen T0–T6 kinds are now
+admitted through these same controls; unregistered future kinds remain rejected.
+Cost policy retains the frozen one-enabled-selection limit, while deployment and
+monitoring retain multiple explicit roles. No new runtime or export route follows.
 
 Controls require a clean acknowledged guest form. A dialog captures the exact
 record object, draft context and applicable catalog snapshot. Dispatch checks
