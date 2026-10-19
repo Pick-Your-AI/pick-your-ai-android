@@ -8,6 +8,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import ai.pickyour.core.evaluation.*
 import java.util.concurrent.ExecutorService
+import java.util.concurrent.RejectedExecutionException
 
 /** Read-only fixed fixture. It never evaluates, receives or writes the editable guest draft. */
 internal class FindingsInspectionSection(
@@ -18,6 +19,9 @@ internal class FindingsInspectionSection(
     private var request: Any? = null
     private var currentDialog: AlertDialog? = null
     private var navigator: FindingsSelectionNavigator? = null
+    private var output: TextView? = null
+    private var inspect: Button? = null
+    private var browse: Button? = null
     private var closed = false
 
     private fun active() = !closed && alive() && !activity.isFinishing && !activity.isDestroyed
@@ -36,11 +40,18 @@ internal class FindingsInspectionSection(
     /** Sibling navigation retires windows while retaining the accepted inline report and pending read. */
     fun dismissInspection() = retireWindows()
 
-    fun close() {
-        closed = true
+    fun dismiss() {
         request = null
         accepted = null
         retireWindows()
+        output?.setText(R.string.findings_notice)
+        inspect?.isEnabled = !closed
+        browse?.isEnabled = false
+    }
+
+    fun close() {
+        closed = true
+        dismiss()
     }
 
     fun attach(container: LinearLayout) {
@@ -50,6 +61,9 @@ internal class FindingsInspectionSection(
         }
         val inspect = Button(activity).apply { setText(R.string.findings_inspect) }
         val browse = Button(activity).apply { setText(R.string.findings_browse); isEnabled = false }
+        this.output = output
+        this.inspect = inspect
+        this.browse = browse
         inspect.setOnClickListener {
             if (!active()) return@setOnClickListener
             beforeInspect()
@@ -58,7 +72,16 @@ internal class FindingsInspectionSection(
             retireWindows()
             inspect.isEnabled = false; browse.isEnabled = false; accepted = null
             output.setText(R.string.findings_loading)
-            worker.execute {
+            fun complete(value: ReferenceReportView?, rejection: String?) {
+                if (active() && request === attempt) {
+                    request = null
+                    accepted = value
+                    output.text = if (value == null) activity.getString(R.string.findings_rejected, rejection ?: "UNAVAILABLE")
+                        else FindingsInspectionText.describe(activity, value)
+                    inspect.isEnabled = true; browse.isEnabled = value != null
+                }
+            }
+            try { worker.execute {
                 var rejection: String? = null
                 val value = try {
                     activity.assets.open("build.json").use { build ->
@@ -72,15 +95,8 @@ internal class FindingsInspectionSection(
                         }
                     }
                 } catch (_: Exception) { null }
-                activity.runOnUiThread {
-                    if (active() && request === attempt) {
-                        accepted = value
-                        output.text = if (value == null) activity.getString(R.string.findings_rejected, rejection ?: "UNAVAILABLE")
-                            else FindingsInspectionText.describe(activity, value)
-                        inspect.isEnabled = true; browse.isEnabled = value != null
-                    }
-                }
-            }
+                activity.runOnUiThread { complete(value, rejection) }
+            } } catch (_: RejectedExecutionException) { complete(null, "UNAVAILABLE") }
         }
         browse.setOnClickListener {
             if (!active()) return@setOnClickListener

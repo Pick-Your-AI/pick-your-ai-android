@@ -1418,11 +1418,14 @@ class PreviewActivityTest {
         val retiredOutput = views().filterIsInstance<TextView>().single {
             it.text.toString().startsWith(activity.getString(R.string.findings_notice))
         }
-        val before = retiredOutput.text.toString()
+        val retiredNotice = activity.getString(R.string.findings_notice)
         retiredBrowse.performClick()
         val pendingPicker = dialog()
         recreate()
         await { button(R.string.save_draft).isEnabled }
+        assertFalse(retiredInspect.isEnabled)
+        assertFalse(retiredBrowse.isEnabled)
+        assertEquals(retiredNotice, retiredOutput.text.toString())
 
         // None of these callbacks may submit work or open a window for the destroyed owner.
         retiredInspect.performClick()
@@ -1433,8 +1436,10 @@ class PreviewActivityTest {
 
         assertSame(pendingPicker, dialog())
         assertFalse(pendingPicker.isShowing)
-        assertTrue(retiredInspect.isEnabled)
-        assertEquals(before, retiredOutput.text.toString())
+        assertFalse(retiredInspect.isEnabled)
+        assertFalse(retiredBrowse.isEnabled)
+        assertEquals(retiredNotice, retiredOutput.text.toString())
+        assertTrue(button(R.string.findings_inspect).isEnabled)
         assertFalse(button(R.string.findings_browse).isEnabled)
         assertTrue(hasText(R.string.findings_notice))
         assertTrue(adapter().load() is PreviewDraftLoad.Missing)
