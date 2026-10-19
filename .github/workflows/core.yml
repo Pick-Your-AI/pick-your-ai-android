@@ -1230,6 +1230,13 @@ jobs:
                   'dispatchRejectionIsRecoverableAndClosingDiscardsBothQueuedPhases',
                   'actualActivityPauseAndRecreationRetireQueuedInventoryAndOldDialogControls',
               },
+              'ai.pickyour.android.preview.SnapshotEvaluationPresentationActivityTest': {
+                  'ordinaryRetainedRuleKeepsOutcomeSeverityAndSourceBytes',
+                  'retainedFailingTextCannotInjectStatusLinesOrBidiControls',
+                  'retainedUnknownTextCannotImpersonateAbsentOrKnownStatus',
+                  'evaluatedPassRetainsSuppliedEmptyRemediation',
+                  'longRetainedTextDisclosesTruncationWithoutChangingSavedInputs',
+              },
           }
           total = 0
           for name, required in expected.items():
