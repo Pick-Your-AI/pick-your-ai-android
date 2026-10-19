@@ -2191,7 +2191,8 @@ class PreviewActivityTest {
         assertEquals(ai.pickyour.core.drafts.DraftDataClassification.CONFIDENTIAL, loaded().workloadInput.dataClassification)
         recreate()
         await { hasText(R.string.draft_saved) }
-        assertTrue(classification().text.toString().endsWith("confidential"))
+        assertEquals(activity.getString(R.string.workload_classification_value,
+            activity.getString(R.string.workload_classification_confidential)), classification().text.toString())
         button(R.string.clear_draft).performClick()
         assertTrue(button(R.string.save_draft).isEnabled)
         assertTrue(classification().text.toString().endsWith(activity.getString(R.string.workload_unanswered)))
