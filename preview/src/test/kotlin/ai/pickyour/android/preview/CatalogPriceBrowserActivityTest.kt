@@ -213,7 +213,7 @@ class CatalogPriceBrowserActivityTest {
             inspect(name); assertEquals(name, expected, value()); click(AlertDialog.BUTTON_NEGATIVE)
         }
         click(AlertDialog.BUTTON_NEGATIVE)
-        assertEquals(activity.getString(R.string.catalog_price_browser_page, 2, 2, 10), shadowOf(dialog()).title.toString())
+        assertEquals(activity.resources.getQuantityString(R.plurals.catalog_price_browser_page, 10, 2, 2, 10), shadowOf(dialog()).title.toString())
         assertEquals(2, rows().size)
         assertTrue(adapter().load() is PreviewDraftLoad.Missing)
         assertNull(shadowOf(activity).nextStartedActivity)
