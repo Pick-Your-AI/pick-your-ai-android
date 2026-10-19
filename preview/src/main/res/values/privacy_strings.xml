@@ -1,0 +1,18 @@
+<resources>
+    <item name="privacy_open" type="id" />
+    <item name="privacy_scroll" type="id" />
+    <string name="privacy_title">Privacy &amp; data</string>
+    <string name="privacy_scope">This page describes this synthetic local preview. It has no account, cloud sync, advertising, analytics or automatic crash-reporting service. Planning and sample-data inspection run on this device.</string>
+    <string name="privacy_drafts_title">Your local drafts</string>
+    <string name="privacy_drafts">Draft titles, objectives, context, workload inputs, component selections, settings and optional-tier choices are stored in private app storage with local draft IDs and retained revisions. Eligible edits can save automatically. Read the local save status; a failed or uncertain save is not confirmed.</string>
+    <string name="privacy_samples_title">Catalog and saved-snapshot copies</string>
+    <string name="privacy_samples">Catalog and price examples are bundled sample data. The preview retains local catalog copies for inspecting saved component pins. Saved-snapshot inputs, when present, are also read locally. Deleting one draft does not remove these separate catalog or saved-snapshot copies.</string>
+    <string name="privacy_diagnostics_title">Diagnostic sharing is your choice</string>
+    <string name="privacy_diagnostics">Review diagnostics shows the entire report before you choose an app to share it. The report contains the app ID and version, Android API level, preview mode, and storage/catalog status. It excludes draft text, component identities, files, logs and credentials. The selected app controls what happens to that copy, including any transmission or retention. The preview does not confirm delivery.</string>
+    <string name="privacy_browser_title">Opening an external browser</string>
+    <string name="privacy_browser">Help and report a problem shows a fixed GitHub destination before Open GitHub opens your browser. The browser receives that URL with no draft or diagnostic attachment. Project issues are public; your browser and GitHub control their own network requests, sign-in and submitted content. Catalog source links are unavailable under the current preview host policy.</string>
+    <string name="privacy_delete_title">Deleting a draft</string>
+    <string name="privacy_delete">Manage local drafts lets you confirm removal of one draft and its retained revisions. Interrupted deletion needs Retry local cleanup. Copies shared through other apps or posted to GitHub remain at their destinations. Local deletion does not promise secure erasure.</string>
+    <string name="privacy_recovery_title">Clearing storage and recovery</string>
+    <string name="privacy_recovery">This preview offers no draft file export or cloud restore. It is configured to exclude app data from Android backup and device transfer. Clearing app storage or uninstalling removes local app data, including separate retained catalog and saved-snapshot copies. Data already shared elsewhere is not removed.</string>
+</resources>
