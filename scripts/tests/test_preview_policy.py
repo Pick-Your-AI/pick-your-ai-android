@@ -1,6 +1,6 @@
 """Fail-closed checks for the packaged synthetic-preview declaration boundary."""
 import copy
-from contextlib import redirect_stdout
+from contextlib import ExitStack, redirect_stdout
 import hashlib
 import importlib.util
 import io
@@ -17,6 +17,8 @@ from unittest.mock import patch
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 import check_environment_configuration as environment
+import check_preview_policy_guards as packaged_guards
+import check_runtime_inventory_source as runtime_source
 
 spec = importlib.util.spec_from_file_location("preview_policy", ROOT / "scripts/check_preview_policy.py")
 policy = importlib.util.module_from_spec(spec)
@@ -578,6 +580,258 @@ class InspectionReceiptTests(unittest.TestCase):
             self.assertEqual(SENTINEL, target.read_bytes())
             self.assertTrue((root / "build").is_symlink())
 
+
+
+class GuardReceiptDestinationTest(unittest.TestCase):
+    commands = (
+        (packaged_guards, "preview-policy-guards.json"),
+        (runtime_source, "source-identity-regression.json"),
+    )
+    evidence_names = tuple(case + suffix for case in runtime_source.CASES
+                           for suffix in (".log", ".jar", ".json"))
+
+    def invoke(self, module, root, inspect):
+        with ExitStack() as stack:
+            stack.enter_context(patch.object(module, "ROOT", root))
+            stack.enter_context(patch.object(sys, "argv", ["guard", "--aapt2", "/unused/aapt2",
+                                                          "--android-jar", "/unused/android.jar"]))
+            stack.enter_context(patch.object(subprocess, "run", side_effect=AssertionError("Native work is forbidden in destination fixtures")))
+            output = stack.enter_context(redirect_stdout(io.StringIO()))
+            if module is runtime_source:
+                stack.enter_context(patch.object(module, "EVIDENCE", root / "build/inventory/source-identity-regression"))
+                checked = stack.enter_context(patch.object(module, "check", side_effect=inspect))
+                metadata = None
+            else:
+                metadata = stack.enter_context(patch.object(module, "command", return_value="a" * 40))
+                stack.enter_context(patch.object(module, "sha256", return_value="b" * 64))
+                checked = stack.enter_context(patch.object(module, "check_guards", side_effect=inspect))
+            try:
+                result, failure = module.main(), None
+            except (Exception, SystemExit) as error:
+                result, failure = None, error
+            return result, failure, checked, metadata, output.getvalue()
+
+    def assert_admission_rejected(self, module, root):
+        _, failure, checked, metadata, output = self.invoke(module, root, lambda *_: {"status": "passed"})
+        self.assertIsNotNone(failure)
+        self.assertNotIsInstance(failure, AssertionError)
+        checked.assert_not_called()
+        if metadata is not None:
+            metadata.assert_not_called()
+        self.assertEqual("", output)
+
+    def make_entry(self, target, foreign, kind):
+        if kind != "dangling-symlink":
+            foreign.write_bytes(SENTINEL)
+        if kind in ("symlink", "dangling-symlink"):
+            target.symlink_to(foreign)
+        elif kind == "hardlink":
+            os.link(foreign, target)
+        elif kind == "directory":
+            target.mkdir()
+            (target / "retained").write_bytes(SENTINEL)
+        else:
+            os.mkfifo(target)
+        return target.lstat()
+
+    def assert_entry_preserved(self, target, foreign, kind, before):
+        self.assertTrue(os.path.lexists(target), "An unsafe output entry must remain intact")
+        after = target.lstat()
+        self.assertEqual((before.st_ino, before.st_mode, before.st_nlink),
+                         (after.st_ino, after.st_mode, after.st_nlink))
+        if kind == "dangling-symlink":
+            self.assertFalse(foreign.exists())
+        else:
+            self.assertEqual(SENTINEL, foreign.read_bytes())
+        if kind == "directory":
+            self.assertEqual(SENTINEL, (target / "retained").read_bytes())
+
+    def test_guard_ancestor_aliases_reject_before_any_inspection_or_retirement(self):
+        for module, name in self.commands:
+            for ancestor in ("build", "build/inventory"):
+                with self.subTest(command=name, ancestor=ancestor), tempfile.TemporaryDirectory() as temporary:
+                    root, foreign = Path(temporary) / "checkout", Path(temporary) / "foreign"
+                    root.mkdir()
+                    foreign.mkdir()
+                    alias = root / ancestor
+                    alias.parent.mkdir(parents=True, exist_ok=True)
+                    alias.symlink_to(foreign, target_is_directory=True)
+                    inventory = root / "build/inventory"
+                    inventory.mkdir(parents=True, exist_ok=True)
+                    target = inventory / name
+                    target.write_bytes(SENTINEL)
+                    (inventory / "peer.txt").write_bytes(PEER)
+                    self.assert_admission_rejected(module, root)
+                    self.assertEqual(SENTINEL, target.read_bytes())
+                    self.assertEqual(PEER, (inventory / "peer.txt").read_bytes())
+                    self.assertTrue(alias.is_symlink())
+
+    def test_guard_root_alias_and_nondirectory_ancestors_preserve_source_entries(self):
+        for module, name in self.commands:
+            for kind in ("root-alias", "build-file", "inventory-file"):
+                with self.subTest(command=name, kind=kind), tempfile.TemporaryDirectory() as temporary:
+                    root = Path(temporary) / "checkout"
+                    if kind == "root-alias":
+                        foreign = Path(temporary) / "foreign"
+                        (foreign / "build/inventory").mkdir(parents=True)
+                        target = foreign / "build/inventory" / name
+                        root.symlink_to(foreign, target_is_directory=True)
+                    else:
+                        target = root / ("build" if kind == "build-file" else "build/inventory")
+                        target.parent.mkdir(parents=True)
+                    target.write_bytes(SENTINEL)
+                    self.assert_admission_rejected(module, root)
+                    self.assertEqual(SENTINEL, target.read_bytes())
+
+    def test_guard_report_aliases_and_special_entries_remain_untouched(self):
+        for module, name in self.commands:
+            for kind in ("symlink", "dangling-symlink", "hardlink", "directory", "fifo"):
+                with self.subTest(command=name, kind=kind), tempfile.TemporaryDirectory() as temporary:
+                    root = Path(temporary) / "checkout"
+                    inventory = root / "build/inventory"
+                    inventory.mkdir(parents=True)
+                    target, foreign = inventory / name, Path(temporary) / "foreign"
+                    before = self.make_entry(target, foreign, kind)
+                    self.assert_admission_rejected(module, root)
+                    self.assert_entry_preserved(target, foreign, kind, before)
+
+    def test_runtime_evidence_directory_is_admitted_before_report_retirement(self):
+        for kind in ("symlink", "dangling-symlink", "file", "fifo"):
+            with self.subTest(kind=kind), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary) / "checkout"
+                inventory = root / "build/inventory"
+                inventory.mkdir(parents=True)
+                report = inventory / "source-identity-regression.json"
+                report.write_bytes(SENTINEL)
+                target = inventory / "source-identity-regression"
+                foreign = Path(temporary) / "foreign"
+                if kind in ("symlink", "dangling-symlink"):
+                    if kind == "symlink":
+                        foreign.mkdir()
+                        (foreign / "clean-original.log").write_bytes(PEER)
+                    target.symlink_to(foreign, target_is_directory=True)
+                elif kind == "file":
+                    target.write_bytes(PEER)
+                else:
+                    os.mkfifo(target)
+                before = target.lstat()
+                self.assert_admission_rejected(runtime_source, root)
+                self.assertTrue(report.is_file(), "Late destination rejection must preserve the earlier receipt")
+                self.assertEqual(SENTINEL, report.read_bytes())
+                self.assertEqual((before.st_mode, before.st_ino), (target.lstat().st_mode, target.lstat().st_ino))
+                if kind == "symlink":
+                    self.assertEqual(PEER, (foreign / "clean-original.log").read_bytes())
+                elif kind == "dangling-symlink":
+                    self.assertFalse(foreign.exists())
+                elif kind == "file":
+                    self.assertEqual(PEER, target.read_bytes())
+
+    def test_every_runtime_evidence_entry_is_preflighted_before_any_peer_is_retired(self):
+        for name in self.evidence_names:
+            for kind in ("symlink", "dangling-symlink", "hardlink", "directory", "fifo"):
+                with self.subTest(name=name, kind=kind), tempfile.TemporaryDirectory() as temporary:
+                    root = Path(temporary) / "checkout"
+                    folder = root / "build/inventory/source-identity-regression"
+                    folder.mkdir(parents=True)
+                    report = folder.parent / "source-identity-regression.json"
+                    report.write_bytes(SENTINEL)
+                    for peer in self.evidence_names:
+                        if peer != name:
+                            (folder / peer).write_bytes(PEER)
+                    target, foreign = folder / name, Path(temporary) / "foreign"
+                    before = self.make_entry(target, foreign, kind)
+                    self.assert_admission_rejected(runtime_source, root)
+                    self.assertTrue(report.is_file(), "The complete set must be admitted before retirement")
+                    self.assertEqual(SENTINEL, report.read_bytes())
+                    self.assert_entry_preserved(target, foreign, kind, before)
+                    for peer in self.evidence_names:
+                        if peer != name:
+                            self.assertEqual(PEER, (folder / peer).read_bytes())
+
+    def test_ordinary_guard_outputs_retire_before_failed_inspection_and_preserve_peers(self):
+        for module, name in self.commands:
+            with self.subTest(command=name), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                inventory = root / "build/inventory"
+                inventory.mkdir(parents=True)
+                report = inventory / name
+                report.write_bytes(SENTINEL)
+                (inventory / "peer.txt").write_bytes(PEER)
+                folder = inventory / "source-identity-regression"
+                if module is runtime_source:
+                    folder.mkdir()
+                    for name in self.evidence_names:
+                        (folder / name).write_bytes(SENTINEL)
+                    (folder / "peer.txt").write_bytes(PEER)
+
+                def failed(*_):
+                    self.assertFalse(report.exists())
+                    if module is runtime_source:
+                        self.assertEqual({"peer.txt"}, {path.name for path in folder.iterdir()})
+                        (folder / "clean-original.log").write_bytes(b"actual partial diagnostic fixture\n")
+                    raise RuntimeError("CONTROLLED_INSPECTION_FAILURE")
+
+                _, failure, checked, _, _ = self.invoke(module, root, failed)
+                self.assertIsInstance(failure, RuntimeError)
+                self.assertEqual("CONTROLLED_INSPECTION_FAILURE", str(failure))
+                checked.assert_called_once()
+                self.assertFalse(report.exists())
+                self.assertEqual(PEER, (inventory / "peer.txt").read_bytes())
+                if module is runtime_source:
+                    self.assertEqual(PEER, (folder / "peer.txt").read_bytes())
+                    self.assertEqual(b"actual partial diagnostic fixture\n", (folder / "clean-original.log").read_bytes())
+
+    def test_guard_success_recreates_missing_output_and_publishes_complete_private_json(self):
+        for module, name in self.commands:
+            with self.subTest(command=name), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                value = {"status": "passed", "cases": []} if module is runtime_source else []
+                result, failure, checked, _, output = self.invoke(module, root, lambda *_: value)
+                self.assertIsNone(failure)
+                self.assertEqual(None if module is runtime_source else 0, result)
+                checked.assert_called_once()
+                target = root / "build/inventory" / name
+                raw = target.read_bytes()
+                self.assertEqual(raw, (json.dumps(json.loads(raw), indent=2, sort_keys=True) + "\n").encode())
+                self.assertEqual(0o600, stat.S_IMODE(target.stat().st_mode))
+                self.assertFalse(list(target.parent.glob("." + name + ".*")))
+                self.assertTrue(output.startswith("Verified" if module is runtime_source else "PASS:"))
+
+    def test_runtime_failed_behavior_report_is_published_with_failure_exit(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            value = {"status": "failed", "cases": [{"case": "replacement-commit", "status": "failed"}]}
+            _, failure, checked, _, output = self.invoke(runtime_source, root, lambda: value)
+            self.assertIsInstance(failure, SystemExit)
+            self.assertIn("source-identity regression failed", str(failure))
+            checked.assert_called_once()
+            self.assertEqual(value, json.loads((root / "build/inventory/source-identity-regression.json").read_bytes()))
+            self.assertEqual("", output)
+
+    def test_guard_serialization_or_replace_failure_cannot_leave_partial_final_json(self):
+        for module, name in self.commands:
+            for failure_kind in ("serialization", "replace"):
+                with self.subTest(command=name, failure=failure_kind), tempfile.TemporaryDirectory() as temporary:
+                    root = Path(temporary)
+                    inventory = root / "build/inventory"
+                    inventory.mkdir(parents=True)
+                    target = inventory / name
+                    target.write_bytes(SENTINEL)
+                    (inventory / "peer.txt").write_bytes(PEER)
+                    value = {"status": "passed", "cases": [object()] if failure_kind == "serialization" else []}
+                    returned = value if module is runtime_source else value["cases"]
+                    with patch.object(Path, "replace", side_effect=OSError("CONTROLLED_PUBLICATION_FAILURE")) as replaced:
+                        _, failure, checked, _, output = self.invoke(module, root, lambda *_: returned)
+                    self.assertIsInstance(failure, TypeError if failure_kind == "serialization" else OSError)
+                    checked.assert_called_once()
+                    if failure_kind == "serialization":
+                        replaced.assert_not_called()
+                    else:
+                        replaced.assert_called_once()
+                    self.assertFalse(target.exists())
+                    self.assertEqual(PEER, (inventory / "peer.txt").read_bytes())
+                    self.assertFalse(list(inventory.glob("." + name + ".*")))
+                    self.assertEqual("", output)
 
 
 if __name__ == "__main__":
