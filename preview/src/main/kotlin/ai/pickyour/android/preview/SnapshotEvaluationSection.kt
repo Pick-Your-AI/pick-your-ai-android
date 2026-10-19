@@ -227,7 +227,7 @@ internal class SnapshotEvaluationSection(
             PreviewComparedValueKind.EMPTY -> activity.getString(R.string.snapshot_literal_empty)
             PreviewComparedValueKind.TEXT -> {
                 // Input controls have already been escaped; only our formatter may add bidi marks.
-                val literal = BidiFormatter.getInstance(activity.resources.configuration.locales[0])
+                val literal = BidiFormatter.getInstance(activity.resources.configuration.layoutDirection == View.LAYOUT_DIRECTION_RTL)
                     .unicodeWrap(requireNotNull(value.quotedLiteral), TextDirectionHeuristics.LTR)
                 if (value.truncated) activity.getString(R.string.snapshot_literal_truncated, literal) else literal
             }

@@ -3,6 +3,7 @@ package ai.pickyour.android.preview
 import android.content.Context
 import android.text.BidiFormatter
 import android.text.TextDirectionHeuristics
+import android.view.View
 import ai.pickyour.core.evaluation.ReferenceFindingView
 import ai.pickyour.core.evaluation.ProvisionalFindingGuidance
 import ai.pickyour.core.evaluation.ReferenceReportView
@@ -67,7 +68,7 @@ internal object FindingsInspectionText {
             PreviewComparedValueKind.TEXT -> requireNotNull(value.quotedLiteral)
         }
         val bounded = if (value.truncated) context.getString(R.string.findings_display_truncated, escaped) else escaped
-        return BidiFormatter.getInstance(context.resources.configuration.locales[0])
+        return BidiFormatter.getInstance(context.resources.configuration.layoutDirection == View.LAYOUT_DIRECTION_RTL)
             .unicodeWrap(bounded, TextDirectionHeuristics.LTR)
     }
 }
