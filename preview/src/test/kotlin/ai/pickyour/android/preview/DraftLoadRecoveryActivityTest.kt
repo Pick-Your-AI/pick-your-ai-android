@@ -17,6 +17,7 @@ import ai.pickyour.core.drafts.DraftStorageFailure
 import ai.pickyour.core.drafts.LocalDraftStore
 import ai.pickyour.core.preview.PreviewDraftLibrary
 import ai.pickyour.core.preview.PreviewDraftLoad
+import ai.pickyour.core.preview.PreviewDraftSave
 import org.json.JSONObject
 import org.junit.After
 import org.junit.Assert.*
@@ -134,6 +135,178 @@ class DraftLoadRecoveryActivityTest {
         assertEquals("saved synthetic title", field(R.string.draft_title).text.toString())
         assertEquals(expected, (adapter().load() as PreviewDraftLoad.Available).record.baselineIdentity)
         assertEquals(retained, retainedBytes())
+    }
+
+    @Test fun busyReadRetryKeepsPendingInputsUntilAnExplicitSave() {
+        val original = (adapter().load() as PreviewDraftLoad.Available).record
+        val retained = retainedBytes()
+        recreateWithBusyRead {
+            retryKeepingEdits()
+            assertTrue(hasText(activity.getString(R.string.draft_load_failed)))
+            assertPendingForm()
+            assertFalse(button(R.string.save_draft).isEnabled)
+            assertEquals(retained, retainedBytes())
+        }
+        assertFalse("Releasing a lock does not start a retry", button(R.string.save_draft).isEnabled)
+        retryKeepingEdits()
+        assertPendingForm()
+        assertTrue(hasText(activity.getString(R.string.draft_unsaved)))
+        assertTrue(button(R.string.save_draft).isEnabled)
+        assertEquals(original.baselineIdentity, (adapter().load() as PreviewDraftLoad.Available).record.baselineIdentity)
+        assertEquals("The preserving retry is read-only", retained, retainedBytes())
+
+        button(R.string.save_draft).performClick()
+        await { hasText(activity.getString(R.string.draft_saved)) && !button(R.string.save_draft).isEnabled }
+        val saved = (adapter().load() as PreviewDraftLoad.Available).record
+        assertEquals(original.revision + 1, saved.revision)
+        assertEquals("pending synthetic title", saved.fields.title)
+        assertEquals("pending synthetic objective", saved.contextInput.objective)
+        assertEquals("pending synthetic context", saved.contextInput.context)
+        assertEquals(original.fields.selectedId, saved.fields.selectedId)
+        assertEquals(original.fields.selectedVersion, saved.fields.selectedVersion)
+        assertEquals(original.fields.catalogHash, saved.fields.catalogHash)
+        val after = retainedBytes()
+        retained.filterKeys { it.endsWith(".bin") }.forEach { (path, digest) -> assertEquals(digest, after[path]) }
+    }
+
+    @Test fun changedRevisionRetryKeepsInputsWithoutAdoptingNewSaveAuthority() {
+        val original = (adapter().load() as PreviewDraftLoad.Available).record
+        recreateWithBusyRead()
+        val changed = adapter().save(original, original.fields.copy(title = "newer saved synthetic title"))
+        assertTrue(changed is PreviewDraftSave.Saved)
+        val retained = retainedBytes()
+        retryKeepingEdits()
+        assertPendingForm()
+        assertTrue(hasText(activity.getString(R.string.draft_reconcile)))
+        assertFalse(button(R.string.save_draft).isEnabled)
+        button(R.string.save_draft).performClick()
+        settleWorker()
+        assertEquals((changed as PreviewDraftSave.Saved).record.baselineIdentity,
+            (adapter().load() as PreviewDraftLoad.Available).record.baselineIdentity)
+        assertEquals(retained, retainedBytes())
+    }
+
+    @Test fun missingRevisionRetryKeepsInputsWithoutCreatingAReplacement() {
+        recreateWithBusyRead()
+        Files.delete(draftRoot.resolve("revisions/active"))
+        assertEquals(PreviewDraftLoad.Missing, adapter().load())
+        val retained = retainedBytes()
+        retryKeepingEdits()
+        assertPendingForm()
+        assertTrue(hasText(activity.getString(R.string.draft_reconcile)))
+        assertFalse(button(R.string.save_draft).isEnabled)
+        button(R.string.save_draft).performClick()
+        settleWorker()
+        assertEquals(PreviewDraftLoad.Missing, adapter().load())
+        assertEquals(retained, retainedBytes())
+    }
+
+    @Test fun unconfirmedCheckpointRetryCannotAcknowledgeAnUnchangedSavedRevision() {
+        recreateWithBusyRead()
+        val retained = retainedBytes()
+        val state = Bundle()
+        controller.pause().saveInstanceState(state).stop().destroy()
+        assertTrue("A failed read supplies no durable acknowledgement", state.getBoolean("draftRequiresReopen"))
+        controller = Robolectric.buildActivity(PreviewActivity::class.java).create(state).start().resume().visible()
+        await { button(R.string.reopen_draft).isEnabled }
+        settleWorker()
+        assertPendingForm()
+        retryKeepingEdits()
+        assertPendingForm()
+        assertTrue(hasText(activity.getString(R.string.draft_reconcile)))
+        assertFalse(button(R.string.save_draft).isEnabled)
+        button(R.string.save_draft).performClick()
+        settleWorker()
+        assertEquals(retained, retainedBytes())
+    }
+
+    @Test fun cancelledAndStaleKeepingEditsCallbacksCannotRestartARead() {
+        recreateWithBusyRead()
+        val retained = retainedBytes()
+        button(R.string.reopen_draft).performClick()
+        val cancelled = ShadowAlertDialog.getLatestAlertDialog()!!
+        val cancelledRetry = keepingEditsChoice(cancelled)
+        cancelled.getButton(AlertDialog.BUTTON_NEGATIVE).performClick()
+        await { !cancelled.isShowing }
+        cancelledRetry.performClick()
+        settleWorker()
+        assertPendingForm()
+        assertTrue(hasText(activity.getString(R.string.draft_load_failed)))
+        assertFalse(button(R.string.save_draft).isEnabled)
+        assertEquals(retained, retainedBytes())
+
+        retryKeepingEdits()
+        button(R.string.reopen_draft).performClick()
+        val stale = ShadowAlertDialog.getLatestAlertDialog()!!
+        val staleRetry = keepingEditsChoice(stale)
+        button(R.string.save_draft).performClick()
+        await { hasText(activity.getString(R.string.draft_saved)) && !button(R.string.save_draft).isEnabled }
+        val saved = (adapter().load() as PreviewDraftLoad.Available).record.baselineIdentity
+        val afterSave = retainedBytes()
+        field(R.string.draft_title).setText("later pending synthetic title")
+        staleRetry.performClick()
+        settleWorker()
+        assertEquals("later pending synthetic title", field(R.string.draft_title).text.toString())
+        assertEquals("pending synthetic objective", field(R.string.context_objective).text.toString())
+        assertTrue(hasText(activity.getString(R.string.draft_unsaved)))
+        assertTrue(button(R.string.save_draft).isEnabled)
+        assertEquals(saved, (adapter().load() as PreviewDraftLoad.Available).record.baselineIdentity)
+        assertEquals(afterSave, retainedBytes())
+    }
+
+    @Test fun keepingEditsRetryPreservesInvalidRawWorkloadInput() {
+        recreateWithBusyRead()
+        val retained = retainedBytes()
+        field(R.string.workload_budget).setText("not a number")
+        retryKeepingEdits()
+        assertEquals("not a number", field(R.string.workload_budget).text.toString())
+        assertEquals("pending synthetic title", field(R.string.draft_title).text.toString())
+        assertEquals("pending synthetic objective", field(R.string.context_objective).text.toString())
+        assertEquals("pending synthetic context", field(R.string.context_context).text.toString())
+        assertEquals("pending synthetic region", field(R.string.workload_region).text.toString())
+        assertFalse(button(R.string.save_draft).isEnabled)
+        assertEquals(retained, retainedBytes())
+        field(R.string.workload_budget).setText("12.00")
+        assertPendingForm()
+        assertTrue("Correcting input can use only the original rejoined baseline", button(R.string.save_draft).isEnabled)
+        assertEquals(retained, retainedBytes())
+    }
+
+    private fun recreateWithBusyRead(whileBusy: () -> Unit = {}) {
+        settleWorker()
+        val path = draftRoot
+        val state = Bundle()
+        controller.pause().saveInstanceState(state).stop().destroy()
+        FileChannel.open(path.resolve("transaction.lock"), WRITE).use { channel ->
+            channel.lock().use {
+                controller = Robolectric.buildActivity(PreviewActivity::class.java).create(state).start().resume().visible()
+                await { button(R.string.reopen_draft).isEnabled }
+                settleWorker()
+                assertEquals(PreviewDraftLoad.Failed(DraftStorageFailure.BUSY), adapter().load())
+                assertTrue(hasText(activity.getString(R.string.draft_load_failed)))
+                assertPendingForm()
+                assertFalse(button(R.string.save_draft).isEnabled)
+                whileBusy()
+            }
+        }
+        settleWorker()
+    }
+
+    private fun keepingEditsChoice(dialog: AlertDialog): Button {
+        assertTrue(dialog.isShowing)
+        val choice = dialog.getButton(AlertDialog.BUTTON_NEUTRAL)
+        assertNotNull("Recovery needs an explicit retry that retains pending input", choice)
+        assertEquals("Recovery needs a visible preserving retry", View.VISIBLE, choice.visibility)
+        assertEquals("Retry keeping edits", choice.text.toString())
+        return choice
+    }
+
+    private fun retryKeepingEdits() {
+        button(R.string.reopen_draft).performClick()
+        val confirmation = ShadowAlertDialog.getLatestAlertDialog()!!
+        keepingEditsChoice(confirmation).performClick()
+        await { button(R.string.reopen_draft).isEnabled }
+        settleWorker()
     }
 
     private fun stopAndChangeRetainedDraft(change: (Path) -> Unit) {
