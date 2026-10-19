@@ -132,4 +132,5 @@ Copy this revision’s title and sample selection into the editor? This replaces
     <string name="context_policy_minimum">Enter a whole number of at least %1$s.</string>
     <string name="context_policy_enum">Choose one of the listed values or Not supplied.</string>
     <string name="context_policy_too_long">This input is too long for the editor.</string>
+    <string name="draft_identity_unavailable">The saved draft identity could not be restored. Your visible edits have not been saved or applied to another draft. Choose a draft from the local library or explicitly create a new one to continue.</string>
 </resources>
