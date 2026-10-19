@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Reproduce additive configuration goldens with all 45 unchanged frozen rules."""
+"""Reproduce additive configuration goldens with all 45 unchanged frozen rules.
+
+Both operations reject aliased or nonregular output destinations. Explicit
+regeneration publishes exact gzip bytes at mode 0644 through a sibling temporary
+file, retaining the previous fixture on failure in a stable trusted checkout.
+"""
 import argparse
 import copy
 import hashlib
@@ -11,6 +16,8 @@ from pathlib import Path
 
 from jsonschema import Draft202012Validator, FormatChecker
 from referencing import Registry, Resource
+
+from reference_fixture_output import output_path, write_binary_output
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = Path('core/src/test/resources/evaluation/configuration-cases.json.gz')
@@ -155,10 +162,11 @@ def generate(root=ROOT):
 
 
 def verify(root=ROOT):
+    target = output_path(root, FIXTURE)
     expected = encoded(generate(root))
     try:
         reader = zlib.decompressobj(wbits=31)
-        raw = reader.decompress((root / FIXTURE).read_bytes(), 1024 * 1024)
+        raw = reader.decompress(target.read_bytes(), 1024 * 1024)
         if not reader.eof or reader.unused_data or reader.unconsumed_tail:
             raise ValueError('Configuration fixture gzip is incomplete, oversized or has extra members')
     except zlib.error as error:
@@ -175,7 +183,9 @@ def main():
     args = parser.parse_args()
     try:
         if args.write_configurations:
-            (ROOT / FIXTURE).write_bytes(gzip.compress(encoded(generate()), compresslevel=9, mtime=0))
+            output_path(ROOT, FIXTURE)
+            write_binary_output(ROOT, FIXTURE,
+                                gzip.compress(encoded(generate()), compresslevel=9, mtime=0))
         else:
             verify()
     except (OSError, ValueError, KeyError) as error:

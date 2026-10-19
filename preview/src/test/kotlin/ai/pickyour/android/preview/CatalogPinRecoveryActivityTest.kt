@@ -62,7 +62,8 @@ class CatalogPinRecoveryActivityTest {
         val caption = views().filterIsInstance<TextView>().single { it.text.toString() == activity.getString(label) }
         return activity.findViewById(caption.labelFor)
     }
-    private fun samples() = views().filterIsInstance<Button>().filter { it.text.toString().startsWith("Open FICTIONAL") }
+    private fun samples() = views().filterIsInstance<CatalogBrowseSection>().single().let(::views)
+        .filterIsInstance<Button>().filter { it.text.toString().contains("FICTIONAL") }
     private fun comparison() = views().filterIsInstance<CatalogComparisonSection>().single()
     private fun catalog() = views().filterIsInstance<CatalogBrowseSection>().single()
     private fun removals() = views().filterIsInstance<Button>().filter { it.text.toString().startsWith("Remove component ") }

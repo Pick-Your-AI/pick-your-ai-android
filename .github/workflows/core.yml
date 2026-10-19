@@ -102,6 +102,51 @@ jobs:
                   raise SystemExit("Current-draft regression did not execute successfully")
               print(f"Verified {len(cases)} source-named current-draft cases in {name}; no installed-device claim")
           PYCURRENT
+      - name: Require explicitly supplied historical findings regressions
+        run: |
+          python - <<'PYTEST'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          name = "ai.pickyour.core.comparison.RecordedFindingsComparisonTest"
+          expected = {
+              "default comparison keeps reports not loaded and never claims an empty evaluation()",
+              "explicit absent inputs remain unavailable without consuming the other input()",
+              "full frozen golden is admitted and preserves all forty five recorded findings()",
+              "expected report identity is required independently of valid Build binding()",
+              "stale revision or recorded locks reject without latest data substitution()",
+              "a report admitted to one full Build cannot be relabeled onto equal IDs and locks()",
+              "separately admitted Build changes are disclosed without inventing finding changes()",
+              "all admitted streams remain caller owned and mutable source trees cannot alter records()",
+              "unsupported ruleset is distinguished only after complete strict parsing()",
+              "unsupported report remains separate from malformed or unsupported ruleset inputs()",
+              "supported records still require the unchanged fixed schemas()",
+              "size bounds and provider failures reject without private error text or closing streams()",
+              "duplicate missing reordered or wrong selection findings fail reference admission()",
+              "schema valid ready and contradictory results cannot become admitted comparison inputs()",
+              "recorded outcome transitions expose counters and declarations without a new verdict()",
+              "severity code message remediation and literal control text remain complete changes()",
+              "absent evidence and supplied empty evidence remain different with both full inputs()",
+              "evidence absent null string and typed values are never collapsed()",
+              "evidence duplicate paths order and empty source version are preserved()",
+              "exact numeric evidence equality avoids both spelling changes and floating point collapse()",
+              "rule ID display join reports additions removals and changed association without guessing()",
+              "changed affected selections are retained as ordered recorded IDs()",
+              "catalog graph rules and pricebook locks are disclosed independently of finding values()",
+              "same ruleset identity with a different expression is an integrity difference not an evaluation()",
+              "distinct report identities and recorded times are not mistaken for freshness()",
+              "finding budget never returns partial success even when most findings are unchanged()",
+              "swapping inputs reverses additions and full before after values()",
+              "collections and debug summaries cannot mutate or disclose private comparison values()",
+          }
+          suite = ET.parse(pathlib.Path("core/build/test-results/test") / f"TEST-{name}.xml").getroot()
+          cases = suite.findall("testcase")
+          names = [case.attrib.get("name") for case in cases]
+          if suite.attrib.get("name") != name or any(case.attrib.get("classname") != name for case in cases) or set(names) != expected or len(names) != len(expected):
+              raise SystemExit("Missing, foreign or repeated historical-findings regression")
+          if int(suite.attrib["tests"]) != len(cases) or any(int(suite.attrib.get(key, "0")) != 0 for key in ("failures", "errors", "skipped")) or any(case.findall("failure") or case.findall("error") or case.findall("skipped") for case in cases):
+              raise SystemExit("Historical-findings regressions did not execute cleanly")
+          print(f"Verified {len(cases)} explicit historical-report comparisons; no new evaluation or freshness acceptance")
+          PYTEST
       - name: Require recorded exact-product arithmetic regressions
         run: |
           python - <<'PYTEST'
@@ -2156,6 +2201,10 @@ jobs:
               },
               'ai.pickyour.android.preview.SnapshotEvaluationPresentationActivityTest': {
                   'ordinaryRetainedRuleKeepsOutcomeSeverityAndSourceBytes',
+                  'retainedUnknownFindingDisclosesAbsentEvidenceAndUnmetInputs',
+                  'retainedFailureDisclosesAbsentEvidenceWithoutBecomingPass',
+                  'retainedPassKeepsEvidenceAbsenceSeparateFromItsOutcome',
+                  'retainedSkippedFindingDisclosesAbsentEvidenceWithoutBecomingPass',
                   'retainedFailingTextCannotInjectStatusLinesOrBidiControls',
                   'retainedUnknownTextCannotImpersonateAbsentOrKnownStatus',
                   'evaluatedPassRetainsSuppliedEmptyRemediation',
@@ -2353,6 +2402,30 @@ jobs:
               raise SystemExit('Component presentation regression did not pass')
           print(f'Verified {len(cases)} simulated component presentation tests; no installed-device claim')
           PYCOMPONENTTEXT
+      - name: Require catalog browse presentation regressions
+        run: |
+          python - <<'PYCATALOGTEXT'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          qualified = 'ai.pickyour.android.preview.CatalogBrowsePresentationTest'
+          expected = {
+              'mixedDirectionRowsPreserveExactCatalogObjectsAndSnapshot',
+              'forcedRtlFacetsAndKindChoicesKeepCanonicalSavedState',
+              'rtlRowsAndRecreatedChoicesKeepNaturalNamesAndRetireOldControls',
+              'ltrRowsAndResourceChoicesPreserveAllLabelsAndClosedState',
+          }
+          report = pathlib.Path('preview/build/test-results/testDebugUnitTest') / ('TEST-' + qualified + '.xml')
+          suite = ET.parse(report).getroot()
+          cases = suite.findall('testcase')
+          identities = [(case.attrib['classname'], case.attrib['name']) for case in cases]
+          if suite.attrib['name'] != qualified or set(identities) != {(qualified, name) for name in expected} or len(identities) != len(expected):
+              raise SystemExit('Missing, unexpected or repeated catalog browse presentation regression')
+          if int(suite.attrib['tests']) != len(cases) or any(int(suite.attrib.get(key, '0')) != 0 for key in ('failures', 'errors', 'skipped')):
+              raise SystemExit('Catalog browse presentation suite did not execute cleanly')
+          if any(case.findall('failure') or case.findall('error') or case.findall('skipped') for case in cases):
+              raise SystemExit('Catalog browse presentation regression did not pass')
+          print(f'Verified {len(cases)} simulated catalog browse presentation tests; no installed-device claim')
+          PYCATALOGTEXT
       - name: Record the unsigned APK handoff after successful build and simulation
         id: apk-handoff
         run: |
