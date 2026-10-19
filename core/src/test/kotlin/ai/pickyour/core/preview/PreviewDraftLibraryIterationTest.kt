@@ -17,13 +17,13 @@ class PreviewDraftLibraryIterationTest {
 
     enum class IteratorCall { HAS_NEXT, NEXT }
 
-    @ParameterizedTest @EnumSource(IteratorCall::class)
+    @ParameterizedTest(name = "rootScanFailureRejectsPartialListingAndAllowsRetry {0}") @EnumSource(IteratorCall::class)
     fun rootScanFailureRejectsPartialListingAndAllowsRetry(call: IteratorCall) {
         val saved = seed()
         checkListingFailure(root, call, saved)
     }
 
-    @ParameterizedTest @EnumSource(IteratorCall::class)
+    @ParameterizedTest(name = "deletionScanFailureRejectsPartialListingAndAllowsRetry {0}") @EnumSource(IteratorCall::class)
     fun deletionScanFailureRejectsPartialListingAndAllowsRetry(call: IteratorCall) {
         val saved = seed()
         val pending = stageDeletions(saved.take(2))
@@ -33,12 +33,12 @@ class PreviewDraftLibraryIterationTest {
                 .filter { it.deletionPending }.map { it.id }.toSet())
     }
 
-    @ParameterizedTest @EnumSource(IteratorCall::class)
+    @ParameterizedTest(name = "rootScanFailurePreventsNewIdentityAndPreservesSavedContent {0}") @EnumSource(IteratorCall::class)
     fun rootScanFailurePreventsNewIdentityAndPreservesSavedContent(call: IteratorCall) {
         checkCreationFailure(root, call, seed())
     }
 
-    @ParameterizedTest @EnumSource(IteratorCall::class)
+    @ParameterizedTest(name = "deletionScanFailurePreventsNewIdentityAndPreservesSavedContent {0}") @EnumSource(IteratorCall::class)
     fun deletionScanFailurePreventsNewIdentityAndPreservesSavedContent(call: IteratorCall) {
         val saved = seed()
         checkCreationFailure(stageDeletions(saved.take(2)), call, saved)

@@ -88,6 +88,14 @@ validation also passes the existing library, deletion, upgrade, pending-recovery
 and cache suites: 61 cases total, with no failures or skips. This focused local
 result does not replace the configured Gradle/native or installed receiving gates.
 
+The existing three-argument internal JVM constructor remains available through a
+delegating overload. The first configured native run in
+[PR #485](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/485) exposed its
+missing descriptor: four of 300 cases failed with `NoSuchMethodException`; that
+original failure is retained. A direct invocation of the restored descriptor
+preserves both checkpoint callbacks, typed cleanup failure and ordinary retry.
+The existing native cleanup tests and their configured gates remain unchanged.
+
 ## #76: Navigation and lifecycle
 
 The preview is one Activity containing catalog, editor, comparison and library
