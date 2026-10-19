@@ -42,7 +42,7 @@ payload enters the view. A receiver's acceptance still proves consistency, not
 that the supplied report was evaluated correctly.
 
 The retained-evaluation source descriptor binds this reviewed adapter's exact
-SHA-256, `5c70ad9133f79ab68de367ab1d4b630c6881467a893fd725d9e39888d62f71f7`.
+SHA-256, `d39e266490ffb7814b0bb2cc05a108d60206f036a3be7beb6c340b29723fa525`.
 Its existing request digest therefore changes with the receiver source. The
 profile ID, reference time, evaluator/reference/schema pins, canonical report
 bytes and golden cases are unchanged. Earlier source descriptors and focused
