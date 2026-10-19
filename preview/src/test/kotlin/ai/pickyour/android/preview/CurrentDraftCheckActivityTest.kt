@@ -159,7 +159,7 @@ class CurrentDraftCheckActivityTest {
         val prior = state() as PreviewCurrentDraftState.Current
         val previousRows = prior.outcome.findings.map { it.ruleId to it.outcome }
         val form = choose(modelActions()) { it == activity.getString(R.string.component_configure) }
-        val settings = JSONObject(loaded().components.selections.single { it.kind == "model" }.settings.toString()).put("temperature", 0.7)
+        val settings = JSONObject(PreviewSelectionForms.settingsText(loaded().components.selections.single { it.kind == "model" })).put("temperature", 0.7)
         input(form, R.string.component_settings).setText(settings.toString())
         assertTrue(state() is PreviewCurrentDraftState.Unavailable)
         observeAcknowledgement({ form.getButton(AlertDialog.BUTTON_POSITIVE).performClick() }) {

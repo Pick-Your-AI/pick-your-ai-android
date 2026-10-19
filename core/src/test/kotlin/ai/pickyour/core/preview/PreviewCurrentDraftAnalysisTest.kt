@@ -46,7 +46,7 @@ class PreviewCurrentDraftAnalysisTest {
         assertTrue(session.state is PreviewCurrentDraftState.Rechecking)
         val before = files()
         session.execute(work) { reads++; s.adapter.load() }
-        session.execute(work) { fail("An attempt started twice"); s.adapter.load() }
+        session.execute(work) { fail<PreviewDraftLoad>("An attempt started twice") }
         repeat(5) { assertNull(session.update(record, pins, true, owner)) }
         assertEquals(1, evaluations); assertEquals(2, reads)
         assertTrue(session.state is PreviewCurrentDraftState.Current)
@@ -61,7 +61,7 @@ class PreviewCurrentDraftAnalysisTest {
         assertTrue(session.state is PreviewCurrentDraftState.Unavailable)
         val current = start(session, record, pins, owner)
         assertNotSame(stale, current); assertEquals(stale.request.binding, current.request.binding)
-        session.execute(stale) { fail("Revoked work read the store"); s.adapter.load() }
+        session.execute(stale) { fail<PreviewDraftLoad>("Revoked work read the store") }
         session.execute(current, s.adapter::load)
         assertEquals(1, evaluations)
         assertSame(current.request, (session.state as PreviewCurrentDraftState.Current).request)
@@ -78,7 +78,7 @@ class PreviewCurrentDraftAnalysisTest {
         assertEquals(b.revision, current.request.recheck.before!!.sourceRevision)
         assertTrue(current.request.recheck.selectionIds.contains("sel_accelerator"))
         session.execute(current, s.adapter::load)
-        session.execute(ignored) { fail("A superseded attempt read"); s.adapter.load() }
+        session.execute(ignored) { fail<PreviewDraftLoad>("A superseded attempt read") }
         assertSame(current.request, (session.state as PreviewCurrentDraftState.Current).request)
         assertEquals(retainedRows, retained.outcome.findings.map { it.ruleId to it.outcome })
     }
@@ -160,7 +160,7 @@ class PreviewCurrentDraftAnalysisTest {
         val second = start(session, secondRecord, pins)
         assertNotEquals(first.request.binding.inputDigest, second.request.binding.inputDigest)
         assertNull(second.request.recheck.before)
-        session.execute(first) { fail("Cross-store stale read"); a.adapter.load() }
+        session.execute(first) { fail<PreviewDraftLoad>("Cross-store stale read") }
         session.execute(second, b.adapter::load)
         assertSame(second.request, (session.state as PreviewCurrentDraftState.Current).request)
     }
@@ -169,7 +169,10 @@ class PreviewCurrentDraftAnalysisTest {
         val s = store(); val record = load(s); val a = inputs()
         val graph = mapper.readTree(fixture("dependency-graph")) as ObjectNode
         graph.put("revision", 2)
-        graph.putArray("edges") // A valid replacement removes every old edge during an unavailable input interval.
+        val replacementId = "dep.replacement.current"
+        val replacement = graph["edges"][0].deepCopy<ObjectNode>().put("id", replacementId)
+        // Frozen graphs require an edge. Replace every old edge identity with one new valid edge.
+        graph.putArray("edges").add(replacement)
         val b = requireNotNull(DraftCurrentInputs.read(fixture("catalog"), graph.toString().toByteArray(), fixture("ruleset")))
         val session = PreviewCurrentDraftAnalysis()
         val before = files(); val first = start(session, record, a)
@@ -177,12 +180,13 @@ class PreviewCurrentDraftAnalysisTest {
         val second = start(session, record, b)
         assertNotEquals(first.request.binding.inputDigest, second.request.binding.inputDigest)
         assertEquals(first.request.binding.graphHash, second.request.recheck.before!!.graphHash)
-        assertEquals(first.request.recheck.edgeIds, second.request.recheck.edgeIds)
+        assertFalse(first.request.recheck.edgeIds.contains(replacementId))
+        assertEquals((first.request.recheck.edgeIds + replacementId).sorted(), second.request.recheck.edgeIds)
         session.invalidate(PreviewCurrentUnavailable.BACKGROUND)
         val third = start(session, record, a)
         assertNotSame(first, third)
-        session.execute(first) { fail("Old source A revived"); s.adapter.load() }
-        session.execute(second) { fail("Old source B revived"); s.adapter.load() }
+        session.execute(first) { fail<PreviewDraftLoad>("Old source A revived") }
+        session.execute(second) { fail<PreviewDraftLoad>("Old source B revived") }
         session.execute(third, s.adapter::load)
         session.close()
         assertNull(session.update(record, a, true, Any()))
