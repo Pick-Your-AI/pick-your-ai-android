@@ -718,7 +718,7 @@ class PreviewActivity : Activity() {
     }
 
     private fun showPinnedDetails(pin: PreviewCatalogPin, captured: PreviewCatalogBrowser?, originIsCurrent: () -> Boolean) {
-        if (destroyed || storageBusy || !originIsCurrent()) return
+        if (destroyed || !diagnosticsResumed || storageBusy || !originIsCurrent()) return
         retireRevisionInspection()
         catalogDetailDialog?.dismiss()
         catalogDetailDialog = null
@@ -729,7 +729,7 @@ class PreviewActivity : Activity() {
         val baseline = savedRecord
         val draftId = currentDraftId
         catalogPinRecovery.open(pin, captured) {
-            !destroyed && !storageBusy && savedRecord === baseline && currentDraftId == draftId && originIsCurrent()
+            !destroyed && diagnosticsResumed && !storageBusy && savedRecord === baseline && currentDraftId == draftId && originIsCurrent()
         }
     }
 
@@ -1642,6 +1642,7 @@ class PreviewActivity : Activity() {
 
     override fun onPause() {
         diagnosticsResumed = false
+        if (::catalogPinRecovery.isInitialized) catalogPinRecovery.dismiss()
         if (::compatibleOptions.isInitialized) compatibleOptions.dismiss()
         if (::draftSummary.isInitialized) draftSummary.retireActions()
         if (::diagnostics.isInitialized) diagnostics.dismiss()
