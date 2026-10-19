@@ -50,8 +50,9 @@ T1 `context_policy` remains the existing separately editable kind. The separate
 [retrieval continuation](RETRIEVAL_SELECTIONS.md) subsequently adds the five frozen
 T3 kinds to these commands while preserving optional-tier intent. The
 [agent continuation](AGENT_SELECTIONS.md) adds the five frozen T4 kinds through the
-same commands. T5–T6 typed mutation remains outside the editor; the original T0
-continuation did not add optional-tier mutation or weaken its controls.
+same commands. Subsequent training and guardrail/evaluation continuations are
+recorded in the [current command subset](TYPED_LOCAL_SELECTIONS.md). The original
+T0 continuation did not add optional-tier mutation or weaken its controls.
 
 ## Persistence, recovery and snapshot preparation
 
@@ -94,8 +95,12 @@ Nine dedicated core cases cover empty and explicit inputs, large integers and
 invalid settings, all four test-only catalog modes, exact pins, cardinality and
 role scope, retained format-4/5 history, managed liveness/CAS, projection integration
 and the retained unsupported-kind command boundary. That original T0 assertion
-covered T3–T6; the retrieval and agent continuations narrow it to T5–T6 while
-keeping all T0 cases. The four-mode catalog variants exist only
+covered T3–T6; the retrieval, agent and training continuations subsequently
+narrowed it to the five T6 kinds while keeping all T0 cases. The
+[guardrail/evaluation continuation](GUARDRAIL_EVALUATION_SELECTIONS.md) retains
+the complete rejection boundary for the three remaining deployment, monitoring
+and cost-policy kinds and records the corresponding test-name change. The
+four-mode catalog variants exist only
 inside tests; the frozen examples and runtime catalog are unchanged.
 
 Nine mandatory Activity simulations exercise a new empty managed draft and
