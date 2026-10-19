@@ -1,0 +1,8 @@
+<resources>
+    <string name="catalog_use_in_draft">Use in draft</string>
+    <string name="catalog_selection_requires_saved">Save this draft and finish any current component edit to use this item.</string>
+    <string name="catalog_selection_changed">The draft or catalog changed. Close these details and choose the item again.</string>
+    <string name="component_link_ready">A component link is ready to inspect. Choose a local draft before adding it.</string>
+    <string name="component_link_open">Open linked component</string>
+    <string name="component_link_unavailable">That exact component version and catalog snapshot are unavailable. Reload the catalog or choose an available item from search.</string>
+</resources>
