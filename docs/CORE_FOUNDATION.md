@@ -1,5 +1,12 @@
 # JVM core implementation and acceptance limits
 
+The opt-in [CD1-0.2 answer profile](ANSWER_PROFILE.md) retains original bytes,
+typed unresolved causes, field-specific known-value admission and explicit
+assumption/preset attribution through a small terminal rule policy. Its fixed
+canonical-reference corpus is separate from frozen readers and the existing
+diagnostic evaluator. Native schema budgets and partial #27 receiving limits
+are explicit; this package does not activate editor or evidence-policy behavior.
+
 The [frozen CostEstimate boundary](FROZEN_COST_ESTIMATE_BOUNDARY.md) preserves every
 recorded field, exact scalar string and ordered line as immutable Kotlin values.
 Its shared structural cases keep schema validity separate from the existing
