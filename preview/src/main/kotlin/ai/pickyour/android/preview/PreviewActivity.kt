@@ -99,10 +99,12 @@ class PreviewActivity : Activity() {
     private var libraryComparison: LibraryRevisionComparison? = null
     private var storageReady = false
     private var storageAuthority = Any() // UI-thread identity; never reused across storage operations.
+    private var failedReadCheckpoint: PreviewDraftRestoration? = null
     private var storageBusy = true
         set(value) {
             if (value) {
                 autosave.cancel()
+                failedReadCheckpoint = null
                 storageAuthority = Any()
                 retireRevisionInspection()
                 if (::compatibleOptions.isInitialized) compatibleOptions.dismiss()
@@ -236,12 +238,26 @@ class PreviewActivity : Activity() {
                 val baseline = savedRecord
                 val draftId = currentDraftId
                 val authority = storageAuthority
+                val keepingEdits = if (storageReady) PreviewDraftRestoration.capture(baseline, true, false)
+                    else failedReadCheckpoint ?: PreviewDraftRestoration.capture(baseline, false, false)
+                fun current(confirmation: DialogInterface) =
+                    (confirmation as? AlertDialog)?.isShowing == true && !destroyed && !storageBusy &&
+                        selectionResolved && currentDraftId == draftId && savedRecord === baseline && storageAuthority === authority
                 AlertDialog.Builder(this@PreviewActivity).setTitle(R.string.reopen_draft)
                     .setMessage(R.string.reopen_warning)
                     .setNegativeButton(R.string.keep_edits, null)
+                    .setNeutralButton(R.string.retry_keep_edits) { confirmation, _ ->
+                        if (current(confirmation)) {
+                            autosave.pause()
+                            restoration = keepingEdits
+                            // The visible raw inputs, including invalid text, own this read-only retry.
+                            restoreContextFromDisk = false
+                            restoreWorkloadFromDisk = false
+                            loadDraft(true)
+                        }
+                    }
                     .setPositiveButton(R.string.reopen_confirm) { confirmation, _ ->
-                        if ((confirmation as? AlertDialog)?.isShowing == true && !destroyed && !storageBusy &&
-                            selectionResolved && currentDraftId == draftId && savedRecord === baseline && storageAuthority === authority) loadDraft(false)
+                        if (current(confirmation)) loadDraft(false)
                     }.show()
             }
         }
@@ -1346,6 +1362,8 @@ class PreviewActivity : Activity() {
     private fun loadDraft(preserveRestoredFields: Boolean) {
         if (destroyed) return
         val id = currentDraftId
+        val readCheckpoint = if (preserveRestoredFields) restoration
+            else PreviewDraftRestoration.capture(savedRecord, storageReady, storageBusy)
         activeDraft.text = getString(R.string.library_active, id.value)
         storageBusy = true
         storageReady = false
@@ -1358,6 +1376,7 @@ class PreviewActivity : Activity() {
                     storageBusy = false
                     savedRecord = (result as? PreviewDraftLoad.Available)?.record
                     val loadSucceeded = result is PreviewDraftLoad.Available || result == PreviewDraftLoad.Missing
+                    if (!loadSucceeded) failedReadCheckpoint = readCheckpoint
                     val needsReopen = preserveRestoredFields && restoration?.canResume(savedRecord) != true
                     storageReady = loadSucceeded && !needsReopen
                     if (!preserveRestoredFields && loadSucceeded) {

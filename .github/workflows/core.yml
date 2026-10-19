@@ -1374,6 +1374,14 @@ jobs:
               "corruptRetainedBytesRequireReadableCopyAndRetainPendingForm",
               "malformedPreviewMetadataRequiresReadableCopyWithoutReset",
               "busyStoredDraftCanRetryExplicitlyAfterLockRelease",
+              "busyReadRetryKeepsPendingInputsUntilAnExplicitSave",
+              "changedRevisionRetryKeepsInputsWithoutAdoptingNewSaveAuthority",
+              "missingRevisionRetryKeepsInputsWithoutCreatingAReplacement",
+              "unconfirmedCheckpointRetryCannotAcknowledgeAnUnchangedSavedRevision",
+              "cancelledAndStaleKeepingEditsCallbacksCannotRestartARead",
+              "keepingEditsRetryPreservesInvalidRawWorkloadInput",
+              "preservingRetryPausesAutosaveAcrossDelayAndRecreationUntilExplicitSave",
+              "cancelledAndStaleKeepingEditsCallbacksCannotPauseAutosaveOrRestartReads",
           }
           cases = suite.findall("testcase")
           names = [case.attrib["name"] for case in cases]
