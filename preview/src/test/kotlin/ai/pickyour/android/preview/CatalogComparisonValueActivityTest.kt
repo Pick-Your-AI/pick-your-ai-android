@@ -270,6 +270,13 @@ class CatalogComparisonValueActivityTest {
         assertStable(before)
     }
 
+    @Test fun privacyDisclosureRetiresCompleteValueCallbacks() {
+        assertStoragePresentationRetiresValue {
+            activity.findViewById<Button>(R.id.privacy_open).performClick()
+            assertNotNull(dialog().findViewById<View>(R.id.privacy_scroll))
+        }
+    }
+
     @Test fun historyDetailRetiresCompleteValueCallbacks() {
         val picker = historyPicker()
         assertStoragePresentationRetiresValue {

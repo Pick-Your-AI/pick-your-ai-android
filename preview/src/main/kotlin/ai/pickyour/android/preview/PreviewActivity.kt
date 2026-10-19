@@ -439,7 +439,9 @@ class PreviewActivity : Activity() {
                 else catalogFixture?.helpIdentity ?: HelpCatalogIdentity.UNAVAILABLE_OR_LOADING
             })
         help.attach(content)
-        privacy = LocalPrivacy(this) { !destroyed && diagnosticsResumed }
+        privacy = LocalPrivacy(this, beforeShow = { retireRevisionInspection() }) {
+            !destroyed && diagnosticsResumed
+        }
         privacy.attach(content)
         val padding = (24 * resources.displayMetrics.density).toInt()
         content.setPadding(padding, padding, padding, padding)
