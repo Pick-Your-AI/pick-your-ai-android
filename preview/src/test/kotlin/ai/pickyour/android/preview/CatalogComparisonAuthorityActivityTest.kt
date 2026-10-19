@@ -2,7 +2,7 @@ package ai.pickyour.android.preview
 
 import android.app.AlertDialog
 import android.os.Bundle
-import android.os.Looper
+import android.os.SystemClock
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
@@ -30,6 +30,7 @@ import org.robolectric.shadows.ShadowAlertDialog
 class CatalogComparisonAuthorityActivityTest {
     private lateinit var controller: ActivityController<PreviewActivity>
     private val activity get() = controller.get()
+    private var pendingSince = 0L
 
     @Before fun launch() {
         controller = Robolectric.buildActivity(PreviewActivity::class.java).setup()
@@ -38,6 +39,9 @@ class CatalogComparisonAuthorityActivityTest {
         button(R.string.save_draft).performClick()
         await { !button(R.string.save_draft).isEnabled && views().filterIsInstance<TextView>()
             .any { it.text.toString() == activity.getString(R.string.draft_saved) } }
+        // These read-only inspections explicitly precede the automatic save deadline.
+        AutosaveUiClock.pause()
+        pendingSince = SystemClock.uptimeMillis()
         field(R.string.context_objective).setText("pending comparison objective")
         field(R.string.workload_budget).setText("12.00")
         for (kind in listOf("model", "compute_profile")) {
@@ -163,6 +167,7 @@ class CatalogComparisonAuthorityActivityTest {
         assertEquals(before.getInt("catalogPage"), after.getInt("catalogPage"))
         assertEquals(baseline, loaded().baselineIdentity)
         assertTrue(button(R.string.save_draft).isEnabled)
+        assertTrue("Read-only actions stay before autosave", SystemClock.uptimeMillis() in pendingSince until pendingSince + 750)
     }
 
     private fun state() = Bundle().also { controller.saveInstanceState(it) }
@@ -180,7 +185,7 @@ class CatalogComparisonAuthorityActivityTest {
         add(root)
         if (root is ViewGroup) repeat(root.childCount) { addAll(views(root.getChildAt(it))) }
     }
-    private fun idle() = shadowOf(Looper.getMainLooper()).idle()
+    private fun idle() = AutosaveUiClock.idle()
     private fun await(condition: () -> Boolean) {
         val deadline = System.nanoTime() + 15_000_000_000L
         while (System.nanoTime() < deadline) {

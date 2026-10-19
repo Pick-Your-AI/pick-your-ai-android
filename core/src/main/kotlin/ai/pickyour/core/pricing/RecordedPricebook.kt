@@ -53,6 +53,7 @@ class RecordedPriceRate internal constructor(
 
 sealed interface RecordedPricebookResult {
     data object InvalidDocument : RecordedPricebookResult
+    data object UnsupportedSchemaVersion : RecordedPricebookResult
     class Parsed(val pricebook: RecordedPricebook) : RecordedPricebookResult {
         override fun toString() = "RecordedPricebookResult.Parsed"
     }
@@ -87,6 +88,9 @@ class RecordedPricebook private constructor(
             val parsed = BoundedJsonReader().read(DigestInputStream(input, digest))
             if (parsed !is JsonInputResult.Parsed) return RecordedPricebookResult.InvalidDocument
             val book = parsed.value
+            val version = book["schema_version"]
+            if (version?.isTextual == true && version.textValue() != "1.0.0")
+                return RecordedPricebookResult.UnsupportedSchemaVersion
             if (FrozenSchemaValidator().validate(FrozenDocument.PRICEBOOK, book.toString().byteInputStream()) != FrozenValidation.Valid) {
                 return RecordedPricebookResult.InvalidDocument
             }

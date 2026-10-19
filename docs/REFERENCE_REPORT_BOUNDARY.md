@@ -69,6 +69,12 @@ worker; concurrent inspection is disabled and destroyed Activities ignore late
 callbacks. Recreation resets this read-only diagnostic. This rendering is scoped
 to the fixed bundled fixture, not a general untrusted large-report renderer.
 
+The [literal presentation boundary](FINDINGS_PRESENTATION.md) now distinguishes
+absent, empty and literal sentinel text, escapes source controls and bounds each
+recorded value. Individual details disclose displayed/retained counts for their
+bounded evidence and selection lists; the complete accepted snapshot and all
+finding outcome counts remain intact.
+
 Four core projection tests retain all generated reference outcomes, warning
 failure independence, null/absence/large-number distinctions and immutable lists.
 A required Robolectric Activity case checks labels, evidence limitations and no
@@ -95,6 +101,13 @@ reason. This is conservative presentation of the existing receiving result, not
 a new frozen-schema restriction or a reinterpretation of the evaluator's findings.
 
 Sixteen selections appear per page, with all affected selections reachable.
+The page header uses a complete Android quantity resource selected by the total
+affected-selection count, including a last page with only one displayed row.
+Count digits use the resource locale; recorded IDs, roles, versions and revisions
+keep their existing literal or canonical values. An empty list retains its
+explicit no-affected-selection message, and unavailable context is not treated
+as a missing count. These English defaults prepare translation without supplying
+additional product languages or complete #65 acceptance.
 Identity text uses the existing literal helper: controls, formatting characters,
 surrogates and delimiters are escaped; values longer than 160 UTF-16 units have
 an explicit display-truncation marker. Complete immutable values remain retained.
@@ -114,10 +127,11 @@ projection and navigation.
 
 Three focused core regressions exercise multiple roles/versions, ambiguity
 including disabled rows, private-field omission and immutable copied collections.
-The mandatory nine-case native suite covers actual fixture navigation and pending
+The mandatory eleven-case native suite covers actual fixture navigation and pending
 draft authority, private/literal fields, ambiguity, full supported revision digits,
 complete paging, canceled and superseded controls, reverse-order receiving work,
-Activity recreation and measured 320dp RTL/200% text layout. Record actual
+Activity recreation, zero/one/multiple and whole-page totals, resource-locale
+digits, and measured 320dp RTL/200% text layout. Record actual
 execution, source hashes and independent review on the delivering PR; these
 tests are simulations and do not supply installed TalkBack or device acceptance.
 

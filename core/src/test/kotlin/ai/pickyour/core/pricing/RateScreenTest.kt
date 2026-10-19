@@ -95,7 +95,7 @@ class RateScreenTest {
         val b = book()
         (b["rates"][0] as ObjectNode).put("valid_until", "2026-10-16T08:00:00Z")
         assertEquals(RateScreenResult.InvalidDocument, result(b))
-        assertEquals(RateScreenResult.InvalidDocument, result(book().put("schema_version", "2.0.0")))
+        assertEquals(RateScreenResult.UnsupportedSchemaVersion, result(book().put("schema_version", "2.0.0")))
         assertEquals(RateScreenResult.InvalidDocument, screen.screen("{\"secret\":1,\"secret\":2}".byteInputStream(), query()))
         assertEquals("RateQuery", query().toString())
         assertEquals("RateCandidates", candidates(book()).toString())

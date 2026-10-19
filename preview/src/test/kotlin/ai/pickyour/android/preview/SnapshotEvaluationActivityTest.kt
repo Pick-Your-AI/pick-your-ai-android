@@ -2,7 +2,7 @@ package ai.pickyour.android.preview
 
 import android.app.AlertDialog
 import android.os.Bundle
-import android.os.Looper
+import android.os.SystemClock
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
@@ -55,7 +55,7 @@ class SnapshotEvaluationActivityTest {
         await { button(R.string.save_draft).isEnabled && button(R.string.retry_catalog).isEnabled }
     }
     @After fun close() { sections.forEach { it.close() }; controller.pause().stop().destroy() }
-    private fun idle() = shadowOf(Looper.getMainLooper()).idle()
+    private fun idle() = AutosaveUiClock.idle()
     private fun await(check: () -> Boolean) {
         val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(20)
         while (System.nanoTime() < deadline) { idle(); if (check()) return; Thread.sleep(10) }
@@ -141,6 +141,9 @@ class SnapshotEvaluationActivityTest {
     }
 
     @Test fun actualActivityMissingArchiveRemainsMissingAndPendingEditorIsPreserved() {
+        // Archive inspection is asserted before the separate draft autosave deadline.
+        AutosaveUiClock.pause()
+        val pendingSince = SystemClock.uptimeMillis()
         field(R.string.context_objective).setText("unsaved private editor text")
         val before = files(activity.noBackupFilesDir.toPath())
         activity.findViewById<Button>(R.id.snapshot_open).performClick()
@@ -149,12 +152,16 @@ class SnapshotEvaluationActivityTest {
         assertEquals(before, files(activity.noBackupFilesDir.toPath()))
         assertEquals("unsaved private editor text", field(R.string.context_objective).text.toString())
         assertTrue(button(R.string.save_draft).isEnabled)
+        assertTrue("Read-only actions stay before autosave", SystemClock.uptimeMillis() in pendingSince until pendingSince + 750)
     }
 
     @Test fun actualActivityReadsExactRetainedInputsAfterSourceDeletionWithoutEvaluatingPendingEdits() {
         val wide = BigInteger("9223372036854775808")
         val saved = save(revision = wide)
         Files.walk(saved.sourcePath).use { it.sorted(Comparator.reverseOrder()).forEach(Files::delete) }
+        // Archive inspection is asserted before the separate draft autosave deadline.
+        AutosaveUiClock.pause()
+        val pendingSince = SystemClock.uptimeMillis()
         field(R.string.context_objective).setText("pending editor sentinel")
         val before = files(activity.noBackupFilesDir.toPath()); val archiveBefore = files(archivePath)
         activity.findViewById<Button>(R.id.snapshot_open).performClick()
@@ -172,6 +179,7 @@ class SnapshotEvaluationActivityTest {
         assertTrue(button(R.string.save_draft).isEnabled)
         assertNull(shadowOf(activity).nextStartedActivity)
         assertEquals(View.ACCESSIBILITY_LIVE_REGION_POLITE, dialog().findViewById<TextView>(R.id.snapshot_report).accessibilityLiveRegion)
+        assertTrue("Read-only actions stay before autosave", SystemClock.uptimeMillis() in pendingSince until pendingSince + 750)
     }
 
     @Test fun emptyAndPartiallyLostNamespacesAreExplicitWithoutIndexOrSealRepair() {

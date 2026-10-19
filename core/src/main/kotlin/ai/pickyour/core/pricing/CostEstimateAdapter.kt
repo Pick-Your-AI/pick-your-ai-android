@@ -1,6 +1,7 @@
 package ai.pickyour.core.pricing
 
 import ai.pickyour.core.contracts.*
+import ai.pickyour.core.comparison.sameJsonValues
 import ai.pickyour.core.importing.BoundedJsonReader
 import ai.pickyour.core.importing.JsonInputResult
 import com.fasterxml.jackson.databind.JsonNode
@@ -10,7 +11,8 @@ import java.math.BigInteger
 import java.util.Collections
 
 enum class CostRejection { INVALID_BUILD, INVALID_ESTIMATE, MISSING_PRICEBOOK_PIN, BINDING_MISMATCH,
-    DUPLICATE_ID, UNKNOWN_SELECTION, MIXED_CURRENCY, INCONSISTENT_AMOUNTS, INCONSISTENT_COVERAGE }
+    DUPLICATE_ID, UNKNOWN_SELECTION, MIXED_CURRENCY, INCONSISTENT_AMOUNTS, INCONSISTENT_COVERAGE,
+    UNSUPPORTED_BUILD_SCHEMA_VERSION, UNSUPPORTED_ESTIMATE_SCHEMA_VERSION }
 enum class DeclaredCoverage { COMPLETE, PARTIAL, UNKNOWN }
 enum class CostEvidence { NOT_ESTABLISHED }
 sealed interface CostReception {
@@ -34,7 +36,9 @@ class InspectedCostLine internal constructor(node: JsonNode) {
 }
 
 /** Recorded amounts only. Inspection is not accepted pricing, freshness, free/included proof or a budget pass. */
-class InspectedCostEstimate internal constructor(node: JsonNode, unclassified: Set<String>) {
+class InspectedCostEstimate internal constructor(node: JsonNode, unclassified: Set<String>, build: JsonNode) {
+    private val document = node.deepCopy<JsonNode>()
+    private val buildDocument = build.deepCopy<JsonNode>()
     val estimateId: String = node["id"].textValue()
     val buildId: String = node["build_id"].textValue()
     val buildRevision: BigInteger = node["build_revision"].bigIntegerValue()
@@ -53,9 +57,15 @@ class InspectedCostEstimate internal constructor(node: JsonNode, unclassified: S
     val warnings: List<String> = Collections.unmodifiableList(node["warnings"].map { it.textValue() })
     /** Full immutable input preserves every line's quantity, rate ID, assumptions and original decimal strings. */
     val recordedJson: String = node.toString()
+    /** The exact retained values of the supplied build, not a claim about its current stored revision. */
+    val recordedBuildJson: String = buildDocument.toString()
     val freshness = CostEvidence.NOT_ESTABLISHED
     val freeOrIncludedTreatment = CostEvidence.NOT_ESTABLISHED
     val budgetPass = CostEvidence.NOT_ESTABLISHED
+    internal fun hasSameRecordedEstimate(other: InspectedCostEstimate): Boolean =
+        sameJsonValues(document, other.document)
+    internal fun hasSameRecordedBuild(other: InspectedCostEstimate): Boolean =
+        sameJsonValues(buildDocument, other.buildDocument)
     override fun toString(): String = "InspectedCostEstimate"
     private fun <T> immutableSet(values: Set<T>): Set<T> = Collections.unmodifiableSet(LinkedHashSet(values))
 }
@@ -72,8 +82,14 @@ class CostEstimateAdapter {
     private val validator = FrozenSchemaValidator()
 
     fun inspect(build: InputStream, estimate: InputStream): CostReception {
-        val b = parse(FrozenDocument.BUILD, build) ?: return reject(CostRejection.INVALID_BUILD)
-        val e = parse(FrozenDocument.COST_ESTIMATE, estimate) ?: return reject(CostRejection.INVALID_ESTIMATE)
+        val b = parse(build) ?: return reject(CostRejection.INVALID_BUILD)
+        if (unsupportedVersion(b)) return reject(CostRejection.UNSUPPORTED_BUILD_SCHEMA_VERSION)
+        if (validator.validate(FrozenDocument.BUILD, b.toString().byteInputStream()) != FrozenValidation.Valid)
+            return reject(CostRejection.INVALID_BUILD)
+        val e = parse(estimate) ?: return reject(CostRejection.INVALID_ESTIMATE)
+        if (unsupportedVersion(e)) return reject(CostRejection.UNSUPPORTED_ESTIMATE_SCHEMA_VERSION)
+        if (validator.validate(FrozenDocument.COST_ESTIMATE, e.toString().byteInputStream()) != FrozenValidation.Valid)
+            return reject(CostRejection.INVALID_ESTIMATE)
         val pricebook = b["locks"]["pricebook_id"] ?: return reject(CostRejection.MISSING_PRICEBOOK_PIN)
         if (e["build_id"] != b["id"] || e["build_revision"].bigIntegerValue() != b["revision"].bigIntegerValue() ||
             e["pricebook_id"] != pricebook) return reject(CostRejection.BINDING_MISMATCH)
@@ -106,11 +122,10 @@ class CostEstimateAdapter {
         if (sum.compareTo(amount(e["subtotal"])) != 0 ||
             (amount(e["subtotal"]) + amount(e["tax"])).compareTo(amount(e["total"])) != 0)
             return reject(CostRejection.INCONSISTENT_AMOUNTS)
-        return CostReception.Inspected(InspectedCostEstimate(e, active - priced - unpriced))
+        return CostReception.Inspected(InspectedCostEstimate(e, active - priced - unpriced, b))
     }
-    private fun parse(type: FrozenDocument, input: InputStream): JsonNode? {
-        val node = (reader.read(input) as? JsonInputResult.Parsed)?.value ?: return null
-        return if (validator.validate(type, node.toString().byteInputStream()) == FrozenValidation.Valid) node else null
-    }
+    private fun parse(input: InputStream): JsonNode? = (reader.read(input) as? JsonInputResult.Parsed)?.value
+    private fun unsupportedVersion(node: JsonNode): Boolean =
+        node["schema_version"]?.let { it.isTextual && it.textValue() != "1.0.0" } == true
     private fun reject(reason: CostRejection) = CostReception.Rejected(reason)
 }
