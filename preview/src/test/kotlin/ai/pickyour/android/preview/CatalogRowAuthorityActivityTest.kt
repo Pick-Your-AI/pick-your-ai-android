@@ -2,7 +2,7 @@ package ai.pickyour.android.preview
 
 import android.app.AlertDialog
 import android.os.Bundle
-import android.os.Looper
+import android.os.SystemClock
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
@@ -32,6 +32,7 @@ import org.robolectric.shadows.ShadowAlertDialog
 class CatalogRowAuthorityActivityTest {
     private lateinit var controller: ActivityController<PreviewActivity>
     private val activity get() = controller.get()
+    private var pendingSince = 0L
 
     @Before fun launch() {
         controller = Robolectric.buildActivity(PreviewActivity::class.java).setup()
@@ -42,6 +43,9 @@ class CatalogRowAuthorityActivityTest {
             views().filterIsInstance<TextView>().any { it.text.toString() == activity.getString(R.string.draft_saved) } &&
                 !button(R.string.save_draft).isEnabled
         }
+        // These read-only inspections explicitly precede the automatic save deadline.
+        AutosaveUiClock.pause()
+        pendingSince = SystemClock.uptimeMillis()
         field(R.string.context_objective).setText("pending objective remains unsaved")
         field(R.string.catalog_search).setText("cat.model.fixture")
         await { rows().size == 1 }
@@ -72,6 +76,7 @@ class CatalogRowAuthorityActivityTest {
         detail.getButton(AlertDialog.BUTTON_NEGATIVE).performClick()
         await { !detail.isShowing }
         assertFalse(detail.isShowing)
+        assertTrue("Read-only actions stay before autosave", SystemClock.uptimeMillis() in pendingSince until pendingSince + 750)
     }
 
     @Test fun sameSnapshotSearchCannotReviveRemovedRowCallbacks() {
@@ -89,6 +94,7 @@ class CatalogRowAuthorityActivityTest {
         assertEquals("pending objective remains unsaved", field(R.string.context_objective).text.toString())
         assertEquals("no fixture can match this query", field(R.string.catalog_search).text.toString())
         assertTrue(button(R.string.save_draft).isEnabled)
+        assertTrue("Read-only actions stay before autosave", SystemClock.uptimeMillis() in pendingSince until pendingSince + 750)
     }
 
     @Test fun returningToQueryCannotReviveOldRowOrRetireCurrentDetail() {
@@ -112,6 +118,7 @@ class CatalogRowAuthorityActivityTest {
 
         assertSame(currentDetail, ShadowAlertDialog.getLatestAlertDialog())
         assertTrue("Retired rows cannot dismiss the current inspection", currentDetail.isShowing)
+        assertTrue("Read-only actions stay before autosave", SystemClock.uptimeMillis() in pendingSince until pendingSince + 750)
     }
 
     @Test fun pagingFacetsAndSortRetirePreviousResultControls() {
@@ -139,6 +146,7 @@ class CatalogRowAuthorityActivityTest {
             assertRetiredRowHasNoEffect(retiredRow)
             restore()
         }
+        assertTrue("Read-only actions stay before autosave", SystemClock.uptimeMillis() in pendingSince until pendingSince + 750)
     }
 
     private fun assertRetiredRowHasNoEffect(row: Button) {
@@ -147,7 +155,7 @@ class CatalogRowAuthorityActivityTest {
         val previousDialog = ShadowAlertDialog.getLatestAlertDialog()
         val showing = previousDialog?.isShowing
         row.performClick()
-        shadowOf(Looper.getMainLooper()).idle()
+        AutosaveUiClock.idle()
         assertSame("A retired same-snapshot result cannot open a new detail", previousDialog,
             ShadowAlertDialog.getLatestAlertDialog())
         assertEquals("Existing inspection visibility stays unchanged", showing, previousDialog?.isShowing)
@@ -198,7 +206,7 @@ class CatalogRowAuthorityActivityTest {
     private fun await(condition: () -> Boolean) {
         val deadline = System.nanoTime() + 15_000_000_000L
         while (System.nanoTime() < deadline) {
-            shadowOf(Looper.getMainLooper()).idle()
+            AutosaveUiClock.idle()
             if (condition()) return
             Thread.sleep(10)
         }
