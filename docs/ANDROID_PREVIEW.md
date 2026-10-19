@@ -1,5 +1,9 @@
 # Opt-in synthetic Android diagnostic
 
+The [versioned synthetic scenario data](SYNTHETIC_PREVIEW_SCENARIOS.md) supplies
+#77's separate fixture foundation; its scenario screen and #58 adapter integration
+remain pending.
+
 The `preview` module is the bounded guest-local engineering diagnostic. The
 accepted [native decision](proposals/02-native-architecture.md) selects its
 Kotlin/platform Views approach and existing local revision store. Product UI
@@ -23,6 +27,33 @@ selection is shown as unavailable, never silently replaced. Bundle restoration
 does not acknowledge persistence. Explicit Save uses the canonical revision
 store; the local library and recovery flows below retain their own validation
 limits. Autosave and installed process-death qualification remain separate.
+
+## Core planning guidance (#41 / #52, partial)
+
+The editable draft keeps guardrail, evaluation, deployment, monitoring and
+cost-policy planning visible when T3–T5 are disabled. The panel reports enabled
+and disabled choices from one saved revision. Unsaved edits are identified;
+loading or unavailable storage withholds old counts rather than treating them as
+missing choices. Each area describes the next configuration step and the evidence
+or external action that remains unestablished.
+
+Each browse action opens its exact frozen T6 kind, clears conflicting catalog
+search/facets and preserves the sort order. It neither selects a component nor
+changes pending fields, saved history or catalog pins. The existing synthetic
+catalog and incomplete T6 editing scope remain explicit. Recorded configuration
+does not establish measured safety/quality, executed deployment, active monitoring,
+price coverage or an enforced spending limit.
+
+`PreviewT6GuidanceTest` defines core registry, optional-tier and recorded-state
+regressions; `T6PlanningActivityTest` adds five named lifecycle, navigation and
+large-text/RTL cases to the existing simulated UI task and execution guard.
+Passing execution must be established by the corresponding test reports.
+The implementation follows Android's [Views accessibility guidance](https://developer.android.com/guide/topics/ui/accessibility/views/principles-views)
+for labelled system controls and section headings (source reviewed 2026-10-18).
+That source review is limited to these controls; it is not a TalkBack or device test. This
+slice adds no measured-result receiver, saved/shared evidence attachment,
+provisioning or production service. Full #41/#52 receiving criteria, installed
+Android/TalkBack and release evidence remain separate; acceptance paths are unchanged.
 
 ## Reproduce
 
@@ -264,6 +295,32 @@ missing are recoverable draft deletion, autosave/domain revision UI,
 retention UX, installed-process-death evidence and receiving acceptance. Canonical
 records remain `11.01.md`, `12.01.md`, `08.06.md` and `02.03.md` under the existing
 website Android work-package path. No issue closes.
+
+### Typed guidance when a local draft cannot be opened
+
+The active-draft load screen uses the existing typed storage failure to explain
+the recovery requirement. An unsupported local or preview format requires a
+compatible reader; unverified or malformed retained data requires a readable
+copy; a read-limit failure requires a reader supporting the retained size and
+format. None of these messages promises an available app update, changes the
+stored data or enables saving. The existing library action can open another
+local draft through its own confirmation flow. Temporary or unclassified read
+failures retain the explicit Reopen saved copy retry.
+
+`DraftLoadRecoveryActivityTest` exercises five simulated Android cases using
+real canonical files: a future local envelope, future preview metadata,
+hash-corrupt retained bytes, missing required form metadata and a busy store
+lock. The cases check pending text, selected sample and local draft identity;
+failed loads, attempted disabled saves, explicit failed retries and recreation
+must preserve the seeded file hashes. Releasing the busy lock alone does not
+retry; an explicit successful reopen uses the same saved baseline. CI requires
+all five named cases to execute without failures or skips.
+
+This is a bounded contribution to #81's unavailable-version and local-failure
+guidance. #58's typed asynchronous architecture, broader loading/offline,
+permission/server/conflict states, Android UX/accessibility receiving review
+and the canonical `06.05.md` acceptance record remain separate. Simulated
+Android tests do not establish installed-device or complete #81 acceptance.
 
 ## Retained guest form history
 
@@ -744,8 +801,8 @@ and the current draft remain unchanged.
 
 These are bounded in-memory fixture pages, not a remote pagination protocol. API
 cursor contracts, cancellable remote search, next-page network failure/retry,
-reverse-order transport responses, real catalog publication/labels, exact pixel
-scroll restoration and installed navigation/accessibility/process-death evidence
+reverse-order transport responses, real catalog publication/labels and installed
+navigation/accessibility/process-death evidence
 remain separate #82 acceptance work. The generic catalog-loading worker applies
 the current query state when a fixture read finishes, so an earlier query cannot
 append rows into a newer query. No search request is sent to a service and no
@@ -924,3 +981,12 @@ Lint retained zero errors and nine warning entries across the same three kinds.
 Frozen/reference and delivery-ledger checks passed. Hosted exact-head verification,
 reviewed signed delivery, installed-device evidence and complete work-package
 acceptance remain separate; these observations do not close a delivery criterion.
+
+[Catalog viewport restoration](CATALOG_VIEWPORT.md) supplies the bounded local
+list-position portion of #82 criterion 3. The Activity retains the first visible
+catalog row's exact ID, version, snapshot hash and offset in transient Bundle
+state. After the same snapshot and current layout load, it restores that row once;
+new navigation cancels a pending restoration. Twelve required simulated tests cover
+the actual Activity's details/recreation path and the restoration, mismatch,
+loading, lifecycle and input boundaries. Installed navigation, accessibility,
+process-death and canonical receiving evidence remain separate requirements.

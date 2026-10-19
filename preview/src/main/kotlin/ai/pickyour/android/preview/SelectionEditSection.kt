@@ -18,7 +18,7 @@ class SelectionEditSection(private val activity: Activity,
     private var baseline: PreviewStoredDraft? = null
     private var currentDraftId: String? = null
     private var recovery: ComponentFormRecovery = ComponentFormRecovery.None
-    private class FormBinding(val dialog: AlertDialog, val checkpoint: (Boolean) -> ComponentFormCheckpoint) {
+    private class FormBinding(val dialog: AlertDialog, val capture: (Boolean) -> ComponentFormRecovery) {
         var saving = false
     }
     private var formBinding: FormBinding? = null
@@ -74,6 +74,16 @@ class SelectionEditSection(private val activity: Activity,
     private fun active(expected: PreviewStoredDraft) = !closed && !activity.isDestroyed && !activity.isFinishing &&
         editable && baseline === expected && currentDraftId != null && recovery === ComponentFormRecovery.None
     private fun canOpen(expected: PreviewStoredDraft) = active(expected) && formBinding == null
+
+    internal fun canReviewCurrentChoices(expected: PreviewStoredDraft): Boolean = canOpen(expected) &&
+        (if (expected.components.selections.isEmpty()) choose.isEnabled else manage.isEnabled)
+
+    /** Navigate through the existing current-record controls; all later editor checks still apply. */
+    internal fun reviewCurrentChoices(expected: PreviewStoredDraft) {
+        if (!canReviewCurrentChoices(expected)) return
+        if (expected.components.selections.isEmpty()) choose.performClick() else manage.performClick()
+    }
+
     fun update(record: PreviewStoredDraft?, enabled: Boolean, draftId: String? = currentDraftId) {
         if (closed) return
         baseline = record; editable = enabled; currentDraftId = draftId
@@ -82,8 +92,11 @@ class SelectionEditSection(private val activity: Activity,
         manage.isEnabled = enabled && noRecovery && formBinding == null && record?.components?.selections?.isNotEmpty() == true
         choose.isEnabled = enabled && noRecovery && formBinding == null && record != null && catalogHash != null && catalogItems.isNotEmpty()
         recoveryStatus.visibility = if (noRecovery) View.GONE else View.VISIBLE
-        recoveryStatus.setText(if (recovery === ComponentFormRecovery.Unavailable) R.string.component_recovery_unavailable
-            else R.string.component_recovery_pending)
+        recoveryStatus.setText(when (recovery) {
+            ComponentFormRecovery.Unavailable -> R.string.component_recovery_unavailable
+            ComponentFormRecovery.UriUserinfoExcluded -> R.string.component_recovery_userinfo_excluded
+            else -> R.string.component_recovery_pending
+        })
         reviewRecovery.visibility = if (recovery is ComponentFormRecovery.Pending) View.VISIBLE else View.GONE
         discardRecovery.visibility = if (noRecovery) View.GONE else View.VISIBLE
     }
@@ -94,7 +107,7 @@ class SelectionEditSection(private val activity: Activity,
     }
     fun save(outState: Bundle) {
         val form = formBinding?.takeIf { open(it.dialog) }
-        (form?.let { ComponentFormRecovery.Pending(it.checkpoint(it.saving)) } ?: recovery).save(outState)
+        (form?.let { it.capture(it.saving) } ?: recovery).save(outState)
     }
     fun catalog(items: List<PreviewCatalogItem>, hash: String?) {
         if (closed) return
@@ -263,10 +276,35 @@ class SelectionEditSection(private val activity: Activity,
         layout.addView(TextView(activity).apply { setText(guidance) })
         layout.addView(TextView(activity).apply { setText(R.string.component_agent_intent_guidance) })
     }
+    private fun trainingGuidanceResource(kind: String): Int? = when (kind) {
+        "training_framework" -> R.string.component_training_framework_guidance
+        "training_compute" -> R.string.component_training_compute_guidance
+        "training_dataset" -> R.string.component_training_dataset_guidance
+        "fine_tuned_model" -> R.string.component_fine_tuned_model_guidance
+        else -> null
+    }
+    private fun trainingGuidance(layout: LinearLayout, kind: String) {
+        val guidance = trainingGuidanceResource(kind) ?: return
+        layout.addView(TextView(activity).apply { setText(guidance) })
+        layout.addView(TextView(activity).apply { setText(R.string.component_training_intent_guidance) })
+    }
+    private fun guardrailGuidanceResource(kind: String): Int? = when (kind) {
+        "guardrail" -> R.string.component_guardrail_guidance
+        "evaluation_suite" -> R.string.component_evaluation_guidance
+        else -> null
+    }
+    private fun guardrailGuidance(layout: LinearLayout, kind: String) {
+        val guidance = guardrailGuidanceResource(kind) ?: return
+        layout.addView(TextView(activity).apply { setText(guidance) })
+        layout.addView(TextView(activity).apply { setText(R.string.component_core_input_guidance) })
+        layout.addView(TextView(activity).apply { setText(R.string.component_core_guidance_unavailable) })
+    }
     private fun toggleWarning(kind: String): String = activity.getString(R.string.component_toggle_warning) +
         when {
             retrievalGuidanceResource(kind) != null -> "\n\n" + activity.getString(R.string.component_retrieval_intent_guidance)
             agentGuidanceResource(kind) != null -> "\n\n" + activity.getString(R.string.component_agent_intent_guidance)
+            trainingGuidanceResource(kind) != null -> "\n\n" + activity.getString(R.string.component_training_intent_guidance)
+            guardrailGuidanceResource(kind) != null -> "\n\n" + activity.getString(R.string.component_core_input_guidance)
             else -> ""
         }
     private fun field(layout: LinearLayout, title: Int, value: String): EditText {
@@ -274,7 +312,9 @@ class SelectionEditSection(private val activity: Activity,
         val editor = EditText(activity).apply {
             id = View.generateViewId(); setText(value); setSelectAllOnFocus(false)
             isSaveEnabled = false // Only the bounded primitive checkpoint retains this raw input.
-            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE or
+                android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
+            imeOptions = imeOptions or android.view.inputmethod.EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING
         }
         label.labelFor = editor.id; layout.addView(label); layout.addView(editor)
         return editor
@@ -287,7 +327,10 @@ class SelectionEditSection(private val activity: Activity,
         foundationGuidance(layout, item.kind, showRoleChoice = true)
         retrievalGuidance(layout, item.kind)
         agentGuidance(layout, item.kind)
+        trainingGuidance(layout, item.kind)
+        guardrailGuidance(layout, item.kind)
         layout.addView(TextView(activity).apply { setText(R.string.component_recovery_limit) })
+        layout.addView(TextView(activity).apply { setText(R.string.component_recovery_userinfo_limit) })
         val role = field(layout, R.string.component_role, restored?.role.orEmpty())
         val settings = field(layout, R.string.component_settings, restored?.settings ?: "{}")
         val enabled = CheckBox(activity).apply {
@@ -300,6 +343,7 @@ class SelectionEditSection(private val activity: Activity,
         formBinding = FormBinding(dialog) { saving ->
             ComponentFormCheckpoint(ComponentFormCheckpoint.ADD, draftId, expected.baselineIdentity, selectionId,
                 item.id, item.version, hash, item.kind, role.text.toString(), settings.text.toString(), enabled.isChecked, saving)
+                .captureNewSettings(item.kind)
         }
         update(baseline, editable)
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
@@ -322,7 +366,10 @@ class SelectionEditSection(private val activity: Activity,
         foundationGuidance(layout, selection.kind)
         retrievalGuidance(layout, selection.kind)
         agentGuidance(layout, selection.kind)
+        trainingGuidance(layout, selection.kind)
+        guardrailGuidance(layout, selection.kind)
         layout.addView(TextView(activity).apply { setText(R.string.component_recovery_limit) })
+        layout.addView(TextView(activity).apply { setText(R.string.component_recovery_userinfo_limit) })
         val settings = field(layout, R.string.component_settings, text)
         val feedback = feedback().also(layout::addView)
         val dialog = show(AlertDialog.Builder(activity).setTitle(label(selection)).setView(ScrollView(activity).apply { addView(layout) })
@@ -330,6 +377,7 @@ class SelectionEditSection(private val activity: Activity,
         formBinding = FormBinding(dialog) { saving ->
             ComponentFormCheckpoint(ComponentFormCheckpoint.CONFIGURE, draftId, expected.baselineIdentity, selection.id,
                 null, null, null, null, "", settings.text.toString(), false, saving)
+                .captureNewSettings(selection.kind)
         }
         update(baseline, editable)
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
@@ -350,8 +398,8 @@ class SelectionEditSection(private val activity: Activity,
             .setView(ScrollView(activity).apply { addView(layout) })
             .setNegativeButton(R.string.close, null).setPositiveButton(R.string.component_commit, null).create(), feedback)
         formBinding = FormBinding(dialog) { saving ->
-            ComponentFormCheckpoint(ComponentFormCheckpoint.ROLE, draftId, expected.baselineIdentity, selection.id,
-                null, null, null, null, role.text.toString(), "", false, saving)
+            ComponentFormRecovery.Pending(ComponentFormCheckpoint(ComponentFormCheckpoint.ROLE, draftId, expected.baselineIdentity, selection.id,
+                null, null, null, null, role.text.toString(), "", false, saving))
         }
         update(baseline, editable)
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {

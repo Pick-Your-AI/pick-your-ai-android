@@ -1,4 +1,4 @@
-# Explicit local T0/T1/T2/T3/T4 selection controls
+# Explicit local selection controls
 
 Partial [#112](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/112) and
 [#98](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/98), using the
@@ -17,6 +17,17 @@ The [agent selection continuation](AGENT_SELECTIONS.md) adds the five frozen T4
 kinds for partial [#128](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/128).
 Declared scopes, endpoints and memory inputs remain local planning values; saving
 does not connect an account, invoke a tool or grant external permissions.
+The [training selection continuation](TRAINING_SELECTIONS.md) adds the four frozen
+T5 kinds for partial [#129](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/129).
+Its fourteen optional settings retain explicit training assumptions and artifact
+references without adopting proposed fields, approving rights or starting a job.
+The [guardrail and evaluation continuation](GUARDRAIL_EVALUATION_SELECTIONS.md)
+adds those two frozen T6 kinds for partial
+[#41](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/41). The shared T6
+planning section keeps guidance visible before saving and with T3–T5 disabled;
+these forms also explain evidence conditions. Their five optional settings
+remain requested inputs; applicable requirements and measured coverage stay
+unavailable, with no safety, quality or readiness verdict.
 
 The saved-component section exposes a separate exact-fixture component chooser.
 It does not reinterpret the old guest sample-selection metadata as a typed domain
@@ -36,6 +47,36 @@ settings exceeding this small editor limit remain saved and cannot be truncated
 through this editor. Raw credentials must not be entered; applicable settings
 accept only opaque secret references under the frozen schema.
 
+For partial [#99](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/99),
+new add/settings input also rejects URI authority userinfo in the frozen
+`model_provider.api_base_url`, `model.weights_uri`, `mcp_server.endpoint`,
+`integration.endpoint` and `fine_tuned_model.artifact_uri` fields when that kind
+is admitted by the editor. The check follows the existing JSON budgets and
+schema validation, produces no command on rejection and never includes entered
+values in its failure result. Custom schemes, exact legitimate URI spelling,
+opaque secret references and `@` outside the authority remain unchanged.
+This is a specific userinfo boundary, not secret-pattern detection in arbitrary
+text or query values. Frozen/history decoding, retained records, role-only edits
+and replacement remain unchanged; this does not complete #99 or qualify exports,
+diagnostics, installed-device behavior or release.
+
+New Activity captures of open add/settings forms also exclude positively
+recognized URI user information under the same five-field policy. They retain
+only a fixed exclusion reason, without clearing the live correction text or
+changing save authority. Ordinary malformed text, legitimate URI spelling and
+legacy raw recovery remain distinct. See the exact bounds, compatibility and
+remaining privacy scope in [component form recovery](COMPONENT_FORM_RECOVERY.md#uri-user-information-in-newly-captured-settings).
+
+Role and settings editors keep multiline input literal and request
+[no dictionary suggestions](https://developer.android.com/reference/android/text/InputType#TYPE_TEXT_FLAG_NO_SUGGESTIONS)
+and [no personalized keyboard learning](https://developer.android.com/reference/android/view/inputmethod/EditorInfo#IME_FLAG_NO_PERSONALIZED_LEARNING).
+These are requests to the input method; they do not guarantee that an installed
+keyboard honors them or authorize raw credential entry. The same field factory
+applies them to add, settings and role forms, including explicitly reviewed
+checkpoint recovery. The existing bounded checkpoint remains the only View-state
+path for pending raw input; opening, typing or restoring a form supplies no save
+authority. Installed keyboard and accessibility qualification remain separate.
+
 Replace chooses an existing selection of the same kind and retains its identity,
 role, enabled state, settings, notes, extensions and links. **Edit settings** changes
 only settings. **Edit role** changes the explicitly entered role while retaining
@@ -45,8 +86,9 @@ the same kind reject the whole edit, including a collision with a disabled
 selection. See [explicit selection roles](LOCAL_SELECTION_ROLES.md) for the local
 history format and recovery boundaries. Disable/re-enable retains settings and links. Removal confirms the exact
 selection and lists its incident link IDs; only that selection and those links are
-removed. No secondary selection is promoted. All other frozen kinds remain stored
-and visible but outside this T0/T1/T2/T3/T4 mutation UI.
+removed. No secondary selection is promoted. The remaining frozen
+`deployment_target`, `monitoring_stack` and `cost_policy` kinds stay stored and
+visible outside this mutation UI.
 
 Controls require a clean acknowledged guest form. A dialog captures the exact
 record object, draft context and applicable catalog snapshot. Dispatch checks
@@ -84,6 +126,11 @@ replacement preservation. Seven mandatory paused-looper Activity simulations cov
 add/configure/toggle/remove, invalid input retention, concurrent-head conflict,
 repeated/retired and canceled callbacks, in-flight field freezing and exact
 replacement no-op with dirty-form blocking.
+Three additional actual input-connection simulations verify the literal-input and
+learning requests on add, settings and recreated role fields. They preserve exact
+opaque reference text and pending edits, require explicit commits, and retain
+acknowledged data when forms are canceled. The role case also checks that ordinary
+View-state saving stays disabled before and after explicit checkpoint review.
 The original source checkpoint's 43 existing Activity simulations and 50-case
 Activity total are historical counts. Current-main receiving retains every named
 Activity, cost-presentation, catalog-snapshot and complete recorded-price-browser

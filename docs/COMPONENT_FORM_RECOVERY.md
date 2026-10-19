@@ -76,6 +76,57 @@ and [Parcelables and bundles](https://developer.android.com/guide/components/act
 The preview adds no disk checkpoint, backup entitlement, transport, automatic
 clipboard access, intent route or migration. Do not enter provider credentials.
 
+## URI user information in newly captured settings
+
+This additional [#99](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/99)
+slice applies when an open **Add** or **Edit settings** form is captured into new
+Activity state, before or after a rejected commit and while a submitted operation
+is still in flight. It uses the form's original catalog/selection kind, including
+when another writer has changed the saved baseline. It never looks up a newer
+selection to classify the old text. Role-only capture is unchanged.
+
+After the existing combined 20,000-character and identity bounds, the
+[recovery policy](../core/src/main/kotlin/ai/pickyour/core/preview/PreviewSelectionRecoveryPolicy.kt)
+checks only the five URI fields in the existing
+[new-input policy](../core/src/main/kotlin/ai/pickyour/core/preview/PreviewSelectionSensitiveInput.kt):
+`model_provider.api_base_url`, `model.weights_uri`, `mcp_server.endpoint`,
+`integration.endpoint` and `fine_tuned_model.artifact_uri`. A successfully parsed
+URI whose raw hierarchical authority contains `@` is positively classified. This
+includes registry authorities. Custom schemes and `@` in a path, query, fragment
+or opaque URI retain their exact meaning. The policy does not enable another
+editor kind or inspect arbitrary fields, opaque credential references or query
+values for possible secrets.
+
+The classifier uses the existing bounded JSON reader with a caller-specific
+20,000-character string limit and 65,536-byte input limit. Its other structural,
+Unicode and numeric bounds remain unchanged. This lets it recognize a complete
+URI between the editor's 16,384-character limit and the recovery limit. Input
+over the combined recovery budget becomes the existing generic unavailable
+marker before classification; no valid prefix is parsed or retained. Malformed
+JSON, malformed URI syntax, wrong field types, duplicate keys and other parser
+rejections remain **unclassified** and keep ordinary invalid-text recovery.
+Admission remains fail-closed under its original schema and editor limits.
+
+A positive classification replaces the new checkpoint with exactly
+`version=1`, `unavailable=true`, `reason="uri_userinfo"`. It carries no entered
+text or draft, selection or catalog identity. A distinct fixed message explains
+why input was excluded and asks the user to check the saved draft; it never
+claims that an in-flight operation failed. Review is unavailable and explicit
+Discard permits another edit. Repeated recreation/resaving preserves only that
+fixed marker. Older readers already treat it as unavailable, while unknown or
+malformed reasons remain generic unavailable state. Both settings forms disclose
+this capture exclusion before their fields.
+
+Capture does not clear or alter the still-open editor. The user can correct its
+input and explicitly commit once in the same process. Restoring the marker
+prepares no command, changes no saved revision and never retries an uncertain
+write. This is not a migration or redactor for existing recovery state: legacy
+version-1/2 `Pending` records remain readable and can be resaved with their exact
+raw content, including in stale/read-only or in-flight recovery. Malformed or
+otherwise unclassified new text can also remain. Saved history, role-only edits,
+private archives and future export/disclosure requirements are unchanged; this
+does not complete #99 or establish a general credential-free checkpoint contract.
+
 ## Validation and remaining acceptance
 
 `ComponentFormRecoveryActivityTest` drives actual platform Views, the serial
@@ -89,12 +140,29 @@ through `Parcel` marshalling and unmarshalling before the new Activity consumes
 them. The cancellation test waits for Android's posted standard dismissal before
 asserting completed cancellation.
 
-`ComponentFormCheckpointTest` has four required cases covering maximum Unicode
+`ComponentFormCheckpointTest` retains its four original required cases covering maximum Unicode
 input including supplementary characters, separators and NUL; malformed types,
 versions and modes; a non-truncating oversized marker; and configure/in-flight
 shape preservation. The maximum-input specimen must serialize below 48 KiB for
 the component checkpoint alone. This is a simulated measurement assertion, not
 an installed device or whole-Activity Binder guarantee.
+
+Two additional container cases cover exact value-free exclusion/resaving and
+unknown or malformed marker reasons. `ComponentFormUserinfoRecoveryActivityTest`
+adds fourteen actual Activity-capture simulations: open/rejected add and
+configure, in-flight capture, repeated exclusion/discard, stale configure,
+same-process correction with one explicit save, complete long URI and over-budget
+boundaries, ordinary invalid text, legitimate URI/opaque-reference controls and
+legacy read-only raw resaving. A separate queued-preparation case keeps a test
+barrier held through old-Activity destruction and replacement-Activity creation,
+observes shutdown interruption, then releases it explicitly and checks that
+retired controls cannot write. This is queued preparation retirement, not a
+claim that a storage write was already executing. The causal baseline uses the original thirteen test
+methods on unchanged product source; its eight proposed exclusion cases fail
+and its five compatibility controls pass. This is additional privacy hardening,
+not a claim that the earlier raw recovery contract already excluded such input.
+The separate Core policy suite exercises all five frozen fields, exact authority
+semantics, parser boundaries and unchanged admission behavior.
 
 The original baseline regression failed because recreation had no pending-input
 review action; the new implementation must pass it and all current main tests.

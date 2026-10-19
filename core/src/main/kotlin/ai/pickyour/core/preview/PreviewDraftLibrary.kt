@@ -9,6 +9,8 @@ import java.io.IOException
 import java.nio.ByteBuffer
 import java.nio.file.Files
 import java.nio.file.FileVisitResult
+import java.nio.file.DirectoryIteratorException
+import java.nio.file.DirectoryStream
 import java.nio.file.LinkOption.NOFOLLOW_LINKS
 import java.nio.file.Path
 import java.nio.file.SimpleFileVisitor
@@ -49,9 +51,12 @@ sealed interface PreviewLibraryDelete {
  * Synchronous: all methods belong on a worker. Missing/corrupt entries remain visible, not discarded.
  */
 class PreviewDraftLibrary internal constructor(root: Path, private val checkpoint: (LibraryCheckpoint) -> Unit,
-    private val deleteCheckpoint: (LibraryDeleteCheckpoint) -> Unit) {
+    private val deleteCheckpoint: (LibraryDeleteCheckpoint) -> Unit,
+    private val directoryStream: (Path) -> DirectoryStream<Path>) {
     constructor(root: Path) : this(root, {}, {})
     internal constructor(root: Path, checkpoint: (LibraryCheckpoint) -> Unit) : this(root, checkpoint, {})
+    internal constructor(root: Path, checkpoint: (LibraryCheckpoint) -> Unit,
+        deleteCheckpoint: (LibraryDeleteCheckpoint) -> Unit) : this(root, checkpoint, deleteCheckpoint, Files::newDirectoryStream)
     private val root: Path
     init {
         require(Files.isDirectory(root, NOFOLLOW_LINKS))
@@ -281,7 +286,7 @@ class PreviewDraftLibrary internal constructor(root: Path, private val checkpoin
 
     private fun ids(): List<PreviewDraftId> {
         val result = linkedSetOf<PreviewDraftId>()
-        fun scan(directory: Path) = Files.newDirectoryStream(directory).use { stream ->
+        fun scan(directory: Path) = directoryStream(directory).use { stream ->
             var scanned = 0
             for (path in stream) {
                 if (++scanned > MAX_DRAFTS * 4) throw LimitExceeded()
@@ -311,6 +316,7 @@ class PreviewDraftLibrary internal constructor(root: Path, private val checkpoin
                 lock.use { action() }
             }
         } catch (_: LimitExceeded) { return failed(DraftStorageFailure.LIMIT_EXCEEDED) }
+        catch (_: DirectoryIteratorException) { return failed(DraftStorageFailure.IO_FAILURE) }
         catch (_: IOException) { return failed(DraftStorageFailure.IO_FAILURE) }
         finally { synchronized(activeRoots) { activeRoots.remove(root) } }
     }

@@ -1,16 +1,18 @@
 # Frozen v1 consumer baseline
 
-The [Android API consumer intake](API_CONSUMER_INTAKE.md) inventories the exact
-transport and proposed #36 requirements with executable synthetic reference
-cases. It preserves this frozen baseline and records missing governance/adapter
-decisions; it does not adopt an extension or complete API conformance.
-
 This Android repository imports the complete 43-file `ai-builder-contract-v1`
 package, version `1.0.0`, from research commit
 `9769fcd9ea380b1211669b2753181c7782444178`, accepted through
 [research PR #44](https://github.com/Pick-Your-AI/pick-your-ai-research/pull/44)
 (merged 2026-10-16). Files were extracted directly from that Git revision and
 verified against every original SHA-256 entry before copying.
+
+That accepted revision is a Git **commit**. Its `contracts/v1` subtree is
+`b1c4eaa4037f2a1e02103849064a947e758a2b40`, a Git **tree** identifying the package
+content. The tree pin used by the later structural-reader fixtures is not a second
+commit or a successor contract. The [criterion 21.2 receipt](CONTRACT_IMPORT_EVIDENCE.md)
+records both object types, all 45 imported leaf identities and an actual
+default-branch integrity/tamper execution.
 
 [IMPORT_MANIFEST.json](../contracts/v1/IMPORT_MANIFEST.json) and
 [UPSTREAM_SHA256SUMS](../contracts/v1/UPSTREAM_SHA256SUMS) retain their exact
@@ -35,7 +37,7 @@ python3.12 -m venv .venv-contracts
 
 [The runner](../scripts/check_contracts.py) first checks pinned manifest hashes,
 all 43 content hashes, and the original-to-relocated checksum mapping. Any missing
-or modified file fails before the imported test suite runs. The validation
+or modified file fails before the imported test suite runs. The
 six upstream validation requirements are copied from that same commit;
 `typing-extensions==4.16.0` additionally pins the Python 3.12 transitive dependency. The suite resolves schema identifiers locally, not via
 `schemas.ai-builder.example`. It exercises 21 reference cases: schema/examples,
@@ -44,6 +46,9 @@ stale costs, optional branches, per-device memory and sensitive-data rejection.
 
 Do not regenerate this frozen directory in place. Any successor requires an
 explicit version, upstream acceptance, migration decisions and independent tests.
+The [revision handoff](CONTRACT_REVISION_HANDOFF.md) specifies the coordinated
+generator, validator, fixture, boundary and consumer records for that future work.
+It adopts no successor and leaves existing implementation owners intact.
 
 ## Acceptance coverage and limits
 
@@ -53,7 +58,7 @@ This is partial delivery for
 
 | Criterion | Delivered evidence | Remaining gap |
 | --- | --- | --- |
-| #21 exact upstream revision/hash and reproducible integrity | Pinned merge revision, unchanged manifests and fail-closed hash runner | Receiving review |
+| #21 exact upstream revision/hash and reproducible integrity | [Exact commit/tree/45-leaf receipt and actual main-push positive/four-tamper results](CONTRACT_IMPORT_EVIDENCE.md) | Criterion-specific receiving acceptance and the canonical record remain separate from this technical supplement |
 | #21 preserve frozen kinds/enums/decimal strings | Complete original schemas and reference cases retained unchanged | Actual Android API/storage adapters, malformed-version rejection and money round-trip tests |
 | #49 versioned language-neutral fixtures and Android-consumable bundle | Original JSON fixtures, schemas, Python evaluator and expectations are locally available | TypeScript reference comparison, Android harness/runtime parity |
 | #49 historical meaning and explicit incompatible migrations | Baseline is immutable; no automatic upgrade is implemented | Accepted successor/migration semantics and rejection tests |

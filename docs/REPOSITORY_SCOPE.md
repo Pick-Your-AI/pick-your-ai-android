@@ -74,6 +74,36 @@ service placement or other work package. The executed draft/projection/private-
 archive model and its exact evidence remain distinct from future creation/removal
 UI, shared saved-build services, installed devices and release qualification.
 
+[ADR 0008](decisions/0008-android-48-acceptance-record.md) separately proposes
+placing only #48's [02.01 foundation record](delivery/android/work-packages/02.01.md)
+in Android. Placement becomes effective only after independent receiving review
+and normal reviewed delivery into Android main. The original website path remains
+history; all other work-package locations retain their existing authority. The
+selected `:core`/`:preview` toolchain and preview package evidence remain distinct
+from future product, device and release qualification; full #48 acceptance stays
+pending its literal criteria and current installed-delivery evidence.
+
+[ADR 0009](decisions/0009-android-33-acceptance-record.md) separately proposes
+placing only #33's [17.04 support receiving record](delivery/android/work-packages/17.04.md)
+in Android. Its effective event is independent receiving review and normal
+reviewed merge. The record preserves the original website destination, all three
+literal criteria, actual diagnostic and public browser-intake evidence, separate
+in-session support and affected local-data review, and unavailable-channel limits.
+It changes no implementation, other acceptance path, shared authority, operating
+commitment or release qualification. Canonical ledger reconciliation follows the
+actual reviewed record delivery.
+
+[ADR 0010](decisions/0010-android-84-acceptance-record.md) separately proposes
+placing only #84's [09.01 evaluator record](delivery/android/work-packages/09.01.md)
+in Android after its independent receiving review and normal reviewed delivery.
+It records the selected local retained-snapshot diagnostic interface, exact
+reference/configuration and native evidence, source-versus-observation identities,
+and explicit unsupported/unknown/current-request boundaries. The intended website
+path remains history. Available #49/#58 and transitive #21 outputs are received
+only at their stated scope; this decision changes no prerequisite edge or other
+work package. Shared services, qualified external metrics and product/device
+release retain their existing authorities.
+
 The existing website remains static. The selected future server package is
 separately built/deployed at `Pick-Your-AI/pickyour.ai/services/planner-api` only
 through canonical owner/coordinator and operations review before dependent code;

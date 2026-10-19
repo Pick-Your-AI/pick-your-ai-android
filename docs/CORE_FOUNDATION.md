@@ -1,5 +1,12 @@
 # JVM core implementation and acceptance limits
 
+The opt-in [CD1-0.2 answer profile](ANSWER_PROFILE.md) retains original bytes,
+typed unresolved causes, field-specific known-value admission and explicit
+assumption/preset attribution through a small terminal rule policy. Its fixed
+canonical-reference corpus is separate from frozen readers and the existing
+diagnostic evaluator. Native schema budgets and partial #27 receiving limits
+are explicit; this package does not activate editor or evidence-policy behavior.
+
 The [frozen CostEstimate boundary](FROZEN_COST_ESTIMATE_BOUNDARY.md) preserves every
 recorded field, exact scalar string and ordered line as immutable Kotlin values.
 Its shared structural cases keep schema validity separate from the existing
@@ -112,11 +119,18 @@ a separate repository setting; publishing this workflow does not make it require
 The implementation acceptance records listed below retain their canonical paths
 in `pickyour.ai`; the separately accepted decision-record placements are listed in
 [repository scope](REPOSITORY_SCOPE.md). Parent coordination can
-copy the criterion evidence above into `03.01.md`, `02.01.md`, `03.06.md`, `02.04.md`,
+copy the criterion evidence above into `03.01.md`, `03.06.md`, `02.04.md`,
 `11.03.md`, `14.05.md`, `02.05.md` and `09.06.md` under
 `docs/delivery/android/work-packages/`, linking the merged PR and exact test runs.
 These are partial entries, not issue-closing receipts. No website changes are made
 by this repository.
+
+[ADR 0008](decisions/0008-android-48-acceptance-record.md) separately proposes
+placing only #48's [02.01 foundation record](delivery/android/work-packages/02.01.md)
+in Android, effective after independent review and normal delivery into Android
+main. The record preserves the original website path and distinguishes the selected
+preview identity from future product qualification. Full #48 acceptance remains
+pending its literal criteria and current installed-delivery evidence.
 
 ## Observed local verification (2026-10-18)
 
@@ -230,10 +244,22 @@ optional absence. Shared Python/Kotlin mutation cases and malformed-input tests
 cover this structural boundary; decoding does not authenticate or execute an
 evaluation, bind it to the current build, or certify its reported result.
 
+The [dependency graph decoder](DEPENDENCY_GRAPH_BOUNDARY.md) retains all frozen
+edge fields, order, duplicate/cyclic relationships and exact revisions as immutable
+values. Shared Python/Kotlin cases cover the structural boundary. An explicit
+overload projects those values into the existing direct-adjacency invalidation
+algorithm without changing its activation truth table or authorizing graph policy.
+
 The [frozen Event decoder](FROZEN_EVENT_BOUNDARY.md) retains every event and payload
 field as immutable typed values, with exact subject revisions and explicit optional
 presence. Shared Python/Kotlin cases exercise the unchanged schema. Decoding adds
 no event execution, actor authority, idempotency, synchronization or telemetry.
+
+The [conformance fixture preparation](CONFORMANCE_FIXTURES.md) adds a test-only
+consumer for the existing 223-case neutral wire profile and 34 private Android
+history/migration scenarios. Exact original bytes, versions, typed observations
+and named per-test XML receipts remain separate from evaluator, installed-device
+and issue-level receiving acceptance; the original prerequisite handoffs remain.
 
 The [resource-estimate decoder](RESOURCE_ESTIMATE_BOUNDARY.md) retains all frozen
 capacity-estimate wire fields, exact decimal strings, arbitrary-size revisions and
@@ -248,3 +274,13 @@ retains every frozen manifest/approval field, exact build revision, ordered arra
 and optional absence. Recorded statuses and approval decisions are unverified
 input; decoding grants no approval, URI access, deployment or release authority.
 Shared Python/Kotlin cases preserve frozen schema outcomes and sanitized failures.
+
+## Frozen EvaluationReport structural values
+
+The [frozen report reader](FROZEN_EVALUATION_REPORT_BOUNDARY.md) preserves all
+recorded fields, exact integer revisions/counters, optional absence and arbitrary
+immutable evidence JSON through the existing bounded parser and bundled schema.
+It does not bind a Build, run rules, reconcile findings or grant readiness. The
+existing reference receiver and inspection/caller APIs retain their stronger
+consistency and current-state boundaries. Its shared Python/Kotlin panel is
+additive to the original reference-report fixture check.
