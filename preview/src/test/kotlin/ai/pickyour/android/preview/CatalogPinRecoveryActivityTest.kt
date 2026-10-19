@@ -3,6 +3,7 @@ package ai.pickyour.android.preview
 import android.app.AlertDialog
 import android.os.Bundle
 import android.os.Looper
+import android.os.SystemClock
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
@@ -68,7 +69,7 @@ class CatalogPinRecoveryActivityTest {
     private fun dialog() = requireNotNull(ShadowAlertDialog.getLatestAlertDialog())
     private fun message(window: AlertDialog = dialog()) = shadowOf(window).message.toString()
     private fun dialogButton(label: Int, window: AlertDialog = dialog()) = button(label, window.window!!.decorView)
-    private fun idle() = shadowOf(Looper.getMainLooper()).idle()
+    private fun idle() = AutosaveUiClock.idle()
     private fun await(condition: () -> Boolean) {
         val deadline = System.nanoTime() + 15_000_000_000L
         while (System.nanoTime() < deadline) {
@@ -433,6 +434,9 @@ class CatalogPinRecoveryActivityTest {
     @Test fun snapshotReplacementRemovalReloadAndRecreationRetireTheActualInspectionOrigin() {
         save()
         val baseline = loaded().baselineIdentity
+        // Dialog frames must not advance this read-only case beyond the autosave deadline.
+        AutosaveUiClock.pause()
+        val pendingSince = SystemClock.uptimeMillis()
         field(R.string.draft_title).setText("pending lifecycle recovery")
         addPin()
         val before = state()
@@ -479,6 +483,7 @@ class CatalogPinRecoveryActivityTest {
         assertTrue(state().getStringArrayList("comparisonIds")!!.isEmpty())
         assertDraftState(before, includeTray = false)
         assertEquals(baseline, loaded().baselineIdentity)
+        assertTrue("Read-only actions stay before autosave", SystemClock.uptimeMillis() in pendingSince until pendingSince + 750)
     }
 
     @Test fun changedSavedBaselineRejectsRetainedRetryAndBrowseWithoutReplacingPendingInputs() {

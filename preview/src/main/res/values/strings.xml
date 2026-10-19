@@ -8,12 +8,12 @@
     <string name="invalid">Synthetic fixture failed structural validation. No compatibility verdict is available.</string>
     <string name="unavailable">Validation is unavailable. Bundled resources could not be checked. Retry validation.</string>
     <string name="guest_draft">Guest draft · local only</string>
-    <string name="temporary">Edit the guest form, then tap Save locally. Unsaved edits may be lost when the app stops. Saved data stays on this device; there is no cloud sync.</string>
+    <string name="temporary">Valid form edits save after a short pause. Save locally saves them now. Wait for Saved locally before leaving; unconfirmed edits may be lost when the app stops. Saved data stays on this device; there is no cloud sync.</string>
     <string name="draft_title">Draft title (up to 120 characters)</string>
     <string name="title_hint">For example: My synthetic comparison</string>
     <string name="no_selection">Incomplete: no sample selected.</string>
     <string name="unknown">Compatibility, capacity, quality and price: unknown. No evaluation or quote has run for this draft. This is not a deployable plan.</string>
-    <string name="clear_draft">Clear form (not saved yet)</string>
+    <string name="clear_draft">Clear form</string>
     <string name="catalog_heading">Browse synthetic samples</string>
     <string name="catalog_explanation">Bundled frozen-v1 catalog fixture. Every entry is fictional, not vendor evidence. Open a sample to inspect its identity before selecting it.</string>
     <string name="retry_catalog">Reload bundled catalog</string>
@@ -48,8 +48,10 @@
     <string name="reopen_confirm">Reopen</string>
     <string name="draft_loading">Opening local guest draft…</string>
     <string name="draft_saving">Saving locally…</string>
+    <string name="draft_saving_pending">Saving earlier changes… Newer edits are not saved yet.</string>
     <string name="draft_saved">Saved locally.</string>
-    <string name="draft_unsaved">Unsaved changes. Tap Save locally to commit this form.</string>
+    <string name="draft_unsaved">Unsaved changes. Valid edits save after a short pause; Save locally saves them now.</string>
+    <string name="draft_autosave_paused">Automatic saving is paused. Your visible edits are retained; tap Save locally to retry or reopen the saved copy.</string>
     <string name="draft_load_failed">Local draft could not be opened. Your visible edits are retained but are not saved. Reopen to retry; corrupt or unsupported data will not be reset.</string>
     <string name="draft_save_failed">Save failed. Your visible edits are retained. The previous acknowledged copy is unchanged; retry Save locally or reopen the saved copy.</string>
     <string name="draft_conflict">Another local copy changed. Your edits are retained but were not saved. Reopen the saved copy before editing again; unsaved edits are not overwritten automatically.</string>
@@ -62,7 +64,7 @@
     <string name="history_unavailable_detail">This retained revision has missing or unsupported guest form metadata. No replacement form is inferred.</string>
     <string name="history_copy_warning">Saved title: %1$s
 
-Copy this revision’s title and sample selection into the editor? This replaces those unsaved fields only; objective and context inputs stay unchanged. It does not restore domain snapshots, reports or prices. Nothing is saved until you tap Save locally, which creates a new edit and retains history.
+Copy this revision’s title and sample selection into the editor? This replaces those unsaved fields only; objective and context inputs stay unchanged. It does not restore domain snapshots, reports or prices. Valid form changes save after a short pause, or Save locally saves them now. The new edit retains history.
 
 %2$s</string>
     <string name="history_copy">Copy form to editor</string>
@@ -81,6 +83,6 @@ Copy this revision’s title and sample selection into the editor? This replaces
     <string name="workload_classification">Data classification</string>
     <string name="workload_classification_value">Data classification: %1$s</string>
     <string name="workload_invalid">Some entered workload values are invalid. Your text is retained; correct it before saving.</string>
-    <string name="workload_editable">Unanswered inputs stay unanswered. Save commits these assumptions; no evaluation or quote is generated.</string>
+    <string name="workload_editable">Unanswered inputs stay unanswered. Valid assumptions save with the form after a short pause, or with Save locally. No evaluation or quote is generated.</string>
     <string name="workload_rejected">That entire edit was rejected because it exceeds the local text buffer. Previous text is unchanged. Edit the text again or reopen before saving.</string>
 </resources>
