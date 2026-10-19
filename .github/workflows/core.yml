@@ -1806,6 +1806,10 @@ jobs:
                   'realSaveConflictWithholdsUntilTheCanonicalReopenRecovers',
                   'pauseAndRecreationRetireCurrentAuthorityAndDoNotRestoreAReportFromBundle',
               },
+              'ai.pickyour.android.preview.CurrentDraftCheckPresentationTest': {
+                  'englishLocaleWithRtlLayoutIsolatesRecordedIdentifiersInTheVisibleSection',
+                  'arabicLocaleWithLtrLayoutKeepsRecordedIdentifiersInTheVisibleSectionLtr',
+              },
           }
           for name, expected in required.items():
               path = pathlib.Path('preview/build/test-results/testDebugUnitTest') / ("TEST-" + name + ".xml")

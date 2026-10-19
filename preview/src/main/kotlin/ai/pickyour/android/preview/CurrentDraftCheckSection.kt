@@ -118,7 +118,7 @@ internal class CurrentDraftCheckSection(
         render()
     }
 
-    private fun literal(raw: String) = BidiFormatter.getInstance(activity.resources.configuration.locales[0])
+    private fun literal(raw: String) = BidiFormatter.getInstance(activity.resources.configuration.layoutDirection == View.LAYOUT_DIRECTION_RTL)
         .unicodeWrap(CatalogDetailText.literal(activity, raw), TextDirectionHeuristics.LTR)
 
     private fun render() {
