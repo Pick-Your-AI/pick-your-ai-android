@@ -2,6 +2,7 @@ package ai.pickyour.android.preview
 
 import android.os.Bundle
 import ai.pickyour.core.preview.PreviewSelectionForms
+import ai.pickyour.core.preview.PreviewSelectionRecoveryPolicy
 
 /** Small primitive UI state. It carries input and identity, never a command or save authority. */
 internal class ComponentFormCheckpoint(
@@ -29,6 +30,13 @@ internal class ComponentFormCheckpoint(
                 else -> false
             }
 
+    /** Only an open add/configure form supplies its originally captured kind; legacy readers stay raw. */
+    fun captureNewSettings(kind: String): ComponentFormRecovery = when {
+        !bounded() -> ComponentFormRecovery.Unavailable
+        PreviewSelectionRecoveryPolicy.hasRecognizedUserinfo(kind, settings) -> ComponentFormRecovery.UriUserinfoExcluded
+        else -> ComponentFormRecovery.Pending(this)
+    }
+
     fun bundle(): Bundle? = if (!bounded()) null else Bundle().apply {
         putInt("version", 2)
         putString("mode", mode)
@@ -52,7 +60,7 @@ internal class ComponentFormCheckpoint(
         const val CONFIGURE = "configure"
         const val ROLE = "role"
         // Includes invalid input beyond the 16,384-character parser limit without copying an unbounded form.
-        const val MAX_RAW_CHARACTERS = 20_000
+        const val MAX_RAW_CHARACTERS = PreviewSelectionRecoveryPolicy.MAX_RAW_CHARACTERS
 
         @Suppress("DEPRECATION") // Primitive type checks also work on the preview's API 26 minimum.
         fun read(value: Bundle): ComponentFormCheckpoint? {
@@ -82,6 +90,7 @@ internal class ComponentFormCheckpoint(
 internal sealed interface ComponentFormRecovery {
     data object None : ComponentFormRecovery
     data object Unavailable : ComponentFormRecovery
+    data object UriUserinfoExcluded : ComponentFormRecovery
     class Pending(val form: ComponentFormCheckpoint) : ComponentFormRecovery
 
     fun save(outState: Bundle) {
@@ -89,12 +98,14 @@ internal sealed interface ComponentFormRecovery {
         when (this) {
             None -> Unit
             Unavailable -> outState.putBundle(KEY, unavailable())
+            UriUserinfoExcluded -> outState.putBundle(KEY, unavailable().apply { putString("reason", URI_USERINFO) })
             is Pending -> outState.putBundle(KEY, form.bundle() ?: unavailable())
         }
     }
 
     companion object {
         const val KEY = "componentFormRecovery"
+        private const val URI_USERINFO = "uri_userinfo"
         private fun unavailable() = Bundle().apply { putInt("version", 1); putBoolean("unavailable", true) }
 
         @Suppress("DEPRECATION")
@@ -102,7 +113,10 @@ internal sealed interface ComponentFormRecovery {
             if (state == null || !state.containsKey(KEY)) None
             else {
                 val value = state.get(KEY) as? Bundle
-                if (value == null || value.get("unavailable") == true) Unavailable
+                if (value == null) Unavailable
+                else if (value.get("unavailable") == true) {
+                    if (value.get("version") == 1 && value.get("reason") == URI_USERINFO) UriUserinfoExcluded else Unavailable
+                }
                 else ComponentFormCheckpoint.read(value)?.let(::Pending) ?: Unavailable
             }
         } catch (_: RuntimeException) {
