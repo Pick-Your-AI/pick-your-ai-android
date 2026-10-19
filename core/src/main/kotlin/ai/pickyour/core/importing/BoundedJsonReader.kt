@@ -38,7 +38,10 @@ enum class JsonRejection { LIMIT_EXCEEDED, INVALID_JSON, INVALID_UTF8, IO_FAILUR
 
 sealed interface JsonInputResult {
     /** Syntax acceptance only. The caller must still validate version, schema, URIs and disclosure scope. */
-    data class Parsed(val value: ObjectNode) : JsonInputResult
+    data class Parsed(val value: ObjectNode) : JsonInputResult {
+        // Keep the document available to callers without exposing it in incidental diagnostics.
+        override fun toString() = "JsonInputResult.Parsed"
+    }
     /** Deliberately contains no parser exception, input fragment, path or provider error message. */
     data class Rejected(val reason: JsonRejection) : JsonInputResult
 }
