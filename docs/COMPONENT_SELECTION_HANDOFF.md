@@ -133,7 +133,10 @@ explicit selection action. These remain JVM-simulated Android observations.
 Receiving evidence must bind the actual source, full configured runs, original
 reports and independent review. Targeted local runs, hosted simulation, installed
 emulator/physical-device behavior and release qualification remain distinct. The
-literal #98 criteria, accepted #76/#82 handoffs and canonical
-`docs/delivery/android/work-packages/07.05.md` receiving record retain their existing
-acceptance authorities; this guide does not relocate that record or close the
-whole work package.
+literal #98 criteria, accepted #76/#82 handoffs and actual independent role
+decisions are recorded in the [07.05 receiving record](delivery/android/work-packages/07.05.md).
+[ADR 0014](decisions/0014-android-98-acceptance-record.md) places only that record
+beside the implemented Android source after independent review and normal
+document delivery, preserving its original website coordinate as history.
+Strict ledger and live-issue reconciliation follow the actual delivery; the guide
+alone closes no work package.

@@ -132,6 +132,17 @@ archive admission and all shared authorities intact. Product/device and release
 qualification remain separate; this placement changes no other record, and
 strict-ledger reconciliation follows actual implementation and record delivery.
 
+[ADR 0014](decisions/0014-android-98-acceptance-record.md) separately places only
+#98's [07.05 selection handoff record](delivery/android/work-packages/07.05.md)
+in Android after independent receiving review and normal reviewed document
+delivery. Both actual catalog/UX and data-consumer decisions accept the implemented
+local search/detail and bounded component-route handoff, including the specific
+#76/#82 outputs consumed. Its original website coordinate remains history.
+The placement changes no other record, shared service, public App Link authority,
+prerequisite edge or release scope. Actual signed implementation and separate
+original-main evidence are recorded; strict ledger reconciliation remains a
+subsequent reviewed step.
+
 The existing website remains static. The selected future server package is
 separately built/deployed at `Pick-Your-AI/pickyour.ai/services/planner-api` only
 through canonical owner/coordinator and operations review before dependent code;
