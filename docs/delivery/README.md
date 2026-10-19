@@ -1,5 +1,106 @@
 # Criterion evidence ledger
 
+## Proposed metadata reconciliation for #48, #57 and #59
+
+**Draft contribution only; schema 12 is not reserved or adopted.** This four-file
+preparation is for the existing [#460 handoff](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/460#issuecomment-6268071419)
+and canonical #560 writer to review. It does not claim that writer's source,
+publish a successor, reserve a main interval or change issue state. The base is
+accepted `517025db301785f8e3689abdeeb47fc8d09b9afc`; its root README and the
+separate #569 foundation/placement reconciliation remain unchanged.
+
+The count remains **441 literal criterion IDs: 36 complete and 405 incomplete**.
+The complete set is still 25 design, seven implementation, one import-integrity
+and three support criteria. No criterion identity/status, acceptance object, external
+prerequisite, partial result, earlier evidence record or completion claim changes.
+
+### Two effective acceptance-record repository coordinates
+
+| Issue / path | Historical v11 repository | Current repository after the delivered placement event | Exact authority |
+| --- | --- | --- | --- |
+| #48 / `docs/delivery/android/work-packages/02.01.md` | `Pick-Your-AI/pickyour.ai` | `Pick-Your-AI/pick-your-ai-android` | [ADR 0008](../decisions/0008-android-48-acceptance-record.md), blob `904da4ee38ec00ae57eb5ece2fbc4dd4a222eb97`, effective signed [#448](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/448) / `710d337fed2004689993c0b8bc01f12de780b04c` |
+| #59 / `docs/delivery/android/work-packages/02.05.md` | `Pick-Your-AI/pickyour.ai` | `Pick-Your-AI/pick-your-ai-android` | [ADR 0011](../decisions/0011-android-59-acceptance-record.md), blob `de362c1ee08d36c8feb1ef6368ab4d73a376f9ab`, effective signed [#502](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/502) / `146413ff168583f4c2b0df87ab41d36e57f8ea85` |
+
+Only the two repository cells change. Both paths, all six associated criteria
+and their incomplete statuses remain exact. The old coordinates remain in the
+fixed complete v11 inverse. #48's installed receiving and #59's actual settings,
+credential context and installed evidence keep their existing owner and scope.
+The repository correction supplies no missing execution or operating acceptance.
+
+### Scoped #57 partial-evidence references
+
+| Literal criterion | Exact references after this draft | Scope of the added references |
+| --- | --- | --- |
+| 57.1 | `pr-136`, `pr-515`, `pr-502` | #515 supplies loaded bundled identity/version observability only; #502 supplies the finite synthetic configuration admission/failure boundary |
+| 57.2 | `pr-136`, `pr-502` | #502 explicitly refuses unavailable real configuration and preview-fixture fallback; it supplies no configured real endpoint |
+| 57.3 | `pr-136`, `pr-502` | #502 supplies finite failure text and the early storage/lifecycle admission boundary, with the original packaging/scanner observation limits |
+
+The #515 record points to signed `1c51313d7499118a31b0d3a5af322aed5fa64a59`
+and the historical [loaded-identity guide](https://github.com/Pick-Your-AI/pick-your-ai-android/blob/1c51313d7499118a31b0d3a5af322aed5fa64a59/docs/LOCAL_PREVIEW_IDENTITY.md).
+Its [receiving receipt](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/57#issuecomment-6259700859)
+does not qualify routing, failure-before-mutation or real variants. It is linked
+only to 57.1.
+
+The #502 record points to signed `146413ff168583f4c2b0df87ab41d36e57f8ea85`
+and the historical [configuration guide](https://github.com/Pick-Your-AI/pick-your-ai-android/blob/146413ff168583f4c2b0df87ab41d36e57f8ea85/docs/ENVIRONMENT_CONFIGURATION.md).
+The [actual post-main receipt](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/502#issuecomment-6267418772)
+keeps its decoded original log, source, API and uploader scope; binary contents
+were not inspected. The guide's earlier pending-execution narrative is historical
+source, while that distinct receiving receipt records the later observation.
+Running this metadata validator does not re-execute or enlarge either delivery.
+
+All three #57 statuses remain incomplete. Their original `pr-136`, empty
+completion evidence, external prerequisites and `issue_context_only` attribution
+remain exact. The canonical #57 record stays at the historical website
+`docs/delivery/android/work-packages/02.02.md`. No new partial-result assertion,
+reproduction command or approval flag is introduced.
+
+The obsolete remaining-work sentence is replaced by the handoff's fixed text:
+
+> Complete approved staging/production endpoint, identity and capability handoffs and qualification of each selected real variant; reconcile the remaining literal configuration and diagnostic receiving requirements. The finite synthetic admission/failure/fixture-exclusion behavior and loaded bundled identity are already delivered scoped outputs, not evidence of real configuration, installed execution or release.
+
+Actual approved endpoints, application identities, capabilities, positive real
+variant qualification, complete sensitive-context/package evidence and receiving
+decisions remain outstanding. No URL, credential, production data, installed
+result or release permission is fabricated by this reconciliation.
+
+### Exact history and validation boundary
+
+The source-defined outer validator admits only the two coordinate objects,
+three exact reference/text pairs and two exact evidence objects. It first checks
+the complete ordered issue and #57 criterion identities. It then deep-copies
+and reverses only those eight existing fields, removes only the two additions
+and restores integer schema 11. Unknown fields survive the inverse and fail the
+existing history checks. The complete old validator remains unchanged apart from
+its private function name; all older inverse layers and their digests remain exact.
+
+The reconstructed v11 canonical digest is
+`1698ebb2a1c802a80e3562659afeee3ee828e81ee83e443b1bb9eafe9d9b3a23`.
+Its complete **551,451 bytes** have SHA-256
+`7b7a9ce256d4cb0e6766519c95c63bbe50f888c71fc7aaf5c7066fd6670a6152`.
+All 126 other issue objects, 438 other criterion objects, 28 old evidence objects,
+129 record paths, 441 identity/text/digest/status tuples and original metadata
+are preserved. The finite extra top-level metadata already supported by the CLI
+remains supported outside the original eight canonical keys.
+
+Focused controls preserve all 120 earlier method identities and their historical
+views. They add exact whole-history and permitted-field checks, placement and
+evidence-scope rejection, unknown-field survival, forged completion, matching
+synthetic-source substitution, copy isolation and real CLI rejection with and
+without assertions. Synthetic issue text is not a fresh live issue capture.
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/check_delivery_ledger.py
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s scripts/tests -p test_delivery_ledger.py -v
+PYTHONDONTWRITEBYTECODE=1 python3 -O -m unittest discover -s scripts/tests -p test_delivery_ledger.py -v
+```
+
+No workflow, native input, root README, ADR or acceptance-record source changes.
+Canonical writer adoption, ordinary independent source review and the actual
+receiving gates remain required before any publication or ledger reconciliation.
+Removing this section recovers every byte of the following v11 and older narrative.
+
+
 ## Version 11: the reviewed retained-snapshot evaluator outcome for #84
 
 This amendment records **25 reviewed design criteria, seven reviewed

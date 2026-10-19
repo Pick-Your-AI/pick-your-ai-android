@@ -2056,7 +2056,7 @@ def reconstruct_prior_v10(ledger):
     return previous
 
 
-def validate(ledger, source=None):
+def _validate_prior_v11(ledger, source=None):
     require(type(ledger['schema_version']) is int and ledger['schema_version'] == 11,
             'unsupported schema version')
     require(ledger['purpose'] == LEDGER_PURPOSE_V11,
@@ -2103,6 +2103,122 @@ def validate(ledger, source=None):
             PRIOR_V10_LEDGER_SHA256,
             'unreviewed change to complete prior v10 ledger history')
 
+
+
+# Local draft of the scoped metadata amendment described in #460 comment
+# 6268071419. The canonical writer has not reserved/adopted schema12 through
+# this preparation. These fixed inputs grant no new criterion acceptance.
+PRIOR_V11_KEYS = PRIOR_V10_KEYS
+PRIOR_V11_LEDGER_SHA256 = '1698ebb2a1c802a80e3562659afeee3ee828e81ee83e443b1bb9eafe9d9b3a23'
+PRIOR_V11_LEDGER_BYTES = 551451
+PRIOR_V11_LEDGER_RAW_SHA256 = '7b7a9ce256d4cb0e6766519c95c63bbe50f888c71fc7aaf5c7066fd6670a6152'
+PRIOR_METADATA_REPOSITORY = 'Pick-Your-AI/pickyour.ai'
+METADATA_PLACEMENTS = {
+    48: {
+        'path': 'docs/delivery/android/work-packages/02.01.md',
+        'decision_path': 'docs/decisions/0008-android-48-acceptance-record.md',
+        'decision_blob': '904da4ee38ec00ae57eb5ece2fbc4dd4a222eb97',
+        'effective_revision': '710d337fed2004689993c0b8bc01f12de780b04c',
+    },
+    59: {
+        'path': 'docs/delivery/android/work-packages/02.05.md',
+        'decision_path': 'docs/decisions/0011-android-59-acceptance-record.md',
+        'decision_blob': 'de362c1ee08d36c8feb1ef6368ab4d73a376f9ab',
+        'effective_revision': '146413ff168583f4c2b0df87ab41d36e57f8ea85',
+    },
+}
+PRIOR_57_REMAINING = 'Implement explicit environment/configuration failures and package-diagnostic secret checks.'
+METADATA_57_REMAINING = (
+    'Complete approved staging/production endpoint, identity and capability handoffs and qualification '
+    'of each selected real variant; reconcile the remaining literal configuration and diagnostic '
+    'receiving requirements. The finite synthetic admission/failure/fixture-exclusion behavior and '
+    'loaded bundled identity are already delivered scoped outputs, not evidence of real '
+    'configuration, installed execution or release.'
+)
+METADATA_57_REFS = {
+    '57.1': ['pr-136', 'pr-515', 'pr-502'],
+    '57.2': ['pr-136', 'pr-502'],
+    '57.3': ['pr-136', 'pr-502'],
+}
+METADATA_57_EVIDENCE = {
+    'pr-515': {
+        'pr_url': f'{BASE}/pull/515',
+        'observed_state': 'merged',
+        'revision': '1c51313d7499118a31b0d3a5af322aed5fa64a59',
+        'artifact_url': f'{BASE}/blob/1c51313d7499118a31b0d3a5af322aed5fa64a59/docs/LOCAL_PREVIEW_IDENTITY.md',
+        'scope_limit': 'Loaded bundled identity/version observability for criterion 57.1 only. Historical delivery and receipt 6259700859 retain their actual scope; no configured staging/production endpoint, credential, installed-device, release or full criterion completion evidence.',
+    },
+    'pr-502': {
+        'pr_url': f'{BASE}/pull/502',
+        'observed_state': 'merged',
+        'revision': '146413ff168583f4c2b0df87ab41d36e57f8ea85',
+        'artifact_url': f'{BASE}/blob/146413ff168583f4c2b0df87ab41d36e57f8ea85/docs/ENVIRONMENT_CONFIGURATION.md',
+        'scope_limit': 'Finite synthetic environment admission, explicit missing-configuration/lifecycle rejection and preview-fixture exclusion for criteria 57.1–57.3. Delivered source and post-main receipt 6267418772 retain decoded-log/source/API/upload qualification with binary contents uninspected; no configured real variant, installed-device, release or whole-criterion acceptance.',
+    },
+}
+
+
+def reconstruct_prior_v11(ledger):
+    """Reverse only the fixed metadata cells after validate() admits them.
+
+    Preserve every other field, including unknown issue/criterion properties,
+    for the unchanged historical validators and complete prior-v11 digest.
+    This deep-copy projection does not authorize its input or complete work.
+    """
+    previous = copy.deepcopy(ledger)
+    for number in METADATA_PLACEMENTS:
+        previous['issues'][number - 1]['canonical_acceptance_record']['repository'] = (
+            PRIOR_METADATA_REPOSITORY)
+    for criterion in previous['issues'][56]['criteria']:
+        criterion['partial_evidence_refs'] = ['pr-136']
+        criterion['remaining_engineering'] = PRIOR_57_REMAINING
+    for evidence_ref in METADATA_57_EVIDENCE:
+        previous['evidence'].pop(evidence_ref)
+    previous['schema_version'] = 11
+    return previous
+
+
+def validate(ledger, source=None):
+    require(type(ledger['schema_version']) is int and ledger['schema_version'] == 12,
+            'unsupported schema version')
+    require(ledger['purpose'] == LEDGER_PURPOSE_V11,
+            'unsupported ledger completion summary')
+    issues = ledger['issues']
+    numbers = [issue['number'] for issue in issues]
+    require(all(type(number) is int for number in numbers),
+            'ledger issue numbers must be integers')
+    require(numbers == list(range(1, 130)),
+            'expected unique ordered issue numbers 1–129')
+    for number, placement in METADATA_PLACEMENTS.items():
+        require(issues[number - 1]['canonical_acceptance_record'] == {
+            'repository': REPOSITORY, 'path': placement['path']},
+            f'unreviewed acceptance coordinates or metadata placement: {number}')
+    # Preserve the earlier rejection order for forged #57 acceptance before
+    # checking metadata that such a forged outcome may also have replaced.
+    for kind in ('support', 'implementation', 'design'):
+        require(f'accepted_{kind}_outcome' not in issues[56],
+                f'unsupported {kind} acceptance: 57')
+    criteria = issues[56]['criteria']
+    require([criterion['id'] for criterion in criteria] == list(METADATA_57_REFS),
+            'metadata criterion identity/order mismatch: 57')
+    for criterion in criteria:
+        key = criterion['id']
+        require(criterion['partial_evidence_refs'] == METADATA_57_REFS[key],
+                f'unreviewed metadata evidence references: {key}')
+        require(criterion['remaining_engineering'] == METADATA_57_REMAINING,
+                f'unreviewed metadata remaining work: {key}')
+    for evidence_ref, expected in METADATA_57_EVIDENCE.items():
+        require(json_digest(ledger['evidence'].get(evidence_ref)) == json_digest(expected),
+                f'metadata evidence is not the fixed scoped artifact: {evidence_ref}')
+
+    previous_v11 = reconstruct_prior_v11(ledger)
+    # Keep prior diagnostics, JSON rules, source comparison and every accepted
+    # outcome unchanged. Extra finite top-level input metadata remains supported
+    # outside these original eight canonical keys, as in the earlier validator.
+    _validate_prior_v11(previous_v11, source)
+    require(json_digest({key: previous_v11[key] for key in PRIOR_V11_KEYS}) ==
+            PRIOR_V11_LEDGER_SHA256,
+            'unreviewed change to complete prior v11 ledger history')
 
 
 def main():
