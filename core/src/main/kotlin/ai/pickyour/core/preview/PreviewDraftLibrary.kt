@@ -9,6 +9,8 @@ import java.io.IOException
 import java.nio.ByteBuffer
 import java.nio.file.Files
 import java.nio.file.FileVisitResult
+import java.nio.file.DirectoryIteratorException
+import java.nio.file.DirectoryStream
 import java.nio.file.LinkOption.NOFOLLOW_LINKS
 import java.nio.file.Path
 import java.nio.file.SimpleFileVisitor
@@ -49,9 +51,12 @@ sealed interface PreviewLibraryDelete {
  * Synchronous: all methods belong on a worker. Missing/corrupt entries remain visible, not discarded.
  */
 class PreviewDraftLibrary internal constructor(root: Path, private val checkpoint: (LibraryCheckpoint) -> Unit,
-    private val deleteCheckpoint: (LibraryDeleteCheckpoint) -> Unit) {
+    private val deleteCheckpoint: (LibraryDeleteCheckpoint) -> Unit,
+    private val directoryStream: (Path) -> DirectoryStream<Path>) {
     constructor(root: Path) : this(root, {}, {})
     internal constructor(root: Path, checkpoint: (LibraryCheckpoint) -> Unit) : this(root, checkpoint, {})
+    internal constructor(root: Path, checkpoint: (LibraryCheckpoint) -> Unit,
+        deleteCheckpoint: (LibraryDeleteCheckpoint) -> Unit) : this(root, checkpoint, deleteCheckpoint, Files::newDirectoryStream)
     private val root: Path
     init {
         require(Files.isDirectory(root, NOFOLLOW_LINKS))
@@ -103,6 +108,7 @@ class PreviewDraftLibrary internal constructor(root: Path, private val checkpoin
     }
 
     private fun bound(id: PreviewDraftId): PreviewDraftPersistence = persistence(id, object : PreviewDraftAccess {
+        override fun permitsArchive(archive: LocalSnapshotArchive): Boolean = archive.isDisjointFrom(root)
         override fun <T> run(failed: (DraftStorageFailure) -> T, action: () -> T): T = locked(failed) {
             if (hasTombstone(id) || !Files.isDirectory(root.resolve(id.value), NOFOLLOW_LINKS))
                 failed(DraftStorageFailure.CORRUPT)
@@ -169,13 +175,30 @@ class PreviewDraftLibrary internal constructor(root: Path, private val checkpoin
      * must still match; null permits only a still-missing or unreadable record, never a valid save.
      * Tombstoned records can only resume cleanup. Listing never grants an editor a new save token.
      */
-    fun delete(id: PreviewDraftId, expected: PreviewStoredDraft?): PreviewLibraryDelete {
+    fun delete(id: PreviewDraftId, expected: PreviewStoredDraft?): PreviewLibraryDelete = delete(id, expected, false)
+
+    /** Reconcile a named earlier removal, including an absent final marker; never start deleting an active row. */
+    fun retryDeletion(id: PreviewDraftId): PreviewLibraryDelete = delete(id, null, true)
+
+    private fun delete(id: PreviewDraftId, expected: PreviewStoredDraft?, retryOnly: Boolean): PreviewLibraryDelete {
         var started = false
         return locked({ if (started) PreviewLibraryDelete.Unconfirmed(it) else PreviewLibraryDelete.Failed(it) }) {
             if (expected != null && expected.draft.version.store != root.resolve(id.value))
                 return@locked PreviewLibraryDelete.Conflict
             val pending = pendingPath(id)
+            if (retryOnly && !Files.exists(root.resolve(id.value), NOFOLLOW_LINKS) && !Files.exists(pending, NOFOLLOW_LINKS)) {
+                // Removal may be complete while its final acknowledgement was lost. Re-sync
+                // absence without adding a new pending row to an already full library.
+                started = true
+                if (id.value == "guest-draft") durableMarker(root.resolve(LEGACY_DELETED))
+                sync(root)
+                val directory = deletionDirectory()
+                if (Files.exists(directory, NOFOLLOW_LINKS)) sync(directory)
+                return@locked PreviewLibraryDelete.Deleted
+            }
             if (!hasTombstone(id)) {
+                if (retryOnly && Files.exists(root.resolve(id.value), NOFOLLOW_LINKS))
+                    return@locked PreviewLibraryDelete.Conflict
                 val current = if (!Files.exists(root.resolve(id.value), NOFOLLOW_LINKS)) PreviewDraftLoad.Missing
                     else try { unbound(id).load() }
                     catch (_: IllegalArgumentException) { PreviewDraftLoad.Failed(DraftStorageFailure.CORRUPT) }
@@ -263,7 +286,7 @@ class PreviewDraftLibrary internal constructor(root: Path, private val checkpoin
 
     private fun ids(): List<PreviewDraftId> {
         val result = linkedSetOf<PreviewDraftId>()
-        fun scan(directory: Path) = Files.newDirectoryStream(directory).use { stream ->
+        fun scan(directory: Path) = directoryStream(directory).use { stream ->
             var scanned = 0
             for (path in stream) {
                 if (++scanned > MAX_DRAFTS * 4) throw LimitExceeded()
@@ -293,6 +316,7 @@ class PreviewDraftLibrary internal constructor(root: Path, private val checkpoin
                 lock.use { action() }
             }
         } catch (_: LimitExceeded) { return failed(DraftStorageFailure.LIMIT_EXCEEDED) }
+        catch (_: DirectoryIteratorException) { return failed(DraftStorageFailure.IO_FAILURE) }
         catch (_: IOException) { return failed(DraftStorageFailure.IO_FAILURE) }
         finally { synchronized(activeRoots) { activeRoots.remove(root) } }
     }

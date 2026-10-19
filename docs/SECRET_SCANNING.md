@@ -38,10 +38,28 @@ and JSON report otherwise look successful. The pinned CLI can log a Git-source
 read failure yet return exit 0 with an empty report; that is not a complete scan.
 Raw diagnostic content remains private and is replaced by a fixed failure message.
 
+Empty diagnostics alone cannot establish that the Git history child succeeded.
+An actual private counterexample at source `4c753bd69f3857d9b15051be86078948e61074ac`
+made that child silently exit 73 while the pinned CLI returned exit 0, no findings
+and empty streams. The corrected driver also requires a new private
+[Git Trace2 event stream](https://git-scm.com/docs/api-trace2) for each history scan.
+Exactly one version-4 session must identify the exact repository and unchanged
+history command, with ordered `version`, `start`, `exit` and `atexit` control
+events, successful integer exit codes, and `atexit` as its final event. Separate
+remote-metadata lookups cannot substitute for the history process. Missing,
+truncated, ambiguous, failed or malformed completion evidence fails with a fixed
+message. The parser bounds total bytes, individual lines, sessions and control
+events; it never copies raw trace content into a diagnostic or retained receipt.
+This counterexample establishes a driver defect, not a historical failure of an
+earlier project scan.
+
 `fetch-depth: 0` supplies reachable history. The driver rejects shallow history,
 changed tracked source, a driver not present at the recorded commit, or a mismatch
 between the workflow SHA and checkout. It records the exact source commit/tree and
-reachable commit count. Gitleaks receives `--full-history --diff-merges=separate
+reachable commit count. Scanner traversal and source metadata disable local Git
+replacement objects, matching the immutable checksum-evidence reader. Replacement
+refs cannot substitute a different source tree or ancestry for those checks.
+Gitleaks receives `--full-history --diff-merges=separate
 --text --no-ext-diff --no-textconv HEAD` as its Git log options. Explicit per-parent merge
 diffs include values introduced only by a merge resolution; the default Git patch
 log can omit them. Forced text patches prevent repository `-diff`/`binary`
@@ -58,8 +76,9 @@ cannot silently suppress findings. Before each normal scan, any `.gitleaksignore
 entry at the source root is rejected, including a directory or dangling symbolic
 link; unreadable entry metadata also fails. This is necessary because the pinned
 CLI additionally loads that source-root file despite an explicit ignore-file path.
-The empty override alone does not disable it. There are currently no accepted exceptions.
-Any future false-positive or revoked-history disposition requires a separate
+The empty override alone does not disable it. The only reviewed content disposition
+is the exact public contract checksum described below; it does not enable any source
+ignore file or rule suppression. Any additional false-positive or revoked-history disposition requires a separate
 independently reviewed change with exact immutable finding identity and its evidence;
 it must not quietly make the scanner accept arbitrary bypass comments.
 
@@ -87,6 +106,11 @@ default patch log incorrectly returned no finding for this actual merge fixture;
 the corrected merge-diff command detects it. These are seeded pattern and history
 coverage checks, not a production credential-revocation exercise.
 
+The same temporary history is scanned again with local replacement metadata
+present. Its original finding identities must remain identical. A separate real
+Git regression checks that source metadata still names the literal tree and
+reachable commit count. These fixtures never change project references.
+
 Another private Git fixture has two token-bearing files: plain text explicitly
 marked `-diff` by its own `.gitattributes`, and a NUL-bearing file automatically
 classified as binary. The real scanner must find both at their exact commit,
@@ -96,7 +120,7 @@ attribute or binary is changed. The primary [Git attributes documentation](https
 describes binary diff suppression and the textual override. This pattern check
 does not imply decryption, archive expansion or discovery of every encoded secret.
 
-The final real fixtures exercise execution failures. A nonrepository and a new
+Further real fixtures exercise execution failures. A nonrepository and a new
 two-commit bare repository whose clean tip has a missing reachable parent blob
 both cause this pinned CLI to emit an error but return exit 0 and an empty report.
 The normal driver must reject both through its empty-stream requirement. The
@@ -104,6 +128,16 @@ missing object is deleted only from this new private fixture, which has no remot
 its reachable commit count still succeeds and equals two. No project object is
 changed. These fixtures prevent a successful commit count or empty findings list
 from concealing unreadable historical source.
+
+A final clean, remote-free fixture exercises silent Git failure through the real
+CLI. Both history and directory scans must pass before a temporary private `git`
+wrapper is placed on that fixture's process path. A direct probe must establish
+exit 73 with no output; an invocation marker must prove the real scanner used the
+same failing history child. The driver must reject it specifically for missing
+successful Git completion. The original process path is then restored and both
+history and directory controls must pass again. No project Git executable or
+object is modified. Only the established fault exit and rejection/control flags
+enter the sanitized fixture results.
 
 The relevant pinned upstream implementations are
 [implicit source ignore loading](https://github.com/gitleaks/gitleaks/blob/v8.30.1/cmd/root.go)
@@ -118,10 +152,14 @@ sequence. A separate actual history scan at Android commit
 preparation observations do not replace the hosted run of this new driver at its
 published candidate and final main versions.
 
-Nine host guard tests reject modified/oversized scanner bytes, unsafe or malformed
+Host guard tests reject modified/oversized scanner bytes, unsafe or malformed
 report shapes, missing/stale/oversized or inconsistent reports, alternate ignore
 configuration, source-ignore entries and unreadable metadata, nonempty execution
-streams, shallow/dirty source and workflow mismatch. They also verify that
+streams, shallow/dirty source and workflow mismatch. Completion tests exercise
+missing, failed, signaled, reordered, duplicate and post-shutdown events; wrong
+repository, history scope, merge policy, session, format or thread; stale trace
+entries; malformed or unreadable JSON; and resource limits. Clean and detected
+reports both require successful history completion. The tests also verify that
 matched text and author/message fields are not copied to the retained report. These
 tests do not substitute for the real CLI fixture and history execution above.
 
@@ -132,7 +170,8 @@ fixture results, scan exit/count, elapsed time and explicit scope limitations. F
 a finding, only the rule ID, file, starting line and exact commit are retained.
 Matched source, secret values, complete lines, commit messages, author/email and
 arbitrary report fields are excluded. Raw CLI streams are captured in memory and
-not printed; raw JSON stays in the temporary directory and is removed on exit.
+not printed; raw finding JSON and Git traces stay in the temporary directory and
+are removed on exit.
 The CLI also receives `--redact=100` as a separate precaution.
 
 The seven-day `secret-scan-<workflow commit>` artifact contains only that sanitized
@@ -149,6 +188,76 @@ private process. Removing a string from current source alone cannot establish th
 the credential is unusable. Any historical exception must carry the actual
 containment or false-positive evidence and independent review before integration.
 No automatic exception or history rewrite is performed by this check.
+
+### Exact public contract checksum disposition
+
+The original [#451](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/451)
+source `4df1006fd5204989456deb24fda1f116289b6491` and its signed prepared receiver
+`46b0056a370b9472acf84196a8782b0cf2a34ae7` both produced one `generic-api-key`
+finding at line 5 of `tests/fixtures/android-api-consumer-intake-v1.json`.
+That line records the SHA-256 of the already public frozen OpenAPI document.
+It is an integrity checksum, not an issued credential or an authentication claim.
+The fixture and its metadata key remain unchanged.
+
+The original [scanner run](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39169746580)
+is still failed. Artifact `12151314101` has ZIP SHA-256
+`47cfe22a999f073cd7c74aef7ed09d544e036a502541049378684a95de5b0a7b`;
+its sanitized receipt has SHA-256
+`6ecdad3a8260f63c6da4ceed14c248609a3c30ecf893408d58576d2fcf874d80`.
+It records raw exit 10, both immutable findings, 171 reachable commits and the
+passing seeded/history/error controls. The original failure is not replaced or
+relabeled by this later policy. Independent byte inspection proved that both
+finding commits contain exactly the accepted frozen inputs from signed main
+`e8241ef4ea75071339e6a945e48fc6d433819ffa`.
+
+The disposition `android36-public-frozen-contract-checksum` requires all four
+complete regular-file objects at each actual finding commit:
+
+| Input | Git blob | Bytes | SHA-256 |
+| --- | --- | ---: | --- |
+| `tests/fixtures/android-api-consumer-intake-v1.json` | `d2f15c794bf5a4b73b6dbb843006434f0bac84e2` | 17,594 | `48df93adc749ef07f81abe37e4d54a2a412558d0fd8c305ec6a3ab36b29e1879` |
+| `contracts/v1/api/openapi.yaml` | `117483451e00ac7d87260565b509f81bf383e405` | 12,079 | `6a08d7230c23576889167da6cff48d95093da9dc04d4bfa6ece443ff35089a79` |
+| `contracts/v1/IMPORT_MANIFEST.json` | `955704740fa9b16eb9b319726bfcb9ed1f8bbf47` | 8,426 | `ef6d5801eec10f3169e2bf84653e7026b33088e305a987991ec52faadcd7f554` |
+| `contracts/v1/UPSTREAM_SHA256SUMS` | `26fd660b5161a9b93607bab7d3279991a2e90fa4` | 4,044 | `0587a133436268bc03684ad61ff29f3bd1a12eb83db8a497eabdbb8fd8803e15` |
+
+The rule, path and starting line must also match exactly. Git reads disable
+replacement objects and require a real commit reachable from the recorded source
+HEAD, mode `100644`, the exact blob ID, exact byte count and full SHA-256 for every
+input. The fixture's fifth line is separately hashed, and its checksum must equal
+the independently hashed schema and the unique entry in the pinned upstream
+checksum list. A different fixture byte, file mode, object, provenance input,
+rule, path or line cannot receive this disposition. Even an unrelated edit to the
+fixture needs a newly reviewed content identity. Identical reviewed bytes carried
+through a later ordinary merge or signed squash may qualify, but that finding's
+actual immutable commit is always recorded; the original two commit IDs are never
+substituted for a new occurrence.
+
+The added evidence reads have five-second process deadlines and a 64 KiB output
+bound, with at most 32 distinct reviewed finding commits per scan. Unknown,
+duplicate, malformed or inconsistent finding metadata fails closed; an unknown
+well-formed finding remains unresolved. Source-provided allow comments, ignore
+files, generic path/rule exceptions and automatic policy updates remain forbidden.
+The scanner's existing rules, Git history command, report limits, private Trace2
+limits, disclosure boundary and seeded controls are unchanged.
+
+The CLI still scans every reachable patch and returns its actual raw result.
+`scan.exit_code`, `scan.finding_count` and every sanitized `scan.findings` entry
+remain intact. The separate `triage` object records reviewed findings with their
+content identity and unresolved findings; their counts must account for all raw
+findings. `passed` still means zero raw findings. The distinct
+`passed_with_reviewed_findings` status means raw findings were retained, every one
+met this reviewed public-checksum proof, and zero findings remain unresolved.
+Any mixed or unreviewed result stays `failed`. Neither successful status asserts
+universal secret absence, and consumers must not present the reviewed status as a
+zero-finding scan.
+
+The disposition supplement requires independent source review, meaningful negative
+controls and the ordinary current-source checks before integration. Unit guards
+cover altered mode/blob/size/bytes, wrong metadata, missing or changed frozen
+bindings, replaced-object/error boundaries, resource limits and mixed-result
+receipt behavior. Actual pinned-CLI controls must separately exercise the original
+public finding and an additional unissued token-shaped finding; mocked evidence
+reads do not substitute for those real scanner results.
 
 The corrected candidate must pass the source guard tests, real scanner fixture,
 history check, existing core/native checks and independent review. A fresh main

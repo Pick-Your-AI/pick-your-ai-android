@@ -1,13 +1,17 @@
-# Service boundary and acceptance recommendation
+# Service boundary recommendation
 
-Proposal for Android #35 and #47. See the [scope](01-product-scope.md) and
-[architecture](02-native-architecture.md) proposals. No hosting account, production
+Proposal for Android #35. See the accepted [scope](01-product-scope.md) and
+[architecture](02-native-architecture.md) decisions. The earlier #47 proposal below
+is superseded by the independently reviewed [acceptance baseline](../ACCEPTANCE_BASELINE.md)
+when that decision is normally merged. No hosting account, production
 endpoint, operation owner or device qualification is established by this document.
 
 ## Preview and production boundaries
 
-Recommend a local-only preview with labelled fixtures, app-private durable storage
-and user-initiated file exchange. It requires no Android-specific backend or cloud
+Retain the local-only preview with labelled fixtures and app-private durable
+storage. Product file exchange remains conditional J5 under the accepted scope;
+private diagnostic text sharing does not implement that journey. The preview
+requires no Android-specific backend or cloud
 account. This reduces the initial implementation surface; it does not satisfy
 production catalog publication, permalink, remote backup or cross-device sync work.
 
@@ -38,66 +42,54 @@ shape is concrete enough to review but does not close the hosting decision.
 
 ## Responsibility, authority and recovery
 
+The local implementation below was reviewed at signed main
+[`b6935a8ee7843831f90b0219c8794071557c71d4`](https://github.com/Pick-Your-AI/pick-your-ai-android/commit/b6935a8ee7843831f90b0219c8794071557c71d4)
+on 2026-10-18. Source review does not qualify an installed device or service.
+
 | Responsibility | Preview behavior | Later service gate |
 | --- | --- | --- |
-| Draft/revision/head transaction | Local Room transaction; failure leaves previous head | Server-side atomic commit plus expected-revision check and idempotency receipt |
+| Draft/revision/head transaction | `LocalDraftStore` filesystem protocol over `VerifiedArtifactCache`; expected-head checks and distinct `Saved`, `Failed`, `Conflict` and `Uncertain` outcomes | Server-side atomic commit plus expected-revision check and idempotency receipt |
 | Catalog publication | Bundled synthetic input; no production promotion | #15/#41 review, immutable manifest and hashes, atomic promotion and rollback pointer |
 | Resource/quality evidence | Missing data stays unavailable | #16 and accepted exact-version evidence; no generated fit claim |
 | Remote save and private reads | Not exposed | #17 ownership/capability authorization checked by server, not UI |
-| Share and revocation | Explicit exported copy; cannot revoke a recipient's copy | Server capability scope, expiry/revocation, sanitized projection and rate limits |
+| Share and revocation | Product file exchange remains conditional; an explicitly shared diagnostic text copy cannot be revoked from its recipient | Server capability scope, expiry/revocation, sanitized projection and rate limits |
 | Backup/restore | No promise of cloud backup; recovery and device-backup policy need testing | Encrypted backups, operator-approved retention and isolated restore drill with measured results |
 | Credentials | No provider/account credentials in fixture preview | Server-side custody/rotation and least privilege; do not embed keys in APKs |
 | Monitoring/incidents | Local diagnostic preview only; no automatic upload | Named responder, sanitized signals and exercised runbook under #44/#92 |
 
-Desk failure review: a crash before a local transaction commits leaves the old
-head; after commit it reloads the new one. A future server commit followed by a
-lost response retries the same idempotency key and cannot create another revision.
-A bad catalog release changes the active pointer back without rewriting history.
-A database restore is tested in isolation and reconciles artifact identities before
-serving traffic. These are required invariants, not observed runtime results.
+The local [store protocol](../../core/src/main/kotlin/ai/pickyour/core/drafts/LocalDraftStore.kt)
+and its [fault tests](../../core/src/test/kotlin/ai/pickyour/core/drafts/LocalDraftStoreTest.kt)
+distinguish failure before pointer activation from uncertainty after activation was
+attempted. A pre-activation failure preserves the previously acknowledged head.
+`Uncertain` means the new head may already be durable: reopen and verify before
+retrying, without reporting a successful save or assuming the old head survived.
+The caller must provision a durable app-private root and ancestors; directory sync,
+atomic rename, process termination and power loss still need Android filesystem
+qualification. JVM fault injection does not supply that installed-device evidence.
 
-## Measurable acceptance without invented measurements
+For the proposed service, a commit followed by a lost response must retry the same
+idempotency key without creating another revision. A bad catalog release must
+permit an active-pointer rollback without rewriting history. A database restore
+must be tested in isolation and reconcile artifact identities before serving
+traffic. These remain required service invariants awaiting operating evidence.
 
-| Area | Required check and evidence | Current disposition |
-| --- | --- | --- |
-| Journeys and data | Execute workload → select → evaluate → estimate → save → compare → share with the accepted catalog/contract pins and fixture disclosure checks | No Android implementation; synthetic desk walkthrough only |
-| Durability | Kill/relaunch after acknowledged edits; rotation, backgrounding, task removal, reboot, failed writes and every supported migration | Unexecuted; retain separate results for each case |
-| Conformance | Golden/negative fixtures for all supported kinds; cycles, optional tiers, decimals, unknowns, version mismatch and stale responses | Existing website/reference checks are inputs, not Kotlin coverage |
-| Accessibility | Automated semantics plus manual TalkBack, focus, large text, contrast, RTL and keyboard, including failure states | Unexecuted; automated pass cannot replace manual evidence |
-| Security/privacy | Manifest/exported-component review, no secret-bearing backups/logs, malformed imports, malicious links, permission denial and auth isolation where applicable | Unexecuted; missing account features do not waive local data/privacy review |
-| Performance | Measure cold/warm start, frame timing, memory, energy and representative catalog size on selected devices and a signed optimized build | Set decision thresholds before assessing results; no fabricated baseline or budget |
-| Device coverage | Select min/latest supported API, at least relevant compact/expanded windows, rotation and physical low/mid/high capability targets based on intended users | Exact API/device model list and commitments remain open under #47/#107 |
-| Distribution | Publisher/package/key custody, signed AAB, policy review, track-delivered install/update and release approval | No publisher evidence, signing custody or Play Console release work performed |
-| Operations | Real-data freshness/correction, restore, alert delivery and response, signed installed-release verification | No accepted operations owner or production service |
+## Acceptance-baseline handoff
 
-Do not claim support for an OS/device merely because a framework can target it.
-The compact/expanded categories are test-planning dimensions, not an approved
-support matrix. The Android lead and product authority must record exact devices,
-API bounds and test dispositions before #47 is accepted. Research #63 remains a
-missing demand input; any numeric performance target must be explicitly chosen
-and justified before measurements are used to claim success.
+The [#47 baseline](../ACCEPTANCE_BASELINE.md) develops the earlier acceptance
+proposal into explicit API/device/window targets, A01–A13 requirements, evidence
+methods, review roles and the G1–G4 release sequence. Its
+[01.06 receiving record](../delivery/android/work-packages/01.06.md) and narrow
+[ADR 0004](../decisions/0004-android-47-acceptance-record.md) become effective through
+their independent review and normal merge. Historical statements that no Android
+implementation or Kotlin tests existed remain in Git history; actual later
+simulation receipts retain their own exact scope and do not qualify devices.
 
-Required review/operating roles are product decision authority, Android technical
-lead, shared-service owner, release/security reviewer and incident responder.
-No person is assigned by this proposal. The live issues are unassigned; obtain
-their actual commitments and put accepted ownership in GitHub. Absent commitments
-remain gaps even if code or documentation later passes a check.
-
-## Release gate sequence
-
-1. Accept scope, architecture, service boundaries and receiving ownership. Record
-   handoffs at the existing website acceptance-record paths without changing its
-   automatic deployment behavior.
-2. Prove the local fixture workflow and failure cases. This is preview evidence.
-3. Integrate an accepted rights-cleared real-data slice and canonical service outputs.
-4. Qualify supported devices and the signed candidate; resolve security, privacy,
-   store and operational findings.
-5. Separately record internal/closed testing, submission, approval, authorized rollout,
-   clean install/upgrade of the delivered production build and operating drills.
-
-The later stages are not inferred from earlier stages, and no stage is passed by
-this proposal. Conditional growth issues remain deferred until their own scope
-decisions and evidence are accepted; they are not closed as implemented.
+This service proposal adopts none of the still-missing #35 hosting, account,
+provider, source, operating-owner or recovery commitments. The baseline explicitly
+keeps factual acceptance, application behavior and live release verification
+separate from structural checks and decision acceptance. It selects no cloud
+provider, service budget, response SLA, person or production rollout. Its missing
+physical/resource/release/operating inputs remain release blockers.
 
 ## Acceptance disposition
 
@@ -110,14 +102,3 @@ Canonical record: `docs/delivery/android/work-packages/01.04.md` in `Pick-Your-A
 | Choose the minimum production API/data-store deployment and operations owner; distinguish the existing static GoDaddy site from a stateful backend. | Proposed reasoning and requirements above; not executed application behavior | Receiving review, applicable upstream handoffs and observed implementation evidence remain pending |
 | Every required stateful responsibility maps to a service or explicit deferred feature; static hosting is not treated as a write API. | Proposed reasoning and requirements above; not executed application behavior | Receiving review, applicable upstream handoffs and observed implementation evidence remain pending |
 | Recovery, credential custody and isolation are covered; operational assumptions are sourced or labeled estimates. | Proposed reasoning and requirements above; not executed application behavior | Receiving review, applicable upstream handoffs and observed implementation evidence remain pending |
-
-
-### Issue #47
-
-Canonical record: `docs/delivery/android/work-packages/01.06.md` in `Pick-Your-AI/pickyour.ai`.
-
-| Exact live criterion | Evidence in this proposal | Remaining acceptance |
-| --- | --- | --- |
-| Set measurable product/performance/reliability criteria, supported devices, review roles and release gates without inventing dates, budgets or assignees. | Proposed reasoning and requirements above; not executed application behavior | Receiving review, applicable upstream handoffs and observed implementation evidence remain pending |
-| Every release criterion has a measurement/review method and inspectable evidence artifact. | Proposed reasoning and requirements above; not executed application behavior | Receiving review, applicable upstream handoffs and observed implementation evidence remain pending |
-| Decided thresholds and devices are recorded; structural validation, factual acceptance, application behavior and live release verification remain separate gates. | Proposed reasoning and requirements above; not executed application behavior | Receiving review, applicable upstream handoffs and observed implementation evidence remain pending |

@@ -1,11 +1,11 @@
 package ai.pickyour.android.preview
 
 import android.app.Activity
-import android.app.AlertDialog
 import android.os.Bundle
 import android.view.View
 import android.widget.Button
 import android.widget.LinearLayout
+import android.widget.ScrollView
 import android.widget.TextView
 import ai.pickyour.core.preview.*
 
@@ -28,6 +28,8 @@ class CatalogBrowseSection(
     private var browser: PreviewCatalogBrowser? = null
     private var selectable = false
     private var closed = false
+    private var rowAuthority = Any()
+    private val viewport = CatalogViewport(savedState?.takeUnless { resetState }) { active() }
     private val tier: Button
     private val kind: Button
     private val sort: Button
@@ -47,14 +49,18 @@ class CatalogBrowseSection(
         results = LinearLayout(activity).apply { orientation = VERTICAL }.also(::addView)
         previous = Button(activity).apply {
             setText(R.string.catalog_previous)
-            setOnClickListener { if (active() && state.page > 0) { state = state.copy(page = state.page - 1); render() } }
+            setOnClickListener { if (active() && state.page > 0) {
+                viewport.cancel(); state = state.copy(page = state.page - 1); render()
+            } }
         }.also(::addView)
         next = Button(activity).apply {
             setText(R.string.catalog_next)
             setOnClickListener {
                 if (!active()) return@setOnClickListener
                 val page = browser?.browse(state)
-                if (page != null && page.page + 1 < page.pages) { state = state.copy(page = page.page + 1); render() }
+                if (page != null && page.page + 1 < page.pages) {
+                    viewport.cancel(); state = state.copy(page = page.page + 1); render()
+                }
             }
         }.also(::addView)
         render()
@@ -63,7 +69,10 @@ class CatalogBrowseSection(
     private fun active() = !closed && !activity.isDestroyed && !activity.isFinishing
 
     /** Destruction is terminal even if an editor or dialog retains one of this instance's callbacks. */
-    fun close() { closed = true; selectable = false }
+    fun close() { closed = true; selectable = false; viewport.close() }
+
+    fun attachViewport(scroll: ScrollView) { if (active()) viewport.attach(scroll) }
+    fun cancelViewportRestore() { viewport.cancel() }
 
     fun show(value: PreviewCatalogBrowser) {
         if (!active()) return
@@ -79,14 +88,28 @@ class CatalogBrowseSection(
 
     fun search(query: String) {
         if (!active() || query == state.query) return
+        viewport.cancel()
         state = state.copy(query = query, page = 0)
         render()
+    }
+
+    /** An explicit planning action clears conflicting search/facets without selecting an item. */
+    fun browseKind(kindId: String): Boolean {
+        if (!active()) return false
+        val requested = PreviewCatalogKinds.all.singleOrNull { it.id == kindId } ?: return false
+        viewport.cancel()
+        state = state.copy(query = "", tier = requested.tier, kind = requested.id, page = 0)
+        render()
+        kind.requestFocus()
+        kind.requestRectangleOnScreen(android.graphics.Rect(0, 0, kind.width, kind.height), true)
+        return true
     }
 
     fun selectionEnabled(value: Boolean) {
         if (!active()) return
         selectable = value
         for (index in 0 until results.childCount) results.getChildAt(index).isEnabled = value
+        viewport.ready(value)
     }
 
     fun contains(item: PreviewCatalogItem, hash: String) = active() && browser?.contains(item, hash) == true
@@ -98,6 +121,7 @@ class CatalogBrowseSection(
         ?.items?.singleOrNull { it.id == id && it.version == version }?.name
 
     fun saveState(out: Bundle) {
+        viewport.save(out)
         out.putString("catalogQuery", state.query)
         out.putString("catalogTier", state.tier)
         out.putString("catalogKind", state.kind)
@@ -109,36 +133,38 @@ class CatalogBrowseSection(
     private fun chooseTier() {
         if (!active()) return
         val values = listOf<String?>(null) + PreviewCatalogKinds.tiers
-        AlertDialog.Builder(activity).setTitle(R.string.catalog_tier_title)
-            .setItems(values.map { it ?: activity.getString(R.string.catalog_all_tiers) }.toTypedArray()) { _, index ->
-                if (!active()) return@setItems
-                state = state.copy(tier = values[index], page = 0)
-                render()
-            }.setNegativeButton(R.string.close, null).show()
+        showPreviewSingleChoiceDialog(activity, R.string.catalog_tier_title,
+            values.map { it ?: activity.getString(R.string.catalog_all_tiers) },
+            values.indexOf(state.tier), ::active) { index ->
+            viewport.cancel()
+            state = state.copy(tier = values[index], page = 0)
+            render()
+        }
     }
 
     private fun chooseKind() {
         if (!active()) return
         // All frozen kinds remain reachable, including those with no row in this snapshot/tier.
         val values = listOf<PreviewCatalogKind?>(null) + PreviewCatalogKinds.all
-        AlertDialog.Builder(activity).setTitle(R.string.catalog_kind_title)
-            .setItems(values.map { it?.let { entry -> "${entry.tier} · ${entry.id}" }
-                ?: activity.getString(R.string.catalog_all_kinds) }.toTypedArray()) { _, index ->
-                if (!active()) return@setItems
-                state = state.copy(kind = values[index]?.id, page = 0)
-                render()
-            }.setNegativeButton(R.string.close, null).show()
+        showPreviewSingleChoiceDialog(activity, R.string.catalog_kind_title,
+            values.map { it?.let { entry -> "${entry.tier} · ${entry.id}" }
+                ?: activity.getString(R.string.catalog_all_kinds) },
+            values.indexOfFirst { it?.id == state.kind }, ::active) { index ->
+            viewport.cancel()
+            state = state.copy(kind = values[index]?.id, page = 0)
+            render()
+        }
     }
 
     private fun chooseSort() {
         if (!active()) return
         val values = PreviewCatalogSort.entries
-        AlertDialog.Builder(activity).setTitle(R.string.catalog_sort_title)
-            .setItems(values.map(::sortName).toTypedArray()) { _, index ->
-                if (!active()) return@setItems
-                state = state.copy(sort = values[index], page = 0)
-                render()
-            }.setNegativeButton(R.string.close, null).show()
+        showPreviewSingleChoiceDialog(activity, R.string.catalog_sort_title,
+            values.map(::sortName), values.indexOf(state.sort), ::active) { index ->
+            viewport.cancel()
+            state = state.copy(sort = values[index], page = 0)
+            render()
+        }
     }
 
     private fun sortName(value: PreviewCatalogSort) = activity.getString(when (value) {
@@ -149,6 +175,7 @@ class CatalogBrowseSection(
 
     private fun render() {
         if (!active()) return
+        val renderedRows = Any().also { rowAuthority = it }
         tier.text = activity.getString(R.string.catalog_tier, state.tier ?: activity.getString(R.string.catalog_all_tiers))
         kind.text = activity.getString(R.string.catalog_kind, state.kind ?: activity.getString(R.string.catalog_all_kinds))
         sort.text = activity.getString(R.string.catalog_sort, sortName(state.sort))
@@ -156,14 +183,20 @@ class CatalogBrowseSection(
         val page = current?.browse(state)
         if (page != null && page.page != state.page) state = state.copy(page = page.page)
         results.removeAllViews()
+        val rows = mutableListOf<Pair<PreviewCatalogItem, View>>()
         if (current != null && page != null) page.items.forEach { item ->
-            results.addView(Button(activity).apply {
+            val row = Button(activity).apply {
                 text = activity.getString(R.string.item_button, item.name, item.kind)
                 isEnabled = selectable
                 setOnClickListener {
-                    if (active() && selectable && browser === current) openDetails(item, current.hash)
+                    if (active() && selectable && browser === current && rowAuthority === renderedRows) {
+                        viewport.cancel()
+                        openDetails(item, current.hash)
+                    }
                 }
-            })
+            }
+            results.addView(row)
+            rows.add(item to row)
         }
         val message = when {
             page == null -> activity.getString(R.string.catalog_browse_waiting)
@@ -178,5 +211,6 @@ class CatalogBrowseSection(
         ).joinToString("\n")
         previous.isEnabled = page != null && page.page > 0
         next.isEnabled = page != null && page.page + 1 < page.pages
+        viewport.render(current?.hash, rows)
     }
 }

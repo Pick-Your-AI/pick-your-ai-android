@@ -1,0 +1,27 @@
+{
+  "schema_version": "1.0.0",
+  "id": "build.android.synthetic.empty.v1",
+  "revision": 1,
+  "name": "SYNTHETIC expected-invalid empty draft",
+  "owner_ref": "team.fixture",
+  "lifecycle": "draft",
+  "created_at": "2026-10-16T09:00:00Z",
+  "updated_at": "2026-10-16T09:00:00Z",
+  "objectives": {},
+  "locks": {
+    "catalog_snapshot_id": "catalog.fixture.1",
+    "ruleset_id": "rules.fixture.1",
+    "ruleset_version": "1.0.0",
+    "dependency_graph_id": "dependencies.core.1",
+    "dependency_graph_revision": 1,
+    "pricebook_id": "prices.fixture.1"
+  },
+  "selections": [],
+  "links": [],
+  "policy": {
+    "fail_on_unknown": true,
+    "require_evaluations_for_production": true,
+    "allow_unverified_catalog_items": true,
+    "min_resource_confidence": "estimated"
+  }
+}

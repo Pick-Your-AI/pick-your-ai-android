@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- User-entered data classification labels, used in the choice dialog and
+         the selected-value caption. These labels can be translated; the stored
+         enum values public, internal, confidential and restricted stay unchanged. -->
+    <string name="workload_classification_public">Public</string>
+    <string name="workload_classification_internal">Internal</string>
+    <string name="workload_classification_confidential">Confidential</string>
+    <string name="workload_classification_restricted">Restricted</string>
+</resources>

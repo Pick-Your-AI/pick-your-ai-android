@@ -7,3 +7,7 @@ rpds-py==0.30.0
 PyYAML==6.0.3
 # Complete the Python 3.12 transitive lock used by referencing.
 typing-extensions==4.16.0
+# The frozen schemas use date-time and URI. Missing format checkers silently accept invalid values.
+rfc3339-validator==0.1.4
+rfc3986-validator==0.1.1
+six==1.17.0

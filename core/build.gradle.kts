@@ -8,7 +8,11 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
-tasks.test { useJUnitPlatform() }
+tasks.test {
+    useJUnitPlatform()
+    // The fixture receipt binds each observation to the test that actually produced it.
+    reports.junitXml.isOutputPerTestCase = true
+}
 dependencyLocking { lockAllConfigurations() }
 
 tasks.processResources {
@@ -19,4 +23,5 @@ tasks.processResources {
 }
 tasks.processTestResources {
     from(rootProject.file("contracts/v1/examples")) { into("contracts/v1/examples") }
+    from(rootProject.file("contracts/v1/baseline/core-ruleset.json")) { into("contracts/v1/baseline") }
 }

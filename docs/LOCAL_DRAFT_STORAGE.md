@@ -1,10 +1,18 @@
 # Local incomplete draft persistence
 
+Current issue-level reconciliation is in the proposed
+[03.02 receiving record](delivery/android/work-packages/03.02.md), under
+[ADR 0007](decisions/0007-android-26-acceptance-record.md). The slice coverage and
+remaining-input statements below retain their original implementation scope and
+dated evidence; the receiving record separately maps the complete current model
+and its remaining delivery/review gates. This crosslink does not relabel an
+earlier run or close another work package.
+
 Partial implementation for [Android #26](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/26), extending the existing [draft editing model](DRAFT_HISTORY.md). The original adapter from PR #142 remains the canonical implementation; this extension adds local history without introducing a second storage engine. This is a local JVM persistence adapter, not a shared Draft contract, BuildSnapshot conversion, database/framework decision, or Android lifecycle qualification.
 
 ## Local format and write ordering
 
-One existing, durably provisioned dedicated app-private directory stores one draft and its retained local history. New writes use private `local_format_version: 4`, containing the head storage revision number, optional legacy source hash and an ordered history of revision number, change code, restore target, content, metadata and optional typed-selection change disclosure. Content serializes the model's nullable objective/context/primary model, workload inputs, the typed selection/link aggregate and all opaque optional-tier activation, selection and setting values. Null remains unanswered; empty text in existing free-text fields and opaque incomplete references remain entered text. No catalog ID, price, lock, fact or canonical verdict is manufactured. Optional-tier defaults are those of the existing model, not a persistence migration.
+One existing, durably provisioned dedicated app-private directory stores one draft and its retained local history. New drafts use private `local_format_version: 4`, containing the head storage revision number, optional legacy source hash and an ordered history of revision number, change code, restore target, content, metadata and optional typed-selection change disclosure. A real explicit selection role change upgrades its envelope to format 5 as described below. Content serializes the model's nullable objective/context/primary model, workload inputs, the typed selection/link aggregate and all opaque optional-tier activation, selection and setting values. Null remains unanswered; empty text in existing free-text fields and opaque incomplete references remain entered text. No catalog ID, price, lock, fact or canonical verdict is manufactured. Optional-tier defaults are those of the existing model, not a persistence migration.
 
 A save requires the exact previously loaded storage token, or null for a genuinely missing draft. Storage tokens bind the directory, revision and content hash. A non-reentrant process guard and OS file lock cover the read/check/write transaction across cooperating store instances. Stale, foreign or missing tokens cannot replace an existing head. Omitting metadata preserves the current map; supplying an explicit empty map clears it. BUSY is retryable; it is not a successful save. Concurrent callers must retain their own pending edits after a conflict.
 
@@ -20,21 +28,34 @@ The store and cache directories are private implementation details: direct cache
 
 History is capped at 128 retained entries and envelope input is capped at 1 MiB and uses `BoundedJsonReader`'s depth, token, string, key and numeric limits. Writes pass the same reader and local format decoder before activation, so oversized or unsupported editing values cannot become an acknowledged unreadable record. Errors carry only typed codes, never user input or provider exception text.
 
-Local formats 1, 2, 3 and 4 are supported. Unknown format versions, unknown fields, malformed/truncated input and invalid field types remain intact and block ordinary saves. The store never silently converts, overwrites, drops unsupported fields or resets a failed read to an empty draft. File/hash corruption is similarly explicit. Recovery requires a separate, deliberate export/migration or repair workflow; there is no destructive reset API. Unactivated staging left after interruption is ignored by reads and cleaned by the existing cache on a later valid save. Tests include real separate-JVM abrupt exit before/after pointer activation and subsequent reopen, in addition to fault injection. They do not prove Android process-death behavior or physical power-loss safety.
+Local formats 1, 2, 3, 4 and 5 are supported. Unknown format versions, unknown fields, malformed/truncated input and invalid field types remain intact and block ordinary saves. The store never silently converts, overwrites, drops unsupported fields or resets a failed read to an empty draft. File/hash corruption is similarly explicit. Recovery requires a separate, deliberate export/migration or repair workflow; there is no destructive reset API. Unactivated staging left after interruption is ignored by reads and cleaned by the existing cache on a later valid save. Tests include real separate-JVM abrupt exit before/after pointer activation and subsequent reopen, in addition to fault injection. They do not prove Android process-death behavior or physical power-loss safety.
 
 Reading any supported older format never rewrites it. The first successful format-1 save or restore migrates it atomically to format 4. Its exact current content and metadata become a `LEGACY_ANCHOR` at the original storage revision number N, with the original artifact hash in `legacy_source_hash`; the new edit/restore is N+1. The original artifact remains readable through `revision(hash)`. No entries 0 through N-1 are fabricated. `earlierHistoryUnavailable` is true when N is positive; clients must show that limitation rather than infer a complete legacy timeline. Even N=0 remains explicitly a legacy anchor, not a reconstructed initial action. Failed migration preserves the old active envelope or returns `Uncertain` if activation may have happened. Counter overflow rejects migration without wrapping or resetting.
 
-Formats 2, 3 and 4 validate contiguous retained numbering, head identity, change kinds,
+Formats 2, 3, 4 and 5 validate contiguous retained numbering, head identity, change kinds,
 optional legacy anchor, and restore content/metadata consistency. Format 3 adds a
 required `workload` object to every retained content entry, with exactly nine nullable
 fields. Reading formats 1/2 supplies an all-unanswered workload in memory only;
 unknown fields in those older formats still fail closed. Missing fields, a null
-workload aggregate, unknown fields or invalid values in formats 3/4 are corrupt rather
+workload aggregate, unknown fields or invalid values in formats 3/4/5 are corrupt rather
 than silently defaulted. Format 4 adds explicit `components` and per-revision
 `selection_change` fields; see [typed local selections](TYPED_LOCAL_SELECTIONS.md).
 Formats 1/2/3 receive empty typed components in memory without inferring them from
 legacy fields. Future versions remain unchanged and block writes.
 The storage envelope does not enter `contracts/v1` or change canonical schema versions.
+
+Format 5 adds the private `CONFIGURE_ROLE` selection action while keeping format-4
+`CONFIGURE` settings-only. The decoder requires an actual role change and permits
+only that role and explicitly supplied settings to differ; identity, catalog,
+activation, notes, extensions, metadata and links must match the action's existing
+guards. A role-only native edit supplies the complete original settings unchanged.
+Reading, rejecting or no-oping a format-4 draft does not upgrade it. The first real
+role edit appends one revision through the same CAS transaction and retains every
+old history entry and original artifact. Later saves and restores retain format 5,
+even when restoring a pre-role revision. Size/history limits never prune entries
+to make migration fit; unsupported format 6 still blocks writes and preserves bytes.
+See [explicit selection roles](LOCAL_SELECTION_ROLES.md) for the input and recovery
+scope. No frozen contract is changed by this private version boundary.
 
 An unchanged format-2 or format-3 save remains a byte-preserving no-op. Its first changed save
 or explicit restore atomically writes format 4, preserving every prior entry's
@@ -85,7 +106,7 @@ is added by this storage slice. Those and receiving review remain open for #83.
 
 A new format-4 draft starts with `INITIAL` at zero. A changed save appends `EDIT`.
 An unchanged save with the exact current token returns the existing durable revision
-without writing another artifact or consuming bounded history. This applies to formats 2/3/4, including at the history limit. Metadata is part of the equality
+without writing another artifact or consuming bounded history. This applies to formats 2/3/4/5, including at the history limit. Metadata is part of the equality
 check: omitted metadata preserves the current map, while an explicit empty map is
 a change when metadata exists. Stale, foreign and missing tokens still conflict
 before equality is considered; matching content cannot acknowledge another writer's
@@ -107,7 +128,7 @@ At the history or envelope limit, writes fail without pruning acknowledged revis
 
 | Exact #26 criterion or check | This slice | Remaining gap |
 | --- | --- | --- |
-| “Allow empty and partially selected editing without fabricated fields; explicit transition to valid BuildSnapshot with versioned migration rules.” | Existing editing model, bounded v1/v2/v3/v4 reads and explicit local migrations | BuildSnapshot conversion and reviewed migration rules remain incomplete |
+| “Allow empty and partially selected editing without fabricated fields; explicit transition to valid BuildSnapshot with versioned migration rules.” | Existing editing model, bounded v1/v2/v3/v4/v5 reads and explicit local migrations | BuildSnapshot conversion and reviewed migration rules remain incomplete |
 | “Empty/partial drafts persist without fabricated catalog IDs, facts or zero substitutes.” | Empty, partial and populated inputs reopen unchanged; raw null/empty/settings values retained | Android storage/lifecycle/device and central receiving acceptance |
 | “Snapshot creation checks semantic requirements beyond minimum array counts; later edits preserve the original snapshot.” | No canonical snapshot is created; saved local content is immutable and old hashes remain readable | Semantic cardinality, reference integrity, canonical pins and revision identity in the accepted conversion contract |
 | “Round-trip empty, partial and complete drafts through persistence/conversion.” | Local empty/partial/populated editing-content persistence tested | Populated local input is not declared a complete canonical build; conversion unimplemented |

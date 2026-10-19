@@ -28,7 +28,10 @@ class LocalSelection private constructor(private val payload: ObjectNode) {
     /** Defensive snapshots preserve JSON types, absent fields, notes and namespaced extensions. */
     val settings: ObjectNode get() = payload["settings"].deepCopy()
     fun toJson(): ObjectNode = payload.deepCopy()
-    internal fun configured(settings: ObjectNode): LocalSelection = fromJson(toJson().also { it.set<JsonNode>("settings", settings) })
+    internal fun configured(settings: ObjectNode, role: String? = null): LocalSelection = fromJson(toJson().also {
+        it.set<JsonNode>("settings", settings)
+        if (role != null) it.put("role", role)
+    })
     internal fun enabled(value: Boolean): LocalSelection = fromJson(toJson().put("enabled", value))
     internal fun replaced(choice: CatalogSelectionChoice, settings: ObjectNode): LocalSelection = fromJson(toJson()
         .put("catalog_item_id", choice.itemId).put("catalog_item_version", choice.itemVersion)
@@ -121,7 +124,8 @@ sealed interface SelectionCommand {
         private val payload = settings?.let(SelectionJson::copy)
         val settings: ObjectNode? get() = payload?.deepCopy()
     }
-    class Configure(val selectionId: String, settings: ObjectNode) : SelectionCommand {
+    /** A null role preserves the existing role; an explicit value is never trimmed or defaulted. */
+    class Configure(val selectionId: String, settings: ObjectNode, val role: String? = null) : SelectionCommand {
         private val payload = SelectionJson.copy(settings)
         val settings: ObjectNode get() = payload.deepCopy()
     }
@@ -129,7 +133,7 @@ sealed interface SelectionCommand {
     class Remove(val selectionId: String) : SelectionCommand
 }
 
-enum class SelectionAction { ADD, REPLACE, CONFIGURE, ENABLE, DISABLE, REMOVE }
+enum class SelectionAction { ADD, REPLACE, CONFIGURE, CONFIGURE_ROLE, ENABLE, DISABLE, REMOVE }
 /** Deterministic descriptions contain IDs only, never setting values or claims of compatible bindings. */
 class SelectionChange internal constructor(val action: SelectionAction, val selectionId: String,
     removedLinkIds: List<String> = emptyList(), affectedLinkIds: List<String> = emptyList()) {
@@ -150,7 +154,7 @@ sealed interface SelectionEdit {
     data class Rejected(val reason: SelectionRejection) : SelectionEdit
 }
 
-/** Pure registry T1/T2 edits only. No primary promotion, deployment adaptation, evaluation or IO. */
+/** Pure T0–T5 and guardrail/evaluation edits. No tier activation, promotion, evaluation or IO. */
 object DraftSelectionCommands {
     fun apply(content: DraftContent, command: SelectionCommand, catalog: SelectionCatalogSnapshot? = null): SelectionEdit {
         val state = content.components
@@ -180,7 +184,7 @@ object DraftSelectionCommands {
         val changed = try { when (command) {
             is SelectionCommand.Add -> command.selection
             is SelectionCommand.Replace -> requireNotNull(existing).replaced(command.choice, command.settings ?: existing.settings)
-            is SelectionCommand.Configure -> requireNotNull(existing).configured(command.settings)
+            is SelectionCommand.Configure -> requireNotNull(existing).configured(command.settings, command.role)
             is SelectionCommand.SetEnabled -> requireNotNull(existing).enabled(command.enabled)
             is SelectionCommand.Remove -> null
         } } catch (_: IllegalArgumentException) { return SelectionEdit.Rejected(SelectionRejection.INVALID_SETTINGS) }
@@ -194,7 +198,8 @@ object DraftSelectionCommands {
         val action = when (command) {
             is SelectionCommand.Add -> SelectionAction.ADD
             is SelectionCommand.Replace -> SelectionAction.REPLACE
-            is SelectionCommand.Configure -> SelectionAction.CONFIGURE
+            is SelectionCommand.Configure -> if (command.role != null && command.role != requireNotNull(existing).role)
+                SelectionAction.CONFIGURE_ROLE else SelectionAction.CONFIGURE
             is SelectionCommand.SetEnabled -> if (command.enabled) SelectionAction.ENABLE else SelectionAction.DISABLE
             is SelectionCommand.Remove -> SelectionAction.REMOVE
         }
@@ -277,5 +282,6 @@ private object SelectionRegistry {
     }
     fun exceedsCardinality(selections: List<LocalSelection>): Boolean = selections.filter { it.enabled }.groupBy { it.kind }
         .any { (kind, values) -> kinds[kind]["cardinality"].textValue() == "one" && values.size > 1 }
-    fun supportsCommands(kind: String): Boolean = kinds[kind]["tier"].textValue() in setOf("T1", "T2")
+    fun supportsCommands(kind: String): Boolean = kinds[kind]["tier"].textValue() in setOf("T0", "T1", "T2", "T3", "T4", "T5") ||
+        kind in setOf("guardrail", "evaluation_suite")
 }

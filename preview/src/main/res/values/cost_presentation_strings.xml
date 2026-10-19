@@ -3,6 +3,7 @@
     <string name="cost_display_decimal">%1$s (canonical %2$s)</string>
     <string name="cost_display_money">%1$s; currency %2$s</string>
     <string name="cost_display_canonical_decimal">Canonical value: %1$s; localized display unavailable</string>
+    <string name="cost_display_literal_quantity">Recorded literal: %1$s; decimal display unavailable</string>
     <string name="cost_display_large_decimal">Canonical value: %1$s; too long for localized display</string>
     <string name="cost_display_truncated">%1$s … [display truncated; full original retained]</string>
     <string name="cost_display_policy">Numbers use this screen’s locale without rounding or currency conversion. Quoted canonical values retain the recorded spelling. Quoted text is literal; escaped controls cannot change the surrounding labels. Display limits do not remove data or establish complete coverage.</string>
