@@ -7,6 +7,25 @@ and checks the report's internal consistency against the Python reference profil
 It retains outcomes, severity, messages and evidence as an immutable JSON string.
 No revision is narrowed to a machine integer during comparison.
 
+Admission proceeds in Build, Ruleset, then EvaluationReport order. Each stream
+must first complete the strict bounded UTF-8/object parse through EOF. A present
+textual `schema_version` other than exactly `1.0.0` then returns
+`UNSUPPORTED_BUILD_SCHEMA_VERSION`, `UNSUPPORTED_RULESET_SCHEMA_VERSION`, or
+`UNSUPPORTED_REPORT_SCHEMA_VERSION` for the supplied input. Missing, null or
+non-text versions, malformed/duplicate/trailing input, read failures and exceeded
+budgets retain that input's `INVALID_*` result. Supported versions still require
+the complete fixed schema before later input or semantic binding checks. Rejection
+leaves later streams unread, all streams remain caller-owned, and diagnostics
+disclose no supplied version or content. Ruleset `version` remains its separate
+semantic binding; these diagnostics do not admit or migrate another wire schema.
+
+The local retained-evaluation descriptor records the current receiver source hash.
+This diagnostic change refreshes only `REPORT_RECEIVER_SHA256`; the reference,
+schemas, evaluator, profile ID and reference time remain unchanged. Its inclusion
+in the request digest intentionally distinguishes requests using this receiver
+from the prior receiver. Historical source and execution receipts retain their
+original descriptor identities.
+
 The adapter requires one finding per rule in reference order, the rule's severity,
 and the sorted active selection IDs for its affected kinds. Summary counts,
 result and readiness must agree with findings, `on_unknown` and build policy.
