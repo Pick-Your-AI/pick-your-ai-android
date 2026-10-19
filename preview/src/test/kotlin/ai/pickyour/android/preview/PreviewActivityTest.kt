@@ -2606,7 +2606,7 @@ class PreviewActivityTest {
         await { hasText(R.string.draft_saved) && !button(R.string.save_draft).isEnabled &&
             (PreviewActiveDraftStore(activity.noBackupFilesDir.toPath()).read() as? PreviewActiveRead.Selected)?.id?.let { it != PreviewDraftId("guest-draft") } == true }
         val selected = PreviewActiveDraftStore(activity.noBackupFilesDir.toPath()).read() as PreviewActiveRead.Selected
-        val recovered = (library.open(selected.id).load() as PreviewDraftLoad.Available).record
+        val recovered = (readDraftAfterOwnedWork(activity) { library.open(selected.id) } as PreviewDraftLoad.Available).record
         assertEquals("pending recovery", recovered.fields.title)
         assertEquals("12.3400", recovered.workloadInput.monthlyBudgetAmount!!.encoded)
         assertEquals(java.math.BigInteger.ZERO, recovered.workloadInput.requestsPerDay)

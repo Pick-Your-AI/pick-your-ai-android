@@ -137,7 +137,9 @@ class PreviewWindowInsetsActivityTest {
         return activity.findViewById(caption.labelFor)
     }
 
-    private fun loaded() = PreviewDraftLibrary(activity.noBackupFilesDir.toPath()).openLegacy().load()
+    private fun loaded() = readDraftAfterOwnedWork(activity) {
+        PreviewDraftLibrary(activity.noBackupFilesDir.toPath()).openLegacy()
+    }
 
     private fun await(condition: () -> Boolean) {
         val deadline = System.nanoTime() + 15_000_000_000L

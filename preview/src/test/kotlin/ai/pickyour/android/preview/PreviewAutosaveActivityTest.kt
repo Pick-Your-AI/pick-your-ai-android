@@ -403,11 +403,11 @@ class PreviewAutosaveActivityTest {
         advance(60_000)
         drain()
         assertEquals(first.baselineIdentity, loaded().baselineIdentity)
-        assertEquals("", (library.open(created).load() as PreviewDraftLoad.Available).record.fields.title)
+        assertEquals("", (readDraftAfterOwnedWork(activity) { library.open(created) } as PreviewDraftLoad.Available).record.fields.title)
         field(R.string.draft_title).setText("only the new draft")
         advance(750)
         await { hasText(R.string.draft_saved) }
-        assertEquals("only the new draft", (library.open(created).load() as PreviewDraftLoad.Available).record.fields.title)
+        assertEquals("only the new draft", (readDraftAfterOwnedWork(activity) { library.open(created) } as PreviewDraftLoad.Available).record.fields.title)
         assertEquals(first.baselineIdentity, loaded().baselineIdentity)
     }
 
