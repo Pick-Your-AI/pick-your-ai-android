@@ -5,6 +5,7 @@ import android.text.BidiFormatter
 import android.text.TextDirectionHeuristics
 import ai.pickyour.core.contracts.ContractDecimal
 import ai.pickyour.core.contracts.ContractMoney
+import ai.pickyour.core.contracts.ContractRejected
 import ai.pickyour.core.preview.PreviewComparedValue
 import ai.pickyour.core.preview.PreviewComparedValueKind
 import ai.pickyour.core.pricing.InspectedCostEstimate
@@ -44,12 +45,22 @@ internal object CostInspectionText {
         val shownLines = value.lines.take(MAX_LINES)
         val lines = shownLines.map { line ->
             context.getString(R.string.cost_line, literal(line.id), literal(line.selectionId), line.meter,
-                decimal(context, ContractDecimal.parse(line.quantity)), literal(line.rateId),
+                quantity(context, line.quantity), literal(line.rateId),
                 money(line.unitPrice), money(line.amount), line.method, line.confidence, entries(line.assumptions))
         }
         return (summary + context.resources.getQuantityString(R.plurals.cost_display_lines, value.lines.size,
             shownLines.size, value.lines.size) + lines +
             context.getString(R.string.cost_warnings, entries(value.warnings))).joinToString("\n\n")
+    }
+
+    /** Frozen quantity strings can be retained even when they are not whole-string decimal values. */
+    private fun quantity(context: Context, recorded: String): String {
+        val value = try {
+            ContractDecimal.parse(recorded)
+        } catch (_: ContractRejected) {
+            return context.getString(R.string.cost_display_literal_quantity, literal(context, recorded))
+        }
+        return decimal(context, value)
     }
 
     /** The bounded canonical lexeme is always visible, even when localization cannot be offered. */
