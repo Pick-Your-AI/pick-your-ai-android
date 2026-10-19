@@ -1,5 +1,124 @@
 # Criterion evidence ledger
 
+## Version 12: the delivered constraint-aware picker for #96
+
+This amendment completes exactly **96.1–96.4** in the separately received
+`local-stored-draft-slot-empty-diagnostics/1` profile. The current totals are
+**25 design, 11 implementation, one import-integrity and three support criteria
+complete; 401 criteria remain incomplete**. Every original criterion text and
+hash is preserved. No other issue, prerequisite edge, assignee, Project field or
+earlier evidence object changes.
+
+### Actual implementation, receiving decisions and signed main
+
+The real Add and exact-selection replacement picker is delivered by
+[#553](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/553) at signed
+`8bedd80dcc0b3cdd9756785c57cef0e54211c63b`, tree
+`8d4dec5720c64560e7b08032dc6efb4db9575dad`, sole accepted parent
+`517025db301785f8e3689abdeeb47fc8d09b9afc`, at **2026-10-19 15:11:30 UTC**.
+The reviewed public source was `fd1a62ce1db00bf0690a481314caa93b2ad3f59b`;
+its unsigned Git Data transport and ordered parents remain distinct from the
+valid-signed receiving preparation and the later signed squash delivery.
+
+The actual [data-consumer decision5570634226](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/553#pullrequestreview-5570634226)
+and [catalog/UX decision5570653952](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/553#pullrequestreview-5570653952)
+accept all four literal criteria and four implementation tasks with the named
+constraints. They are disclosed delegated in-session technical decisions through
+CompleteDotTech, recorded as COMMENTED, not responses from absent assignees or
+distinct-account APPROVED votes. The complete
+[current source/record continuation5573484375](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/553#pullrequestreview-5573484375)
+binds the delivered feature and accepted-main inputs. All 23 historical delivered
+source pins, including the actual b0 interpreter and d39 report receiver, are
+fixed independently from older observations.
+
+The same signed delivery contains [07.02](android/work-packages/07.02.md) and
+[ADR0013](../decisions/0013-android-96-acceptance-record.md). Their complete bytes,
+blobs and hashes remain the dated preparation record. The effective narrow
+placement is Android #96 only; its original intended website coordinate is kept
+in history and restored by the inverse. Implementation and record revisions are
+legitimately equal because one reviewed PR delivered both. No old record is
+rewritten to claim a later execution or moved by an inferred approval.
+
+### Separate original receiving and post-main observations
+
+The [complete original1056 receiving receipt](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/553#issuecomment-6270529913)
+and [complete original8bed main receipt](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/553#issuecomment-6270969615)
+are two distinct actual runs on the same8d4 tree. Each has **5,853 passing Core
+cases/109 suites and512 passing simulated Android cases/49 suites**, zero
+failures/errors/skips, all95 configured job steps and41 native attendance
+programs. Every case identity is retained between the two runs. Their exact
+source/parents/events/run/job/attempt, archive and log hashes, compiled outputs,
+source inventories, SPDX, contract/reference observations and original controls
+are fixed separately. Both have333 Core host executions and148 native host
+executions; a nonverbose120-case ledger footer is not individually named evidence.
+The actual native lint result is ten warnings and zero errors.
+
+The scanner histories differ correctly: original1056 covers248 reachable commits
+with raw exit10 andtwo reviewed public-checksum findings; signed-main8bed covers
+241 commits with raw exit10 andone reviewed literal388 finding. The other PR
+source commit is not reachable from the squash result. Both original raw reports,
+four-blob checksum proofs and zero-unresolved dispositions remain intact. Neither
+result claims raw zero or proof of secret absence.
+
+The nullable-lock counterexample, unchanged three-case correction, normal-source
+portable replay and eleven-case native autosave join retain their actual local
+sources. The earlier missing-preview-property stop, viewport failures and other
+development observations remain in the unchanged dated07.02 record and original
+receipts. No historical stop, canceled/partial job or synthetic simulation becomes
+a new passing installed-device result.
+
+### What the four criteria accept
+
+The exact same draft with only the requested slot empty supplies the baseline.
+Only worsened affected-rule findings determine COMPATIBLE/INCOMPATIBLE/UNKNOWN;
+per-rule pass/fail/unknown/skipped outcomes remain independent and inspectable.
+An inherited empty-foundation failure does not reject every workload, while a new
+restriction still excludes its responsible candidate. Conservative defaults,
+separate page counts and explicit reasons expose unknown/incompatible alternatives.
+An exact secondary replacement preserves the primary and the selected identity,
+settings and links. The fifteen source-mapped criterion controls are joined to
+both actual original XML cohorts.
+
+Captured store identity/revision/hash, catalog/rules bytes, kind/role/replacement,
+form epoch and opaque request/ticket prevent stale or ABA results becoming current.
+Recalculation is unresolved, and every write still requires explicit one-use
+confirmation followed by the existing canonical compare-and-swap. Unknown optional
+intent and disabled-tier contradictions withhold comparison; enabled empty slots
+remain fillable. No comparison activates a tier.
+
+This is relative local diagnostic behavior, not whole-draft validity, deployment
+readiness, a shared Build/report, graph execution, calibrated resource/cost
+evidence, remote data, source-rights grant, installed-device or release acceptance.
+Only the named #82 browser and #84 interpreter outputs are received for this
+consumer. Their other criteria and transitive #37 remain independently governed.
+
+### Exact historical admission and regression controls
+
+The new fixed acceptance/evidence objects and four literal criterion fences are
+validated before reversing only this amendment. The complete prior-v11 canonical
+digest is `1698ebb2a1c802a80e3562659afeee3ee828e81ee83e443b1bb9eafe9d9b3a23`.
+The entire prior #96 object,128 other issue objects,28 older evidence objects and
+all441 literal triples remain exact; the earlier validator and each historical
+inverse keep their original bodies and diagnostics.
+
+Version12 **deliberately tightens ledger admission**: extra unreviewed ledger
+metadata now fails the complete prior-history identity. The finite/Unicode JSON
+decoder and optional source capture retain their prior behavior. All120 earlier
+test identities remain; the reviewed17 body adaptations explicitly enter the
+appropriate historical version or check the actual current version/summary.
+New controls reject altered literal criteria, missing/transplanted role or profile
+authority, wrong record placement, forged delivery/source/parents/signature,
+removed original artifacts or case attendance, numeric aliases, erased failures,
+raw-scanner relabeling and normal/optimized CLI forgeries. The validator reads
+fixed local evidence; it does not execute external CI or grant live GitHub state.
+
+This four-file ledger source still requires its own review, configured affected
+checks and ordinary signed delivery. The original four native tasks and criteria
+and issue #96 state are reconciled only after that actual outcome. The entire
+version11 and older narrative below remains byte-for-byte historical text.
+
+---
+
 ## Version 11: the reviewed retained-snapshot evaluator outcome for #84
 
 This amendment records **25 reviewed design criteria, seven reviewed
