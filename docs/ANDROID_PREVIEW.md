@@ -1,5 +1,9 @@
 # Opt-in synthetic Android diagnostic
 
+The [versioned synthetic scenario data](SYNTHETIC_PREVIEW_SCENARIOS.md) supplies
+#77's separate fixture foundation; its scenario screen and #58 adapter integration
+remain pending.
+
 The `preview` module is the bounded guest-local engineering diagnostic. The
 accepted [native decision](proposals/02-native-architecture.md) selects its
 Kotlin/platform Views approach and existing local revision store. Product UI
