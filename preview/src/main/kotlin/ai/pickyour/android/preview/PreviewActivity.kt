@@ -120,6 +120,7 @@ class PreviewActivity : Activity() {
     private lateinit var snapshots: SnapshotEvaluationSection
     private lateinit var diagnostics: LocalDiagnostics
     private lateinit var help: LocalHelp
+    private lateinit var privacy: LocalPrivacy
     private var diagnosticsResumed = false
     private var environmentAdmitted = false
     private var entryBlocked = false
@@ -438,6 +439,8 @@ class PreviewActivity : Activity() {
                 else catalogFixture?.helpIdentity ?: HelpCatalogIdentity.UNAVAILABLE_OR_LOADING
             })
         help.attach(content)
+        privacy = LocalPrivacy(this) { !destroyed && diagnosticsResumed }
+        privacy.attach(content)
         val padding = (24 * resources.displayMetrics.density).toInt()
         content.setPadding(padding, padding, padding, padding)
         val viewport = CatalogViewportScrollView(this).apply {
@@ -1635,6 +1638,7 @@ class PreviewActivity : Activity() {
         if (::draftSummary.isInitialized) draftSummary.retireActions()
         if (::diagnostics.isInitialized) diagnostics.dismiss()
         if (::help.isInitialized) help.dismiss()
+        if (::privacy.isInitialized) privacy.dismiss()
         if (::snapshots.isInitialized) snapshots.dismiss()
         if (::resourceInspection.isInitialized) resourceInspection.dismiss()
         super.onPause()
@@ -1651,6 +1655,7 @@ class PreviewActivity : Activity() {
         if (::resourceInspection.isInitialized) resourceInspection.close()
         if (::diagnostics.isInitialized) diagnostics.close()
         if (::help.isInitialized) help.close()
+        if (::privacy.isInitialized) privacy.close()
         if (::catalogPinRecovery.isInitialized) catalogPinRecovery.close()
         catalogDetailDialog?.dismiss()
         catalogDetailDialog = null

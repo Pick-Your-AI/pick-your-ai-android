@@ -1617,6 +1617,35 @@ jobs:
               raise SystemExit("Local help result count does not match executed cases")
           print(f"Verified {len(cases)} simulated help tests; no browser, submission or triage claim")
           PYTEST
+      - name: Require local privacy disclosure regressions to execute
+        run: |
+          python - <<'PYTEST'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          qualified = "ai.pickyour.android.preview.LocalPrivacyActivityTest"
+          report = pathlib.Path(f"preview/build/test-results/testDebugUnitTest/TEST-{qualified}.xml")
+          suite = ET.parse(report).getroot()
+          expected = {
+              "disclosureCoversEnabledStorageAndExternalHandoffsWithoutPrivateContent",
+              "openingClosingAndReplacingDisclosurePreservesPendingInputsAndStoredBytes",
+              "pausedActivityDismissesDisclosureAndReopensOnlyAfterResume",
+              "recreationRetiresOldEntryAndPreservesPendingDraft",
+              "closedDisclosureOwnerCannotReopenFromItsRetainedEntry",
+              "declaredPreviewCapabilitiesMatchTheOfflineDisclosure",
+              "narrowRtlLargeTextKeepsEveryDisclosureLineAndCloseReachable",
+          }
+          cases = suite.findall("testcase")
+          names = [case.attrib.get("name") for case in cases]
+          if suite.attrib.get("name") != qualified or any(case.attrib.get("classname") != qualified for case in cases):
+              raise SystemExit("Foreign local privacy disclosure results")
+          if set(names) != expected or len(names) != len(set(names)):
+              raise SystemExit("Missing, unexpected or repeated local privacy disclosure regression")
+          if any(case.findall("failure") or case.findall("error") or case.findall("skipped") for case in cases):
+              raise SystemExit("Local privacy disclosure regression did not pass")
+          if int(suite.attrib["tests"]) != len(cases) or any(int(suite.attrib[key]) != 0 for key in ("failures", "errors", "skipped")):
+              raise SystemExit("Local privacy disclosure totals contradict executed cases")
+          print(f"Verified {len(cases)} simulated local privacy disclosure tests; no installed-device or store-declaration claim")
+          PYTEST
       - name: Require explicit retained-revision pair regressions to execute
         run: |
           python - <<'PYTEST'
