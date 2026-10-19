@@ -1,0 +1,150 @@
+# Captured form autosave — Android #122 continuation
+
+This bounded source preparation adds automatic saves to the guest form for
+[Android #122](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/122).
+Its starting point is accepted signed main
+`2f1abddcc49d24ac4df9bceca59d65a59ae6ccb0`, including the Help and versioned
+synthetic fixture contribution. It preserves that source, the frozen contracts,
+the existing persistence engine and all prior test declarations. It is not a
+complete #122 acceptance record or an installed Android result.
+
+## Input, authority and visible state
+
+The SDK-independent
+[PreviewDraftAutosave](../core/src/main/kotlin/ai/pickyour/core/preview/PreviewDraftAutosave.kt)
+holds at most one delayed request. Each request includes the local draft identity,
+the exact `PreviewStoredDraft` receipt (or an established missing draft), the
+editor's current storage-operation token, and complete immutable title/sample,
+objective/context and parsed workload inputs. An identical refresh preserves the
+deadline. Changed inputs replace the request; canceled, replaced and closed
+callbacks remain inert even if a scheduler retains and invokes them.
+Each scheduling attempt has its own opaque token, so reusing the same request
+after cancel or pause/resume cannot revive an earlier callback or deadline.
+
+The actual
+[PreviewActivity](../preview/src/main/kotlin/ai/pickyour/android/preview/PreviewActivity.kt)
+uses the main-thread Handler for the 750-millisecond delay and the existing serial
+worker for `PreviewDraftPersistence.save`. It rechecks all captured authority and
+inputs immediately before dispatch. Initial load of an unedited missing draft
+creates no revision. Invalid workload text cancels the pending request and stays
+visible. Correction schedules the complete valid form; no valid prefix or guessed
+default is written.
+
+During a form write, the text and workload editors remain available. The captured
+input stays immutable; later typing changes only the current pending form. The UI
+shows that newer edits are unconfirmed. After durable success, only the matching
+draft/baseline/operation callback can adopt the returned receipt. If the complete
+visible form matches it, the UI displays **Saved locally**. Otherwise it schedules
+the newest complete form using that acknowledged receipt. Navigation, restore and
+typed component commands retain their existing in-flight restrictions.
+
+The coordinator changes no canonical storage rules. Changed successful saves
+append history; exact-current unchanged saves retain the store's byte-preserving
+no-op behavior. Restore remains its separate explicit new-revision command. The
+managed library still verifies liveness under its transaction lock.
+
+## Failure and lifecycle boundaries
+
+| Boundary | Behavior |
+| --- | --- |
+| Known pre-write failure or history/storage limit | Keep all pending text and the prior acknowledged receipt; pause automatic retries. The existing failure message retains an explicit Save/reopen recovery path. |
+| Rejected worker or scheduler | No saved acknowledgement; pause automatic attempts. A rejected worker is a known undispatched failure. |
+| Conflict or uncertain write | Keep visible inputs and revoke save readiness. No automatic or manual retry can adopt a newer baseline; explicit successful reopen is required. |
+| Newer typing during a write | Keep it visible and unconfirmed; only a successful matching receipt can authorize its next write. |
+| Explicitly choose another draft | Retire the prior timer before storage work; hydrate the selected draft and clear the prior pending-save request. Late callbacks cannot update the new session. |
+| Recreation before dispatch | Cancel the old Activity timer. Existing Bundle input/baseline reconciliation must succeed before the replacement editor can schedule the retained pending edit. |
+| Recreation while writing or before UI acknowledgement | Preserve the existing reconciliation-required checkpoint. A later disk commit cannot turn the old Bundle into write authority or a saved acknowledgement. |
+| Recreation after a known failed save | Preserve the automatic-retry pause as UI state; fresh disk load does not silently retry pending values. |
+
+The two new Bundle booleans record pending scheduling intent and failure pause,
+not write authority. Existing `PreviewDraftRestoration` still qualifies the actual
+reloaded baseline. `onSaveInstanceState` and `onPause` do not write the draft.
+Destroyed Activities retire timers and ignore results; the existing worker
+shutdown and canonical uncertain-write recovery behavior remain unchanged.
+An unacknowledged edit can still be lost when Android supplies no saved-instance
+state. No background service, WorkManager job, remote outbox or automatic retry
+loop is introduced.
+
+Android's [saved UI state guidance](https://developer.android.com/topic/libraries/architecture/saving-states),
+checked on 2026-10-18, distinguishes temporary state from persistent storage.
+The Handler delay is scheduling, not durable persistence or a deadline guaranteed
+across suspension. Those platform contracts do not establish actual process-kill,
+power-loss, device or assistive-technology evidence.
+
+## Focused validation source
+
+The new
+[core tests](../core/src/test/kotlin/ai/pickyour/core/preview/PreviewDraftAutosaveTest.kt)
+declare eight methods. They use a controlled event clock and the real canonical
+store for complete-input coalescing, unchanged bytes, retired callbacks, exact
+request identity, reused-request deadline isolation, injected pre-activation failure, actual post-activation
+uncertainty and scheduler rejection. The event clock is a test control, not an
+Android process or filesystem simulation.
+
+The separate
+[Activity tests](../preview/src/test/kotlin/ai/pickyour/android/preview/PreviewAutosaveActivityTest.kt)
+declare eleven methods without rewriting any previously accepted test body.
+They exercise the actual Activity and canonical files under Robolectric's paused
+main looper:
+
+| Method focus | Required observation |
+| --- | --- |
+| Initial load; rapid complete edits | No unsolicited empty revision; only the latest complete form commits after the pause, including exact budget spelling. |
+| Explicit Save while a timer is pending | A single durable revision; the retired timer cannot duplicate it. |
+| Typing during a held worker write | Earlier captured text commits first; newer text stays visible and unsaved until its separate matching commit. |
+| Invalid workload then correction | No automatic write of invalid text or a valid prefix; correction commits the entire form. |
+| Real library-lock failure and recreation | Original head remains intact; the pause survives recreation until explicit retry. |
+| Concurrent canonical writer and recreation | Pending local text cannot adopt the other writer's baseline; explicit reopen is required. |
+| Recreation before dispatch | The replacement Activity alone can save the retained pending input; old callbacks remain inert. |
+| Actual committed write before UI delivery | The Bundle remains reconciliation-required; a later load cannot silently acknowledge or duplicate the commit. |
+| New draft selection | The old delayed input cannot modify either the old or newly selected draft. |
+| Rejected worker | No disk write, false saved state or automatic retry. |
+
+The existing `Core verification` workflow adds one strict eleven-identity XML gate
+for this new Activity class. It rejects missing, duplicate, unexpected, failed,
+errored or skipped cases and inconsistent suite counts. All earlier workflow
+steps and test inventories remain intact.
+
+Local portable checks verified the unchanged 43 frozen files and both pinned
+manifests, the additive workflow reconstruction, all eleven Activity method names,
+one accepted and 42 rejected report fixtures, unique default string resources,
+resource references and relative documentation links. The report fixtures check
+the new XML gate only; they are not Activity executions. The full reference
+command then stopped before its tests because the local Python environment lacks
+the pinned `referencing` dependency. A separate existing validation environment
+was checked read-only: seven Android pins match, but required
+`rfc3339-validator==0.1.4`, `rfc3986-validator==0.1.1` and `six==1.17.0` are absent.
+Its packages were not changed; the full pinned reference suite remains for CI.
+
+The local authoring environment has Java 17 runtime only; JDK 21, a Kotlin compiler
+and the Android SDK are unavailable. No Kotlin compilation, JVM execution,
+Robolectric result or installed run is claimed by this source record. Required
+ordinary receiving commands on the pinned toolchain include:
+
+```sh
+./gradlew --no-daemon --dependency-verification=strict :core:check :core:assemble
+./gradlew --no-daemon --dependency-verification=strict -PandroidPreview=true \
+  :preview:assembleDebug :preview:lintDebug :preview:testDebugUnitTest
+git diff --check
+```
+
+Exact source/checkout identities, full original outcomes, independent review and
+actual main/post-main qualification belong in the receiving receipt. Source and
+declared method inventory do not substitute for those executions. The existing
+installed-preview owner must reconcile any older explicit-save timing assumptions
+when selecting this continuation; no old native result is attributed to autosave.
+
+## Remaining whole-issue acceptance
+
+The seven accepted model criteria and historical explicit-caller statement in
+the [#26 record](delivery/android/work-packages/03.02.md) are unchanged. This source
+adds the previously separate scheduler/caller behavior; it does not rewrite that
+earlier acceptance as an autosave result.
+
+All four literal #122 criteria remain open until complete interaction/duplicate/
+restore behavior, original storage-failure and installed process-termination
+evidence, the named #86/#112 outputs and Android domain/UX receiving acceptance
+are qualified together. The canonical record remains
+`Pick-Your-AI/pickyour.ai/docs/delivery/android/work-packages/08.06.md`.
+This local review document relocates no acceptance path, changes no issue checkbox
+and supplies no release authority.
