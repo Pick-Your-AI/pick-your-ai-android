@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="draft_summary_heading">Current draft summary</string>
+    <string name="draft_summary_loading">Loading saved draft. Component counts are unavailable.</string>
+    <string name="draft_summary_unavailable">This draft could not be confirmed. Reopen it or choose another saved draft.</string>
+    <string name="draft_summary_unsaved">This draft has not been saved.</string>
+    <string name="draft_summary_saved">Form changes saved at revision %1$s.</string>
+    <string name="draft_summary_pending">Unsaved changes; component counts reflect saved revision %1$s.</string>
+    <string name="draft_summary_components_unavailable">Saved component counts: unavailable.</string>
+    <string name="draft_summary_component_counts">Saved component counts — enabled: %1$d; disabled: %2$d.</string>
+    <string name="draft_summary_sample_unavailable">Current guest sample choice: unavailable.</string>
+    <string name="draft_summary_sample_present">Guest sample choice: selected separately.</string>
+    <string name="draft_summary_sample_absent">Guest sample choice: not selected.</string>
+    <string name="draft_summary_selection_limits">Save form changes before editing components. Counts update after component edits are saved.</string>
+    <string name="draft_summary_objectives_unavailable">Current objective input status: unavailable.</string>
+    <string name="draft_summary_evaluation_unavailable">No evaluation is available for the current draft.</string>
+    <string name="draft_summary_cost_unavailable">No cost estimate or price coverage is available for the current draft.</string>
+    <string name="draft_summary_review_invalid">Review workload input errors</string>
+    <string name="draft_summary_next_input">Go to the next required objective input</string>
+    <string name="draft_summary_review_components">Review saved component choices</string>
+    <string name="draft_summary_review_planning">Review planning guidance</string>
+    <item name="draft_summary" type="id" />
+    <item name="draft_summary_heading" type="id" />
+    <item name="draft_summary_source" type="id" />
+    <item name="draft_summary_components" type="id" />
+    <item name="draft_summary_sample" type="id" />
+    <item name="draft_summary_objectives" type="id" />
+    <item name="draft_summary_evaluation" type="id" />
+    <item name="draft_summary_cost" type="id" />
+    <item name="draft_summary_input_action" type="id" />
+    <item name="draft_summary_component_action" type="id" />
+    <item name="draft_summary_planning_action" type="id" />
+</resources>

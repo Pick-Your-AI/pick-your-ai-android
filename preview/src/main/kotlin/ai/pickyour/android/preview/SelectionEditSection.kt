@@ -74,6 +74,16 @@ class SelectionEditSection(private val activity: Activity,
     private fun active(expected: PreviewStoredDraft) = !closed && !activity.isDestroyed && !activity.isFinishing &&
         editable && baseline === expected && currentDraftId != null && recovery === ComponentFormRecovery.None
     private fun canOpen(expected: PreviewStoredDraft) = active(expected) && formBinding == null
+
+    internal fun canReviewCurrentChoices(expected: PreviewStoredDraft): Boolean = canOpen(expected) &&
+        (if (expected.components.selections.isEmpty()) choose.isEnabled else manage.isEnabled)
+
+    /** Navigate through the existing current-record controls; all later editor checks still apply. */
+    internal fun reviewCurrentChoices(expected: PreviewStoredDraft) {
+        if (!canReviewCurrentChoices(expected)) return
+        if (expected.components.selections.isEmpty()) choose.performClick() else manage.performClick()
+    }
+
     fun update(record: PreviewStoredDraft?, enabled: Boolean, draftId: String? = currentDraftId) {
         if (closed) return
         baseline = record; editable = enabled; currentDraftId = draftId
