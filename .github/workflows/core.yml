@@ -922,6 +922,36 @@ jobs:
               raise SystemExit("Operational selection regression did not pass")
           print(f"Verified {len(cases)} simulated operational selection cases; no installed-device claim")
           PYTEST
+      - name: Require deployment planning reference regressions
+        run: |
+          python - <<'PYTEST'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          name = "ai.pickyour.android.preview.DeploymentPlanningGuidesActivityTest"
+          path = pathlib.Path("preview/build/test-results/testDebugUnitTest") / ("TEST-" + name + ".xml")
+          suite = ET.parse(path).getroot()
+          required = {
+              "allFourReferencesOpenBeforeFirstSaveAndWithEveryOptionalTierDisabled",
+              "referencesPreserveExactSelectionsPrivateInputsCatalogContextAndStoredHistory",
+              "openingReferencesNeverReplacesAcknowledgedCountsWithPendingEditorValues",
+              "aBlockedDraftReadWithholdsCountsWhileReferenceNavigationStillWorks",
+              "parcelRecreationRestoresOnlyTheOpenReferenceAndRetiresOldButtons",
+              "aNewerDiskHeadDoesNotTurnTheRestoredGuideIntoAcknowledgedPlanning",
+              "futureReferenceKeysOrFormatsRestoreCollapsedWithoutChoosingADraftMode",
+              "detachedReferenceButtonsCannotMutateTheirRetiredViewOrTheDraft",
+              "explicitReferenceActionsCancelPendingCatalogRestorationWithoutChangingItsFilters",
+              "narrowRtlLargeTextKeepsAllGuideButtonsAndEveryExpandedTextLineReachable",
+          }
+          cases = suite.findall("testcase")
+          names = [case.attrib["name"] for case in cases]
+          if suite.attrib.get("name") != name or any(case.attrib.get("classname") != name for case in cases) or not required <= set(names) or len(names) != len(set(names)):
+              raise SystemExit("Missing, foreign or repeated deployment planning reference regression")
+          if int(suite.attrib["tests"]) != len(cases) or any(int(suite.attrib.get(key, "0")) != 0 for key in ("failures", "errors", "skipped")):
+              raise SystemExit("Deployment planning reference suite did not execute cleanly")
+          if any(case.findall("failure") or case.findall("error") or case.findall("skipped") for case in cases):
+              raise SystemExit("Deployment planning reference regression did not pass")
+          print(f"Verified {len(cases)} simulated deployment planning reference cases; no installed-device claim")
+          PYTEST
       - name: Require catalog count presentation regressions to execute
         run: |
           python - <<'PYTEST'
