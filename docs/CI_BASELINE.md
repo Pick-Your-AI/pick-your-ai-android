@@ -20,7 +20,12 @@ evidence.
 | --- | --- | --- | --- |
 | `Frozen contracts and JVM core` | [core.yml](../.github/workflows/core.yml), `core` | Frozen-byte/reference and tamper checks, delivery-ledger checks, wrapper integrity, JVM core check and assembly | Core JUnit results, test reports and library output |
 | `Unsigned synthetic Android preview` | [core.yml](../.github/workflows/core.yml), `android-preview` | Wrapper integrity, strict dependency verification, unsigned APK assembly, Android lint and all named Activity simulations without failures or skips | Original unsigned APK, lint report and simulated Activity results |
-| `Pinned secret scanning` | [secrets.yml](../.github/workflows/secrets.yml), `secrets` | Scanner guards, the actual pinned CLI's required negative fixtures and a clean scan of the exact checked-out source's reachable history | Sanitized `secret-scan.json` with source/tree, tool hashes, fixture results and finding metadata |
+| `Pinned secret scanning` | [secrets.yml](../.github/workflows/secrets.yml), `secrets` | Scanner guards, the actual pinned CLI's required negative fixtures and a scan of the exact checked-out source's reachable history with zero unresolved findings | Sanitized `secret-scan.json` with source/tree, tool hashes, fixture results and finding metadata |
+
+`passed` means zero raw findings. `passed_with_reviewed_findings` retains the raw
+findings and means every finding satisfied the exact reviewed public-checksum
+proof with zero unresolved findings. These outcomes must remain distinct in
+reviews and downstream summaries.
 
 These unique names were observed on baseline `3850018` as GitHub Actions checks
 (application slug `github-actions`, application ID `15368`). Both workflows run
