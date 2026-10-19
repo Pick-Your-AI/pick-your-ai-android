@@ -70,6 +70,24 @@ revisions and source state, plus a corrupt record and a storage-full failure amo
 valid records. Injected IO failures and separate-JVM tests support those checks
 but do not establish a device's ENOSPC, filesystem or power-loss result.
 
+### Directory enumeration failures
+
+The library translates `DirectoryIteratorException` from a root or pending-deletion
+scan into its existing `IO_FAILURE` result. A partially enumerated directory does
+not become an available list or authorize creation of a new identity. The stream
+and library locks close before the caller receives the failure; retry uses a new
+ordinary operation. The public constructor still uses `Files.newDirectoryStream`.
+
+`PreviewDraftLibraryIterationTest` injects an I/O failure after one entry from an
+actual open directory stream. Its eight cases cover both `hasNext` and `next`,
+both directories, and listing and creation. They check typed failure, stream
+closure, unchanged retained file hashes, saved identity/content, pending-deletion
+visibility, and successful retry. The unchanged cases fail with the escaping
+wrapper before the correction and pass afterward. Local direct Kotlin/JUnit
+validation also passes the existing library, deletion, upgrade, pending-recovery
+and cache suites: 61 cases total, with no failures or skips. This focused local
+result does not replace the configured Gradle/native or installed receiving gates.
+
 ## #76: Navigation and lifecycle
 
 The preview is one Activity containing catalog, editor, comparison and library
