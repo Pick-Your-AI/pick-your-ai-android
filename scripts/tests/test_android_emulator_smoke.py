@@ -551,7 +551,9 @@ class EmulatorSmokeGuardTest(unittest.TestCase):
         self.assertNotIn("pattern", inputs)
         self.assertEqual("true", inputs.get("merge-multiple"))
         artifact_name = "android-preview-" + "a" * 40
-        archive_entry = Path("outputs/apk/debug/preview-debug-unsigned.apk")
+        # Environment evidence makes the observed producer archive repository-relative.
+        # The separate artifact-handoff tests exercise that current multi-path root.
+        archive_entry = Path("preview/build/outputs/apk/debug/preview-debug-unsigned.apk")
         expected = Path("preview/build/outputs/apk/debug/preview-debug-unsigned.apk")
 
         def extracted_path(options):

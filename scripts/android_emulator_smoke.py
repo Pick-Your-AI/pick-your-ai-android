@@ -1815,11 +1815,52 @@ def taskbar_state_fields_pass(text: str) -> bool:
             elif indentation(line) <= insets[1]:
                 return False
 
+    # The current d5 originals also retain an optional Voice controller Boolean
+    # with four TABs and no wrapper spaces. Admit only this own controller's
+    # complete three-Boolean group; none supplies an authoritative state field.
+    voice_indices = set()
+    voice_names = ("isSeparateBackgroundEnabled", "isVoiceInteractionWindowVisible",
+                   "isSeparateTaskbarBackgroundAttachedToWindow")
+    voice_prefix = r"^[ \t]*(?:" + "|".join(voice_names) + r")="
+    voice_headings = [index for index in range(controllers[0] + 1, profile[0])
+                      if re.match(r"^[ \t]*VoiceInteractionWindowController:", lines[index])]
+    if voice_headings:
+        voice = heading("VoiceInteractionWindowController", controllers[0] + 1, profile[0])
+        if (voice is None or voice[0] <= navbar[0] or voice[1] != navbar[1]
+                or any(lines[index].strip() and indentation(lines[index]) <= controllers[1]
+                       for index in range(controllers[0] + 1, voice[0])
+                       if index not in inset_indices)):
+            return False
+        # A following controller may itself contain an extra space in its
+        # printed prefix. Any next heading ends this optional group.
+        end = next((index for index in range(voice[0] + 1, profile[0])
+                    if re.fullmatch(r"[ \t]*[A-Z][A-Za-z0-9]*:[ \t]*", lines[index])
+                    or (lines[index].strip() and indentation(lines[index]) <= voice[1]
+                        and re.match(voice_prefix, lines[index]) is None)), profile[0])
+        seen = Counter()
+        for index in range(voice[0] + 1, end):
+            line = lines[index]
+            if re.match(voice_prefix, line) is None:
+                continue
+            match = re.fullmatch(r"[ \t]*(" + "|".join(voice_names) + r")=(true|false)", line)
+            if match is None:
+                return False
+            seen[match[1]] += 1
+            if seen[match[1]] != 1:
+                return False
+            if line.startswith("\t\t\t\t" + match[1] + "="):
+                voice_indices.add(index)
+            elif indentation(line) != voice[1] + 1:
+                return False
+        if voice_indices and set(seen) != set(voice_names):
+            return False
+
     if (any(lines[index].strip() and indentation(lines[index]) <= manager[1]
             for index in range(manager[0] + 1, completion[0])
-            if index not in scalar_indices and index not in inset_indices)
+            if index not in scalar_indices and index not in inset_indices and index not in voice_indices)
             or any(lines[index].strip() and indentation(lines[index]) <= context[1]
-                   for index in range(context[0] + 1, profile[0]) if index not in inset_indices)
+                   for index in range(context[0] + 1, profile[0])
+                   if index not in inset_indices and index not in voice_indices)
             or any(lines[index].strip() and indentation(lines[index]) <= profile[1]
                    for index in range(profile[0] + 1, completion[0]) if index not in scalar_indices)):
         return False

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="findings_guidance_incomplete">Guidance: Incomplete (provisional)</string>
+    <string name="findings_guidance_incompatible">Guidance: Reported incompatibility (provisional)</string>
+</resources>

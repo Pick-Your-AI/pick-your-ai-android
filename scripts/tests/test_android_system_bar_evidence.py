@@ -185,6 +185,21 @@ def taskbar_inset_text(outliers=('tappableElement',)):
         lines.append(line)
     return '\n'.join(lines) + '\n'
 
+
+def taskbar_voice_text(outliers=('isSeparateTaskbarBackgroundAttachedToWindow',), *, inset_outliers=()):
+    # Synthetic surrounding state; the three Boolean spellings, four-TAB form
+    # and the following controller's extra space are actual d5 observations.
+    block = '    \t\t\tVoiceInteractionWindowController:\n'
+    for name, value in (('isSeparateBackgroundEnabled', 'true'),
+                        ('isVoiceInteractionWindowVisible', 'false'),
+                        ('isSeparateTaskbarBackgroundAttachedToWindow', 'false')):
+        prefix = '\t\t\t\t' if name in outliers else '    \t\t\t\t'
+        block += prefix + name + '=' + value + '\n'
+    block += ('    \t\t\t TaskbarRecentAppsController:\n'
+              '    \t\t\t\tisEnabled=false\n')
+    return taskbar_inset_text(inset_outliers).replace(
+        '    \t\t\tOtherController:\n', block + '    \t\t\tOtherController:\n')
+
 class WindowDevice:
     def __init__(self):
         self.calls = []
@@ -1575,6 +1590,179 @@ class SystemBarEvidenceTests(unittest.TestCase):
             originals = {path.name: path.read_bytes() for path in output.iterdir()}
             device, receipt = WindowDevice(), self.receipt()
             device.taskbar_result = subprocess.CompletedProcess([], 0, taskbar_inset_text(), '')
+            for name in SMOKE.SYSTEM_BAR_CHECKPOINTS:
+                SMOKE.retain_system_bar_window(device, output, receipt, name)
+            with self.assertRaises(SMOKE.SmokeFailure):
+                SMOKE.qualify_system_bar_evidence(output, receipt)
+            state = receipt['system_bar_evidence']
+            self.assertEqual(state['status'], 'failed')
+            self.assertFalse(SMOKE.system_bar_evidence_passes(state))
+            for pair in state['pairs'].values():
+                self.assertEqual(pair['status'], 'failed_contrast')
+                self.assertEqual([glyph['contrast'] for glyph in pair['glyphs']], [1.5828461084972716] * 3)
+            for name, data in originals.items():
+                self.assertEqual((output / name).read_bytes(), data)
+
+
+    def test_taskbar_optional_voice_prefix_preserves_raw_and_complete_gate(self):
+        original = self.passing_state()
+        fields = ('isSeparateBackgroundEnabled', 'isVoiceInteractionWindowVisible',
+                  'isSeparateTaskbarBackgroundAttachedToWindow')
+        for outliers in ((), (fields[0],), (fields[1],), (fields[2],), fields):
+            for insets in ((), ('tappableElement',)):
+                raw = taskbar_voice_text(outliers, inset_outliers=insets)
+                state = copy.deepcopy(original)
+                for name in SMOKE.SYSTEM_BAR_CHECKPOINTS:
+                    self.rebound_taskbar(state, raw, name=name)
+                saved = copy.deepcopy(state)
+                with self.subTest(outliers=outliers, insets=insets):
+                    self.assertTrue(SMOKE.taskbar_state_fields_pass(raw))
+                    self.assertTrue(SMOKE.system_bar_evidence_passes(state))
+                    self.assertEqual(state, saved)
+        self.assertTrue(SMOKE.taskbar_state_fields_pass(taskbar_text()))
+
+    def test_taskbar_optional_voice_boolean_values_do_not_replace_required_state(self):
+        original = self.passing_state()
+        raw = taskbar_voice_text()
+        for enabled in ('true', 'false'):
+            for visible in ('true', 'false'):
+                for attached in ('true', 'false'):
+                    text = raw.replace('isSeparateBackgroundEnabled=true',
+                                       'isSeparateBackgroundEnabled=' + enabled)
+                    text = text.replace('isVoiceInteractionWindowVisible=false',
+                                        'isVoiceInteractionWindowVisible=' + visible)
+                    text = text.replace('isSeparateTaskbarBackgroundAttachedToWindow=false',
+                                        'isSeparateTaskbarBackgroundAttachedToWindow=' + attached)
+                    state = copy.deepcopy(original); self.rebound_taskbar(state, text)
+                    saved = copy.deepcopy(state)
+                    with self.subTest(enabled=enabled, visible=visible, attached=attached):
+                        self.assertTrue(SMOKE.taskbar_state_fields_pass(text))
+                        self.assertTrue(SMOKE.system_bar_evidence_passes(state))
+                        self.assertEqual(state, saved)
+
+    def test_taskbar_optional_voice_malformed_values_and_prefixes_reject(self):
+        original = self.passing_state()
+        raw = taskbar_voice_text()
+        line = '\t\t\t\tisSeparateTaskbarBackgroundAttachedToWindow=false\n'
+        changes = {
+            'three_tabs': line[1:], 'five_tabs': '\t' + line,
+            'spaces_only': line.replace('\t', ' '),
+            'same_controller_depth': '    \t\t\t' + line.lstrip('\t'),
+            'missing_value': line.replace('=false', '='),
+            'uppercase': line.replace('false', 'False'), 'numeric': line.replace('false', '0'),
+            'nan': line.replace('false', 'NaN'), 'empty_name': line.replace(
+                'isSeparateTaskbarBackgroundAttachedToWindow', ''),
+            'unknown_name': line.replace('isSeparateTaskbarBackgroundAttachedToWindow', 'isOtherState'),
+            'extra_equals': line.replace('=false', '==false'),
+            'trailing_data': line.rstrip('\n') + ' extra\n',
+        }
+        for label, replacement in changes.items():
+            text = raw.replace(line, replacement)
+            state = copy.deepcopy(original); self.rebound_taskbar(state, text)
+            saved = copy.deepcopy(state)
+            with self.subTest(change=label):
+                self.assertFalse(SMOKE.taskbar_state_fields_pass(text))
+                self.assertFalse(SMOKE.system_bar_evidence_passes(state))
+                self.assertEqual(state, saved)
+
+    def test_taskbar_optional_voice_group_requires_unique_complete_boolean_records(self):
+        original = self.passing_state()
+        raw = taskbar_voice_text()
+        for field in ('isSeparateBackgroundEnabled', 'isVoiceInteractionWindowVisible',
+                      'isSeparateTaskbarBackgroundAttachedToWindow'):
+            line = next(line for line in raw.splitlines(True)
+                        if line.lstrip(' \t').startswith(field + '='))
+            for label, replacement in (('missing', ''),
+                                       ('duplicate_same_prefix', line + line),
+                                       ('duplicate_other_prefix', line + (
+                                           '    ' + line if line.startswith('\t') else line[4:]))):
+                text = raw.replace(line, replacement)
+                # Removing the sole outlier leaves an ordinary optional controller,
+                # which is outside this missing-prefix admission. Keep an outlier
+                # on a remaining field so completeness is the tested boundary.
+                if field == 'isSeparateTaskbarBackgroundAttachedToWindow' and label == 'missing':
+                    text = text.replace('    \t\t\t\tisSeparateBackgroundEnabled=',
+                                        '\t\t\t\tisSeparateBackgroundEnabled=')
+                state = copy.deepcopy(original); self.rebound_taskbar(state, text)
+                with self.subTest(field=field, change=label):
+                    self.assertFalse(SMOKE.taskbar_state_fields_pass(text))
+                    self.assertFalse(SMOKE.system_bar_evidence_passes(state))
+
+    def test_taskbar_optional_voice_cannot_escape_its_unique_own_controller(self):
+        original = self.passing_state()
+        raw = taskbar_voice_text()
+        line = '\t\t\t\tisSeparateTaskbarBackgroundAttachedToWindow=false\n'
+        owner = '    \t\t\tVoiceInteractionWindowController:\n'
+        peer = '    \t\t\t TaskbarRecentAppsController:\n'
+        candidates = {
+            'absent_owner': raw.replace(owner, ''),
+            'foreign_owner': raw.replace(owner, owner.replace('VoiceInteractionWindowController', 'ForeignController')),
+            'duplicate_owner': raw.replace(owner, owner + owner),
+            'wrong_owner_depth': raw.replace(owner, '    \t\t' + owner.lstrip(' \t')),
+            'before_owner': raw.replace(line, '').replace(owner, line + owner),
+            'after_extra_space_peer': raw.replace(line, '').replace(peer, peer + line),
+            'inside_navbar': raw.replace(line, '').replace('    \t\t\t\tmState=FLAG_SMALL_SCREEN\n',
+                                                          '    \t\t\t\tmState=FLAG_SMALL_SCREEN\n' + line),
+            'inside_insets': raw.replace(line, '').replace('    \t\t\t\twindowHeight=84\n',
+                                                         '    \t\t\t\twindowHeight=84\n' + line),
+            'inside_profile': raw.replace(line, '').replace('    \tDeviceProfile:\n',
+                                                          '    \tDeviceProfile:\n' + line),
+            'after_manager': raw.replace(line, '').replace('    AssistStateManager:\n',
+                                                          line + '    AssistStateManager:\n'),
+            'structural_escape': raw.replace(line, line + '    \tForeignContext:\n'),
+        }
+        for label, text in candidates.items():
+            state = copy.deepcopy(original); self.rebound_taskbar(state, text)
+            with self.subTest(change=label):
+                self.assertFalse(SMOKE.taskbar_state_fields_pass(text))
+                self.assertFalse(SMOKE.system_bar_evidence_passes(state))
+
+    def test_taskbar_optional_voice_keeps_all_required_field_admissions(self):
+        original = self.passing_state()
+        raw = taskbar_voice_text()
+        fields = ('mNavMode=', 'mImeDrawsImeNavBar=', 'mIsUserSetupComplete=',
+                  'mWindowLayoutParams.height=', 'mBindInProgress=', '1 dp = ',
+                  'widthPx:', 'heightPx:', 'availableWidthPx:', 'availableHeightPx:',
+                  'isTablet:', 'isPhone:', 'transposeLayoutWithOrientation:', 'isGestureMode:',
+                  'isLandscape:', 'isMultiWindowMode:', 'isTwoPanels:', 'isLeftRightSplit:',
+                  'isTaskbarPresent:', 'isTaskbarPresentInApps:', 'mState=FLAG_SMALL_SCREEN',
+                  'mTaskbarNavButtonDarkIntensity=', 'mSlideInViewVisibleNavButtonColorOverride=',
+                  'mOnTaskbarBackgroundNavButtonColorOverride=', 'mOnBackgroundNavButtonColorOverrideMultiplier=')
+        for field in fields:
+            line = next(line for line in reversed(raw.splitlines(True))
+                        if line.lstrip(' \t').startswith(field))
+            for label, replacement in (('missing', ''), ('duplicate', line + line)):
+                text = raw.replace(line, replacement)
+                state = copy.deepcopy(original); self.rebound_taskbar(state, text)
+                with self.subTest(field=field, change=label):
+                    self.assertFalse(SMOKE.taskbar_state_fields_pass(text))
+                    self.assertFalse(SMOKE.system_bar_evidence_passes(state))
+
+    def test_taskbar_optional_voice_keeps_completion_and_service_failures(self):
+        original = self.passing_state()
+        raw = taskbar_voice_text()
+        candidates = {
+            'missing_peer': raw.replace('    AssistStateManager:\n', ''),
+            'missing_profile': raw.replace('    \tDeviceProfile:\n', ''),
+            'truncated_before_profile': raw.split('    \tDeviceProfile:\n')[0],
+            'wrong_service': raw.replace('com.android.launcher3/', 'foreign.app/'),
+            'null_context': raw.replace('TaskbarActivityContext:', 'TaskbarActivityContext: null'),
+        }
+        for marker in ('DUMP TIMEOUT', 'Error dumping service info:',
+                       'Failure while dumping the service:', 'Got a RemoteException while dumping the service'):
+            candidates[marker] = raw + '    ' + marker + '\n'
+        for label, text in candidates.items():
+            state = copy.deepcopy(original); self.rebound_taskbar(state, text)
+            with self.subTest(change=label):
+                self.assertFalse(SMOKE.taskbar_state_fields_pass(text))
+                self.assertFalse(SMOKE.system_bar_evidence_passes(state))
+
+    def test_taskbar_optional_voice_does_not_relax_original_bad_modal_pixels(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory); self.write_checkpoints(output, bad=True)
+            originals = {path.name: path.read_bytes() for path in output.iterdir()}
+            device, receipt = WindowDevice(), self.receipt()
+            device.taskbar_result = subprocess.CompletedProcess([], 0, taskbar_voice_text(), '')
             for name in SMOKE.SYSTEM_BAR_CHECKPOINTS:
                 SMOKE.retain_system_bar_window(device, output, receipt, name)
             with self.assertRaises(SMOKE.SmokeFailure):

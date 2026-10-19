@@ -2816,3 +2816,53 @@ and a symlink even when its target bytes match. The existing Core
 `test_android*.py` discovery schedules these methods without a new command or
 dependency. The failed c9d268a run remains historical; the corrected source still
 requires its own configured receiving result and applicable original evidence.
+
+### Observed optional Voice controller prefix in actual d5
+
+The actual prepared `d5a15a476dd8cc112d275683ab0b11153397036b` /
+tree `6ce901972855cf1145d8c5cc51e7a693196eedcf` remains failed.
+Its original artifact 12196340707 is 1,111,521 bytes, SHA256
+`4ad57b8364dc85f5597a53ac0380eff96a25ec1535b0ccf7436c41382711a9bb`.
+All four product rows passed; the existing overall-failure JUnit row records
+the failed image/window qualification. Both recorded navigation pairs passed
+at 8.97386058887348:1. Those outcomes do not make the aggregate pass.
+
+The unchanged 754c parser rejects the original 05/06 Taskbar observations and
+accepts 07/08. In 05/06 the complete own `VoiceInteractionWindowController`
+group has three Boolean records. The last,
+`isSeparateTaskbarBackgroundAttachedToWindow=false`, has four TABs without
+the four wrapper spaces. All original bytes, hashes and command results remain
+retained. A separately labeled prefix-only counterfactual matches the passing 07
+raw stream; it is a diagnostic control, not a recapture or corrected execution.
+The original-output handoff is recorded in
+[6270641314](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/467#issuecomment-6270641314).
+The exact pinned upstream printer could not be retrieved during this review;
+the admitted shape is grounded in these original records, without identifying
+the prefix writer/transport or equating the guest with an upstream build.
+
+The bounded parser continuation admits this four-TAB form only for
+`isSeparateBackgroundEnabled`, `isVoiceInteractionWindowVisible` and
+`isSeparateTaskbarBackgroundAttachedToWindow` inside the unique own Voice
+controller after Navbar. A prefix exception requires all three literal Boolean
+records once each. Any next controller heading ends that group, including the
+observed extra space before `TaskbarRecentAppsController`. Missing, duplicate,
+foreign, malformed or escaped records cannot supply the exception. The
+previously qualified own Insets exception can coexist without changing its
+grammar. Neither optional group supplies any required context, Navbar or
+DeviceProfile field. Required depths, selected service/peer completion,
+finite values, command/timing/raw bindings and actual image decisions remain
+unchanged; no raw diagnostic text is normalized.
+
+The focused host controls cover the observed and conventional prefixes,
+both Boolean values, mixed Insets/Voice exceptions, unique complete groups,
+malformed values, owner/peer escape, every required field, truncated/error
+streams and the unchanged historical bad-modal pixel fixture. The author executed 20 focused host methods, including all eight new methods
+and 12 existing Insets/structural controls, with zero failures, errors or skips.
+The same two positive methods produce 16 failing subcases under unchanged 754c.
+All four exact d5 streams now pass the candidate; unchanged 754c still rejects
+05/06 and accepts 07/08. The persisted failed aggregate rejects both sources.
+A separately labeled deep copy changes only status to passed and removes the
+recorded final error: it rejects unchanged 754c and passes the candidate, with
+all original streams and receipt bytes preserved. These are host/parser
+compatibility results, with command, child-process, fork and signal operations
+prohibited; a subsequent configured installed run remains separate.
