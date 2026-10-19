@@ -258,6 +258,40 @@ def inspect_apk(apk: Path, aapt2: Path) -> dict[str, object]:
                                     for name, value in [("manifest", manifest), ("resources", table), ("backup", backup)]}}
 
 
+def verify_source_bytes(root: Path, commit: str) -> None:
+    # Porcelain can hide edits through index flags or text normalization. Match
+    # raw regular-file bytes to the literal blob, as the inventory producer does.
+    records = command(["git", "--no-replace-objects", "ls-tree", "-rlz", "--full-tree", commit], root).split("\0")
+    require(len(records) > 1 and records[-1] == "", "SOURCE_TREE_INVALID")
+    seen = set()
+    for record in records[:-1]:
+        parts = record.split("\t", 1)
+        require(len(parts) == 2, "SOURCE_TREE_INVALID")
+        metadata, relative = parts[0].split(), parts[1]
+        require(len(metadata) == 4 and metadata[0] in {"100644", "100755"} and metadata[1] == "blob" and
+                re.fullmatch(r"[0-9a-f]{40}", metadata[2]) is not None and
+                re.fullmatch(r"0|[1-9][0-9]*", metadata[3]) is not None, "SOURCE_TREE_INVALID")
+        components = relative.split("/")
+        require(relative not in seen and all(part not in {"", ".", ".."} for part in components),
+                "SOURCE_TREE_INVALID")
+        seen.add(relative)
+        path = root
+        for component in components:
+            path = path / component
+            require(not path.is_symlink(), "SOURCE_NOT_REGULAR")
+        require(path.is_file(), "SOURCE_NOT_REGULAR")
+        expected_size = int(metadata[3])
+        require(path.stat().st_size == expected_size, "SOURCE_BYTES_MISMATCH")
+        digest = hashlib.sha1(f"blob {expected_size}\0".encode("ascii"))
+        observed_size = 0
+        with path.open("rb") as source:
+            while chunk := source.read(min(128 * 1024, expected_size - observed_size + 1)):
+                observed_size += len(chunk)
+                require(observed_size <= expected_size, "SOURCE_BYTES_MISMATCH")
+                digest.update(chunk)
+        require(observed_size == expected_size and digest.hexdigest() == metadata[2], "SOURCE_BYTES_MISMATCH")
+
+
 def source_identity(root: Path) -> dict[str, str]:
     # One resolved commit supplies both fields; a separate current-tree check
     # rejects a tracked edit instead of attributing it to the committed source.
@@ -266,6 +300,7 @@ def source_identity(root: Path) -> dict[str, str]:
     require(len(fields) == 2 and all(re.fullmatch(r"[0-9a-f]{40}", value) for value in fields),
             "SOURCE_IDENTITY_INVALID")
     require(not command(["git", "--no-replace-objects", "status", "--porcelain", "--untracked-files=all"], root).strip(), "SOURCE_CHANGED")
+    verify_source_bytes(root, fields[0])
     return {"commit": fields[0], "tree": fields[1]}
 
 
