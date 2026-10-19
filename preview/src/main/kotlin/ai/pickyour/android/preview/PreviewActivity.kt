@@ -441,20 +441,22 @@ class PreviewActivity : Activity() {
         help.attach(content)
         privacy = LocalPrivacy(this) { !destroyed && diagnosticsResumed }
         privacy.attach(content)
-        setContentView(CatalogViewportScrollView(this).apply {
+        val padding = (24 * resources.displayMetrics.density).toInt()
+        content.setPadding(padding, padding, padding, padding)
+        val viewport = CatalogViewportScrollView(this).apply {
             onUserNavigation = catalog::cancelViewportRestore
             addView(content)
             catalog.attachViewport(this)
-        })
-        content.setOnApplyWindowInsetsListener { view, insets ->
-            val padding = (24 * resources.displayMetrics.density).toInt()
-            view.setPadding(padding + insets.systemWindowInsetLeft, padding + insets.systemWindowInsetTop,
-                padding + insets.systemWindowInsetRight, padding + insets.systemWindowInsetBottom)
-            insets
+            // Keep system-bar protection fixed while the form scrolls.
+            clipToPadding = true
+            setOnApplyWindowInsetsListener { view, insets ->
+                view.setPadding(insets.systemWindowInsetLeft, insets.systemWindowInsetTop,
+                    insets.systemWindowInsetRight, insets.systemWindowInsetBottom)
+                insets
+            }
         }
-        // Also provide padding before the first insets dispatch.
-        val padding = (24 * resources.displayMetrics.density).toInt()
-        content.setPadding(padding, padding, padding, padding)
+        setContentView(viewport)
+        viewport.requestApplyInsets()
         updateEditingEnabled()
         loadCatalog()
         if (entryBlocked) {

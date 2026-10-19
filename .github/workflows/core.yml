@@ -42,6 +42,8 @@ jobs:
         run: |
           python scripts/check_delivery_ledger.py
           python -m unittest discover -s scripts/tests -p 'test_delivery_ledger.py'
+      - name: Verify emulator harness target and evidence guards
+        run: python -m unittest discover -s scripts/tests -p 'test_android*.py' -v
       - name: Verify pinned conformance inputs and adversarial receipt guards
         run: |
           python scripts/check_conformance_fixtures.py
@@ -448,6 +450,9 @@ jobs:
     name: Unsigned synthetic Android preview
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    outputs:
+      unsigned_apk_sha256: ${{ steps.apk-handoff.outputs.sha256 }}
+      unsigned_artifact_id: ${{ steps.upload-preview.outputs.artifact-id }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -597,6 +602,15 @@ jobs:
           suite = ET.parse(report).getroot()
           expected = {
               "acknowledgedFieldsAndExplicitEmptySurviveRecreation",
+              "systemBarInsetsStayOnViewportWhenContentScrolls",
+              "repeatedAndRotatedSystemInsetsReplaceViewportPadding",
+              "clearedSystemInsetsRemoveOnlyViewportPadding",
+              "lightPreviewThemeSelectsDarkSystemBarIcons",
+              "emptyLibraryDialogKeepsDarkSystemIconsAndPendingForm",
+              "deletionDialogKeepsDarkSystemIconsAcrossCancelReopenAndConfirmation",
+              "activityFocusChangesPreserveDarkModalSystemBarsAndPendingForm",
+              "repeatedFocusChangesPreserveCurrentSystemBarAppearance",
+              "retiredWindowFocusCallbackLeavesCurrentAppearanceAfterRecreation",
               "newerDiskHeadCannotAdoptStalePendingFormAfterRecreation",
               "tierActivationRequiresCleanFormAndExplicitConfirmation",
               "comparisonDistinguishesLiteralSentinelWithoutWriting",
@@ -1828,6 +1842,30 @@ jobs:
               raise SystemExit("Complete catalog detail result count does not match passing executed cases")
           print(f"Verified {len(cases)} simulated complete catalog detail tests; no installed-device claim")
           PYTEST
+      - name: Require protected scrolling viewport regressions to execute
+        run: |
+          python - <<'PYTEST'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          qualified = "ai.pickyour.android.preview.PreviewWindowInsetsActivityTest"
+          report = pathlib.Path("preview/build/test-results/testDebugUnitTest/TEST-" + qualified + ".xml")
+          suite = ET.parse(report).getroot()
+          required = {
+              "scrolledFormStaysInsideAllFourSystemWindowInsets",
+              "changingInsetsAndWindowSizePreservesPendingInputFocusAndSavedIdentity",
+          }
+          cases = suite.findall("testcase")
+          names = [case.attrib.get("name") for case in cases]
+          if suite.attrib.get("name") != qualified or any(case.attrib.get("classname") != qualified for case in cases):
+              raise SystemExit("Wrong scrolling viewport regression suite")
+          if not required <= set(names) or len(names) != len(set(names)) or not all(names):
+              raise SystemExit("Missing or repeated scrolling viewport regression")
+          if int(suite.attrib["tests"]) != len(cases) or any(int(suite.attrib[key]) != 0 for key in ("failures", "errors", "skipped")):
+              raise SystemExit("Scrolling viewport report totals do not match passing execution")
+          if any(case.find(tag) is not None for case in cases for tag in ("failure", "error", "skipped")):
+              raise SystemExit("Scrolling viewport regression did not execute successfully")
+          print(f"Verified {len(cases)} simulated scrolling viewport cases; no installed-device claim")
+          PYTEST
       - name: Require all findings presentation regressions to execute
         run: |
           python - <<'FINDINGS_TESTS'
@@ -1996,6 +2034,15 @@ jobs:
                   "unknownPlanningKindKeepsPendingRestoration",
                   "changedGeometryAndExtremeOffsetsKeepTheExactRowVisibleWithoutOverflow",
               },
+              "CatalogViewportPaddingTest": {
+                  "captureSkipsRowsWhollyClippedByTopAndBottomPadding",
+                  "extremeSavedOffsetsRestoreTheExactRowInsidePaddedBounds",
+                  "emptyDrawableIntervalKeepsPendingAnchorUntilUsableInsetsReturn",
+                  "unclippedPaddingPreservesTheOriginalWholeHostBounds",
+                  "oneDrawablePixelIsEnoughToRestoreWithoutDiscardingTheRow",
+                  "currentInsetsAtPredrawDetermineTheRestorationBounds",
+                  "userNavigationCancelsTheAnchorWhileDrawableBoundsAreEmpty",
+              },
               "PreviewCatalogViewportTest": {
                   "catalogRowPositionSurvivesDetailsAndActivityRecreationWithoutDraftWrites",
               },
@@ -2120,7 +2167,23 @@ jobs:
               raise SystemExit('Optional-tier checked-state regression did not pass')
           print(f'Verified {len(cases)} simulated optional-tier checked-state tests; no installed TalkBack claim')
           PYTIERCHOICE
+      - name: Record the unsigned APK handoff after successful build and simulation
+        id: apk-handoff
+        run: |
+          python - <<'PYAPK'
+          import os
+          from pathlib import Path
+          import subprocess
+          from scripts.android_emulator_smoke import digest, require
+          require(subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip() == os.environ["GITHUB_SHA"],
+                  "APK producer source differs from this workflow")
+          apk = Path("preview/build/outputs/apk/debug/preview-debug-unsigned.apk")
+          require(apk.is_file() and not apk.is_symlink(), "Missing unsigned APK handoff")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              output.write("sha256=" + digest(apk) + "\n")
+          PYAPK
       - name: Retain unsigned diagnostic and lint reports
+        id: upload-preview
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
@@ -2145,3 +2208,91 @@ jobs:
             preview/build/outputs/apk/debug/*-unsigned.apk
           retention-days: 7
           if-no-files-found: ignore
+  android-installed:
+    name: Installed synthetic Android preview (hosted KVM)
+    needs: android-preview
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      PYAI_EMULATOR_MODE: kvm
+      PYAI_EMULATOR_DISPLAY_PROFILE: raster-720x1280-280
+      PYAI_EXPECTED_APK_SHA256: ${{ needs.android-preview.outputs.unsigned_apk_sha256 }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+      - name: Require the successful build's single immutable artifact
+        env:
+          PYAI_ARTIFACT_ID: ${{ needs.android-preview.outputs.unsigned_artifact_id }}
+        run: |
+          python - <<'PYHANDOFF'
+          import os
+          import re
+          from scripts.android_emulator_smoke import require
+          require(re.fullmatch(r"[1-9][0-9]*", os.environ["PYAI_ARTIFACT_ID"]) is not None,
+                  "A single successful-build artifact ID is required")
+          require(re.fullmatch(r"[0-9a-f]{64}", os.environ["PYAI_EXPECTED_APK_SHA256"]) is not None,
+                  "An exact successful-build APK digest is required")
+          PYHANDOFF
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          artifact-ids: ${{ needs.android-preview.outputs.unsigned_artifact_id }}
+          path: .
+          merge-multiple: true
+      - name: Check the exact temporary KVM ACL grant and restoration policies
+        run: /usr/bin/python3 -I scripts/android_kvm_acl.py --check-policy
+      - name: Prepare the pinned Linux emulator and guest inputs
+        shell: bash
+        run: |
+          sudo -n apt-get update
+          sudo -n apt-get install --no-install-recommends -y libpulse0
+          /usr/bin/python3 -I scripts/android_kvm_acl.py --prepare-emulator
+          test -x "$ANDROID_HOME/platform-tools/adb"
+          test -x "$ANDROID_HOME/build-tools/35.0.0/aapt"
+          test -x "$ANDROID_HOME/build-tools/35.0.0/apksigner"
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'system-images;android-35;default;x86_64'
+      - name: Exercise the unchanged cases under one temporary original-user KVM ACL
+        run: /usr/bin/python3 -I scripts/android_kvm_acl.py --run
+      - name: Verify or finish the exact owned ACL restoration
+        if: always()
+        run: /usr/bin/python3 -I scripts/android_kvm_acl.py --restore
+      - name: Require the exact restored-ACL and installed-emulator receipts
+        run: |
+          /usr/bin/python3 - <<'PYSMOKE'
+          import json
+          import os
+          from pathlib import Path
+          from scripts.android_emulator_smoke import complete_receipt, require
+          from scripts.android_kvm_acl import complete_boundary, current_context, read_receipt
+          from scripts.android_kvm_process import require_emulator_package
+          boundary = read_receipt()
+          context = current_context()
+          complete_boundary(boundary, context)
+          require_emulator_package(boundary, inspect_binary=True)
+          receipt = json.loads(Path("preview/build/reports/emulator-smoke/receipt.json").read_text())
+          complete_receipt(receipt, os.environ["GITHUB_SHA"], expected_mode="kvm",
+                           expected_display_profile=context["environment"]["PYAI_EMULATOR_DISPLAY_PROFILE"],
+                           expected_system_bar_evidence=True)
+          require(receipt["source_tree"] == context["source_tree"] and
+                  receipt["unsigned_apk_sha256"] == context["unsigned_apk_sha256"] and
+                  receipt["emulator_binary_sha256"] == boundary["emulator_package"]["binary_sha256"],
+                  "The boundary and installed receipts must identify the same source, APK and emulator binary")
+          print("All four installed AOSP-emulator cases passed with the exact original KVM ACL restored; physical-device acceptance remains separate")
+          PYSMOKE
+      - name: Retain installed-emulator observations
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: android-installed-kvm-${{ github.sha }}
+          path: |
+            preview/build/reports/emulator-smoke/
+            preview/build/reports/kvm-acl/
+          retention-days: 7
+          if-no-files-found: error
