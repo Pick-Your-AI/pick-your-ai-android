@@ -247,3 +247,66 @@ recomputed all twenty-six existing complete reports using the exact frozen Pytho
 source at accepted `083d2013`; it is actual reference/source evidence, not a native
 run. Later native, final source-pin/attendance, incoming-main interaction and
 delivery reviews must name their own exact objects and actual execution scope.
+
+## Additive configuration goldens for the literal #84 test scope
+
+The signed implementation delivered by #488 is
+`44b4c7e3e882301a45a232b3ee18523023739bb1`, tree
+`0d6e0e1f076a271a3e310cc6e91e7f7fe09565d5`. Its
+[actual main observation](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/488#issuecomment-6258248370)
+records 4,046 core and 340 simulated native cases, with their own original
+artifacts and execution identities. The acceptance audit distinguished the
+existing twenty-six operator reports and #49's structural wire rows from the
+literal contradictory-configuration coverage requested by #84.
+
+The additive test-only corpus
+[`configuration-cases.json.gz`](../core/src/test/resources/evaluation/configuration-cases.json.gz)
+therefore contains **seventeen complete forty-five-rule reports** produced by the
+unchanged frozen Python reference. The [generator](../scripts/check_configuration_fixtures.py)
+checks exact raw reference, baseline Build, Catalog, Ruleset, Graph, Pricebook,
+component registry and original operator-corpus hashes before loading the
+reference, plus the same fourteen-schema descriptor. It validates every new
+Build and expected report with the frozen offline schemas. The original twenty-six
+golden bytes, all forty-three frozen files, production evaluator/profile and
+actual native caller remain unchanged.
+
+| Explicit synthetic configuration | Precise reference observation |
+| --- | --- |
+| All-active control and three contradictions | The control has matching target/host regions and weights serving. Changing only target region, host region or self-hosted model serving mode fails the corresponding existing error rule. This is declared region/mode consistency, not a network, topology or residency qualification. |
+| T3–T5 all disabled; each tier enabled separately | Disabled selections and their links remain typed and retained. Existing optional predicates skip when inapplicable; active T3 and T5 controls retain their specific passes. Active T4's vector memory with T3's vector database disabled fails its existing dependency rule. Core production gates remain present and pass in these four cases. |
+| RAG knowledge, agent framework or training compute disabled | The still-active dependent branch fails the relevant unchanged knowledge/framework/training rule. Catalog references remain resolvable; no malformed Build or admission bypass is used to manufacture the result. |
+| Production versus development with guardrail disabled | The production gate fails only in its applicable production case and skips in development. The separate mutating-tool guardrail rule still fails in both: skipping one policy never grants a whole-report pass. |
+| Hard cap explicitly disabled, with no CostEstimate | The budget gate skips while missing resource operands remain unknown. The retained Pricebook supplies no cost metric or zero. |
+| Zero and two adjacent exact decimal-string budgets, with no CostEstimate | All three entered spellings survive the local projection/archive boundary; the active budget comparison remains unknown. These cases do not pretend to compare an unmeasured cost. The unchanged operator goldens separately prove the twelve-fraction-digit equality/order/zero boundaries. |
+
+Every configuration has an explicit caller Build identity/revision, unchanged
+frozen artifact pins, and explicit T3/T4/T5 activation choices. The local projector
+does not represent the frozen Build's optional `policy` object; these cases omit
+that object and exercise its documented reference defaults. Their settings-level
+hard-cap and environment controls are real represented inputs. All external
+estimate slots are explicitly `NotSupplied`, with no metric override.
+
+[`RetainedConfigurationGoldenTest`](../core/src/test/kotlin/ai/pickyour/core/evaluation/RetainedConfigurationGoldenTest.kt)
+saves the typed draft, obtains and acknowledges the complete real projection
+review, archives it, reopens it, and compares the complete Build/report values.
+It invokes both the actual evaluator and the real `PreviewSnapshotAnalysis`
+session, checking all exact input/bundle/math-revision bindings, full forty-five
+findings, fixed versus synthetic observation time and absent-estimate diagnostics.
+It constructs no internal review or retained snapshot. Its inline executors make
+the test deterministic; actual native worker/lifetime evidence remains in the
+separate fourteen Activity regressions.
+
+The additive workflow gate requires the seventeen literal case names with no
+missing, foreign, duplicate, failed or skipped observation. Seven host controls
+reject altered inputs/provenance, changed or missing/reordered/duplicate cases,
+wrong report fields/counters, forged optional/evidence declarations, corrupt or
+extra gzip members, and a changed-report CLI invocation both normally and under
+`python -O`. Exact regenerated JSON is checked after bounded single-member gzip
+decoding; compression is a test-resource transport, not a new shared contract.
+
+This supplement adds configuration coverage to the selected diagnostic profile.
+It does not adopt every schema-valid DSL input, production rules or evidence,
+an external-resource/cost profile, graph pruning, a universal compatible badge,
+or an installed/device/release result. New source/test execution and the final
+literal #84 receiving record must keep their own revisions and dates; earlier
+main and source-time observations above are not relabeled.
