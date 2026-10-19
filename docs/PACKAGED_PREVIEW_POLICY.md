@@ -25,6 +25,11 @@ It does not modify the app, artifact, SDK, permissions, emulator or device.
 | Backup declarations | Both cloud-backup and device-transfer exclude the root of all nine currently configured credential/device storage domains, without duplicate domains or narrowed paths |
 | Artifact identity | APK bytes and SHA-256 match the existing runtime inventory; its recorded commit/tree match the clean checkout both before and after tool work; APK and inventory are unchanged through inspection |
 
+The inspector reads literal Git objects for both commit/tree identity and checkout
+cleanliness. Local replacement refs cannot substitute a different source tree or
+conceal staged edits under the inventoried identity. This consumer check is separate
+from the runtime inventory producer's own source admission.
+
 Every accepted Android-qualified attribute must also carry its exact API 35
 framework resource ID. Missing, zero or mismatched IDs cannot be replaced by a
 safe-looking attribute name in AAPT2 output. Unqualified attributes cannot carry
@@ -98,6 +103,12 @@ domains, aliases/configuration overrides, malformed trees and duplicate attribut
 Real temporary Git repositories also demonstrate that a tracked edit or a new HEAD
 during inspection cannot receive a passing receipt while APK/inventory bytes remain
 unchanged; the unchanged-source positive control still passes.
+A replacement tree that conceals a tracked edit from ordinary Git status fails both
+before inspection and at the final source fence. The same edit passes after it is
+actually committed and the inventory identifies that new source. A replacement
+commit cannot change the receipt's literal commit/tree identity even when the
+actual checkout remains clean. These controls use real Git subprocesses and leave
+the synthetic APK bytes unchanged; they do not claim an Android build or execution.
 These assertions are supplemented by actual binary packaging: the AAPT2 guard driver
 builds twelve disposable resource APKs with a positive control and eleven single-condition
 changes. They add INTERNET, add an exported receiver, enable cleartext traffic, remove
