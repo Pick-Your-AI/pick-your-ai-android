@@ -45,8 +45,8 @@ internal class LocalDiagnostics(
     private val activity: Activity,
     private val capture: () -> LocalDiagnosticReport,
     private val alive: () -> Boolean,
-    private val launch: (Intent) -> Unit = { activity.startActivity(it) },
     private val beforeShow: () -> Unit = {},
+    private val launch: (Intent) -> Unit = { activity.startActivity(it) },
 ) {
     private var currentDialog: AlertDialog? = null
     private var closed = false

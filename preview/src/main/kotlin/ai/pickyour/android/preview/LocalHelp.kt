@@ -31,8 +31,8 @@ internal class LocalHelp(
     private val alive: () -> Boolean,
     private val reviewDiagnostics: () -> Unit,
     private val launch: (Intent) -> Unit = { activity.startActivity(it) },
-    private val captureCatalogIdentity: () -> HelpCatalogIdentity = { HelpCatalogIdentity.UNAVAILABLE_OR_LOADING },
     private val beforeShow: () -> Unit = {},
+    private val captureCatalogIdentity: () -> HelpCatalogIdentity = { HelpCatalogIdentity.UNAVAILABLE_OR_LOADING },
 ) {
     private var currentDialog: AlertDialog? = null
     private var closed = false
