@@ -81,4 +81,37 @@ class ComponentFormCheckpointTest {
         state.getBundle(ComponentFormRecovery.KEY)!!.putString("catalogHash", "b".repeat(64))
         assertSame(ComponentFormRecovery.Unavailable, ComponentFormRecovery.read(state))
     }
+
+    @Test fun userinfoExclusionResavesOnlyTheFixedReasonWithoutInputOrIdentity() {
+        val state = state()
+        ComponentFormRecovery.UriUserinfoExcluded.save(state)
+        val marker = state.getBundle(ComponentFormRecovery.KEY)!!
+        assertEquals(setOf("version", "unavailable", "reason"), marker.keySet())
+        assertEquals(1, marker.getInt("version"))
+        assertTrue(marker.getBoolean("unavailable"))
+        assertEquals("uri_userinfo", marker.getString("reason"))
+        marker.putString("settings", "synthetic extra input")
+        marker.putString("draftId", "untrusted identity")
+        val restored = ComponentFormRecovery.read(state)
+        assertSame(ComponentFormRecovery.UriUserinfoExcluded, restored)
+        restored.save(state)
+        assertEquals(setOf("version", "unavailable", "reason"), state.getBundle(ComponentFormRecovery.KEY)!!.keySet())
+        ComponentFormRecovery.None.save(state)
+        assertFalse(state.containsKey(ComponentFormRecovery.KEY))
+    }
+
+    @Test fun unknownOrMalformedExclusionReasonsKeepGenericUnavailableSemantics() {
+        val changes: List<(Bundle) -> Unit> = listOf(
+            { it.remove("reason") }, { it.putString("reason", "unknown") }, { it.putBoolean("reason", true) },
+            { it.remove("version") }, { it.putString("version", "1") }, { it.putInt("version", 2) },
+        )
+        for (change in changes) {
+            val state = Bundle().also { ComponentFormRecovery.UriUserinfoExcluded.save(it) }
+            change(state.getBundle(ComponentFormRecovery.KEY)!!)
+            val restored = ComponentFormRecovery.read(state)
+            assertSame(ComponentFormRecovery.Unavailable, restored)
+            restored.save(state)
+            assertEquals(setOf("version", "unavailable"), state.getBundle(ComponentFormRecovery.KEY)!!.keySet())
+        }
+    }
 }
