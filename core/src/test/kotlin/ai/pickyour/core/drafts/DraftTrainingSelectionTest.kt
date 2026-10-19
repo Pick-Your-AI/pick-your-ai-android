@@ -63,8 +63,10 @@ class DraftTrainingSelectionTest {
             assertEquals(original, result.content.withComponents(DraftSelections()))
             assertTrue(original.components.selections.isEmpty())
         }
-        assertFalse(PreviewSelectionForms.supported("deployment_target"))
-        assertFalse(PreviewSelectionForms.supported("cost_policy"))
+        assertTrue(PreviewSelectionForms.supported("deployment_target"))
+        assertFalse(PreviewSelectionForms.supported("future_deployment_target"))
+        assertTrue(PreviewSelectionForms.supported("cost_policy"))
+        assertFalse(PreviewSelectionForms.supported("future_cost_policy"))
     }
 
     @Test fun `all fourteen frozen training fields retain exact values and all six methods remain explicit inputs`() {
