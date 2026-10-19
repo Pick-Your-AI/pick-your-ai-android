@@ -123,8 +123,8 @@ for the current four-check inventory and the separately observed settings gap.
 | #59 reproducible checks and untrusted execution | Reference/JVM workflow, unsigned preview build/lint, restricted token, retained artifacts and the recorded frozen-byte failure in [02.05](delivery/android/work-packages/02.05.md) | Required-status application/readback, actual credential-context review, corrected installed delivery and complete receiving acceptance |
 | #115 late/out-of-order analysis | Unique attempt identity, all input pins, cancellation and duplicate tests | Automatic reevaluation, durable-save sequencing, historical report persistence and integrated UI behavior |
 
-The implementation acceptance records listed below retain their canonical paths
-in `pickyour.ai`; the separately accepted decision-record placements are listed in
+The #48 and #59 acceptance records have the Android placements described below.
+Other record placements remain governed by their existing decisions in
 [repository scope](REPOSITORY_SCOPE.md). Parent coordination can
 copy the criterion evidence above into `03.01.md`, `03.06.md`, `02.04.md`,
 `11.03.md`, `14.05.md` and `09.06.md` under
@@ -132,18 +132,24 @@ copy the criterion evidence above into `03.01.md`, `03.06.md`, `02.04.md`,
 These are partial entries, not issue-closing receipts. No website changes are made
 by this repository.
 
-[ADR 0008](decisions/0008-android-48-acceptance-record.md) separately proposes
-placing only #48's [02.01 foundation record](delivery/android/work-packages/02.01.md)
-in Android, effective after independent review and normal delivery into Android
-main. The record preserves the original website path and distinguishes the selected
-preview identity from future product qualification. Full #48 acceptance remains
-pending its literal criteria and current installed-delivery evidence.
+[ADR 0008](decisions/0008-android-48-acceptance-record.md) places only #48's
+[02.01 foundation record](delivery/android/work-packages/02.01.md) in Android,
+effective through reviewed [#448](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/448)
+at signed main
+[`710d337f`](https://github.com/Pick-Your-AI/pick-your-ai-android/commit/710d337fed2004689993c0b8bc01f12de780b04c).
+The record preserves the original website spelling and relative path as history
+and distinguishes the selected preview identity from future product qualification.
+Placement does not complete #48's literal criteria or current installed-delivery
+receiving.
 
-[ADR 0011](decisions/0011-android-59-acceptance-record.md) separately proposes
-placing only #59's [02.05 CI record](delivery/android/work-packages/02.05.md) in
-Android after independent review and normal main delivery. It preserves the
-original website path as history and keeps required-status, credential-context,
-corrected installed and full receiving gaps explicit. All other record locations
+[ADR 0011](decisions/0011-android-59-acceptance-record.md) places only #59's
+[02.05 CI record](delivery/android/work-packages/02.05.md) in Android, effective
+through reviewed [#502](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/502)
+at signed main
+[`146413ff`](https://github.com/Pick-Your-AI/pick-your-ai-android/commit/146413ff168583f4c2b0df87ab41d36e57f8ea85).
+The original website spelling and relative path remain history. Placement does
+not complete required-status application/readback, credential-context review,
+installed-evidence receiving or whole-issue acceptance. All other record locations
 and the existing shared-ledger writing route remain unchanged.
 
 ## Observed local verification (2026-10-18)
