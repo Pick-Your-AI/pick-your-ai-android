@@ -1738,6 +1738,31 @@ def taskbar_state_fields_pass(text: str) -> bool:
     if profile is None or profile[0] <= navbar[0] or profile[1] != context[1]:
         return False
 
+    # One original retains the Scrim peer's three TABs without the four-space
+    # service wrapper. Interpret only that complete optional group in this local
+    # line view; source text, required-field depths and other prefixes stay exact.
+    scrim_heading = "\t\t\tTaskbarScrimViewController:"
+    if scrim_heading in lines:
+        scrim = heading("TaskbarScrimViewController")
+        if (scrim is None or not navbar[0] < scrim[0] < profile[0]
+                or lines[controllers[0]] != "    \t\tTaskbarControllers:"
+                or lines[navbar[0]] != "    \t\t\tNavbarButtonsViewController:"):
+            return False
+        index = scrim[0]
+        if (index + 2 >= profile[0] or re.fullmatch(
+                r"    \t\t\t[A-Z][A-Za-z0-9]*:[ \t]*", lines[index + 2]) is None):
+            return False
+        value = re.fullmatch(r"    \t\t\t\tmScrimAlpha\.value=(\S*)", lines[index + 1])
+        if value is None or len(value[1]) > 32 or re.fullmatch(number, value[1]) is None:
+            return False
+        try:
+            alpha = Decimal(value[1])
+            if not alpha.is_finite() or not 0 <= alpha <= 1:
+                return False
+        except InvalidOperation:
+            return False
+        lines[index] = "    " + lines[index]
+
     # TransferPipe can omit its wrapper prefix after a read starts with LF.
     # Only complete optional measurement data in this own profile may use the
     # observed two-tab client prefix. Raw text and authoritative depths stay exact.

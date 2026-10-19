@@ -1,10 +1,37 @@
 # Installed synthetic emulator verification
 
+## Delivered result and separate main-push failure — 2026-10-19
+
+[PR #467](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/467)
+delivered this source as signed main
+`0f5fea42c5cd149472269da2e47559a24689ba71`, tree
+`c9e91124c0ebbfe101e73eaa0772c5f7d3af235f`, with parent
+`5d9fb10d72ca059a93b00f3abf3b93da9d3e6897`.
+
+The independently reviewed original receiving execution was
+`bd2487f63745c0b9d2f83835a810766cc2a043c1`, tree
+`4846f4ebfb499fe11ec8a99166ef23380e492b09`, in
+[run 39294986481](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39294986481).
+Its [complete qualification](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/467#pullrequestreview-5575852486)
+records all four installed cases passing, both modal navigation pairs at
+8.97386058887348:1 against the unchanged 3:1 minimum, and exact restoration of the
+original ACL, device and process identity. The source and historical observations
+below retain their own revisions; this receiving result is not execution on the
+later main tree or whole physical-device, accessibility or release acceptance.
+
+The distinct literal-main [run 39304189399, attempt 1](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39304189399)
+passed Core and simulated Preview, but its installed job failed during SDK image
+preparation with `Error on ZipFile unknown archive`. No ACL grant or emulator case
+ran in that attempt. The [main-push follow-through](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/467#issuecomment-6274771555)
+retains the failed original, its successful cleanup and the separate scanner
+result. The log does not establish a network or corruption cause. Any later
+attempt must retain its own source and results.
+
 The existing **Unsigned synthetic Android preview** CI job builds, lints and runs
 the named Robolectric regressions on Linux. After that job succeeds, **Installed
 synthetic Android preview (hosted KVM)** verifies the exact unsigned APK handoff and
 runs the same smoke harness on an explicitly selected Ubuntu 24.04 runner. The
-new provisioning proposal retains the original non-root UID, GID and groups,
+installed lane retains the original non-root UID, GID and groups,
 and uses the existing privileged-tooling policy for one temporary named-user KVM
 ACL and its exact restoration. It uses one fresh AOSP API 35 x86_64 AVD. The
 explicit 720×1280/280-dpi startup profile from the preceding HVF experiment is
@@ -31,8 +58,8 @@ package, support matrix, service contract, signing policy or release.
 | Required installed case | Assertions made by the harness | Limit |
 | --- | --- | --- |
 | `installed_synthetic_launch` | Fresh install launches the exact experimental Activity; the synthetic notice and active `guest-draft` identity are visible | One AOSP image and diagnostic package |
-| `acknowledged_save_survives_force_stop` | Enter fixed synthetic title/objective/context; Save displays its acknowledgement and disables; HOME then force-stop terminates the process; a new process reopens the same acknowledged fields and local ID | Force-stop/cold relaunch, not low-memory process death, autosave or power-loss durability |
-| `pending_fields_survive_rotation` | Pending title/objective edits survive observed landscape and portrait rotations; context stays unchanged; Save remains enabled and the form remains explicitly unsaved | Two orientations in one emulator configuration, not the support matrix or general adaptive/accessibility qualification |
+| `acknowledged_save_survives_force_stop` | Enter fixed synthetic title/objective/context; require the automatic valid-form save acknowledgement and disabled Save; HOME then force-stop terminates the process; a new process reopens the same acknowledged fields and local ID | Automatic save and force-stop/cold relaunch; no installed manual-save action, low-memory process death or power-loss durability claim |
+| `pending_fields_survive_rotation` | Enter the exact invalid Requests-per-day workload, then pending title/objective edits; both observed rotations retain the complete raw fields and invalid-workload explanation, unchanged context, disabled Save and explicitly unsaved state | Deliberately invalid pending input across two orientations in one emulator configuration; no support-matrix or general adaptive/accessibility qualification |
 | `confirmed_deletion_does_not_resurrect` | Select the exact saved library row, inspect the ID-specific deletion confirmation, confirm removal, retain pending editor fields with Save/history disabled, then verify an empty library before and after another cold relaunch | Current readable local draft, not every corrupt/interrupted cleanup, storage-full, another-draft, secure-erasure or remote-deletion case |
 
 The harness drives the installed app through `adb` input and UI Automator hierarchy
@@ -2866,3 +2893,44 @@ recorded final error: it rejects unchanged 754c and passes the candidate, with
 all original streams and receipt bytes preserved. These are host/parser
 compatibility results, with command, child-process, fork and signal operations
 prohibited; a subsequent configured installed run remains separate.
+
+### Observed optional Scrim heading without the service prefix
+
+The first installed run for [#624](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/624)
+failed its aggregate image/window qualification at prepared
+`f32bde624daa4024223e92370a2cb8d7d108373d`, tree
+`60ba0b3d069ebf870a2e5bba099c86721bbc83b0`. Its four product cases passed,
+and both recorded navigation image pairs passed at 8.97386058887348:1.
+Those observations do not change the original failed job or qualify its source.
+Original artifact `12222721315` is 1,118,103 bytes, SHA256
+`c7257ebd9d5b71dd2fcb703956ed13feb4f768dffb40ea5d82fb2021693ac208`.
+
+The original `06-explicit-delete-confirmation.taskbar.txt` has one
+`TaskbarScrimViewController:` heading with three TABs and no four-space
+service prefix. Its following `mScrimAlpha.value=0.0` line and controller peer
+retain their ordinary prefixes. Counting indentation characters places this
+heading outside its actual surrounding Controllers group and makes the later
+Insets boundary fail. The observation establishes the retained spelling;
+it does not identify which writer or transport omitted the prefix.
+
+The bounded parser handles this exact heading only after the unique own Navbar
+inside the ordinary tabbed Controllers group and before its own DeviceProfile.
+It requires one normally prefixed `mScrimAlpha.value` line, a finite decimal
+between zero and one, and a following normally prefixed controller peer.
+Only that heading receives its service prefix in the parser's local line view.
+Original text, retained files, hashes and command records remain unchanged.
+Missing, duplicate, foreign, malformed or misplaced groups still reject;
+no optional alpha value supplies required context, Navbar, profile or pixel
+evidence. Other indentation rules and existing prefix exceptions stay intact.
+
+The host regressions reproduce the observed failure on the unchanged parser,
+then check the conventional and observed headings, finite values, malformed
+groups, scope escape and missing or duplicate required fields. Existing
+system-bar negatives retain their complete checks. A separate read-only replay
+of all four unchanged original Taskbar streams passes the corrected parser;
+the stored failed aggregate still rejects. A labeled in-memory reconstruction
+of its pre-qualification state passes without changing any original record.
+These are parser compatibility results, not an installed rerun. The corrected
+source still requires its own ordinary configured receiving checks. Broader
+Android [#59](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/59)
+acceptance and its canonical record remain separate.

@@ -12,6 +12,7 @@ import android.widget.TextView
 /** Fixed disclosures for the admitted preview. No data capture, preferences or external actions. */
 internal class LocalPrivacy(
     private val activity: Activity,
+    private val beforeShow: () -> Unit = {},
     private val alive: () -> Boolean,
 ) {
     private var currentDialog: AlertDialog? = null
@@ -35,6 +36,7 @@ internal class LocalPrivacy(
 
     private fun show() {
         if (!current()) return
+        beforeShow()
         val content = LinearLayout(activity).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(16), dp(8), dp(16), dp(8))
