@@ -18,6 +18,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 import check_environment_configuration as environment
 import check_preview_policy_guards as packaged_guards
+import check_runtime_inventory_guards as ignored_guards
 import check_runtime_inventory_source as runtime_source
 
 spec = importlib.util.spec_from_file_location("preview_policy", ROOT / "scripts/check_preview_policy.py")
@@ -831,6 +832,150 @@ class GuardReceiptDestinationTest(unittest.TestCase):
                     self.assertFalse(target.exists())
                     self.assertEqual(PEER, (inventory / "peer.txt").read_bytes())
                     self.assertFalse(list(inventory.glob("." + name + ".*")))
+                    self.assertEqual("", output)
+
+
+class IgnoredInputReceiptTests(unittest.TestCase):
+    make_entry = GuardReceiptDestinationTest.make_entry
+    assert_entry_preserved = GuardReceiptDestinationTest.assert_entry_preserved
+
+    def invoke(self, root, preview, inspect):
+        with patch.object(ignored_guards, "ROOT", root), \
+             patch.object(sys, "argv", ["ignored-input-guard"] + (["--preview"] if preview else [])), \
+             patch.object(ignored_guards, "check_guard", side_effect=inspect) as checked, \
+             patch.object(subprocess, "run", side_effect=AssertionError("Native work is forbidden in destination fixtures")), \
+             redirect_stdout(io.StringIO()) as output:
+            try:
+                result, failure = ignored_guards.main(), None
+            except (Exception, SystemExit) as error:
+                result, failure = None, error
+            return result, failure, checked, output.getvalue()
+
+    def assert_admission_rejected(self, root, preview):
+        def unexpected(_):
+            raise RuntimeError("CONTROLLED_INSPECTION_MUST_NOT_RUN")
+
+        _, failure, checked, output = self.invoke(root, preview, unexpected)
+        self.assertIsNotNone(failure)
+        self.assertNotIsInstance(failure, AssertionError)
+        checked.assert_not_called()
+        self.assertEqual("", output)
+
+    def test_ignored_input_ancestors_are_admitted_before_inspection(self):
+        for preview in (False, True):
+            name = "guard-ignored-preview-asset.json" if preview else "guard-ignored-core-schema.json"
+            for kind in ("root-alias", "build-alias", "inventory-alias", "build-file", "inventory-file"):
+                with self.subTest(preview=preview, kind=kind), tempfile.TemporaryDirectory() as temporary:
+                    root, foreign = Path(temporary) / "checkout", Path(temporary) / "foreign"
+                    foreign.mkdir()
+                    if kind == "root-alias":
+                        root.symlink_to(foreign, target_is_directory=True)
+                    else:
+                        root.mkdir()
+                        entry = root / ("build" if kind.startswith("build-") else "build/inventory")
+                        entry.parent.mkdir(parents=True, exist_ok=True)
+                        if kind.endswith("-alias"):
+                            entry.symlink_to(foreign, target_is_directory=True)
+                        else:
+                            entry.write_bytes(SENTINEL)
+                    if kind.endswith("-alias"):
+                        target = root / "build/inventory" / name
+                        target.parent.mkdir(parents=True, exist_ok=True)
+                        target.write_bytes(SENTINEL)
+                        (target.parent / "peer.txt").write_bytes(PEER)
+                    else:
+                        target = entry
+                    before = target.lstat()
+                    self.assert_admission_rejected(root, preview)
+                    self.assertEqual(SENTINEL, target.read_bytes())
+                    self.assertEqual((before.st_ino, before.st_mode), (target.lstat().st_ino, target.lstat().st_mode))
+                    if kind.endswith("-alias"):
+                        self.assertEqual(PEER, (target.parent / "peer.txt").read_bytes())
+
+    def test_ignored_input_output_aliases_and_special_entries_are_preserved(self):
+        for preview in (False, True):
+            name = "guard-ignored-preview-asset.json" if preview else "guard-ignored-core-schema.json"
+            for kind in ("symlink", "dangling-symlink", "hardlink", "directory", "fifo"):
+                with self.subTest(preview=preview, kind=kind), tempfile.TemporaryDirectory() as temporary:
+                    root = Path(temporary) / "checkout"
+                    inventory = root / "build/inventory"
+                    inventory.mkdir(parents=True)
+                    target, foreign = inventory / name, Path(temporary) / "foreign"
+                    before = self.make_entry(target, foreign, kind)
+                    (inventory / "peer.txt").write_bytes(PEER)
+                    self.assert_admission_rejected(root, preview)
+                    self.assert_entry_preserved(target, foreign, kind, before)
+                    self.assertEqual(PEER, (inventory / "peer.txt").read_bytes())
+
+    def test_ignored_input_failure_retires_only_selected_stale_report(self):
+        for preview in (False, True):
+            for existing in (False, True):
+                with self.subTest(preview=preview, existing=existing), tempfile.TemporaryDirectory() as temporary:
+                    root = Path(temporary)
+                    inventory = root / "build/inventory"
+                    name = "guard-ignored-preview-asset.json" if preview else "guard-ignored-core-schema.json"
+                    other = "guard-ignored-core-schema.json" if preview else "guard-ignored-preview-asset.json"
+                    target = inventory / name
+                    if existing:
+                        inventory.mkdir(parents=True)
+                        target.write_bytes(SENTINEL)
+                        (inventory / other).write_bytes(PEER)
+
+                    def failed(selected):
+                        self.assertIs(preview, selected)
+                        self.assertFalse(target.exists())
+                        raise RuntimeError("CONTROLLED_INSPECTION_FAILURE")
+
+                    _, failure, checked, output = self.invoke(root, preview, failed)
+                    self.assertIsInstance(failure, RuntimeError)
+                    self.assertEqual("CONTROLLED_INSPECTION_FAILURE", str(failure))
+                    checked.assert_called_once_with(preview)
+                    self.assertFalse(target.exists())
+                    self.assertEqual("", output)
+                    if existing:
+                        self.assertEqual(PEER, (inventory / other).read_bytes())
+                    else:
+                        self.assertEqual([], list(root.iterdir()))
+
+    def test_ignored_input_success_publishes_exact_private_report(self):
+        for preview in (False, True):
+            with self.subTest(preview=preview), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                case = "ignored-preview-asset" if preview else "ignored-core-schema"
+                report = {"case": case, "status": "passed", "scope": "controlled boundary fixture"}
+                result, failure, checked, output = self.invoke(root, preview, lambda selected: report)
+                self.assertIsNone(result)
+                self.assertIsNone(failure)
+                checked.assert_called_once_with(preview)
+                target = root / "build/inventory" / ("guard-" + case + ".json")
+                self.assertEqual((json.dumps(report, indent=2, sort_keys=True) + "\n").encode(), target.read_bytes())
+                self.assertEqual(0o600, stat.S_IMODE(target.stat().st_mode))
+                self.assertEqual([target], list(target.parent.iterdir()))
+                self.assertEqual(f"Verified {case}: real packaged input rejected; no fresh inventory\n", output)
+
+    def test_ignored_input_publication_failure_leaves_no_partial_final_report(self):
+        for preview in (False, True):
+            for failure_kind in ("serialization", "replace"):
+                with self.subTest(preview=preview, failure=failure_kind), tempfile.TemporaryDirectory() as temporary:
+                    root = Path(temporary)
+                    inventory = root / "build/inventory"
+                    inventory.mkdir(parents=True)
+                    case = "ignored-preview-asset" if preview else "ignored-core-schema"
+                    target = inventory / ("guard-" + case + ".json")
+                    target.write_bytes(SENTINEL)
+                    (inventory / "peer.txt").write_bytes(PEER)
+                    report = {"case": case, "status": "passed", "value": object() if failure_kind == "serialization" else "complete"}
+                    with patch.object(Path, "replace", side_effect=OSError("CONTROLLED_PUBLICATION_FAILURE")) as replaced:
+                        _, failure, checked, output = self.invoke(root, preview, lambda selected: report)
+                    self.assertIsInstance(failure, TypeError if failure_kind == "serialization" else OSError)
+                    checked.assert_called_once_with(preview)
+                    if failure_kind == "serialization":
+                        replaced.assert_not_called()
+                    else:
+                        replaced.assert_called_once()
+                    self.assertFalse(target.exists())
+                    self.assertEqual([inventory / "peer.txt"], list(inventory.iterdir()))
+                    self.assertEqual(PEER, (inventory / "peer.txt").read_bytes())
                     self.assertEqual("", output)
 
 
