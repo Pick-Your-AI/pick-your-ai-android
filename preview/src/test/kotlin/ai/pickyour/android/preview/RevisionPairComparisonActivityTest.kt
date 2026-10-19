@@ -63,7 +63,7 @@ class RevisionPairComparisonActivityTest {
         button(label, window.window!!.decorView).performClick(); idle()
     }
     private fun adapter() = PreviewDraftLibrary(activity.noBackupFilesDir.toPath()).openLegacy()
-    private fun loaded() = (adapter().load() as PreviewDraftLoad.Available).record
+    private fun loaded() = (readDraftAfterOwnedWork(activity, ::adapter) as PreviewDraftLoad.Available).record
     private fun disk() = Files.walk(activity.noBackupFilesDir.toPath()).use { paths -> paths.filter { Files.isRegularFile(it) }
         .toList().associate { activity.noBackupFilesDir.toPath().relativize(it).toString() to
             MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(it)).toList() } }

@@ -1,6 +1,7 @@
 package ai.pickyour.android.preview
 
 import android.app.AlertDialog
+import android.graphics.Rect
 import android.os.Bundle
 import android.os.SystemClock
 import android.view.View
@@ -21,9 +22,11 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.android.controller.ActivityController
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 import org.robolectric.annotation.LooperMode
 import org.robolectric.shadows.ShadowAlertDialog
 import java.math.BigInteger
@@ -69,6 +72,18 @@ class SnapshotEvaluationActivityTest {
         .single { it.text.toString() == activity.getString(label) }.labelFor)
     private fun dialog() = requireNotNull(ShadowAlertDialog.getLatestAlertDialog())
     private fun report(dialog: AlertDialog = dialog()) = dialog.findViewById<TextView>(R.id.snapshot_report).text.toString()
+    private fun findingAction(dialog: AlertDialog): Button {
+        val action = views(requireNotNull(dialog.window).decorView).filterIsInstance<Button>()
+            .singleOrNull { it.text.toString() == "Inspect affected selections" }
+        assertNotNull("A current retained report must expose its recorded affected-selection route", action)
+        return requireNotNull(action)
+    }
+    private fun dialogText(dialog: AlertDialog = dialog()) = views(requireNotNull(dialog.window).decorView)
+        .filterIsInstance<TextView>().joinToString("\n") { it.text.toString() }
+    private fun selectionButton(dialog: AlertDialog = dialog(), index: Int = 1) =
+        views(requireNotNull(dialog.window).decorView).filterIsInstance<Button>().single {
+            it.text.toString() == activity.getString(R.string.findings_context_inspect, index)
+        }
     private fun choose(index: Int = 0, dialog: AlertDialog = dialog()) {
         dialog.listView.performItemClick(null, index, index.toLong()); idle()
     }
@@ -182,6 +197,154 @@ class SnapshotEvaluationActivityTest {
         assertTrue("Read-only actions stay before autosave", SystemClock.uptimeMillis() in pendingSince until pendingSince + 750)
     }
 
+    @Test fun actualRetainedFindingNavigationKeepsRecordedIdentityAndPendingEdits() {
+        val wide = BigInteger("9223372036854775808")
+        val saved = save(revision = wide)
+        Files.walk(saved.sourcePath).use { it.sorted(Comparator.reverseOrder()).forEach(Files::delete) }
+        AutosaveUiClock.pause()
+        val pendingSince = SystemClock.uptimeMillis()
+        field(R.string.context_objective).setText("pending finding-navigation sentinel")
+        val before = files(activity.noBackupFilesDir.toPath()); val archiveBefore = files(archivePath)
+        activity.findViewById<Button>(R.id.snapshot_open).performClick()
+        await { ShadowAlertDialog.getLatestAlertDialog()?.isShowing == true }
+        choose(); await { report().contains("Result in this profile:") }
+        val retained = dialog()
+        assertTrue(report(retained).contains(saved.entry.bundleHash.hex))
+        findingAction(retained).performClick()
+        val findings = dialog()
+        assertTrue(findings.listView.adapter.getItem(1).toString().contains("rule.model.provider.match"))
+        choose(1, findings)
+        val contexts = dialog()
+        for (expected in listOf(saved.entry.key.id, wide.toString(), "rule.model.provider.match", "sel_model", "sel_model_provider"))
+            assertTrue(expected, dialogText(contexts).contains(expected))
+        views(requireNotNull(contexts.window).decorView).filterIsInstance<Button>().single {
+            it.text.toString() == activity.getString(R.string.findings_context_inspect, 1)
+        }.performClick()
+        for (expected in listOf(saved.entry.key.id, wide.toString(), "sel_model", "cat.model.fixture", "2026.10-demo", "primary"))
+            assertTrue(expected, dialogText().contains(expected))
+        assertFalse(dialogText().contains("pending finding-navigation sentinel"))
+        assertEquals(before, files(activity.noBackupFilesDir.toPath())); assertEquals(archiveBefore, files(archivePath))
+        assertEquals("pending finding-navigation sentinel", field(R.string.context_objective).text.toString())
+        assertTrue(button(R.string.save_draft).isEnabled)
+        assertNull(shadowOf(activity).nextStartedActivity)
+        assertTrue("Navigation stays before autosave", SystemClock.uptimeMillis() in pendingSince until pendingSince + 750)
+    }
+
+    @Test fun findingNavigationRequiresCurrentAcceptedResultAndFreshRetry() {
+        save(); val harness = harness(); inventory(harness); choose()
+        val shown = dialog(); val action = findingAction(shown)
+        assertFalse(action.isEnabled)
+        action.performClick(); idle(); assertSame(shown, dialog())
+        shown.getButton(AlertDialog.BUTTON_NEGATIVE).performClick(); harness.worker.run(); idle()
+        assertTrue(report(shown).contains("Inspection cancelled")); assertFalse(action.isEnabled)
+        action.performClick(); idle(); assertSame(shown, dialog())
+        shown.getButton(AlertDialog.BUTTON_NEUTRAL).performClick()
+        assertFalse(action.isEnabled)
+        harness.worker.run(); idle(); assertTrue(action.isEnabled)
+        action.performClick()
+        assertTrue(dialog().listView.adapter.count > 1)
+        choose(1); assertTrue(dialogText().contains("rule.model.provider.match"))
+    }
+
+    @Test fun retryAndDismissRetireRetainedFindingControls() {
+        save(); val before = files(archivePath)
+        val harness = harness(); inventory(harness); val shown = complete(harness)
+        val action = findingAction(shown); action.performClick()
+        val oldPicker = dialog(); choose(1, oldPicker)
+        val oldContext = dialog(); val oldSelection = selectionButton(oldContext)
+        shown.getButton(AlertDialog.BUTTON_NEUTRAL).performClick(); idle()
+        assertFalse(oldContext.isShowing); assertFalse(action.isEnabled)
+        oldSelection.performClick(); choose(0, oldPicker)
+        assertSame(oldContext, dialog()); assertEquals(1, harness.worker.tasks.size)
+        harness.worker.run(); idle(); action.performClick()
+        val freshPicker = dialog()
+        choose(0, oldPicker)
+        assertSame(freshPicker, dialog()); assertTrue(freshPicker.isShowing)
+        choose(1, freshPicker); selectionButton().performClick()
+        val detail = dialog()
+        val back = views(requireNotNull(detail.window).decorView).filterIsInstance<Button>().single {
+            it.text.toString() == activity.getString(R.string.findings_context_back)
+        }
+        shown.getButton(AlertDialog.BUTTON_POSITIVE).performClick(); idle()
+        assertFalse(detail.isShowing); assertFalse(shown.isShowing)
+        back.performClick(); oldSelection.performClick(); action.performClick(); choose(0, freshPicker)
+        assertSame(detail, dialog()); assertFalse(detail.isShowing)
+        assertEquals(0, harness.worker.tasks.size); assertEquals(before, files(archivePath))
+    }
+
+    @Test fun switchingRetainedRevisionsRetiresCapturedFindingSelectionCallbacks() {
+        save(revision = BigInteger.ONE); save(revision = BigInteger.TWO)
+        val before = files(archivePath); val harness = harness()
+        inventory(harness); val old = complete(harness)
+        val oldAction = findingAction(old); oldAction.performClick()
+        val oldPicker = dialog(); choose(1, oldPicker)
+        val oldContext = dialog(); val oldSelection = selectionButton(oldContext)
+        assertTrue(dialogText(oldContext).contains("Recorded build: \"build.native.snapshot\", revision 1"))
+        inventory(harness); val fresh = complete(harness, 1)
+        assertFalse(old.isShowing); assertFalse(oldContext.isShowing)
+        oldAction.performClick(); oldSelection.performClick(); choose(0, oldPicker)
+        assertSame(fresh, dialog()); assertEquals(0, harness.worker.tasks.size)
+        findingAction(fresh).performClick(); choose(1); selectionButton().performClick()
+        assertTrue(dialogText().contains("Recorded build: \"build.native.snapshot\", revision 2"))
+        assertFalse(dialogText().contains("Recorded build: \"build.native.snapshot\", revision 1"))
+        assertTrue(dialogText().contains("Recorded role: \"primary\""))
+        assertTrue(dialogText().contains("Recorded item version: \"2026.10-demo\""))
+        assertEquals(before, files(archivePath))
+    }
+
+    @Test fun actualActivityPauseAndRecreationRetireRetainedFindingNavigation() {
+        save(); val before = files(archivePath)
+        activity.findViewById<Button>(R.id.snapshot_open).performClick()
+        await { ShadowAlertDialog.getLatestAlertDialog()?.isShowing == true }
+        choose(); await { report().contains("Result in this profile:") }
+        val old = dialog(); val action = findingAction(old); action.performClick()
+        val picker = dialog(); choose(1, picker)
+        val context = dialog(); val selection = selectionButton(context)
+        selection.performClick(); val detail = dialog()
+        val state = Bundle(); controller.pause().saveInstanceState(state).stop().destroy()
+        controller = Robolectric.buildActivity(PreviewActivity::class.java).create(state).start().resume().visible()
+        await { button(R.string.retry_catalog).isEnabled && button(R.string.save_draft).isEnabled }
+        action.performClick(); selection.performClick(); choose(0, picker)
+        assertFalse(old.isShowing); assertFalse(context.isShowing); assertFalse(detail.isShowing)
+        assertSame(detail, dialog())
+        assertEquals(activity.getString(R.string.snapshot_notice), activity.findViewById<TextView>(R.id.snapshot_status).text.toString())
+        activity.findViewById<Button>(R.id.snapshot_open).performClick()
+        await { ShadowAlertDialog.getLatestAlertDialog()?.isShowing == true }
+        choose(); await { report().contains("Result in this profile:") }
+        findingAction(dialog()).performClick(); choose(1); selectionButton().performClick()
+        assertTrue(dialogText().contains("Recorded build: \"build.native.snapshot\", revision 1"))
+        assertEquals(before, files(archivePath)); assertNull(shadowOf(activity).nextStartedActivity)
+    }
+
+    @Test
+    @Config(qualifiers = "ar-rEG-ldrtl-w320dp-h640dp")
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun retainedFindingEntryRemainsReachableWithLargeFontInNarrowRtl() {
+        RuntimeEnvironment.setFontScale(2f)
+        val state = Bundle(); controller.pause().saveInstanceState(state).stop().destroy()
+        controller = Robolectric.buildActivity(PreviewActivity::class.java).create(state).start().resume().visible()
+        await { button(R.string.retry_catalog).isEnabled && button(R.string.save_draft).isEnabled }
+        save(); val harness = harness(); inventory(harness); val shown = complete(harness)
+        val root = requireNotNull(shown.window).decorView
+        val density = activity.resources.displayMetrics.density
+        val width = (320 * density).toInt(); val height = (640 * density).toInt()
+        root.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY))
+        root.layout(0, 0, width, height)
+        val action = findingAction(shown)
+        assertEquals(View.LAYOUT_DIRECTION_RTL, action.layoutDirection)
+        assertTrue(action.height >= (48 * density).toInt())
+        val layout = requireNotNull(action.layout)
+        repeat(layout.lineCount) { assertEquals(0, layout.getEllipsisCount(it)) }
+        assertTrue(action.height - action.compoundPaddingTop - action.compoundPaddingBottom >= layout.height)
+        action.requestRectangleOnScreen(Rect(0, 0, action.width, action.height), true)
+        val visible = Rect(); assertTrue(action.getGlobalVisibleRect(visible))
+        assertTrue(visible.height() >= action.height)
+        action.performClick(); choose(1); selectionButton().performClick()
+        assertTrue(dialogText().contains("Recorded role: \"primary\""))
+        assertEquals(View.LAYOUT_DIRECTION_RTL, dialog().window!!.decorView.layoutDirection)
+    }
+
     @Test fun emptyAndPartiallyLostNamespacesAreExplicitWithoutIndexOrSealRepair() {
         val archive = LocalSnapshotArchive(archivePath.also(Files::createDirectories))
         archive.load()
@@ -282,6 +445,8 @@ class SnapshotEvaluationActivityTest {
             inventory(harness); choose(); val shown = dialog(); harness.worker.run(); idle()
             assertTrue(report(shown).contains("Inspection unavailable: IDENTITY_MISMATCH"))
             assertFalse(report(shown).contains("Result in this profile:"))
+            val action = findingAction(shown); assertFalse(action.isEnabled)
+            action.performClick(); idle(); assertSame(shown, dialog())
             substitute = false
             shown.getButton(AlertDialog.BUTTON_NEUTRAL).performClick(); harness.worker.run(); idle()
             assertTrue(report(shown).contains("Result in this profile:")); shown.dismiss()

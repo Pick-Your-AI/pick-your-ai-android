@@ -14,6 +14,7 @@ class CatalogComparisonSection(
     private val activity: Activity,
     saved: Bundle?,
     private val inspectPin: (PreviewCatalogPin, PreviewCatalogBrowser?, () -> Boolean) -> Unit,
+    private val beforeInspect: () -> Unit = {},
     private val dismissPinInspection: () -> Unit,
 ) : LinearLayout(activity) {
     private var resetState = false
@@ -137,6 +138,7 @@ class CatalogComparisonSection(
         dismissInspection()
         val current = tray.entries(browser)
         if (current.size != PreviewCatalogTray.LIMIT || current.any { it.detail == null }) return
+        beforeInspect()
         val comparison = PreviewCatalogComparison(requireNotNull(current[0].detail), requireNotNull(current[1].detail))
         val originTray = tray
         val originBrowser = browser

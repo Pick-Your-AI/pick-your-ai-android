@@ -69,7 +69,7 @@ class LibraryDialogAuthorityTest {
     }
 
     private fun hasText(label: Int) = views().filterIsInstance<TextView>().any { it.text.toString() == activity.getString(label) }
-    private fun loaded() = (library.openLegacy().load() as PreviewDraftLoad.Available).record
+    private fun loaded() = (readDraftAfterOwnedWork(activity) { library.openLegacy() } as PreviewDraftLoad.Available).record
     private fun dialog() = requireNotNull(ShadowAlertDialog.getLatestAlertDialog())
 
     private fun await(condition: () -> Boolean) {
@@ -231,7 +231,7 @@ class LibraryDialogAuthorityTest {
         field(R.string.draft_title).setText("independent target")
         button(R.string.save_draft).performClick()
         await { hasText(R.string.draft_saved) }
-        val source = (library.open(original).load() as PreviewDraftLoad.Available).record
+        val source = (readDraftAfterOwnedWork(activity) { library.open(original) } as PreviewDraftLoad.Available).record
 
         button(R.string.library_duplicate).performClick()
         val duplicateConfirmation = dialog()
@@ -243,7 +243,7 @@ class LibraryDialogAuthorityTest {
         val copy = requireNotNull(selected())
         assertNotEquals(original, copy)
         assertEquals("independent target", field(R.string.draft_title).text.toString())
-        assertEquals(source.baselineIdentity, (library.open(original).load() as PreviewDraftLoad.Available).record.baselineIdentity)
+        assertEquals(source.baselineIdentity, (readDraftAfterOwnedWork(activity) { library.open(original) } as PreviewDraftLoad.Available).record.baselineIdentity)
         duplicate.performClick()
         finishWork()
         assertEquals(3, (library.list() as PreviewLibraryRead.Available).entries.size)
@@ -263,7 +263,7 @@ class LibraryDialogAuthorityTest {
         assertTrue((library.list() as PreviewLibraryRead.Available).entries.none { it.id == copy })
         assertEquals(original, selected())
         assertEquals("independent target", field(R.string.draft_title).text.toString())
-        assertEquals(source.baselineIdentity, (library.open(original).load() as PreviewDraftLoad.Available).record.baselineIdentity)
+        assertEquals(source.baselineIdentity, (readDraftAfterOwnedWork(activity) { library.open(original) } as PreviewDraftLoad.Available).record.baselineIdentity)
         assertEquals(baseline, loaded().baselineIdentity)
         assertEquals(setOf(PreviewDraftId("guest-draft"), original),
             (library.list() as PreviewLibraryRead.Available).entries.map { it.id }.toSet())

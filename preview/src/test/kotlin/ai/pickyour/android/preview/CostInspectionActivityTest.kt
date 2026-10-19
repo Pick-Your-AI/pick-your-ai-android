@@ -189,7 +189,8 @@ class CostInspectionActivityTest {
         var openCount = 0
         var closedCount = 0
         var navigation = 0
-        val section = CostInspectionSection(activity, worker, { true }, { navigation++ },
+        var navigationAction: () -> Unit = {}
+        val section = CostInspectionSection(activity, worker, { true }, { navigation++; navigationAction() },
             { source(build) }, { source(estimate) })
         private fun source(bytes: ByteArray): InputStream {
             openCount++
@@ -214,6 +215,76 @@ class CostInspectionActivityTest {
             control(R.string.cost_inspection_browse).performClick(); idle()
         }
         fun text() = views(root).filterIsInstance<TextView>().joinToString("\n") { it.text.toString() }
+    }
+
+    private fun sectionMember(section: CostInspectionSection, name: String): Any? =
+        CostInspectionSection::class.java.getDeclaredField(name).apply { isAccessible = true }.get(section)
+
+    @Test fun presentationOnlyRetirementKeepsCapturedReadAndInlineOutputForFreshBrowsing() {
+        val h = Harness()
+        h.navigationAction = { h.section.dismissInspection() }
+        h.open()
+        val token = sectionMember(h.section, "request")
+        val record = sectionMember(h.section, "record")
+        val output = sectionMember(h.section, "output")
+        assertNotNull(token); assertNotNull(record)
+        val before = disk(); val summary = h.text(); val reads = h.openCount
+        val menu = dialog(); choose(4); val fields = dialog(); choose(1)
+        val value = dialog(); val back = value.getButton(AlertDialog.BUTTON_NEGATIVE)
+        val next = value.getButton(AlertDialog.BUTTON_POSITIVE)
+        assertEquals(View.VISIBLE, next.visibility)
+        h.section.dismissInspection()
+        assertNull(sectionMember(h.section, "browser"))
+        assertFalse(menu.isShowing); assertFalse(fields.isShowing); assertFalse(value.isShowing)
+        assertSame(token, sectionMember(h.section, "request")); assertSame(record, sectionMember(h.section, "record"))
+        assertSame(output, sectionMember(h.section, "output")); assertEquals(summary, h.text())
+        assertTrue(h.control(R.string.cost_inspect).isEnabled)
+        assertTrue(h.control(R.string.cost_inspection_browse).isEnabled)
+        assertTrue(h.control(R.string.cost_inspection_cancel).isEnabled)
+        shadowOf(menu).clickOnItem(0); shadowOf(fields).clickOnItem(0); back.callOnClick(); next.callOnClick(); idle()
+        assertSame(value, dialog()); assertFalse(value.isShowing)
+        h.control(R.string.cost_inspection_browse).performClick(); idle(); val fresh = dialog()
+        shadowOf(menu).clickOnItem(0); shadowOf(fields).clickOnItem(0); back.callOnClick(); next.callOnClick(); idle()
+        assertSame(fresh, dialog()); assertTrue(fresh.isShowing); assertNotSame(value, fresh)
+        click(AlertDialog.BUTTON_NEGATIVE)
+        back.callOnClick(); next.callOnClick(); idle(); assertFalse(fresh.isShowing)
+        assertEquals(reads, h.openCount); assertTrue(h.worker.pending.isEmpty())
+        assertSame(token, sectionMember(h.section, "request")); assertSame(record, sectionMember(h.section, "record"))
+        assertEquals(summary, h.text()); assertEquals(before, disk())
+        h.control(R.string.cost_inspection_browse).performClick(); idle(); choose(0)
+        assertField("cost_estimate.id", actualRecord().estimateId)
+        assertEquals(reads, h.openCount); assertEquals(before, disk())
+    }
+
+    @Test fun presentationOnlyRetirementDoesNotCancelPendingInspectionOrAdoptAnotherRead() {
+        val h = Harness(); val before = disk()
+        h.start(); val token = sectionMember(h.section, "request"); val loading = h.text()
+        assertNotNull(token); assertNull(sectionMember(h.section, "record"))
+        h.section.dismissInspection()
+        assertSame(token, sectionMember(h.section, "request")); assertEquals(loading, h.text())
+        assertFalse(h.control(R.string.cost_inspect).isEnabled)
+        assertFalse(h.control(R.string.cost_inspection_browse).isEnabled)
+        assertTrue(h.control(R.string.cost_inspection_cancel).isEnabled)
+        assertEquals(1, h.worker.pending.size); assertEquals(0, h.openCount)
+        h.finish()
+        assertSame(token, sectionMember(h.section, "request")); assertNotNull(sectionMember(h.section, "record"))
+        assertTrue(h.control(R.string.cost_inspection_browse).isEnabled)
+        assertEquals(2, h.openCount); assertEquals(2, h.closedCount); assertEquals(before, disk())
+        h.control(R.string.cost_inspection_browse).performClick(); idle(); assertTrue(dialog().isShowing)
+        assertTrue(adapter().load() is PreviewDraftLoad.Missing)
+    }
+
+    @Test fun navigationThatRetiresTheSourceCannotInstallACapturedCostBrowser() {
+        val h = Harness(); h.open(); val old = dialog(); val before = disk()
+        h.navigationAction = { h.section.dismiss() }
+        h.control(R.string.cost_inspection_browse).performClick(); idle()
+        assertFalse(old.isShowing)
+        assertNull(sectionMember(h.section, "browser")); assertNull(sectionMember(h.section, "request"))
+        assertNull(sectionMember(h.section, "record")); assertFalse(h.control(R.string.cost_inspection_browse).isEnabled)
+        assertTrue(h.text().contains(activity.getString(R.string.cost_inspection_idle)))
+        shadowOf(old).clickOnItem(0); idle(); assertFalse(old.isShowing); assertEquals(before, disk())
+        h.navigationAction = {}; h.open(); assertTrue(dialog().isShowing)
+        assertEquals(before, disk())
     }
 
 

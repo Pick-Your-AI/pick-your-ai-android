@@ -55,7 +55,8 @@ internal class CostInspectionSection(
                 val captured = record ?: return@setOnClickListener
                 if (!current(token)) return@setOnClickListener
                 onNavigate()
-                browser?.retire()
+                if (!current(token) || record !== captured) return@setOnClickListener
+                dismissInspection()
                 val next = CostInspectionBrowser(activity, captured) {
                     current(token) && record === captured
                 }
@@ -110,12 +111,18 @@ internal class CostInspectionSection(
         }
     }
 
+    /** A sibling view retires presentation without cancelling the captured read or inline result. */
+    fun dismissInspection() {
+        val previous = browser
+        browser = null
+        previous?.retire()
+    }
+
     /** Cancellation and pause retire the read and all its windows, including after resume. */
     fun dismiss() {
         request = null
         record = null
-        browser?.retire()
-        browser = null
+        dismissInspection()
         if (::output.isInitialized) {
             inspect.isEnabled = !closed
             cancel.isEnabled = false

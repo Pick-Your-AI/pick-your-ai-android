@@ -28,6 +28,7 @@ internal class CurrentDraftSummarySection(
     private val sample: TextView
     private val objectives: TextView
     private val actions: LinearLayout
+    private val evaluation: TextView
 
     init {
         id = R.id.draft_summary
@@ -50,16 +51,18 @@ internal class CurrentDraftSummarySection(
             id = R.id.draft_summary_objectives
             accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
         }.also(::addView)
-        addView(TextView(activity).apply {
+        evaluation = TextView(activity).apply {
             id = R.id.draft_summary_evaluation
             setText(R.string.draft_summary_evaluation_unavailable)
-        })
+        }.also(::addView)
         addView(TextView(activity).apply {
             id = R.id.draft_summary_cost
             setText(R.string.draft_summary_cost_unavailable)
         })
         actions = LinearLayout(activity).apply { orientation = VERTICAL }.also(::addView)
     }
+
+    fun currentCheckStatus(text: String) { if (!closed) evaluation.text = text }
 
     private fun active() = !closed && alive() && !activity.isFinishing && !activity.isDestroyed
 

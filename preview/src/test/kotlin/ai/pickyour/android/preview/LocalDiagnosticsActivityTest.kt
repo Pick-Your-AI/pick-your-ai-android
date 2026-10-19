@@ -168,7 +168,7 @@ class LocalDiagnosticsActivityTest {
         val launches = mutableListOf<Intent>()
         val diagnostics = LocalDiagnostics(activity,
             { LocalDiagnosticReport(DiagnosticStorageState.READY, DiagnosticCatalogState.SYNTHETIC_LOADED) },
-            { true }, launches::add)
+            { true }, launch = launches::add)
         diagnostics.show()
         val cancelled = dialog(); val cancelledShare = share(cancelled)
         cancelled.cancel(); idle(); cancelledShare.performClick(); idle()
@@ -198,7 +198,7 @@ class LocalDiagnosticsActivityTest {
         var storage = DiagnosticStorageState.BUSY
         val diagnostics = LocalDiagnostics(activity,
             { captures++; LocalDiagnosticReport(storage, DiagnosticCatalogState.UNAVAILABLE_OR_LOADING) },
-            { true }, launches::add)
+            { true }, launch = launches::add)
         diagnostics.show()
         val opened = dialog(); val displayed = report(opened); val retained = share(opened)
         storage = DiagnosticStorageState.READY

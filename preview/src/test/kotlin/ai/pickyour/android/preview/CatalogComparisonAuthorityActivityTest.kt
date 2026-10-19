@@ -171,7 +171,9 @@ class CatalogComparisonAuthorityActivityTest {
     }
 
     private fun state() = Bundle().also { controller.saveInstanceState(it) }
-    private fun loaded() = (PreviewDraftLibrary(activity.noBackupFilesDir.toPath()).openLegacy().load() as PreviewDraftLoad.Available).record
+    private fun loaded() = (readDraftAfterOwnedWork(activity) {
+        PreviewDraftLibrary(activity.noBackupFilesDir.toPath()).openLegacy()
+    } as PreviewDraftLoad.Available).record
     private fun dialog() = requireNotNull(ShadowAlertDialog.getLatestAlertDialog())
     private fun samples() = views().filterIsInstance<CatalogBrowseSection>().single().let(::views)
         .filterIsInstance<Button>().filter { it.text.toString().startsWith("Open FICTIONAL ") }

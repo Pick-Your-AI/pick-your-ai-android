@@ -70,8 +70,9 @@ class PreviewCatalogViewportTest {
         row.getLocationInWindow(item); scroll.getLocationInWindow(viewport)
         return item[1] - viewport[1]
     }
-    private fun baseline() = (PreviewDraftLibrary(activity.noBackupFilesDir.toPath()).openLegacy().load()
-        as PreviewDraftLoad.Available).record.baselineIdentity
+    private fun baseline() = (readDraftAfterOwnedWork(activity) {
+        PreviewDraftLibrary(activity.noBackupFilesDir.toPath()).openLegacy()
+    } as PreviewDraftLoad.Available).record.baselineIdentity
 
     @Test fun catalogRowPositionSurvivesDetailsAndActivityRecreationWithoutDraftWrites() {
         button(R.string.save_draft).performClick()

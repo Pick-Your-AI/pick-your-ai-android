@@ -37,7 +37,7 @@ class OptionalTierChoiceAccessibilityTest {
         await { button(R.string.save_draft).isEnabled }
         assertTrue(adapter().load() is PreviewDraftLoad.Missing)
         button(R.string.save_draft).performClick()
-        await { button(R.string.library_new).isEnabled && adapter().load() is PreviewDraftLoad.Available }
+        await { button(R.string.library_new).isEnabled && readDraftAfterOwnedWork(activity, ::adapter) is PreviewDraftLoad.Available }
     }
 
     @After fun close() { controller.pause().stop().destroy() }
@@ -51,7 +51,7 @@ class OptionalTierChoiceAccessibilityTest {
     private fun tierButton(tier: OptionalTier) = views().filterIsInstance<Button>()
         .single { it.text.toString().startsWith("${tier.name}:") }
     private fun adapter() = PreviewDraftLibrary(activity.noBackupFilesDir.toPath()).openLegacy()
-    private fun loaded() = (adapter().load() as PreviewDraftLoad.Available).record
+    private fun loaded() = (readDraftAfterOwnedWork(activity, ::adapter) as PreviewDraftLoad.Available).record
     private fun dialog() = requireNotNull(ShadowAlertDialog.getLatestAlertDialog())
     private fun await(condition: () -> Boolean) {
         val deadline = System.nanoTime() + 15_000_000_000L

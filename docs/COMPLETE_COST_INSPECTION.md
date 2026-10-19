@@ -194,6 +194,66 @@ state, the unchanged disclosure and missing saved draft. This changes no
 production behavior. The original 647-pass/one-failure report remains separate
 from the correction's subsequent execution.
 
+## Presentation retirement for the shared inspection boundary
+
+The cost section now exposes `dismissInspection()` for a sibling presentation.
+It clears the browser identity before retiring that browser, while preserving
+its captured read identity, immutable record, inline result and current controls.
+A pending read stays pending. Full cancellation, pause, close and the existing
+storage/privacy callbacks still use `dismiss()` and retire the read itself.
+Browse rechecks the exact request and captured record after its navigation
+callback, so a callback that invalidates the source cannot install a browser
+from the earlier capture.
+
+Three additional regressions exercise this API through real Views and the
+existing bounded worker and cost reader. They retain closed menu rows and value
+Back/Next controls before and after fresh browsing, preserve the pending read
+and all source-open counts, and exercise a navigation callback that cancels the
+captured source. Their execution is recorded separately against the immutable
+source used by each run.
+
+The API checkpoint d48208b was preparation for the canonical shared boundary
+owned by #625/#620. Its actual 21 cost-browser and eight formatter cases passed,
+with assembly and lint; those results did not establish Activity integration.
+That original checkpoint and its retained reports remain unchanged.
+
+The subsequent local composition uses the published #647 boundary and preserves
+accepted #644 retained-selection navigation. Cost entry cancels the catalog
+viewport restore and invokes the existing prepareInspection() callback.
+The existing retireInspectionWindows() operation then calls the cost section's
+presentation-only retirement alongside its other owned windows. Existing storage,
+Privacy, pause and destruction paths still cancel the entire cost read where
+they previously did. No competing shared handler or canonical owner branch is
+introduced.
+
+Eight added CostSiblingInspectionActivityTest cases exercise the actual
+Activity in both directions. They retain menu rows, complete-document rows and
+value Back/Next controls while Resource, current Findings, fixed Findings,
+retained snapshot selection children, Help or Diagnostics owns a newer window,
+and after that newer window closes. The reverse controls cannot reopen over
+cost details. The cases preserve captured inline records, acknowledged analysis
+and binding, private draft/archive bytes and the pending-read state; retired
+Help/Diagnostics actions cannot dispatch an external intent. A queued snapshot
+inventory cannot later replace cost details, while a pending cost read may
+complete its inline result without opening a window. The actual pending-title
+case keeps the unchanged 749/1 millisecond autosave boundary and requires exactly
+one later saved revision.
+
+The test-only composition 602aa95 compiled all Preview sources and actually
+executed all eight new methods: eight failures, zero errors or skips. Seven
+failed because an old sibling window remained showing; the eighth observed
+the late snapshot inventory replace the cost window. Later assertions in those
+methods had not executed. These are retained causal failures over the explicit
+cost/shared-source composition, not failures attributed to either donor alone.
+The corrected source adds the two Activity connections with all eight test
+methods and their assertions unchanged. Fresh corrected execution and every
+subsequent receiving source retain their own identities and configured gates.
+
+The original source-stage lifecycle journeys and its four generic installed
+emulator checks remain separately attributed. They do not establish the new
+cross-section cases, installed cost navigation, TalkBack or physical-device
+qualification. Whole #103 acceptance remains subject to the boundaries below.
+
 ## Exact #103 acceptance boundaries
 
 All four literal criteria remain open. This work adds complete readable recorded

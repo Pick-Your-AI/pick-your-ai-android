@@ -2893,3 +2893,44 @@ recorded final error: it rejects unchanged 754c and passes the candidate, with
 all original streams and receipt bytes preserved. These are host/parser
 compatibility results, with command, child-process, fork and signal operations
 prohibited; a subsequent configured installed run remains separate.
+
+### Observed optional Scrim heading without the service prefix
+
+The first installed run for [#624](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/624)
+failed its aggregate image/window qualification at prepared
+`f32bde624daa4024223e92370a2cb8d7d108373d`, tree
+`60ba0b3d069ebf870a2e5bba099c86721bbc83b0`. Its four product cases passed,
+and both recorded navigation image pairs passed at 8.97386058887348:1.
+Those observations do not change the original failed job or qualify its source.
+Original artifact `12222721315` is 1,118,103 bytes, SHA256
+`c7257ebd9d5b71dd2fcb703956ed13feb4f768dffb40ea5d82fb2021693ac208`.
+
+The original `06-explicit-delete-confirmation.taskbar.txt` has one
+`TaskbarScrimViewController:` heading with three TABs and no four-space
+service prefix. Its following `mScrimAlpha.value=0.0` line and controller peer
+retain their ordinary prefixes. Counting indentation characters places this
+heading outside its actual surrounding Controllers group and makes the later
+Insets boundary fail. The observation establishes the retained spelling;
+it does not identify which writer or transport omitted the prefix.
+
+The bounded parser handles this exact heading only after the unique own Navbar
+inside the ordinary tabbed Controllers group and before its own DeviceProfile.
+It requires one normally prefixed `mScrimAlpha.value` line, a finite decimal
+between zero and one, and a following normally prefixed controller peer.
+Only that heading receives its service prefix in the parser's local line view.
+Original text, retained files, hashes and command records remain unchanged.
+Missing, duplicate, foreign, malformed or misplaced groups still reject;
+no optional alpha value supplies required context, Navbar, profile or pixel
+evidence. Other indentation rules and existing prefix exceptions stay intact.
+
+The host regressions reproduce the observed failure on the unchanged parser,
+then check the conventional and observed headings, finite values, malformed
+groups, scope escape and missing or duplicate required fields. Existing
+system-bar negatives retain their complete checks. A separate read-only replay
+of all four unchanged original Taskbar streams passes the corrected parser;
+the stored failed aggregate still rejects. A labeled in-memory reconstruction
+of its pre-qualification state passes without changing any original record.
+These are parser compatibility results, not an installed rerun. The corrected
+source still requires its own ordinary configured receiving checks. Broader
+Android [#59](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/59)
+acceptance and its canonical record remain separate.

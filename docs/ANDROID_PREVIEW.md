@@ -12,9 +12,10 @@ separate gates in the [repository scope](REPOSITORY_SCOPE.md).
 
 The current diagnostic browses the unmodified frozen-v1 catalog and supports typed
 draft editing, automatic valid-form saves, explicit save/reopen, a local library, retained history and
-read-only comparison and report inspection. The fixture diagnostics operate on
-the original bundled inputs; they do not evaluate the edited guest draft, whose
-compatibility remains **unknown**. Fixtures are bundled directly from the verified
+read-only comparison and report inspection. The fixture inspections operate on
+the original bundled inputs. The separate [saved-draft check receiver](CURRENT_DRAFT_REEVALUATION.md)
+reevaluates actual acknowledged typed draft inputs against those synthetic pins;
+whole-draft compatibility remains **unestablished**. Fixtures are bundled directly from the verified
 import, never copied into a real catalog. There is no real-data mode or promotion
 path, account, network, import or telemetry. Release variants are disabled.
 
