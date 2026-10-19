@@ -95,7 +95,9 @@ class PreviewActivityTest {
     private fun adapter() = PreviewDraftLibrary(activity.noBackupFilesDir.toPath()).openLegacy()
     private fun loaded() = (adapter().load() as PreviewDraftLoad.Available).record
     private fun dialog() = ShadowAlertDialog.getLatestAlertDialog()!!
-    private fun samples() = views().filterIsInstance<Button>().filter { it.text.toString().startsWith("Open FICTIONAL") }
+    // Find the same synthetic catalog rows without assuming unwrapped LTR captions.
+    private fun samples() = views().filterIsInstance<CatalogBrowseSection>().single().let(::views)
+        .filterIsInstance<Button>().filter { it.text.toString().contains("FICTIONAL") }
     private fun comparisonSection() = views().filterIsInstance<CatalogComparisonSection>().single()
     private fun comparisonAdd(detail: AlertDialog = dialog()) = views(detail.window!!.decorView).filterIsInstance<Button>()
         .single { it.text.toString() == activity.getString(R.string.catalog_compare_add) }

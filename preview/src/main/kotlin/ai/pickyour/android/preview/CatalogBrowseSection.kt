@@ -147,7 +147,8 @@ class CatalogBrowseSection(
         // All frozen kinds remain reachable, including those with no row in this snapshot/tier.
         val values = listOf<PreviewCatalogKind?>(null) + PreviewCatalogKinds.all
         showPreviewSingleChoiceDialog(activity, R.string.catalog_kind_title,
-            values.map { it?.let { entry -> "${entry.tier} · ${entry.id}" }
+            values.map { it?.let { entry -> ComponentSelectionText.format(activity,
+                R.string.catalog_browse_kind_choice, entry.tier, entry.id) }
                 ?: activity.getString(R.string.catalog_all_kinds) },
             values.indexOfFirst { it?.id == state.kind }, ::active) { index ->
             viewport.cancel()
@@ -176,8 +177,10 @@ class CatalogBrowseSection(
     private fun render() {
         if (!active()) return
         val renderedRows = Any().also { rowAuthority = it }
-        tier.text = activity.getString(R.string.catalog_tier, state.tier ?: activity.getString(R.string.catalog_all_tiers))
-        kind.text = activity.getString(R.string.catalog_kind, state.kind ?: activity.getString(R.string.catalog_all_kinds))
+        tier.text = state.tier?.let { ComponentSelectionText.format(activity, R.string.catalog_tier, it) }
+            ?: activity.getString(R.string.catalog_tier, activity.getString(R.string.catalog_all_tiers))
+        kind.text = state.kind?.let { ComponentSelectionText.format(activity, R.string.catalog_kind, it) }
+            ?: activity.getString(R.string.catalog_kind, activity.getString(R.string.catalog_all_kinds))
         sort.text = activity.getString(R.string.catalog_sort, sortName(state.sort))
         val current = browser
         val page = current?.browse(state)
@@ -186,7 +189,7 @@ class CatalogBrowseSection(
         val rows = mutableListOf<Pair<PreviewCatalogItem, View>>()
         if (current != null && page != null) page.items.forEach { item ->
             val row = Button(activity).apply {
-                text = activity.getString(R.string.item_button, item.name, item.kind)
+                text = ComponentSelectionText.format(activity, R.string.item_button, item.name, item.kind)
                 isEnabled = selectable
                 setOnClickListener {
                     if (active() && selectable && browser === current && rowAuthority === renderedRows) {
