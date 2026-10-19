@@ -37,6 +37,7 @@ class PreviewActivity : Activity() {
     private var restoreWorkloadFromDisk = false
     private lateinit var tierSection: OptionalTierSection
     private lateinit var planningSection: T6PlanningSection
+    private lateinit var draftSummary: CurrentDraftSummarySection
     private var selectedId: String? = null
     private var selectedVersion: String? = null
     private var selectedCatalogHash: String? = null
@@ -140,6 +141,8 @@ class PreviewActivity : Activity() {
         activeDraft = text(R.string.library_active).apply {
             text = if (selectionResolved) getString(R.string.library_active, currentDraftId.value) else getString(R.string.active_unknown)
         }
+        draftSummary = CurrentDraftSummarySection(this) { !destroyed && diagnosticsResumed }
+        content.addView(draftSummary)
         val titleLabel = text(R.string.draft_title)
         title = EditText(this).apply {
             id = View.generateViewId()
@@ -436,6 +439,7 @@ class PreviewActivity : Activity() {
                     catalogComparison.show(loaded.catalog, loaded.pricebook)
                     catalog.selectionEnabled(!storageBusy)
                     showSelection()
+                    updateDraftSummary()
                 }
             }
         }
@@ -643,6 +647,35 @@ class PreviewActivity : Activity() {
             !matchesSaved() -> PlanningDraftState.PENDING_EDITS
             else -> PlanningDraftState.SAVED
         })
+        updateDraftSummary()
+    }
+
+    private fun updateDraftSummary() {
+        if (destroyed || !::draftSummary.isInitialized || !::workloadSection.isInitialized) return
+        val baseline = savedRecord
+        val id = currentDraftId
+        val authority = storageAuthority
+        val pendingFields = fields()
+        val pendingContext = domainContext
+        val pendingInputs = workloadSection.inputs
+        val state = when {
+            storageBusy -> PlanningDraftState.LOADING
+            !storageReady || !selectionResolved || entryBlocked -> PlanningDraftState.UNAVAILABLE
+            baseline == null -> PlanningDraftState.UNSAVED
+            !matchesSaved() -> PlanningDraftState.PENDING_EDITS
+            else -> PlanningDraftState.SAVED
+        }
+        fun current() = !destroyed && !isFinishing && !isDestroyed && diagnosticsResumed &&
+            storageReady && !storageBusy && selectionResolved && !entryBlocked && currentDraftId == id &&
+            savedRecord === baseline && storageAuthority === authority && fields() == pendingFields &&
+            domainContext == pendingContext && workloadSection.inputs === pendingInputs
+        val canReviewComponents = state == PlanningDraftState.SAVED && baseline != null &&
+            ::componentSection.isInitialized && componentSection.canReviewCurrentChoices(baseline)
+        draftSummary.update(baseline, state, pendingInputs, selectedId != null, canReviewComponents,
+            ::current,
+            { workloadSection.reviewObjectiveInputs(pendingInputs) },
+            { if (baseline != null) componentSection.reviewCurrentChoices(baseline) },
+            { if (::planningSection.isInitialized) planningSection.reviewGuidance() })
     }
 
     private fun showHistory() {
@@ -1355,10 +1388,12 @@ class PreviewActivity : Activity() {
     override fun onResume() {
         super.onResume()
         diagnosticsResumed = true
+        updateDraftSummary()
     }
 
     override fun onPause() {
         diagnosticsResumed = false
+        if (::draftSummary.isInitialized) draftSummary.retireActions()
         if (::diagnostics.isInitialized) diagnostics.dismiss()
         if (::help.isInitialized) help.dismiss()
         if (::snapshots.isInitialized) snapshots.dismiss()
@@ -1367,6 +1402,7 @@ class PreviewActivity : Activity() {
 
     override fun onDestroy() {
         destroyed = true
+        if (::draftSummary.isInitialized) draftSummary.close()
         if (::findings.isInitialized) findings.close()
         if (::snapshots.isInitialized) snapshots.close()
         if (::diagnostics.isInitialized) diagnostics.close()
