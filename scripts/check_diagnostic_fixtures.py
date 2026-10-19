@@ -94,5 +94,6 @@ path = ROOT / 'core/src/test/resources/evaluation/diagnostic-cases.json'
 if '--write' in sys.argv:
     path.write_text(output)
 else:
-    assert path.read_text() == output, 'Diagnostic goldens differ from the unchanged Python reference'
+    if path.read_text() != output:
+        raise SystemExit('Diagnostic goldens differ from the unchanged Python reference')
     print(f'{len(cases)} diagnostic cases match frozen Python reference')
