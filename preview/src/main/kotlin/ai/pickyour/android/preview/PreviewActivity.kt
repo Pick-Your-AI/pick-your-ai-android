@@ -97,6 +97,7 @@ class PreviewActivity : Activity() {
     private var restoringFields = false
     private var restoration: PreviewDraftRestoration? = null
     private lateinit var findings: FindingsInspectionSection
+    private lateinit var snapshots: SnapshotEvaluationSection
     private lateinit var diagnostics: LocalDiagnostics
     private var diagnosticsResumed = false
     private var entryBlocked = false
@@ -331,6 +332,8 @@ class PreviewActivity : Activity() {
         CostInspectionSection(this, worker) { !destroyed }.attach(content)
         findings = FindingsInspectionSection(this, worker) { !destroyed }
         findings.attach(content)
+        snapshots = SnapshotEvaluationSection(this, worker) { !destroyed && diagnosticsResumed }
+        snapshots.attach(content)
         diagnostics = LocalDiagnostics(this, {
             LocalDiagnosticReport(
                 when {
@@ -1331,12 +1334,14 @@ class PreviewActivity : Activity() {
     override fun onPause() {
         diagnosticsResumed = false
         if (::diagnostics.isInitialized) diagnostics.dismiss()
+        if (::snapshots.isInitialized) snapshots.dismiss()
         super.onPause()
     }
 
     override fun onDestroy() {
         destroyed = true
         if (::findings.isInitialized) findings.close()
+        if (::snapshots.isInitialized) snapshots.close()
         if (::diagnostics.isInitialized) diagnostics.close()
         if (::catalogPinRecovery.isInitialized) catalogPinRecovery.close()
         catalogDetailDialog?.dismiss()
