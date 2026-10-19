@@ -21,14 +21,20 @@ evidence.
 | `Frozen contracts and JVM core` | [core.yml](../.github/workflows/core.yml), `core` | Frozen-byte/reference and tamper checks, delivery-ledger checks, wrapper integrity, JVM core check and assembly | Core JUnit results, test reports and library output |
 | `Unsigned synthetic Android preview` | [core.yml](../.github/workflows/core.yml), `android-preview` | Wrapper integrity, strict dependency verification, unsigned APK assembly, Android lint and all named Activity simulations without failures or skips | Original unsigned APK, lint report and simulated Activity results |
 | `Pinned secret scanning` | [secrets.yml](../.github/workflows/secrets.yml), `secrets` | Scanner guards, the actual pinned CLI's required negative fixtures and a scan of the exact checked-out source's reachable history with zero unresolved findings | Sanitized `secret-scan.json` with source/tree, tool hashes, fixture results and finding metadata |
+| `Installed synthetic Android preview (hosted KVM)` | [core.yml](../.github/workflows/core.yml), `android-installed`, after `android-preview` succeeds | Exact unsigned-APK artifact handoff; four installed synthetic scenarios; fixed system-bar evidence and restoration of the original temporary KVM ACL | Original emulator and ACL receipts, JUnit results, screenshots and bounded diagnostic observations |
 
 `passed` means zero raw findings. `passed_with_reviewed_findings` retains the raw
 findings and means every finding satisfied the exact reviewed public-checksum
 proof with zero unresolved findings. These outcomes must remain distinct in
 reviews and downstream summaries.
 
-These unique names were observed on baseline `3850018` as GitHub Actions checks
-(application slug `github-actions`, application ID `15368`). Both workflows run
+The three source-check names were observed on baseline `3850018` as GitHub Actions
+checks (application slug `github-actions`, application ID `15368`). The fourth,
+installed check was delivered through
+[#467](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/467) at
+[`0f5fea42c5cd149472269da2e47559a24689ba71`](https://github.com/Pick-Your-AI/pick-your-ai-android/commit/0f5fea42c5cd149472269da2e47559a24689ba71).
+This is the current source inventory, not a new execution or settings receipt.
+Both workflows run
 for pull requests and pushes to `main`, with an explicit manual dispatch available.
 They have no changed-path filter. Each workflow keeps its existing concurrency
 group per workflow and ref. A newer pull-request run cancels the superseded run
@@ -51,11 +57,17 @@ tests GitHub's prepared merge commit. Record the artifact ID, downloaded ZIP SHA
 embedded source/tree where supplied and the observed test result before relying on
 an artifact. An expired or unavailable artifact is an evidence gap, not a pass.
 
-The preview remains an unsigned engineering artifact. Simulated Activity tests do
-not establish installation, physical-device behavior, a release signature or store
-acceptance. [The installed-emulator work in #206](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/206)
-retains its actual four-case gate and failed diagnostic receipts. Its future check
-name must not be configured as required until the reviewed job exists on main.
+The ordinary preview artifact remains unsigned. The installed job signs a separate
+temporary copy with a disposable test certificate and installs it only in its own
+fresh AVD. Its [four scenarios](EMULATOR_SMOKE.md#cases-and-evidence-limits) cover
+launch, acknowledged automatic-save persistence after force-stop, invalid pending
+fields across rotation, and confirmed deletion without resurrection. Original
+installed receipts retain their actual source, APK, failed cases and cleanup
+outcomes. Simulated Activity tests and a successful build cannot substitute for
+those installed results; neither lane supplies physical-device behavior, a
+release signature or store acceptance. The earlier
+[#206](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/206) failures remain
+historical evidence in the installed guide.
 
 ## Intended main policy and observed configuration
 
@@ -74,7 +86,7 @@ concrete, prepared ruleset configuration on 2026-10-18. It has not been saved:
 | Ruleset | `Android main review and CI`, intended enforcement `Active` |
 | Target | Only `refs/heads/main` in this repository; no excluded branches |
 | Delivery | Pull request required; preserve independent review of the actual source and current-main integration |
-| Required checks | All three exact check names above, from GitHub Actions application `15368` |
+| Required checks | The three source-check names above, from GitHub Actions application `15368` |
 | Current base | Require the candidate to include current `main` before merge; refresh review and execution when the combined source changes |
 | Commit identity | Preserve the repository's verified-signature requirement |
 | History protection | Disallow force pushes and branch deletion |
@@ -130,7 +142,7 @@ approval and extra approval for unattributed changes, and retains its sole
 OrganizationAdmin/always exception. These settings supersede the unsaved proposal
 above, not its preserved historical observation.
 
-The reviewed correction is to append the three exact check names above, each with
+The reviewed correction is to append the three source-check names above, each with
 ruleset `integration_id: 15368`, while retaining the entire current rule,
 default-branch condition and existing exception. Proposed status parameters are
 `strict_required_status_checks_policy: true` and `do_not_enforce_on_create: false`.
@@ -140,11 +152,15 @@ fresh-read all settings, reconcile concurrent edits, perform only the authorized
 additive action, then verify the complete result and unchanged other rules.
 
 Actual application remains blocked by the available administration surface. No
-setting or authentication bypass is supplied by this documentation. The installed
-correction remains with [#467](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/467);
-append its fourth check only after corrected source is accepted on main and an
-applicable actual check exists. The [02.05 receiving record](delivery/android/work-packages/02.05.md)
-keeps settings, credential-context and installed evidence separately incomplete.
+setting or authentication bypass is supplied by this documentation. The three-check
+proposal above predates the accepted installed job in
+[#467](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/467). A current
+additive proposal must also account for its exact fourth check name in the table,
+after verifying the applicable actual check and fresh settings. This documentation
+correction does not assert that any required-status rule has been applied. The
+[02.05 receiving record](delivery/android/work-packages/02.05.md) retains its
+separate settings, credential-context and installed-evidence receiving work;
+its earlier candidate observations remain attributed to those original sources.
 
 ## Credential and review boundary
 
