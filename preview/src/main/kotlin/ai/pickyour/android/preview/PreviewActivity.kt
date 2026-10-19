@@ -98,9 +98,11 @@ class PreviewActivity : Activity() {
     private var restoringFields = false
     private var restoration: PreviewDraftRestoration? = null
     private lateinit var findings: FindingsInspectionSection
+    private lateinit var snapshots: SnapshotEvaluationSection
     private lateinit var diagnostics: LocalDiagnostics
     private lateinit var help: LocalHelp
     private var diagnosticsResumed = false
+    private var environmentAdmitted = false
     private var entryBlocked = false
     private var unsupportedEntry = false
     private lateinit var entryNotice: TextView
@@ -108,6 +110,8 @@ class PreviewActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        environmentAdmitted = EnvironmentBootstrap.admit(this, EnvironmentBootstrap.read(this))
+        if (!environmentAdmitted) return
         // The checkpoint records a deliberate local recovery; it contains no incoming URI or payload.
         entryBlocked = if (savedInstanceState?.containsKey("entryBlocked") == true)
             savedInstanceState.getBoolean("entryBlocked") else !isLocalEntry(intent)
@@ -341,6 +345,8 @@ class PreviewActivity : Activity() {
         CostInspectionSection(this, worker) { !destroyed }.attach(content)
         findings = FindingsInspectionSection(this, worker) { !destroyed }
         findings.attach(content)
+        snapshots = SnapshotEvaluationSection(this, worker) { !destroyed && diagnosticsResumed }
+        snapshots.attach(content)
         diagnostics = LocalDiagnostics(this, {
             LocalDiagnosticReport(
                 when {
@@ -381,7 +387,7 @@ class PreviewActivity : Activity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        if (destroyed) return
+        if (destroyed || !environmentAdmitted) return
         // A new entry never replaces an already open editor, its pending fields or its save authority.
         if (!isLocalEntry(intent)) unsupportedEntry = true
         else if (!entryBlocked) unsupportedEntry = false
@@ -1299,6 +1305,7 @@ class PreviewActivity : Activity() {
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
+        if (!environmentAdmitted) { super.onSaveInstanceState(outState); return }
         outState.putBoolean("entryBlocked", entryBlocked)
         outState.putBoolean("unsupportedEntry", unsupportedEntry)
         catalog.saveState(outState)
@@ -1351,12 +1358,14 @@ class PreviewActivity : Activity() {
         diagnosticsResumed = false
         if (::diagnostics.isInitialized) diagnostics.dismiss()
         if (::help.isInitialized) help.dismiss()
+        if (::snapshots.isInitialized) snapshots.dismiss()
         super.onPause()
     }
 
     override fun onDestroy() {
         destroyed = true
         if (::findings.isInitialized) findings.close()
+        if (::snapshots.isInitialized) snapshots.close()
         if (::diagnostics.isInitialized) diagnostics.close()
         if (::help.isInitialized) help.close()
         if (::catalogPinRecovery.isInitialized) catalogPinRecovery.close()
