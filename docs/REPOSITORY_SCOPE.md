@@ -83,7 +83,7 @@ selected `:core`/`:preview` toolchain and preview package evidence remain distin
 from future product, device and release qualification; full #48 acceptance stays
 pending its literal criteria and current installed-delivery evidence.
 
-[ADR 0009](decisions/0009-android-59-acceptance-record.md) separately proposes
+[ADR 0010](decisions/0010-android-59-acceptance-record.md) separately proposes
 placing only #59's [02.05 CI receiving record](delivery/android/work-packages/02.05.md)
 in Android, effective after independent receiving review and normal reviewed main
 delivery. The original website spelling/path remain history. The existing

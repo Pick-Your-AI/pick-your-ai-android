@@ -125,7 +125,7 @@ main. The record preserves the original website path and distinguishes the selec
 preview identity from future product qualification. Full #48 acceptance remains
 pending its literal criteria and current installed-delivery evidence.
 
-[ADR 0009](decisions/0009-android-59-acceptance-record.md) separately proposes
+[ADR 0010](decisions/0010-android-59-acceptance-record.md) separately proposes
 placing only #59's [02.05 CI record](delivery/android/work-packages/02.05.md) in
 Android after independent review and normal main delivery. It preserves the
 original website path as history and keeps required-status, credential-context,

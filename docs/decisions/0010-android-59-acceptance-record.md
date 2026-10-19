@@ -1,4 +1,4 @@
-# ADR 0009: Place Android #59's CI acceptance record in Android
+# ADR 0010: Place Android #59's CI acceptance record in Android
 
 Date: 2026-10-19. Effective event: independent receiving review and normal reviewed
 merge of this ADR and the [02.05 record](../delivery/android/work-packages/02.05.md)
