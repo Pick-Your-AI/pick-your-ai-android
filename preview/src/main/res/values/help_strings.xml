@@ -7,9 +7,14 @@
     <item name="help_destination" type="id" />
     <item name="help_external_open" type="id" />
     <item name="help_external_outcome" type="id" />
+    <item name="help_catalog_identity" type="id" />
     <string name="help_open">Help and report a problem</string>
     <string name="help_title">Help</string>
     <string name="help_build">App version: %1$s (code %2$d)\nAndroid API: %3$d</string>
+    <string name="help_environment">App ID: %1$s\nEnvironment: synthetic local preview\nRemote API: not configured</string>
+    <string name="help_catalog_known">Loaded bundled catalog: catalog.fixture.1\nCatalog revision: 1\nCatalog schema: 1.0.0\nSynthetic example versions only.</string>
+    <string name="help_catalog_unrecognized">Catalog versions unavailable: the loaded bytes do not match the bundled example.</string>
+    <string name="help_catalog_unavailable">Catalog versions unavailable while loading or after an unsuccessful load. Close Help and retry the bundled catalog.</string>
     <string name="help_local_title">Local planning preview</string>
     <string name="help_local">Your planning drafts are stored on this device. The bundled examples are synthetic and do not establish real compatibility, price, capacity or quality. The phone is the planning client; this preview does not run your AI stack. The original-fixture diagnostic checks the bundled example, not your edited draft.</string>
     <string name="help_recovery_title">Save and recover carefully</string>

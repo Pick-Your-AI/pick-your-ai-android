@@ -83,6 +83,16 @@ selected `:core`/`:preview` toolchain and preview package evidence remain distin
 from future product, device and release qualification; full #48 acceptance stays
 pending its literal criteria and current installed-delivery evidence.
 
+[ADR 0009](decisions/0009-android-33-acceptance-record.md) separately proposes
+placing only #33's [17.04 support receiving record](delivery/android/work-packages/17.04.md)
+in Android. Its effective event is independent receiving review and normal
+reviewed merge. The record preserves the original website destination, all three
+literal criteria, actual diagnostic and public browser-intake evidence, separate
+in-session support and affected local-data review, and unavailable-channel limits.
+It changes no implementation, other acceptance path, shared authority, operating
+commitment or release qualification. Canonical ledger reconciliation follows the
+actual reviewed record delivery.
+
 [ADR 0011](decisions/0011-android-59-acceptance-record.md) separately proposes
 placing only #59's [02.05 CI receiving record](delivery/android/work-packages/02.05.md)
 in Android, effective after independent receiving review and normal reviewed main

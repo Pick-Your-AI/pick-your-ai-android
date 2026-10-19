@@ -359,7 +359,11 @@ class PreviewActivity : Activity() {
             )
         }, { !destroyed && diagnosticsResumed })
         diagnostics.attach(content)
-        help = LocalHelp(this, { !destroyed && diagnosticsResumed }, diagnostics::show)
+        help = LocalHelp(this, { !destroyed && diagnosticsResumed }, diagnostics::show,
+            captureCatalogIdentity = {
+                if (!retry.isEnabled) HelpCatalogIdentity.UNAVAILABLE_OR_LOADING
+                else catalogFixture?.helpIdentity ?: HelpCatalogIdentity.UNAVAILABLE_OR_LOADING
+            })
         help.attach(content)
         setContentView(CatalogViewportScrollView(this).apply {
             onUserNavigation = catalog::cancelViewportRestore

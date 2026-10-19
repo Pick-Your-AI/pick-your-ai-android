@@ -189,6 +189,43 @@ jobs:
               total += len(cases)
           print(f"Verified {total} retained-snapshot and frozen evaluator cases; native execution remains separate")
           PYTEST
+      - name: Require every retained configuration golden
+        run: |
+          python - <<'PYCONFIGURATION'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          required = {
+              "all-active-control",
+              "contradictory-target-region",
+              "contradictory-host-region",
+              "contradictory-self-hosted-serving",
+              "optional-t3-t4-t5-disabled",
+              "optional-t3-enabled",
+              "optional-t4-enabled-without-t3-vector",
+              "optional-t5-enabled",
+              "rag-with-disabled-knowledge",
+              "agent-with-disabled-framework",
+              "training-with-disabled-compute",
+              "production-with-disabled-guardrail",
+              "development-with-disabled-guardrail",
+              "hard-cap-disabled-without-cost",
+              "zero-budget-without-cost",
+              "precise-budget-without-cost",
+              "adjacent-budget-without-cost",
+          }
+          name = "ai.pickyour.core.evaluation.RetainedConfigurationGoldenTest"
+          path = pathlib.Path("core/build/test-results/test") / ("TEST-" + name + ".xml")
+          suite = ET.parse(path).getroot()
+          cases = suite.findall("testcase")
+          names = [case.attrib["name"] for case in cases]
+          if suite.attrib.get("name") != name or set(names) != required or len(names) != len(required):
+              raise SystemExit("Missing, foreign or repeated retained configuration golden")
+          if int(suite.attrib["tests"]) != len(cases) or any(int(suite.attrib.get(key, "0")) for key in ("failures", "errors", "skipped")):
+              raise SystemExit("Retained configuration goldens did not execute cleanly")
+          if any(case.findall("failure") or case.findall("error") or case.findall("skipped") for case in cases):
+              raise SystemExit("Retained configuration golden did not pass")
+          print(f"Verified all {len(cases)} complete retained configuration goldens")
+          PYCONFIGURATION
       - name: Require every conformance fixture and private migration observation
         run: |
           mkdir -p build/conformance
@@ -940,6 +977,9 @@ jobs:
           report = pathlib.Path("preview/build/test-results/testDebugUnitTest/TEST-ai.pickyour.android.preview.LocalHelpActivityTest.xml")
           suite = ET.parse(report).getroot()
           expected = {
+              "helpShowsTheActualLoadedBundledIdentityWithoutExportingIt",
+              "differentAndUnavailableCatalogsNeverBorrowBundledLabelsOrPrivateMetadata",
+              "helpCapturesLoadingOnceAndOnlyFreshHelpShowsTheCompletedCatalog",
               "localHelpAndActualBrowserIntentExcludeSavedAndPendingPrivateContent",
               "eachPublicDestinationRequiresReviewAndOnlyOneExplicitFixedUriDispatch",
               "cancelledDismissedAndReplacedHelpAndDestinationCallbacksCannotNavigate",
