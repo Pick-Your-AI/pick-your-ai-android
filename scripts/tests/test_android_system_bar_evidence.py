@@ -200,6 +200,16 @@ def taskbar_voice_text(outliers=('isSeparateTaskbarBackgroundAttachedToWindow',)
     return taskbar_inset_text(inset_outliers).replace(
         '    \t\t\tOtherController:\n', block + '    \t\t\tOtherController:\n')
 
+def taskbar_scrim_text(*, unprefixed=True):
+    # Synthetic surrounding state. Original624 dump06 retains this exact
+    # three-TAB heading, followed by the regularly prefixed scalar and peer.
+    prefix = '\t\t\t' if unprefixed else '    \t\t\t'
+    block = (prefix + 'TaskbarScrimViewController:\n'
+             '    \t\t\t\tmScrimAlpha.value=0.0\n')
+    marker = '    \t\t\tTaskbarInsetsController:\n'
+    return taskbar_voice_text((), inset_outliers=()).replace(marker, block + marker)
+
+
 class WindowDevice:
     def __init__(self):
         self.calls = []
@@ -1603,6 +1613,86 @@ class SystemBarEvidenceTests(unittest.TestCase):
             for name, data in originals.items():
                 self.assertEqual((output / name).read_bytes(), data)
 
+
+    def test_taskbar_observed_scrim_heading_keeps_raw_text_and_complete_gate(self):
+        original = self.passing_state()
+        for unprefixed in (False, True):
+            raw = taskbar_scrim_text(unprefixed=unprefixed)
+            state = copy.deepcopy(original)
+            for name in SMOKE.SYSTEM_BAR_CHECKPOINTS:
+                self.rebound_taskbar(state, raw, name=name)
+            retained = copy.deepcopy(state)
+            with self.subTest(unprefixed=unprefixed):
+                self.assertTrue(SMOKE.taskbar_state_fields_pass(raw))
+                self.assertTrue(SMOKE.system_bar_evidence_passes(state))
+                self.assertEqual(state, retained)
+
+    def test_taskbar_scrim_alpha_is_bounded_observation_without_tint_authority(self):
+        source = taskbar_scrim_text()
+        for value in ('0.0', '-0.0', '1.0', '0.5', '1.0E-4'):
+            raw = source.replace('mScrimAlpha.value=0.0', 'mScrimAlpha.value=' + value)
+            state = self.passing_state()
+            self.rebound_taskbar(state, raw)
+            retained = copy.deepcopy(state)
+            with self.subTest(value=value):
+                self.assertTrue(SMOKE.taskbar_state_fields_pass(raw))
+                self.assertTrue(SMOKE.system_bar_evidence_passes(state))
+                self.assertEqual(state, retained)
+
+    def test_taskbar_scrim_missing_wrapper_admission_requires_exact_complete_group(self):
+        source = taskbar_scrim_text()
+        owner = '\t\t\tTaskbarScrimViewController:\n'
+        field = '    \t\t\t\tmScrimAlpha.value=0.0\n'
+        peer = '    \t\t\tTaskbarInsetsController:\n'
+        candidates = {
+            'two_tabs': source.replace(owner, owner[1:]),
+            'four_tabs': source.replace(owner, '\t' + owner),
+            'spaces_only': source.replace(owner, owner.replace('\t', ' ')),
+            'mixed_short_prefix': source.replace(owner, ' ' + owner),
+            'foreign_heading': source.replace(owner, owner.replace('TaskbarScrimViewController', 'ForeignController')),
+            'duplicate_heading': source.replace(owner, owner + owner),
+            'missing_scalar': source.replace(field, ''),
+            'duplicate_scalar': source.replace(field, field + field),
+            'unprefixed_scalar': source.replace(field, field[4:]),
+            'foreign_scalar': source.replace('mScrimAlpha.value', 'mTaskbarNavButtonDarkIntensity'),
+            'missing_following_peer': source.replace(peer, ''),
+            'unprefixed_following_peer': source.replace(peer, peer[4:]),
+        }
+        for value in ('', 'NaN', 'Infinity', '-0.1', '1.1', '0x0', '0.0 extra', '1' * 33):
+            candidates['scalar_' + value] = source.replace('mScrimAlpha.value=0.0', 'mScrimAlpha.value=' + value)
+        for label, raw in candidates.items():
+            state = self.passing_state(); self.rebound_taskbar(state, raw)
+            retained = copy.deepcopy(state)
+            with self.subTest(change=label):
+                self.assertFalse(SMOKE.taskbar_state_fields_pass(raw))
+                self.assertFalse(SMOKE.system_bar_evidence_passes(state))
+                self.assertEqual(state, retained)
+
+    def test_taskbar_scrim_heading_cannot_replace_own_scope_or_required_fields(self):
+        source = taskbar_scrim_text()
+        group = ('\t\t\tTaskbarScrimViewController:\n'
+                 '    \t\t\t\tmScrimAlpha.value=0.0\n')
+        candidates = {}
+        for boundary in ('    TaskbarManager:\n', '    \t\tTaskbarControllers:\n',
+                         '    \t\t\tNavbarButtonsViewController:\n', '    \tDeviceProfile:\n',
+                         '    AssistStateManager:\n'):
+            candidates['before_' + boundary.strip()] = source.replace(group, '').replace(boundary, group + boundary)
+        candidates['duplicate_foreign_context'] = source + group
+        candidates['foreign_context_boundary'] = source.replace(group, '    \tForeignContext:\n' + group)
+        for field in ('mNavMode', 'mImeDrawsImeNavBar', 'mIsUserSetupComplete', 'mBindInProgress',
+                      'mWindowLayoutParams.height', 'mTaskbarNavButtonDarkIntensity',
+                      'widthPx', 'isTaskbarPresentInApps'):
+            line = next(line for line in source.splitlines(True)
+                        if line.startswith('    \t\t') and line.lstrip(' \t').startswith(field))
+            candidates['missing_' + field] = source.replace(line, '')
+            candidates['duplicate_' + field] = source.replace(line, line + line)
+        for label, raw in candidates.items():
+            state = self.passing_state(); self.rebound_taskbar(state, raw)
+            retained = copy.deepcopy(state)
+            with self.subTest(change=label):
+                self.assertFalse(SMOKE.taskbar_state_fields_pass(raw))
+                self.assertFalse(SMOKE.system_bar_evidence_passes(state))
+                self.assertEqual(state, retained)
 
     def test_taskbar_optional_voice_prefix_preserves_raw_and_complete_gate(self):
         original = self.passing_state()

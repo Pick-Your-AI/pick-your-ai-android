@@ -2086,6 +2086,12 @@ jobs:
               'ai.pickyour.android.preview.SnapshotEvaluationActivityTest': {
                   'actualActivityMissingArchiveRemainsMissingAndPendingEditorIsPreserved',
                   'actualActivityReadsExactRetainedInputsAfterSourceDeletionWithoutEvaluatingPendingEdits',
+                  'actualRetainedFindingNavigationKeepsRecordedIdentityAndPendingEdits',
+                  'findingNavigationRequiresCurrentAcceptedResultAndFreshRetry',
+                  'retryAndDismissRetireRetainedFindingControls',
+                  'switchingRetainedRevisionsRetiresCapturedFindingSelectionCallbacks',
+                  'actualActivityPauseAndRecreationRetireRetainedFindingNavigation',
+                  'retainedFindingEntryRemainsReachableWithLargeFontInNarrowRtl',
                   'emptyAndPartiallyLostNamespacesAreExplicitWithoutIndexOrSealRepair',
                   'cancelledAndReplacedPickersCannotOpenRetainedItemCallbacks',
                   'cancelBeforeQueuedEvaluationPreventsEngineWorkAndFreshRetryWorks',
