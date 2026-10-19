@@ -303,3 +303,62 @@ persistence, debounce timing and inspection retirement policy remain unchanged.
 This continuation has source and whitespace checks only at preparation time.
 It requires fresh compiled test execution after independent review and ordinary
 publication; the failed prepared checkout is not relabeled as corrected evidence.
+
+### 2026-10-19 — accepted-main timing reconciliation after the actual 835 run
+
+The isolated autosave source b7 / prepared 71c passed its original Core and preview checks
+and merged through #484 to valid-signed b7405ba1999fb7c608d595276d1cb48bfce859bf.
+Its complete source/output qualification is preserved in #484 comment 6257980035.
+
+The first accepted-main composition d498883df4f569fccfcaea99fc29b6a29330e14d
+prepared valid-signed 835834fe69778da293ec668de7422a827a98ca7d at tree
+933c5ce43ae9898b2940a5f01f540307d70b9b8e, ordered b740 + d498.
+The ordinary run 39187852770 is not a passing preview result:
+
+- Core job 117853974042 succeeded. The original 81 suites contain 4,025 unique
+  class-qualified cases with zero failures/errors/skips, including all eight autosave
+  cases. A second in-session reader independently qualified the complete conformance
+  receipt, exact eight source pins and JAR bytes, the actual ignored-schema negative,
+  all 29 source-use plus four integrity Python identities, and the original SPDX
+  mapping/encoded bytes, pinned schema, namespace and 23-package/44-relationship graph.
+  Core artifact 12158049198 is 1,268,105 bytes, SHA-256
+  8531fd7b0ed71780bab4f200144c90d049f65ad5904774f226b0d25bc32d45ba.
+- Preview job 117853973778 failed in the compiled simulated-test step. Its original 29
+  suites contain 339 unique cases with six failures and zero errors/skips. All thirteen
+  autosave cases passed. The failures are all four CatalogComparisonAuthorityActivityTest
+  cases, CatalogRowAuthorityActivityTest.pagingFacetsAndSortRetirePreviousResultControls,
+  and CatalogPinRecoveryActivityTest.comparisonAndPinInspectionRetireEachOthersRetainedActionsAndPreserveTrayPreferences.
+  Three original stacks lack the expected current-dialog ListView and three expose the
+  canonical library BUSY result while a valid pending form crosses the automatic deadline.
+  Preview artifact 12158524291 is 3,033,406 bytes, SHA-256
+  2c4f9b5edda0fc9585e92c33ca639f83fe1305ca502092ce57272e17fbbd1bcc.
+  Subsequent preview guard/SPDX/policy/attendance steps did not execute.
+- Scanner run 39187852759/job 117853973807 passed on that exact 835/933 source:
+  189 reachable commits, zero findings, pinned scanner identity and real fixture controls.
+  Artifact 12157884420 is 943 bytes, SHA-256
+  9bdccb581b57043e547f49cae3f826c1b0f83ed37ef26c7de0c77d37143aa675.
+
+All three original archives matched API byte counts and SHA-256, unique safe member
+names and CRCs. Their complete original logs/XML and the six failure stacks are retained;
+the public source-specific receipt is #498 comment 6258234684. The earlier failed c12
+and 40e attempts and successful 71c attempt keep their own source attribution.
+
+Accepted main then advanced through #488 to valid-signed
+44b4c7e3e882301a45a232b3ee18523023739bb1. The separate clean automatic union
+964c06da3a26b63a44e86d358febf08dd3babfb0 / tree 9e51e659db56dcd5a44dd1800bc1c12dae9c9d4b,
+ordered 44b4 + d498, preserves the accepted retained-snapshot inspector and its historical
+read authority. Its two pending-editor/private-file Activity cases were not in the failed
+835 run; source review identified the same before-deadline boundary for their integration.
+
+The bounded fixture continuation uses the existing, actually exercised AutosaveUiClock
+helper. The comparison and row suites pause frame-driven time immediately before their
+shared pending-edit setup; every case checks elapsed uptime stays within the 750 ms window.
+The additional pin case and two incoming snapshot cases do the same locally. Their idle
+calls still deliver one requested positive-nanosecond frame and verify no millisecond was
+spent. Every existing field/baseline/private-file/archive/report/accessibility/retired-control
+assertion and method identity remains. All original autosave deadline, failure, uncertainty,
+newer-input and lifecycle cases, production code and workflow guards remain unchanged.
+
+This is a source correction awaiting independent review and actual combined-source CI.
+No locally executed Kotlin/Android, installed-process result, source/export authority or
+whole #122 acceptance is inferred from original-result inspection or clock source review.
