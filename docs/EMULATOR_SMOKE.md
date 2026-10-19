@@ -1,10 +1,37 @@
 # Installed synthetic emulator verification
 
+## Delivered result and separate main-push failure — 2026-10-19
+
+[PR #467](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/467)
+delivered this source as signed main
+`0f5fea42c5cd149472269da2e47559a24689ba71`, tree
+`c9e91124c0ebbfe101e73eaa0772c5f7d3af235f`, with parent
+`5d9fb10d72ca059a93b00f3abf3b93da9d3e6897`.
+
+The independently reviewed original receiving execution was
+`bd2487f63745c0b9d2f83835a810766cc2a043c1`, tree
+`4846f4ebfb499fe11ec8a99166ef23380e492b09`, in
+[run 39294986481](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39294986481).
+Its [complete qualification](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/467#pullrequestreview-5575852486)
+records all four installed cases passing, both modal navigation pairs at
+8.97386058887348:1 against the unchanged 3:1 minimum, and exact restoration of the
+original ACL, device and process identity. The source and historical observations
+below retain their own revisions; this receiving result is not execution on the
+later main tree or whole physical-device, accessibility or release acceptance.
+
+The distinct literal-main [run 39304189399, attempt 1](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39304189399)
+passed Core and simulated Preview, but its installed job failed during SDK image
+preparation with `Error on ZipFile unknown archive`. No ACL grant or emulator case
+ran in that attempt. The [main-push follow-through](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/467#issuecomment-6274771555)
+retains the failed original, its successful cleanup and the separate scanner
+result. The log does not establish a network or corruption cause. Any later
+attempt must retain its own source and results.
+
 The existing **Unsigned synthetic Android preview** CI job builds, lints and runs
 the named Robolectric regressions on Linux. After that job succeeds, **Installed
 synthetic Android preview (hosted KVM)** verifies the exact unsigned APK handoff and
 runs the same smoke harness on an explicitly selected Ubuntu 24.04 runner. The
-new provisioning proposal retains the original non-root UID, GID and groups,
+installed lane retains the original non-root UID, GID and groups,
 and uses the existing privileged-tooling policy for one temporary named-user KVM
 ACL and its exact restoration. It uses one fresh AOSP API 35 x86_64 AVD. The
 explicit 720×1280/280-dpi startup profile from the preceding HVF experiment is
@@ -31,8 +58,8 @@ package, support matrix, service contract, signing policy or release.
 | Required installed case | Assertions made by the harness | Limit |
 | --- | --- | --- |
 | `installed_synthetic_launch` | Fresh install launches the exact experimental Activity; the synthetic notice and active `guest-draft` identity are visible | One AOSP image and diagnostic package |
-| `acknowledged_save_survives_force_stop` | Enter fixed synthetic title/objective/context; Save displays its acknowledgement and disables; HOME then force-stop terminates the process; a new process reopens the same acknowledged fields and local ID | Force-stop/cold relaunch, not low-memory process death, autosave or power-loss durability |
-| `pending_fields_survive_rotation` | Pending title/objective edits survive observed landscape and portrait rotations; context stays unchanged; Save remains enabled and the form remains explicitly unsaved | Two orientations in one emulator configuration, not the support matrix or general adaptive/accessibility qualification |
+| `acknowledged_save_survives_force_stop` | Enter fixed synthetic title/objective/context; require the automatic valid-form save acknowledgement and disabled Save; HOME then force-stop terminates the process; a new process reopens the same acknowledged fields and local ID | Automatic save and force-stop/cold relaunch; no installed manual-save action, low-memory process death or power-loss durability claim |
+| `pending_fields_survive_rotation` | Enter the exact invalid Requests-per-day workload, then pending title/objective edits; both observed rotations retain the complete raw fields and invalid-workload explanation, unchanged context, disabled Save and explicitly unsaved state | Deliberately invalid pending input across two orientations in one emulator configuration; no support-matrix or general adaptive/accessibility qualification |
 | `confirmed_deletion_does_not_resurrect` | Select the exact saved library row, inspect the ID-specific deletion confirmation, confirm removal, retain pending editor fields with Save/history disabled, then verify an empty library before and after another cold relaunch | Current readable local draft, not every corrupt/interrupted cleanup, storage-full, another-draft, secure-erasure or remote-deletion case |
 
 The harness drives the installed app through `adb` input and UI Automator hierarchy

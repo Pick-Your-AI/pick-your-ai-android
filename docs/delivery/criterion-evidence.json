@@ -1,5 +1,5 @@
 {
-  "schema_version": 12,
+  "schema_version": 13,
   "observed_on": "2026-10-18",
   "repository": "Pick-Your-AI/pick-your-ai-android",
   "implementation_baseline": "cc4869aa40316fe81b4e00a2e6b73a2df01a2329",
@@ -208,6 +208,20 @@
       "revision": "8bedd80dcc0b3cdd9756785c57cef0e54211c63b",
       "artifact_url": "https://github.com/Pick-Your-AI/pick-your-ai-android/blob/8bedd80dcc0b3cdd9756785c57cef0e54211c63b/docs/delivery/android/work-packages/07.02.md",
       "scope_limit": "Four reviewed Android #96 criteria in local-stored-draft-slot-empty-diagnostics/1: real Add/exact-role replacement, separate relative candidate verdicts/reasons and immutable currentness/CAS guards, with the nullable-lock causal correction and effective ADR0013/07.02. Two separately qualified5853-Core/512-simulated-native original receiving/main runs; no whole-draft validity, shared wire, qualified external evidence, upstream-issue completion, installed-device or release acceptance."
+    },
+    "pr-515": {
+      "pr_url": "https://github.com/Pick-Your-AI/pick-your-ai-android/pull/515",
+      "observed_state": "merged",
+      "revision": "1c51313d7499118a31b0d3a5af322aed5fa64a59",
+      "artifact_url": "https://github.com/Pick-Your-AI/pick-your-ai-android/blob/1c51313d7499118a31b0d3a5af322aed5fa64a59/docs/LOCAL_PREVIEW_IDENTITY.md",
+      "scope_limit": "Loaded bundled identity/version observability for criterion 57.1 only. Historical delivery and receipt 6259700859 retain their actual scope; no configured staging/production endpoint, credential, installed-device, release or full criterion completion evidence."
+    },
+    "pr-502": {
+      "pr_url": "https://github.com/Pick-Your-AI/pick-your-ai-android/pull/502",
+      "observed_state": "merged",
+      "revision": "146413ff168583f4c2b0df87ab41d36e57f8ea85",
+      "artifact_url": "https://github.com/Pick-Your-AI/pick-your-ai-android/blob/146413ff168583f4c2b0df87ab41d36e57f8ea85/docs/ENVIRONMENT_CONFIGURATION.md",
+      "scope_limit": "Finite synthetic environment admission, explicit missing-configuration/lifecycle rejection and preview-fixture exclusion for criteria 57.1–57.3. Delivered source and post-main receipt 6267418772 retain decoded-log/source/API/upload qualification with binary contents uninspected; no configured real variant, installed-device, release or whole-criterion acceptance."
     }
   },
   "issues": [
@@ -4203,7 +4217,7 @@
       "url": "https://github.com/Pick-Your-AI/pick-your-ai-android/issues/48",
       "title": "Android 02.01: Toolchain and modules",
       "canonical_acceptance_record": {
-        "repository": "Pick-Your-AI/pickyour.ai",
+        "repository": "Pick-Your-AI/pick-your-ai-android",
         "path": "docs/delivery/android/work-packages/02.01.md"
       },
       "criteria": [
@@ -4694,10 +4708,12 @@
           "text_sha256": "dd67f7099a3555e8bca5e128b5eec7441c60aec369d9f02a39ec3a3e1e0f4339",
           "status": "incomplete",
           "partial_evidence_refs": [
-            "pr-136"
+            "pr-136",
+            "pr-515",
+            "pr-502"
           ],
           "evidence_relation": "issue_context_only; inspect artifact scope before attributing any criterion result",
-          "remaining_engineering": "Implement explicit environment/configuration failures and package-diagnostic secret checks.",
+          "remaining_engineering": "Complete approved staging/production endpoint, identity and capability handoffs and qualification of each selected real variant; reconcile the remaining literal configuration and diagnostic receiving requirements. The finite synthetic admission/failure/fixture-exclusion behavior and loaded bundled identity are already delivered scoped outputs, not evidence of real configuration, installed execution or release.",
           "external_prerequisites": [],
           "completion_evidence": []
         },
@@ -4707,10 +4723,11 @@
           "text_sha256": "903e8774cf76a2c5a68a463f4d7c700f94515b831f54ce21e0c70b87d042057e",
           "status": "incomplete",
           "partial_evidence_refs": [
-            "pr-136"
+            "pr-136",
+            "pr-502"
           ],
           "evidence_relation": "issue_context_only; inspect artifact scope before attributing any criterion result",
-          "remaining_engineering": "Implement explicit environment/configuration failures and package-diagnostic secret checks.",
+          "remaining_engineering": "Complete approved staging/production endpoint, identity and capability handoffs and qualification of each selected real variant; reconcile the remaining literal configuration and diagnostic receiving requirements. The finite synthetic admission/failure/fixture-exclusion behavior and loaded bundled identity are already delivered scoped outputs, not evidence of real configuration, installed execution or release.",
           "external_prerequisites": [],
           "completion_evidence": []
         },
@@ -4720,10 +4737,11 @@
           "text_sha256": "4459d44e653db5e8f6c87f74d30bd1fb5a2ac375f669478cc5ee09efed2ae925",
           "status": "incomplete",
           "partial_evidence_refs": [
-            "pr-136"
+            "pr-136",
+            "pr-502"
           ],
           "evidence_relation": "issue_context_only; inspect artifact scope before attributing any criterion result",
-          "remaining_engineering": "Implement explicit environment/configuration failures and package-diagnostic secret checks.",
+          "remaining_engineering": "Complete approved staging/production endpoint, identity and capability handoffs and qualification of each selected real variant; reconcile the remaining literal configuration and diagnostic receiving requirements. The finite synthetic admission/failure/fixture-exclusion behavior and loaded bundled identity are already delivered scoped outputs, not evidence of real configuration, installed execution or release.",
           "external_prerequisites": [],
           "completion_evidence": []
         }
@@ -4784,7 +4802,7 @@
       "url": "https://github.com/Pick-Your-AI/pick-your-ai-android/issues/59",
       "title": "Android 02.05: Android CI baseline",
       "canonical_acceptance_record": {
-        "repository": "Pick-Your-AI/pickyour.ai",
+        "repository": "Pick-Your-AI/pick-your-ai-android",
         "path": "docs/delivery/android/work-packages/02.05.md"
       },
       "criteria": [

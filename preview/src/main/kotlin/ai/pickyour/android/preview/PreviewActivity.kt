@@ -120,6 +120,7 @@ class PreviewActivity : Activity() {
     private lateinit var snapshots: SnapshotEvaluationSection
     private lateinit var diagnostics: LocalDiagnostics
     private lateinit var help: LocalHelp
+    private lateinit var privacy: LocalPrivacy
     private var diagnosticsResumed = false
     private var environmentAdmitted = false
     private var entryBlocked = false
@@ -438,6 +439,10 @@ class PreviewActivity : Activity() {
                 else catalogFixture?.helpIdentity ?: HelpCatalogIdentity.UNAVAILABLE_OR_LOADING
             })
         help.attach(content)
+        privacy = LocalPrivacy(this, beforeShow = { retireRevisionInspection() }) {
+            !destroyed && diagnosticsResumed
+        }
+        privacy.attach(content)
         val padding = (24 * resources.displayMetrics.density).toInt()
         content.setPadding(padding, padding, padding, padding)
         val viewport = CatalogViewportScrollView(this).apply {
@@ -888,7 +893,7 @@ class PreviewActivity : Activity() {
                         .setNeutralButton(R.string.domain_restore_preview) { dialog, _ ->
                             if (historyDialogIsCurrent(dialog, baseline)) confirmDomainRestore(baseline, revision)
                         }
-                        .setPositiveButton(R.string.close, null).show()
+                        .setPositiveButton(R.string.close, null).showStorageDialog()
                 } else {
                     AlertDialog.Builder(this).setTitle(getString(R.string.history_revision, revision.revision.toString()))
                         .setMessage(getString(R.string.history_copy_warning, oldFields.title,
@@ -909,7 +914,7 @@ class PreviewActivity : Activity() {
                                 showSelection()
                                 formChanged()
                             }
-                        }.show()
+                        }.showStorageDialog()
                 }
             }.setPositiveButton(R.string.revision_compare_open) { dialog, _ ->
                 if (historyDialogIsCurrent(dialog, baseline)) showComparisonPicker(baseline)
@@ -1170,7 +1175,7 @@ class PreviewActivity : Activity() {
             .setNegativeButton(R.string.keep_edits, null)
             .setPositiveButton(R.string.domain_restore_commit) { dialog, _ ->
                 if (historyDialogIsCurrent(dialog, baseline)) restoreDomain(baseline, revision.revision)
-            }.show()
+            }.showStorageDialog()
     }
 
     private fun restoreDomain(expected: PreviewStoredDraft, revision: Long) {
@@ -1251,6 +1256,12 @@ class PreviewActivity : Activity() {
         }
     }
 
+    /** Retire inspections when the storage dialog is presented, including delayed results. */
+    private fun AlertDialog.Builder.showStorageDialog(): AlertDialog {
+        retireRevisionInspection()
+        return show()
+    }
+
     private fun showLibrary() {
         if (destroyed) return
         if (storageBusy) return
@@ -1265,7 +1276,7 @@ class PreviewActivity : Activity() {
                     val entries = (result as? PreviewLibraryRead.Available)?.entries
                     if (entries == null || entries.isEmpty()) {
                         AlertDialog.Builder(this).setMessage(if (entries == null) R.string.library_failed else R.string.library_empty)
-                            .setPositiveButton(R.string.close, null).show()
+                            .setPositiveButton(R.string.close, null).showStorageDialog()
                     } else {
                         val labels = entries.map { entry ->
                             val record = (entry.state as? PreviewDraftLoad.Available)?.record
@@ -1285,8 +1296,8 @@ class PreviewActivity : Activity() {
                                 }
                                 .setPositiveButton(R.string.library_open_selected) { detail, _ ->
                                     if ((detail as? AlertDialog)?.isShowing == true && !storageBusy) openDraftTarget(entry.id)
-                                }.show()
-                        }.setNegativeButton(R.string.close, null).show()
+                                }.showStorageDialog()
+                        }.setNegativeButton(R.string.close, null).showStorageDialog()
                     }
                 }
             }
@@ -1307,7 +1318,7 @@ class PreviewActivity : Activity() {
                 .setPositiveButton(R.string.library_retry_delete) { redirect, _ ->
                     if ((redirect as? AlertDialog)?.isShowing == true) confirmDelete(pending, null, true)
                 }
-                .setNegativeButton(R.string.close, null).show()
+                .setNegativeButton(R.string.close, null).showStorageDialog()
             return
         }
         val retryOnly = retry || pending == id
@@ -1316,7 +1327,7 @@ class PreviewActivity : Activity() {
             .setNegativeButton(R.string.keep_edits, null)
             .setPositiveButton(if (retryOnly) R.string.library_retry_delete else R.string.library_delete) { confirmation, _ ->
                 if ((confirmation as? AlertDialog)?.isShowing == true && !storageBusy) deleteDraft(id, expected, retryOnly)
-            }.show()
+            }.showStorageDialog()
     }
 
     private fun deleteDraft(id: PreviewDraftId, expected: PreviewStoredDraft?, retryOnly: Boolean) {
@@ -1351,7 +1362,7 @@ class PreviewActivity : Activity() {
                         PreviewLibraryDelete.Conflict -> R.string.library_delete_conflict
                         is PreviewLibraryDelete.Failed -> if (retry) R.string.library_retry_failed else R.string.library_delete_failed
                         is PreviewLibraryDelete.Unconfirmed -> R.string.library_delete_unconfirmed
-                    }).setPositiveButton(R.string.close, null).show()
+                    }).setPositiveButton(R.string.close, null).showStorageDialog()
                 }
             }
         }
@@ -1377,7 +1388,7 @@ class PreviewActivity : Activity() {
                         // Identity, baseline, save readiness and pending form still belong together.
                         AlertDialog.Builder(this).setMessage(if (selection != null && selection != PreviewActiveWrite.Saved)
                             R.string.active_write_failed else R.string.library_switch_failed)
-                            .setPositiveButton(R.string.close, null).show()
+                            .setPositiveButton(R.string.close, null).showStorageDialog()
                     } else {
                         entryBlocked = false
                         unsupportedEntry = false
@@ -1417,7 +1428,7 @@ class PreviewActivity : Activity() {
             .setPositiveButton(R.string.library_continue) { confirmation, _ ->
                 if ((confirmation as? AlertDialog)?.isShowing == true && !storageBusy &&
                     (!duplicate || savedRecord === source && storageReady)) createDraft(source)
-            }.show()
+            }.showStorageDialog()
     }
 
     private fun confirmRecoveryCopy() {
@@ -1435,7 +1446,7 @@ class PreviewActivity : Activity() {
                     savedRecord === source && fields() == pending.fields &&
                     domainContext == pending.context && workloadSection.inputs === rawWorkload)
                     createDraft(source, pending)
-            }.show()
+            }.showStorageDialog()
     }
 
     private fun createDraft(source: PreviewStoredDraft?, pending: PreviewPendingDraft? = null) {
@@ -1457,7 +1468,7 @@ class PreviewActivity : Activity() {
                         updateEditingEnabled()
                         AlertDialog.Builder(this).setMessage(if (result is PreviewLibraryCreate.Unconfirmed)
                             getString(R.string.library_unconfirmed, result.id.value) else getString(R.string.library_create_failed))
-                            .setPositiveButton(R.string.close, null).show()
+                            .setPositiveButton(R.string.close, null).showStorageDialog()
                     }
                 }
             }
@@ -1635,6 +1646,7 @@ class PreviewActivity : Activity() {
         if (::draftSummary.isInitialized) draftSummary.retireActions()
         if (::diagnostics.isInitialized) diagnostics.dismiss()
         if (::help.isInitialized) help.dismiss()
+        if (::privacy.isInitialized) privacy.dismiss()
         if (::snapshots.isInitialized) snapshots.dismiss()
         if (::resourceInspection.isInitialized) resourceInspection.dismiss()
         super.onPause()
@@ -1651,6 +1663,7 @@ class PreviewActivity : Activity() {
         if (::resourceInspection.isInitialized) resourceInspection.close()
         if (::diagnostics.isInitialized) diagnostics.close()
         if (::help.isInitialized) help.close()
+        if (::privacy.isInitialized) privacy.close()
         if (::catalogPinRecovery.isInitialized) catalogPinRecovery.close()
         catalogDetailDialog?.dismiss()
         catalogDetailDialog = null

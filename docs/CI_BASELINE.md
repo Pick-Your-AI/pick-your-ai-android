@@ -223,17 +223,21 @@ results, not a promise that later source or expired artifacts have been verified
 ## Remaining acceptance
 
 The check implementation, inspectable artifacts and controlled failure now have
-concrete evidence. Authenticated ruleset creation and effective readback,
-credential-context review and the installed emulator outcome remain their own
-gates. The named prerequisite from #48 supplies
+concrete evidence. Required-status application and effective readback,
+credential-context review and complete installed-evidence receiving remain
+separate acceptance gates. The named prerequisite from #48 supplies
 the pinned build/module outputs; a CI result does not invent a production package
 or supported-device release decision.
 
-[ADR 0011](decisions/0011-android-59-acceptance-record.md) proposes placing only
-the [02.05 receiving record](delivery/android/work-packages/02.05.md) in Android,
-effective after independent receiving review and normal reviewed main delivery.
-Until that event, its intended `docs/delivery/android/work-packages/02.05.md` path
-in `Pick-Your-AI/pickyour.ai` remains authoritative; the original spelling/path
-remain history afterward. This operations reference is not a second acceptance
-record. Placement does not complete settings, installed or credential-context
-work, whole-issue receiving or any destination/deployment gate.
+[ADR 0011](decisions/0011-android-59-acceptance-record.md) took effect through
+reviewed [#502](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/502),
+delivered as signed main
+[`146413ff`](https://github.com/Pick-Your-AI/pick-your-ai-android/commit/146413ff168583f4c2b0df87ab41d36e57f8ea85).
+The [02.05 receiving record](delivery/android/work-packages/02.05.md) in
+`Pick-Your-AI/pick-your-ai-android` is the canonical record. Its original
+`Pick-Your-AI/pickyour.ai` repository spelling and unchanged relative path remain
+history. [#587](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/587)
+subsequently reconciled the ledger's repository mapping without changing any
+criterion outcome. This operations reference is not a second acceptance record.
+Placement does not complete required-status settings, credential-context review,
+installed-evidence receiving, whole-issue acceptance or any destination/deployment gate.
