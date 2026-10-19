@@ -2054,6 +2054,10 @@ jobs:
               },
               'ai.pickyour.android.preview.SnapshotEvaluationPresentationActivityTest': {
                   'ordinaryRetainedRuleKeepsOutcomeSeverityAndSourceBytes',
+                  'retainedUnknownFindingDisclosesAbsentEvidenceAndUnmetInputs',
+                  'retainedFailureDisclosesAbsentEvidenceWithoutBecomingPass',
+                  'retainedPassKeepsEvidenceAbsenceSeparateFromItsOutcome',
+                  'retainedSkippedFindingDisclosesAbsentEvidenceWithoutBecomingPass',
                   'retainedFailingTextCannotInjectStatusLinesOrBidiControls',
                   'retainedUnknownTextCannotImpersonateAbsentOrKnownStatus',
                   'evaluatedPassRetainsSuppliedEmptyRemediation',
