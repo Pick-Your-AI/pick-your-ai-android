@@ -1,0 +1,26 @@
+<resources>
+    <string name="cost_inspection_heading">Recorded cost inputs</string>
+    <string name="cost_inspection_cancel">Clear cost inspection</string>
+    <string name="cost_inspection_browse">Review all recorded cost fields</string>
+    <string name="cost_inspection_idle">No cost record is currently inspected.</string>
+    <string name="cost_browser_title">Synthetic cost input inspection</string>
+    <string name="cost_browser_overview">Identity, recorded amounts and limits</string>
+    <string name="cost_browser_lines">Recorded cost lines (%1$d)</string>
+    <string name="cost_browser_references">Recorded and unclassified selection references</string>
+    <string name="cost_browser_warnings">Producer warnings (%1$d)</string>
+    <string name="cost_browser_documents">Complete decoded input values</string>
+    <string name="cost_browser_line">Recorded cost line %1$d</string>
+    <string name="cost_browser_page">%1$s — page %2$d of %3$d</string>
+    <string name="cost_browser_next">Next page</string>
+    <string name="cost_browser_previous">Previous page</string>
+    <string name="cost_browser_back">Back</string>
+    <string name="cost_browser_next_part">Next value part</string>
+    <string name="cost_browser_previous_part">Previous value part</string>
+    <string name="cost_browser_value">%1$s · part %2$d of %3$d\n\n%4$s\n\n%5$s</string>
+    <string name="cost_browser_text">Recorded literal text</string>
+    <string name="cost_browser_integer">Exact integer value</string>
+    <string name="cost_browser_decimal">Exact recorded decimal string; no rounding or currency conversion</string>
+    <string name="cost_browser_json">Decoded JSON values; string contents are exact, original byte layout and numeric-token spelling are not retained</string>
+    <string name="cost_browser_local">Local inspection metadata</string>
+    <string name="cost_browser_reference_limits">A selection can have both a recorded cost line and an explicitly unpriced meter. Unclassified active selections have neither declaration. None of these associations proves complete pricing, free or included billing.</string>
+</resources>

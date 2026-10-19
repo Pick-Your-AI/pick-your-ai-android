@@ -2253,6 +2253,46 @@ jobs:
               raise SystemExit('Component presentation regression did not pass')
           print(f'Verified {len(cases)} simulated component presentation tests; no installed-device claim')
           PYCOMPONENTTEXT
+      - name: Verify complete cost-inspection Activity attendance
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+          reports = list(Path('preview/build/test-results/testDebugUnitTest').glob('TEST-*CostInspectionActivityTest.xml'))
+          if len(reports) != 1: raise SystemExit('Expected the complete cost-inspection Activity report')
+          suite = ET.parse(reports[0]).getroot()
+          cases = suite.findall('testcase')
+          required = {
+              'packagedInputsExposeEveryRecordedFieldAndBothDocumentsWithoutSaving',
+              'everyLineAssumptionWarningAndSelectionReferenceSurvivesSummaryLimits',
+              'exactLongDecimalsQuantitiesUnicodeAndInertReferencesAreCompletelyPaged',
+              'declaredCoverageZeroAmountsOldTimesAndProducerClaimsNeverBecomeBudgetOrFreeApproval',
+              'emptyCollectionsAndUnclassifiedSelectionsRemainExplicitRatherThanACompleteZeroTotal',
+              'rejectedUnavailableAndFutureInputsExposeNoPartialRecordOrProviderTextAndCanRetry',
+              'canceledAndReversedReadsCannotReplaceTheCurrentSummaryOrDetails',
+              'equalBuildRevisionReinspectionUsesANewIdentityAndRetiresAllFormerValueControls',
+              'closedAndReplacedMenusRowsAndPageButtonsCannotReopenAnOldInspection',
+              'laterStorageConfirmationRetiresCompleteCostValueCallbacks',
+              'laterStorageConfirmationRetiresAPendingCostReadBeforeItsLateResult',
+              'laterPrivacyDisclosureRetiresCompleteCostValueCallbacks',
+              'laterPrivacyDisclosureRetiresAPendingCostReadBeforeItsLateResult',
+              'pauseRetiresAPendingActualReadBeforeResumeAndRequiresExplicitReinspection',
+              'recreationPreservesPendingEditorDataAndDiskButRetiresAllInspectionWindowsAndControls',
+              'costNavigationPreservesTheActualAutosaveDeadlineAndCreatesNoExtraRevision',
+              'executorRejectionIsExplicitAndClosedSectionsDiscardQueuedCompletion',
+              'narrowRtlLargeTextKeepsEntryControlsAndEveryCompleteValueLineReachable',
+          }
+          actual = [c.attrib.get('name') for c in cases]
+          if suite.tag != 'testsuite' or suite.attrib.get('name') != 'ai.pickyour.android.preview.CostInspectionActivityTest':
+              raise SystemExit('Unexpected complete cost-inspection suite')
+          if len(cases) != int(suite.attrib['tests']) or len(actual) != len(set(actual)) or not required <= set(actual):
+              raise SystemExit('Required complete cost-inspection cases were omitted or duplicated')
+          if any(int(suite.attrib.get(k, '0')) for k in ('failures', 'errors', 'skipped')):
+              raise SystemExit('Complete cost-inspection suite contains failures, errors or skips')
+          if any(c.attrib.get('classname') != suite.attrib['name'] or any(c.find(t) is not None for t in ('failure', 'error', 'skipped')) for c in cases):
+              raise SystemExit('Invalid complete cost-inspection case outcome')
+          print(f'Verified all {len(required)} required complete cost-inspection Activity methods among {len(cases)} actual cases')
+          PY
       - name: Record the unsigned APK handoff after successful build and simulation
         id: apk-handoff
         run: |
