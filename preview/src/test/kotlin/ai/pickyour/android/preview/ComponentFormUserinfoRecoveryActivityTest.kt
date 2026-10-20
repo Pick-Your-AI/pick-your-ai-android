@@ -199,7 +199,8 @@ class ComponentFormUserinfoRecoveryActivityTest {
         save(); addSaved("model")
         val before = loaded(); val bytes = managedBytes()
         val form = configure()
-        field(form, R.string.component_settings).setText(settings("model"))
+        // Fresh MODEL CONFIGURE is typed; the already-supplied URI keeps the same exclusion marker.
+        field(form, R.string.model_weights).setText(userinfo)
         val state = capture()
         assertUnchanged(before, bytes)
         assertExcluded(state)
