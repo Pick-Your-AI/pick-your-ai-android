@@ -101,7 +101,7 @@ class ContextPolicySettingsActivityTest {
     private fun currentId() = PreviewActivity::class.java.getDeclaredField("currentDraftId")
         .apply { isAccessible = true }.get(activity) as PreviewDraftId
     private fun adapter() = PreviewDraftLibrary(activity.noBackupFilesDir.toPath()).open(currentId())
-    private fun loaded() = (adapter().load() as PreviewDraftLoad.Available).record
+    private fun loaded() = (readDraftAfterOwnedWork(activity, ::adapter) as PreviewDraftLoad.Available).record
     private fun selection() = loaded().components.selections.single { it.kind == "context_policy" }
     private fun settings(value: LocalSelection = selection()) = JSONObject(PreviewSelectionForms.settingsText(value))
 

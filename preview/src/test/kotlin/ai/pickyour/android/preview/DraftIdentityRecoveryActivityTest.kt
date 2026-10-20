@@ -150,7 +150,9 @@ class DraftIdentityRecoveryActivityTest {
         assertEquals(active, PreviewActiveDraftStore(root).read())
     }
 
-    private fun loaded() = (PreviewDraftLibrary(root).openLegacy().load() as PreviewDraftLoad.Available).record
+    private fun loaded() = (readDraftAfterOwnedWork(activity) {
+        PreviewDraftLibrary(root).openLegacy()
+    } as PreviewDraftLoad.Available).record
 
     private fun views(rootView: View = activity.window.decorView): List<View> = buildList {
         add(rootView)
