@@ -13,6 +13,7 @@ import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import ai.pickyour.core.preview.PreviewCatalogBrowser
 import org.junit.After
 import org.junit.Assert.*
 import org.junit.Before
@@ -207,6 +208,136 @@ class LocalPrivacyActivityTest {
         close.performClick(); idle()
         assertFalse(opened.isShowing)
         assertStable(before, bytes)
+    }
+
+    @Test fun privacyRetiresCatalogParentActionsWithoutChangingPendingOrStoredDraft() {
+        val parent = catalogParent()
+        val select = parent.getButton(AlertDialog.BUTTON_POSITIVE)
+        val sources = parent.getButton(AlertDialog.BUTTON_NEUTRAL)
+        val controls = listOf(R.string.catalog_detail_browser_open, R.string.catalog_price_browse,
+            R.string.catalog_compare_add, R.string.catalog_use_in_draft)
+            .map { catalogButton(it, parent) }
+        assertTrue(select.isEnabled)
+        val before = state()
+        val bytes = storedBytes()
+        fun replay() {
+            select.performClick(); sources.performClick()
+            controls.forEach { it.performClick() }
+            idle()
+        }
+
+        val privacy = open()
+        assertFalse("Privacy must retire the current catalog parent before showing", parent.isShowing)
+        replay()
+        assertSame(privacy, dialog())
+        assertTrue(privacy.isShowing)
+        assertCatalogStable(before, bytes)
+        privacy.cancel(); idle()
+        replay()
+        assertSame(privacy, dialog())
+        assertFalse(privacy.isShowing)
+        assertCatalogStable(before, bytes)
+
+        val fresh = catalogParent()
+        replay()
+        assertSame("Old actions cannot borrow the new catalog parent's authority", fresh, dialog())
+        assertTrue(fresh.isShowing)
+        assertCatalogStable(before, bytes)
+        val catalog = requireNotNull(PreviewCatalogBrowser.read(
+            activity.assets.open("catalog.json").use { it.readBytes() }))
+        val model = catalog.items.single { it.id == "cat.model.fixture" }
+        fresh.getButton(AlertDialog.BUTTON_POSITIVE).performClick(); idle()
+        assertFalse(fresh.isShowing)
+        val expected = Bundle(before).apply {
+            putString("selectedId", model.id)
+            putString("selectedVersion", model.version)
+            putString("selectedCatalogHash", catalog.hash)
+        }
+        assertCatalogStable(expected, bytes)
+    }
+
+    @Test fun privacyRetiresCatalogDetailPriceAndSourceChildrenUntilFreshInspection() {
+        for (stage in listOf("fields", "field value", "rates", "rate fields", "rate value",
+                "sources", "source recovery")) {
+            val kind = if (stage.startsWith("rate")) "compute_profile" else "model"
+            val parent = catalogParent(kind)
+            when (stage) {
+                "fields", "field value" -> {
+                    catalogButton(R.string.catalog_detail_browser_open, parent).performClick(); idle()
+                    if (stage == "field value") { shadowOf(dialog()).clickOnItem(0); idle() }
+                }
+                "rates", "rate fields", "rate value" -> {
+                    catalogButton(R.string.catalog_price_browse, parent).performClick(); idle()
+                    if (stage != "rates") { shadowOf(dialog()).clickOnItem(0); idle() }
+                    if (stage == "rate value") { shadowOf(dialog()).clickOnItem(0); idle() }
+                }
+                else -> {
+                    parent.getButton(AlertDialog.BUTTON_NEUTRAL).performClick(); idle()
+                    if (stage == "source recovery") { shadowOf(dialog()).clickOnItem(0); idle() }
+                }
+            }
+            val child = dialog()
+            assertTrue("The $stage child must actually open before Privacy", child.isShowing)
+            assertNotSame(parent, child)
+            assertFalse(parent.isShowing)
+            val controls = views(child.window!!.decorView).filterIsInstance<Button>()
+                .filter { it.visibility == View.VISIBLE }
+            val hasRows = child.listView?.adapter?.count?.let { it > 0 } == true
+            assertTrue("The $stage child must expose a real retained control", controls.isNotEmpty() || hasRows)
+            fun replay() {
+                controls.forEach { it.performClick() }
+                if (hasRows) shadowOf(child).clickOnItem(0)
+                idle()
+            }
+            val before = state()
+            val bytes = storedBytes()
+            val privacy = open()
+            assertFalse("Privacy must retire the current $stage child", child.isShowing)
+            replay()
+            assertSame("Retained $stage controls cannot replace Privacy", privacy, dialog())
+            assertTrue(privacy.isShowing)
+            assertCatalogStable(before, bytes)
+            privacy.cancel(); idle()
+            replay()
+            assertSame(privacy, dialog())
+            assertFalse(child.isShowing)
+            assertCatalogStable(before, bytes)
+
+            val freshParent = catalogParent(kind)
+            catalogButton(R.string.catalog_detail_browser_open, freshParent).performClick(); idle()
+            val fresh = dialog()
+            assertTrue("A fresh catalog inspector must remain usable after Privacy", fresh.isShowing)
+            assertNotSame(child, fresh)
+            replay()
+            assertSame("Retired $stage controls cannot replace a fresh inspector", fresh, dialog())
+            assertTrue(fresh.isShowing)
+            assertCatalogStable(before, bytes)
+            shadowOf(fresh).clickOnItem(0); idle()
+            assertEquals("catalog_item.id", shadowOf(dialog()).title.toString())
+            assertTrue(dialog().isShowing)
+            assertCatalogStable(before, bytes)
+            dialog().cancel(); idle()
+        }
+    }
+
+    private fun catalogParent(kind: String = "model"): AlertDialog {
+        field(R.string.catalog_search).setText("cat.$kind.fixture")
+        fun samples() = views(views().filterIsInstance<CatalogBrowseSection>().single())
+            .filterIsInstance<Button>().filter { it.text.toString().contains("FICTIONAL") }
+        await { samples().size == 1 }
+        samples().single().performClick(); idle()
+        return dialog().also { assertTrue(it.isShowing) }
+    }
+
+    private fun catalogButton(label: Int, window: AlertDialog) = views(window.window!!.decorView)
+        .filterIsInstance<Button>().single { it.text.toString() == activity.getString(label) }
+
+    private fun assertCatalogStable(before: Bundle, bytes: Map<String, String>) {
+        assertStable(before, bytes)
+        val after = state()
+        @Suppress("DEPRECATION")
+        listOf("catalogPage", "comparisonIds", "comparisonVersions", "comparisonHashes", "comparisonDifferencesOnly")
+            .forEach { assertEquals(it, before.get(it), after.get(it)) }
     }
 
     private fun assertReachable(root: View, view: View, local: Rect) {
