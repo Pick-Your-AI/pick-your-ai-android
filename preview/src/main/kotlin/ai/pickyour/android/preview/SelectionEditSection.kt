@@ -121,10 +121,12 @@ internal class SelectionEditSection(private val activity: Activity,
             recovery is ComponentFormRecovery.TypedComputePending ||
             recovery is ComponentFormRecovery.TypedDataSourcePending ||
             recovery is ComponentFormRecovery.TypedEvaluationSuitePending ||
+            recovery is ComponentFormRecovery.TypedTrainingComputePending ||
             recovery is ComponentFormRecovery.TypedCostPolicyPending ||
             recovery is ComponentFormRecovery.TypedMonitoringStackPending ||
             recovery is ComponentFormRecovery.TypedModelProviderPending ||
-            recovery is ComponentFormRecovery.TypedDeploymentTargetPending) View.VISIBLE else View.GONE
+            recovery is ComponentFormRecovery.TypedDeploymentTargetPending ||
+            recovery is ComponentFormRecovery.TypedHostingPlatformPending) View.VISIBLE else View.GONE
         discardRecovery.visibility = if (noRecovery) View.GONE else View.VISIBLE
         reviewRecovery.isEnabled = foreground
         discardRecovery.isEnabled = foreground
@@ -219,6 +221,10 @@ internal class SelectionEditSection(private val activity: Activity,
             reviewTypedEvaluationSuiteInput(it.form)
             return
         }
+        (recovery as? ComponentFormRecovery.TypedTrainingComputePending)?.let {
+            reviewTypedTrainingComputeInput(it.form)
+            return
+        }
         (recovery as? ComponentFormRecovery.TypedCostPolicyPending)?.let {
             reviewTypedCostPolicyInput(it.form)
             return
@@ -233,6 +239,10 @@ internal class SelectionEditSection(private val activity: Activity,
         }
         (recovery as? ComponentFormRecovery.TypedDeploymentTargetPending)?.let {
             reviewTypedDeploymentTargetInput(it.form)
+            return
+        }
+        (recovery as? ComponentFormRecovery.TypedHostingPlatformPending)?.let {
+            reviewTypedHostingPlatformInput(it.form)
             return
         }
         val pending = (recovery as? ComponentFormRecovery.Pending)?.form ?: return
@@ -422,6 +432,30 @@ internal class SelectionEditSection(private val activity: Activity,
             .setView(ScrollView(activity).apply { addView(layout) }).setNegativeButton(R.string.close, null).create())
     }
 
+    private fun reviewTypedTrainingComputeInput(pending: TrainingComputeFormCheckpoint) {
+        val expected = baseline
+        val selection = expected?.components?.selections?.singleOrNull { it.id == pending.selectionId }
+        if (editable && expected != null && currentDraftId == pending.draftId &&
+            expected.baselineIdentity == pending.baseline && !pending.wasSaving &&
+            selection != null && selection.kind == PreviewTrainingComputeSettings.KIND &&
+            selection.catalogItemId == pending.catalogItemId && selection.catalogItemVersion == pending.catalogItemVersion) {
+            recovery = ComponentFormRecovery.None
+            update(baseline, editable)
+            trainingComputeSettingsForm(expected, selection, pending)
+            return
+        }
+        val layout = LinearLayout(activity).apply { orientation = VERTICAL }
+        layout.addView(TextView(activity).apply {
+            setText(if (pending.wasSaving) R.string.component_recovery_saving else R.string.component_recovery_changed)
+        })
+        layout.addView(TextView(activity).apply {
+            text = activity.getString(R.string.component_recovery_identity, pending.draftId, pending.selectionId)
+        })
+        layout.addView(TrainingComputeSettingsEditor.readOnly(activity, pending.input))
+        show(AlertDialog.Builder(activity).setTitle(R.string.component_recovery_review)
+            .setView(ScrollView(activity).apply { addView(layout) }).setNegativeButton(R.string.close, null).create())
+    }
+
     private fun reviewTypedCostPolicyInput(pending: CostPolicyFormCheckpoint) {
         val expected = baseline
         val selection = expected?.components?.selections?.singleOrNull { it.id == pending.selectionId }
@@ -514,6 +548,30 @@ internal class SelectionEditSection(private val activity: Activity,
             text = activity.getString(R.string.component_recovery_identity, pending.draftId, pending.selectionId)
         })
         layout.addView(DeploymentTargetSettingsEditor.readOnly(activity, pending.input))
+        show(AlertDialog.Builder(activity).setTitle(R.string.component_recovery_review)
+            .setView(ScrollView(activity).apply { addView(layout) }).setNegativeButton(R.string.close, null).create())
+    }
+
+    private fun reviewTypedHostingPlatformInput(pending: HostingPlatformFormCheckpoint) {
+        val expected = baseline
+        val selection = expected?.components?.selections?.singleOrNull { it.id == pending.selectionId }
+        if (editable && expected != null && currentDraftId == pending.draftId &&
+            expected.baselineIdentity == pending.baseline && !pending.wasSaving &&
+            selection != null && selection.kind == PreviewHostingPlatformSettings.KIND &&
+            selection.catalogItemId == pending.catalogItemId && selection.catalogItemVersion == pending.catalogItemVersion) {
+            recovery = ComponentFormRecovery.None
+            update(baseline, editable)
+            hostingPlatformSettingsForm(expected, selection, pending)
+            return
+        }
+        val layout = LinearLayout(activity).apply { orientation = VERTICAL }
+        layout.addView(TextView(activity).apply {
+            setText(if (pending.wasSaving) R.string.component_recovery_saving else R.string.component_recovery_changed)
+        })
+        layout.addView(TextView(activity).apply {
+            text = activity.getString(R.string.component_recovery_identity, pending.draftId, pending.selectionId)
+        })
+        layout.addView(HostingPlatformSettingsEditor.readOnly(activity, pending.input))
         show(AlertDialog.Builder(activity).setTitle(R.string.component_recovery_review)
             .setView(ScrollView(activity).apply { addView(layout) }).setNegativeButton(R.string.close, null).create())
     }
@@ -785,6 +843,10 @@ internal class SelectionEditSection(private val activity: Activity,
             modelProviderSettingsForm(expected, selection)
             return
         }
+        if (restored == null && selection.kind == PreviewHostingPlatformSettings.KIND) {
+            hostingPlatformSettingsForm(expected, selection)
+            return
+        }
         if (restored == null && selection.kind == PreviewContextPolicySettings.KIND) {
             contextSettingsForm(expected, selection)
             return
@@ -799,6 +861,10 @@ internal class SelectionEditSection(private val activity: Activity,
         }
         if (restored == null && selection.kind == PreviewEvaluationSuiteSettings.KIND) {
             evaluationSuiteSettingsForm(expected, selection)
+            return
+        }
+        if (restored == null && selection.kind == PreviewTrainingComputeSettings.KIND) {
+            trainingComputeSettingsForm(expected, selection)
             return
         }
         if (restored == null && selection.kind == PreviewCostPolicySettings.KIND) {
@@ -1088,6 +1154,53 @@ internal class SelectionEditSection(private val activity: Activity,
         }
     }
 
+    private fun trainingComputeSettingsForm(expected: PreviewStoredDraft, selection: LocalSelection,
+        restored: TrainingComputeFormCheckpoint? = null) {
+        if (!canOpen(expected) || selection.kind != PreviewTrainingComputeSettings.KIND) return
+        val draftId = requireNotNull(currentDraftId)
+        val layout = LinearLayout(activity).apply { orientation = VERTICAL }
+        layout.addView(TextView(activity).apply {
+            text = label(selection)
+            setSingleLine(false)
+            ellipsize = null
+            setTextIsSelectable(true)
+            isSaveEnabled = false
+        })
+        layout.addView(TextView(activity).apply { setText(R.string.component_settings_warning) })
+        trainingGuidance(layout, selection.kind)
+        layout.addView(TextView(activity).apply { setText(R.string.training_compute_recovery_guidance) })
+        lateinit var dialog: AlertDialog
+        val editor = TrainingComputeSettingsEditor(activity, restored?.input ?: PreviewTrainingComputeSettings.initial(selection)) {
+            active(expected) && open(dialog) && formBinding?.saving == false
+        }.also(layout::addView)
+        val feedback = feedback().also(layout::addView)
+        dialog = show(AlertDialog.Builder(activity).setTitle(R.string.training_compute_settings_title)
+            .setView(ScrollView(activity).apply { addView(layout) })
+            .setNegativeButton(R.string.close, null).setPositiveButton(R.string.component_commit, null).create(), feedback)
+        val binding = FormBinding(dialog) { saving ->
+            TrainingComputeFormCheckpoint(draftId, expected.baselineIdentity, selection.id, selection.catalogItemId,
+                selection.catalogItemVersion, editor.input(), saving).recovery()
+        }
+        binding.onFreeze = editor::freeze
+        binding.onClose = editor::close
+        binding.onStateChange = {
+            editor.freeze(binding.saving || !active(expected))
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = !binding.saving && active(expected)
+        }
+        formBinding = binding
+        update(baseline, editable)
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+            if (!active(expected) || binding.saving) return@setOnClickListener
+            val raw = editor.input()
+            val result = java.util.concurrent.atomic.AtomicReference<PreviewTrainingComputePreparation?>()
+            submit(dialog, expected, null, onRejected = {
+                if (active(expected) && editor.input() == raw) editor.showIssues(result.get()?.issues.orEmpty())
+            }) {
+                PreviewTrainingComputeSettings.configure(selection, raw).also(result::set).preparation
+            }
+        }
+    }
+
     private fun costPolicySettingsForm(expected: PreviewStoredDraft, selection: LocalSelection,
         restored: CostPolicyFormCheckpoint? = null) {
         if (!canOpen(expected) || selection.kind != PreviewCostPolicySettings.KIND) return
@@ -1260,6 +1373,45 @@ internal class SelectionEditSection(private val activity: Activity,
                 if (active(expected) && editor.input() == raw) editor.showIssues(result.get()?.issues.orEmpty())
             }) {
                 PreviewDeploymentTargetSettings.configure(selection, raw).also(result::set).preparation
+            }
+        }
+    }
+
+    private fun hostingPlatformSettingsForm(expected: PreviewStoredDraft, selection: LocalSelection,
+        restored: HostingPlatformFormCheckpoint? = null) {
+        if (!canOpen(expected) || selection.kind != PreviewHostingPlatformSettings.KIND) return
+        val draftId = requireNotNull(currentDraftId)
+        val layout = LinearLayout(activity).apply { orientation = VERTICAL }
+        layout.addView(TextView(activity).apply { setText(R.string.component_settings_warning) })
+        layout.addView(TextView(activity).apply { setText(R.string.hosting_platform_recovery_guidance) })
+        lateinit var dialog: AlertDialog
+        val editor = HostingPlatformSettingsEditor(activity, restored?.input ?: PreviewHostingPlatformSettings.initial(selection)) {
+            active(expected) && open(dialog) && formBinding?.saving == false
+        }.also(layout::addView)
+        val feedback = feedback().also(layout::addView)
+        dialog = show(AlertDialog.Builder(activity).setTitle(label(selection))
+            .setView(ScrollView(activity).apply { addView(layout) })
+            .setNegativeButton(R.string.close, null).setPositiveButton(R.string.component_commit, null).create(), feedback)
+        val binding = FormBinding(dialog) { saving ->
+            HostingPlatformFormCheckpoint(draftId, expected.baselineIdentity, selection.id, selection.catalogItemId,
+                selection.catalogItemVersion, editor.input(), saving).recovery()
+        }
+        binding.onFreeze = editor::freeze
+        binding.onClose = editor::close
+        binding.onStateChange = {
+            editor.freeze(binding.saving || !active(expected))
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = !binding.saving && active(expected)
+        }
+        formBinding = binding
+        update(baseline, editable)
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+            if (!active(expected) || binding.saving) return@setOnClickListener
+            val raw = editor.input()
+            val result = java.util.concurrent.atomic.AtomicReference<PreviewHostingPlatformPreparation?>()
+            submit(dialog, expected, null, onRejected = {
+                if (active(expected) && editor.input() == raw) editor.showIssues(result.get()?.issues.orEmpty())
+            }) {
+                PreviewHostingPlatformSettings.configure(selection, raw).also(result::set).preparation
             }
         }
     }

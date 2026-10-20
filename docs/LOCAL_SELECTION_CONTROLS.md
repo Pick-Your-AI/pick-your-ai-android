@@ -35,6 +35,14 @@ Its twelve optional deployment, monitoring and cost settings remain declared
 inputs. Approval, capacity, observation, price coverage and runtime actions still
 require separate evidence; one shared planning panel retains that distinction.
 
+The [typed hosting-platform settings editor](HOSTING_PLATFORM_SETTINGS_EDITOR.md)
+adds a bounded existing-`hosting_platform` CONFIGURE form for partial
+[#99](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/99). It preserves
+literal region text, opaque account references and the optional frozen network
+isolation choice through the same complete Selection and managed revision path.
+These are declared settings; no account, region or network is verified. Raw ADD,
+legacy raw Configure recovery and the other typed editors retain their routes.
+
 The saved-component section exposes a separate exact-fixture component chooser.
 It does not reinterpret the old guest sample-selection metadata as a typed domain
 selection. Every listed item keeps its exact kind, catalog ID, version and captured
