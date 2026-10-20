@@ -14,6 +14,7 @@ import ai.pickyour.core.evaluation.CompatibleOptionSlot
 internal class SelectionEditSection(private val activity: Activity,
     private val commit: (PreviewStoredDraft, String?, () -> PreviewSelectionPreparation, (Boolean, String) -> Unit) -> Unit,
     private val compareOptions: (CompatiblePickerLaunch) -> Unit = {},
+    private val isResumed: () -> Boolean = { true },
     private val retireOptions: () -> Unit = {},
 ) : LinearLayout(activity) {
     private var closed = false
@@ -73,13 +74,13 @@ internal class SelectionEditSection(private val activity: Activity,
         addView(reviewRecovery)
         discardRecovery.setText(R.string.component_recovery_discard)
         discardRecovery.setOnClickListener {
-            if (!closed) { recovery = ComponentFormRecovery.None; update(baseline, editable) }
+            if (!closed && isResumed()) { recovery = ComponentFormRecovery.None; update(baseline, editable) }
         }
         addView(discardRecovery)
         update(null, false)
     }
 
-    private fun active(expected: PreviewStoredDraft) = !closed && !activity.isDestroyed && !activity.isFinishing &&
+    private fun active(expected: PreviewStoredDraft) = !closed && isResumed() && !activity.isDestroyed && !activity.isFinishing &&
         editable && baseline === expected && currentDraftId != null && recovery === ComponentFormRecovery.None
     private fun canOpen(expected: PreviewStoredDraft) = active(expected) && formBinding == null
 
@@ -105,8 +106,9 @@ internal class SelectionEditSection(private val activity: Activity,
         baseline = record; editable = enabled; currentDraftId = draftId
         status.text = activity.getString(R.string.component_count, (record?.components?.selections?.size ?: 0).toString())
         val noRecovery = recovery === ComponentFormRecovery.None
-        manage.isEnabled = enabled && noRecovery && formBinding == null && record?.components?.selections?.isNotEmpty() == true
-        choose.isEnabled = enabled && noRecovery && formBinding == null && record != null && catalogHash != null && catalogItems.isNotEmpty()
+        val foreground = isResumed()
+        manage.isEnabled = foreground && enabled && noRecovery && formBinding == null && record?.components?.selections?.isNotEmpty() == true
+        choose.isEnabled = foreground && enabled && noRecovery && formBinding == null && record != null && catalogHash != null && catalogItems.isNotEmpty()
         recoveryStatus.visibility = if (noRecovery) View.GONE else View.VISIBLE
         recoveryStatus.setText(when (recovery) {
             ComponentFormRecovery.Unavailable -> R.string.component_recovery_unavailable
@@ -114,8 +116,11 @@ internal class SelectionEditSection(private val activity: Activity,
             else -> R.string.component_recovery_pending
         })
         reviewRecovery.visibility = if (recovery is ComponentFormRecovery.Pending ||
-            recovery is ComponentFormRecovery.TypedContextPending || recovery is ComponentFormRecovery.TypedModelPending) View.VISIBLE else View.GONE
+            recovery is ComponentFormRecovery.TypedContextPending || recovery is ComponentFormRecovery.TypedModelPending ||
+            recovery is ComponentFormRecovery.TypedComputePending) View.VISIBLE else View.GONE
         discardRecovery.visibility = if (noRecovery) View.GONE else View.VISIBLE
+        reviewRecovery.isEnabled = foreground
+        discardRecovery.isEnabled = foreground
         formBinding?.onStateChange?.invoke()
         publishReviewAvailability()
     }
@@ -128,6 +133,24 @@ internal class SelectionEditSection(private val activity: Activity,
         val form = formBinding?.takeIf { open(it.dialog) }
         (form?.let { it.capture(it.saving) } ?: recovery).save(outState)
     }
+    /** Retain bounded input, then retire every old callback before dismissing its window. */
+    fun pause() {
+        if (closed) return
+        val checkpoint = Bundle()
+        save(checkpoint)
+        val binding = formBinding
+        val owned = dialogs.toList()
+        formBinding = null
+        dialogs.clear()
+        dialogFeedback.clear()
+        recovery = ComponentFormRecovery.read(checkpoint)
+        binding?.onClose?.invoke()
+        retireOptions()
+        owned.forEach { it.dismiss() }
+        update(baseline, editable)
+    }
+    /** Resuming restores availability only; pending input still requires explicit review. */
+    fun resume() { update(baseline, editable) }
     fun catalog(items: List<PreviewCatalogItem>, hash: String?) {
         if (closed) return
         retireOptions()
@@ -164,13 +187,17 @@ internal class SelectionEditSection(private val activity: Activity,
     private fun label(selection: LocalSelection) = ComponentSelectionText.selection(activity, selection)
 
     private fun reviewPendingInput() {
-        if (closed || activity.isDestroyed || activity.isFinishing) return
+        if (closed || !isResumed() || activity.isDestroyed || activity.isFinishing) return
         (recovery as? ComponentFormRecovery.TypedContextPending)?.let {
             reviewTypedContextInput(it.form)
             return
         }
         (recovery as? ComponentFormRecovery.TypedModelPending)?.let {
             reviewTypedModelInput(it.form)
+            return
+        }
+        (recovery as? ComponentFormRecovery.TypedComputePending)?.let {
+            reviewTypedComputeInput(it.form)
             return
         }
         val pending = (recovery as? ComponentFormRecovery.Pending)?.form ?: return
@@ -260,6 +287,30 @@ internal class SelectionEditSection(private val activity: Activity,
             text = activity.getString(R.string.component_recovery_identity, pending.draftId, pending.selectionId)
         })
         layout.addView(ModelSettingsEditor.readOnly(activity, pending.input))
+        show(AlertDialog.Builder(activity).setTitle(R.string.component_recovery_review)
+            .setView(ScrollView(activity).apply { addView(layout) }).setNegativeButton(R.string.close, null).create())
+    }
+
+    private fun reviewTypedComputeInput(pending: ComputeFormCheckpoint) {
+        val expected = baseline
+        val selection = expected?.components?.selections?.singleOrNull { it.id == pending.selectionId }
+        if (editable && expected != null && currentDraftId == pending.draftId &&
+            expected.baselineIdentity == pending.baseline && !pending.wasSaving &&
+            selection != null && selection.kind == PreviewComputeSettings.KIND &&
+            selection.catalogItemId == pending.catalogItemId && selection.catalogItemVersion == pending.catalogItemVersion) {
+            recovery = ComponentFormRecovery.None
+            update(baseline, editable)
+            computeSettingsForm(expected, selection, pending)
+            return
+        }
+        val layout = LinearLayout(activity).apply { orientation = VERTICAL }
+        layout.addView(TextView(activity).apply {
+            setText(if (pending.wasSaving) R.string.component_recovery_saving else R.string.component_recovery_changed)
+        })
+        layout.addView(TextView(activity).apply {
+            text = activity.getString(R.string.component_recovery_identity, pending.draftId, pending.selectionId)
+        })
+        layout.addView(ComputeSettingsEditor.readOnly(activity, pending.input))
         show(AlertDialog.Builder(activity).setTitle(R.string.component_recovery_review)
             .setView(ScrollView(activity).apply { addView(layout) }).setNegativeButton(R.string.close, null).create())
     }
@@ -527,6 +578,10 @@ internal class SelectionEditSection(private val activity: Activity,
             contextSettingsForm(expected, selection)
             return
         }
+        if (restored == null && selection.kind == PreviewComputeSettings.KIND) {
+            computeSettingsForm(expected, selection)
+            return
+        }
         val layout = LinearLayout(activity).apply { orientation = VERTICAL }
         layout.addView(TextView(activity).apply { setText(R.string.component_settings_warning) })
         foundationGuidance(layout, selection.kind)
@@ -626,6 +681,45 @@ internal class SelectionEditSection(private val activity: Activity,
                 if (active(expected) && editor.input() == raw) editor.showIssues(result.get()?.issues.orEmpty())
             }) {
                 PreviewModelSettings.configure(selection, raw).also(result::set).preparation
+            }
+        }
+    }
+
+    private fun computeSettingsForm(expected: PreviewStoredDraft, selection: LocalSelection,
+        restored: ComputeFormCheckpoint? = null) {
+        if (!canOpen(expected) || selection.kind != PreviewComputeSettings.KIND) return
+        val draftId = requireNotNull(currentDraftId)
+        val layout = LinearLayout(activity).apply { orientation = VERTICAL }
+        layout.addView(TextView(activity).apply { setText(R.string.component_settings_warning) })
+        layout.addView(TextView(activity).apply { setText(R.string.compute_recovery_guidance) })
+        lateinit var dialog: AlertDialog
+        val editor = ComputeSettingsEditor(activity, restored?.input ?: PreviewComputeSettings.initial(selection)) {
+            active(expected) && open(dialog) && formBinding?.saving == false
+        }.also(layout::addView)
+        val feedback = feedback().also(layout::addView)
+        dialog = show(AlertDialog.Builder(activity).setTitle(label(selection))
+            .setView(ScrollView(activity).apply { addView(layout) })
+            .setNegativeButton(R.string.close, null).setPositiveButton(R.string.component_commit, null).create(), feedback)
+        val binding = FormBinding(dialog) { saving ->
+            ComputeFormCheckpoint(draftId, expected.baselineIdentity, selection.id, selection.catalogItemId,
+                selection.catalogItemVersion, editor.input(), saving).recovery()
+        }
+        binding.onFreeze = editor::freeze
+        binding.onClose = editor::close
+        binding.onStateChange = {
+            editor.freeze(binding.saving || !active(expected))
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = !binding.saving && active(expected)
+        }
+        formBinding = binding
+        update(baseline, editable)
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+            if (!active(expected) || binding.saving) return@setOnClickListener
+            val raw = editor.input()
+            val result = java.util.concurrent.atomic.AtomicReference<PreviewComputePreparation?>()
+            submit(dialog, expected, null, onRejected = {
+                if (active(expected) && editor.input() == raw) editor.showIssues(result.get()?.issues.orEmpty())
+            }) {
+                PreviewComputeSettings.configure(selection, raw).also(result::set).preparation
             }
         }
     }

@@ -80,7 +80,7 @@ class DependencyGraphTest {
             assertEquals(sha.textValue(), digest(resource("/contracts/v1/$path")))
         }
         val names = fixture["cases"].map { it["name"].textValue() }
-        assertEquals(159, names.size)
+        assertEquals(172, names.size)
         assertEquals(names.size, names.toSet().size)
         return fixture["cases"].map { case -> DynamicTest.dynamicTest(case["name"].textValue()) {
             val input = mutate(case)
