@@ -94,7 +94,10 @@ internal sealed interface ComponentFormRecovery {
     class Pending(val form: ComponentFormCheckpoint) : ComponentFormRecovery
     class TypedContextPending(val form: ContextPolicyFormCheckpoint) : ComponentFormRecovery
     class TypedModelPending(val form: ModelFormCheckpoint) : ComponentFormRecovery
+    class TypedEmbeddingModelPending(val form: EmbeddingModelFormCheckpoint) : ComponentFormRecovery
     class TypedComputePending(val form: ComputeFormCheckpoint) : ComponentFormRecovery
+    class TypedInferencePending(val form: InferenceFormCheckpoint) : ComponentFormRecovery
+    class TypedAcceleratorPending(val form: AcceleratorFormCheckpoint) : ComponentFormRecovery
 
     fun save(outState: Bundle) {
         outState.remove(KEY)
@@ -105,7 +108,10 @@ internal sealed interface ComponentFormRecovery {
             is Pending -> outState.putBundle(KEY, form.bundle() ?: unavailable())
             is TypedContextPending -> outState.putBundle(KEY, form.bundle() ?: unavailable())
             is TypedModelPending -> outState.putBundle(KEY, form.bundle() ?: unavailable())
+            is TypedEmbeddingModelPending -> outState.putBundle(KEY, form.bundle() ?: unavailable())
             is TypedComputePending -> outState.putBundle(KEY, form.bundle() ?: unavailable())
+            is TypedInferencePending -> outState.putBundle(KEY, form.bundle() ?: unavailable())
+            is TypedAcceleratorPending -> outState.putBundle(KEY, form.bundle() ?: unavailable())
         }
     }
 
@@ -127,8 +133,14 @@ internal sealed interface ComponentFormRecovery {
                     ContextPolicyFormCheckpoint.read(value)?.let(::TypedContextPending) ?: Unavailable
                 } else if (value.get("version") == ModelFormCheckpoint.VERSION) {
                     ModelFormCheckpoint.read(value)?.let(::TypedModelPending) ?: Unavailable
+                } else if (value.get("version") == EmbeddingModelFormCheckpoint.VERSION) {
+                    EmbeddingModelFormCheckpoint.read(value)?.let(::TypedEmbeddingModelPending) ?: Unavailable
                 } else if (value.get("version") == ComputeFormCheckpoint.VERSION) {
                     ComputeFormCheckpoint.read(value)?.let(::TypedComputePending) ?: Unavailable
+                } else if (value.get("version") == InferenceFormCheckpoint.VERSION) {
+                    InferenceFormCheckpoint.read(value)?.let(::TypedInferencePending) ?: Unavailable
+                } else if (value.get("version") == AcceleratorFormCheckpoint.VERSION) {
+                    AcceleratorFormCheckpoint.read(value)?.let(::TypedAcceleratorPending) ?: Unavailable
                 } else ComponentFormCheckpoint.read(value)?.let(::Pending) ?: Unavailable
             }
         } catch (_: RuntimeException) {
