@@ -19,6 +19,7 @@ import ai.pickyour.core.cache.CacheInstall
 import ai.pickyour.core.cache.CacheRead
 import ai.pickyour.core.cache.CacheRetentionLimits
 import ai.pickyour.core.cache.VerifiedArtifactCache
+import ai.pickyour.core.navigation.ExternalLinkPolicy
 import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.After
@@ -442,6 +443,186 @@ class CatalogDetailBrowserActivityTest {
         assertEquals(baseline, loaded().baselineIdentity)
         assertNull(shadowOf(activity).nextStartedActivity)
         assertTrue("Read-only actions stay before autosave", SystemClock.uptimeMillis() in pendingSince until pendingSince + 750)
+    }
+
+    @Test fun actualPauseRetiresCurrentDetailActionsWithoutChangingPendingOrSavedState() {
+        save()
+        val baseline = loaded().baselineIdentity
+        AutosaveUiClock.pause()
+        field(R.string.draft_title).setText("pending catalog detail pause")
+        field(R.string.context_objective).setText("pending objective across backgrounding")
+        val parent = openActualDetail()
+        val row = samples().single()
+        val select = parent.getButton(AlertDialog.BUTTON_POSITIVE)
+        val sources = parent.getButton(AlertDialog.BUTTON_NEUTRAL)
+        val retained = listOf(R.string.catalog_detail_browser_open, R.string.catalog_price_browse,
+            R.string.catalog_compare_add, R.string.catalog_use_in_draft)
+            .map { button(it, parent.window!!.decorView) }
+        val before = state()
+        val disk = privateFiles()
+        try {
+            controller.pause()
+            select.performClick(); idle()
+            assertDraftState(before)
+            assertFalse("Backgrounding retires the current detail window", parent.isShowing)
+            sources.performClick()
+            retained.forEach { it.performClick() }
+            row.performClick(); idle()
+            assertSame("A paused Activity cannot open a detail from its still-rendered row", parent, dialog())
+            assertDraftState(before)
+            assertEquals(baseline, loaded().baselineIdentity)
+            assertEquals(disk, privateFiles())
+            assertNull(shadowOf(activity).nextStartedActivity)
+        } finally {
+            controller.resume().visible()
+        }
+        select.performClick(); sources.performClick()
+        retained.forEach { it.performClick() }; idle()
+        assertSame(parent, dialog())
+        assertFalse(parent.isShowing)
+        assertDraftState(before)
+        val fresh = openActualDetail()
+        assertTrue("A new detail remains usable after resume", fresh.isShowing)
+        click(AlertDialog.BUTTON_POSITIVE, fresh)
+        assertEquals("cat.model.fixture", state().getString("selectedId"))
+        assertEquals(item(document()).getString("version"), state().getString("selectedVersion"))
+        assertEquals(before.getString("catalogSnapshot"), state().getString("selectedCatalogHash"))
+        assertEquals(before.getString("title"), state().getString("title"))
+        assertEquals(before.getString("objective"), state().getString("objective"))
+        assertEquals(baseline, loaded().baselineIdentity)
+        assertEquals(disk, privateFiles())
+    }
+
+    @Test fun actualPauseRetiresEveryCurrentDetailChildBeforeItsCallbacksCanReopen() {
+        save()
+        val baseline = loaded().baselineIdentity
+        AutosaveUiClock.pause()
+        field(R.string.context_objective).setText("pending child inspection pause")
+        val disk = privateFiles()
+        for (stage in listOf("fields", "field value", "rates", "rate value", "sources", "source recovery")) {
+            val kind = if (stage.startsWith("rate")) "compute_profile" else "model"
+            val parent = openActualDetail(kind)
+            when (stage) {
+                "fields", "field value" -> {
+                    button(R.string.catalog_detail_browser_open, parent.window!!.decorView).performClick(); idle()
+                    if (stage == "field value") choose(0)
+                }
+                "rates", "rate value" -> {
+                    button(R.string.catalog_price_browse, parent.window!!.decorView).performClick(); idle()
+                    if (stage == "rate value") { choose(0); choose(0) }
+                }
+                else -> {
+                    click(AlertDialog.BUTTON_NEUTRAL, parent)
+                    if (stage == "source recovery") choose(0)
+                }
+            }
+            val child = dialog()
+            assertTrue("The $stage child must actually open before pause", child.isShowing)
+            assertFalse(parent.isShowing)
+            val buttons = views(child.window!!.decorView).filterIsInstance<Button>()
+                .filter { it.visibility == View.VISIBLE }
+            val hasRows = child.listView?.adapter?.count?.let { it > 0 } == true
+            fun replay() {
+                buttons.forEach { it.performClick() }
+                if (hasRows) shadowOf(child).clickOnItem(0)
+                idle()
+            }
+            val before = state()
+            try {
+                controller.pause()
+                assertFalse("Backgrounding must retire the $stage child", child.isShowing)
+                replay()
+                assertSame(child, dialog())
+                assertDraftState(before)
+                assertEquals(baseline, loaded().baselineIdentity)
+                assertEquals(disk, privateFiles())
+                assertNull(shadowOf(activity).nextStartedActivity)
+            } finally {
+                controller.resume().visible()
+            }
+            replay()
+            assertSame(child, dialog())
+            assertFalse(child.isShowing)
+            val fresh = openActualDetail(kind)
+            replay()
+            assertSame("Retired $stage controls cannot replace a fresh inspector", fresh, dialog())
+            assertTrue(fresh.isShowing)
+            assertDraftState(before)
+            assertEquals(baseline, loaded().baselineIdentity)
+            assertEquals(disk, privateFiles())
+            click(AlertDialog.BUTTON_NEGATIVE, fresh)
+        }
+    }
+
+    @Test fun actualRecreationRetiresCurrentSourceRecoveryWithoutLosingDraftState() {
+        save()
+        val baseline = loaded().baselineIdentity
+        AutosaveUiClock.pause()
+        field(R.string.context_context).setText("pending source recreation")
+        val parent = openActualDetail()
+        click(AlertDialog.BUTTON_NEUTRAL, parent)
+        val chooser = dialog()
+        choose(0)
+        val recovery = dialog()
+        val back = recovery.getButton(AlertDialog.BUTTON_POSITIVE)
+        assertTrue(recovery.isShowing)
+        val before = state()
+        val disk = privateFiles()
+        recreate()
+        assertFalse(recovery.isShowing)
+        back.performClick(); choose(0, chooser); idle()
+        assertSame(recovery, dialog())
+        assertDraftState(before)
+        assertEquals(baseline, loaded().baselineIdentity)
+        assertEquals(disk, privateFiles())
+        val fresh = openActualDetail()
+        click(AlertDialog.BUTTON_NEUTRAL, fresh)
+        val current = dialog()
+        assertTrue(current.isShowing)
+        back.performClick(); choose(0, chooser); idle()
+        assertSame(current, dialog())
+        assertDraftState(before)
+        assertNull(shadowOf(activity).nextStartedActivity)
+    }
+
+    @Test fun explicitlyRetiredSourceConfirmationCannotDispatchOrReopen() {
+        save()
+        val baseline = loaded().baselineIdentity
+        AutosaveUiClock.pause()
+        field(R.string.context_objective).setText("pending explicit source retirement")
+        val uri = "https://docs.example.com/recorded-source"
+        val root = document()
+        item(root).getJSONArray("provenance").getJSONObject(0).put("source_uri", uri)
+        val detail = exactDetail(showCatalog(root))
+        val before = state()
+        val disk = privateFiles()
+        val launches = mutableListOf<String?>()
+        fun navigation() = CatalogSourceNavigation(activity, detail,
+            ExternalLinkPolicy(setOf("docs.example.com")), isCurrent = { true },
+            launch = { launches += it.dataString })
+        val retired = navigation()
+        retired.show()
+        val chooser = dialog()
+        choose(0)
+        val confirmation = dialog()
+        val open = confirmation.getButton(AlertDialog.BUTTON_POSITIVE)
+        assertTrue(confirmation.isShowing)
+        retired.retire()
+        assertFalse(confirmation.isShowing)
+        open.performClick(); choose(0, chooser); retired.show(); idle()
+        assertSame(confirmation, dialog())
+        assertTrue(launches.isEmpty())
+        navigation().show(); choose(0)
+        val current = dialog()
+        open.performClick(); retired.show(); idle()
+        assertSame(current, dialog())
+        click(AlertDialog.BUTTON_POSITIVE, current)
+        click(AlertDialog.BUTTON_POSITIVE, current)
+        assertEquals(listOf(uri), launches)
+        assertDraftState(before)
+        assertEquals(baseline, loaded().baselineIdentity)
+        assertEquals(disk, privateFiles())
+        assertNull(shadowOf(activity).nextStartedActivity)
     }
 
     @Test fun actualReloadSnapshotReplacementAndRecreationRetireCapturedFullValues() {

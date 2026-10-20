@@ -56,9 +56,20 @@ identity, acknowledged baseline and non-reusable storage-operation authority.
 Opening its child retires the visible parent's Select, Sources, Prices, Compare
 and repeated full-detail controls. The parent identity remains the origin only
 for the intentional child navigation. A newly opened detail, catalog reload,
-snapshot replacement, storage operation or Activity destruction retires the
-browser permanently. An unchanged Missing-to-Missing Reopen does not restore an
-old dialog's authority.
+snapshot replacement, storage operation or Activity pause retires the current
+parent, complete-detail browser, price browser and source-navigation controller.
+The Activity clears all four owner references before dismissing their windows,
+so a dismissal callback cannot retain or restore a sibling's authority. Source
+choosers, confirmations and recovery messages also become terminal when their
+owner explicitly retires. An unchanged Missing-to-Missing Reopen does not restore
+an old dialog's authority.
+
+Current-detail entry and its retained actions require a resumed Activity.
+Backgrounding closes the existing window and retires its controls before they
+can select a row, change the comparison tray, reopen another inspector or launch
+a source. Resuming permits a fresh detail request without reviving the old
+request. Recreation follows the same retirement boundary while preserving the
+acknowledged draft and pending fields.
 
 A historical child belongs to the existing exact pin request and tray origin.
 Its parent Retry and Browse controls become inactive when the child opens.
@@ -90,7 +101,7 @@ storage actions retain their existing behavior and authorization checks.
 
 ## Validation and receiving boundary
 
-The 16 mandatory Activity cases exercise actual detail and recovery controls,
+The 20 mandatory Activity cases exercise actual detail and recovery controls,
 all field/provenance indices, complete Unicode and JSON value reconstruction,
 missing/unknown/empty/false/zero states, retired parent/page/value callbacks,
 sibling inspection, reciprocal comparison lifetime, reload/recreation and actual
@@ -99,6 +110,17 @@ while the newer cache pointer and every file remain unchanged. Unavailable pins
 and row-only browsers have no borrowed complete-detail action. Draft store,
 pending domain fields and tray state are compared where navigation must be
 read-only.
+
+Four lifecycle regressions cover the current parent and six actual child stages:
+field list, complete field value, rate list, complete rate value, source chooser
+and source recovery. They replay captured controls during pause, after resume
+and over a fresh inspector; the old windows must remain retired and the saved
+baseline, pending inputs and private files must remain unchanged. Source recovery
+is also exercised through actual Activity recreation. Explicit source retirement
+cannot dispatch or reopen a retained confirmation, while a fresh confirmation
+dispatches the exact reviewed URI once. The original parent-selection regression
+failed because a retained Select action changed the selected item while paused;
+the identical test passes with the owner retirement and resumed-action guards.
 
 Three current-main integration cases additionally exercise both directions
 between saved-library inspection and current/pinned catalog details, and between
@@ -125,6 +147,16 @@ The delivery PR records exact source and independent review plus actual local an
 hosted evidence. The first expanded local run failed during Robolectric temporary
 native extraction because the filesystem was full; its failure report is kept
 separately from the later passing execution and establishes no application result.
+
+The bounded catalog and source-navigation checks can be run with:
+
+```sh
+./gradlew --no-daemon --dependency-verification=strict \
+  -PandroidPreview=true :preview:testDebugUnitTest \
+  --tests 'ai.pickyour.android.preview.CatalogDetailBrowserActivityTest' \
+  --tests 'ai.pickyour.android.preview.PreviewActivityTest.catalogSource*' \
+  --tests 'ai.pickyour.android.preview.PreviewActivityTest.cancelledSourceConfirmationAndRetiredChooserCannotDispatch'
+```
 
 This remains a synthetic, unsigned Activity simulation. Accepted real catalog and
 source rights, provider/offering identities, applicable prices, historical

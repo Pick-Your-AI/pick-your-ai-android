@@ -74,6 +74,7 @@ class PreviewActivity : Activity() {
     private var catalogDetailDialog: AlertDialog? = null
     private var catalogPriceBrowser: CatalogPriceBrowser? = null
     private var catalogDetailBrowser: CatalogDetailBrowser? = null
+    private var catalogSourceNavigation: CatalogSourceNavigation? = null
     private lateinit var catalogStatus: TextView
     private lateinit var catalogRetentionStatus: TextView
     private lateinit var catalogSearch: EditText
@@ -116,7 +117,7 @@ class PreviewActivity : Activity() {
             }
             field = value
             if (value && ::catalogPinRecovery.isInitialized) catalogPinRecovery.dismiss()
-            if (value) catalogDetailBrowser?.retire()
+            if (value) retireCatalogDetailInspection()
         }
     private var restoringFields = false
     private var restoration: PreviewDraftRestoration? = null
@@ -383,11 +384,7 @@ class PreviewActivity : Activity() {
             beforeInspect = ::retireInspectionWindows) {
             retireRevisionInspection()
             catalogPinRecovery.dismiss()
-            catalogDetailDialog?.dismiss()
-            catalogDetailDialog = null
-            catalogPriceBrowser?.retire()
-            catalogPriceBrowser = null
-            catalogDetailBrowser?.retire()
+            retireCatalogDetailInspection()
         }
         content.addView(catalogComparison)
         catalog = CatalogBrowseSection(this, savedInstanceState, ::showDetails)
@@ -559,8 +556,7 @@ class PreviewActivity : Activity() {
         currentCheckInputs = null
         invalidateCurrentChecks(PreviewCurrentUnavailable.INPUT_UNAVAILABLE)
         catalogPinRecovery.dismiss()
-        catalogDetailBrowser?.retire()
-        catalogDetailBrowser = null
+        retireCatalogDetailInspection()
         retry.isEnabled = false
         updateIncomingComponent()
         catalogStatus.setText(R.string.working)
@@ -607,16 +603,27 @@ class PreviewActivity : Activity() {
         }
     }
 
+    private fun retireCatalogDetailInspection() {
+        val dialog = catalogDetailDialog
+        val prices = catalogPriceBrowser
+        val details = catalogDetailBrowser
+        val sources = catalogSourceNavigation
+        // Detach every owner before dismissal can replay a callback from any child.
+        catalogDetailDialog = null
+        catalogPriceBrowser = null
+        catalogDetailBrowser = null
+        catalogSourceNavigation = null
+        dialog?.dismiss()
+        prices?.retire()
+        details?.retire()
+        sources?.retire()
+    }
+
     private fun showDetails(item: PreviewCatalogItem, catalogHash: String) {
-        if (destroyed) return
+        if (destroyed || !diagnosticsResumed) return
         retireInspectionWindows()
         catalogPinRecovery.dismiss()
-        catalogDetailDialog?.dismiss()
-        catalogDetailDialog = null
-        catalogPriceBrowser?.retire()
-        catalogPriceBrowser = null
-        catalogDetailBrowser?.retire()
-        catalogDetailBrowser = null
+        retireCatalogDetailInspection()
         val baseline = savedRecord
         val draftId = currentDraftId
         val detailAuthority = storageAuthority
@@ -652,7 +659,7 @@ class PreviewActivity : Activity() {
                 minWidth = target
                 setOnClickListener {
                     val isCurrent = {
-                        catalogDetailDialog === dialog && !destroyed && !storageBusy && storageAuthority === detailAuthority &&
+                        catalogDetailDialog === dialog && !destroyed && diagnosticsResumed && !storageBusy && storageAuthority === detailAuthority &&
                             savedRecord === baseline && currentDraftId == draftId && catalogFixture === priceContext &&
                             catalog.contains(item, catalogHash)
                     }
@@ -673,7 +680,7 @@ class PreviewActivity : Activity() {
                 minWidth = target
                 setOnClickListener {
                     val isCurrent = {
-                        catalogDetailDialog === dialog && !destroyed && !storageBusy && savedRecord === baseline && currentDraftId == draftId &&
+                        catalogDetailDialog === dialog && !destroyed && diagnosticsResumed && !storageBusy && savedRecord === baseline && currentDraftId == draftId &&
                             catalogFixture === priceContext && catalog.contains(item, catalogHash)
                     }
                     if (dialog.isShowing && isCurrent()) {
@@ -693,7 +700,7 @@ class PreviewActivity : Activity() {
                     minHeight = target
                     minWidth = target
                     setOnClickListener {
-                        if (catalogDetailDialog === dialog && dialog.isShowing && !destroyed) {
+                        if (catalogDetailDialog === dialog && dialog.isShowing && !destroyed && diagnosticsResumed) {
                             catalogComparison.add(item, catalogHash)
                             dialog.dismiss()
                         }
@@ -706,7 +713,7 @@ class PreviewActivity : Activity() {
                     minWidth = target
                     isEnabled = canUseInDraft()
                     setOnClickListener {
-                        if (catalogDetailDialog !== dialog || !dialog.isShowing || destroyed) return@setOnClickListener
+                        if (catalogDetailDialog !== dialog || !dialog.isShowing || destroyed || !diagnosticsResumed) return@setOnClickListener
                         if (!canUseInDraft()) {
                             isEnabled = false
                             dialog.setMessage(getString(R.string.catalog_selection_changed))
@@ -726,13 +733,19 @@ class PreviewActivity : Activity() {
                     else R.string.component_unsupported))
             .setNegativeButton(R.string.close, null)
             .setNeutralButton(R.string.catalog_sources) { _, _ ->
-                if (dialog.isShowing && detail != null) CatalogSourceNavigation(this, detail, isCurrent = {
-                    catalogDetailDialog === dialog && !destroyed && !storageBusy && savedRecord === baseline && currentDraftId == draftId &&
-                        catalog.contains(item, catalogHash)
-                }).show()
+                if (dialog.isShowing && detail != null && diagnosticsResumed) {
+                    catalogSourceNavigation?.retire()
+                    CatalogSourceNavigation(this, detail, isCurrent = {
+                        catalogDetailDialog === dialog && !destroyed && diagnosticsResumed && !storageBusy &&
+                            savedRecord === baseline && currentDraftId == draftId && catalog.contains(item, catalogHash)
+                    }).also {
+                        catalogSourceNavigation = it
+                        it.show()
+                    }
+                }
             }
             .setPositiveButton(R.string.select_sample) { _, _ ->
-                if (catalogDetailDialog === dialog && dialog.isShowing && !destroyed && !storageBusy && savedRecord === baseline && currentDraftId == draftId &&
+                if (catalogDetailDialog === dialog && dialog.isShowing && !destroyed && diagnosticsResumed && !storageBusy && savedRecord === baseline && currentDraftId == draftId &&
                     catalog.contains(item, catalogHash)) {
                     selectedId = item.id
                     selectedVersion = item.version
@@ -750,12 +763,7 @@ class PreviewActivity : Activity() {
     private fun showPinnedDetails(pin: PreviewCatalogPin, captured: PreviewCatalogBrowser?, originIsCurrent: () -> Boolean) {
         if (destroyed || !diagnosticsResumed || storageBusy || !originIsCurrent()) return
         retireInspectionWindows()
-        catalogDetailDialog?.dismiss()
-        catalogDetailDialog = null
-        catalogPriceBrowser?.retire()
-        catalogPriceBrowser = null
-        catalogDetailBrowser?.retire()
-        catalogDetailBrowser = null
+        retireCatalogDetailInspection()
         val baseline = savedRecord
         val draftId = currentDraftId
         catalogPinRecovery.open(pin, captured) {
@@ -1091,13 +1099,7 @@ class PreviewActivity : Activity() {
         retireHistoryInspection()
         retireInspectionWindows()
         if (::catalogPinRecovery.isInitialized) catalogPinRecovery.dismiss()
-        val previous = catalogDetailDialog
-        catalogDetailDialog = null
-        previous?.dismiss()
-        catalogPriceBrowser?.retire()
-        catalogPriceBrowser = null
-        catalogDetailBrowser?.retire()
-        catalogDetailBrowser = null
+        retireCatalogDetailInspection()
     }
 
     /** A new inspection owns its sibling windows; data refresh alone does not revoke fixed reports. */
@@ -1128,12 +1130,7 @@ class PreviewActivity : Activity() {
         retireInspectionWindows()
         catalogComparison.dismissInspection()
         catalogPinRecovery.dismiss()
-        catalogDetailDialog?.dismiss()
-        catalogDetailDialog = null
-        catalogPriceBrowser?.retire()
-        catalogPriceBrowser = null
-        catalogDetailBrowser?.retire()
-        catalogDetailBrowser = null
+        retireCatalogDetailInspection()
         val request = Any()
         revisionRequest = request
         val authority = storageAuthority
@@ -1750,6 +1747,7 @@ class PreviewActivity : Activity() {
 
     override fun onPause() {
         diagnosticsResumed = false
+        retireCatalogDetailInspection()
         retireHistoryInspection()
         invalidateCurrentChecks(PreviewCurrentUnavailable.BACKGROUND)
         if (::catalogPinRecovery.isInitialized) catalogPinRecovery.dismiss()
@@ -1781,12 +1779,7 @@ class PreviewActivity : Activity() {
         if (::help.isInitialized) help.close()
         if (::privacy.isInitialized) privacy.close()
         if (::catalogPinRecovery.isInitialized) catalogPinRecovery.close()
-        catalogDetailDialog?.dismiss()
-        catalogDetailDialog = null
-        catalogPriceBrowser?.retire()
-        catalogPriceBrowser = null
-        catalogDetailBrowser?.retire()
-        catalogDetailBrowser = null
+        retireCatalogDetailInspection()
         if (::catalog.isInitialized) catalog.close()
         if (::catalogComparison.isInitialized) catalogComparison.close()
         if (::componentSection.isInitialized) componentSection.close()
