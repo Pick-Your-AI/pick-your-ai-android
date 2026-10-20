@@ -1,0 +1,5 @@
+<resources>
+    <!-- Optional suffix after a field name. %1$s is an already formatted literal key.
+         Keep the leading separator in the quoted resource; the resource owns punctuation and order. -->
+    <string name="revision_compare_key_suffix">" [%1$s]"</string>
+</resources>

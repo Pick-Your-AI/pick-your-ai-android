@@ -127,7 +127,8 @@ internal class LibraryRevisionComparison(
         return when (value.kind) {
             PreviewComparedValueKind.ABSENT -> activity.getString(R.string.revision_compare_absent)
             PreviewComparedValueKind.EMPTY -> activity.getString(R.string.context_empty)
-            PreviewComparedValueKind.TEXT -> activity.getString(R.string.revision_compare_text, value.quotedLiteral)
+            PreviewComparedValueKind.TEXT -> ComponentSelectionText.format(activity, R.string.revision_compare_text,
+                requireNotNull(value.quotedLiteral))
         }
     }
 

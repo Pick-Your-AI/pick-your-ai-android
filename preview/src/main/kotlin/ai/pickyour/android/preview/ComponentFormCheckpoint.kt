@@ -94,6 +94,7 @@ internal sealed interface ComponentFormRecovery {
     class Pending(val form: ComponentFormCheckpoint) : ComponentFormRecovery
     class TypedContextPending(val form: ContextPolicyFormCheckpoint) : ComponentFormRecovery
     class TypedModelPending(val form: ModelFormCheckpoint) : ComponentFormRecovery
+    class TypedComputePending(val form: ComputeFormCheckpoint) : ComponentFormRecovery
     class TypedKnowledgeBasePending(val form: KnowledgeBaseFormCheckpoint) : ComponentFormRecovery
 
     fun save(outState: Bundle) {
@@ -105,6 +106,7 @@ internal sealed interface ComponentFormRecovery {
             is Pending -> outState.putBundle(KEY, form.bundle() ?: unavailable())
             is TypedContextPending -> outState.putBundle(KEY, form.bundle() ?: unavailable())
             is TypedModelPending -> outState.putBundle(KEY, form.bundle() ?: unavailable())
+            is TypedComputePending -> outState.putBundle(KEY, form.bundle() ?: unavailable())
             is TypedKnowledgeBasePending -> outState.putBundle(KEY, form.bundle() ?: unavailable())
         }
     }
@@ -127,6 +129,8 @@ internal sealed interface ComponentFormRecovery {
                     ContextPolicyFormCheckpoint.read(value)?.let(::TypedContextPending) ?: Unavailable
                 } else if (value.get("version") == ModelFormCheckpoint.VERSION) {
                     ModelFormCheckpoint.read(value)?.let(::TypedModelPending) ?: Unavailable
+                } else if (value.get("version") == ComputeFormCheckpoint.VERSION) {
+                    ComputeFormCheckpoint.read(value)?.let(::TypedComputePending) ?: Unavailable
                 } else if (value.get("version") == KnowledgeBaseFormCheckpoint.VERSION) {
                     KnowledgeBaseFormCheckpoint.read(value)?.let(::TypedKnowledgeBasePending) ?: Unavailable
                 } else ComponentFormCheckpoint.read(value)?.let(::Pending) ?: Unavailable
