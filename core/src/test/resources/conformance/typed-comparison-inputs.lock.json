@@ -1,0 +1,42 @@
+{
+  "lockVersion": "android-typed-comparison-inputs/1",
+  "profile": "typed-comparison/0.1",
+  "classification": "synthetic_test_only",
+  "source": {
+    "repository": "Pick-Your-AI/pick-your-ai-research",
+    "commit": "8af15e63a1b71e4914008f607554aa264c3e0cc5",
+    "tree": "0368f3873b3496ec1ee99f7e4fa409d7d40064ea",
+    "decisionPath": "research/T0-configuration/component-schema-compatibility.md",
+    "decisionGitBlob": "dc17d685225c548b30553c0aa6be909bd6a01155"
+  },
+  "inputs": {
+    "prototype": {
+      "path": "tests/reference/typed_comparison_01/t0_typed_comparison_prototype.py",
+      "upstreamPath": "tests/t0_typed_comparison_prototype.py",
+      "gitBlob": "bd2cb185013bc0b7c9455f7571c6d3dc62a44caf",
+      "bytes": 11383,
+      "sha256": "5fc27536a5e97a9a76ad250a90015c4082269b54c6d56bbefd2615fc99639b82"
+    },
+    "tests": {
+      "path": "tests/reference/typed_comparison_01/test_t0_typed_comparison.py",
+      "upstreamPath": "tests/test_t0_typed_comparison.py",
+      "gitBlob": "78a54619dbf97e44628b6a64327971025b3f27fe",
+      "bytes": 17201,
+      "sha256": "25b9268760957663c9b5c731149c3e93655d82ae72a0c59fc947186757ccf77a"
+    },
+    "corpus": {
+      "path": "core/src/test/resources/conformance/typed-comparison-0.1.json",
+      "upstreamPath": "tests/fixtures/t0-typed-comparison-0.1.json",
+      "gitBlob": "da3fdb7427f15294ffd921018a7a197a103ded6f",
+      "bytes": 17859,
+      "sha256": "a8a1e4cc8e80d5b45424e38b023cee46f394a8d55fd776b4ff267df2386b1554"
+    },
+    "frozen_reference": {
+      "path": "contracts/v1/reference/evaluate.py",
+      "upstreamPath": "contracts/v1/reference/evaluate.py",
+      "gitBlob": "0e01df6ada663b41019ffb7825290b47b142fa38",
+      "bytes": 10946,
+      "sha256": "092c8a99495f9b5ae960df40b27e33f15eefe6d1a7cd80119658fdc79ada1a5a"
+    }
+  }
+}
