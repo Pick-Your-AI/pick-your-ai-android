@@ -19,6 +19,7 @@ import sys
 import tempfile
 import types
 from jsonschema.exceptions import SchemaError
+from reference_fixture_output import output_path, write_binary_output
 
 RESEARCH_COMMIT = "cebbf59345e01d34b8ad4c20d0b57782f6e05369"
 RESEARCH_TREE = "6e9f196d091fb0fb89443c3fc0e6adcf05607c55"
@@ -66,7 +67,8 @@ SOURCE_PINS = {
         "blob": "8ee5a7b7a960ae63c073c996cfdc73b80d939e7c"
     }
 }
-DESTINATION = Path(__file__).resolve().parents[1] / "core/src/test/resources/evidence/answers"
+ROOT = Path(__file__).resolve().parents[1]
+DESTINATION = ROOT / "core/src/test/resources/evidence/answers"
 
 
 def require(value, message):
@@ -365,14 +367,22 @@ def main():
     parser.add_argument("--research-root", type=Path, required=True)
     parser.add_argument("--write", action="store_true", help="Write the two explicit synthetic fixture files")
     args = parser.parse_args()
-    fixture, lock = generate(args.research_root.resolve())
-    if args.write:
-        DESTINATION.mkdir(parents=True, exist_ok=True)
-        (DESTINATION / "cd1-reference.json").write_bytes(fixture)
-        (DESTINATION / "cd1-reference-lock.json").write_bytes(lock)
-    else:
-        require((DESTINATION / "cd1-reference.json").read_bytes() == fixture, "Fixture differs")
-        require((DESTINATION / "cd1-reference-lock.json").read_bytes() == lock, "Fixture lock differs")
+    try:
+        relative_outputs = tuple((DESTINATION / name).relative_to(ROOT) for name in
+                                 ("cd1-reference.json", "cd1-reference-lock.json"))
+        for relative in relative_outputs:
+            output_path(ROOT, relative)
+        fixture, lock = generate(args.research_root.resolve())
+        # Check the complete pair before any read or first-file publication.
+        targets = tuple(output_path(ROOT, relative) for relative in relative_outputs)
+        if args.write:
+            for relative, raw in zip(relative_outputs, (fixture, lock)):
+                write_binary_output(ROOT, relative, raw)
+        else:
+            require(targets[0].read_bytes() == fixture, "Fixture differs")
+            require(targets[1].read_bytes() == lock, "Fixture lock differs")
+    except (OSError, ValueError) as error:
+        parser.exit(1, "CD1 reference output failed: " + str(error) + "\n")
     print("CD1_REFERENCE_PASS " + json.dumps(json.loads(lock)["fixture"], sort_keys=True))
 
 

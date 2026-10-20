@@ -35,6 +35,7 @@ internal class SnapshotEvaluationSection(
     private val worker: Executor,
     private val evaluator: SnapshotEvaluator = LocalSnapshotEvaluator(),
     private val archiveRoot: () -> Path = { activity.filesDir.toPath().resolve("retained-snapshots") },
+    private val beforeInspect: () -> Unit = {},
     private val alive: () -> Boolean,
 ) {
     private var closed = false
@@ -55,7 +56,7 @@ internal class SnapshotEvaluationSection(
             accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
         }
         open = Button(activity).apply { id = R.id.snapshot_open; setText(R.string.snapshot_open) }
-        open.setOnClickListener { if (active()) loadInventory() }
+        open.setOnClickListener { if (active()) { beforeInspect(); loadInventory() } }
         container.addView(open); container.addView(status)
     }
 
@@ -293,7 +294,7 @@ internal class SnapshotEvaluationSection(
             PreviewComparedValueKind.EMPTY -> activity.getString(R.string.snapshot_literal_empty)
             PreviewComparedValueKind.TEXT -> {
                 // Input controls have already been escaped; only our formatter may add bidi marks.
-                val literal = BidiFormatter.getInstance(activity.resources.configuration.locales[0])
+                val literal = BidiFormatter.getInstance(activity.resources.configuration.layoutDirection == View.LAYOUT_DIRECTION_RTL)
                     .unicodeWrap(requireNotNull(value.quotedLiteral), TextDirectionHeuristics.LTR)
                 if (value.truncated) activity.getString(R.string.snapshot_literal_truncated, literal) else literal
             }

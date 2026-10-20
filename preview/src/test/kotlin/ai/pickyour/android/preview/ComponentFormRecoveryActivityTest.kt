@@ -76,7 +76,7 @@ class ComponentFormRecoveryActivityTest {
     private fun worker(): ExecutorService = PreviewActivity::class.java.getDeclaredField("worker")
         .apply { isAccessible = true }.get(activity) as ExecutorService
     private fun adapter() = PreviewDraftLibrary(activity.noBackupFilesDir.toPath()).openLegacy()
-    private fun loaded() = (adapter().load() as PreviewDraftLoad.Available).record
+    private fun loaded() = (readDraftAfterOwnedWork(activity, ::adapter) as PreviewDraftLoad.Available).record
     private fun dialog() = ShadowAlertDialog.getLatestAlertDialog()!!
     private fun save() {
         button(R.string.save_draft).performClick()
