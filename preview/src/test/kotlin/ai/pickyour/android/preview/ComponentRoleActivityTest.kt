@@ -260,6 +260,144 @@ class ComponentRoleActivityTest {
         assertEquals("candidate", loaded().components.selections.first().role)
     }
 
+    @Test fun actualPauseRetiresRoleCommitAndPreservesInputForExplicitReview() {
+        val before = seed()
+        val form = roleForm()
+        val input = field(form, R.string.component_role)
+        input.setText("candidate")
+        val retiredCommit = form.getButton(AlertDialog.BUTTON_POSITIVE)
+        val retainedManage = button(R.string.component_manage)
+        val retainedReview = button(R.string.component_recovery_review)
+        val retainedDiscard = button(R.string.component_recovery_discard)
+        finishWork()
+        val snapshot = disk()
+
+        controller.pause()
+        retiredCommit.performClick()
+        finishWork()
+        val paused = loaded()
+        assertEquals("A retained Commit must not change the durable selection while paused",
+            before.components, paused.components)
+        assertEquals(before.baselineIdentity, paused.baselineIdentity)
+        assertEquals(before.fields, paused.fields)
+        assertEquals(before.history.map { it.revision }, paused.history.map { it.revision })
+        assertEquals(snapshot, disk())
+        assertFalse(form.isShowing)
+        assertFalse(retainedManage.isEnabled)
+        assertFalse(retainedReview.isEnabled)
+        assertFalse(retainedDiscard.isEnabled)
+
+        retainedManage.performClick(); retainedReview.performClick(); retainedDiscard.performClick()
+        finishWork()
+        assertSame(form, dialog())
+        val state = Bundle()
+        controller.saveInstanceState(state)
+        val checkpoint = (ComponentFormRecovery.read(roundTrip(state)) as ComponentFormRecovery.Pending).form
+        assertEquals(ComponentFormCheckpoint.ROLE, checkpoint.mode)
+        assertEquals("guest-draft", checkpoint.draftId)
+        assertEquals(before.baselineIdentity, checkpoint.baseline)
+        assertEquals("sel_model", checkpoint.selectionId)
+        assertEquals("candidate", checkpoint.role)
+        assertEquals("", checkpoint.settings)
+        assertFalse(checkpoint.wasSaving)
+
+        controller.resume().visible()
+        finishWork()
+        retiredCommit.performClick()
+        finishWork()
+        assertFalse(form.isShowing)
+        assertEquals(before.baselineIdentity, loaded().baselineIdentity)
+        assertEquals(snapshot, disk())
+        val fresh = review()
+        assertNotSame(form, fresh)
+        assertEquals("candidate", field(fresh, R.string.component_role).text.toString())
+        retiredCommit.performClick()
+        finishWork()
+        assertSame(fresh, dialog())
+        assertEquals(before.baselineIdentity, loaded().baselineIdentity)
+        val freshCommit = fresh.getButton(AlertDialog.BUTTON_POSITIVE)
+        freshCommit.performClick(); freshCommit.performClick()
+        await { !fresh.isShowing && loaded().revision == before.revision + 1 }
+        retiredCommit.performClick(); freshCommit.performClick()
+        finishWork()
+        val saved = loaded()
+        val expectedSelection = LocalSelection.fromJson(JSONObject(seededSelectionJson).put("role", "candidate")
+            .toString().toByteArray(Charsets.UTF_8))
+        assertEquals(before.revision + 1, saved.revision)
+        assertEquals(expectedSelection, saved.components.selections.first())
+        assertEquals(before.components.selections.drop(1), saved.components.selections.drop(1))
+        assertEquals(before.components.links, saved.components.links)
+        assertEquals(before.fields, saved.fields)
+        assertEquals(before.history.size + 1, saved.history.size)
+    }
+
+    @Test fun actualPauseRetiresSelectionPickersAndConfirmationWithoutRestoringConsent() {
+        val before = seed()
+        button(R.string.component_manage).performClick()
+        val picker = dialog()
+        val selectionIndex = (0 until picker.listView.adapter.count).single {
+            picker.listView.adapter.getItem(it).toString().endsWith(" · ${componentTokenForLookup(activity, "sel_model")}")
+        }
+        shadowOf(picker).clickOnItem(selectionIndex)
+        await { dialog() !== picker && dialog().isShowing }
+        val actions = dialog()
+        val enableIndex = (0 until actions.listView.adapter.count).single {
+            actions.listView.adapter.getItem(it).toString() == activity.getString(R.string.component_enable)
+        }
+        shadowOf(actions).clickOnItem(enableIndex)
+        await { dialog() !== actions && dialog().isShowing }
+        val confirmation = dialog()
+        val retiredCommit = confirmation.getButton(AlertDialog.BUTTON_POSITIVE)
+        finishWork()
+        val snapshot = disk()
+
+        controller.pause()
+        assertFalse(picker.isShowing)
+        assertFalse(actions.isShowing)
+        assertFalse(confirmation.isShowing)
+        shadowOf(picker).clickOnItem(selectionIndex)
+        shadowOf(actions).clickOnItem(enableIndex)
+        retiredCommit.performClick()
+        finishWork()
+        assertSame(confirmation, dialog())
+        assertEquals(before.components, loaded().components)
+        assertEquals(before.baselineIdentity, loaded().baselineIdentity)
+        assertEquals(snapshot, disk())
+        val state = Bundle()
+        controller.saveInstanceState(state)
+        assertSame(ComponentFormRecovery.None, ComponentFormRecovery.read(roundTrip(state)))
+
+        controller.resume().visible()
+        finishWork()
+        shadowOf(picker).clickOnItem(selectionIndex)
+        shadowOf(actions).clickOnItem(enableIndex)
+        retiredCommit.performClick()
+        finishWork()
+        assertSame(confirmation, dialog())
+        assertEquals(View.GONE, button(R.string.component_recovery_review).visibility)
+        assertEquals(snapshot, disk())
+        val fresh = action(R.string.component_enable)
+        assertNotSame(confirmation, fresh)
+        retiredCommit.performClick()
+        finishWork()
+        assertSame(fresh, dialog())
+        assertEquals(before.baselineIdentity, loaded().baselineIdentity)
+        val freshCommit = fresh.getButton(AlertDialog.BUTTON_POSITIVE)
+        freshCommit.performClick(); freshCommit.performClick()
+        await { !fresh.isShowing && loaded().revision == before.revision + 1 }
+        retiredCommit.performClick(); freshCommit.performClick()
+        finishWork()
+        val saved = loaded()
+        val expectedSelection = LocalSelection.fromJson(JSONObject(seededSelectionJson).put("enabled", true)
+            .toString().toByteArray(Charsets.UTF_8))
+        assertEquals(before.revision + 1, saved.revision)
+        assertEquals(expectedSelection, saved.components.selections.first())
+        assertEquals(before.components.selections.drop(1), saved.components.selections.drop(1))
+        assertEquals(before.components.links, saved.components.links)
+        assertEquals(before.fields, saved.fields)
+        assertEquals(before.history.size + 1, saved.history.size)
+    }
+
     @Test fun changedSavedHeadKeepsRecoveredRoleReadOnlyEvenAfterExplicitReopen() {
         val before = seed()
         val form = roleForm()
@@ -311,8 +449,9 @@ class ComponentRoleActivityTest {
             recreate { state ->
                 assertTrue((ComponentFormRecovery.read(roundTrip(state)) as ComponentFormRecovery.Pending).form.wasSaving)
                 release.countDown()
-                await { !form.isShowing && loaded().revision == before.revision + 1 }
+                // Pause retires the dialog before acknowledgment; let the owned write finish before reading storage.
                 finishWork()
+                await { !form.isShowing && loaded().revision == before.revision + 1 }
             }
         } finally { release.countDown() }
         val saved = loaded()
