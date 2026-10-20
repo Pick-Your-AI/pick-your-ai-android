@@ -215,8 +215,16 @@ class FoundationSelectionActivityTest {
         assertEquals(before.workloadInput, saved.workloadInput)
         assertEquals("17", field(activity.window.decorView, R.string.workload_requests).text.toString())
         val configure = action(selection, R.string.component_configure)
-        assertEquals(raw, field(configure, R.string.component_settings).text.toString())
-        field(configure, R.string.component_settings).setText("{}")
+        assertEquals(raw, PreviewSelectionForms.settingsText(selection))
+        assertEquals("9007199254740993", field(configure, R.string.workload_selection_concurrency).text.toString())
+        assertEquals("0", field(configure, R.string.workload_selection_requests).text.toString())
+        assertEquals("0", field(configure, R.string.workload_selection_output).text.toString())
+        assertEquals("", field(configure, R.string.workload_selection_input).text.toString())
+        assertEquals("", field(configure, R.string.workload_selection_latency).text.toString())
+        for (control in views(configure.window!!.decorView).filterIsInstance<CheckBox>().filter { it.isChecked }) {
+            control.performClick()
+            assertFalse(control.isChecked)
+        }
         val cleared = commit(configure)
         assertEquals(0, settings(cleared.components.selections.single()).length())
         assertEquals(selection.id, cleared.components.selections.single().id)
