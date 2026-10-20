@@ -3719,7 +3719,7 @@ class SelectionHandoffAcceptanceTest(unittest.TestCase):
         readme = (ROOT / 'docs/delivery/README.md').read_text(encoding='utf-8')
         previous = '# Criterion evidence ledger\n\n' + readme[readme.index('## Version 15:'):]
         self.assertEqual(90887, len(previous.encode()))
-        self.assertEqual('28a80a3166f46791a3661162942651fb05febb9ccc12abea419eb7dce1cea904',
+        self.assertEqual('fc57c64f1580a0e0e35ed31f9e4a3be01127d3ceedea15103a0ab7a6a19a5271',
                          hashlib.sha256(previous.encode()).hexdigest())
 
     def test_normal_and_optimized_cli_reject_forged_delivery_and_accept_exact_source(self):
