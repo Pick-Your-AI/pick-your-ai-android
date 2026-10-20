@@ -1,18 +1,19 @@
 """Check synthetic deployment-manifest cases against the unchanged frozen Python schema."""
 import copy
 import hashlib
-import json
 from pathlib import Path
 
-from jsonschema import Draft202012Validator, FormatChecker
+from jsonschema import FormatChecker
 from referencing import Registry, Resource
+
+from frozen_fixture_numbers import FixtureValidator, read_json
 
 ROOT = Path(__file__).resolve().parents[1]
 BASE = ROOT / "contracts/v1"
 
 
 def main():
-    fixture = json.loads((ROOT / "core/src/test/resources/contracts/deployment-manifest-cases.json").read_text())
+    fixture = read_json(ROOT / "core/src/test/resources/contracts/deployment-manifest-cases.json")
     if fixture["profile"] != "android-frozen-deployment-manifest-wire/v1":
         raise ValueError("Unknown deployment-manifest fixture profile")
     for key, path in (
@@ -21,14 +22,14 @@ def main():
     ):
         if hashlib.sha256(path.read_bytes()).hexdigest() != fixture[key]:
             raise ValueError("Deployment-manifest fixture input identity changed")
-    schemas = [json.loads(path.read_text()) for path in (BASE / "schemas").glob("*.schema.json")]
+    schemas = [read_json(path) for path in (BASE / "schemas").glob("*.schema.json")]
     registry = Registry().with_resources((schema["$id"], Resource.from_contents(schema)) for schema in schemas)
-    schema = json.loads((BASE / "schemas/deployment-manifest.schema.json").read_text())
+    schema = read_json(BASE / "schemas/deployment-manifest.schema.json")
     formats = FormatChecker()
     if not {"date-time", "uri"}.issubset(formats.checkers):
         raise ValueError("Manifest format checkers unavailable; install requirements-contracts.txt")
-    validator = Draft202012Validator(schema, registry=registry, format_checker=formats)
-    original = json.loads((BASE / "examples/deployment-manifest.json").read_text())
+    validator = FixtureValidator(schema, registry=registry, format_checker=formats)
+    original = read_json(BASE / "examples/deployment-manifest.json")
     names = set()
     counts = {"decoded": 0, "unsupported_version": 0, "schema_mismatch": 0}
     for case in fixture["cases"]:
