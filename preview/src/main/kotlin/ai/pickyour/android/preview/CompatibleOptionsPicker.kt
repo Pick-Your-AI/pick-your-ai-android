@@ -39,6 +39,9 @@ internal class CompatibleOptionsPicker(
     private val worker: Executor,
     private val evaluate: (DraftCompatibleOptionsRequest) -> DraftCompatibleOptionsOutcome = DraftCompatibleOptionsEvaluator()::evaluate,
     private val rulesInput: () -> InputStream = { activity.assets.open("ruleset.json") },
+    private val inspectAlternative: (DraftAlternativeInspectionRequest, () -> Boolean) -> DraftAlternativeOutcome =
+        DraftAlternativeInspector()::inspect,
+    private val beforeInspect: () -> Unit = {},
     private val alive: () -> Boolean,
 ) {
     private class Session(val launch: CompatiblePickerLaunch, val catalog: ByteArray, val current: () -> Boolean) {
@@ -46,6 +49,7 @@ internal class CompatibleOptionsPicker(
         val coordinator = DraftCompatibleOptionsCoordinator()
         var page = 0
         var pageEpoch: Any = Any()
+        var rowEpoch: Any = Any()
         var workRetired = AtomicBoolean(false)
         var result: DraftCompatibleOptionsOutcome.Completed? = null
         var request: DraftCompatibleOptionsRequest? = null
@@ -58,6 +62,7 @@ internal class CompatibleOptionsPicker(
         lateinit var next: Button
         lateinit var inherited: Button
         val children = mutableListOf<AlertDialog>()
+        var alternative: AlternativeInspectionBrowser? = null
     }
     private var session: Session? = null
     private var closed = false
@@ -69,11 +74,14 @@ internal class CompatibleOptionsPicker(
         session = null
         if (old != null) {
             old.retired.set(true); old.workRetired.set(true); old.coordinator.clear()
-            old.children.toList().forEach { it.dismiss() }; old.children.clear()
+            retireChildren(old)
             old.dialog.dismiss()
         }
     }
     fun close() { closed = true; dismiss() }
+
+    /** Retire child windows and their work while retaining the admitted parent and choice authority. */
+    fun dismissInspection() { session?.let(::retireChildren) }
 
     fun show(launch: CompatiblePickerLaunch, catalog: ByteArray, current: () -> Boolean) {
         if (closed || !alive() || !current() || !launch.current()) return
@@ -133,7 +141,7 @@ internal class CompatibleOptionsPicker(
         s.workRetired.set(true)
         val workRetired = AtomicBoolean(false).also { s.workRetired = it }
         val epoch = Any().also { s.pageEpoch = it }
-        s.children.toList().forEach { it.dismiss() }; s.children.clear()
+        retireChildren(s)
         s.rows.removeAllViews(); s.inherited.isEnabled = false
         s.status.setText(R.string.options_evaluating)
         s.previous.isEnabled = s.page > 0
@@ -186,6 +194,8 @@ internal class CompatibleOptionsPicker(
     private fun render(s: Session) {
         val result = s.result ?: return
         if (!currentResult(s, result)) return
+        val rowEpoch = Any().also { s.rowEpoch = it }
+        retireChildren(s)
         val b = result.binding
         s.status.text = activity.getString(R.string.options_status_with_binding,
             activity.getString(R.string.options_counts, s.page + 1,
@@ -207,20 +217,35 @@ internal class CompatibleOptionsPicker(
             option.reasons.forEach { reason ->
                 s.rows.addView(Button(activity).apply {
                     text = activity.getString(R.string.options_rule, reason.finding.ruleId, reason.finding.outcome)
-                    setOnClickListener { if (currentResult(s, result)) details(s, reason.finding.ruleId,
+                    setOnClickListener { if (s.rowEpoch === rowEpoch && currentResult(s, result)) details(s, reason.finding.ruleId,
                         activity.getString(R.string.options_reason_baseline, reason.baselineOutcome) + "\n\n" + findingText(reason.finding)) }
                 })
             }
             s.rows.addView(Button(activity).apply {
+                id = R.id.alternative_inspect
+                setText(R.string.alternative_inspect)
+                setOnClickListener {
+                    if (s.rowEpoch !== rowEpoch || !currentResult(s, result)) return@setOnClickListener
+                    beforeInspect()
+                    if (s.rowEpoch !== rowEpoch || !currentResult(s, result)) return@setOnClickListener
+                    val parent = s.request ?: return@setOnClickListener
+                    retireChildren(s)
+                    val browser = AlternativeInspectionBrowser(activity, worker, parent, result, option,
+                        { s.rowEpoch === rowEpoch && s.request === parent && currentResult(s, result) }, inspectAlternative)
+                    s.alternative = browser
+                    browser.show()
+                }
+            })
+            s.rows.addView(Button(activity).apply {
                 text = activity.getString(R.string.options_choose, item.name, activity.getString(verdictLabel(option.verdict)))
                 setOnClickListener {
-                    if (!currentResult(s, result)) return@setOnClickListener
+                    if (s.rowEpoch !== rowEpoch || !currentResult(s, result)) return@setOnClickListener
                     lateinit var confirmation: AlertDialog
                     confirmation = AlertDialog.Builder(activity).setTitle(R.string.options_confirm)
                         .setMessage(activity.getString(R.string.options_confirm_message, item.name,
                             activity.getString(verdictLabel(option.verdict)), s.launch.slot.kind, s.launch.slot.role))
                         .setNegativeButton(R.string.close, null).setPositiveButton(R.string.component_commit) { _, _ ->
-                            if (confirmation.isShowing && confirmation in s.children && currentResult(s, result)) {
+                            if (confirmation.isShowing && confirmation in s.children && s.rowEpoch === rowEpoch && currentResult(s, result)) {
                                 dismiss() // One-use result authority is revoked before the canonical form/store callback.
                                 s.launch.choose(item)
                             }
@@ -231,7 +256,17 @@ internal class CompatibleOptionsPicker(
         }
     }
 
+    private fun retireChildren(s: Session) {
+        val browser = s.alternative
+        s.alternative = null
+        val children = s.children.toList()
+        s.children.clear()
+        browser?.retire()
+        children.forEach { it.dismiss() }
+    }
+
     private fun child(s: Session, dialog: AlertDialog) {
+        retireChildren(s)
         s.children += dialog
         dialog.setOnDismissListener { s.children.remove(dialog) }
         dialog.show()

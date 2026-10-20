@@ -33,6 +33,11 @@ internal sealed interface DraftRuleEvaluation {
     data class Rejected(val reason: DiagnosticRejection) : DraftRuleEvaluation
 }
 
+internal sealed interface DraftCurrentContextCapture {
+    class Ready(val context: DraftDiagnosticContext, val selection: LocalSelection?) : DraftCurrentContextCapture
+    data class Unavailable(val reason: CompatibleOptionsUnavailable) : DraftCurrentContextCapture
+}
+
 /**
  * Only known typed editing fields. Empty selections/links are known empty; unanswered objectives
  * stay absent. No shared Build ID, revision, owner, lifecycle, policy, locks or timestamp is invented.
@@ -96,6 +101,12 @@ class DraftCompatibleOptionsRequest private constructor(
     internal fun catalogBytes() = catalog.copyOf()
     internal fun rulesetBytes() = ruleset.copyOf()
     internal fun belongsTo(expected: StoredDraft): Boolean = source === expected
+    /** Explicit inspection only: failure here does not change the accepted candidate verdicts. */
+    internal fun captureCurrentContext(): DraftCurrentContextCapture = try {
+        DraftCurrentContextCapture.Ready(DraftDiagnosticContext.create(source.content.components, source.content.workload),
+            source.content.components.selections.singleOrNull { it.id == binding.slot.selectionId })
+    } catch (failure: DraftPreparationFailure) { DraftCurrentContextCapture.Unavailable(failure.reason) }
+    catch (_: IllegalArgumentException) { DraftCurrentContextCapture.Unavailable(CompatibleOptionsUnavailable.INVALID_INPUT) }
     /** Field groups retained only in the private source, never silently interpreted as v1 policy. */
     val unrepresentedFieldGroups: List<String> = UNREPRESENTED_FIELDS
     override fun toString() = "DraftCompatibleOptionsRequest"
