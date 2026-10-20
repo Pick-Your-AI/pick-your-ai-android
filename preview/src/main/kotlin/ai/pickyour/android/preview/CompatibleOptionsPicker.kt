@@ -41,6 +41,7 @@ internal class CompatibleOptionsPicker(
     private val rulesInput: () -> InputStream = { activity.assets.open("ruleset.json") },
     private val inspectAlternative: (DraftAlternativeInspectionRequest, () -> Boolean) -> DraftAlternativeOutcome =
         DraftAlternativeInspector()::inspect,
+    private val beforeInspect: () -> Unit = {},
     private val alive: () -> Boolean,
 ) {
     private class Session(val launch: CompatiblePickerLaunch, val catalog: ByteArray, val current: () -> Boolean) {
@@ -78,6 +79,9 @@ internal class CompatibleOptionsPicker(
         }
     }
     fun close() { closed = true; dismiss() }
+
+    /** Retire child windows and their work while retaining the admitted parent and choice authority. */
+    fun dismissInspection() { session?.let(::retireChildren) }
 
     fun show(launch: CompatiblePickerLaunch, catalog: ByteArray, current: () -> Boolean) {
         if (closed || !alive() || !current() || !launch.current()) return
@@ -221,6 +225,8 @@ internal class CompatibleOptionsPicker(
                 id = R.id.alternative_inspect
                 setText(R.string.alternative_inspect)
                 setOnClickListener {
+                    if (s.rowEpoch !== rowEpoch || !currentResult(s, result)) return@setOnClickListener
+                    beforeInspect()
                     if (s.rowEpoch !== rowEpoch || !currentResult(s, result)) return@setOnClickListener
                     val parent = s.request ?: return@setOnClickListener
                     retireChildren(s)
