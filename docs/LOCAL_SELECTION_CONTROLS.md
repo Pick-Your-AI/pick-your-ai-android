@@ -147,3 +147,13 @@ artifact-linked inventory/source-input checks must pass on the reviewed receivin
 source before this UI slice is accepted for merge. Local core tests do not
 establish Android build, installed/emulated runtime, physical-device or release
 evidence.
+
+## Typed workload Selection CONFIGURE
+
+Existing workload selections expose five optional frozen integer settings
+through explicit Supply controls, exact numeric entry and independent errors.
+This edits only the selected component; the overall workload profile remains
+unchanged. Omission, allowed zero, exact admitted nodes, whole-selection CAS,
+no-op revisions and private reviewed recovery remain distinct. Raw ADD and
+legacy raw CONFIGURE recovery are preserved. See
+[the workload Selection editor guide](WORKLOAD_SELECTION_SETTINGS_EDITOR.md).
