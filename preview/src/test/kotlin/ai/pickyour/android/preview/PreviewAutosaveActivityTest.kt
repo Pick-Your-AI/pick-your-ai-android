@@ -399,7 +399,8 @@ class PreviewAutosaveActivityTest {
         dialog().getButton(AlertDialog.BUTTON_POSITIVE).performClick()
         await { button(R.string.library_open).isEnabled && field(R.string.draft_title).text.isEmpty() }
         val library = PreviewDraftLibrary(activity.noBackupFilesDir.toPath())
-        val created = (library.list() as PreviewLibraryRead.Available).entries.single { it.id.value != "guest-draft" }.id
+        val created = (readLibraryAfterOwnedWork(activity) { library.list() } as PreviewLibraryRead.Available)
+            .entries.single { it.id.value != "guest-draft" }.id
         advance(60_000)
         drain()
         assertEquals(first.baselineIdentity, loaded().baselineIdentity)
