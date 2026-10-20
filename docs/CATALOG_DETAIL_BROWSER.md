@@ -101,7 +101,7 @@ storage actions retain their existing behavior and authorization checks.
 
 ## Validation and receiving boundary
 
-The 20 mandatory Activity cases exercise actual detail and recovery controls,
+The 21 mandatory Activity cases exercise actual detail and recovery controls,
 all field/provenance indices, complete Unicode and JSON value reconstruction,
 missing/unknown/empty/false/zero states, retired parent/page/value callbacks,
 sibling inspection, reciprocal comparison lifetime, reload/recreation and actual
@@ -121,6 +121,12 @@ cannot dispatch or reopen a retained confirmation, while a fresh confirmation
 dispatches the exact reviewed URI once. The original parent-selection regression
 failed because a retained Select action changed the selected item while paused;
 the identical test passes with the owner retirement and resumed-action guards.
+
+The shared inspection entry introduced with current-draft findings uses the same
+catalog retirement helper. An additional integration case opens Help over a
+current source-recovery message, verifies that the old source window closes and
+its captured controls remain retired, then opens a fresh source chooser. The
+current-draft, history and other sibling retirement paths remain in place.
 
 Three current-main integration cases additionally exercise both directions
 between saved-library inspection and current/pinned catalog details, and between
