@@ -124,7 +124,7 @@ class DraftLoadRecoveryActivityTest {
 
     @Test fun busyStoredDraftCanRetryExplicitlyAfterLockRelease() {
         val retained = retainedBytes()
-        val expected = (adapter().load() as PreviewDraftLoad.Available).record.baselineIdentity
+        val expected = (readDraftAfterOwnedWork(activity, ::adapter) as PreviewDraftLoad.Available).record.baselineIdentity
         FileChannel.open(draftRoot.resolve("transaction.lock"), WRITE).use { channel ->
             channel.lock().use {
                 assertEquals(PreviewDraftLoad.Failed(DraftStorageFailure.BUSY), adapter().load())
@@ -141,13 +141,13 @@ class DraftLoadRecoveryActivityTest {
         reopen()
         assertTrue(hasText(activity.getString(R.string.draft_saved)))
         assertEquals("saved synthetic title", field(R.string.draft_title).text.toString())
-        assertEquals(expected, (adapter().load() as PreviewDraftLoad.Available).record.baselineIdentity)
+        assertEquals(expected, (readDraftAfterOwnedWork(activity, ::adapter) as PreviewDraftLoad.Available).record.baselineIdentity)
         assertEquals(retained, retainedBytes())
         assertBeforeAutosave()
     }
 
     @Test fun busyReadRetryKeepsPendingInputsUntilAnExplicitSave() {
-        val original = (adapter().load() as PreviewDraftLoad.Available).record
+        val original = (readDraftAfterOwnedWork(activity, ::adapter) as PreviewDraftLoad.Available).record
         val retained = retainedBytes()
         recreateWithBusyRead {
             retryKeepingEdits()
@@ -161,12 +161,12 @@ class DraftLoadRecoveryActivityTest {
         assertPendingForm()
         assertTrue(hasText(activity.getString(R.string.draft_autosave_paused)))
         assertTrue(button(R.string.save_draft).isEnabled)
-        assertEquals(original.baselineIdentity, (adapter().load() as PreviewDraftLoad.Available).record.baselineIdentity)
+        assertEquals(original.baselineIdentity, (readDraftAfterOwnedWork(activity, ::adapter) as PreviewDraftLoad.Available).record.baselineIdentity)
         assertEquals("The preserving retry is read-only", retained, retainedBytes())
 
         button(R.string.save_draft).performClick()
         await { hasText(activity.getString(R.string.draft_saved)) && !button(R.string.save_draft).isEnabled }
-        val saved = (adapter().load() as PreviewDraftLoad.Available).record
+        val saved = (readDraftAfterOwnedWork(activity, ::adapter) as PreviewDraftLoad.Available).record
         assertEquals(original.revision + 1, saved.revision)
         assertEquals("pending synthetic title", saved.fields.title)
         assertEquals("pending synthetic objective", saved.contextInput.objective)
@@ -179,7 +179,7 @@ class DraftLoadRecoveryActivityTest {
     }
 
     @Test fun changedRevisionRetryKeepsInputsWithoutAdoptingNewSaveAuthority() {
-        val original = (adapter().load() as PreviewDraftLoad.Available).record
+        val original = (readDraftAfterOwnedWork(activity, ::adapter) as PreviewDraftLoad.Available).record
         recreateWithBusyRead()
         val changed = adapter().save(original, original.fields.copy(title = "newer saved synthetic title"))
         assertTrue(changed is PreviewDraftSave.Saved)
@@ -191,7 +191,7 @@ class DraftLoadRecoveryActivityTest {
         button(R.string.save_draft).performClick()
         settleWorker()
         assertEquals((changed as PreviewDraftSave.Saved).record.baselineIdentity,
-            (adapter().load() as PreviewDraftLoad.Available).record.baselineIdentity)
+            (readDraftAfterOwnedWork(activity, ::adapter) as PreviewDraftLoad.Available).record.baselineIdentity)
         assertEquals(retained, retainedBytes())
     }
 
@@ -250,7 +250,7 @@ class DraftLoadRecoveryActivityTest {
         val staleRetry = keepingEditsChoice(stale)
         button(R.string.save_draft).performClick()
         await { hasText(activity.getString(R.string.draft_saved)) && !button(R.string.save_draft).isEnabled }
-        val saved = (adapter().load() as PreviewDraftLoad.Available).record.baselineIdentity
+        val saved = (readDraftAfterOwnedWork(activity, ::adapter) as PreviewDraftLoad.Available).record.baselineIdentity
         val afterSave = retainedBytes()
         field(R.string.draft_title).setText("later pending synthetic title")
         staleRetry.performClick()
@@ -259,7 +259,7 @@ class DraftLoadRecoveryActivityTest {
         assertEquals("pending synthetic objective", field(R.string.context_objective).text.toString())
         assertTrue(hasText(activity.getString(R.string.draft_unsaved)))
         assertTrue(button(R.string.save_draft).isEnabled)
-        assertEquals(saved, (adapter().load() as PreviewDraftLoad.Available).record.baselineIdentity)
+        assertEquals(saved, (readDraftAfterOwnedWork(activity, ::adapter) as PreviewDraftLoad.Available).record.baselineIdentity)
         assertEquals(afterSave, retainedBytes())
     }
 
@@ -282,7 +282,7 @@ class DraftLoadRecoveryActivityTest {
     }
 
     @Test fun preservingRetryPausesAutosaveAcrossDelayAndRecreationUntilExplicitSave() {
-        val original = (adapter().load() as PreviewDraftLoad.Available).record
+        val original = (readDraftAfterOwnedWork(activity, ::adapter) as PreviewDraftLoad.Available).record
         val retained = retainedBytes()
         recreateWithBusyRead()
         retryKeepingEdits()
@@ -292,7 +292,7 @@ class DraftLoadRecoveryActivityTest {
         advanceAutosave(PreviewDraftAutosave.DELAY_MILLIS)
         settleWorker()
         assertEquals("A preserving read cannot autosave the pending form after its delay", retained, retainedBytes())
-        assertEquals(original.baselineIdentity, (adapter().load() as PreviewDraftLoad.Available).record.baselineIdentity)
+        assertEquals(original.baselineIdentity, (readDraftAfterOwnedWork(activity, ::adapter) as PreviewDraftLoad.Available).record.baselineIdentity)
         assertTrue(hasText(activity.getString(R.string.draft_autosave_paused)))
         assertPendingFields()
         field(R.string.draft_title).setText("pending after preserving retry")
@@ -316,7 +316,7 @@ class DraftLoadRecoveryActivityTest {
 
         button(R.string.save_draft).performClick()
         await { hasText(activity.getString(R.string.draft_saved)) && !button(R.string.save_draft).isEnabled }
-        val saved = (adapter().load() as PreviewDraftLoad.Available).record
+        val saved = (readDraftAfterOwnedWork(activity, ::adapter) as PreviewDraftLoad.Available).record
         assertEquals(original.revision + 1, saved.revision)
         assertEquals("pending after preserving retry", saved.fields.title)
         assertEquals("pending synthetic objective", saved.contextInput.objective)
@@ -329,10 +329,10 @@ class DraftLoadRecoveryActivityTest {
 
         field(R.string.draft_title).setText("automatic edit after explicit save")
         advanceAutosave(PreviewDraftAutosave.DELAY_MILLIS - 1)
-        assertEquals(saved.baselineIdentity, (adapter().load() as PreviewDraftLoad.Available).record.baselineIdentity)
+        assertEquals(saved.baselineIdentity, (readDraftAfterOwnedWork(activity, ::adapter) as PreviewDraftLoad.Available).record.baselineIdentity)
         advanceAutosave(1)
         await { hasText(activity.getString(R.string.draft_saved)) }
-        val automatic = (adapter().load() as PreviewDraftLoad.Available).record
+        val automatic = (readDraftAfterOwnedWork(activity, ::adapter) as PreviewDraftLoad.Available).record
         assertEquals(original.revision + 2, automatic.revision)
         assertEquals(listOf("saved synthetic title", "pending after preserving retry", "automatic edit after explicit save"),
             automatic.history.map { it.fields?.title })
@@ -341,7 +341,7 @@ class DraftLoadRecoveryActivityTest {
     }
 
     @Test fun cancelledAndStaleKeepingEditsCallbacksCannotPauseAutosaveOrRestartReads() {
-        val original = (adapter().load() as PreviewDraftLoad.Available).record
+        val original = (readDraftAfterOwnedWork(activity, ::adapter) as PreviewDraftLoad.Available).record
         val retained = retainedBytes()
         button(R.string.reopen_draft).performClick()
         val cancelled = ShadowAlertDialog.getLatestAlertDialog()!!
@@ -383,7 +383,7 @@ class DraftLoadRecoveryActivityTest {
         } finally { release.countDown() }
         blocked.get(15, TimeUnit.SECONDS)
         await { hasText(activity.getString(R.string.draft_unsaved)) && button(R.string.save_draft).isEnabled }
-        val saved = (adapter().load() as PreviewDraftLoad.Available).record
+        val saved = (readDraftAfterOwnedWork(activity, ::adapter) as PreviewDraftLoad.Available).record
         assertEquals(original.revision + 1, saved.revision)
         assertEquals("pending synthetic title", saved.fields.title)
         val afterSave = retainedBytes()
@@ -397,10 +397,10 @@ class DraftLoadRecoveryActivityTest {
         assertPendingFields("newer pending during autosave")
         assertTrue(hasText(activity.getString(R.string.draft_unsaved)))
         advanceAutosave(PreviewDraftAutosave.DELAY_MILLIS - 1)
-        assertEquals(saved.baselineIdentity, (adapter().load() as PreviewDraftLoad.Available).record.baselineIdentity)
+        assertEquals(saved.baselineIdentity, (readDraftAfterOwnedWork(activity, ::adapter) as PreviewDraftLoad.Available).record.baselineIdentity)
         advanceAutosave(1)
         await { hasText(activity.getString(R.string.draft_saved)) }
-        val automatic = (adapter().load() as PreviewDraftLoad.Available).record
+        val automatic = (readDraftAfterOwnedWork(activity, ::adapter) as PreviewDraftLoad.Available).record
         assertEquals(original.revision + 2, automatic.revision)
         assertEquals(listOf("saved synthetic title", "pending synthetic title", "newer pending during autosave"),
             automatic.history.map { it.fields?.title })

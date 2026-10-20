@@ -12,7 +12,7 @@
     <string name="draft_title">Draft title (up to 120 characters)</string>
     <string name="title_hint">For example: My synthetic comparison</string>
     <string name="no_selection">Incomplete: no sample selected.</string>
-    <string name="unknown">Compatibility, capacity, quality and price: unknown. No evaluation or quote has run for this draft. This is not a deployable plan.</string>
+    <string name="unknown">Compatibility, capacity, quality and price are not established. Saved draft rule observations, when available, appear in Saved draft checks. No current quote is supplied. This is not a deployable plan.</string>
     <string name="clear_draft">Clear form</string>
     <string name="catalog_heading">Browse synthetic samples</string>
     <string name="catalog_explanation">Bundled frozen-v1 catalog fixture. Every entry is fictional, not vendor evidence. Open a sample to inspect its identity before selecting it.</string>

@@ -113,12 +113,18 @@ internal class ResourceInspectionSection(
         }
     }
 
+    /** Sibling navigation closes pages without discarding the accepted inline record or its read. */
+    fun dismissInspection() {
+        val previous = browser
+        browser = null
+        previous?.retire()
+    }
+
     /** Pause and explicit cancellation retire the current read and all its pages, even after resume. */
     fun dismiss() {
         request = null
         record = null
-        browser?.retire()
-        browser = null
+        dismissInspection()
         if (::output.isInitialized) {
             inspect.isEnabled = !closed
             cancel.isEnabled = false

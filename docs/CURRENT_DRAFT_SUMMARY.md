@@ -104,11 +104,14 @@ not establish installed accessibility, screen-reader or product layout acceptanc
 
 ## Current results and core planning
 
-Current evaluation is **unavailable** and current price coverage is
-**unavailable** in this implementation. There is no current-draft result receiver
-or matching result authority in this slice. The summary cannot borrow findings,
-severity, readiness, cost lines, known subtotal or price coverage from the
-immutable fixture inspections or an independently selected retained snapshot.
+The [saved-draft check receiver](CURRENT_DRAFT_REEVALUATION.md) now supplies the
+summary's current private-rule status from the exact acknowledged revision and
+loaded artifact inputs. Rechecking, unavailable and withheld states retire prior
+current results; completed observations remain distinct from whole-draft readiness.
+Current price coverage and resource estimates remain **unavailable**. The summary
+cannot borrow findings, severity, readiness, cost lines, known subtotal or price
+coverage from immutable fixture inspections or an independently selected retained
+snapshot.
 Unknown does not become pass, skipped, free, zero, complete or a budget verdict.
 Changing or saving a draft cannot turn those separate records into current data.
 
@@ -187,12 +190,16 @@ schema, evaluator policy, provider input, network operation, telemetry or
 
 ## Remaining acceptance and other owners
 
-#113 acceptance remains open. A current evaluation/cost receiver, exact outcome
-and independent severity presentation, genuine conflict and unknown-capacity
-cases, complete/partial-price and unpriced-component semantics, relevant measured
-T6 inputs, sticky/adaptive product behavior, installed accessibility/keyboard
-evidence and the complete receiving review remain required. An unavailable
-current-result label does not satisfy those absent integrations.
+#113 acceptance remains open. The private local-rule receiver described above
+adds current observations and independent severity within its bounded profile;
+it does not supply an admitted current report or cost/resource producer. Complete
+product outcome presentation, genuine conflict and unknown-capacity cases,
+complete/partial-price and unpriced-component semantics, relevant measured T6
+inputs, sticky/adaptive product behavior, installed accessibility/keyboard
+evidence and the complete receiving review remain required. Neither an unavailable
+label nor these limited observations satisfy those absent integrations or close
+#113/#115. All dated execution evidence above remains attributed to its original
+source and receiver boundaries.
 
 The canonical acceptance record remains
 `docs/delivery/android/work-packages/08.05.md` in `Pick-Your-AI/pickyour.ai`; this
