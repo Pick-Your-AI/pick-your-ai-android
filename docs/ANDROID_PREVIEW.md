@@ -19,6 +19,10 @@ whole-draft compatibility remains **unestablished**. Fixtures are bundled direct
 import, never copied into a real catalog. There is no real-data mode or promotion
 path, account, network, import or telemetry. Release variants are disabled.
 
+The [typed inference-engine editor](INFERENCE_SETTINGS_EDITOR.md) configures all four
+optional frozen settings for an existing selection, retaining exact integers and
+explicit absence through the existing managed save and private recovery paths.
+
 The launcher is the only exported component. The manifest requests no permissions,
 disables backup and cleartext traffic. Catalog and build structural validation run on a worker thread. A destroyed
 Activity discards worker results. An explicit saved-state Bundle carries bounded
