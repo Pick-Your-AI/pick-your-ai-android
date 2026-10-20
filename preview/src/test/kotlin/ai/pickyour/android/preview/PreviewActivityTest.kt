@@ -2352,19 +2352,31 @@ class PreviewActivityTest {
     @Test fun destroyedCostIgnoresRetainedInspectControl() {
         val retiredInspect = button(R.string.cost_inspect)
         val retiredOutput = views().filterIsInstance<TextView>().single {
-            it.text.toString() == activity.getString(R.string.cost_fixture_notice)
+            it.text.toString() == activity.getString(R.string.cost_inspection_idle)
         }
         retiredInspect.performClick()
-        await { retiredInspect.isEnabled && retiredOutput.text.toString() != activity.getString(R.string.cost_fixture_notice) }
-        val before = retiredOutput.text.toString()
+        await { retiredInspect.isEnabled && button(R.string.cost_inspection_browse).isEnabled }
+        assertNotEquals(activity.getString(R.string.cost_inspection_idle), retiredOutput.text.toString())
+        assertTrue(hasText(R.string.cost_fixture_notice))
         recreate()
         await { button(R.string.save_draft).isEnabled }
+        val freshInspect = button(R.string.cost_inspect)
+        val freshOutput = views().filterIsInstance<TextView>().single {
+            it.text.toString() == activity.getString(R.string.cost_inspection_idle)
+        }
+        assertNotSame(retiredInspect, freshInspect)
+        assertNotSame(retiredOutput, freshOutput)
+        assertFalse(retiredInspect.isEnabled)
+        assertEquals(activity.getString(R.string.cost_inspection_idle), retiredOutput.text.toString())
 
         retiredInspect.performClick()
-        shadowOf(Looper.getMainLooper()).idle()
+        finishActivityWork()
 
-        assertTrue(retiredInspect.isEnabled)
-        assertEquals(before, retiredOutput.text.toString())
+        assertFalse(retiredInspect.isEnabled)
+        assertEquals(activity.getString(R.string.cost_inspection_idle), retiredOutput.text.toString())
+        assertTrue(freshInspect.isEnabled)
+        assertFalse(button(R.string.cost_inspection_browse).isEnabled)
+        assertEquals(activity.getString(R.string.cost_inspection_idle), freshOutput.text.toString())
         assertTrue(hasText(R.string.cost_fixture_notice))
         assertTrue(adapter().load() is PreviewDraftLoad.Missing)
     }

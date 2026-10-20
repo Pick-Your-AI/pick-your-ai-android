@@ -1015,3 +1015,15 @@ The [resource inspection guide](RECORDED_RESOURCE_INSPECTION.md) describes the e
 synthetic Build/ResourceEstimate reader and complete native field browser. It keeps
 all applicability limits, recorded conditions and the separate guest autosave authority
 visible; it produces no accepted capacity or memory-fit result.
+
+## Complete recorded cost inspection
+
+The [complete cost browser](COMPLETE_COST_INSPECTION.md) makes every retained
+fixed-example line, assumption, warning, reference and input value reachable
+behind the existing bounded summary. New request/window identities and Activity
+pause/destroy retirement fence canceled or replaced reads and controls. The
+canonical cost adapter and formatter retain exact declared values and unestablished
+freshness/free/included/budget status; guest input, autosave and current-draft
+evaluation remain separately owned. The 18 named simulated Activity regressions
+and strict attendance step cover this boundary; actual source/execution receipts
+and installed/physical/release results remain distinct. Partial refs #103.

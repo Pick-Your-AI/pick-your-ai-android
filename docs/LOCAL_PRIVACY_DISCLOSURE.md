@@ -34,7 +34,7 @@ export, support or navigation must revisit this map and the displayed text.
 
 [`LocalPrivacy`](../preview/src/main/kotlin/ai/pickyour/android/preview/LocalPrivacy.kt)
 accepts its Activity, a lifecycle predicate and an admitted before-display
-callback that retires older comparison inspections. It receives no draft,
+callback that retires older comparison and complete cost inspections. It receives no draft,
 report, URI, storage handle or external dispatcher. Its only dialog action is
 Close. Opening a fresh dialog retires the prior one; delayed dismissal of a
 prior dialog cannot clear the current reference. Pause dismisses it, and
