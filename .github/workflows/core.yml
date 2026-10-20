@@ -60,6 +60,48 @@ jobs:
         run: sha256sum --check gradle/wrapper/wrapper.sha256
       - name: Compile and test JVM core
         run: ./gradlew --no-daemon --dependency-verification=strict --init-script scripts/runtime_inventory.init.gradle.kts :core:check :core:assemble runtimeInventory
+      - name: Require typed hosting platform Core regressions
+        run: |
+          python - <<'PYHOSTINGCORE'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          required = {
+              'ai.pickyour.core.preview.PreviewHostingPlatformSettingsTest': {
+                  'threeOptionalFieldsUseTheExactFrozenStringPatternAndChoiceMetadata()',
+                  'allEightPresenceCombinationsAndExplicitRemovalKeepOmissionDistinct()',
+                  'regionPreservesEmptyWhitespaceUnicodeControlsAndUnknownAsLiteralStrings()',
+                  'jsonLookingRegionTextCannotInjectSettingsOrChangeItsStringType()',
+                  'everyNetworkChoiceAndOmissionRoundTripWithoutDefaultsOrCaseCoercion()',
+                  'frozenReceiverRejectsNonStringFieldsAndUnrecognizedKeysWithoutTypedCoercion()',
+                  'malformedUnicodeAndOverlongFieldsCannotPrepareACommand()',
+                  'completeSettingsBudgetIncludesJsonEnvelopeAndEscapedOriginalValues()',
+                  'opaqueAccountReferencesPreserveCasePunctuationAndFrozenFinalLfSemantics()',
+                  'rawSecretsAndInvalidReferencesCannotSaveOrEnterBoundedTypedRecovery()',
+                  'independentFieldErrorsAreValueFreeAndNeverExposeAPartialCommand()',
+                  'individuallyAdmittedFieldsCannotBypassTheCombinedSettingsBudget()',
+                  'configurePreservesIdentityRoleFlagsNotesExtensionsLinksAndUnrelatedContent()',
+                  'managedNoopSuppliedEmptyStaleAndDeletedAuthorityRemainDistinct()',
+                  'removedSelectionCannotBeRecreatedByAPreparedHostingCommand()',
+                  'threeStringsReopenAndRoundTripThroughAnExplicitValidatedBuildCandidate()',
+                  'rejectedSettingsCannotReplaceAcknowledgedRevisionOrManagedFileBytes()',
+                  'unsupportedKindsStayUnchangedAndCannotSupplyHostingPreparation()',
+              },
+          }
+          for qualified, expected in required.items():
+              path = pathlib.Path('core/build/test-results/test') / ("TEST-" + qualified + ".xml")
+              suite = ET.parse(path).getroot()
+              cases = suite.findall("testcase")
+              names = [case.attrib.get("name") for case in cases]
+              if suite.tag != "testsuite" or suite.attrib.get("name") != qualified or any(case.attrib.get("classname") != qualified for case in cases):
+                  raise SystemExit("Wrong typed hosting platform regression report")
+              if set(names) != expected or len(names) != len(expected):
+                  raise SystemExit("Missing, unexpected or repeated typed hosting platform regression")
+              if int(suite.attrib.get("tests", "-1")) != len(cases) or any(int(suite.attrib.get(key, "-1")) != 0 for key in ("failures", "errors", "skipped")):
+                  raise SystemExit("Typed hosting platform result totals do not match passing execution")
+              if any(case.find(tag) is not None for case in cases for tag in ("failure", "error", "skipped")):
+                  raise SystemExit("Typed hosting platform regression did not execute successfully")
+              print(f"Verified {len(cases)} source-named cases in {qualified}; no installed-device claim")
+          PYHOSTINGCORE
       - name: Require current-draft binding and invalidation Core regressions
         run: |
           python - <<'PYCURRENT'
@@ -1087,6 +1129,64 @@ jobs:
               raise SystemExit("Draft identity recovery regression failed or skipped")
           print(f"Verified {len(cases)} simulated draft identity recovery tests; no installed-device claim")
           PYIDENTITY
+      - name: Require typed hosting platform Activity and private recovery regressions
+        run: |
+          python - <<'PYHOSTINGPREVIEW'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          required = {
+              'ai.pickyour.android.preview.HostingPlatformSettingsActivityTest': {
+                  'threeOptionalFieldsHaveLabelledPrivateControlsAndNoImplicitSelection',
+                  'hostingAddRetainsTheExistingRawSettingsAndRolePath',
+                  'threeValuesRoundTripExactlyAndOneFieldEditPreservesTheOtherTwo',
+                  'suppliedEmptyWhitespaceAndUnknownRegionRemainLiteralAndDistinctFromAbsence',
+                  'invalidAccountHasAValueFreeErrorWithoutReplacingTheOtherSavedFields',
+                  'cancelAfterEditingAllFieldsPreservesTheAcknowledgedHostingAndRevision',
+                  'absentCommitClosesAsNoopWithoutCreatingDefaultsOrAnotherRevision',
+                  'suppliedEmptyRegionReferenceAndChoiceRecoverOnlyAfterExplicitReview',
+                  'pastedAccountIsExcludedWhileTheLiveFieldCanBeCorrected',
+                  'changedSavedHeadRetainsAllThreeInputsReadOnlyUntilExplicitDiscard',
+                  'suppliedEmptyRegionIsExplicitInReadOnlyRecoveryAndNeverBecomesAbsence',
+                  'readOnlyLiteralPlaceholderWordsRemainDistinctFromEmptyAndAbsentState',
+                  'wrongDraftSelectionOrCatalogIdentityCannotAcquireFreshHostingSaveAuthority',
+                  'actualPauseRetiresHostingControlsAndRequiresFreshReview',
+                  'inFlightHostingSaveFreezesEveryControlAndNeverReplaysAfterAcknowledgment',
+                  'retiredSupplyAndCommitControlsCannotReviveAClosedHostingForm',
+                  'staleManagedCommitCannotOverwriteAnotherWriterOrReenableHostingControls',
+                  'oversizedHostingRecoveryHasNoPrefixOrAutomaticViewStateFallback',
+                  'legacyRawHostingRecoveryKeepsTheExistingRawEditorPath',
+                  'allNetworkChoicesCanBeSelectedRemovedAndCancelledWithoutChangingOtherValues',
+                  'networkPickerShowsExactChoicesAndRetiredCallbacksCannotReviveClosedInput',
+                  'removedSelectionRetainsOnlyReadOnlyRecoveryAndCannotBeRecreatedByOldControls',
+              },
+              'ai.pickyour.android.preview.HostingPlatformFormCheckpointTest': {
+                  'allPresenceCombinationsAndOriginalFiveIdentitiesSurviveActualParcelRoundTrip',
+                  'suppliedEmptyWhitespaceUnknownAndUnicodeRegionRemainExactLiteralInput',
+                  'combinedTwentyThousandUtf16BudgetRejectsOneExtraWithoutRetainingAPrefix',
+                  'exactPrimitiveKeysRejectMissingExtraAndWrongTypedPayloadValues',
+                  'namespacedVersionFormAndKindNeverAliasAnotherRecoveryProtocol',
+                  'everyOriginalIdentityIsRequiredBoundedAndNeverSubstitutedDuringDecoding',
+                  'allNetworkChoicesAndOmissionSurviveWhileForgedAliasesAreUnavailable',
+                  'invalidAccountsAreExcludedWhileExactOpaqueReferencesIncludingFinalLfSurvive',
+                  'rawV1V2ContextV3AndModelV4KeepTheirSeparateOriginalReaders',
+                  'inFlightStateAndFixedMarkersRemainSeparateWithoutDiagnosticValues',
+              },
+          }
+          for qualified, expected in required.items():
+              path = pathlib.Path('preview/build/test-results/testDebugUnitTest') / ("TEST-" + qualified + ".xml")
+              suite = ET.parse(path).getroot()
+              cases = suite.findall("testcase")
+              names = [case.attrib.get("name") for case in cases]
+              if suite.tag != "testsuite" or suite.attrib.get("name") != qualified or any(case.attrib.get("classname") != qualified for case in cases):
+                  raise SystemExit("Wrong typed hosting platform regression report")
+              if set(names) != expected or len(names) != len(expected):
+                  raise SystemExit("Missing, unexpected or repeated typed hosting platform regression")
+              if int(suite.attrib.get("tests", "-1")) != len(cases) or any(int(suite.attrib.get(key, "-1")) != 0 for key in ("failures", "errors", "skipped")):
+                  raise SystemExit("Typed hosting platform result totals do not match passing execution")
+              if any(case.find(tag) is not None for case in cases for tag in ("failure", "error", "skipped")):
+                  raise SystemExit("Typed hosting platform regression did not execute successfully")
+              print(f"Verified {len(cases)} source-named cases in {qualified}; no installed-device claim")
+          PYHOSTINGPREVIEW
       - name: Require typed context policy Activity and private recovery regressions
         run: |
           python - <<'PYTEST'
