@@ -2,4 +2,5 @@
 <resources>
     <string name="findings_guidance_incomplete">Guidance: Incomplete (provisional)</string>
     <string name="findings_guidance_incompatible">Guidance: Reported incompatibility (provisional)</string>
+    <string name="current_finding_absent_primary">Observed in this saved draft (provisional): no enabled primary choice for %1$s. This is a selection observation; candidate feasibility is unverified.</string>
 </resources>

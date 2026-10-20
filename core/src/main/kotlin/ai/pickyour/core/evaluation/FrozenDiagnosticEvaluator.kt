@@ -16,6 +16,12 @@ import java.util.Locale
 import java.util.Collections
 
 enum class DiagnosticRejection { INVALID_INPUT, BINDING_MISMATCH, WORK_LIMIT, UNSUPPORTED_OPERATION, INVALID_OUTPUT }
+
+/** Fixed observations contributing to an actual unknown; no raw values, complete cause or remedy. */
+enum class UnknownInputObservation {
+    NO_MATCHING_SELECTION, AMBIGUOUS_SELECTION, MISSING_CAPTURED_VALUE, UNRESOLVABLE_REFERENCE,
+    CATALOG_ENTRY_UNAVAILABLE, OPERAND_DOMAIN_UNAVAILABLE, METRIC_NOT_SUPPLIED,
+}
 sealed interface DiagnosticEvaluation {
     data class Rejected(val reason: DiagnosticRejection) : DiagnosticEvaluation
     /** Frozen-reference diagnostic only, never a deployment authorization. */
@@ -34,7 +40,50 @@ class FrozenDiagnosticEvaluator(private val maxWork: Int = 250_000) {
     private val reader = BoundedJsonReader(JsonInputLimits(maxBytes = 262_144, maxTokens = 20_000, maxStringLength = 4096))
     private val validator = FrozenSchemaValidator()
 
-    fun evaluate(build: InputStream, catalog: InputStream, ruleset: InputStream): DiagnosticEvaluation = try {
+    fun evaluate(build: InputStream, catalog: InputStream, ruleset: InputStream): DiagnosticEvaluation =
+        evaluateDetails(build, catalog, ruleset).evaluation
+
+    /** One full frozen pass; the retained trace is never constructed from a caller-supplied report. */
+    internal fun evaluateRetainedSnapshot(request: SnapshotEvaluationRequest): RetainedSnapshotTrace =
+        RetainedSnapshotTrace.evaluate(this, request)
+
+    internal class RetainedSnapshotTrace private constructor(
+        private val request: SnapshotEvaluationRequest,
+        val evaluation: DiagnosticEvaluation,
+        phases: Map<String, DraftCurrentUnknownPhase>,
+        observations: Map<String, List<UnknownInputObservation>>,
+    ) {
+        private val observations = immutableInputObservations(observations)
+        private val phases = Collections.unmodifiableMap(LinkedHashMap(phases.mapValues { (_, phase) ->
+            when (phase) {
+                DraftCurrentUnknownPhase.APPLICABILITY -> SnapshotUnknownPhase.APPLICABILITY
+                DraftCurrentUnknownPhase.ASSERTION -> SnapshotUnknownPhase.ASSERTION
+            }
+        }))
+
+        internal fun phasesFor(request: SnapshotEvaluationRequest, report: ReportReception.Accepted): Map<String, SnapshotUnknownPhase> =
+            if (this.request === request && (evaluation as? DiagnosticEvaluation.Evaluated)?.report === report)
+                phases else emptyMap()
+
+        internal fun observationsFor(request: SnapshotEvaluationRequest, report: ReportReception.Accepted): Map<String, List<UnknownInputObservation>> =
+            if (this.request === request && (evaluation as? DiagnosticEvaluation.Evaluated)?.report === report)
+                observations else emptyMap()
+
+        companion object {
+            internal fun evaluate(evaluator: FrozenDiagnosticEvaluator, request: SnapshotEvaluationRequest): RetainedSnapshotTrace {
+                val result = evaluator.evaluateDetails(request.bytes(SnapshotEvaluationSlot.BUILD).inputStream(),
+                    request.bytes(SnapshotEvaluationSlot.CATALOG).inputStream(), request.bytes(SnapshotEvaluationSlot.RULESET).inputStream())
+                return RetainedSnapshotTrace(request, result.evaluation, result.phases, result.observations)
+            }
+        }
+    }
+
+    private class EvaluationDetails(val evaluation: DiagnosticEvaluation, val phases: Map<String, DraftCurrentUnknownPhase>,
+        val observations: Map<String, List<UnknownInputObservation>> = emptyMap())
+    private class FullReport(val output: ObjectNode, val phases: Map<String, DraftCurrentUnknownPhase>,
+        val observations: Map<String, List<UnknownInputObservation>>)
+
+    private fun evaluateDetails(build: InputStream, catalog: InputStream, ruleset: InputStream): EvaluationDetails = try {
         val b = parse(FrozenDocument.BUILD, build)
         val c = parse(FrozenDocument.CATALOG, catalog)
         val r = parse(FrozenDocument.RULESET, ruleset)
@@ -56,12 +105,12 @@ class FrozenDiagnosticEvaluator(private val maxWork: Int = 250_000) {
             if (item["version"] != selection["catalog_item_version"] || item["kind"] != selection["kind"])
                 fail(DiagnosticRejection.BINDING_MISMATCH)
         }
-        val output = Run(b, c, r).evaluate()
-        when (val received = ReferenceReportAdapter().receive(b.toString().byteInputStream(), r.toString().byteInputStream(), output.toString().byteInputStream())) {
-            is ReportReception.Accepted -> DiagnosticEvaluation.Evaluated(received)
-            is ReportReception.Rejected -> DiagnosticEvaluation.Rejected(DiagnosticRejection.INVALID_OUTPUT)
+        val result = Run(b, c, r).evaluate()
+        when (val received = ReferenceReportAdapter().receive(b.toString().byteInputStream(), r.toString().byteInputStream(), result.output.toString().byteInputStream())) {
+            is ReportReception.Accepted -> EvaluationDetails(DiagnosticEvaluation.Evaluated(received), result.phases, result.observations)
+            is ReportReception.Rejected -> EvaluationDetails(DiagnosticEvaluation.Rejected(DiagnosticRejection.INVALID_OUTPUT), emptyMap())
         }
-    } catch (failure: Rejection) { DiagnosticEvaluation.Rejected(failure.reason) }
+    } catch (failure: Rejection) { EvaluationDetails(DiagnosticEvaluation.Rejected(failure.reason), emptyMap()) }
 
     private fun parse(type: FrozenDocument, stream: InputStream): ObjectNode {
         val value = (reader.read(stream) as? JsonInputResult.Parsed)?.value ?: fail(DiagnosticRejection.INVALID_INPUT)
@@ -75,7 +124,86 @@ class FrozenDiagnosticEvaluator(private val maxWork: Int = 250_000) {
      * admitting an EvaluationReport. Missing shared Build fields stay absent in the local context.
      * The caller binds the exact stored source and artifact pins before exposing these findings.
      */
-    internal fun evaluateDraft(context: DraftDiagnosticContext, catalog: ByteArray, ruleset: ByteArray): DraftRuleEvaluation = try {
+    internal fun evaluateDraft(context: DraftDiagnosticContext, catalog: ByteArray, ruleset: ByteArray): DraftRuleEvaluation =
+        evaluateDraftDetails(context, catalog, ruleset).evaluation
+
+    /** The opaque trace is produced only by evaluating this captured Current request once. */
+    internal fun evaluateCurrentDraft(request: DraftCurrentEvaluation): CurrentDraftTrace =
+        CurrentDraftTrace.evaluate(this, request)
+
+    internal class CurrentDraftTrace private constructor(
+        private val request: DraftCurrentEvaluation,
+        val evaluation: DraftRuleEvaluation,
+        phases: Map<String, DraftCurrentUnknownPhase>,
+        observations: Map<String, List<UnknownInputObservation>>,
+    ) {
+        private val phases = Collections.unmodifiableMap(LinkedHashMap(phases))
+        private val observations = immutableInputObservations(observations)
+
+        internal fun phasesFor(request: DraftCurrentEvaluation, findings: List<DraftRuleFinding>): Map<String, DraftCurrentUnknownPhase> =
+            if (this.request === request && (evaluation as? DraftRuleEvaluation.Evaluated)?.findings === findings)
+                phases else emptyMap()
+
+        internal fun observationsFor(request: DraftCurrentEvaluation, findings: List<DraftRuleFinding>): Map<String, List<UnknownInputObservation>> =
+            if (this.request === request && (evaluation as? DraftRuleEvaluation.Evaluated)?.findings === findings)
+                observations else emptyMap()
+
+        companion object {
+            internal fun evaluate(evaluator: FrozenDiagnosticEvaluator, request: DraftCurrentEvaluation): CurrentDraftTrace {
+                val context = DraftDiagnosticContext.create(request.source.content.components, request.source.content.workload)
+                val result = evaluator.evaluateDraftDetails(context, request.inputs.catalogBytes(), request.inputs.rulesBytes())
+                return CurrentDraftTrace(request, result.evaluation, result.phases, result.observations)
+            }
+        }
+    }
+
+    /** One of the inspector's existing two passes, bound to its exact request and closed side. */
+    internal fun evaluateAlternativeDraft(request: DraftAlternativeInspectionRequest,
+        side: DraftAlternativeSide): AlternativeDraftTrace = AlternativeDraftTrace.evaluate(this, request, side)
+
+    internal class AlternativeDraftTrace private constructor(
+        private val request: DraftAlternativeInspectionRequest,
+        private val side: DraftAlternativeSide,
+        private val context: DraftDiagnosticContext,
+        val evaluation: DraftRuleEvaluation,
+        phases: Map<String, DraftCurrentUnknownPhase>,
+        observations: Map<String, List<UnknownInputObservation>>,
+    ) {
+        private val phases = Collections.unmodifiableMap(LinkedHashMap(phases))
+        private val observations = immutableInputObservations(observations)
+
+        private fun owns(request: DraftAlternativeInspectionRequest, side: DraftAlternativeSide,
+            findings: List<DraftRuleFinding>): Boolean = this.request === request && this.side == side &&
+            context === (when (side) {
+                DraftAlternativeSide.CURRENT -> request.current
+                DraftAlternativeSide.CANDIDATE -> request.candidate
+            }) && (evaluation as? DraftRuleEvaluation.Evaluated)?.findings === findings
+
+        internal fun phasesFor(request: DraftAlternativeInspectionRequest, side: DraftAlternativeSide,
+            findings: List<DraftRuleFinding>): Map<String, DraftCurrentUnknownPhase> =
+            if (owns(request, side, findings)) phases else emptyMap()
+
+        internal fun observationsFor(request: DraftAlternativeInspectionRequest, side: DraftAlternativeSide,
+            findings: List<DraftRuleFinding>): Map<String, List<UnknownInputObservation>> =
+            if (owns(request, side, findings)) observations else emptyMap()
+
+        companion object {
+            internal fun evaluate(evaluator: FrozenDiagnosticEvaluator, request: DraftAlternativeInspectionRequest,
+                side: DraftAlternativeSide): AlternativeDraftTrace {
+                val context = when (side) {
+                    DraftAlternativeSide.CURRENT -> request.current
+                    DraftAlternativeSide.CANDIDATE -> request.candidate
+                }
+                val result = evaluator.evaluateDraftDetails(context, request.catalogBytes(), request.rulesetBytes())
+                return AlternativeDraftTrace(request, side, context, result.evaluation, result.phases, result.observations)
+            }
+        }
+    }
+
+    private class DraftDetails(val evaluation: DraftRuleEvaluation, val phases: Map<String, DraftCurrentUnknownPhase>,
+        val observations: Map<String, List<UnknownInputObservation>> = emptyMap())
+
+    private fun evaluateDraftDetails(context: DraftDiagnosticContext, catalog: ByteArray, ruleset: ByteArray): DraftDetails = try {
         val b = context.node()
         val c = parse(FrozenDocument.CATALOG, catalog.inputStream())
         val r = parse(FrozenDocument.RULESET, ruleset.inputStream())
@@ -90,21 +218,41 @@ class FrozenDiagnosticEvaluator(private val maxWork: Int = 250_000) {
             if (item["version"] != selection["catalog_item_version"] || item["kind"] != selection["kind"])
                 fail(DiagnosticRejection.BINDING_MISMATCH)
         }
-        val findings = Run(b, c, r).evaluateFindings().findings.map { finding ->
+        val result = Run(b, c, r).evaluateFindings()
+        val findings = result.findings.map { finding ->
             DraftRuleFinding(finding["rule_id"].asText(), finding["outcome"].asText(), finding["severity"].asText(),
                 finding["code"].asText(), finding["message"].asText(), finding["remediation"].asText(),
                 Collections.unmodifiableList(finding["selection_ids"].map { it.asText() }))
         }
-        DraftRuleEvaluation.Evaluated(Collections.unmodifiableList(findings))
-    } catch (failure: Rejection) { DraftRuleEvaluation.Rejected(failure.reason) }
+        DraftDetails(DraftRuleEvaluation.Evaluated(Collections.unmodifiableList(findings)), result.phases, result.observations)
+    } catch (failure: Rejection) { DraftDetails(DraftRuleEvaluation.Rejected(failure.reason), emptyMap()) }
 
     private class RuleResults(val findings: ArrayNode, val errors: Boolean, val unknowns: Boolean,
-        val blocks: Boolean, val counts: Map<String, Int>)
+        val blocks: Boolean, val counts: Map<String, Int>, val phases: Map<String, DraftCurrentUnknownPhase>,
+        val observations: Map<String, List<UnknownInputObservation>>)
+
+    private class OperandObservation(val value: JsonNode?, val inputs: Int)
+    private class ExpressionObservation(val value: Boolean?, val inputs: Int = 0)
 
     private inner class Run(val build: ObjectNode, catalog: ObjectNode, val ruleset: ObjectNode) {
         var remaining = maxWork.toLong()
         val active = build["selections"].filter { it["enabled"].asBoolean() }
         val items = catalog["items"].associateBy { it["id"].asText() }
+        // One bounded seven-bit operand frame; helpers record only their actually reached null branch.
+        private var operandInputs = 0
+        fun unavailableInput(observation: UnknownInputObservation): JsonNode? {
+            operandInputs = operandInputs or (1 shl observation.ordinal)
+            return null
+        }
+        fun observeOperand(operand: JsonNode): OperandObservation {
+            val prior = operandInputs
+            operandInputs = 0
+            return try {
+                val result = value(operand)
+                OperandObservation(result, if (result == null) operandInputs else 0)
+            } finally { operandInputs = prior }
+        }
+        fun observeExpression(value: Boolean?, inputs: Int) = ExpressionObservation(value, if (value == null) inputs else 0)
         fun charge(amount: Long = 1) { remaining -= amount; if (remaining < 0) fail(DiagnosticRejection.WORK_LIMIT) }
         fun textEqual(a: String, b: String): Boolean { charge(a.length.toLong() + b.length); return a == b }
         fun numeric(value: JsonNode): BigDecimal? {
@@ -137,22 +285,23 @@ class FrozenDiagnosticEvaluator(private val maxWork: Int = 250_000) {
                 charge()
                 if (listOf("kind", "role", "selection_id").all { key ->
                     !ref.has(key) || textEqual(selection[if (key == "selection_id") "id" else key].asText(), ref[key].asText())
-                }) { if (result != null) return null; result = selection }
+                }) { if (result != null) return unavailableInput(UnknownInputObservation.AMBIGUOUS_SELECTION); result = selection }
             }
-            return result
+            return result ?: unavailableInput(UnknownInputObservation.NO_MATCHING_SELECTION)
         }
         fun pointer(document: JsonNode, path: String): JsonNode? {
             charge(path.length.toLong())
-            if (!path.startsWith('/')) return null
+            if (!path.startsWith('/')) return unavailableInput(UnknownInputObservation.UNRESOLVABLE_REFERENCE)
             var current = document
             for (segment in path.substring(1).split('/')) {
                 charge()
                 val key = segment.replace("~1", "/").replace("~0", "~")
                 if (current.isArray && key.any { it.code > 127 }) fail(DiagnosticRejection.UNSUPPORTED_OPERATION)
-                current = if (current.isObject) current.get(key) ?: return null
+                current = if (current.isObject) current.get(key) ?: return unavailableInput(UnknownInputObservation.MISSING_CAPTURED_VALUE)
                     else if (current.isArray && key.isNotEmpty() && key.all { it in '0'..'9' }) {
-                        current.get(key.toIntOrNull() ?: return null) ?: return null
-                    } else return null
+                        current.get(key.toIntOrNull() ?: return unavailableInput(UnknownInputObservation.UNRESOLVABLE_REFERENCE))
+                            ?: return unavailableInput(UnknownInputObservation.MISSING_CAPTURED_VALUE)
+                    } else return unavailableInput(UnknownInputObservation.UNRESOLVABLE_REFERENCE)
             }
             return current
         }
@@ -173,16 +322,16 @@ class FrozenDiagnosticEvaluator(private val maxWork: Int = 250_000) {
             if (ref["scope"].asText() == "build") return supported(pointer(build, ref["pointer"].asText()))
             val selection = selected(ref) ?: return null
             if (ref["scope"].asText() == "selection") return supported(pointer(selection, ref["pointer"].asText()))
-            val item = items[selection["catalog_item_id"].asText()] ?: return null
-            if (item["version"] != selection["catalog_item_version"]) return null
+            val item = items[selection["catalog_item_id"].asText()] ?: return unavailableInput(UnknownInputObservation.CATALOG_ENTRY_UNAVAILABLE)
+            if (item["version"] != selection["catalog_item_version"]) return unavailableInput(UnknownInputObservation.UNRESOLVABLE_REFERENCE)
             return supported(pointer(item, ref["pointer"].asText()))
         }
         fun metric(name: String): JsonNode? {
             if (name == "context.total_requested_tokens") {
                 val ref = nodes.objectNode().put("kind", "context_policy").put("role", "primary")
                 val s = selected(ref) ?: return null
-                val a = s["settings"]["requested_context_tokens"] ?: return null
-                val b = s["settings"]["reserved_output_tokens"] ?: return null
+                val a = s["settings"]["requested_context_tokens"] ?: return unavailableInput(UnknownInputObservation.MISSING_CAPTURED_VALUE)
+                val b = s["settings"]["reserved_output_tokens"] ?: return unavailableInput(UnknownInputObservation.MISSING_CAPTURED_VALUE)
                 if (!a.isIntegralNumber || !b.isIntegralNumber) fail(DiagnosticRejection.UNSUPPORTED_OPERATION)
                 return nodes.numberNode(a.decimalValue() + b.decimalValue())
             }
@@ -191,8 +340,8 @@ class FrozenDiagnosticEvaluator(private val maxWork: Int = 250_000) {
                 for (s in active) {
                     charge()
                     if (s["kind"].asText() != "tool" || !s["settings"].path("enabled").asBoolean(true)) continue
-                    val item = items[s["catalog_item_id"].asText()] ?: return null
-                    val effect = item["spec"]["side_effect"] ?: return null
+                    val item = items[s["catalog_item_id"].asText()] ?: return unavailableInput(UnknownInputObservation.CATALOG_ENTRY_UNAVAILABLE)
+                    val effect = item["spec"]["side_effect"] ?: return unavailableInput(UnknownInputObservation.MISSING_CAPTURED_VALUE)
                     if (effect.asText() == "mutating") count++
                 }
                 return nodes.numberNode(count)
@@ -202,13 +351,14 @@ class FrozenDiagnosticEvaluator(private val maxWork: Int = 250_000) {
                 for (s in active) {
                     charge()
                     if (s["kind"].asText() != "accelerator") continue
-                    val vram = items[s["catalog_item_id"].asText()]?.get("spec")?.get("vram_gb") ?: return null
-                    if (!vram.isNumber) return null
+                    val vram = items[s["catalog_item_id"].asText()]?.get("spec")?.get("vram_gb")
+                        ?: return unavailableInput(UnknownInputObservation.MISSING_CAPTURED_VALUE)
+                    if (!vram.isNumber) return unavailableInput(UnknownInputObservation.OPERAND_DOMAIN_UNAVAILABLE)
                     if (!vram.isIntegralNumber) fail(DiagnosticRejection.UNSUPPORTED_OPERATION)
                     val n = vram.decimalValue()
                     if (n.precision() > 28) fail(DiagnosticRejection.UNSUPPORTED_OPERATION)
                     amount = if (name == "compute.min_selected_device_vram_gb") amount?.min(n) ?: n else {
-                        val count = s["settings"]["device_count"] ?: return null
+                        val count = s["settings"]["device_count"] ?: return unavailableInput(UnknownInputObservation.MISSING_CAPTURED_VALUE)
                         if (!count.isIntegralNumber) fail(DiagnosticRejection.UNSUPPORTED_OPERATION)
                         val product = n * count.decimalValue()
                         val sum = (amount ?: BigDecimal.ZERO) + product
@@ -216,9 +366,9 @@ class FrozenDiagnosticEvaluator(private val maxWork: Int = 250_000) {
                         sum
                     }
                 }
-                return amount?.let { nodes.numberNode(it) }
+                return amount?.let { nodes.numberNode(it) } ?: unavailableInput(UnknownInputObservation.NO_MATCHING_SELECTION)
             }
-            return null // External estimates are deliberately not accepted by this diagnostic profile.
+            return unavailableInput(UnknownInputObservation.METRIC_NOT_SUPPLIED) // External estimates remain unavailable.
         }
         fun contains(container: JsonNode, item: JsonNode): Boolean? {
             if (container.isArray) return container.any { charge(); equal(it, item) }
@@ -261,24 +411,33 @@ class FrozenDiagnosticEvaluator(private val maxWork: Int = 250_000) {
             return if (op == "intersects") left.any { contains(right, it) == true }
                 else left.all { contains(right, it) == true }
         }
-        fun expression(e: JsonNode): Boolean? {
+        fun expression(e: JsonNode): ExpressionObservation {
             charge()
             return when (val op = e["op"].asText()) {
-                "exists" -> value(e["value"])?.let { !it.isNull } ?: false
-                "not" -> expression(e["arg"])?.not()
+                "exists" -> ExpressionObservation(observeOperand(e["value"]).value?.let { !it.isNull } ?: false)
+                "not" -> expression(e["arg"]).let { observeExpression(it.value?.not(), it.inputs) }
                 "all", "any" -> {
-                    val values = e["args"].map { expression(it) }
-                    if (op == "all") if (false in values) false else if (null in values) null else true
-                    else if (true in values) true else if (null in values) null else false
+                    val observed = e["args"].map { expression(it) }
+                    val values = observed.map { it.value }
+                    val result = if (op == "all") if (false in values) false else if (null in values) null else true
+                        else if (true in values) true else if (null in values) null else false
+                    observeExpression(result, observed.fold(0) { inputs, child -> inputs or child.inputs })
                 }
                 "implies" -> {
                     val a = expression(e["if"]); val b = expression(e["then"])
-                    if (a == false || b == true) true else if (a == null || b == null) null else false
+                    val result = if (a.value == false || b.value == true) true else if (a.value == null || b.value == null) null else false
+                    observeExpression(result, a.inputs or b.inputs)
                 }
-                else -> compare(op, value(e["left"]), value(e["right"]))
+                else -> {
+                    val left = observeOperand(e["left"]); val right = observeOperand(e["right"])
+                    val result = compare(op, left.value, right.value)
+                    val inputs = if (left.value == null || right.value == null) left.inputs or right.inputs
+                        else 1 shl UnknownInputObservation.OPERAND_DOMAIN_UNAVAILABLE.ordinal
+                    observeExpression(result, inputs)
+                }
             }
         }
-        fun evaluate(): ObjectNode {
+        fun evaluate(): FullReport {
             val output = nodes.objectNode()
             for (key in listOf("schema_version")) output.set<JsonNode>(key, build[key])
             output.put("id", "evaluation.${build["id"].asText()}.r${build["revision"].bigIntegerValue()}")
@@ -294,24 +453,33 @@ class FrozenDiagnosticEvaluator(private val maxWork: Int = 250_000) {
             val summary = output.putObject("summary")
             for ((key, value) in mapOf("passed" to "pass", "failed" to "fail", "unknown" to "unknown", "skipped" to "skipped"))
                 summary.put(key, result.counts.getValue(value))
-            return output
+            return FullReport(output, result.phases, result.observations)
         }
 
         fun evaluateFindings(): RuleResults {
             val findings = nodes.arrayNode()
+            val phases = linkedMapOf<String, DraftCurrentUnknownPhase>()
+            val observations = linkedMapOf<String, List<UnknownInputObservation>>()
             var errors = false; var unknowns = false; var blocks = false
             val counts = mutableMapOf("pass" to 0, "fail" to 0, "unknown" to 0, "skipped" to 0)
             for (rule in ruleset["rules"]) {
                 charge()
                 val applicable = expression(rule["applies_when"])
-                val outcome = if (applicable == false) "skipped" else if (applicable == null) "unknown"
-                    else when (expression(rule["assert"])) { true -> "pass"; false -> "fail"; null -> "unknown" }
+                val observed = if (applicable.value == true) expression(rule["assert"]) else applicable
+                val outcome = if (applicable.value == false) "skipped" else if (applicable.value == null) "unknown"
+                    else when (observed.value) { true -> "pass"; false -> "fail"; null -> "unknown" }
                 counts[outcome] = counts.getValue(outcome) + 1
                 errors = errors || (outcome == "fail" && rule["severity"].asText() == "error")
                 unknowns = unknowns || outcome == "unknown"
                 blocks = blocks || (outcome == "unknown" && rule["on_unknown"].asText() == "block")
                 val finding = findings.addObject()
                 val id = rule["id"].asText()
+                // Retain only the branch already observed; never reevaluate an expression for metadata.
+                if (outcome == "unknown") {
+                    phases[id] = if (applicable.value == null) DraftCurrentUnknownPhase.APPLICABILITY else DraftCurrentUnknownPhase.ASSERTION
+                    if (observed.inputs != 0) observations[id] = Collections.unmodifiableList(
+                        UnknownInputObservation.entries.filter { observed.inputs and (1 shl it.ordinal) != 0 })
+                }
                 finding.put("rule_id", id).put("outcome", outcome).put("severity", rule["severity"].asText())
                     .put("code", id.replace('.', '_').uppercase(Locale.ROOT))
                     .put("message", if (outcome in listOf("fail", "unknown")) rule["message"].asText() else "$id: $outcome")
@@ -320,9 +488,13 @@ class FrozenDiagnosticEvaluator(private val maxWork: Int = 250_000) {
                 for (s in active) { charge(); if (rule["affected_kinds"].any { charge(); it == s["kind"] }) { val id = s["id"].asText(); charge(id.length.toLong() * 32); ids.add(id) } }
                 val selections = finding.putArray("selection_ids"); ids.forEach { selections.add(it) }
             }
-            return RuleResults(findings, errors, unknowns, blocks, counts)
+            return RuleResults(findings, errors, unknowns, blocks, counts, phases, observations)
         }
     }
     private class Rejection(val reason: DiagnosticRejection) : RuntimeException()
     private fun fail(reason: DiagnosticRejection): Nothing = throw Rejection(reason)
 }
+
+/** No producer map/list can be mutated after its exact result has been captured. */
+private fun immutableInputObservations(values: Map<String, List<UnknownInputObservation>>): Map<String, List<UnknownInputObservation>> =
+    Collections.unmodifiableMap(LinkedHashMap(values.mapValues { Collections.unmodifiableList(ArrayList(it.value)) }))

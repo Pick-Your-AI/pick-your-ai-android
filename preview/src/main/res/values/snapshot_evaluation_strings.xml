@@ -28,4 +28,6 @@
     <string name="snapshot_binding">%1$s: %2$s at %3$s\nSHA-256: %4$s</string>
     <string name="snapshot_limits">All rules are reevaluated. The exact graph is bound; its edges do not select or alter rules. No ResourceEstimate or CostEstimate is supplied. A retained Pricebook does not create a cost estimate or zero cost. Unknown and skipped remain distinct from passes. Findings describe this bounded rule profile, not measured capacity, quality, source rights or deployment authorization. This is a read-only historical inspection; it does not grant current archive or draft write authority.</string>
     <string name="snapshot_affected">Affected active selection IDs: %1$s\nThese are the rule’s affected kinds, not a proven minimal cause.</string>
+    <string name="snapshot_unknown_applicability">Observed unknown phase: Whether this rule applies could not be determined, so its assertion was not evaluated. This observation identifies neither a cause nor a feasible next action.</string>
+    <string name="snapshot_unknown_assertion">Observed unknown phase: This rule applies, but its assertion did not determine a pass or fail. This observation identifies neither a cause nor a feasible next action.</string>
 </resources>

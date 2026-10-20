@@ -190,16 +190,36 @@ class DraftCurrentEvaluation internal constructor(
     }
 }
 
+/** Observed evaluation phase only; no missing-input, causal or feasible-action claim. */
+enum class DraftCurrentUnknownPhase { APPLICABILITY, ASSERTION }
+
 sealed class DraftCurrentOutcome private constructor(private val request: DraftCurrentEvaluation) {
     val binding get() = request.binding
     fun belongsTo(expected: DraftCurrentEvaluation) = request === expected
-    class Completed internal constructor(request: DraftCurrentEvaluation, findings: List<DraftRuleFinding>) : DraftCurrentOutcome(request) {
-        val findings = currentList(findings.map { DraftRuleFinding(it.ruleId, it.outcome, it.severity, it.code,
+    class Completed private constructor(request: DraftCurrentEvaluation, observedFindings: List<DraftRuleFinding>,
+        observedPhases: Map<String, DraftCurrentUnknownPhase>,
+        observedInputs: Map<String, List<UnknownInputObservation>>,
+    ) : DraftCurrentOutcome(request) {
+        internal constructor(request: DraftCurrentEvaluation, findings: List<DraftRuleFinding>) :
+            this(request, findings, emptyMap(), emptyMap())
+        internal constructor(request: DraftCurrentEvaluation, findings: List<DraftRuleFinding>,
+            trace: FrozenDiagnosticEvaluator.CurrentDraftTrace,
+        ) : this(request, findings, trace.phasesFor(request, findings), trace.observationsFor(request, findings))
+        val findings = currentList(observedFindings.map { DraftRuleFinding(it.ruleId, it.outcome, it.severity, it.code,
             it.message, it.remediation, currentList(it.selectionIds)) })
+        private val phases = Collections.unmodifiableMap(LinkedHashMap(observedPhases))
+        private val inputs = Collections.unmodifiableMap(LinkedHashMap(observedInputs.mapValues { currentList(it.value) }))
+        /** Only this request's actual produced unknown finding may expose its observed phase. */
+        fun unknownPhase(ruleId: String): DraftCurrentUnknownPhase? =
+            if (this.findings.singleOrNull { it.ruleId == ruleId }?.outcome == "unknown") phases[ruleId] else null
+        /** Fixed input limitations from the same produced unknown; no input values or action authority. */
+        fun unknownInputObservations(ruleId: String): List<UnknownInputObservation> =
+            if (unknownPhase(ruleId) != null) inputs[ruleId] ?: emptyList() else emptyList()
         private val guidance = request.inputs.provisionalGuidance(request.source, this.findings)
         /** Captured local presentation only; the request, original findings and readiness are unchanged. */
-        fun provisionalGuidance(ruleId: String): ProvisionalFindingGuidance =
-            guidance[ruleId] ?: ProvisionalFindingGuidance.UNCLASSIFIED
+        fun provisionalGuidance(ruleId: String): ProvisionalFindingGuidance = guidance.classification(ruleId)
+        /** Finite required-profile absences in this captured saved draft; no inferred cause or remedy. */
+        fun missingRequiredPrimaryKinds(ruleId: String): List<String> = guidance.missingRequiredPrimaryKinds(ruleId)
     }
     class Unavailable internal constructor(request: DraftCurrentEvaluation, val reason: DraftCurrentUnavailable) : DraftCurrentOutcome(request)
 }
@@ -210,9 +230,9 @@ class DraftCurrentEvaluator {
         fun unavailable(reason: DraftCurrentUnavailable) = DraftCurrentOutcome.Unavailable(request, reason)
         if (optionalUnresolved(request.source)) return unavailable(DraftCurrentUnavailable.OPTIONAL_INTENT_UNRESOLVED)
         return try {
-            val context = DraftDiagnosticContext.create(request.source.content.components, request.source.content.workload)
-            when (val result = FrozenDiagnosticEvaluator().evaluateDraft(context, request.inputs.catalogBytes(), request.inputs.rulesBytes())) {
-                is DraftRuleEvaluation.Evaluated -> DraftCurrentOutcome.Completed(request, result.findings)
+            val trace = FrozenDiagnosticEvaluator().evaluateCurrentDraft(request)
+            when (val result = trace.evaluation) {
+                is DraftRuleEvaluation.Evaluated -> DraftCurrentOutcome.Completed(request, result.findings, trace)
                 is DraftRuleEvaluation.Rejected -> unavailable(DraftCurrentUnavailable.valueOf(result.reason.name))
             }
         } catch (_: RuntimeException) { unavailable(DraftCurrentUnavailable.INVALID_INPUT) }

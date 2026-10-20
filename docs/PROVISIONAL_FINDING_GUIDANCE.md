@@ -235,3 +235,45 @@ Result receipts bind each actual local or hosted execution to its own source.
 
 These are JVM and Robolectric results, not an installed device, real TalkBack
 journey, production evaluator, empirical compatibility, deployment or release.
+
+## Captured required-primary absences in Current detail
+
+This bounded Current follow-up retains the existing `android-local-finding-guidance/1`
+profile and finite required/fit inventories. Where that policy already establishes
+`INCOMPLETE` for a failed finding, the same pass now captures the exact required
+kinds with no enabled `primary` selection in the saved draft. The kind list follows
+the finite required-profile order. The map and each list are copied and immutable
+inside the same `Completed` outcome, alongside its existing request/input binding.
+
+The separate resource-backed paragraph identifies these as provisional saved-draft
+selection observations. It does not identify the cause of an unknown or skipped
+result, assert that an absent choice caused the evaluator's finding, identify a
+feasible catalog item, or grant an action. Unknown, skipped, pass, unregistered,
+changed-profile, ambiguous-role and fit-only observations get no missing-choice
+list. Disabled/fallback selections and predecessor recheck IDs cannot supply a
+missing primary choice. Optional requirements remain conditional on the existing
+failed rule and optional-intent admission.
+
+For this bounded absence addition, recorded/retained adapters keep their original
+classification output and gain no absence field. This absence addition leaves frozen
+findings/report bytes, evaluation calls and work budgets, evaluator/profile hashes,
+unknown-phase capture, summary/readiness, and all navigation/storage authority
+unchanged. The original Explanation and
+Recorded guidance full-text routes still page only the exact raw evaluator
+fields, with unchanged chunk boundaries, page counts and callback guards.
+
+The ten-method Current Core suite adds exact-list checks for both registered
+profiles, complete/one/multiple missing choices, disabled/fallback choices,
+conditional optional requirements, changed rules, immutable capture and later
+saved revisions. Existing unknown-phase and non-failure controls require an empty
+list. The seven prior Activity identities retain their raw-prefix, complete-detail,
+binding, summary, disk, Back/reopen and fresh-inspection assertions; their expected
+detail includes only the separately supplied absent kinds. One additional real
+Activity method saves a complete set, removes one required choice, restores it,
+and challenges the retired detail's callbacks while preserving the earlier
+captured list. Its name is added to the existing strict attendance gate.
+
+This source proposal is based on `2efcdd87f6e1d6ec9db53d8919e0b05dc7644735`.
+No Kotlin/native execution is claimed for this follow-up. Earlier receipts in
+this document remain historical and do not establish its execution or whole
+#101, candidate-feasibility, TalkBack, physical-device or receiving acceptance.

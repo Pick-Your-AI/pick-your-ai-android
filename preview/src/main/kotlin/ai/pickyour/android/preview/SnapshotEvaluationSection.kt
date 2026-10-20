@@ -18,6 +18,7 @@ import ai.pickyour.core.evaluation.ReferenceReportView
 import ai.pickyour.core.evaluation.RetainedEvaluationProfile
 import ai.pickyour.core.evaluation.SnapshotEvaluationOutcome
 import ai.pickyour.core.evaluation.SnapshotEvaluator
+import ai.pickyour.core.evaluation.SnapshotUnknownPhase
 import ai.pickyour.core.evaluation.inspect
 import ai.pickyour.core.preview.PreviewComparedValue
 import ai.pickyour.core.preview.PreviewComparedValueKind
@@ -282,6 +283,12 @@ internal class SnapshotEvaluationSection(
                 activity.getString(R.string.snapshot_affected, finding.selectionIds.joinToString(", ").ifEmpty {
                     activity.getString(R.string.findings_not_supplied) }),
                 FindingsInspectionText.evidence(activity, finding),
+                when (result.unknownPhase(finding.ruleId)) {
+                    SnapshotUnknownPhase.APPLICABILITY -> activity.getString(R.string.snapshot_unknown_applicability)
+                    SnapshotUnknownPhase.ASSERTION -> activity.getString(R.string.snapshot_unknown_assertion)
+                    null -> null
+                },
+                UnknownInputObservationText.describe(activity, result.unknownInputObservations(finding.ruleId)),
             ).joinToString("\n") },
         ).joinToString("\n\n")
     }

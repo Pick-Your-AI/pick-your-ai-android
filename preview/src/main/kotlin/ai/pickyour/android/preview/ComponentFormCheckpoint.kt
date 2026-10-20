@@ -97,9 +97,14 @@ internal sealed interface ComponentFormRecovery {
     class TypedWorkloadSelectionPending(val form: WorkloadSelectionFormCheckpoint) : ComponentFormRecovery
     class TypedComputePending(val form: ComputeFormCheckpoint) : ComponentFormRecovery
     class TypedDataSourcePending(val form: DataSourceFormCheckpoint) : ComponentFormRecovery
+    class TypedEvaluationSuitePending(val form: EvaluationSuiteFormCheckpoint) : ComponentFormRecovery
+    class TypedTrainingComputePending(val form: TrainingComputeFormCheckpoint) : ComponentFormRecovery
     class TypedModelProviderPending(val form: ModelProviderFormCheckpoint) : ComponentFormRecovery
     class TypedCostPolicyPending(val form: CostPolicyFormCheckpoint) : ComponentFormRecovery
     class TypedDeploymentTargetPending(val form: DeploymentTargetFormCheckpoint) : ComponentFormRecovery
+    class TypedHostingPlatformPending(val form: HostingPlatformFormCheckpoint) : ComponentFormRecovery
+    class TypedKnowledgeBasePending(val form: KnowledgeBaseFormCheckpoint) : ComponentFormRecovery
+    class TypedMonitoringStackPending(val form: MonitoringStackFormCheckpoint) : ComponentFormRecovery
 
     fun save(outState: Bundle) {
         outState.remove(KEY)
@@ -113,9 +118,14 @@ internal sealed interface ComponentFormRecovery {
             is TypedWorkloadSelectionPending -> outState.putBundle(KEY, form.bundle() ?: unavailable())
             is TypedComputePending -> outState.putBundle(KEY, form.bundle() ?: unavailable())
             is TypedDataSourcePending -> outState.putBundle(KEY, form.bundle() ?: unavailable())
+            is TypedEvaluationSuitePending -> outState.putBundle(KEY, form.bundle() ?: unavailable())
+            is TypedTrainingComputePending -> outState.putBundle(KEY, form.bundle() ?: unavailable())
             is TypedModelProviderPending -> outState.putBundle(KEY, form.bundle() ?: unavailable())
             is TypedCostPolicyPending -> outState.putBundle(KEY, form.bundle() ?: unavailable())
             is TypedDeploymentTargetPending -> outState.putBundle(KEY, form.bundle() ?: unavailable())
+            is TypedHostingPlatformPending -> outState.putBundle(KEY, form.bundle() ?: unavailable())
+            is TypedKnowledgeBasePending -> outState.putBundle(KEY, form.bundle() ?: unavailable())
+            is TypedMonitoringStackPending -> outState.putBundle(KEY, form.bundle() ?: unavailable())
         }
     }
 
@@ -144,12 +154,22 @@ internal sealed interface ComponentFormRecovery {
                     ComputeFormCheckpoint.read(value)?.let(::TypedComputePending) ?: Unavailable
                 } else if (value.get("version") == DataSourceFormCheckpoint.VERSION) {
                     DataSourceFormCheckpoint.read(value)?.let(::TypedDataSourcePending) ?: Unavailable
+                } else if (value.get("version") == EvaluationSuiteFormCheckpoint.VERSION) {
+                    EvaluationSuiteFormCheckpoint.read(value)?.let(::TypedEvaluationSuitePending) ?: Unavailable
+                } else if (value.get("version") == TrainingComputeFormCheckpoint.VERSION) {
+                    TrainingComputeFormCheckpoint.read(value)?.let(::TypedTrainingComputePending) ?: Unavailable
                 } else if (value.get("version") == ModelProviderFormCheckpoint.VERSION) {
                     ModelProviderFormCheckpoint.read(value)?.let(::TypedModelProviderPending) ?: Unavailable
                 } else if (value.get("version") == CostPolicyFormCheckpoint.VERSION) {
                     CostPolicyFormCheckpoint.read(value)?.let(::TypedCostPolicyPending) ?: Unavailable
                 } else if (value.get("version") == DeploymentTargetFormCheckpoint.VERSION) {
                     DeploymentTargetFormCheckpoint.read(value)?.let(::TypedDeploymentTargetPending) ?: Unavailable
+                } else if (value.get("version") == HostingPlatformFormCheckpoint.VERSION) {
+                    HostingPlatformFormCheckpoint.read(value)?.let(::TypedHostingPlatformPending) ?: Unavailable
+                } else if (value.get("version") == KnowledgeBaseFormCheckpoint.VERSION) {
+                    KnowledgeBaseFormCheckpoint.read(value)?.let(::TypedKnowledgeBasePending) ?: Unavailable
+                } else if (value.get("version") == MonitoringStackFormCheckpoint.VERSION) {
+                    MonitoringStackFormCheckpoint.read(value)?.let(::TypedMonitoringStackPending) ?: Unavailable
                 } else ComponentFormCheckpoint.read(value)?.let(::Pending) ?: Unavailable
             }
         } catch (_: RuntimeException) {

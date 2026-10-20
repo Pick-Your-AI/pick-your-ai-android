@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="input_observation_heading">Observed input limitations for this unknown result:</string>
+    <string name="input_observation_no_selection">No enabled selection matched the local read.</string>
+    <string name="input_observation_ambiguous_selection">More than one enabled selection matched the local read.</string>
+    <string name="input_observation_missing_value">A referenced value was absent from the captured inputs.</string>
+    <string name="input_observation_unresolvable_reference">An evaluated reference could not be traversed in the captured inputs.</string>
+    <string name="input_observation_catalog">A referenced catalog entry was unavailable in the captured catalog.</string>
+    <string name="input_observation_domain">A supplied value was outside the supported operand domain.</string>
+    <string name="input_observation_metric">The local profile does not supply an evaluated metric.</string>
+    <string name="input_observation_limits">These observations are local input facts, not a complete cause or a verified remedy.</string>
+</resources>

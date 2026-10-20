@@ -10,6 +10,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import ai.pickyour.core.evaluation.DraftCurrentInputs
 import ai.pickyour.core.evaluation.DraftCurrentUnavailable
+import ai.pickyour.core.evaluation.DraftCurrentUnknownPhase
 import ai.pickyour.core.evaluation.DraftCurrentRecheck
 import ai.pickyour.core.evaluation.ProvisionalFindingGuidance
 import ai.pickyour.core.preview.PreviewCurrentDraftAnalysis
@@ -200,10 +201,18 @@ internal class CurrentDraftCheckSection(
                 "unknown" -> "\n\n" + activity.getString(R.string.current_finding_unknown_meaning)
                 "skipped" -> "\n\n" + activity.getString(R.string.current_finding_skipped_meaning)
                 else -> ""
-            } + when (state.outcome.provisionalGuidance(row.ruleId)) {
+            } + when (state.outcome.unknownPhase(row.ruleId)) {
+                DraftCurrentUnknownPhase.APPLICABILITY -> "\n\n" + activity.getString(R.string.current_finding_unknown_applicability)
+                DraftCurrentUnknownPhase.ASSERTION -> "\n\n" + activity.getString(R.string.current_finding_unknown_assertion)
+                null -> ""
+            } + UnknownInputObservationText.describe(activity, state.outcome.unknownInputObservations(row.ruleId))
+                .let { if (it == null) "" else "\n\n$it" } + when (state.outcome.provisionalGuidance(row.ruleId)) {
                 ProvisionalFindingGuidance.INCOMPLETE -> "\n\n" + activity.getString(R.string.findings_guidance_incomplete)
                 ProvisionalFindingGuidance.REPORTED_INCOMPATIBILITY -> "\n\n" + activity.getString(R.string.findings_guidance_incompatible)
                 ProvisionalFindingGuidance.UNCLASSIFIED -> ""
+            } + state.outcome.missingRequiredPrimaryKinds(row.ruleId).let { absent ->
+                if (absent.isEmpty()) "" else "\n\n" + activity.getString(R.string.current_finding_absent_primary,
+                    absent.joinToString(", ", transform = ::literal))
             }
         lateinit var detail: AlertDialog
         val context = LinearLayout(activity).apply {

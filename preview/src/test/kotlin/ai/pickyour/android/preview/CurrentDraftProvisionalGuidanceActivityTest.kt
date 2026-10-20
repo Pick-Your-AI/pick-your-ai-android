@@ -7,7 +7,10 @@ import android.widget.Button
 import android.widget.TextView
 import ai.pickyour.core.drafts.*
 import ai.pickyour.core.evaluation.DraftCurrentInputs
+import ai.pickyour.core.evaluation.DraftCurrentUnknownPhase
 import ai.pickyour.core.evaluation.DraftRuleFinding
+import ai.pickyour.core.evaluation.ProvisionalFindingGuidance
+import ai.pickyour.core.evaluation.UnknownInputObservation
 import ai.pickyour.core.preview.*
 import org.json.JSONArray
 import org.json.JSONObject
@@ -36,12 +39,17 @@ class CurrentDraftProvisionalGuidanceActivityTest {
     private lateinit var controller: ActivityController<PreviewActivity>
     private val activity get() = controller.get()
     private val foundation = "rule.required.foundation"
+    private val foundationKinds = listOf("workload", "deployment_mode", "model", "context_policy")
     private val provider = "rule.model.provider.match"
     private val incomplete = "Guidance: Incomplete (provisional)"
     private val incompatible = "Guidance: Reported incompatibility (provisional)"
     private val privateNote = "PRIVATE_PROVISIONAL_GUIDANCE_SELECTION_NOTE"
     private val unknownMeaning = "Outcome meaning: The local diagnostic did not determine a pass or fail for this rule. " +
         "This is not a pass or proof of readiness."
+    private val assertionPhase = "Unknown phase: This rule applies, but its assertion did not determine a pass or fail. " +
+        "This phase does not identify a cause or a feasible next action."
+    private val noSelectionInputs = "Observed input limitations for this unknown result:\n" +
+        "No enabled selection matched the local read.\nThese observations are local input facts, not a complete cause or a verified remedy."
     private val skippedMeaning = "Outcome meaning: This rule was not evaluated for these captured inputs. " +
         "A skipped result is not a pass or proof of readiness."
 
@@ -227,10 +235,16 @@ class CurrentDraftProvisionalGuidanceActivityTest {
         return JSONArray("[$value]").getString(0)
     }
 
-    private fun verifyGuidance(current: PreviewCurrentDraftState.Current, id: String, guidance: String?) {
+    private fun absentChoices(kinds: List<String>) = "Observed in this saved draft (provisional): no enabled primary choice for " +
+        kinds.joinToString(", ", transform = ::quoted) + ". This is a selection observation; candidate feasibility is unverified."
+
+    private fun verifyGuidance(current: PreviewCurrentDraftState.Current, id: String, guidance: String?,
+        unknownPhase: String? = null, missingPrimaryKinds: List<String> = emptyList(), inputText: String? = null,
+    ) {
         val before = disk()
         val saved = loaded().baselineIdentity
         val binding = current.request.binding.copy()
+        assertEquals(missingPrimaryKinds, current.outcome.missingRequiredPrimaryKinds(id))
         val rows = current.outcome.findings
         val counts = listOf("pass", "fail", "unknown", "skipped").map { value -> rows.count { it.outcome == value } }
         assertEquals(rows.size, counts.sum())
@@ -259,8 +273,11 @@ class CurrentDraftProvisionalGuidanceActivityTest {
         assertEquals(saved, loaded().baselineIdentity)
         assertEquals(before, disk())
 
-        val expected = if (guidance == null) previous else "$previous\n\n$guidance"
-        assertEquals("Only captured fail guidance from the complete registered profile may be appended", expected, text)
+        val phased = if (unknownPhase == null) previous else "$previous\n\n$unknownPhase"
+        val observed = if (inputText == null) phased else "$phased\n\n$inputText"
+        val guided = if (guidance == null) observed else "$observed\n\n$guidance"
+        val expected = if (missingPrimaryKinds.isEmpty()) guided else "$guided\n\n" + absentChoices(missingPrimaryKinds)
+        assertEquals("Only expected phase/input observations, fail guidance and captured required-choice absences may be appended", expected, text)
 
         window.getButton(AlertDialog.BUTTON_POSITIVE).performClick(); idle()
         val list = dialog()
@@ -284,7 +301,7 @@ class CurrentDraftProvisionalGuidanceActivityTest {
         val current = admitted()
         assertTrue(field<PreviewStoredDraft>("savedRecord").components.selections.isEmpty())
         assertTrue(finding(current, foundation, "fail").selectionIds.isEmpty())
-        verifyGuidance(current, foundation, incomplete)
+        verifyGuidance(current, foundation, incomplete, missingPrimaryKinds = foundationKinds)
     }
 
     @Test fun mixedCurrentShowsReportedConflictAlongsideIndependentMissingChoices() {
@@ -303,7 +320,8 @@ class CurrentDraftProvisionalGuidanceActivityTest {
         // fabricated version mismatch or an external component-compatibility conclusion.
         assertEquals("2026.10-demo", other.catalogItemVersion)
         verifyGuidance(current, provider, incompatible)
-        verifyGuidance(current, foundation, incomplete)
+        verifyGuidance(current, foundation, incomplete,
+            missingPrimaryKinds = listOf("workload", "deployment_mode", "context_policy"))
     }
 
     @Test fun disabledPrimaryAndEnabledFallbackNeverSatisfyRequiredPresence() {
@@ -313,14 +331,17 @@ class CurrentDraftProvisionalGuidanceActivityTest {
         assertFalse(disabled.enabled)
         assertTrue(fallback.enabled)
         assertEquals(listOf(fallback.id), finding(current, foundation, "fail").selectionIds)
-        verifyGuidance(current, foundation, incomplete)
+        verifyGuidance(current, foundation, incomplete, missingPrimaryKinds = foundationKinds)
     }
 
     @Test fun realUnknownKeepsItsRawOutcomeAndMeaningWithoutProvisionalGuidance() {
         val model = local(selection("model"))
         val current = admitted(listOf(model))
         assertEquals(listOf(model.id), finding(current, provider, "unknown").selectionIds)
-        verifyGuidance(current, provider, null)
+        assertEquals(DraftCurrentUnknownPhase.ASSERTION, current.outcome.unknownPhase(provider))
+        assertEquals(ProvisionalFindingGuidance.UNCLASSIFIED, current.outcome.provisionalGuidance(provider))
+        assertEquals(listOf(UnknownInputObservation.NO_MATCHING_SELECTION), current.outcome.unknownInputObservations(provider))
+        verifyGuidance(current, provider, null, unknownPhase = assertionPhase, inputText = noSelectionInputs)
     }
 
     @Test fun realSkippedKeepsItsRawOutcomeAndMeaningWithoutProvisionalGuidance() {
@@ -343,5 +364,40 @@ class CurrentDraftProvisionalGuidanceActivityTest {
         finding(current, foundation, "fail")
         assertNotEquals(hash(document("ruleset").toString().toByteArray(Charsets.UTF_8)), current.request.binding.rulesetHash.hex)
         verifyGuidance(current, foundation, null)
+    }
+
+    @Test fun requiredAbsencesStayWithTheirSavedRevisionAndRetiredDetailCannotReturn() {
+        val all = foundationKinds.map { local(selection(it)) }
+        val complete = admitted(all)
+        finding(complete, foundation, "pass")
+        verifyGuidance(complete, foundation, null)
+
+        val missing = admitted(all.filter { it.kind != "model" })
+        finding(missing, foundation, "fail")
+        verifyGuidance(missing, foundation, incomplete, missingPrimaryKinds = listOf("model"))
+        val old = detail(missing, missing.outcome.findings.indexOfFirst { it.ruleId == foundation })
+        val capturedText = body(old)
+        assertTrue(capturedText.endsWith(absentChoices(listOf("model"))))
+        val oldContext = views(old.window!!.decorView).filterIsInstance<Button>()
+            .single { it.text.toString() == "Inspect affected selections" }
+
+        val restored = admitted(all)
+        finding(restored, foundation, "pass")
+        assertNotEquals(missing.request.binding, restored.request.binding)
+        assertEquals(listOf("model"), missing.outcome.missingRequiredPrimaryKinds(foundation))
+        assertTrue(restored.outcome.missingRequiredPrimaryKinds(foundation).isEmpty())
+        assertFalse(old.isShowing)
+        val latest = dialog()
+        val before = disk()
+        val saved = loaded().baselineIdentity
+        old.getButton(AlertDialog.BUTTON_POSITIVE).performClick(); idle()
+        old.getButton(AlertDialog.BUTTON_NEUTRAL).performClick(); idle()
+        oldContext.performClick(); idle()
+        assertSame(latest, dialog())
+        assertFalse(old.isShowing)
+        assertSame(restored, state())
+        assertEquals(saved, loaded().baselineIdentity)
+        assertEquals(before, disk())
+        verifyGuidance(restored, foundation, null)
     }
 }

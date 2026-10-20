@@ -35,6 +35,14 @@ Its twelve optional deployment, monitoring and cost settings remain declared
 inputs. Approval, capacity, observation, price coverage and runtime actions still
 require separate evidence; one shared planning panel retains that distinction.
 
+The [typed hosting-platform settings editor](HOSTING_PLATFORM_SETTINGS_EDITOR.md)
+adds a bounded existing-`hosting_platform` CONFIGURE form for partial
+[#99](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/99). It preserves
+literal region text, opaque account references and the optional frozen network
+isolation choice through the same complete Selection and managed revision path.
+These are declared settings; no account, region or network is verified. Raw ADD,
+legacy raw Configure recovery and the other typed editors retain their routes.
+
 The saved-component section exposes a separate exact-fixture component chooser.
 It does not reinterpret the old guest sample-selection metadata as a typed domain
 selection. Every listed item keeps its exact kind, catalog ID, version and captured
@@ -59,6 +67,14 @@ strings, percentage bounds and the separate omitted/false/true hard-cap choice
 retain the frozen receiver and managed save authority. Raw ADD and legacy raw
 CONFIGURE recovery remain explicit; this records planning preferences without
 adding prices, currency conversion, alerts or spending-limit enforcement.
+
+Fresh CONFIGURE for `monitoring_stack` uses
+[three typed optional controls](MONITORING_STACK_SETTINGS_EDITOR.md): exact sample
+fraction, whole retention days and an opaque credential reference. Each preserves
+omission independently; the final complete Selection still uses the existing
+validation and managed save path. Newly captured typed recovery excludes
+unrecognized credential input without resolving any reference or activating
+monitoring. Raw Add and legacy raw Configure recovery remain explicit.
 
 For partial [#99](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/99),
 new add/settings input also rejects URI authority userinfo in the frozen

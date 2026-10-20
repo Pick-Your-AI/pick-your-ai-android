@@ -21,20 +21,42 @@ internal fun recordedProvisionalGuidance(build: JsonNode, ruleset: JsonNode, rep
         report["findings"].map { GuidanceFinding(it["rule_id"].asText(), it["outcome"].asText()) }
     })
 
+/** Captured local presence facts; neither a cause of an unknown result nor candidate feasibility. */
+internal class CurrentFindingGuidance(
+    guidance: Map<String, ProvisionalFindingGuidance>,
+    absentPrimaryKinds: Map<String, List<String>>,
+) {
+    private val guidance = Collections.unmodifiableMap(LinkedHashMap(guidance))
+    private val absentPrimaryKinds = Collections.unmodifiableMap(
+        absentPrimaryKinds.mapValues { (_, kinds) -> Collections.unmodifiableList(ArrayList(kinds)) },
+    )
+    fun classification(ruleId: String): ProvisionalFindingGuidance =
+        guidance[ruleId] ?: ProvisionalFindingGuidance.UNCLASSIFIED
+    fun missingRequiredPrimaryKinds(ruleId: String): List<String> =
+        if (classification(ruleId) == ProvisionalFindingGuidance.INCOMPLETE)
+            absentPrimaryKinds[ruleId] ?: emptyList() else emptyList()
+}
+
 /** Actual private selections and evaluated findings; no synthetic Build or report is admitted. */
 internal fun currentProvisionalGuidance(selections: DraftSelections, ruleset: JsonNode,
-    findings: List<DraftRuleFinding>): Map<String, ProvisionalFindingGuidance> = provisionalGuidance(ruleset, {
+    findings: List<DraftRuleFinding>): CurrentFindingGuidance {
+    val absent = linkedMapOf<String, List<String>>()
+    val guidance = provisionalGuidance(ruleset, {
         selections.selections.map { GuidanceSelection(it.id, it.kind, it.role, it.enabled) }
     }, {
         findings.map { GuidanceFinding(it.ruleId, it.outcome) }
-    })
+    }) { ruleId, kinds -> absent[ruleId] = kinds }
+    return CurrentFindingGuidance(guidance, absent)
+}
 
 private data class GuidanceSelection(val id: String, val kind: String, val role: String, val enabled: Boolean)
 private data class GuidanceFinding(val ruleId: String, val outcome: String)
 
 /** Both adapters share the complete profile gate and the same finite typed presence policy. */
 private fun provisionalGuidance(ruleset: JsonNode, selections: () -> List<GuidanceSelection>,
-    findings: () -> List<GuidanceFinding>): Map<String, ProvisionalFindingGuidance> {
+    findings: () -> List<GuidanceFinding>,
+    observeAbsent: ((String, List<String>) -> Unit)? = null,
+): Map<String, ProvisionalFindingGuidance> {
     if (!FindingGuidanceProfile.matches(ruleset)) return emptyMap()
     val selected = selections()
     // Even a disabled duplicate makes recorded identity ambiguous; do not select a convenient row.
@@ -48,12 +70,14 @@ private fun provisionalGuidance(ruleset: JsonNode, selections: () -> List<Guidan
         val fit = FindingGuidanceProfile.fit[id].orEmpty()
         fun count(kind: String) = active[kind to "primary"].orEmpty().size
         if ((required + fit).any { count(it) > 1 }) continue
+        val absent = required.filter { count(it) == 0 }
         val value = when {
-            required.any { count(it) == 0 } -> ProvisionalFindingGuidance.INCOMPLETE
+            absent.isNotEmpty() -> ProvisionalFindingGuidance.INCOMPLETE
             fit.isNotEmpty() && fit.all { count(it) == 1 } -> ProvisionalFindingGuidance.REPORTED_INCOMPATIBILITY
             else -> ProvisionalFindingGuidance.UNCLASSIFIED
         }
         if (value != ProvisionalFindingGuidance.UNCLASSIFIED) guidance[id] = value
+        if (value == ProvisionalFindingGuidance.INCOMPLETE) observeAbsent?.invoke(id, absent)
     }
     return Collections.unmodifiableMap(guidance)
 }

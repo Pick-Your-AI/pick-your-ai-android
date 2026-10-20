@@ -307,8 +307,22 @@ internal class AlternativeInspectionBrowser(
             add(Field("$prefix.selection_ids.length", value.selectionIds.size.toString(), Format.LOCAL))
             value.selectionIds.forEachIndexed { index, id -> add(Field("$prefix.selection_ids[$index]", id)) }
         }
+        fun observed(prefix: String, side: DraftAlternativeSide) {
+            val captured = observations ?: return
+            val phase = when (captured.unknownPhase(side, row)) {
+                DraftCurrentUnknownPhase.APPLICABILITY -> activity.getString(R.string.current_finding_unknown_applicability)
+                DraftCurrentUnknownPhase.ASSERTION -> activity.getString(R.string.current_finding_unknown_assertion)
+                null -> return
+            }
+            add(Field("$prefix.observed_unknown_phase", phase, Format.LOCAL))
+            UnknownInputObservationText.describe(activity, captured.unknownInputObservations(side, row))?.let {
+                add(Field("$prefix.observed_unknown_inputs", it, Format.LOCAL))
+            }
+        }
         finding("current", row.current)
+        observed("current", DraftAlternativeSide.CURRENT)
         finding("candidate", row.candidate)
+        observed("candidate", DraftAlternativeSide.CANDIDATE)
         finding("slot_empty", row.slotEmpty)
         val reason = row.candidateReason
         add(Field("candidate_reason.present", (reason != null).toString(), Format.BOOLEAN))

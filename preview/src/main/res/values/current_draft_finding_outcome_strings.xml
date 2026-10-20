@@ -2,4 +2,6 @@
 <resources>
     <string name="current_finding_unknown_meaning">Outcome meaning: The local diagnostic did not determine a pass or fail for this rule. This is not a pass or proof of readiness.</string>
     <string name="current_finding_skipped_meaning">Outcome meaning: This rule was not evaluated for these captured inputs. A skipped result is not a pass or proof of readiness.</string>
+    <string name="current_finding_unknown_applicability">Unknown phase: Whether this rule applies could not be determined. Its assertion was not evaluated. This phase does not identify a cause or a feasible next action.</string>
+    <string name="current_finding_unknown_assertion">Unknown phase: This rule applies, but its assertion did not determine a pass or fail. This phase does not identify a cause or a feasible next action.</string>
 </resources>
