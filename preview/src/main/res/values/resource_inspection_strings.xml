@@ -6,7 +6,7 @@
     <string name="resource_inspection_browse">Review all recorded resource fields</string>
     <string name="resource_inspection_idle">No resource record is currently inspected.</string>
     <string name="resource_inspection_loading">Reading the fixed build and resource records…</string>
-    <string name="resource_inspection_ready">Recorded build identity and selection references match. %1$d estimate entries and %2$d build selections are available to inspect. Applicability, freshness, confidence policy and memory fit remain unestablished.</string>
+    <string name="resource_inspection_ready">Recorded build identity and selection references match. Estimate entries: %1$d. Build selections: %2$d. Applicability, freshness, confidence policy and memory fit remain unestablished.</string>
     <string name="resource_inspection_rejected">Resource inputs rejected: %1$s. No capacity or passing memory-fit result is established.</string>
     <string name="resource_inspection_unavailable">Resource inputs are unavailable. Retry the inspection explicitly. No capacity or passing memory-fit result is established.</string>
     <string name="resource_browser_title">Synthetic resource input inspection</string>
