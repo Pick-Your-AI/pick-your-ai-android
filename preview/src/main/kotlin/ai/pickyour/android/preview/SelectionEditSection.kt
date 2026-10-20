@@ -100,6 +100,13 @@ internal class SelectionEditSection(private val activity: Activity,
         if (expected.components.selections.isEmpty()) choose.performClick() else manage.performClick()
     }
 
+    /** Open only the reported saved ID; never choose a kind/role/catalog fallback or an option. */
+    internal fun reviewCurrentSelection(expected: PreviewStoredDraft, selectionId: String) {
+        if (!canReviewCurrentChoices(expected)) return
+        val selection = expected.components.selections.singleOrNull { it.id == selectionId } ?: return
+        chooseAction(expected, selection)
+    }
+
     fun update(record: PreviewStoredDraft?, enabled: Boolean, draftId: String? = currentDraftId) {
         if (closed) return
         if (baseline !== record || editable != enabled || currentDraftId != draftId) retireOptions()

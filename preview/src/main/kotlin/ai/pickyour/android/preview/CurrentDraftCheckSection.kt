@@ -28,6 +28,7 @@ internal class CurrentDraftCheckSection(
     private val alive: () -> Boolean,
     private val statusChanged: (String) -> Unit,
     private val beforeInspect: () -> Unit,
+    private val reviewSelection: ((PreviewStoredDraft, String) -> Unit)? = null,
 ) : LinearLayout(activity) {
     private class Source(val record: PreviewStoredDraft, val inputs: DraftCurrentInputs, val authority: Any,
         val current: () -> Boolean, val readCurrent: () -> PreviewDraftLoad)
@@ -286,6 +287,30 @@ internal class CurrentDraftCheckSection(
         if (selection != null) builder.setNeutralButton(R.string.current_finding_version_full) { _, _ ->
             if (current()) showSelectionVersionPart(captured, state, offset, index, selectionOffset, selectionId, 0)
         }
+        val review = reviewSelection
+        if (selection != null && review != null) builder.setCustomTitle(LinearLayout(activity).apply {
+            orientation = VERTICAL
+            val padding = (16 * resources.displayMetrics.density).toInt()
+            setPadding(padding, padding, padding, 0)
+            addView(TextView(activity).apply {
+                setText(R.string.current_finding_selection_title)
+                setTextAppearance(android.R.style.TextAppearance_Material_Title)
+                isSingleLine = false
+                ellipsize = null
+                if (android.os.Build.VERSION.SDK_INT >= 28) isAccessibilityHeading = true
+            }, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
+            addView(Button(activity).apply {
+                setText(R.string.current_finding_manage_selection)
+                isSingleLine = false
+                minimumHeight = (48 * resources.displayMetrics.density).toInt()
+                setOnClickListener {
+                    if (!current()) return@setOnClickListener
+                    // Consume this showing owner before entering the existing management route.
+                    dismissInspection()
+                    review(captured.record, selection.id)
+                }
+            }, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
+        })
         detail = builder.create()
         present(detail)
     }
