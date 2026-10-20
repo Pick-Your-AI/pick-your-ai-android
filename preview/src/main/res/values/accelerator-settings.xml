@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="accelerator_editor_guidance">Configure declared accelerator settings. These values do not verify installed hardware, compatibility, capacity or an inference runtime.</string>
+    <string name="accelerator_device_count">Device count</string>
+    <string name="accelerator_device_count_rule">device_count · required integer count, at least 1. No default is added.</string>
+    <string name="accelerator_groups">Tensor parallel groups</string>
+    <string name="accelerator_groups_rule">tensor_parallel_groups · optional integer count, at least 1 when supplied. No relationship to device count is inferred.</string>
+    <string name="accelerator_not_supplied">Not supplied</string>
+    <string name="accelerator_supply">Supply %1$s</string>
+    <string name="accelerator_value_required">Enter an integer value. An empty supplied value cannot be saved.</string>
+    <string name="accelerator_integer_invalid">Use a complete exact JSON integer value. Fractions, locale separators and unknown values cannot be saved.</string>
+    <string name="accelerator_too_long">This value exceeds the supported input representation. Shorten it before saving.</string>
+</resources>
