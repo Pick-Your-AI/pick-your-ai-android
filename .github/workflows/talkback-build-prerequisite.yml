@@ -29,7 +29,6 @@ jobs:
         working-directory: project
     env:
       PYTHONDONTWRITEBYTECODE: "1"
-      GRADLE_USER_HOME: ${{ runner.temp }}/talkback-gradle-user-home
     steps:
       - name: Check out this exact project source
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -72,6 +71,8 @@ jobs:
             --work "$RUNNER_TEMP/talkback-prerequisite" \
             --expected-project "$GITHUB_SHA"
       - name: Build only the official phone debug variant for x86_64
+        env:
+          GRADLE_USER_HOME: ${{ runner.temp }}/talkback-gradle-user-home
         run: |
           set -euo pipefail
           build_root="$RUNNER_TEMP/talkback-prerequisite"
