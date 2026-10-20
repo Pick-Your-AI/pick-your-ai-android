@@ -196,7 +196,28 @@ internal class CurrentDraftCheckSection(
             literal(row.severity), literal(row.message), literal(row.remediation),
             row.selectionIds.joinToString(", ", transform = ::literal))
         lateinit var detail: AlertDialog
+        val context = LinearLayout(activity).apply {
+            orientation = VERTICAL
+            val padding = (16 * resources.displayMetrics.density).toInt()
+            setPadding(padding, padding, padding, 0)
+            addView(TextView(activity).apply {
+                setText(R.string.current_check_inspect)
+                setTextAppearance(android.R.style.TextAppearance_Material_Title)
+                isSingleLine = false
+                ellipsize = null
+                if (android.os.Build.VERSION.SDK_INT >= 28) isAccessibilityHeading = true
+            }, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
+            addView(Button(activity).apply {
+                setText(R.string.current_finding_context)
+                isSingleLine = false
+                minimumHeight = (48 * resources.displayMetrics.density).toInt()
+                setOnClickListener {
+                    if (owns(captured, state, detail)) showAffectedSelections(captured, state, offset, index, 0)
+                }
+            }, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
+        }
         detail = AlertDialog.Builder(activity).setTitle(R.string.current_check_inspect).setMessage(text)
+            .setCustomTitle(context)
             .setNegativeButton(R.string.close, null)
             .setPositiveButton(R.string.current_check_back) { _, _ ->
                 if (owns(captured, state, detail)) showFindings(captured, state, offset)
@@ -204,6 +225,86 @@ internal class CurrentDraftCheckSection(
                 if (owns(captured, state, detail)) showFields(captured, state, offset, index)
             }.create()
         present(detail)
+    }
+
+    private fun showAffectedSelections(captured: Source, state: PreviewCurrentDraftState.Current,
+        offset: Int, index: Int, selectionOffset: Int) {
+        if (!active(captured) || analysis.state !== state || index !in state.outcome.findings.indices) return
+        val ids = state.outcome.findings[index].selectionIds
+        if (selectionOffset != 0 && selectionOffset !in ids.indices) return
+        val end = minOf(selectionOffset + 10, ids.size)
+        lateinit var page: AlertDialog
+        fun current() = owns(captured, state, page)
+        val builder = AlertDialog.Builder(activity)
+            .setNegativeButton(R.string.current_finding_back_detail) { _, _ ->
+                if (current()) showFinding(captured, state, offset, index)
+            }
+        if (ids.isEmpty()) {
+            builder.setTitle(R.string.current_finding_context).setMessage(R.string.current_finding_context_empty)
+        } else {
+            val labels = ids.subList(selectionOffset, end).map(::literal).toTypedArray()
+            builder.setTitle(activity.getString(R.string.current_finding_context_page, selectionOffset + 1, end, ids.size))
+                .setItems(labels) { _, selected ->
+                    if (current() && selected in labels.indices)
+                        showSelectionContext(captured, state, offset, index, selectionOffset, ids[selectionOffset + selected])
+                }
+            if (end < ids.size) builder.setPositiveButton(R.string.current_finding_context_next) { _, _ ->
+                if (current()) showAffectedSelections(captured, state, offset, index, end)
+            }
+            if (selectionOffset > 0) builder.setNeutralButton(R.string.current_finding_context_previous) { _, _ ->
+                if (current()) showAffectedSelections(captured, state, offset, index, maxOf(0, selectionOffset - 10))
+            }
+        }
+        page = builder.create()
+        present(page)
+    }
+
+    private fun showSelectionContext(captured: Source, state: PreviewCurrentDraftState.Current,
+        offset: Int, index: Int, selectionOffset: Int, selectionId: String) {
+        if (!active(captured) || analysis.state !== state || index !in state.outcome.findings.indices ||
+            selectionId !in state.outcome.findings[index].selectionIds) return
+        val selection = captured.record.components.selections.singleOrNull { it.id == selectionId }
+        val text = if (selection == null) activity.getString(R.string.current_finding_selection_unavailable, literal(selectionId))
+            else activity.getString(R.string.current_finding_selection_fields, literal(selection.id), literal(selection.kind),
+                literal(selection.role), literal(selection.catalogItemId), literal(selection.catalogItemVersion), selection.enabled.toString())
+        lateinit var detail: AlertDialog
+        fun current() = owns(captured, state, detail)
+        val builder = AlertDialog.Builder(activity).setTitle(R.string.current_finding_selection_title).setMessage(text)
+            .setNegativeButton(R.string.close, null)
+            .setPositiveButton(R.string.current_finding_context_back) { _, _ ->
+                if (current()) showAffectedSelections(captured, state, offset, index, selectionOffset)
+            }
+        if (selection != null) builder.setNeutralButton(R.string.current_finding_version_full) { _, _ ->
+            if (current()) showSelectionVersionPart(captured, state, offset, index, selectionOffset, selectionId, 0)
+        }
+        detail = builder.create()
+        present(detail)
+    }
+
+    private fun showSelectionVersionPart(captured: Source, state: PreviewCurrentDraftState.Current,
+        offset: Int, index: Int, selectionOffset: Int, selectionId: String, part: Int) {
+        if (!active(captured) || analysis.state !== state || index !in state.outcome.findings.indices ||
+            selectionId !in state.outcome.findings[index].selectionIds) return
+        val raw = captured.record.components.selections.singleOrNull { it.id == selectionId }?.catalogItemVersion ?: return
+        val count = maxOf(1, (raw.length + FIELD_PART_UNITS - 1) / FIELD_PART_UNITS)
+        if (part !in 0 until count) return
+        val start = part * FIELD_PART_UNITS
+        lateinit var window: AlertDialog
+        fun current() = owns(captured, state, window)
+        val builder = AlertDialog.Builder(activity)
+            .setTitle(activity.getString(R.string.current_finding_version_part, part + 1, count))
+            .setMessage(literal(raw.substring(start, minOf(start + FIELD_PART_UNITS, raw.length))))
+            .setNegativeButton(R.string.current_finding_selection_back) { _, _ ->
+                if (current()) showSelectionContext(captured, state, offset, index, selectionOffset, selectionId)
+            }
+        if (part + 1 < count) builder.setPositiveButton(R.string.current_finding_next_part) { _, _ ->
+            if (current()) showSelectionVersionPart(captured, state, offset, index, selectionOffset, selectionId, part + 1)
+        }
+        if (part > 0) builder.setNeutralButton(R.string.current_finding_previous_part) { _, _ ->
+            if (current()) showSelectionVersionPart(captured, state, offset, index, selectionOffset, selectionId, part - 1)
+        }
+        window = builder.create()
+        present(window)
     }
 
     private enum class FindingField(val label: Int) {
