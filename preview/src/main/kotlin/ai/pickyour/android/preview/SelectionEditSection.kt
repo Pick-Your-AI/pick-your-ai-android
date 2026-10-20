@@ -1013,6 +1013,13 @@ internal class SelectionEditSection(private val activity: Activity,
         if (!canOpen(expected) || selection.kind != PreviewEvaluationSuiteSettings.KIND) return
         val draftId = requireNotNull(currentDraftId)
         val layout = LinearLayout(activity).apply { orientation = VERTICAL }
+        layout.addView(TextView(activity).apply {
+            text = label(selection)
+            setSingleLine(false)
+            ellipsize = null
+            setTextIsSelectable(true)
+            isSaveEnabled = false
+        })
         layout.addView(TextView(activity).apply { setText(R.string.component_settings_warning) })
         guardrailGuidance(layout, selection.kind)
         layout.addView(TextView(activity).apply { setText(R.string.evaluation_suite_recovery_guidance) })
@@ -1021,7 +1028,7 @@ internal class SelectionEditSection(private val activity: Activity,
             active(expected) && open(dialog) && formBinding?.saving == false
         }.also(layout::addView)
         val feedback = feedback().also(layout::addView)
-        dialog = show(AlertDialog.Builder(activity).setTitle(label(selection))
+        dialog = show(AlertDialog.Builder(activity).setTitle(R.string.evaluation_suite_settings_title)
             .setView(ScrollView(activity).apply { addView(layout) })
             .setNegativeButton(R.string.close, null).setPositiveButton(R.string.component_commit, null).create(), feedback)
         val binding = FormBinding(dialog) { saving ->

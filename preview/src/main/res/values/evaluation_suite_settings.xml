@@ -1,4 +1,5 @@
 <resources>
+    <string name="evaluation_suite_settings_title">Evaluation-suite settings</string>
     <string name="evaluation_suite_editor_guidance">These optional settings record a requested evaluation configuration. A score threshold and requested gate do not supply a measured result, enforce a gate or establish quality or safety.</string>
     <string name="evaluation_suite_score">Minimum score</string>
     <string name="evaluation_suite_number_rule">Supply an exact JSON number. The contract sets no score range, unit, percentage scale or recommended threshold.</string>

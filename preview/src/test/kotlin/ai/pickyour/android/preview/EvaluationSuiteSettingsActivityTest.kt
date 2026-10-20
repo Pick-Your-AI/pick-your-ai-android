@@ -124,14 +124,14 @@ class EvaluationSuiteSettingsActivityTest {
     private fun addForm(): AlertDialog {
         await { button(R.string.component_choose_catalog).isEnabled }
         button(R.string.component_choose_catalog).performClick()
-        val actions = select(dialog()) { it.startsWith("evaluation_suite ·") }
+        val actions = select(dialog()) { it.startsWith("${componentTokenForLookup(activity, PreviewEvaluationSuiteSettings.KIND)} ·") }
         return select(actions) { it == activity.getString(R.string.component_add) }
     }
 
     private fun configure(): AlertDialog {
         val target = selection()
         button(R.string.component_manage).performClick()
-        val actions = select(dialog()) { it.endsWith(" · ${target.id}") }
+        val actions = select(dialog()) { it.endsWith(" · ${componentTokenForLookup(activity, target.id)}") }
         return select(actions) { it == activity.getString(R.string.component_configure) }
     }
 
