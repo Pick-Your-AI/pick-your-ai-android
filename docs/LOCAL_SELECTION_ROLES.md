@@ -67,7 +67,9 @@ settings recovery retain their existing semantics and cannot introduce a role ed
 The role's raw input shares the existing 20,000 UTF-16 character recovery bound;
 over-budget input becomes an explicit unavailable marker without a valid prefix.
 
-After recreation, review opens a fresh role form only for the same clean draft,
+Pausing captures bounded role input and retires the old form and its callbacks
+before dismissing it. Resuming restores availability without restoring consent.
+After pause or recreation, review opens a fresh role form only for the same clean draft,
 saved baseline and existing supported selection, and only if no write was in
 flight. A changed context or in-flight checkpoint keeps the exact role selectable
 in a read-only review, even after explicit reopen. No recovery step dispatches a
@@ -89,14 +91,15 @@ large retained settings, format-4 predecessor preservation, tampered action/vers
 rejection, no-op/rejection/CAS, concurrent migration, activation failure/uncertainty,
 restore and full-history bounds.
 
-`ComponentRoleActivityTest` adds nine actual platform-View/worker/storage cases in
+`ComponentRoleActivityTest` contains eleven actual platform-View/worker/storage cases in
 API-28 Robolectric simulation. They exercise preserved large settings/links through
 reopen, correction followed by one save, no-op/cancel/retired controls, repeated
 Parcelled recreation with new consent, stale saved head, wrong draft/missing target,
-an in-flight write that actually completes, unavailable oversized input and narrow
-RTL large text. `ComponentRoleCheckpointTest` adds four cases for exact maximum
+an in-flight write that actually completes, unavailable oversized input, narrow
+RTL large text, retained Commit replay after actual pause, and picker/confirmation
+retirement without restoring consent. `ComponentRoleCheckpointTest` adds four cases for exact maximum
 Unicode Parcel round-trip, version-1 compatibility, malformed mode-specific state
-and over-budget unavailability. The hosted workflow requires all 13 native cases
+and over-budget unavailability. The hosted workflow requires all 15 native cases
 by exact suite/name, unique identities, correct totals and no failure, error or skip.
 
 This evidence does not evaluate dependent deployment requirements, compatibility,

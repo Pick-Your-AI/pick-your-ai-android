@@ -422,8 +422,9 @@ class ComputeSettingsActivityTest {
                 assertTrue(pending.wasSaving)
                 assertEquals("  fixture-region\n", pending.input.region)
                 release.countDown()
-                await { !form.isShowing && loaded().revision == before.revision + 1 }
+                // Pause retires the dialog before acknowledgment; let the owned write finish before reading storage.
                 finishWork()
+                await { !form.isShowing && loaded().revision == before.revision + 1 }
             }
         } finally { release.countDown() }
         val saved = loaded()
