@@ -208,3 +208,13 @@ OS matrix, complete navigation/secure-entry routing, physical persistence faults
 TalkBack and keyboard qualification, named receiving acceptance and release
 evidence remain outstanding. This slice does not close any of the three full
 work packages or claim completion of the separate installed four-case harness.
+
+## Typed workload Selection pending input
+
+Fresh existing-workload CONFIGURE uses the private `typed-workload/1` protocol
+for five optional integer inputs and their exact supplied/omitted states. The
+strict primitive/identity and aggregate 20,000-character boundary grants no
+replacement save authority. Same-identity non-saving input needs explicit
+review and a new commit; changed or in-flight input is read-only. Raw legacy
+recovery remains raw. See [the scoped editor guide](WORKLOAD_SELECTION_SETTINGS_EDITOR.md)
+for the frozen field, lifecycle and original-evidence boundaries.

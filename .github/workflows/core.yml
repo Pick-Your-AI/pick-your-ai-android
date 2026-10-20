@@ -624,6 +624,85 @@ jobs:
                   raise SystemExit('Typed model regression did not pass')
               print(f"Verified {len(cases)} {qualified} cases; no installed-device claim")
           PYMODEL
+      - name: Require typed workload Selection preparation and managed storage regressions
+        run: |
+          python - <<'PYWORKLOADSELECTIONCORE'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          required = {
+              'ai.pickyour.core.preview.PreviewWorkloadSelectionSettingsTest': {
+                  'fiveOptionalIntegerFieldsUseExactFrozenBoundsWithoutDefaults()',
+                  'omissionAndSuppliedZeroRemainDistinctForEachOptionalSetting()',
+                  'wideAndMathematicallyIntegralJsonNumbersRemainExactWithoutMachineWidthCaps()',
+                  'eachFrozenLowerBoundIsEnforcedWithoutInventingCrossFieldConstraints()',
+                  'fractionalLocaleTextAndInjectedMembersCannotPrepareAnyField()',
+                  'suppliedEmptyTextAndRepresentationLimitsRemainActionableWithoutPartialCommands()',
+                  'untouchedAdmittedNumericNodesKeepTheirScaleTypeAndIndependentOmission()',
+                  'independentValueFreeErrorsRejectTheWholeInputAndRemainImmutable()',
+                  'configurationPreservesWholeSelectionLinksAndOverallWorkloadAssumptions()',
+                  'currentNoopStaleAndDeletedManagedAuthorityRemainDistinct()',
+                  'savedValuesAndExplicitBuildProjectionRetainTypesHistoryAndPrivateMetadata()',
+                  'conflictingOverallObjectivesWithholdProjectionWithoutChangingSavedSelectionOrMetadata()',
+                  'anotherSelectionKindCannotAcquireWorkloadConfiguration()',
+              },
+          }
+          total = 0
+          for name, expected in required.items():
+              path = pathlib.Path('core/build/test-results/test') / ('TEST-' + name + '.xml')
+              suite = ET.parse(path).getroot()
+              cases = suite.findall('testcase')
+              names = [case.attrib.get('name') for case in cases]
+              if suite.attrib.get('name') != name or any(case.attrib.get('classname') != name for case in cases):
+                  raise SystemExit('Wrong typed workload selection suite identity')
+              if not expected <= set(names) or len(names) != len(set(names)):
+                  raise SystemExit('Missing or duplicate typed workload selection regressions')
+              if int(suite.attrib.get('tests', '-1')) != len(cases):
+                  raise SystemExit('Typed workload selection report totals differ')
+              for tag, attribute in [('failure', 'failures'), ('error', 'errors'), ('skipped', 'skipped')]:
+                  actual = sum(case.find(tag) is not None for case in cases)
+                  if actual != 0 or int(suite.attrib.get(attribute, '-1')) != actual:
+                      raise SystemExit('Typed workload selection regressions must pass without skips')
+              total += len(cases)
+          print('typed_workload_selection_core_cases=' + str(total))
+          PYWORKLOADSELECTIONCORE
+      - name: Require typed compute preparation and managed storage regressions
+        run: |
+          python - <<'PYCOMPUTE'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          required = {
+              'ai.pickyour.core.preview.PreviewComputeSettingsTest': {
+                  'threeFieldsUseTheExactFrozenRequiredTypesAndBounds()',
+                  'optionalAbsenceExplicitZeroAndEmptyRegionStayDistinct()',
+                  'instanceCountsKeepWideExactIntegersAndMathematicalIntegerAliases()',
+                  'reservedHoursKeepExactNonnegativeNumbersWithoutCalendarOrCapacityCeilings()',
+                  'emptyAndWhitespaceNumericInputsNeedCorrectionWithoutRemovingInstances()',
+                  'numericSyntaxRejectsLocaleCoercionNonNumbersAndExistingReaderOverflows()',
+                  'numericControlsCannotInjectKeysDuplicatesOrTrailingDocuments()',
+                  'regionPreservesLiteralEmptyWhitespaceUnicodeAndAnswerLikeText()',
+                  'malformedUnicodeAndOversizedRegionAreValueFreeFieldErrors()',
+                  'untouchedAdmittedNodesKeepScaleAndTypeWhenOnlyRegionChanges()',
+                  'wholeSelectionBudgetAndIndependentErrorsCannotPublishPartialSettings()',
+                  'configurePreservesSelectionIdentityLinksFlagsNotesAndUnrelatedDraftData()',
+                  'managedNoopStaleAndDeletedSaveAuthorityRemainDistinct()',
+                  'threeTypedValuesRoundTripThroughManagedStorageAndExplicitFrozenBuildProjection()',
+                  'descriptionsDoNotEchoInputAndOtherKindsCannotUseThisEditor()',
+              },
+          }
+          for qualified, expected in required.items():
+              suite = ET.parse(pathlib.Path('core') / 'build/test-results' / 'test' / ('TEST-' + qualified + '.xml')).getroot()
+              cases = suite.findall('testcase')
+              names = [case.attrib['name'] for case in cases]
+              if suite.attrib.get('name') != qualified or any(case.attrib.get('classname') != qualified for case in cases):
+                  raise SystemExit('Wrong typed compute regression suite')
+              if expected != set(names) or len(names) != len(set(names)):
+                  raise SystemExit('Missing, extra or repeated typed compute regression')
+              if int(suite.attrib['tests']) != len(cases) or any(int(suite.attrib[key]) for key in ('failures', 'errors', 'skipped')):
+                  raise SystemExit('Typed compute totals do not match passing execution')
+              if any(case.findall('failure') or case.findall('error') or case.findall('skipped') for case in cases):
+                  raise SystemExit('Typed compute regression did not pass')
+              print(f'Verified {len(cases)} exact {qualified} cases; local simulation only')
+          PYCOMPUTE
       - name: Require every retained configuration golden
         run: |
           python - <<'PYCONFIGURATION'
@@ -1231,6 +1310,103 @@ jobs:
                   raise SystemExit('Typed model regression did not pass')
               print(f"Verified {len(cases)} {qualified} cases; no installed-device claim")
           PYMODEL
+      - name: Require typed workload Selection Activity and private recovery regressions
+        run: |
+          python - <<'PYWORKLOADSELECTIONNATIVE'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          required = {
+              'ai.pickyour.android.preview.WorkloadSelectionFormCheckpointTest': {
+                  'exactLargeAndInvalidTextAndAllCapturedPinsSurviveActualParcel',
+                  'absentEmptyAndSuppliedZeroRemainDistinctExactPrimitiveStates',
+                  'combinedUtf16BoundaryRejectsOneExtraWithoutKeepingAPartialInput',
+                  'exactKeysAndNullableStringPrimitivesRejectCoercionMissingKeysAndExtras',
+                  'wrongStringOrNumericVersionFormAndKindCannotSelectARecoveryProtocol',
+                  'capturedIdentityIsRequiredBoundedAndNeverFilledFromAnotherState',
+                  'existingRawContextAndModelReadersRemainSeparate',
+                  'savingFlagAndDescriptionsRetainInputWithoutGrantingOrEchoingAuthority',
+              },
+              'ai.pickyour.android.preview.WorkloadSelectionSettingsActivityTest': {
+                  'freshEditorKeepsAllFiveFieldsAbsentAndUnchangedConfirmationCreatesNoRevision',
+                  'exactLargeOverridesSaveAndReopenWithoutCopyingOverallWorkloadAssumptions',
+                  'suppliedZeroAndExactAdmittedNodesRemainDistinctFromIndependentOmission',
+                  'independentInvalidFieldsKeepExactTextAndDiskUntilEverySuppliedValueIsCorrected',
+                  'suppliedEmptyTextRequiresCorrectionOrOmissionWithoutSavingValidSiblings',
+                  'canceledAndRetainedControlsCannotReopenOrWriteAndFreshInputStartsAbsent',
+                  'invalidTypedInputSurvivesActualParcelWithOriginalPinsAndNeedsNewConsent',
+                  'newerSavedHeadRejectsManagedCommitAndKeepsAllRecoveredInputReadOnly',
+                  'differentDraftSelectionAndCatalogPinsNeverAcquireCurrentSaveAuthority',
+                  'inFlightTypedWorkloadWriteFreezesEveryControlAndCannotReplayAfterAcknowledgment',
+                  'actualPauseRetiresInputAndCommitUntilFreshReviewedConfirmation',
+                  'oversizedTypedRecoveryKeepsOnlyTheMarkerWithoutAutomaticViewStateFallback',
+                  'legacyRawConfigureRecoveryRemainsExplicitAndFreshConfigureUsesTypedControls',
+                  'narrowRtlLargeTextKeepsAllFiveFieldsGuidanceAndConfirmationReachable',
+              },
+          }
+          total = 0
+          for name, expected in required.items():
+              path = pathlib.Path('preview/build/test-results/testDebugUnitTest') / ('TEST-' + name + '.xml')
+              suite = ET.parse(path).getroot()
+              cases = suite.findall('testcase')
+              names = [case.attrib.get('name') for case in cases]
+              if suite.attrib.get('name') != name or any(case.attrib.get('classname') != name for case in cases):
+                  raise SystemExit('Wrong typed workload selection suite identity')
+              if not expected <= set(names) or len(names) != len(set(names)):
+                  raise SystemExit('Missing or duplicate typed workload selection regressions')
+              if int(suite.attrib.get('tests', '-1')) != len(cases):
+                  raise SystemExit('Typed workload selection report totals differ')
+              for tag, attribute in [('failure', 'failures'), ('error', 'errors'), ('skipped', 'skipped')]:
+                  actual = sum(case.find(tag) is not None for case in cases)
+                  if actual != 0 or int(suite.attrib.get(attribute, '-1')) != actual:
+                      raise SystemExit('Typed workload selection regressions must pass without skips')
+              total += len(cases)
+          print('typed_workload_selection_preview_cases=' + str(total))
+          PYWORKLOADSELECTIONNATIVE
+      - name: Require typed compute Activity and private recovery regressions
+        run: |
+          python - <<'PYCOMPUTE'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          required = {
+              'ai.pickyour.android.preview.ComputeSettingsActivityTest': {
+                  'requiredCountAndTwoOptionalFieldsHaveLabeledPrivateNativeControls',
+                  'computeAddRemainsExplicitRawInputWithoutSupplyingTheRequiredCount',
+                  'exactThreeFieldSaveAndReopenPreserveSelectionAndUnrelatedDraftState',
+                  'zeroHoursAndSuppliedEmptyRegionAreSavedUntilExplicitlyRemoved',
+                  'invalidNumbersKeepIndependentValueFreeErrorsAndTheAcknowledgedDraft',
+                  'cancelAndUnchangedCommitDoNotCreateAnotherRevision',
+                  'invalidInputAndPresenceRecoverOnlyAfterReviewAndOldControlsStayRetired',
+                  'changedSavedHeadKeepsPendingValuesReadOnlyUntilDiscardAndReopen',
+                  'wrongDraftSelectionAndCatalogIdentityCannotReceiveNewSaveAuthority',
+                  'inFlightSaveFreezesAllControlsAndRecoveryNeverReplaysTheCommit',
+                  'staleManagedCommitCannotOverwriteAnotherWriterOrReenableControls',
+                  'oversizedInputIsKeptLiveButCheckpointRetainsNoPrefixOrViewState',
+                  'legacyRawComputeCheckpointsStillUseTheirOwnCorrectionReader',
+              },
+              'ai.pickyour.android.preview.ComputeFormCheckpointTest': {
+                  'requiredRawTextAndOptionalAbsenceEmptyAndLiteralRegionSurviveParcel',
+                  'totalUtf16BudgetIncludesAllThreeFieldsAndRejectsAPrefixFallback',
+                  'primitiveShapeNeverCoercesRequiredNullOptionalMissingOrNumericValues',
+                  'versionFormAndKindCannotSelectAnotherRecoveryProtocol',
+                  'everyCapturedIdentityIsRequiredAndBoundedWithoutCurrentStateSubstitution',
+                  'legacyRawAndTypedContextAndModelReadersKeepTheirOriginalBoundaries',
+                  'savingFlagRemainsOnlyRetainedStateAndDescriptionsAreValueFree',
+              },
+          }
+          for qualified, expected in required.items():
+              suite = ET.parse(pathlib.Path('preview') / 'build/test-results' / 'testDebugUnitTest' / ('TEST-' + qualified + '.xml')).getroot()
+              cases = suite.findall('testcase')
+              names = [case.attrib['name'] for case in cases]
+              if suite.attrib.get('name') != qualified or any(case.attrib.get('classname') != qualified for case in cases):
+                  raise SystemExit('Wrong typed compute regression suite')
+              if expected != set(names) or len(names) != len(set(names)):
+                  raise SystemExit('Missing, extra or repeated typed compute regression')
+              if int(suite.attrib['tests']) != len(cases) or any(int(suite.attrib[key]) for key in ('failures', 'errors', 'skipped')):
+                  raise SystemExit('Typed compute totals do not match passing execution')
+              if any(case.findall('failure') or case.findall('error') or case.findall('skipped') for case in cases):
+                  raise SystemExit('Typed compute regression did not pass')
+              print(f'Verified {len(cases)} exact {qualified} cases; local simulation only')
+          PYCOMPUTE
       - name: Require bounded component form recovery regressions to execute
         run: |
           python - <<'PYTEST'
