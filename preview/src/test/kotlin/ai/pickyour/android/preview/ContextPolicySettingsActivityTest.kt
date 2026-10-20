@@ -467,8 +467,9 @@ class ContextPolicySettingsActivityTest {
                 assertEquals("4096", pending.input.requestedContextTokens)
                 assertEquals("summarize", pending.input.truncationStrategy)
                 release.countDown()
-                await { !form.isShowing && loaded().revision == before.revision + 1 }
+                // Pause retires the dialog before acknowledgment; let the owned write finish before reading storage.
                 finishWork()
+                await { !form.isShowing && loaded().revision == before.revision + 1 }
             }
         } finally { release.countDown() }
         val committed = loaded()
