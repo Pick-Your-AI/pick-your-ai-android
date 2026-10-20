@@ -740,6 +740,47 @@ jobs:
                   raise SystemExit("Typed evaluation-suite regression did not execute and pass")
           print("Verified typed evaluation-suite Core cases; no evaluation execution or whole-issue acceptance inferred")
           PYEVALUATIONSUITE
+      - name: Require typed training-compute preparation and managed storage regressions
+        run: |
+          python - <<'PYTRAININGCOMPUTE'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          expected = {
+              'ai.pickyour.core.preview.PreviewTrainingComputeSettingsTest': {
+                  'frozenMetadataKeepsZeroGpuBudgetAndPositiveCheckpointWithoutCapsOrDefaults()',
+                  'allEightPresenceCombinationsRoundTripWithoutInventedDefaults()',
+                  'exactGpuBudgetAcceptsZeroFractionalWideAndExponentValuesWithoutRounding()',
+                  'negativeGpuBudgetsCannotBecomeAbsenceZeroOrRoundedPositiveValues()',
+                  'checkpointIntervalRetainsWideIntegersAndAcceptsExactIntegralAliases()',
+                  'omittedFalseAndTrueSpotRemainSeparateFromOuterSelectionEnabled()',
+                  'suppliedBlankNumbersStayInvalidUntilExplicitlyOmitted()',
+                  'malformedAndLocaleNumericTextCannotBecomeContractFacts()',
+                  'bothNumericFieldsRetainReaderLengthAndExponentBudgets()',
+                  'numericControlsRejectInjectedMembersDuplicateValuesAndTrailingDocuments()',
+                  'independentFieldErrorsCannotPublishAPartialCommand()',
+                  'unchangedNumericNodesAndRemovedSiblingsUseOnlyFinalSettingsAdmission()',
+                  'finalWholeSelectionBudgetStillRejectsWithoutInventingFieldErrors()',
+                  'simultaneousSiblingRemovalAdmitsTheFinalSelectionNearItsByteBudget()',
+                  'configurationPreservesMetadataLinksPeersAndOtherDraftInputs()',
+                  'closedTrainingSettingsKeepUnknownKeysOutsideFrozenAdmission()',
+                  'managedNoopStaleAndDeletedSaveAuthorityRemainDistinct()',
+                  'typedSettingsRoundTripThroughStorageAndExplicitFrozenBuildProjection()',
+                  'descriptionsAndIssuesNeverEchoInputAndOtherKindsAreRejected()',
+              },
+          }
+          for name, required in expected.items():
+              report = pathlib.Path('core/build/test-results/test') / f"TEST-{name}.xml"
+              suite = ET.parse(report).getroot()
+              cases = suite.findall("testcase")
+              names = [case.get("name") for case in cases]
+              if suite.get("name") != name or set(names) != required or len(names) != len(required):
+                  raise SystemExit("Missing, extra or repeated typed training-compute regression")
+              if int(suite.get("tests", "-1")) != len(cases) or any(int(suite.get(key, "-1")) != 0 for key in ("failures", "errors", "skipped")):
+                  raise SystemExit("Typed training-compute totals do not match passing execution")
+              if any(case.get("classname") != name or any(case.find(tag) is not None for tag in ("failure", "error", "skipped")) for case in cases):
+                  raise SystemExit("Typed training-compute regression did not execute and pass")
+          print("Verified typed training-compute Core cases; no training execution or whole-issue acceptance inferred")
+          PYTRAININGCOMPUTE
       - name: Require typed model-provider preparation and managed storage regressions
         run: |
           python - <<'PYMODEL'
@@ -1719,6 +1760,54 @@ jobs:
                   raise SystemExit("Typed evaluation-suite regression did not execute and pass")
           print("Verified typed evaluation-suite simulated Activity and recovery cases; no evaluation execution or whole-issue acceptance inferred")
           PYEVALUATIONSUITE
+      - name: Require typed training-compute Activity and private recovery regressions
+        run: |
+          python - <<'PYTRAININGCOMPUTE'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          expected = {
+              'ai.pickyour.android.preview.TrainingComputeSettingsActivityTest': {
+                  'optionalTrainingComputeFieldsHaveLabeledPrivateNativeControls',
+                  'genericTrainingComputeAddRetainsExplicitRawSettingsAndOuterEnabled',
+                  'exactThreeFieldSaveAndReopenPreserveSelectionAndUnrelatedDraftState',
+                  'falseTrueAndNotSuppliedRemainDistinctWithoutChangingTheComponentFlag',
+                  'independentFieldErrorsPreserveRawInputAndAcknowledgedStorage',
+                  'cancelAndUntouchedCommitDoNotSaveDefaultsOrAnotherRevision',
+                  'rawNumbersAndFalseRecoverOnlyAfterReviewWhileOldControlsRemainRetired',
+                  'wrongDraftSelectionAndCatalogIdentitiesNeverReceiveFreshSaveAuthority',
+                  'changedSavedHeadKeepsPendingValuesReadOnlyUntilExplicitDiscardAndReopen',
+                  'inFlightSaveFreezesAllControlsAndRecoveryNeverReplaysTheCommit',
+                  'actualPauseRetiresOpenBooleanPickerAndRequiresFreshInputReview',
+                  'canceledAndConsumedBooleanChoicesCannotReplaceTheCurrentChoice',
+                  'zeroBudgetIsValidAndNegativeBudgetRecoversForCorrectionWithoutAnUpperCap',
+                  'oversizedInputRetainsNoPrefixOrAutomaticViewState',
+                  'staleManagedCommitCannotOverwriteAnotherWriterOrReenableControls',
+                  'legacyRawTrainingComputeCheckpointsKeepTheirOriginalCorrectionReader',
+                  'narrowRtlLargeTextKeepsIdentityFieldsGuidanceAndConfirmationReachable',
+              },
+              'ai.pickyour.android.preview.TrainingComputeFormCheckpointTest': {
+                  'optionalRawNumbersAndThreeBooleanStatesSurviveParcelWithoutCoercion',
+                  'malformedNumericCorrectionsRemainInputWithoutSaveAuthority',
+                  'aggregateUtf16LimitRejectsWholeInputWithoutAPrefixFallback',
+                  'exactPrimitiveShapeRejectsMissingFieldsBooleanAliasesAndExtraAuthority',
+                  'everyIdentityRemainsRequiredAndBoundedWithoutCurrentStateSubstitution',
+                  'legacyRawTrainingComputeAndNumericTypedComputeReadersRemainIndependent',
+                  'savingFlagAndDescriptionsCarryInputWithoutClaimingAcknowledgement',
+              },
+          }
+          for name, required in expected.items():
+              report = pathlib.Path('preview/build/test-results/testDebugUnitTest') / f"TEST-{name}.xml"
+              suite = ET.parse(report).getroot()
+              cases = suite.findall("testcase")
+              names = [case.get("name") for case in cases]
+              if suite.get("name") != name or set(names) != required or len(names) != len(required):
+                  raise SystemExit("Missing, extra or repeated typed training-compute regression")
+              if int(suite.get("tests", "-1")) != len(cases) or any(int(suite.get(key, "-1")) != 0 for key in ("failures", "errors", "skipped")):
+                  raise SystemExit("Typed training-compute totals do not match passing execution")
+              if any(case.get("classname") != name or any(case.find(tag) is not None for tag in ("failure", "error", "skipped")) for case in cases):
+                  raise SystemExit("Typed training-compute regression did not execute and pass")
+          print("Verified typed training-compute simulated Activity and recovery cases; no training execution or whole-issue acceptance inferred")
+          PYTRAININGCOMPUTE
       - name: Require typed model-provider Activity and private recovery regressions
         run: |
           python - <<'PYMODEL'
