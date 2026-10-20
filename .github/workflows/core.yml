@@ -13,7 +13,7 @@ jobs:
   core:
     name: Frozen contracts and JVM core
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -701,6 +701,45 @@ jobs:
                   raise SystemExit("Typed data-source regression did not execute and pass")
           print("Verified typed data-source Core cases; no connector execution or whole-issue acceptance inferred")
           PYDATASOURCE
+      - name: Require typed evaluation-suite preparation and managed storage regressions
+        run: |
+          python - <<'PYEVALUATIONSUITE'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          expected = {
+              'ai.pickyour.core.preview.PreviewEvaluationSuiteSettingsTest': {
+                  'frozenMetadataKeepsScoreUnboundedAndAllThreeSettingsOptional()',
+                  'allEightPresenceCombinationsRoundTripWithoutInventedDefaults()',
+                  'exactScoreAcceptsNegativeFractionalWideAndNonPercentageValues()',
+                  'datasetSizeRetainsWideIntegersAndAcceptsExactIntegralAliases()',
+                  'omittedFalseAndTrueGateRemainSeparateFromOuterSelectionEnabled()',
+                  'suppliedBlankNumbersStayInvalidUntilExplicitlyOmitted()',
+                  'malformedAndLocaleNumericTextCannotBecomeContractFacts()',
+                  'bothNumericFieldsRetainReaderLengthAndExponentBudgets()',
+                  'numericControlsRejectInjectedMembersDuplicateValuesAndTrailingDocuments()',
+                  'independentFieldErrorsCannotPublishAPartialCommand()',
+                  'unchangedNumericNodesAndRemovedSiblingsUseOnlyFinalSettingsAdmission()',
+                  'finalWholeSelectionBudgetStillRejectsWithoutInventingFieldErrors()',
+                  'simultaneousSiblingRemovalAdmitsTheFinalSelectionNearItsByteBudget()',
+                  'configurationPreservesMetadataLinksPeersAndOtherDraftInputs()',
+                  'managedNoopStaleAndDeletedSaveAuthorityRemainDistinct()',
+                  'typedSettingsRoundTripThroughStorageAndExplicitFrozenBuildProjection()',
+                  'descriptionsAndIssuesNeverEchoInputAndOtherKindsAreRejected()',
+              },
+          }
+          for name, required in expected.items():
+              report = pathlib.Path('core/build/test-results/test') / f"TEST-{name}.xml"
+              suite = ET.parse(report).getroot()
+              cases = suite.findall("testcase")
+              names = [case.get("name") for case in cases]
+              if suite.get("name") != name or set(names) != required or len(names) != len(required):
+                  raise SystemExit("Missing, extra or repeated typed evaluation-suite regression")
+              if int(suite.get("tests", "-1")) != len(cases) or any(int(suite.get(key, "-1")) != 0 for key in ("failures", "errors", "skipped")):
+                  raise SystemExit("Typed evaluation-suite totals do not match passing execution")
+              if any(case.get("classname") != name or any(case.find(tag) is not None for tag in ("failure", "error", "skipped")) for case in cases):
+                  raise SystemExit("Typed evaluation-suite regression did not execute and pass")
+          print("Verified typed evaluation-suite Core cases; no evaluation execution or whole-issue acceptance inferred")
+          PYEVALUATIONSUITE
       - name: Require typed model-provider preparation and managed storage regressions
         run: |
           python - <<'PYMODEL'
@@ -1632,6 +1671,54 @@ jobs:
                   raise SystemExit("Typed data-source regression did not execute and pass")
           print("Verified typed data-source simulated Activity and recovery cases; no connector execution or whole-issue acceptance inferred")
           PYDATASOURCE
+      - name: Require typed evaluation-suite Activity and private recovery regressions
+        run: |
+          python - <<'PYEVALUATIONSUITE'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          expected = {
+              'ai.pickyour.android.preview.EvaluationSuiteSettingsActivityTest': {
+                  'optionalEvaluationSuiteFieldsHaveLabeledPrivateNativeControls',
+                  'genericEvaluationSuiteAddRetainsExplicitRawSettingsAndOuterEnabled',
+                  'exactThreeFieldSaveAndReopenPreserveSelectionAndUnrelatedDraftState',
+                  'falseTrueAndNotSuppliedRemainDistinctWithoutChangingTheComponentFlag',
+                  'independentFieldErrorsPreserveRawInputAndAcknowledgedStorage',
+                  'cancelAndUntouchedCommitDoNotSaveDefaultsOrAnotherRevision',
+                  'rawNumbersAndFalseRecoverOnlyAfterReviewWhileOldControlsRemainRetired',
+                  'wrongDraftSelectionAndCatalogIdentitiesNeverReceiveFreshSaveAuthority',
+                  'changedSavedHeadKeepsPendingValuesReadOnlyUntilExplicitDiscardAndReopen',
+                  'inFlightSaveFreezesAllControlsAndRecoveryNeverReplaysTheCommit',
+                  'actualPauseRetiresOpenBooleanPickerAndRequiresFreshInputReview',
+                  'canceledAndConsumedBooleanChoicesCannotReplaceTheCurrentChoice',
+                  'scoreHasNoInventedPercentageRangeAndInvalidTextRecoversForCorrection',
+                  'oversizedInputRetainsNoPrefixOrAutomaticViewState',
+                  'staleManagedCommitCannotOverwriteAnotherWriterOrReenableControls',
+                  'legacyRawEvaluationSuiteCheckpointsKeepTheirOriginalCorrectionReader',
+                  'narrowRtlLargeTextKeepsIdentityFieldsGuidanceAndConfirmationReachable',
+              },
+              'ai.pickyour.android.preview.EvaluationSuiteFormCheckpointTest': {
+                  'optionalRawNumbersAndThreeBooleanStatesSurviveParcelWithoutCoercion',
+                  'malformedNumericCorrectionsRemainInputWithoutSaveAuthority',
+                  'aggregateUtf16LimitRejectsWholeInputWithoutAPrefixFallback',
+                  'exactPrimitiveShapeRejectsMissingFieldsBooleanAliasesAndExtraAuthority',
+                  'everyIdentityRemainsRequiredAndBoundedWithoutCurrentStateSubstitution',
+                  'legacyRawEvaluationSuiteAndNumericTypedComputeReadersRemainIndependent',
+                  'savingFlagAndDescriptionsCarryInputWithoutClaimingAcknowledgement',
+              },
+          }
+          for name, required in expected.items():
+              report = pathlib.Path('preview/build/test-results/testDebugUnitTest') / f"TEST-{name}.xml"
+              suite = ET.parse(report).getroot()
+              cases = suite.findall("testcase")
+              names = [case.get("name") for case in cases]
+              if suite.get("name") != name or set(names) != required or len(names) != len(required):
+                  raise SystemExit("Missing, extra or repeated typed evaluation-suite regression")
+              if int(suite.get("tests", "-1")) != len(cases) or any(int(suite.get(key, "-1")) != 0 for key in ("failures", "errors", "skipped")):
+                  raise SystemExit("Typed evaluation-suite totals do not match passing execution")
+              if any(case.get("classname") != name or any(case.find(tag) is not None for tag in ("failure", "error", "skipped")) for case in cases):
+                  raise SystemExit("Typed evaluation-suite regression did not execute and pass")
+          print("Verified typed evaluation-suite simulated Activity and recovery cases; no evaluation execution or whole-issue acceptance inferred")
+          PYEVALUATIONSUITE
       - name: Require typed model-provider Activity and private recovery regressions
         run: |
           python - <<'PYMODEL'
@@ -3532,7 +3619,7 @@ jobs:
     name: Installed synthetic Android preview (hosted KVM)
     needs: android-preview
     runs-on: ubuntu-24.04
-    timeout-minutes: 25
+    timeout-minutes: 35
     env:
       PYAI_EMULATOR_MODE: kvm
       PYAI_EMULATOR_DISPLAY_PROFILE: raster-720x1280-280
