@@ -96,8 +96,10 @@ internal sealed interface ComponentFormRecovery {
     class TypedModelPending(val form: ModelFormCheckpoint) : ComponentFormRecovery
     class TypedWorkloadSelectionPending(val form: WorkloadSelectionFormCheckpoint) : ComponentFormRecovery
     class TypedComputePending(val form: ComputeFormCheckpoint) : ComponentFormRecovery
+    class TypedDataSourcePending(val form: DataSourceFormCheckpoint) : ComponentFormRecovery
     class TypedModelProviderPending(val form: ModelProviderFormCheckpoint) : ComponentFormRecovery
     class TypedCostPolicyPending(val form: CostPolicyFormCheckpoint) : ComponentFormRecovery
+    class TypedDeploymentTargetPending(val form: DeploymentTargetFormCheckpoint) : ComponentFormRecovery
 
     fun save(outState: Bundle) {
         outState.remove(KEY)
@@ -110,8 +112,10 @@ internal sealed interface ComponentFormRecovery {
             is TypedModelPending -> outState.putBundle(KEY, form.bundle() ?: unavailable())
             is TypedWorkloadSelectionPending -> outState.putBundle(KEY, form.bundle() ?: unavailable())
             is TypedComputePending -> outState.putBundle(KEY, form.bundle() ?: unavailable())
+            is TypedDataSourcePending -> outState.putBundle(KEY, form.bundle() ?: unavailable())
             is TypedModelProviderPending -> outState.putBundle(KEY, form.bundle() ?: unavailable())
             is TypedCostPolicyPending -> outState.putBundle(KEY, form.bundle() ?: unavailable())
+            is TypedDeploymentTargetPending -> outState.putBundle(KEY, form.bundle() ?: unavailable())
         }
     }
 
@@ -138,10 +142,14 @@ internal sealed interface ComponentFormRecovery {
                     ModelFormCheckpoint.read(value)?.let(::TypedModelPending) ?: Unavailable
                 } else if (value.get("version") == ComputeFormCheckpoint.VERSION) {
                     ComputeFormCheckpoint.read(value)?.let(::TypedComputePending) ?: Unavailable
+                } else if (value.get("version") == DataSourceFormCheckpoint.VERSION) {
+                    DataSourceFormCheckpoint.read(value)?.let(::TypedDataSourcePending) ?: Unavailable
                 } else if (value.get("version") == ModelProviderFormCheckpoint.VERSION) {
                     ModelProviderFormCheckpoint.read(value)?.let(::TypedModelProviderPending) ?: Unavailable
                 } else if (value.get("version") == CostPolicyFormCheckpoint.VERSION) {
                     CostPolicyFormCheckpoint.read(value)?.let(::TypedCostPolicyPending) ?: Unavailable
+                } else if (value.get("version") == DeploymentTargetFormCheckpoint.VERSION) {
+                    DeploymentTargetFormCheckpoint.read(value)?.let(::TypedDeploymentTargetPending) ?: Unavailable
                 } else ComponentFormCheckpoint.read(value)?.let(::Pending) ?: Unavailable
             }
         } catch (_: RuntimeException) {
