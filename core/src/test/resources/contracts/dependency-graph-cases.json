@@ -1640,6 +1640,123 @@
       "operation": "set",
       "expected": "schema_mismatch",
       "json": "\"edge.valid\\r\""
+    },
+    {
+      "name": "rounded-up-fractional-revision",
+      "path": [
+        "revision"
+      ],
+      "operation": "set",
+      "expected": "schema_mismatch",
+      "json": "1.0000000000000001"
+    },
+    {
+      "name": "rounded-large-fractional-revision",
+      "path": [
+        "revision"
+      ],
+      "operation": "set",
+      "expected": "schema_mismatch",
+      "json": "9007199254740992.1"
+    },
+    {
+      "name": "rounded-below-minimum-revision",
+      "path": [
+        "revision"
+      ],
+      "operation": "set",
+      "expected": "schema_mismatch",
+      "json": "0.99999999999999999999"
+    },
+    {
+      "name": "tiny-positive-fractional-revision",
+      "path": [
+        "revision"
+      ],
+      "operation": "set",
+      "expected": "schema_mismatch",
+      "json": "1e-9999"
+    },
+    {
+      "name": "tiny-negative-fractional-revision",
+      "path": [
+        "revision"
+      ],
+      "operation": "set",
+      "expected": "schema_mismatch",
+      "json": "-1e-9999"
+    },
+    {
+      "name": "negative-zero-decimal-revision",
+      "path": [
+        "revision"
+      ],
+      "operation": "set",
+      "expected": "schema_mismatch",
+      "json": "-0.00"
+    },
+    {
+      "name": "exact-wide-integral-decimal-revision",
+      "path": [
+        "revision"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "9007199254740993.0"
+    },
+    {
+      "name": "exact-wide-integral-exponent-revision",
+      "path": [
+        "revision"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "90071992547409930e-1"
+    },
+    {
+      "name": "integral-negative-exponent-revision",
+      "path": [
+        "revision"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "1000e-3"
+    },
+    {
+      "name": "huge-integral-exponent-revision",
+      "path": [
+        "revision"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "1e9999"
+    },
+    {
+      "name": "huge-negative-integral-exponent-revision",
+      "path": [
+        "revision"
+      ],
+      "operation": "set",
+      "expected": "schema_mismatch",
+      "json": "-1e9999"
+    },
+    {
+      "name": "many-digit-integral-decimal-revision",
+      "path": [
+        "revision"
+      ],
+      "operation": "set",
+      "expected": "decoded",
+      "json": "123456789012345678901234567890123456789.000"
+    },
+    {
+      "name": "many-digit-fractional-revision",
+      "path": [
+        "revision"
+      ],
+      "operation": "set",
+      "expected": "schema_mismatch",
+      "json": "123456789012345678901234567890123456789.000000001"
     }
   ]
 }
