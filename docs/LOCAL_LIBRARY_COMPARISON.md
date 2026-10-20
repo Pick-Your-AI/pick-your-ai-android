@@ -63,9 +63,12 @@ page requires its currently visible owned dialog. Replacement installs the next
 owner before dismissing the old dialog. Back navigation discards the replaced
 choice's authority; retained buttons cannot change another pair. Loading and
 comparison each have a cancellable preparation page and verify that same page
-before publishing a worker response. Cancellation, replacement history/comparison,
-storage-operation start or Activity destruction retires the context permanently.
-No history is serialized into a Bundle and recreation does not replay inspection.
+before publishing a worker response. Entry and callbacks require a resumed
+Activity. Cancellation, replacement history/comparison, storage-operation start,
+pause or Activity destruction retires the context permanently. Resume does not
+reopen inspection; a fresh explicit entry captures a new request. No history is
+serialized into a Bundle and recreation does not replay inspection. See
+[foreground inspection retirement](EDITOR_LIFECYCLE.md#foreground-history-and-revision-inspections-76-partial).
 
 The scrollable native View layout wraps source IDs and choice labels and keeps
 48-dp button targets. It uses the existing escaped literal formatter for historical
@@ -81,10 +84,10 @@ value preservation, exact-ID matching, reverse/same-source results, immutable
 captures after external writes/deletion, stale save-token rejection and duplicate
 lineage without false content differences.
 
-Eleven native simulated cases drive the actual entry point and choices, full
+Twelve native simulated cases drive the actual entry point and choices, full
 value inspection, pending-input and durable-byte preservation, old-control
 rejection, cancellation at every picker and both worker boundaries, replacement
-history, same-baseline storage starts, recreation, captured data after later
+history, same-baseline storage starts, pause/resume, recreation, captured data after later
 edits/deletion, failed/unavailable reads, bounded pagination, unsupported entry,
 and measured narrow RTL/double-font layouts. The workflow requires every named
 case with exact actual totals and rejects failures, errors, skips and duplicates

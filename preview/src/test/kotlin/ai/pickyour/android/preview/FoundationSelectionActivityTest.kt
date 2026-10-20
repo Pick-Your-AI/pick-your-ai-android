@@ -390,6 +390,7 @@ class FoundationSelectionActivityTest {
             recreate { state ->
                 assertTrue((ComponentFormRecovery.read(roundTrip(state)) as ComponentFormRecovery.Pending).form.wasSaving)
                 release.countDown()
+                // Pause retires the dialog before acknowledgment; finish the owned write before reading storage.
                 finishWork()
                 await { !form.isShowing && loaded().revision == before.revision + 1 }
             }
