@@ -4,12 +4,21 @@ This is a bounded native-preview continuation of
 [#76](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/76),
 [#98](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/98) and
 [#112](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/112).
-It preserves unfinished local add/settings/role input when Android supplies saved
-Activity state. Canonical receiving paths and the broader work-package criteria
+It preserves unfinished local add/settings/role input during Activity backgrounding
+and when Android supplies saved Activity state. Canonical receiving paths and the broader work-package criteria
 remain unchanged. The catalog is still synthetic, and a locally saved component
 does not establish compatibility, pricing, deployment requirements or readiness.
 
 ## User behavior and authority
+
+When the Activity pauses, it captures the current form through the same bounded
+checkpoint serializer, including its in-flight flag and the typed context/model
+policies. It then detaches every dialog and form owner before closing the windows.
+Retained entry, picker, confirmation and form controls cannot dispatch a write or
+replace pending input while paused, and retired controls remain inert after resume.
+Resuming refreshes availability without reopening a window or restoring consent.
+Pending editable input still requires explicit review; pickers and confirmations
+without editable input are simply retired.
 
 After recreation, the old dialog is closed. **Review pending component input**
 opens a fresh form only when the original local draft ID, acknowledged revision
@@ -117,8 +126,10 @@ fixed marker. Older readers already treat it as unavailable, while unknown or
 malformed reasons remain generic unavailable state. Both settings forms disclose
 this capture exclusion before their fields.
 
-Capture does not clear or alter the still-open editor. The user can correct its
-input and explicitly commit once in the same process. Restoring the marker
+Saving a checkpoint while the Activity remains resumed does not clear or alter
+the still-open editor. The user can correct its input and explicitly commit once
+in that form. Pausing instead retires the form after capture; any retained input
+then follows the explicit review or unavailable-marker flow. Restoring the marker
 prepares no command, changes no saved revision and never retries an uncertain
 write. This is not a migration or redactor for existing recovery state: legacy
 version-1/2 `Pending` records remain readable and can be resaved with their exact
@@ -170,6 +181,15 @@ The hosted workflow additionally requires every new case by exact suite/name,
 unique identities, matching report totals and no failure, error or skip. Strict
 dependency verification, unsigned assembly, lint, source/artifact inventory and
 independent receiving review remain merge gates.
+
+The additional role and typed-model pause regressions replay retained positive
+buttons, picker callbacks and recovery controls across an actual simulated
+`Activity.pause()`/`resume()` pair. They require unchanged acknowledged components
+and revision before a fresh reviewed confirmation, exact bounded input recovery,
+and one explicit new revision. A separate picker/confirmation case retains no
+editable checkpoint and checks that resume never restores the earlier consent.
+These simulations also keep already admitted writes and their in-flight recovery
+separate from attempts to dispatch a new write after pause.
 
 Actual installed system process death, recovery across the supported device and
 OS matrix, complete navigation/secure-entry routing, physical persistence faults,
