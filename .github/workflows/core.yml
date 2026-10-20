@@ -1113,6 +1113,82 @@ jobs:
                   raise SystemExit('Typed knowledge-base regression did not pass')
               print(f'Verified {len(cases)} exact {qualified} cases; local simulation only')
           PYKNOWLEDGE
+      - name: Require typed inference preparation and managed storage regressions
+        run: |
+          python - <<'PYINFERENCE'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          required = {
+              'ai.pickyour.core.preview.PreviewInferenceSettingsTest': {
+                  'fourOptionalFieldsRetainExactFrozenMetadataWithoutDefaults()',
+                  'absentAndExplicitNoneRemainDifferentAndRemovalTouchesOnlyItsField()',
+                  'suppliedEmptyAndWhitespaceNeedCorrectionWithoutBecomingAbsent()',
+                  'bothIntegerFieldsKeepWideExactValuesAndMathematicalIntegerAliases()',
+                  'bothIntegerFieldsEnforceMinimumAndRejectFractionalValuesWithoutRounding()',
+                  'malformedLocaleUnicodeNonNumbersAndRepresentationLimitsCannotPrepareACommand()',
+                  'numericInputCannotInjectAnAdditionalKeyDuplicateOrTrailingDocument()',
+                  'untouchedAdmittedNumericNodesPreserveTheirScaleAndType()',
+                  'everyCanonicalPrecisionAndQuantizationRemainsIndependentAndOptional()',
+                  'enumDisplayLabelsUnknownEmptyCaseAndWhitespaceAliasesAreRejected()',
+                  'configurePreservesIdentityRoleFlagsNotesExtensionsLinksAndUnrelatedContent()',
+                  'currentNoopStaleAndDeletedManagedAuthorityRemainDistinct()',
+                  'typedValuesRoundTripThroughStorageAndExplicitValidatedBuildProjection()',
+                  'errorsStayIndependentValueFreeImmutableAndWrongKindsCannotUseThisAdapter()',
+              },
+          }
+          for qualified, expected in required.items():
+              module = 'core' if qualified.startswith('ai.pickyour.core.') else 'preview'
+              task = 'test' if module == 'core' else 'testDebugUnitTest'
+              suite = ET.parse(pathlib.Path(module) / 'build/test-results' / task / ('TEST-' + qualified + '.xml')).getroot()
+              cases = suite.findall('testcase')
+              names = [case.attrib['name'] for case in cases]
+              if suite.attrib.get('name') != qualified or any(case.attrib.get('classname') != qualified for case in cases):
+                  raise SystemExit('Wrong typed inference regression suite')
+              if not expected <= set(names) or len(names) != len(set(names)):
+                  raise SystemExit('Missing or repeated typed inference regression')
+              if int(suite.attrib['tests']) != len(cases) or any(int(suite.attrib[key]) for key in ('failures', 'errors', 'skipped')):
+                  raise SystemExit('Typed inference totals do not match passing execution')
+              if any(case.findall('failure') or case.findall('error') or case.findall('skipped') for case in cases):
+                  raise SystemExit('Typed inference regression did not pass')
+              print(f"Verified {len(cases)} {qualified} cases; no installed-device claim")
+          PYINFERENCE
+      - name: Require typed accelerator preparation and managed storage regressions
+        run: |
+          python - <<'PYACCELERATOR'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          required = {
+              'ai.pickyour.core.preview.PreviewAcceleratorSettingsTest': {
+                  'requiredDeviceAndOptionalGroupsRetainFrozenIntegerMetadata()',
+                  'optionalAbsenceHasNoDefaultAndRemovalPreservesRequiredDeviceCount()',
+                  'requiredAndExplicitlySuppliedBlankInputsNeedCorrectionWithoutDefaulting()',
+                  'exactLargeAndIntegralDecimalAliasesAreAdmittedWithoutCountRelations()',
+                  'exactMinimumAndFractionalRejectionNeverUseFloatingPointRounding()',
+                  'malformedTypesLocaleSentinelsAndParserLimitsNeverBecomeCounts()',
+                  'injectedKeysDuplicateValuesAndTrailingDocumentsCannotEscapeOneNumericValue()',
+                  'untouchedAdmittedNumericNodesKeepTheirScaleTypeAndExactValue()',
+                  'configurePreservesIdentityRoleFlagsNotesExtensionsLinksAndUnrelatedContent()',
+                  'currentNoopStaleAndDeletedManagedAuthorityRemainDistinct()',
+                  'exactCountsRoundTripThroughStorageAndExplicitValidatedBuildProjection()',
+                  'errorsStayIndependentValueFreeImmutableAndWrongKindsCannotUseThisAdapter()',
+              },
+          }
+          for qualified, expected in required.items():
+              module = 'core'
+              task = 'test'
+              suite = ET.parse(pathlib.Path(module) / 'build/test-results' / task / ('TEST-' + qualified + '.xml')).getroot()
+              cases = suite.findall('testcase')
+              names = [case.attrib['name'] for case in cases]
+              if suite.attrib.get('name') != qualified or any(case.attrib.get('classname') != qualified for case in cases):
+                  raise SystemExit('Wrong typed accelerator regression suite')
+              if set(names) != expected or len(names) != len(expected):
+                  raise SystemExit('Missing, unexpected or repeated typed accelerator regression')
+              if int(suite.attrib['tests']) != len(cases) or any(int(suite.attrib[key]) for key in ('failures', 'errors', 'skipped')):
+                  raise SystemExit('Typed accelerator totals do not match passing execution')
+              if any(case.findall('failure') or case.findall('error') or case.findall('skipped') for case in cases):
+                  raise SystemExit('Typed accelerator regression did not pass')
+              print(f"Verified {len(cases)} {qualified} cases; no installed-device claim")
+          PYACCELERATOR
       - name: Require every retained configuration golden
         run: |
           python - <<'PYCONFIGURATION'
@@ -2340,6 +2416,104 @@ jobs:
                   raise SystemExit('Typed knowledge-base regression did not pass')
               print(f'Verified {len(cases)} exact {qualified} cases; local simulation only')
           PYKNOWLEDGE
+      - name: Require typed inference Activity and private recovery regressions
+        run: |
+          python - <<'PYINFERENCE'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          required = {
+              'ai.pickyour.android.preview.InferenceSettingsActivityTest': {
+                  'bothIntegersHaveExplicitOptionalControlsWithoutDefaults',
+                  'precisionAndQuantizationHaveExplicitOptionalEnumControls',
+                  'inferenceAddRetainsRawJsonWithoutPrefillingOptionalSettings',
+                  'cancelConfigurePreservesTheAcknowledgedInference',
+                  'legacyRawInferenceCheckpointsKeepInvalidTextWithoutFreshAuthority',
+                  'absentTypedCommitClosesWithoutCreatingAnotherRevisionOrDefaults',
+                  'wrongDraftSelectionAndCatalogIdentityNeverReceiveFreshInferenceSaveAuthority',
+                  'inFlightTypedInferenceFreezesAllControlsAndNeverReplaysAfterAcknowledgment',
+                  'retiredPrecisionPickerAndSupplyControlCannotReviveAClosedForm',
+                  'staleManagedCommitCannotOverwriteAnotherWriterOrReenableTypedControls',
+                  'oversizedTypedInferenceRecoveryHasNoPrefixAndNoAutomaticViewStateFallback',
+                  'fourValuesSaveExactlyAndQuantizationChangesPreserveOtherFields',
+                  'actualPauseRetiresTypedInferenceControlsAndRequiresFreshReview',
+                  'independentSuppliedErrorsPersistUntilCorrectionOrExplicitRemoval',
+                  'privateInvalidTextAndExplicitPresenceRecoverOnlyAfterReview',
+                  'changedSavedHeadRetainsAllInputsReadOnlyUntilExplicitDiscardAndReopen',
+              },
+              'ai.pickyour.android.preview.InferenceFormCheckpointTest': {
+                  'allFourPrimitiveValuesExplicitAbsenceAndInvalidTextSurviveActualParcelRoundTrip',
+                  'combinedTwentyThousandUtf16BudgetIncludesEveryFieldAndRejectsOneExtraWithoutPrefix',
+                  'strictPrimitiveKeysNeverCoerceAbsentEmptyOrWrongTypedValues',
+                  'wrongVersionFormKindAndEnumValuesNeverSelectAnotherRecoveryProtocol',
+                  'allOriginalIdentityFieldsAreRequiredBoundedAndNeverReplacedByCurrentIdentity',
+                  'rawV1V2ContextV3AndModelV4RemainSeparateUnmodifiedReaders',
+                  'savingFlagRetainsOnlyStateAndDescriptionsNeverEchoInput',
+              },
+          }
+          for qualified, expected in required.items():
+              module = 'core' if qualified.startswith('ai.pickyour.core.') else 'preview'
+              task = 'test' if module == 'core' else 'testDebugUnitTest'
+              suite = ET.parse(pathlib.Path(module) / 'build/test-results' / task / ('TEST-' + qualified + '.xml')).getroot()
+              cases = suite.findall('testcase')
+              names = [case.attrib['name'] for case in cases]
+              if suite.attrib.get('name') != qualified or any(case.attrib.get('classname') != qualified for case in cases):
+                  raise SystemExit('Wrong typed inference regression suite')
+              if not expected <= set(names) or len(names) != len(set(names)):
+                  raise SystemExit('Missing or repeated typed inference regression')
+              if int(suite.attrib['tests']) != len(cases) or any(int(suite.attrib[key]) for key in ('failures', 'errors', 'skipped')):
+                  raise SystemExit('Typed inference totals do not match passing execution')
+              if any(case.findall('failure') or case.findall('error') or case.findall('skipped') for case in cases):
+                  raise SystemExit('Typed inference regression did not pass')
+              print(f"Verified {len(cases)} {qualified} cases; no installed-device claim")
+          PYINFERENCE
+      - name: Require typed accelerator Activity and private recovery regressions
+        run: |
+          python - <<'PYACCELERATOR'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          required = {
+              'ai.pickyour.android.preview.AcceleratorSettingsActivityTest': {
+                  'deviceCountIsRequiredAndOnlyGroupsHaveAnOptionalSupplyControl',
+                  'acceleratorAddRemainsRawAndMissingRequiredCountCannotBeSaved',
+                  'unchangedRequiredCountAndAbsentGroupsCloseWithoutAnotherRevision',
+                  'cancelRetiresCommitAndOptionalControlWithoutSavingOrRecoveringInput',
+                  'exactCountsSaveReopenAndRemoveOnlyOptionalGroups',
+                  'independentErrorsRequireDeviceCorrectionAndAllowExplicitGroupRemoval',
+                  'privateInvalidRequiredTextAndSuppliedEmptyGroupsRecoverOnlyAfterReview',
+                  'wrongOriginalDraftSelectionAndCatalogIdentityNeverReceiveNewSaveAuthority',
+                  'changedSavedHeadKeepsPrivateCountsReadOnlyUntilDiscardAndReopen',
+                  'staleManagedCommitCannotOverwriteAnotherWriterOrReenableControls',
+                  'inFlightAcceleratorFreezesControlsAndNeverReplaysAfterAcknowledgment',
+                  'actualPauseRetiresControlsAndRequiresExplicitFreshAcceleratorReview',
+                  'oversizedRecoveryHasNoPrefixAndCannotUseAutomaticViewStateFallback',
+                  'legacyRawV1V2AcceleratorRecoveryRemainsRawWithoutTypedPromotion',
+              },
+              'ai.pickyour.android.preview.AcceleratorFormCheckpointTest': {
+                  'requiredInvalidTextAndOptionalAbsenceRemainExactAcrossActualParcelRoundTrip',
+                  'combinedTwentyThousandUtf16BudgetIncludesBothInputsWithoutPrefixRecovery',
+                  'strictPrimitiveKeysNeverCoerceRequiredNullOptionalAbsenceOrWrongTypes',
+                  'namespacedVersionFormAndKindCannotSelectAnyParallelRecoveryProtocol',
+                  'allOriginalIdentityFieldsAreRequiredBoundedAndNeverReplacedByCurrentIdentity',
+                  'rawV1V2ContextV3AndModelV4KeepTheirIndependentUnmodifiedReaders',
+                  'savingFlagRetainsOnlyStateAndDescriptionsNeverEchoInput',
+              },
+          }
+          for qualified, expected in required.items():
+              module = 'preview'
+              task = 'testDebugUnitTest'
+              suite = ET.parse(pathlib.Path(module) / 'build/test-results' / task / ('TEST-' + qualified + '.xml')).getroot()
+              cases = suite.findall('testcase')
+              names = [case.attrib['name'] for case in cases]
+              if suite.attrib.get('name') != qualified or any(case.attrib.get('classname') != qualified for case in cases):
+                  raise SystemExit('Wrong typed accelerator regression suite')
+              if set(names) != expected or len(names) != len(expected):
+                  raise SystemExit('Missing, unexpected or repeated typed accelerator regression')
+              if int(suite.attrib['tests']) != len(cases) or any(int(suite.attrib[key]) for key in ('failures', 'errors', 'skipped')):
+                  raise SystemExit('Typed accelerator totals do not match passing execution')
+              if any(case.findall('failure') or case.findall('error') or case.findall('skipped') for case in cases):
+                  raise SystemExit('Typed accelerator regression did not pass')
+              print(f"Verified {len(cases)} {qualified} cases; no installed-device claim")
+          PYACCELERATOR
       - name: Require bounded component form recovery regressions to execute
         run: |
           python - <<'PYTEST'
