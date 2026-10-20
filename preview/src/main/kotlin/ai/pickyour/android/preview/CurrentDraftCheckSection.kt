@@ -174,27 +174,95 @@ internal class CurrentDraftCheckSection(
             "${literal(it.ruleId)} · ${literal(it.outcome)} · ${literal(it.severity)}"
         }.toTypedArray()
         lateinit var page: AlertDialog
-        fun current() = active(captured) && analysis.state === state && dialog === page && page.isShowing
+        fun current() = owns(captured, state, page)
         val builder = AlertDialog.Builder(activity).setTitle(activity.getString(R.string.current_check_page, offset + 1, end, rows.size))
             .setItems(labels) { _, index ->
                 if (!current() || index !in labels.indices) return@setItems
-                val row = rows[offset + index]
-                val text = activity.getString(R.string.current_check_finding, literal(row.ruleId), literal(row.outcome),
-                    literal(row.severity), literal(row.message), literal(row.remediation),
-                    row.selectionIds.joinToString(", ", transform = ::literal))
-                page.dismiss()
-                lateinit var detail: AlertDialog
-                detail = AlertDialog.Builder(activity).setTitle(R.string.current_check_inspect).setMessage(text)
-                    .setNegativeButton(R.string.close, null).setPositiveButton(R.string.current_check_back) { _, _ ->
-                        if (dialog === detail && detail.isShowing && active(captured) && analysis.state === state)
-                            showFindings(captured, state, offset)
-                    }.create()
-                dialog = detail; detail.show()
+                showFinding(captured, state, offset, offset + index)
             }.setNegativeButton(R.string.close, null)
         if (end < rows.size) builder.setPositiveButton(R.string.current_check_next) { _, _ -> if (current()) showFindings(captured, state, end) }
         if (offset > 0) builder.setNeutralButton(R.string.current_check_previous) { _, _ -> if (current()) showFindings(captured, state, maxOf(0, offset - 10)) }
         page = builder.create()
-        dialog?.dismiss(); dialog = page; page.show()
+        present(page)
+    }
+
+    private fun owns(captured: Source, state: PreviewCurrentDraftState.Current, window: AlertDialog) =
+        active(captured) && analysis.state === state && dialog === window && window.isShowing
+
+    private fun showFinding(captured: Source, state: PreviewCurrentDraftState.Current, offset: Int, index: Int) {
+        if (!active(captured) || analysis.state !== state || index !in state.outcome.findings.indices) return
+        val row = state.outcome.findings[index]
+        val text = activity.getString(R.string.current_check_finding, literal(row.ruleId), literal(row.outcome),
+            literal(row.severity), literal(row.message), literal(row.remediation),
+            row.selectionIds.joinToString(", ", transform = ::literal))
+        lateinit var detail: AlertDialog
+        detail = AlertDialog.Builder(activity).setTitle(R.string.current_check_inspect).setMessage(text)
+            .setNegativeButton(R.string.close, null)
+            .setPositiveButton(R.string.current_check_back) { _, _ ->
+                if (owns(captured, state, detail)) showFindings(captured, state, offset)
+            }.setNeutralButton(R.string.current_finding_full_text) { _, _ ->
+                if (owns(captured, state, detail)) showFields(captured, state, offset, index)
+            }.create()
+        present(detail)
+    }
+
+    private enum class FindingField(val label: Int) {
+        EXPLANATION(R.string.current_finding_explanation),
+        GUIDANCE(R.string.current_finding_guidance),
+    }
+
+    private fun showFields(captured: Source, state: PreviewCurrentDraftState.Current, offset: Int, index: Int) {
+        if (!active(captured) || analysis.state !== state || index !in state.outcome.findings.indices) return
+        val fields = FindingField.entries
+        lateinit var chooser: AlertDialog
+        chooser = AlertDialog.Builder(activity).setTitle(R.string.current_finding_full_text)
+            .setItems(fields.map { activity.getString(it.label) }.toTypedArray()) { _, selected ->
+                if (owns(captured, state, chooser) && selected in fields.indices)
+                    showFieldPart(captured, state, offset, index, fields[selected], 0)
+            }.setNegativeButton(R.string.close, null)
+            .setPositiveButton(R.string.current_finding_back_detail) { _, _ ->
+                if (owns(captured, state, chooser)) showFinding(captured, state, offset, index)
+            }.create()
+        present(chooser)
+    }
+
+    private fun showFieldPart(captured: Source, state: PreviewCurrentDraftState.Current, offset: Int,
+        index: Int, field: FindingField, part: Int) {
+        if (!active(captured) || analysis.state !== state || index !in state.outcome.findings.indices) return
+        val row = state.outcome.findings[index]
+        val raw = when (field) {
+            FindingField.EXPLANATION -> row.message
+            FindingField.GUIDANCE -> row.remediation
+        }
+        val count = maxOf(1, (raw.length + FIELD_PART_UNITS - 1) / FIELD_PART_UNITS)
+        if (part !in 0 until count) return
+        val start = part * FIELD_PART_UNITS
+        val text = literal(raw.substring(start, minOf(start + FIELD_PART_UNITS, raw.length)))
+        lateinit var window: AlertDialog
+        fun current() = owns(captured, state, window)
+        val builder = AlertDialog.Builder(activity)
+            .setTitle(activity.getString(R.string.current_finding_text_part, activity.getString(field.label), part + 1, count))
+            .setMessage(text)
+            .setNegativeButton(R.string.current_finding_back_fields) { _, _ ->
+                if (current()) showFields(captured, state, offset, index)
+            }
+        if (part + 1 < count) builder.setPositiveButton(R.string.current_finding_next_part) { _, _ ->
+            if (current()) showFieldPart(captured, state, offset, index, field, part + 1)
+        }
+        if (part > 0) builder.setNeutralButton(R.string.current_finding_previous_part) { _, _ ->
+            if (current()) showFieldPart(captured, state, offset, index, field, part - 1)
+        }
+        window = builder.create()
+        present(window)
+    }
+
+    /** Internal navigation changes only the owned window, without reentering sibling inspection. */
+    private fun present(next: AlertDialog) {
+        val previous = dialog
+        dialog = next
+        next.setOnDismissListener { if (dialog === next) dialog = null }
+        previous?.dismiss()
+        next.show()
     }
 
     /** Retire only presentation callbacks; the current saved analysis remains available. */
@@ -212,6 +280,8 @@ internal class CurrentDraftCheckSection(
     }
 
     companion object {
+        private const val FIELD_PART_UNITS = 160
+
         fun readInputs(catalog: ByteArray, graph: InputStream, ruleset: InputStream): DraftCurrentInputs? {
             fun bounded(stream: InputStream): ByteArray {
                 val output = java.io.ByteArrayOutputStream()
