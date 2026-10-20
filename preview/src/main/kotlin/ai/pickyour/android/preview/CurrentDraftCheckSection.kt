@@ -205,7 +205,8 @@ internal class CurrentDraftCheckSection(
                 DraftCurrentUnknownPhase.APPLICABILITY -> "\n\n" + activity.getString(R.string.current_finding_unknown_applicability)
                 DraftCurrentUnknownPhase.ASSERTION -> "\n\n" + activity.getString(R.string.current_finding_unknown_assertion)
                 null -> ""
-            } + when (state.outcome.provisionalGuidance(row.ruleId)) {
+            } + UnknownInputObservationText.describe(activity, state.outcome.unknownInputObservations(row.ruleId))
+                .let { if (it == null) "" else "\n\n$it" } + when (state.outcome.provisionalGuidance(row.ruleId)) {
                 ProvisionalFindingGuidance.INCOMPLETE -> "\n\n" + activity.getString(R.string.findings_guidance_incomplete)
                 ProvisionalFindingGuidance.REPORTED_INCOMPATIBILITY -> "\n\n" + activity.getString(R.string.findings_guidance_incompatible)
                 ProvisionalFindingGuidance.UNCLASSIFIED -> ""

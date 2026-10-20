@@ -288,6 +288,7 @@ internal class SnapshotEvaluationSection(
                     SnapshotUnknownPhase.ASSERTION -> activity.getString(R.string.snapshot_unknown_assertion)
                     null -> null
                 },
+                UnknownInputObservationText.describe(activity, result.unknownInputObservations(finding.ruleId)),
             ).joinToString("\n") },
         ).joinToString("\n\n")
     }

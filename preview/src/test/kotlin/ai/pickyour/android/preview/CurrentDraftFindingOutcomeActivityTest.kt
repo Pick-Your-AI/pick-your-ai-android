@@ -9,6 +9,7 @@ import android.widget.Button
 import android.widget.TextView
 import ai.pickyour.core.evaluation.DraftCurrentInputs
 import ai.pickyour.core.evaluation.DraftRuleFinding
+import ai.pickyour.core.evaluation.UnknownInputObservation
 import ai.pickyour.core.preview.PreviewCurrentDraftAnalysis
 import ai.pickyour.core.preview.PreviewCurrentDraftState
 import ai.pickyour.core.preview.PreviewDraftLibrary
@@ -48,6 +49,12 @@ class CurrentDraftFindingOutcomeActivityTest {
         "This phase does not identify a cause or a feasible next action."
     private val assertionPhase = "Unknown phase: This rule applies, but its assertion did not determine a pass or fail. " +
         "This phase does not identify a cause or a feasible next action."
+    private val noSelectionInputs = "Observed input limitations for this unknown result:\n" +
+        "No enabled selection matched the local read.\nThese observations are local input facts, not a complete cause or a verified remedy."
+    private val combinedInputs = "Observed input limitations for this unknown result:\n" +
+        "A referenced value was absent from the captured inputs.\n" +
+        "A supplied value was outside the supported operand domain.\n" +
+        "The local profile does not supply an evaluated metric.\nThese observations are local input facts, not a complete cause or a verified remedy."
     private val suppliedMessage = "pass Ready unknown skipped\n\u202equoted \\\" observation"
     private val suppliedGuidance = "Recorded only: fail pass\t\u2066no promised fix\\"
 
@@ -185,7 +192,9 @@ class CurrentDraftFindingOutcomeActivityTest {
         return JSONArray("[$quoted]").getString(0)
     }
 
-    private fun verifyMeaning(current: PreviewCurrentDraftState.Current, ruleId: String, explanation: String?, phase: String? = null) {
+    private fun verifyMeaning(current: PreviewCurrentDraftState.Current, ruleId: String, explanation: String?,
+        phase: String? = null, inputText: String? = null, inputs: List<UnknownInputObservation> = emptyList(),
+    ) {
         val saved = loaded().baselineIdentity
         val before = disk()
         val binding = current.request.binding.copy()
@@ -199,6 +208,7 @@ class CurrentDraftFindingOutcomeActivityTest {
         val index = rows.indexOfFirst { it.ruleId == ruleId }
         val row = rows[index]
         if (row.outcome != "unknown") assertNull(current.outcome.unknownPhase(ruleId))
+        assertEquals(inputs, current.outcome.unknownInputObservations(ruleId))
         val window = detail(current, index)
         val previous = previousDetail(row)
         val text = body(window)
@@ -220,8 +230,9 @@ class CurrentDraftFindingOutcomeActivityTest {
         assertEquals(before, disk())
 
         val meaning = if (explanation == null) previous else "$previous\n\n$explanation"
-        val expected = if (phase == null) meaning else "$meaning\n\n$phase"
-        assertEquals("General meaning and producer-observed phase must preserve the exact recorded prefix", expected, text)
+        val phased = if (phase == null) meaning else "$meaning\n\n$phase"
+        val expected = if (inputText == null) phased else "$phased\n\n$inputText"
+        assertEquals("Meaning, phase and exact captured input observations must preserve the recorded prefix", expected, text)
 
         window.getButton(AlertDialog.BUTTON_POSITIVE).performClick(); idle()
         val page = dialog()
@@ -246,7 +257,8 @@ class CurrentDraftFindingOutcomeActivityTest {
         // The unchanged applicability compares a missing primary deployment mode with self_hosted.
         val current = admitted(id, "unknown", "warning")
         assertEquals(ai.pickyour.core.evaluation.DraftCurrentUnknownPhase.APPLICABILITY, current.outcome.unknownPhase(id))
-        verifyMeaning(current, id, unknownMeaning, applicabilityPhase)
+        verifyMeaning(current, id, unknownMeaning, applicabilityPhase, noSelectionInputs,
+            listOf(UnknownInputObservation.NO_MATCHING_SELECTION))
 
         val before = disk()
         val oldWindow = detail(current, current.outcome.findings.indexOfFirst { it.ruleId == id })
@@ -259,7 +271,8 @@ class CurrentDraftFindingOutcomeActivityTest {
         assertEquals(ai.pickyour.core.evaluation.DraftCurrentUnknownPhase.ASSERTION, replacement.outcome.unknownPhase(id))
         val fresh = detail(replacement, replacement.outcome.findings.indexOfFirst { it.ruleId == id })
         val row = replacement.outcome.findings.single { it.ruleId == id }
-        val expected = previousDetail(row) + "\n\n" + unknownMeaning + "\n\n" + assertionPhase
+        val expected = previousDetail(row) + "\n\n" + unknownMeaning + "\n\n" + assertionPhase + "\n\n" + noSelectionInputs
+        assertEquals(listOf(UnknownInputObservation.NO_MATCHING_SELECTION), replacement.outcome.unknownInputObservations(id))
         assertEquals(expected, body(fresh))
         assertFalse(body(fresh).contains(applicabilityPhase))
         oldBack.performClick(); oldFullText.performClick(); idle()
@@ -276,7 +289,42 @@ class CurrentDraftFindingOutcomeActivityTest {
         // Explicit synthetic applicability is true; the unchanged assertion has no selected model.
         val current = admitted(id, "unknown", "info") { it.put("applies_when", trueExpression()) }
         assertEquals(ai.pickyour.core.evaluation.DraftCurrentUnknownPhase.ASSERTION, current.outcome.unknownPhase(id))
-        verifyMeaning(current, id, unknownMeaning, assertionPhase)
+        verifyMeaning(current, id, unknownMeaning, assertionPhase, noSelectionInputs,
+            listOf(UnknownInputObservation.NO_MATCHING_SELECTION))
+    }
+
+    @Test fun contributingInputsStayWithTheirActualUnknownAndRetiredDetailCannotReappear() {
+        val id = "rule.model.serving.mode.selfhost"
+        val assertion = JSONObject("""{"op":"all","args":[{"op":"eq","left":{"ref":{"scope":"build","pointer":"/private_missing_path"}},"right":{"literal":1}},{"op":"lt","left":{"literal":"private_non_numeric_value"},"right":{"literal":1}},{"op":"gte","left":{"metric":"cost.monthly_total_amount"},"right":{"literal":0}}]}""")
+        val current = admitted(id, "unknown", "warning") {
+            it.put("applies_when", trueExpression()).put("assert", assertion)
+        }
+        val expectedInputs = listOf(UnknownInputObservation.MISSING_CAPTURED_VALUE,
+            UnknownInputObservation.OPERAND_DOMAIN_UNAVAILABLE, UnknownInputObservation.METRIC_NOT_SUPPLIED)
+        verifyMeaning(current, id, unknownMeaning, assertionPhase, combinedInputs, expectedInputs)
+        val old = detail(current, current.outcome.findings.indexOfFirst { it.ruleId == id })
+        val text = body(old)
+        assertTrue(text.endsWith(combinedInputs))
+        assertFalse(text.contains("private_missing_path"))
+        assertFalse(text.contains("private_non_numeric_value"))
+        val oldBack = old.getButton(AlertDialog.BUTTON_POSITIVE)
+        val oldFull = old.getButton(AlertDialog.BUTTON_NEUTRAL)
+        val replacement = admitted(id, "pass", "warning") {
+            it.put("applies_when", trueExpression()).put("assert", trueExpression())
+        }
+        assertNotEquals(current.request.binding.rulesetHash, replacement.request.binding.rulesetHash)
+        assertEquals(expectedInputs, current.outcome.unknownInputObservations(id))
+        assertTrue(replacement.outcome.unknownInputObservations(id).isEmpty())
+        assertFalse(old.isShowing)
+        verifyMeaning(replacement, id, null)
+        val fresh = detail(replacement, replacement.outcome.findings.indexOfFirst { it.ruleId == id })
+        val before = disk()
+        val expected = body(fresh)
+        oldBack.performClick(); oldFull.performClick(); idle()
+        assertSame(fresh, dialog()); assertTrue(fresh.isShowing)
+        assertEquals(expected, body(fresh)); assertFalse(expected.contains("Observed input limitations for this unknown result:"))
+        assertSame(replacement, state()); assertEquals(before, disk())
+        fresh.getButton(AlertDialog.BUTTON_NEGATIVE).performClick(); idle()
     }
 
     @Test fun falseApplicabilityExplainsSkippedWithoutPromotingErrorSeverityToFailureOrPass() {

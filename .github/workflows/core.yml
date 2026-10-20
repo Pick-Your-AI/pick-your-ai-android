@@ -260,6 +260,39 @@ jobs:
               raise SystemExit('Retained unknown-phase regression did not execute successfully')
           print(f"Verified {len(cases)} exact producer-bound retained unknown-phase cases; no cause or feasible-action claim")
           PYRETAINEDPHASE
+      - name: Require captured unknown-input observation regressions
+        run: |
+          python - <<'PYUNKNOWNINPUTS'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          name = 'ai.pickyour.core.evaluation.UnknownInputObservationTest'
+          expected = {
+              'absentOperandsAndPresentJsonNullKeepTheirDifferentSemantics()',
+              'absentAmbiguousAndUnresolvedCatalogReadsRemainDistinct()',
+              'boundedUnionSeparatesEveryReachedLimitationWithoutRawValues()',
+              'eagerBooleanResultsKeepOnlyContributingUnknownObservations()',
+              'unsupportedOperandsAndLaterFailuresDiscardTheCompleteTrace()',
+              'phaseBudgetsAndEveryLegacyFindingByteRemainUnchanged()',
+              'currentInputObservationsRequireOriginalRowsAndRequestAndStayImmutable()',
+              'retainedInputsRequireOriginalReportAndRequestAndSurviveDefensiveCopies()',
+              'retainedLateRejectionsCancellationAndClockFailureExposeNoObservations()',
+              'completeGoldenReportAndStoredBytesRemainUnchangedWithTheNewTrace()',
+              'replacementAndClosedRetainedSessionsCannotDeliverAnOlderInputTrace()',
+          }
+          path = pathlib.Path('core/build/test-results/test') / ('TEST-' + name + '.xml')
+          suite = ET.parse(path).getroot()
+          cases = suite.findall('testcase')
+          names = [case.attrib.get('name') for case in cases]
+          if suite.tag != 'testsuite' or suite.attrib.get('name') != name or any(case.attrib.get('classname') != name for case in cases):
+              raise SystemExit('Foreign unknown-input observation regression report')
+          if len(cases) != len(suite.findall('.//testcase')) or set(names) != expected or len(names) != len(expected):
+              raise SystemExit('Missing, blank, nested, extra or repeated unknown-input observation regression')
+          if int(suite.attrib.get('tests', '-1')) != len(cases) or any(int(suite.attrib.get(key, '-1')) != 0 for key in ('failures', 'errors', 'skipped')):
+              raise SystemExit('Unknown-input observation totals did not pass')
+          if any(suite.find('.//' + tag) is not None for tag in ('failure', 'error', 'skipped')):
+              raise SystemExit('Unknown-input observation regression did not execute successfully')
+          print(f"Verified {len(cases)} exact captured unknown-input observation cases; no complete-cause or feasible-remedy claim")
+          PYUNKNOWNINPUTS
       - name: Require selected historical cost admission regressions
         run: |
           python - <<'PYTEST'
@@ -1096,6 +1129,44 @@ jobs:
                   raise SystemExit('Typed compute regression did not pass')
               print(f'Verified {len(cases)} exact {qualified} cases; local simulation only')
           PYCOMPUTE
+      - name: Require typed knowledge-base preparation and managed storage regressions
+        run: |
+          python - <<'PYKNOWLEDGE'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          required = {
+              'ai.pickyour.core.preview.PreviewKnowledgeBaseSettingsTest': {
+                  'fourFieldsUseTheExactFrozenOptionalTypesAndBounds()',
+                  'optionalAbsenceExplicitZeroAndFalseStayDistinct()',
+                  'eachOptionalFieldCanBeSuppliedWithoutInventingItsPeers()',
+                  'allThreeIntegerControlsKeepWideExactValuesAndIntegerAliases()',
+                  'minimaAreIndependentAndNoOverlapOrRefreshCeilingIsInvented()',
+                  'suppliedEmptyAndWhitespaceNumbersNeedCorrectionUntilExplicitRemoval()',
+                  'numericSyntaxRejectsCoercionAnswerStatesAndExistingReaderOverflows()',
+                  'numericControlsCannotInjectKeysDuplicatesOrTrailingDocuments()',
+                  'changingTheBooleanPreservesUntouchedAdmittedIntegerNodes()',
+                  'independentInvalidNumbersCannotPublishAPartialBooleanOrSettingsChange()',
+                  'explicitBooleanChangesNeverImplyAnEnforcementOrServiceCheck()',
+                  'configurePreservesSelectionIdentityLinksFlagsNotesAndUnrelatedDraftData()',
+                  'managedNoopStaleAndDeletedSaveAuthorityRemainDistinct()',
+                  'fourTypedValuesRoundTripThroughManagedStorageAndExplicitFrozenBuildProjection()',
+                  'descriptionsDoNotEchoInputAndOtherKindsCannotUseThisEditor()',
+              },
+          }
+          for qualified, expected in required.items():
+              suite = ET.parse(pathlib.Path('core') / 'build/test-results' / 'test' / ('TEST-' + qualified + '.xml')).getroot()
+              cases = suite.findall('testcase')
+              names = [case.attrib['name'] for case in cases]
+              if suite.attrib.get('name') != qualified or any(case.attrib.get('classname') != qualified for case in cases):
+                  raise SystemExit('Wrong typed knowledge-base regression suite')
+              if expected != set(names) or len(names) != len(set(names)):
+                  raise SystemExit('Missing, extra or repeated typed knowledge-base regression')
+              if int(suite.attrib['tests']) != len(cases) or any(int(suite.attrib[key]) for key in ('failures', 'errors', 'skipped')):
+                  raise SystemExit('Typed knowledge-base totals do not match passing execution')
+              if any(case.findall('failure') or case.findall('error') or case.findall('skipped') for case in cases):
+                  raise SystemExit('Typed knowledge-base regression did not pass')
+              print(f'Verified {len(cases)} exact {qualified} cases; local simulation only')
+          PYKNOWLEDGE
       - name: Require every retained configuration golden
         run: |
           python - <<'PYCONFIGURATION'
@@ -2225,6 +2296,53 @@ jobs:
                   raise SystemExit('Typed compute regression did not pass')
               print(f'Verified {len(cases)} exact {qualified} cases; local simulation only')
           PYCOMPUTE
+      - name: Require typed knowledge-base Activity and private recovery regressions
+        run: |
+          python - <<'PYKNOWLEDGE'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          required = {
+              'ai.pickyour.android.preview.KnowledgeBaseSettingsActivityTest': {
+                  'fourOptionalFieldsHaveLabeledPrivateControlsWithoutInferredValues',
+                  'knowledgeBaseAddRemainsRawAndEmptySettingsDoNotSupplyAnyField',
+                  'exactFourFieldSaveAndReopenPreserveSelectionAndUnrelatedDraftState',
+                  'zeroOverlapAndFalseRemainSuppliedUntilExplicitlyRemoved',
+                  'explicitTrueFalseAndAbsentBooleanCanEachBeReviewedAndSaved',
+                  'invalidNumbersKeepIndependentValueFreeErrorsAndTheAcknowledgedDraft',
+                  'cancelAndUnchangedCommitDoNotCreateAnotherRevision',
+                  'invalidInputAndFalseRecoverOnlyAfterReviewAndOldControlsStayRetired',
+                  'changedSavedHeadKeepsPendingValuesReadOnlyUntilDiscardAndReopen',
+                  'wrongDraftSelectionAndCatalogIdentityCannotReceiveNewSaveAuthority',
+                  'inFlightSaveFreezesAllControlsAndRecoveryNeverReplaysTheCommit',
+                  'staleManagedCommitCannotOverwriteAnotherWriterOrReenableControls',
+                  'oversizedInputStaysLiveButCheckpointRetainsNoPrefixOrAutomaticViewState',
+                  'legacyRawKnowledgeBaseCheckpointsKeepTheirExistingCorrectionReader',
+              },
+              'ai.pickyour.android.preview.KnowledgeBaseFormCheckpointTest': {
+                  'absentEmptyInvalidAndExactNumericInputSurviveParcelWithOriginalIdentity',
+                  'booleanPresenceAndFalseRemainDistinctAndMalformedPairsAreRejected',
+                  'totalUtf16BudgetIncludesAllThreeRawFieldsAndRejectsPrefixFallback',
+                  'exactPrimitiveShapeNeverCoercesMissingNumbersOrBooleanValues',
+                  'descriptiveVersionFormAndKindCannotSelectAnotherRecoveryProtocol',
+                  'everyCapturedIdentityIsRequiredAndBoundedWithoutCurrentStateSubstitution',
+                  'legacyRawAndTypedContextAndModelReadersKeepTheirOriginalBoundaries',
+                  'savingFlagRetainsInputOnlyAndDescriptionsNeverEchoPrivateValues',
+              },
+          }
+          for qualified, expected in required.items():
+              suite = ET.parse(pathlib.Path('preview') / 'build/test-results' / 'testDebugUnitTest' / ('TEST-' + qualified + '.xml')).getroot()
+              cases = suite.findall('testcase')
+              names = [case.attrib['name'] for case in cases]
+              if suite.attrib.get('name') != qualified or any(case.attrib.get('classname') != qualified for case in cases):
+                  raise SystemExit('Wrong typed knowledge-base regression suite')
+              if expected != set(names) or len(names) != len(set(names)):
+                  raise SystemExit('Missing, extra or repeated typed knowledge-base regression')
+              if int(suite.attrib['tests']) != len(cases) or any(int(suite.attrib[key]) for key in ('failures', 'errors', 'skipped')):
+                  raise SystemExit('Typed knowledge-base totals do not match passing execution')
+              if any(case.findall('failure') or case.findall('error') or case.findall('skipped') for case in cases):
+                  raise SystemExit('Typed knowledge-base regression did not pass')
+              print(f'Verified {len(cases)} exact {qualified} cases; local simulation only')
+          PYKNOWLEDGE
       - name: Require bounded component form recovery regressions to execute
         run: |
           python - <<'PYTEST'
@@ -3197,6 +3315,7 @@ jobs:
           required = {
               "unresolvedApplicabilityExplainsUnknownWithoutRewritingWarningOrRecordedText",
               "unresolvedEligibleAssertionHasTheSameUnknownMeaningWithoutInferringACause",
+              "contributingInputsStayWithTheirActualUnknownAndRetiredDetailCannotReappear",
               "falseApplicabilityExplainsSkippedWithoutPromotingErrorSeverityToFailureOrPass",
               "naturalFailKeepsItsExactOriginalDetailDespiteMisleadingRecordedStatusWords",
               "admittedSyntheticPassKeepsItsExactOriginalDetailDespiteErrorSeverity",
@@ -3685,6 +3804,7 @@ jobs:
           expected = {
               'freshApplicabilityObservationUsesTheActualPassAndPreservesPrivateBytes',
               'freshAssertionObservationRequiresTrueApplicabilityWithoutInferringAnAction',
+              'fixedInputObservationsPreserveRawFieldsAndWithholdPrivateOperands',
               'nonUnknownRetainedFindingsNeverDisplayAnObservedUnknownPhase',
               'cancellationReplacementAndCloseRetirePhaseAndCapturedControls',
           }

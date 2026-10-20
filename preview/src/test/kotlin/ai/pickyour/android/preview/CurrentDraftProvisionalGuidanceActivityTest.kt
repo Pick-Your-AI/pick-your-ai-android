@@ -10,6 +10,7 @@ import ai.pickyour.core.evaluation.DraftCurrentInputs
 import ai.pickyour.core.evaluation.DraftCurrentUnknownPhase
 import ai.pickyour.core.evaluation.DraftRuleFinding
 import ai.pickyour.core.evaluation.ProvisionalFindingGuidance
+import ai.pickyour.core.evaluation.UnknownInputObservation
 import ai.pickyour.core.preview.*
 import org.json.JSONArray
 import org.json.JSONObject
@@ -47,6 +48,8 @@ class CurrentDraftProvisionalGuidanceActivityTest {
         "This is not a pass or proof of readiness."
     private val assertionPhase = "Unknown phase: This rule applies, but its assertion did not determine a pass or fail. " +
         "This phase does not identify a cause or a feasible next action."
+    private val noSelectionInputs = "Observed input limitations for this unknown result:\n" +
+        "No enabled selection matched the local read.\nThese observations are local input facts, not a complete cause or a verified remedy."
     private val skippedMeaning = "Outcome meaning: This rule was not evaluated for these captured inputs. " +
         "A skipped result is not a pass or proof of readiness."
 
@@ -236,7 +239,7 @@ class CurrentDraftProvisionalGuidanceActivityTest {
         kinds.joinToString(", ", transform = ::quoted) + ". This is a selection observation; candidate feasibility is unverified."
 
     private fun verifyGuidance(current: PreviewCurrentDraftState.Current, id: String, guidance: String?,
-        unknownPhase: String? = null, missingPrimaryKinds: List<String> = emptyList(),
+        unknownPhase: String? = null, missingPrimaryKinds: List<String> = emptyList(), inputText: String? = null,
     ) {
         val before = disk()
         val saved = loaded().baselineIdentity
@@ -271,9 +274,10 @@ class CurrentDraftProvisionalGuidanceActivityTest {
         assertEquals(before, disk())
 
         val phased = if (unknownPhase == null) previous else "$previous\n\n$unknownPhase"
-        val guided = if (guidance == null) phased else "$phased\n\n$guidance"
+        val observed = if (inputText == null) phased else "$phased\n\n$inputText"
+        val guided = if (guidance == null) observed else "$observed\n\n$guidance"
         val expected = if (missingPrimaryKinds.isEmpty()) guided else "$guided\n\n" + absentChoices(missingPrimaryKinds)
-        assertEquals("Only the expected phase, fail guidance and captured required-choice absences may be appended", expected, text)
+        assertEquals("Only expected phase/input observations, fail guidance and captured required-choice absences may be appended", expected, text)
 
         window.getButton(AlertDialog.BUTTON_POSITIVE).performClick(); idle()
         val list = dialog()
@@ -336,7 +340,8 @@ class CurrentDraftProvisionalGuidanceActivityTest {
         assertEquals(listOf(model.id), finding(current, provider, "unknown").selectionIds)
         assertEquals(DraftCurrentUnknownPhase.ASSERTION, current.outcome.unknownPhase(provider))
         assertEquals(ProvisionalFindingGuidance.UNCLASSIFIED, current.outcome.provisionalGuidance(provider))
-        verifyGuidance(current, provider, null, unknownPhase = assertionPhase)
+        assertEquals(listOf(UnknownInputObservation.NO_MATCHING_SELECTION), current.outcome.unknownInputObservations(provider))
+        verifyGuidance(current, provider, null, unknownPhase = assertionPhase, inputText = noSelectionInputs)
     }
 
     @Test fun realSkippedKeepsItsRawOutcomeAndMeaningWithoutProvisionalGuidance() {

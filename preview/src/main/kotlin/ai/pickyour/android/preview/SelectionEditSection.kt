@@ -132,7 +132,8 @@ internal class SelectionEditSection(private val activity: Activity,
             recovery is ComponentFormRecovery.TypedCostPolicyPending ||
             recovery is ComponentFormRecovery.TypedModelProviderPending ||
             recovery is ComponentFormRecovery.TypedDeploymentTargetPending ||
-            recovery is ComponentFormRecovery.TypedHostingPlatformPending) View.VISIBLE else View.GONE
+            recovery is ComponentFormRecovery.TypedHostingPlatformPending ||
+            recovery is ComponentFormRecovery.TypedKnowledgeBasePending) View.VISIBLE else View.GONE
         discardRecovery.visibility = if (noRecovery) View.GONE else View.VISIBLE
         reviewRecovery.isEnabled = foreground
         discardRecovery.isEnabled = foreground
@@ -245,6 +246,10 @@ internal class SelectionEditSection(private val activity: Activity,
         }
         (recovery as? ComponentFormRecovery.TypedHostingPlatformPending)?.let {
             reviewTypedHostingPlatformInput(it.form)
+            return
+        }
+        (recovery as? ComponentFormRecovery.TypedKnowledgeBasePending)?.let {
+            reviewTypedKnowledgeBaseInput(it.form)
             return
         }
         val pending = (recovery as? ComponentFormRecovery.Pending)?.form ?: return
@@ -554,6 +559,30 @@ internal class SelectionEditSection(private val activity: Activity,
             .setView(ScrollView(activity).apply { addView(layout) }).setNegativeButton(R.string.close, null).create())
     }
 
+    private fun reviewTypedKnowledgeBaseInput(pending: KnowledgeBaseFormCheckpoint) {
+        val expected = baseline
+        val selection = expected?.components?.selections?.singleOrNull { it.id == pending.selectionId }
+        if (editable && expected != null && currentDraftId == pending.draftId &&
+            expected.baselineIdentity == pending.baseline && !pending.wasSaving &&
+            selection != null && selection.kind == PreviewKnowledgeBaseSettings.KIND &&
+            selection.catalogItemId == pending.catalogItemId && selection.catalogItemVersion == pending.catalogItemVersion) {
+            recovery = ComponentFormRecovery.None
+            update(baseline, editable)
+            knowledgeBaseSettingsForm(expected, selection, pending)
+            return
+        }
+        val layout = LinearLayout(activity).apply { orientation = VERTICAL }
+        layout.addView(TextView(activity).apply {
+            setText(if (pending.wasSaving) R.string.component_recovery_saving else R.string.component_recovery_changed)
+        })
+        layout.addView(TextView(activity).apply {
+            text = activity.getString(R.string.component_recovery_identity, pending.draftId, pending.selectionId)
+        })
+        layout.addView(KnowledgeBaseSettingsEditor.readOnly(activity, pending.input))
+        show(AlertDialog.Builder(activity).setTitle(R.string.component_recovery_review)
+            .setView(ScrollView(activity).apply { addView(layout) }).setNegativeButton(R.string.close, null).create())
+    }
+
     private fun chooseSelection() {
         val expected = baseline ?: return
         if (!canOpen(expected)) return
@@ -851,6 +880,10 @@ internal class SelectionEditSection(private val activity: Activity,
         }
         if (restored == null && selection.kind == PreviewDeploymentTargetSettings.KIND) {
             deploymentTargetSettingsForm(expected, selection)
+            return
+        }
+        if (restored == null && selection.kind == PreviewKnowledgeBaseSettings.KIND) {
+            knowledgeBaseSettingsForm(expected, selection)
             return
         }
         val layout = LinearLayout(activity).apply { orientation = VERTICAL }
@@ -1340,6 +1373,46 @@ internal class SelectionEditSection(private val activity: Activity,
                 if (active(expected) && editor.input() == raw) editor.showIssues(result.get()?.issues.orEmpty())
             }) {
                 PreviewHostingPlatformSettings.configure(selection, raw).also(result::set).preparation
+            }
+        }
+    }
+
+    private fun knowledgeBaseSettingsForm(expected: PreviewStoredDraft, selection: LocalSelection,
+        restored: KnowledgeBaseFormCheckpoint? = null) {
+        if (!canOpen(expected) || selection.kind != PreviewKnowledgeBaseSettings.KIND) return
+        val draftId = requireNotNull(currentDraftId)
+        val layout = LinearLayout(activity).apply { orientation = VERTICAL }
+        layout.addView(TextView(activity).apply { setText(R.string.component_settings_warning) })
+        retrievalGuidance(layout, selection.kind)
+        layout.addView(TextView(activity).apply { setText(R.string.knowledge_base_recovery_guidance) })
+        lateinit var dialog: AlertDialog
+        val editor = KnowledgeBaseSettingsEditor(activity, restored?.input ?: PreviewKnowledgeBaseSettings.initial(selection)) {
+            active(expected) && open(dialog) && formBinding?.saving == false
+        }.also(layout::addView)
+        val feedback = feedback().also(layout::addView)
+        dialog = show(AlertDialog.Builder(activity).setTitle(label(selection))
+            .setView(ScrollView(activity).apply { addView(layout) })
+            .setNegativeButton(R.string.close, null).setPositiveButton(R.string.component_commit, null).create(), feedback)
+        val binding = FormBinding(dialog) { saving ->
+            KnowledgeBaseFormCheckpoint(draftId, expected.baselineIdentity, selection.id, selection.catalogItemId,
+                selection.catalogItemVersion, editor.input(), saving).recovery()
+        }
+        binding.onFreeze = editor::freeze
+        binding.onClose = editor::close
+        binding.onStateChange = {
+            editor.freeze(binding.saving || !active(expected))
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = !binding.saving && active(expected)
+        }
+        formBinding = binding
+        update(baseline, editable)
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+            if (!active(expected) || binding.saving) return@setOnClickListener
+            val raw = editor.input()
+            val result = java.util.concurrent.atomic.AtomicReference<PreviewKnowledgeBasePreparation?>()
+            submit(dialog, expected, null, onRejected = {
+                if (active(expected) && editor.input() == raw) editor.showIssues(result.get()?.issues.orEmpty())
+            }) {
+                PreviewKnowledgeBaseSettings.configure(selection, raw).also(result::set).preparation
             }
         }
     }

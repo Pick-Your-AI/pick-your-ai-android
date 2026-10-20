@@ -55,6 +55,16 @@ class SnapshotUnknownPhaseActivityTest {
     private val assertion = "Observed unknown phase: This rule applies, but its assertion did not determine a pass or fail. " +
         "This observation identifies neither a cause nor a feasible next action."
 
+    private val inputHeading = "Observed input limitations for this unknown result:"
+    private val missingInputs = "Observed input limitations for this unknown result:\n" +
+        "A referenced value was absent from the captured inputs.\n" +
+        "These observations are local input facts, not a complete cause or a verified remedy."
+    private val combinedInputs = "Observed input limitations for this unknown result:\n" +
+        "A referenced value was absent from the captured inputs.\n" +
+        "A supplied value was outside the supported operand domain.\n" +
+        "The local profile does not supply an evaluated metric.\n" +
+        "These observations are local input facts, not a complete cause or a verified remedy."
+
     @Before fun launch() {
         controller = Robolectric.buildActivity(PreviewActivity::class.java).setup()
         await { button(R.string.save_draft).isEnabled && button(R.string.retry_catalog).isEnabled }
@@ -109,6 +119,7 @@ class SnapshotUnknownPhaseActivityTest {
         val assertion = when (outcome) {
             "applicability", "skipped" -> unsupported
             "assertion" -> unknown
+            "combined" -> """{"op":"all","args":[{"op":"eq","left":{"ref":{"scope":"build","pointer":"/private_missing_path"}},"right":{"literal":1}},{"op":"lt","left":{"literal":"private_non_numeric_value"},"right":{"literal":1}},{"op":"gte","left":{"metric":"cost.monthly_total_amount"},"right":{"literal":0}}]}"""
             "pass" -> yes
             "fail" -> no
             else -> error("Explicit synthetic outcome required")
@@ -175,15 +186,23 @@ class SnapshotUnknownPhaseActivityTest {
         assertTrue(text(window).contains("Result in this profile:"))
         return window
     }
-    private fun phase(harness: Harness, window: AlertDialog, saved: Saved, expected: SnapshotUnknownPhase, paragraph: String) {
+    private fun phase(harness: Harness, window: AlertDialog, saved: Saved, expected: SnapshotUnknownPhase, paragraph: String,
+        inputText: String = missingInputs, observations: List<UnknownInputObservation> = listOf(UnknownInputObservation.MISSING_CAPTURED_VALUE),
+    ) {
         val result = harness.results.last() as SnapshotEvaluationOutcome.Evaluated
         assertEquals(expected, result.unknownPhase("rule.retained.phase"))
+        assertEquals(observations, result.unknownInputObservations("rule.retained.phase"))
         assertEquals(saved.entry.key.id, result.report.inspect().buildId)
         assertEquals(saved.entry.key.revision, result.report.inspect().buildRevision)
         assertEquals(saved.entry.bundleHash, result.inputs.bundleHash)
         assertEquals(hash(saved.rules), result.inputs.bindings.single { it.slot == SnapshotEvaluationSlot.RULESET }.hash)
         val rendered = text(window)
         assertEquals(paragraph, rendered.lineSequence().single { it.startsWith("Observed unknown phase:") })
+        val observationAt = rendered.indexOf(inputHeading)
+        assertTrue(observationAt >= 0)
+        assertEquals(1, Regex(Regex.escape(inputHeading)).findAll(rendered).count())
+        assertEquals(inputText, rendered.substring(observationAt))
+        assertTrue(rendered.substring(0, observationAt).endsWith(paragraph + "\n"))
         assertTrue(rendered.contains("Outcome: unknown · Severity: error"))
         assertTrue(rendered.contains("Reported explanation: \"Quoted ASSERTION and cause claim only\""))
         assertTrue(rendered.contains("Reported remediation (not executed): \"Quoted APPLICABILITY and repair claim only\""))
@@ -219,6 +238,21 @@ class SnapshotUnknownPhaseActivityTest {
         assertEquals(editor, files(activity.noBackupFilesDir.toPath()))
     }
 
+    @Test fun fixedInputObservationsPreserveRawFieldsAndWithholdPrivateOperands() {
+        val saved = save("combined")
+        val source = files(saved.sourcePath); val archive = files(archivePath); val editor = files(activity.noBackupFilesDir.toPath())
+        val harness = harness()
+        val window = complete(harness, saved)
+        phase(harness, window, saved, SnapshotUnknownPhase.ASSERTION, assertion, combinedInputs,
+            listOf(UnknownInputObservation.MISSING_CAPTURED_VALUE, UnknownInputObservation.OPERAND_DOMAIN_UNAVAILABLE,
+                UnknownInputObservation.METRIC_NOT_SUPPLIED))
+        assertFalse(text(window).contains("private_missing_path"))
+        assertFalse(text(window).contains("private_non_numeric_value"))
+        assertEquals(1, harness.results.size)
+        assertEquals(source, files(saved.sourcePath)); assertEquals(archive, files(archivePath))
+        assertEquals(editor, files(activity.noBackupFilesDir.toPath()))
+    }
+
     @Test fun nonUnknownRetainedFindingsNeverDisplayAnObservedUnknownPhase() {
         val cases = listOf("skipped", "pass", "fail").associateWith { save(it) }
         val sources = cases.values.associate { it.sourcePath to files(it.sourcePath) }
@@ -229,6 +263,8 @@ class SnapshotUnknownPhaseActivityTest {
             val result = harness.results.last() as SnapshotEvaluationOutcome.Evaluated
             assertEquals(outcome, result.report.inspect().findings.single().outcome)
             assertNull(result.unknownPhase("rule.retained.phase"))
+            assertTrue(result.unknownInputObservations("rule.retained.phase").isEmpty())
+            assertFalse(text(window).contains(inputHeading))
             assertFalse(text(window).contains("Observed unknown phase:"))
             assertTrue(text(window).contains("Outcome: " + outcome + " · Severity: error"))
         }
@@ -249,6 +285,7 @@ class SnapshotUnknownPhaseActivityTest {
         old.getButton(AlertDialog.BUTTON_NEGATIVE).performClick(); idle()
         assertTrue(text(old).contains("Inspection cancelled"))
         assertFalse(text(old).contains("Observed unknown phase:"))
+        assertFalse(text(old).contains(inputHeading))
         assertFalse(text(old).contains("Result in this profile:"))
         oldRetry.performClick(); harness.worker.run(); idle()
         phase(harness, old, first, SnapshotUnknownPhase.APPLICABILITY, applicability)

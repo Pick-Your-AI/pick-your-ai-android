@@ -26,7 +26,7 @@ object RetainedEvaluationProfile {
     const val ID = "local-retained-frozen-v1-no-external-evidence/1"
     const val REFERENCE_SHA256 = "092c8a99495f9b5ae960df40b27e33f15eefe6d1a7cd80119658fdc79ada1a5a"
     const val SCHEMAS_SHA256 = "eaaf51a04c9bd0c7fce23e7ecc75724226e26b337cc1da04b88a59d2a912914f"
-    const val EVALUATOR_SHA256 = "da06ae25f838617d99a3b1fb04ea29eb8986b0305ae051afd026426eebf98552"
+    const val EVALUATOR_SHA256 = "1f197342eb8c1d6fa294ed082d0ed585bef843ec07c02eac7808a1d3b29cfb14"
     const val REPORT_RECEIVER_SHA256 = "d39e266490ffb7814b0bb2cc05a108d60206f036a3be7beb6c340b29723fa525"
     const val REFERENCE_TIME = "2026-10-16T09:00:00Z"
 }
@@ -93,16 +93,21 @@ sealed class SnapshotEvaluationOutcome protected constructor(internal val reques
     /** Trusted local computation plus complete report re-admission; not an arbitrary remote report. */
     class Evaluated private constructor(request: SnapshotEvaluationRequest, val report: ReportReception.Accepted,
         val observedAt: Instant, observedPhases: Map<String, SnapshotUnknownPhase>,
+        observedInputs: Map<String, List<UnknownInputObservation>>,
     ) : SnapshotEvaluationOutcome(request) {
         internal constructor(request: SnapshotEvaluationRequest, report: ReportReception.Accepted, observedAt: Instant) :
-            this(request, report, observedAt, emptyMap())
+            this(request, report, observedAt, emptyMap(), emptyMap())
         internal constructor(request: SnapshotEvaluationRequest, report: ReportReception.Accepted, observedAt: Instant,
             trace: FrozenDiagnosticEvaluator.RetainedSnapshotTrace,
-        ) : this(request, report, observedAt, trace.phasesFor(request, report))
+        ) : this(request, report, observedAt, trace.phasesFor(request, report), trace.observationsFor(request, report))
         private val phases = Collections.unmodifiableMap(LinkedHashMap(observedPhases))
+        private val observations = Collections.unmodifiableMap(LinkedHashMap(observedInputs.mapValues { fixedList(it.value) }))
         /** A copied, imported or re-admitted report alone has no producer-observed phase. */
         fun unknownPhase(ruleId: String): SnapshotUnknownPhase? =
             if (report.inspect().findings.singleOrNull { it.ruleId == ruleId }?.outcome == "unknown") phases[ruleId] else null
+        /** Fixed input limitations require this request's exact produced unknown report. */
+        fun unknownInputObservations(ruleId: String): List<UnknownInputObservation> =
+            if (unknownPhase(ruleId) != null) observations[ruleId] ?: emptyList() else emptyList()
         /** Immutable identity/profile descriptors for the actual computed report, without raw source. */
         val inputs: SnapshotEvaluationRequest get() = request
     }
