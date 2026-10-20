@@ -66,8 +66,9 @@ provider errors return only the finite `IO_FAILURE` reason.
 
 ## Regression and receiving evidence
 
-The shared [183-case fixture](../core/src/test/resources/contracts/build-cases.json)
-pins the exact canonical Build example and Build/Selection/Common schema bytes.
+The shared [215-case fixture](../core/src/test/resources/contracts/build-cases.json)
+preserves all 183 original cases and adds 32 exact-number boundary cases. It pins
+the exact canonical Build example and Build/Selection/Common schema bytes.
 The [Python checker](../scripts/check_build_fixtures.py) uses the existing pinned
 format-enabled frozen reference validator, while the
 [Kotlin suite](../core/src/test/kotlin/ai/pickyour/core/contracts/FrozenBuildSnapshotTest.kt)
@@ -79,8 +80,19 @@ Nine additional Kotlin methods inspect the canonical all-29-kind fixture, exact
 field mapping and enum inventories, absent/empty/false/zero values, wide integral
 spellings, preserved private references and decimal text, defensive nested copies,
 structural contradictions, bounded malformed input and caller stream ownership.
-The focused suite therefore contains 192 actual tests, without treating a dynamic
-factory as a single executed case.
+The focused Kotlin suite therefore declares 224 cases: 215 dynamic cases and
+nine methods. Its actual attendance and results must be established by the
+source-bound execution receipt; a dynamic factory is not one executed case.
+
+The Python checker reads decimal and exponent tokens exactly. Its private
+Draft2020-12 integer check retains integral spellings and Boolean exclusion,
+including numeric fields reached through Selection references. It does not round
+a fraction into an integer, underflow a negative value to zero, or accept the
+non-JSON constants NaN and Infinity. Frozen schema bytes and constraints remain
+unchanged. The [nine-method CLI suite](../tests/test_build_fixture_precision.py)
+checks these boundaries in copied inputs, verifies their byte and file-identity
+preservation, and separately exercises the full shared corpus. Python results
+supply no Kotlin or installed-device execution evidence.
 
 Run the documented pinned Python environment with `scripts/check_contracts.py`,
 then `./gradlew --no-daemon :core:check :core:assemble`. The ordinary contract gate

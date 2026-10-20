@@ -3103,6 +3103,358 @@
           "value": null
         }
       ]
+    },
+    {
+      "name": "number-revision-fraction",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["revision"],
+          "value": 1.0000000000000001
+        }
+      ]
+    },
+    {
+      "name": "number-dependency-revision-fraction",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["locks","dependency_graph_revision"],
+          "value": 1.0000000000000001
+        }
+      ]
+    },
+    {
+      "name": "number-requests-fraction",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["objectives","requests_per_day"],
+          "value": 1.0000000000000001
+        }
+      ]
+    },
+    {
+      "name": "number-input-tokens-fraction",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["objectives","avg_input_tokens"],
+          "value": 1.0000000000000001
+        }
+      ]
+    },
+    {
+      "name": "number-output-tokens-fraction",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["objectives","avg_output_tokens"],
+          "value": 1.0000000000000001
+        }
+      ]
+    },
+    {
+      "name": "number-concurrency-fraction",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["objectives","max_concurrency"],
+          "value": 1.0000000000000001
+        }
+      ]
+    },
+    {
+      "name": "number-latency-fraction",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["objectives","max_latency_ms"],
+          "value": 1.0000000000000001
+        }
+      ]
+    },
+    {
+      "name": "number-revision-wide-fraction",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["revision"],
+          "value": 9007199254740992.1
+        }
+      ]
+    },
+    {
+      "name": "number-revision-below-minimum",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["revision"],
+          "value": 0.99999999999999999999
+        }
+      ]
+    },
+    {
+      "name": "number-negative-input-underflow",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["objectives","avg_input_tokens"],
+          "value": -1e-9999
+        }
+      ]
+    },
+    {
+      "name": "number-revision-integral-decimal",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["revision"],
+          "value": 1.0
+        }
+      ]
+    },
+    {
+      "name": "number-revision-integral-exponent",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["revision"],
+          "value": 1000e-3
+        }
+      ]
+    },
+    {
+      "name": "number-revision-wide-integral-exponent",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["revision"],
+          "value": 1e40
+        }
+      ]
+    },
+    {
+      "name": "number-revision-wide-integer",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["revision"],
+          "value": 9007199254740993
+        }
+      ]
+    },
+    {
+      "name": "number-zero-input-decimal",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["objectives","avg_input_tokens"],
+          "value": -0.0
+        }
+      ]
+    },
+    {
+      "name": "number-selection-integral-decimal",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["selections","0","settings","concurrency"],
+          "value": 1.0
+        }
+      ]
+    },
+    {
+      "name": "number-selection-integral-exponent",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["selections","4","settings","requested_context_tokens"],
+          "value": 1000e-3
+        }
+      ]
+    },
+    {
+      "name": "number-selection-zero-exponent",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["selections","4","settings","reserved_output_tokens"],
+          "value": -0e-4
+        }
+      ]
+    },
+    {
+      "name": "number-selection-workload-fraction",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["selections","0","settings","concurrency"],
+          "value": 1.0000000000000001
+        }
+      ]
+    },
+    {
+      "name": "number-selection-context-fraction",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["selections","4","settings","requested_context_tokens"],
+          "value": 1.0000000000000001
+        }
+      ]
+    },
+    {
+      "name": "number-selection-model-fraction",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["selections","3","settings","max_output_tokens"],
+          "value": 1.0000000000000001
+        }
+      ]
+    },
+    {
+      "name": "number-selection-negative-count-underflow",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["selections","0","settings","requests_per_day"],
+          "value": -1e-9999
+        }
+      ]
+    },
+    {
+      "name": "number-temperature-above-maximum",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["selections","3","settings","temperature"],
+          "value": 2.0000000000000001
+        }
+      ]
+    },
+    {
+      "name": "number-top-p-above-maximum",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["selections","3","settings","top_p"],
+          "value": 1.0000000000000001
+        }
+      ]
+    },
+    {
+      "name": "number-dataset-split-above-maximum",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["selections","22","settings","train_split"],
+          "value": 1.0000000000000001
+        }
+      ]
+    },
+    {
+      "name": "number-storage-negative-underflow",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["selections","9","settings","provisioned_gb"],
+          "value": -1e-9999
+        }
+      ]
+    },
+    {
+      "name": "number-top-p-tiny-positive",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["selections","3","settings","top_p"],
+          "value": 1e-400
+        }
+      ]
+    },
+    {
+      "name": "number-learning-rate-tiny-positive",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["selections","20","settings","learning_rate"],
+          "value": 1e-400
+        }
+      ]
+    },
+    {
+      "name": "number-score-large-finite",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["selections","25","settings","minimum_score"],
+          "value": 1e400
+        }
+      ]
+    },
+    {
+      "name": "number-temperature-zero-exponent",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["selections","3","settings","temperature"],
+          "value": -0e-4
+        }
+      ]
+    },
+    {
+      "name": "number-selection-tiny-fraction",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["selections","0","settings","concurrency"],
+          "value": 1e-400
+        }
+      ]
+    },
+    {
+      "name": "number-selection-below-minimum",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["selections","0","settings","concurrency"],
+          "value": 0.99999999999999999999
+        }
+      ]
     }
   ]
 }
