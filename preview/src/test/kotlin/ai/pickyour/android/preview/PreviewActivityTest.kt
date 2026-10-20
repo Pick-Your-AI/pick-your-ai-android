@@ -2823,10 +2823,10 @@ class PreviewActivityTest {
         await { !add.isShowing && hasText(R.string.component_saved) }
         val before = loaded()
         val configure = componentAction(0)
-        val settings = dialogField(configure, R.string.component_settings)
-        assertTrue(settings.text.toString().contains(original))
+        val settings = dialogField(configure, R.string.model_provider_credential)
+        assertEquals(original, settings.text.toString())
         val connection = literalInputConnection(settings)
-        val raw = "{\n  \"credential_ref\": \"secret://fixture/Pending:Case_A\"\n}"
+        val raw = "secret://fixture/Pending:Case_A\n"
         assertTrue(connection.setSelection(0, settings.length()))
         assertTrue(connection.commitText(raw, 1))
         assertEquals(raw, settings.text.toString())
