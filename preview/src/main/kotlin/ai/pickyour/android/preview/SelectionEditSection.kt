@@ -14,6 +14,7 @@ import ai.pickyour.core.evaluation.CompatibleOptionSlot
 internal class SelectionEditSection(private val activity: Activity,
     private val commit: (PreviewStoredDraft, String?, () -> PreviewSelectionPreparation, (Boolean, String) -> Unit) -> Unit,
     private val compareOptions: (CompatiblePickerLaunch) -> Unit = {},
+    private val isResumed: () -> Boolean = { true },
     private val retireOptions: () -> Unit = {},
 ) : LinearLayout(activity) {
     private var closed = false
@@ -73,13 +74,13 @@ internal class SelectionEditSection(private val activity: Activity,
         addView(reviewRecovery)
         discardRecovery.setText(R.string.component_recovery_discard)
         discardRecovery.setOnClickListener {
-            if (!closed) { recovery = ComponentFormRecovery.None; update(baseline, editable) }
+            if (!closed && isResumed()) { recovery = ComponentFormRecovery.None; update(baseline, editable) }
         }
         addView(discardRecovery)
         update(null, false)
     }
 
-    private fun active(expected: PreviewStoredDraft) = !closed && !activity.isDestroyed && !activity.isFinishing &&
+    private fun active(expected: PreviewStoredDraft) = !closed && isResumed() && !activity.isDestroyed && !activity.isFinishing &&
         editable && baseline === expected && currentDraftId != null && recovery === ComponentFormRecovery.None
     private fun canOpen(expected: PreviewStoredDraft) = active(expected) && formBinding == null
 
@@ -105,8 +106,9 @@ internal class SelectionEditSection(private val activity: Activity,
         baseline = record; editable = enabled; currentDraftId = draftId
         status.text = activity.getString(R.string.component_count, (record?.components?.selections?.size ?: 0).toString())
         val noRecovery = recovery === ComponentFormRecovery.None
-        manage.isEnabled = enabled && noRecovery && formBinding == null && record?.components?.selections?.isNotEmpty() == true
-        choose.isEnabled = enabled && noRecovery && formBinding == null && record != null && catalogHash != null && catalogItems.isNotEmpty()
+        val foreground = isResumed()
+        manage.isEnabled = foreground && enabled && noRecovery && formBinding == null && record?.components?.selections?.isNotEmpty() == true
+        choose.isEnabled = foreground && enabled && noRecovery && formBinding == null && record != null && catalogHash != null && catalogItems.isNotEmpty()
         recoveryStatus.visibility = if (noRecovery) View.GONE else View.VISIBLE
         recoveryStatus.setText(when (recovery) {
             ComponentFormRecovery.Unavailable -> R.string.component_recovery_unavailable
@@ -117,6 +119,8 @@ internal class SelectionEditSection(private val activity: Activity,
             recovery is ComponentFormRecovery.TypedContextPending || recovery is ComponentFormRecovery.TypedModelPending ||
             recovery is ComponentFormRecovery.TypedModelProviderPending) View.VISIBLE else View.GONE
         discardRecovery.visibility = if (noRecovery) View.GONE else View.VISIBLE
+        reviewRecovery.isEnabled = foreground
+        discardRecovery.isEnabled = foreground
         formBinding?.onStateChange?.invoke()
         publishReviewAvailability()
     }
@@ -129,6 +133,24 @@ internal class SelectionEditSection(private val activity: Activity,
         val form = formBinding?.takeIf { open(it.dialog) }
         (form?.let { it.capture(it.saving) } ?: recovery).save(outState)
     }
+    /** Retain bounded input, then retire every old callback before dismissing its window. */
+    fun pause() {
+        if (closed) return
+        val checkpoint = Bundle()
+        save(checkpoint)
+        val binding = formBinding
+        val owned = dialogs.toList()
+        formBinding = null
+        dialogs.clear()
+        dialogFeedback.clear()
+        recovery = ComponentFormRecovery.read(checkpoint)
+        binding?.onClose?.invoke()
+        retireOptions()
+        owned.forEach { it.dismiss() }
+        update(baseline, editable)
+    }
+    /** Resuming restores availability only; pending input still requires explicit review. */
+    fun resume() { update(baseline, editable) }
     fun catalog(items: List<PreviewCatalogItem>, hash: String?) {
         if (closed) return
         retireOptions()
@@ -165,7 +187,7 @@ internal class SelectionEditSection(private val activity: Activity,
     private fun label(selection: LocalSelection) = ComponentSelectionText.selection(activity, selection)
 
     private fun reviewPendingInput() {
-        if (closed || activity.isDestroyed || activity.isFinishing) return
+        if (closed || !isResumed() || activity.isDestroyed || activity.isFinishing) return
         (recovery as? ComponentFormRecovery.TypedContextPending)?.let {
             reviewTypedContextInput(it.form)
             return

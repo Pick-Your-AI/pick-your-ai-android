@@ -510,6 +510,75 @@ class ModelProviderSettingsActivityTest {
         assertEquals(before.baselineIdentity, loaded().baselineIdentity)
     }
 
+    @Test fun actualPauseRetiresProviderControlsAndRequiresFreshReview() {
+        val before = seedModelProvider()
+        val original = selection()
+        val form = configure()
+        fillAll(form)
+        val retiredCommit = form.getButton(AlertDialog.BUTTON_POSITIVE)
+        val retiredSupply = supply(form, "Region")
+        val retainedManage = button(R.string.component_manage)
+        val retainedReview = button(R.string.component_recovery_review)
+        val retainedDiscard = button(R.string.component_recovery_discard)
+
+        controller.pause()
+        assertFalse(form.isShowing)
+        captions.forEach {
+            assertFalse(supply(form, it).isEnabled)
+            assertFalse(textControl(form, it).isEnabled)
+        }
+        assertFalse(retainedManage.isEnabled)
+        assertFalse(retainedReview.isEnabled)
+        assertFalse(retainedDiscard.isEnabled)
+        retiredCommit.performClick(); retiredSupply.performClick()
+        retainedManage.performClick(); retainedReview.performClick(); retainedDiscard.performClick()
+        finishWork()
+        assertSame(form, dialog())
+        assertEquals(before.baselineIdentity, loaded().baselineIdentity)
+        assertEquals(before.components, loaded().components)
+        val pending = (ComponentFormRecovery.read(capture()) as ComponentFormRecovery.TypedModelProviderPending).form
+        assertFalse(pending.wasSaving)
+        assertEquals(currentId().value, pending.draftId)
+        assertEquals(before.baselineIdentity, pending.baseline)
+        assertEquals(original.id, pending.selectionId)
+        assertEquals(original.catalogItemId, pending.catalogItemId)
+        assertEquals(original.catalogItemVersion, pending.catalogItemVersion)
+        assertEquals(literalRegion, pending.input.region)
+        assertEquals(reference, pending.input.credentialRef)
+        assertEquals(apiUri, pending.input.apiBaseUrl)
+
+        controller.resume().visible()
+        finishWork()
+        assertSame(form, dialog())
+        retiredCommit.performClick(); retiredSupply.performClick()
+        finishWork()
+        assertEquals(before.baselineIdentity, loaded().baselineIdentity)
+        val reviewed = reviewPending()
+        assertTrue(reviewed.isShowing)
+        assertNotSame(form, reviewed)
+        captions.forEach { assertTrue(supply(reviewed, it).isChecked) }
+        assertEquals(literalRegion, textControl(reviewed, "Region").text.toString())
+        assertEquals(reference, textControl(reviewed, "Credential reference").text.toString())
+        assertEquals(apiUri, textControl(reviewed, "API base URL").text.toString())
+        retiredCommit.performClick(); finishWork()
+        assertSame(reviewed, dialog())
+        assertEquals(before.baselineIdentity, loaded().baselineIdentity)
+        val saved = commit(reviewed, before)
+        retiredCommit.performClick()
+        reviewed.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+        finishWork()
+        assertEquals(before.revision + 1, saved.revision)
+        assertEquals(saved.baselineIdentity, loaded().baselineIdentity)
+        assertEquals(before.fields, saved.fields)
+        assertEquals(before.workloadInput, saved.workloadInput)
+        assertEquals(before.components.links, saved.components.links)
+        assertEquals(before.history.size + 1, saved.history.size)
+        assertEquals(3, settings().length())
+        assertEquals(literalRegion, settings().getString("region"))
+        assertEquals(reference, settings().getString("credential_ref"))
+        assertEquals(apiUri, settings().getString("api_base_url"))
+    }
+
     @Test fun inFlightProviderSaveFreezesEveryControlAndNeverReplaysAfterAcknowledgment() {
         val before = seedModelProvider()
         val form = configure()
@@ -536,8 +605,9 @@ class ModelProviderSettingsActivityTest {
                 assertEquals(literalRegion, pending.input.region)
                 assertEquals(reference, pending.input.credentialRef)
                 release.countDown()
-                await { !form.isShowing && loaded().revision == before.revision + 1 }
+                // Pause retires the dialog before acknowledgment; finish the owned write before reading storage.
                 finishWork()
+                await { !form.isShowing && loaded().revision == before.revision + 1 }
             }
         } finally { release.countDown() }
         val saved = loaded()

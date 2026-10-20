@@ -539,6 +539,7 @@ class PreviewActivityTest {
 
     @Test fun domainRestoreDisclosesTypedComponentsAndPreservesHistoryAndMetadata() {
         save()
+        finishActivityWork()
         val store = LocalDraftStore(activity.noBackupFilesDir.toPath().resolve("guest-draft"))
         val initial = (store.load() as DraftLoad.Available).draft
         val fixture = activity.assets.open("build.json").bufferedReader(Charsets.UTF_8).use { org.json.JSONObject(it.readText()) }
@@ -596,6 +597,7 @@ class PreviewActivityTest {
         val commit = confirmation.getButton(AlertDialog.BUTTON_POSITIVE)
         commit.performClick()
         await { hasText(R.string.draft_saved) && loaded().revision == current.version.number + 1 }
+        finishActivityWork()
         val restored = (store.load() as DraftLoad.Available).draft
         assertEquals(retained.content, restored.content)
         assertEquals(current.metadata, restored.metadata)

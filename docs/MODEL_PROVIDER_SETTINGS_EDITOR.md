@@ -70,8 +70,11 @@ separate bounds. Oversized input produces unavailable recovery, without a prefix
 or automatic View-state fallback. Capture and decoding independently exclude an
 invalid credential reference. For bounded input, positively recognized URI user
 information retains only the fixed exclusion marker, even when another field is
-invalid. The live form remains available for correction; these exclusions do not
-clear its text.
+invalid. Capturing while the Activity remains resumed leaves the live form
+available for correction; these exclusions do not clear its text. Pausing captures
+through the same bounded protocol, then retires the form and its callbacks before
+dismissing it. Retained controls cannot dispatch a write or replace pending input.
+Resuming restores availability without reopening the form or restoring consent.
 
 The inner bundle uses the namespaced string version `typed-model-provider/1`,
 form `modelProvider`, kind `model_provider`, exact primitive types and exact keys.
@@ -79,8 +82,8 @@ It remains under the existing `componentFormRecovery` outer key. A distinct stri
 version avoids collisions with independently added integer versions. Existing raw
 v1/v2, context v3 and model v4 readers retain their original protocols.
 
-Recreation does not reopen a writable form or replay a save. Explicit **Review
-pending input** is required. A matching acknowledged draft, baseline, selection
+After pause or recreation, explicit **Review pending input** is required; neither
+path reopens a writable form or replays a save. A matching acknowledged draft, baseline, selection
 and catalog identity can offer the typed editor again. An identity mismatch or an
 in-flight capture offers read-only values and explicit discard, with no fresh
 save authority. Canceling a writable editor or explicitly discarding recovery
@@ -95,7 +98,7 @@ exactly once with zero failures, errors or skips:
 | Suite | Required methods | Scope |
 | --- | ---: | --- |
 | `PreviewModelProviderSettingsTest` | 19 | Frozen strings, literal and aggregate limits, privacy, managed persistence and history |
-| `ModelProviderSettingsActivityTest` | 19 | Native controls, managed Activity/worker integration, recovery and stale/retired input |
+| `ModelProviderSettingsActivityTest` | 20 | Native controls, managed Activity/worker integration, pause/recovery and stale/retired input |
 | `ModelProviderFormCheckpointTest` | 12 | Exact primitive protocol, bounds, privacy, legacy compatibility and safe diagnostics |
 
 The existing generic Configure input-method test also locates the typed provider
@@ -105,6 +108,14 @@ inventory is not an execution result; qualification must identify the actual
 source tree and its original runtime output. Robolectric evidence does not qualify
 an installed provider Configure journey, process death, TalkBack, a physical
 device, a keyboard implementation or release.
+
+The provider pause/resume regression retains the old Commit, Supply and recovery
+controls across an actual simulated Activity pause. It checks the unchanged saved
+revision, exact bounded values and original checkpoint identities, no automatic
+reopening on resume, and exactly one revision after fresh reviewed confirmation.
+The separate in-flight case preserves the original admitted write and requires a
+worker barrier before observing storage; pause never grants an interrupted input
+fresh write authority.
 
 This continuation preserves the accepted Kotlin/Views/store architecture and the
 existing receiving-record locations. It does not complete all kind-specific forms,

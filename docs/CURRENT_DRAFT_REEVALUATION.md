@@ -188,8 +188,14 @@ Local or simulated results remain distinct from configured hosted execution,
 installed-emulator, physical-device, accessibility and release qualification.
 The accepted #467 viewport/inset and installed-job behavior is preserved.
 
-The canonical acceptance record remains `docs/delivery/android/work-packages/09.02.md`
-in `Pick-Your-AI/pickyour.ai`. This engineering guide does not relocate it or close
-#100. Exact-version compatibility/domain receiving review, accepted limitations
-and the complete criterion mapping are required before whole-issue reconciliation.
-Other source/ledger/report/producer controllers retain their existing ownership.
+The original intended acceptance coordinate is
+Pick-Your-AI/pickyour.ai / docs/delivery/android/work-packages/09.02.md.
+[ADR 0015](decisions/0015-android-100-acceptance-record.md) proposes placing only
+the [09.02 criterion record](delivery/android/work-packages/09.02.md) at that
+same relative path in Android, effective through independent receiving review
+and normal reviewed delivery. The original website coordinate remains authority
+until that event and is retained as history afterward. This engineering guide
+does not itself close #100 or supply final criterion acceptance. Exact-version
+compatibility/domain review, original evidence and the separate strict-ledger
+reconciliation remain required; other source/report/producer owners keep their
+existing scope.
