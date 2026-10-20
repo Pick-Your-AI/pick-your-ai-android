@@ -17,6 +17,9 @@ data class AnalysisIdentity(
         require(costEvidence == null || costEvidence.isNotBlank())
         require(resourceEvidence == null || resourceEvidence.isNotBlank())
     }
+
+    /** Keep private draft and source identities out of incidental diagnostics. */
+    override fun toString(): String = "AnalysisIdentity([redacted])"
 }
 
 /** Adapter boundary: classify failures here; never put backend messages or throwable text in state. */
@@ -30,7 +33,10 @@ class AnalysisTicket internal constructor(val sequence: Long, val identity: Anal
 sealed interface AnalysisState<out R> {
     data class Idle(val identity: AnalysisIdentity?) : AnalysisState<Nothing>
     data class Pending(val ticket: AnalysisTicket) : AnalysisState<Nothing>
-    data class Succeeded<R>(val ticket: AnalysisTicket, val report: R) : AnalysisState<R>
+    data class Succeeded<R>(val ticket: AnalysisTicket, val report: R) : AnalysisState<R> {
+        /** Formatting state must not expose or invoke the caller's report. */
+        override fun toString(): String = "Succeeded([redacted])"
+    }
     data class Failed(val ticket: AnalysisTicket, val failure: AnalysisFailure) : AnalysisState<Nothing>
     data class Cancelled(val ticket: AnalysisTicket) : AnalysisState<Nothing>
 }

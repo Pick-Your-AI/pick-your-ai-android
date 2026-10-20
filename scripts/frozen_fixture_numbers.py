@@ -1,4 +1,4 @@
-"""Exact JSON numbers for six structural frozen-fixture reference checkers.
+"""Exact JSON numbers for structural frozen-fixture reference checkers.
 
 Their integer fields are inline in the selected root schemas. Reached external
 common-schema definitions contain no integers; this extension is not a global
