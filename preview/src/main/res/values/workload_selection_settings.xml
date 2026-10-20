@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="workload_selection_settings_title">Workload</string>
+    <string name="workload_selection_editor_guidance">These are declared assumptions for this workload selection. They remain separate from the overall workload form. A supplied value is not a measurement, deployment decision, combined context budget or readiness result. Leave a setting not supplied when no value has been entered.</string>
+    <string name="workload_selection_concurrency">Concurrent requests</string>
+    <string name="workload_selection_requests">Requests per day</string>
+    <string name="workload_selection_input">Average input tokens per request</string>
+    <string name="workload_selection_output">Average output tokens per request</string>
+    <string name="workload_selection_latency">Latency budget (milliseconds)</string>
+    <string name="workload_selection_not_supplied">Not supplied</string>
+    <string name="workload_selection_supply">Supply %1$s</string>
+    <string name="workload_selection_positive_integer_rule">Optional exact whole number, at least 1. No default is supplied.</string>
+    <string name="workload_selection_nonnegative_integer_rule">Optional exact whole number, at least 0. Supplied zero is different from not supplied.</string>
+    <string name="workload_selection_value_required">Enter a value or turn off Supply for this setting.</string>
+    <string name="workload_selection_integer_invalid">Enter an exact whole number. Decimal or exponent notation must represent a whole value; locale commas, grouping separators and other text are not accepted.</string>
+    <string name="workload_selection_too_long">This input exceeds the bounded field or numeric representation limit. Enter a shorter exact number.</string>
+    <string name="workload_selection_recovery_guidance">Pending input is private and bounded to 20,000 total text characters. Recovery requires the original draft, revision and selected catalog identity, followed by a new explicit commit. A keyboard privacy flag is requested; it does not guarantee keyboard behavior.</string>
+</resources>
