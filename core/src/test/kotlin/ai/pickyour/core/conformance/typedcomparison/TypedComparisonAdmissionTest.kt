@@ -106,6 +106,31 @@ class TypedComparisonAdmissionTest {
     }
 
     @Test
+    fun objectKeysRetainEscapesUntilCompleteReferenceAdmission() {
+        for (escape in listOf("\\ud800", "\\udfff")) {
+            rejected(TypedComparison01.Reason.INVALID_UNICODE, bytes("{\"$escape\":0}"))
+            rejected(TypedComparison01.Reason.DUPLICATE_KEY, bytes("{\"$escape\":1,\"$escape\":2}"))
+            rejected(TypedComparison01.Reason.NON_FINITE, bytes("{\"$escape\":NaN}"))
+            rejected(TypedComparison01.Reason.INVALID_JSON, bytes("[{\"$escape\":0},]"))
+        }
+        rejected(TypedComparison01.Reason.STRING_LIMIT, bytes("{\"x\\ud800\":0}"),
+            limits = TypedComparison01.Limits(maxStringChars = 1))
+        rejected(TypedComparison01.Reason.INVALID_JSON, bytes("{\"\\ud80z\":0}"))
+        rejected(TypedComparison01.Reason.DUPLICATE_KEY, bytes("{\"\\uD834\\uDD1E\":1,\"𝄞\":2}"))
+        outcome(TypedComparison01.Outcome.TRUE, "[{\"\\uD834\\uDD1E\":1}]", "{\"𝄞\":1}", "contains")
+    }
+
+    @Test
+    fun numericPrefixCallbacksPrecedeOnlyLaterSyntaxFailures() {
+        for (raw in listOf("NaNtrailing", "Infinity0", "-Infinityx", "[NaN,]"))
+            rejected(TypedComparison01.Reason.NON_FINITE, bytes(raw))
+        for (raw in listOf("1e1001x", "[1e1001,]"))
+            rejected(TypedComparison01.Reason.NUMBER_LIMIT, bytes(raw))
+        for (raw in listOf("1e", "1.", "-01", "--1", "+Infinity", "[,NaN]", "{unquoted:NaN}"))
+            rejected(TypedComparison01.Reason.INVALID_JSON, bytes(raw))
+    }
+
+    @Test
     fun byteCeilingIncludesOriginalWhitespaceSeparatelyForEachOperand() {
         val exact = bytes("0" + " ".repeat(65_535))
         assertEquals(TypedComparison01.Result.Compared(TypedComparison01.Outcome.TRUE),

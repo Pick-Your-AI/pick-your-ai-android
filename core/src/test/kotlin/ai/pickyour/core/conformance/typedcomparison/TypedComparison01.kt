@@ -1,13 +1,5 @@
 package ai.pickyour.core.conformance.typedcomparison
 
-import com.fasterxml.jackson.core.JsonFactory
-import com.fasterxml.jackson.core.JsonFactoryBuilder
-import com.fasterxml.jackson.core.JsonParser
-import com.fasterxml.jackson.core.JsonProcessingException
-import com.fasterxml.jackson.core.JsonToken
-import com.fasterxml.jackson.core.StreamReadConstraints
-import com.fasterxml.jackson.core.StreamReadFeature
-import com.fasterxml.jackson.core.json.JsonReadFeature
 import java.math.BigDecimal
 import java.math.BigInteger
 import java.nio.ByteBuffer
@@ -64,23 +56,7 @@ internal object TypedComparison01 {
     private val operators = setOf("eq", "ne", "lt", "lte", "gt", "gte", "in", "contains", "intersects", "subset_of")
     private val decimalString = Regex("(0|[1-9][0-9]*)(\\.[0-9]{1,12})?")
     private val exponent = Regex("[eE]([+-]?[0-9]+)$")
-
-    // Jackson only tokenizes. The profile performs its own exact number and
-    // Unicode-scalar/node/work admission; no global parser defaults are changed.
-    private val tokenizer: JsonFactory = JsonFactoryBuilder()
-        .disable(JsonFactory.Feature.INTERN_FIELD_NAMES)
-        .disable(JsonFactory.Feature.CANONICALIZE_FIELD_NAMES)
-        .disable(StreamReadFeature.STRICT_DUPLICATE_DETECTION)
-        .disable(StreamReadFeature.INCLUDE_SOURCE_IN_LOCATION)
-        .enable(JsonReadFeature.ALLOW_NON_NUMERIC_NUMBERS)
-        .streamReadConstraints(
-            StreamReadConstraints.builder()
-                .maxNestingDepth(65_536)
-                .maxNumberLength(65_536)
-                .maxStringLength(65_536)
-                .maxNameLength(65_536)
-                .build(),
-        ).build()
+    private val jsonNumber = Regex("-?(0|[1-9][0-9]*)(\\.[0-9]+)?([eE][+-]?[0-9]+)?")
 
     private sealed interface Value {
         data object Unresolved : Value
@@ -194,16 +170,7 @@ internal object TypedComparison01 {
         }
         work.charge(scalarCount(decoded).toLong())
         nesting(decoded, limits.maxDepth)
-        val value = try {
-            tokenizer.createParser(decoded).use { parser ->
-                val first = parser.nextToken() ?: reject(Reason.INVALID_JSON)
-                val parsed = parse(parser, first, limits)
-                if (parser.nextToken() != null) reject(Reason.INVALID_JSON)
-                parsed
-            }
-        } catch (_: JsonProcessingException) {
-            reject(Reason.INVALID_JSON)
-        }
+        val value = JsonReader(decoded, limits).readDocument()
 
         // Reproduce the reference's complete LIFO preflight, including keys.
         val pending = ArrayDeque<Pair<Value, Int>>()
@@ -242,53 +209,148 @@ internal object TypedComparison01 {
         return value
     }
 
-    private fun parse(parser: JsonParser, token: JsonToken, limits: Limits): Value = when (token) {
-        JsonToken.START_ARRAY -> {
+    /**
+     * Closed reference grammar over the original bounded UTF-8 text. In particular,
+     * keys retain escaped surrogate code units until object-pair duplicate checks
+     * and complete-document admission have finished, just as the selected Python
+     * reader does. A library field-name decoder must not reorder those outcomes.
+     */
+    private class JsonReader(private val source: String, private val limits: Limits) {
+        private var position = 0
+
+        fun readDocument(): Value {
+            val value = readValue()
+            whitespace()
+            if (position != source.length) reject(Reason.INVALID_JSON)
+            return value
+        }
+
+        private fun whitespace() {
+            while (position < source.length && source[position] in " \t\r\n") position++
+        }
+
+        private fun take(char: Char): Boolean {
+            if (position >= source.length || source[position] != char) return false
+            position++
+            return true
+        }
+
+        private fun literal(spelling: String, value: Value): Value {
+            if (!source.startsWith(spelling, position)) reject(Reason.INVALID_JSON)
+            position += spelling.length
+            return value
+        }
+
+        private fun readValue(): Value {
+            whitespace()
+            if (position >= source.length) reject(Reason.INVALID_JSON)
+            return when (source[position]) {
+                '[' -> readArray()
+                '{' -> readObject()
+                '"' -> Value.Text(readString())
+                't' -> literal("true", Value.Bool(true))
+                'f' -> literal("false", Value.Bool(false))
+                'n' -> literal("null", Value.Null)
+                'N' -> {
+                    if (source.startsWith("NaN", position)) reject(Reason.NON_FINITE)
+                    reject(Reason.INVALID_JSON)
+                }
+                'I' -> {
+                    if (source.startsWith("Infinity", position)) reject(Reason.NON_FINITE)
+                    reject(Reason.INVALID_JSON)
+                }
+                '-', in '0'..'9' -> {
+                    if (source.startsWith("-Infinity", position)) reject(Reason.NON_FINITE)
+                    // JSON's numeric callback consumes the valid prefix before
+                    // the surrounding grammar rejects a later trailing token.
+                    val token = jsonNumber.matchAt(source, position)?.value ?: reject(Reason.INVALID_JSON)
+                    position += token.length
+                    val decimal = number(token, limits)
+                    if (token.indexOfAny(charArrayOf('.', 'e', 'E')) < 0)
+                        Value.Integer(BigInteger(token))
+                    else Value.Decimal(decimal)
+                }
+                else -> reject(Reason.INVALID_JSON)
+            }
+        }
+
+        private fun readArray(): Value {
+            position++
+            whitespace()
+            if (take(']')) return Value.Items(emptyList())
             val items = ArrayList<Value>()
             while (true) {
-                val next = parser.nextToken() ?: reject(Reason.INVALID_JSON)
-                if (next == JsonToken.END_ARRAY) break
-                items += parse(parser, next, limits)
+                items += readValue()
+                whitespace()
+                if (take(']')) return Value.Items(items.toList())
+                if (!take(',')) reject(Reason.INVALID_JSON)
             }
-            Value.Items(items.toList())
         }
-        JsonToken.START_OBJECT -> {
-            // Python's object_pairs_hook checks duplicates after child values
-            // were parsed; do not turn a later nonfinite child into an overwrite.
+
+        private fun readObject(): Value {
+            position++
+            whitespace()
+            if (take('}')) return Value.Fields(emptyMap())
             val pairs = ArrayList<Pair<String, Value>>()
             while (true) {
-                val next = parser.nextToken() ?: reject(Reason.INVALID_JSON)
-                if (next == JsonToken.END_OBJECT) break
-                if (next != JsonToken.FIELD_NAME) reject(Reason.INVALID_JSON)
-                val key = parser.currentName()
-                val child = parser.nextToken() ?: reject(Reason.INVALID_JSON)
-                pairs += key to parse(parser, child, limits)
+                whitespace()
+                val key = readString()
+                whitespace()
+                if (!take(':')) reject(Reason.INVALID_JSON)
+                pairs += key to readValue()
+                whitespace()
+                if (take('}')) break
+                if (!take(',')) reject(Reason.INVALID_JSON)
             }
+            // The original object_pairs_hook runs after every supplied child.
             val fields = LinkedHashMap<String, Value>()
             for ((key, child) in pairs) {
                 if (fields.containsKey(key)) reject(Reason.DUPLICATE_KEY)
                 fields[key] = child
             }
-            Value.Fields(fields.toMap())
+            return Value.Fields(fields.toMap())
         }
-        JsonToken.VALUE_STRING -> Value.Text(parser.text)
-        JsonToken.VALUE_TRUE -> Value.Bool(true)
-        JsonToken.VALUE_FALSE -> Value.Bool(false)
-        JsonToken.VALUE_NULL -> Value.Null
-        JsonToken.VALUE_NUMBER_INT -> {
-            val literal = parser.text
-            number(literal, limits)
-            Value.Integer(BigInteger(literal))
+
+        private fun readString(): String {
+            if (!take('"')) reject(Reason.INVALID_JSON)
+            val value = StringBuilder()
+            while (position < source.length) {
+                val char = source[position++]
+                when {
+                    char == '"' -> return value.toString()
+                    char < ' ' -> reject(Reason.INVALID_JSON)
+                    char != '\\' -> value.append(char)
+                    else -> {
+                        if (position >= source.length) reject(Reason.INVALID_JSON)
+                        when (val escape = source[position++]) {
+                            '"', '\\', '/' -> value.append(escape)
+                            'b' -> value.append('\b')
+                            'f' -> value.append('\u000c')
+                            'n' -> value.append('\n')
+                            'r' -> value.append('\r')
+                            't' -> value.append('\t')
+                            'u' -> {
+                                if (source.length - position < 4) reject(Reason.INVALID_JSON)
+                                var code = 0
+                                repeat(4) {
+                                    val digit = source[position++]
+                                    val nibble = when (digit) {
+                                        in '0'..'9' -> digit - '0'
+                                        in 'a'..'f' -> digit - 'a' + 10
+                                        in 'A'..'F' -> digit - 'A' + 10
+                                        else -> reject(Reason.INVALID_JSON)
+                                    }
+                                    code = code * 16 + nibble
+                                }
+                                value.append(code.toChar())
+                            }
+                            else -> reject(Reason.INVALID_JSON)
+                        }
+                    }
+                }
+            }
+            reject(Reason.INVALID_JSON)
         }
-        JsonToken.VALUE_NUMBER_FLOAT -> {
-            val literal = parser.text
-            if (literal in setOf("NaN", "Infinity", "-Infinity")) reject(Reason.NON_FINITE)
-            // The tokenizer's extension has extra aliases; they are not this
-            // profile's JSON or admitted numeric syntax.
-            if (literal in setOf("INF", "+INF", "-INF", "+Infinity")) reject(Reason.INVALID_JSON)
-            Value.Decimal(number(literal, limits))
-        }
-        else -> reject(Reason.INVALID_JSON)
     }
 
     private fun truth(value: Boolean): Outcome = if (value) Outcome.TRUE else Outcome.FALSE
