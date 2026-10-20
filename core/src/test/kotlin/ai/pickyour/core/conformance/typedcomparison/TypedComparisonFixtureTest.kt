@@ -14,6 +14,8 @@ internal object TypedComparisonFixtures {
     const val PROTOTYPE_SHA256 = "5fc27536a5e97a9a76ad250a90015c4082269b54c6d56bbefd2615fc99639b82"
     const val FROZEN_REFERENCE_SHA256 = "092c8a99495f9b5ae960df40b27e33f15eefe6d1a7cd80119658fdc79ada1a5a"
     const val CORPUS_BYTES = 17_859
+    const val LOCK_BYTES = 1_811
+    const val LOCK_SHA256 = "a7fce7106d2d2135214576b062769ad557164471ac2915fc3b84820157dd90cb"
 
     data class Case(val name: String, val operator: String, val left: String?, val right: String?, val expected: String)
 
@@ -24,7 +26,12 @@ internal object TypedComparisonFixtures {
         .getResourceAsStream("/conformance/typed-comparison-0.1.json")!!
         .use { it.readNBytes(CORPUS_BYTES + 1) }
 
-    fun load(raw: ByteArray = original()): List<Case> {
+    fun originalLock(): ByteArray = TypedComparisonFixtures::class.java
+        .getResourceAsStream("/conformance/typed-comparison-inputs.lock.json")!!
+        .use { it.readNBytes(LOCK_BYTES + 1) }
+
+    fun load(raw: ByteArray = original(), lockRaw: ByteArray = originalLock()): List<Case> {
+        require(lockRaw.size == LOCK_BYTES && digest(lockRaw) == LOCK_SHA256) { "typed_input_lock_identity" }
         require(raw.size == CORPUS_BYTES && digest(raw) == CORPUS_SHA256) { "typed_fixture_identity" }
         val root = ObjectMapper().readTree(raw)
         require(root.isObject && root.fieldNames().asSequence().toSet() ==
@@ -75,6 +82,7 @@ class TypedComparisonFixtureTest {
                     "rightSHA256" to right?.let(TypedComparisonFixtures::digest),
                     "corpusSHA256" to TypedComparisonFixtures.CORPUS_SHA256,
                     "prototypeSHA256" to TypedComparisonFixtures.PROTOTYPE_SHA256,
+                    "inputsLockSHA256" to TypedComparisonFixtures.LOCK_SHA256,
                 )))
             }
         }
@@ -89,6 +97,19 @@ class TypedComparisonFixtureTest {
             assertEquals("typed_fixture_identity", error.message)
         }
         assertEquals(104, TypedComparisonFixtures.load(raw).size)
+    }
+
+    @Test
+    fun changedInputLockCannotRedirectTheNamedProfile() {
+        val lock = TypedComparisonFixtures.originalLock()
+        val changed = lock.copyOf().also { it[10] = (it[10].toInt() xor 1).toByte() }
+        for (candidate in listOf(changed, lock.copyOf(lock.size - 1), lock + byteArrayOf(10))) {
+            val error = assertThrows(IllegalArgumentException::class.java) {
+                TypedComparisonFixtures.load(lockRaw = candidate)
+            }
+            assertEquals("typed_input_lock_identity", error.message)
+        }
+        assertEquals(104, TypedComparisonFixtures.load().size)
     }
 
     @Test
