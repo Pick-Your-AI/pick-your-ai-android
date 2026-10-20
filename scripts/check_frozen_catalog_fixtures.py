@@ -1,11 +1,13 @@
 """Check the synthetic catalog wire mutations against unchanged frozen Python schemas."""
 import copy
 import hashlib
-import json
 from pathlib import Path
 
 from jsonschema import Draft202012Validator, FormatChecker
 from referencing import Registry, Resource
+from referencing.jsonschema import DRAFT202012
+
+from frozen_fixture_numbers import FixtureValidator, read_json
 
 ROOT = Path(__file__).resolve().parents[1]
 BASE = ROOT / "contracts/v1"
@@ -43,8 +45,18 @@ def mutated(original, case):
     return value
 
 
+def checker_schema(path):
+    schema = read_json(path)
+    if schema.pop("$schema", None) != Draft202012Validator.META_SCHEMA["$id"]:
+        raise ValueError("Unexpected frozen Catalog schema dialect")
+    # Snapshot items reach an external root schema. Select its known dialect
+    # explicitly so that reference traversal retains the exact integer checker.
+    # Only decoded private copies omit this dispatch key; frozen bytes stay exact.
+    return schema
+
+
 def main():
-    fixture = json.loads((ROOT / "core/src/test/resources/contracts/frozen-catalog-cases.json").read_text())
+    fixture = read_json(ROOT / "core/src/test/resources/contracts/frozen-catalog-cases.json")
     if set(fixture) != {"profile", "inputs", "cases"} or fixture["profile"] != "android-frozen-catalog-wire/v1":
         raise ValueError("Unknown catalog fixture profile")
     if set(fixture["inputs"]) != INPUTS:
@@ -52,18 +64,21 @@ def main():
     for path, expected in fixture["inputs"].items():
         if hashlib.sha256((BASE / path).read_bytes()).hexdigest() != expected:
             raise ValueError("Catalog fixture input identity changed")
-    schemas = [json.loads(path.read_text()) for path in (BASE / "schemas").glob("*.schema.json")]
-    registry = Registry().with_resources((schema["$id"], Resource.from_contents(schema)) for schema in schemas)
+    schemas = [checker_schema(path) for path in (BASE / "schemas").glob("*.schema.json")]
+    registry = Registry().with_resources(
+        (schema["$id"], Resource.from_contents(schema, default_specification=DRAFT202012))
+        for schema in schemas
+    )
     formats = FormatChecker()
     if not {"date-time", "uri"} <= formats.checkers.keys():
         raise ValueError("Catalog format checkers unavailable; install requirements-contracts.txt")
     validators = {
-        target: Draft202012Validator(
-            json.loads((BASE / f"schemas/{name}.schema.json").read_text()),
+        target: FixtureValidator(
+            checker_schema(BASE / f"schemas/{name}.schema.json"),
             registry=registry, format_checker=formats,
         ) for target, name in (("item", "catalog-item"), ("snapshot", "catalog-snapshot"))
     }
-    original = json.loads((BASE / "examples/catalog.json").read_text())
+    original = read_json(BASE / "examples/catalog.json")
     names = set()
     counts = {"decoded": 0, "unsupported_version": 0, "schema_mismatch": 0}
     for case in fixture["cases"]:

@@ -136,6 +136,28 @@ class TrainingSelectionActivityTest {
         checkbox(form).isChecked = enabled
         return commit(form)
     }
+    private fun assertConfiguredSettings(form: AlertDialog, selection: LocalSelection) {
+        if (selection.kind == PreviewTrainingComputeSettings.KIND) {
+            assertEquals("9007199254740993.123456789", field(form, R.string.training_compute_gpu_hours).text.toString())
+            assertEquals("999999999999999999999999", field(form, R.string.training_compute_checkpoint).text.toString())
+            val shown = views(form.window!!.decorView)
+            for (label in listOf(R.string.training_compute_gpu_hours, R.string.training_compute_checkpoint)) {
+                val supply = shown.filterIsInstance<CheckBox>().single {
+                    it.text.toString() == activity.getString(R.string.training_compute_supply, activity.getString(label))
+                }
+                assertTrue(supply.isChecked)
+            }
+            val spotLabel = shown.filterIsInstance<TextView>().single {
+                it.text.toString() == activity.getString(R.string.training_compute_spot)
+            }
+            assertNotEquals(View.NO_ID, spotLabel.labelFor)
+            val spot = requireNotNull(form.findViewById<Button>(spotLabel.labelFor))
+            assertEquals(activity.getString(R.string.training_compute_false), spot.text.toString())
+        } else {
+            assertEquals(entered.getValue(selection.kind), field(form, R.string.component_settings).text.toString())
+        }
+    }
+
     private fun closeDialog(form: AlertDialog) {
         form.getButton(AlertDialog.BUTTON_NEGATIVE).performClick()
         await { !form.isShowing }
@@ -255,7 +277,7 @@ class TrainingSelectionActivityTest {
             assertEquals(before.optionalTiers, saved.optionalTiers)
             assertTrue(saved.components.links.isEmpty())
             val configure = action(saved.components.selections.single(), R.string.component_configure)
-            assertEquals(raw, field(configure, R.string.component_settings).text.toString())
+            assertConfiguredSettings(configure, saved.components.selections.single())
             closeDialog(configure)
             assertNull(shadowOf(activity).nextStartedActivity)
         }
@@ -343,7 +365,7 @@ class TrainingSelectionActivityTest {
         }
         for (selection in before.components.selections) {
             val settings = action(selection, R.string.component_configure)
-            assertEquals(entered.getValue(selection.kind), field(settings, R.string.component_settings).text.toString())
+            assertConfiguredSettings(settings, selection)
             unchanged(settings)
             val role = action(selection, R.string.component_edit_role)
             assertEquals(selection.role, field(role, R.string.component_role).text.toString())
