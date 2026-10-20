@@ -12,7 +12,8 @@ import java.util.concurrent.RejectedExecutionException
 
 /** Read-only fixed fixture. It never evaluates, receives or writes the editable guest draft. */
 internal class FindingsInspectionSection(
-    private val activity: Activity, private val worker: ExecutorService, private val alive: () -> Boolean,
+    private val activity: Activity, private val worker: ExecutorService,
+    private val beforeInspect: () -> Unit = {}, private val alive: () -> Boolean,
 ) {
     private var accepted: ReferenceReportView? = null
     private var request: Any? = null
@@ -35,6 +36,9 @@ internal class FindingsInspectionSection(
         currentDialog = null
         previous?.dismiss()
     }
+
+    /** Sibling navigation retires windows while retaining the accepted inline report and pending read. */
+    fun dismissInspection() = retireWindows()
 
     fun dismiss() {
         request = null
@@ -62,6 +66,7 @@ internal class FindingsInspectionSection(
         this.browse = browse
         inspect.setOnClickListener {
             if (!active()) return@setOnClickListener
+            beforeInspect()
             val attempt = Any()
             request = attempt
             retireWindows()
@@ -96,6 +101,7 @@ internal class FindingsInspectionSection(
         browse.setOnClickListener {
             if (!active()) return@setOnClickListener
             val report = accepted ?: return@setOnClickListener
+            beforeInspect()
             retireWindows()
             val picker = AlertDialog.Builder(activity).setTitle(R.string.findings_browse)
                 .setItems(report.findings.map { FindingsInspectionText.row(activity, it) }.toTypedArray()) { origin, index ->

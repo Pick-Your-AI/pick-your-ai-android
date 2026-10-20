@@ -70,7 +70,9 @@ class IncomingComponentLinkActivityTest {
     private fun currentId() = PreviewActivity::class.java.getDeclaredField("currentDraftId")
         .apply { isAccessible = true }.get(activity) as PreviewDraftId
     private fun loaded(id: PreviewDraftId = currentId()) =
-        (PreviewDraftLibrary(activity.noBackupFilesDir.toPath()).open(id).load() as PreviewDraftLoad.Available).record
+        (readDraftAfterOwnedWork(activity) {
+            PreviewDraftLibrary(activity.noBackupFilesDir.toPath()).open(id)
+        } as PreviewDraftLoad.Available).record
 
     private fun finishWork() {
         val worker = PreviewActivity::class.java.getDeclaredField("worker")

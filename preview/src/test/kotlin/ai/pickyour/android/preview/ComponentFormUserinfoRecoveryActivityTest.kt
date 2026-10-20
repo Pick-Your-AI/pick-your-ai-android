@@ -82,7 +82,7 @@ class ComponentFormUserinfoRecoveryActivityTest {
         shadowOf(Looper.getMainLooper()).idle()
     }
     private fun adapter() = PreviewDraftLibrary(activity.noBackupFilesDir.toPath()).openLegacy()
-    private fun loaded() = (adapter().load() as PreviewDraftLoad.Available).record
+    private fun loaded() = (readDraftAfterOwnedWork(activity, ::adapter) as PreviewDraftLoad.Available).record
     private fun managedBytes(): Map<String, String> {
         val root = activity.noBackupFilesDir.toPath()
         return Files.walk(root).use { paths ->

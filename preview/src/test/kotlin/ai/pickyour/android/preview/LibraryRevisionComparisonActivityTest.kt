@@ -97,7 +97,8 @@ class LibraryRevisionComparisonActivityTest {
         val record = (adapter.load() as? PreviewDraftLoad.Available)?.record
         return (adapter.save(record, PreviewDraftFields(title), PreviewDraftContext(objective)) as PreviewDraftSave.Saved).record
     }
-    private fun loaded(id: PreviewDraftId = first) = (library().open(id).load() as PreviewDraftLoad.Available).record
+    private fun loaded(id: PreviewDraftId = first) =
+        (readDraftAfterOwnedWork(activity) { library().open(id) } as PreviewDraftLoad.Available).record
     private fun histories() {
         append(first, "before title", "saved before")
         append(first, "first unrelated head title", "first unrelated head")

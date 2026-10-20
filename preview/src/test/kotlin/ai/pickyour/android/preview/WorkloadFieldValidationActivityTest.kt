@@ -242,7 +242,7 @@ class WorkloadFieldValidationActivityTest {
     private fun hasText(label: Int) = views().filterIsInstance<TextView>().any { it.text.toString() == activity.getString(label) }
     private fun assertNoFieldErrors() = labels.forEach { assertNull("A valid field must not have an error", field(it).error) }
     private fun adapter() = PreviewDraftLibrary(activity.noBackupFilesDir.toPath()).openLegacy()
-    private fun loaded() = (adapter().load() as PreviewDraftLoad.Available).record
+    private fun loaded() = (readDraftAfterOwnedWork(activity, ::adapter) as PreviewDraftLoad.Available).record
     private fun dialog() = ShadowAlertDialog.getLatestAlertDialog()!!
     private fun save() {
         assertTrue(button(R.string.save_draft).isEnabled)

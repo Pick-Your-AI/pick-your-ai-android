@@ -90,8 +90,9 @@ class CatalogSelectionHandoffActivityTest {
     private fun currentId() = PreviewActivity::class.java.getDeclaredField("currentDraftId")
         .apply { isAccessible = true }.get(activity) as PreviewDraftId
 
-    private fun loaded() = (PreviewDraftLibrary(activity.noBackupFilesDir.toPath())
-        .open(currentId()).load() as PreviewDraftLoad.Available).record
+    private fun loaded() = (readDraftAfterOwnedWork(activity) {
+        PreviewDraftLibrary(activity.noBackupFilesDir.toPath()).open(currentId())
+    } as PreviewDraftLoad.Available).record
 
     private fun emptyDraft(): PreviewStoredDraft {
         val previous = currentId()
@@ -344,18 +345,40 @@ class CatalogSelectionHandoffActivityTest {
 
     @Test fun changedSavedDraftRetiresSearchAuthorityAndExplainsRecoveryWithoutOverwriting() {
         emptyDraft()
+        val id = currentId()
         val detail = details("cat.model.fixture")
         val action = useInDraft(detail)
         assertTrue(action.isEnabled)
         field(R.string.draft_title).setText("new acknowledged draft revision")
         button(R.string.save_draft).performClick()
+        assertFalse("Saving retires the captured detail synchronously", detail.isShowing)
         await { hasText(R.string.draft_saved) }
         finishWork()
         val saved = loaded()
+        val currentWindow = dialog()
         action.performClick()
         finishWork()
-        assertFalse(action.isEnabled)
-        assertTrue(shadowOf(detail).message.toString().contains(activity.getString(R.string.catalog_selection_changed)))
+        assertFalse(detail.isShowing)
+        assertSame(currentWindow, dialog())
+        assertEquals(id, currentId())
+        assertEquals(saved.baselineIdentity, loaded().baselineIdentity)
+        assertTrue(loaded().components.selections.isEmpty())
+        assertEquals("new acknowledged draft revision", field(R.string.draft_title).text.toString())
+
+        val fresh = details("cat.model.fixture")
+        val freshAction = useInDraft(fresh)
+        assertTrue(freshAction.isEnabled)
+        freshAction.performClick()
+        val picker = dialog()
+        assertFalse(fresh.isShowing)
+        assertNotSame(fresh, picker)
+        assertTrue(picker.isShowing)
+        picker.getButton(AlertDialog.BUTTON_NEGATIVE).performClick()
+        action.performClick()
+        finishWork()
+        assertFalse(picker.isShowing)
+        assertSame(picker, dialog())
+        assertEquals(id, currentId())
         assertEquals(saved.baselineIdentity, loaded().baselineIdentity)
         assertTrue(loaded().components.selections.isEmpty())
         assertEquals("new acknowledged draft revision", field(R.string.draft_title).text.toString())
