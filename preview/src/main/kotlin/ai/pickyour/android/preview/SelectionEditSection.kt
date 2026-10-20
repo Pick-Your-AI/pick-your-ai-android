@@ -120,7 +120,8 @@ internal class SelectionEditSection(private val activity: Activity,
             recovery is ComponentFormRecovery.TypedWorkloadSelectionPending ||
             recovery is ComponentFormRecovery.TypedComputePending ||
             recovery is ComponentFormRecovery.TypedCostPolicyPending ||
-            recovery is ComponentFormRecovery.TypedModelProviderPending) View.VISIBLE else View.GONE
+            recovery is ComponentFormRecovery.TypedModelProviderPending ||
+            recovery is ComponentFormRecovery.TypedDeploymentTargetPending) View.VISIBLE else View.GONE
         discardRecovery.visibility = if (noRecovery) View.GONE else View.VISIBLE
         reviewRecovery.isEnabled = foreground
         discardRecovery.isEnabled = foreground
@@ -213,6 +214,10 @@ internal class SelectionEditSection(private val activity: Activity,
         }
         (recovery as? ComponentFormRecovery.TypedModelProviderPending)?.let {
             reviewTypedModelProviderInput(it.form)
+            return
+        }
+        (recovery as? ComponentFormRecovery.TypedDeploymentTargetPending)?.let {
+            reviewTypedDeploymentTargetInput(it.form)
             return
         }
         val pending = (recovery as? ComponentFormRecovery.Pending)?.form ?: return
@@ -398,6 +403,30 @@ internal class SelectionEditSection(private val activity: Activity,
             text = activity.getString(R.string.component_recovery_identity, pending.draftId, pending.selectionId)
         })
         layout.addView(ModelProviderSettingsEditor.readOnly(activity, pending.input))
+        show(AlertDialog.Builder(activity).setTitle(R.string.component_recovery_review)
+            .setView(ScrollView(activity).apply { addView(layout) }).setNegativeButton(R.string.close, null).create())
+    }
+
+    private fun reviewTypedDeploymentTargetInput(pending: DeploymentTargetFormCheckpoint) {
+        val expected = baseline
+        val selection = expected?.components?.selections?.singleOrNull { it.id == pending.selectionId }
+        if (editable && expected != null && currentDraftId == pending.draftId &&
+            expected.baselineIdentity == pending.baseline && !pending.wasSaving &&
+            selection != null && selection.kind == PreviewDeploymentTargetSettings.KIND &&
+            selection.catalogItemId == pending.catalogItemId && selection.catalogItemVersion == pending.catalogItemVersion) {
+            recovery = ComponentFormRecovery.None
+            update(baseline, editable)
+            deploymentTargetSettingsForm(expected, selection, pending)
+            return
+        }
+        val layout = LinearLayout(activity).apply { orientation = VERTICAL }
+        layout.addView(TextView(activity).apply {
+            setText(if (pending.wasSaving) R.string.component_recovery_saving else R.string.component_recovery_changed)
+        })
+        layout.addView(TextView(activity).apply {
+            text = activity.getString(R.string.component_recovery_identity, pending.draftId, pending.selectionId)
+        })
+        layout.addView(DeploymentTargetSettingsEditor.readOnly(activity, pending.input))
         show(AlertDialog.Builder(activity).setTitle(R.string.component_recovery_review)
             .setView(ScrollView(activity).apply { addView(layout) }).setNegativeButton(R.string.close, null).create())
     }
@@ -681,6 +710,10 @@ internal class SelectionEditSection(private val activity: Activity,
             costPolicySettingsForm(expected, selection)
             return
         }
+        if (restored == null && selection.kind == PreviewDeploymentTargetSettings.KIND) {
+            deploymentTargetSettingsForm(expected, selection)
+            return
+        }
         val layout = LinearLayout(activity).apply { orientation = VERTICAL }
         layout.addView(TextView(activity).apply { setText(R.string.component_settings_warning) })
         foundationGuidance(layout, selection.kind)
@@ -950,6 +983,51 @@ internal class SelectionEditSection(private val activity: Activity,
                 if (active(expected) && editor.input() == raw) editor.showIssues(result.get()?.issues.orEmpty())
             }) {
                 PreviewModelProviderSettings.configure(selection, raw).also(result::set).preparation
+            }
+        }
+    }
+
+    private fun deploymentTargetSettingsForm(expected: PreviewStoredDraft, selection: LocalSelection,
+        restored: DeploymentTargetFormCheckpoint? = null) {
+        if (!canOpen(expected) || selection.kind != PreviewDeploymentTargetSettings.KIND) return
+        val draftId = requireNotNull(currentDraftId)
+        val layout = LinearLayout(activity).apply { orientation = VERTICAL }
+        layout.addView(TextView(activity).apply {
+            text = label(selection)
+            setTextIsSelectable(true)
+            isSaveEnabled = false
+        })
+        layout.addView(TextView(activity).apply { setText(R.string.component_settings_warning) })
+        operationalGuidance(layout, selection.kind)
+        layout.addView(TextView(activity).apply { setText(R.string.deployment_target_recovery_guidance) })
+        lateinit var dialog: AlertDialog
+        val editor = DeploymentTargetSettingsEditor(activity, restored?.input ?: PreviewDeploymentTargetSettings.initial(selection)) {
+            active(expected) && open(dialog) && formBinding?.saving == false
+        }.also(layout::addView)
+        val feedback = feedback().also(layout::addView)
+        dialog = show(AlertDialog.Builder(activity).setTitle(R.string.deployment_target_editor_title)
+            .setView(ScrollView(activity).apply { addView(layout) })
+            .setNegativeButton(R.string.close, null).setPositiveButton(R.string.component_commit, null).create(), feedback)
+        val binding = FormBinding(dialog) { saving ->
+            DeploymentTargetFormCheckpoint(draftId, expected.baselineIdentity, selection.id, selection.catalogItemId,
+                selection.catalogItemVersion, editor.input(), saving).recovery()
+        }
+        binding.onFreeze = editor::freeze
+        binding.onClose = editor::close
+        binding.onStateChange = {
+            editor.freeze(binding.saving || !active(expected))
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = !binding.saving && active(expected)
+        }
+        formBinding = binding
+        update(baseline, editable)
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+            if (!active(expected) || binding.saving) return@setOnClickListener
+            val raw = editor.input()
+            val result = java.util.concurrent.atomic.AtomicReference<PreviewDeploymentTargetPreparation?>()
+            submit(dialog, expected, null, onRejected = {
+                if (active(expected) && editor.input() == raw) editor.showIssues(result.get()?.issues.orEmpty())
+            }) {
+                PreviewDeploymentTargetSettings.configure(selection, raw).also(result::set).preparation
             }
         }
     }
