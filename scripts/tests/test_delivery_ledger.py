@@ -138,7 +138,7 @@ class LedgerValidationTest(unittest.TestCase):
             module.validate(self.ledger, [issue for issue in source if issue['state'] == 'open'])
 
     def test_completion_requires_reviewed_schema_version(self):
-        for version in (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, True, '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0):
+        for version in (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 17, True, '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0):
             ledger = copy.deepcopy(self.ledger)
             ledger['schema_version'] = version
             with self.assertRaisesRegex(ValueError, 'unsupported schema version'):
@@ -545,7 +545,7 @@ class LedgerImplementationAcceptanceTest(unittest.TestCase):
     def test_only_three_local_model_criteria_have_implementation_acceptance(self):
         module.validate(self.ledger)
         # Keep this earlier model-only count at the exact accepted v10.
-        issues = module.reconstruct_prior_v10(module.reconstruct_prior_v11(module.reconstruct_prior_v12(module.reconstruct_prior_v13(module.reconstruct_prior_v14(self.ledger)))))['issues']
+        issues = module.reconstruct_prior_v10(module.reconstruct_prior_v11(module.reconstruct_prior_v12(module.reconstruct_prior_v13(module.reconstruct_prior_v14(module.reconstruct_prior_v15(self.ledger))))))['issues']
         self.assertEqual([26], [x['number'] for x in issues if 'accepted_implementation_outcome' in x])
         self.assertEqual([2, 20, 23, 24, 25, 34, 35, 47], [x['number'] for x in issues if 'accepted_design_outcome' in x])
         criteria = [c for issue in issues for c in issue['criteria']]
@@ -777,7 +777,7 @@ class LedgerImplementationAcceptanceTest(unittest.TestCase):
                 issue['canonical_acceptance_record']['repository'] = module.REPOSITORY
                 issue['criteria'][0].update(status='complete', completion_evidence=['pr-407', 'pr-418'],
                     remaining_engineering='', external_prerequisites=[], evidence_relation=module.COMPLETE_IMPLEMENTATION_RELATION)
-                expected = ('missing or changed reviewed implementation acceptance: 84' if number == 84
+                expected = (f'missing or changed reviewed implementation acceptance: {number}' if number in (84, 98)
                             else f'unsupported implementation acceptance: {number}')
                 with self.assertRaisesRegex(ValueError, expected):
                     module.validate(ledger)
@@ -813,7 +813,7 @@ class LedgerImplementationAcceptanceTest(unittest.TestCase):
                 ledger['issues'][number - 1]['title'] += ' Unreviewed replacement'
                 with self.assertRaisesRegex(ValueError, 'unreviewed change to another issue record'):
                     module.validate(ledger)
-        for key in module.reconstruct_prior_v8(module.reconstruct_prior_v10(module.reconstruct_prior_v11(module.reconstruct_prior_v12(module.reconstruct_prior_v13(module.reconstruct_prior_v14(self.ledger))))))['evidence']:
+        for key in module.reconstruct_prior_v8(module.reconstruct_prior_v10(module.reconstruct_prior_v11(module.reconstruct_prior_v12(module.reconstruct_prior_v13(module.reconstruct_prior_v14(module.reconstruct_prior_v15(self.ledger)))))))['evidence']:
             if key in ('pr-407', 'pr-418', 'pr-412'):
                 continue
             with self.subTest(evidence=key):
@@ -1024,7 +1024,7 @@ class IntegratedFoundationAcceptanceTest(unittest.TestCase):
                     issue['accepted_design_outcome']['historical_acceptance_record']['repository'] = module.REPOSITORY
                 with self.assertRaises(ValueError):
                     module.validate(ledger)
-        previous_v8 = module.reconstruct_prior_v8(module.reconstruct_prior_v10(module.reconstruct_prior_v11(module.reconstruct_prior_v12(module.reconstruct_prior_v13(module.reconstruct_prior_v14(self.ledger))))))
+        previous_v8 = module.reconstruct_prior_v8(module.reconstruct_prior_v10(module.reconstruct_prior_v11(module.reconstruct_prior_v12(module.reconstruct_prior_v13(module.reconstruct_prior_v14(module.reconstruct_prior_v15(self.ledger)))))))
         other_issues = [i for i in previous_v8['issues'] if i['number'] != 2]
         old_evidence = {k:v for k,v in previous_v8['evidence'].items() if k != 'pr-412'}
         self.assertEqual('5f07f02f18bff26269edf31a221f4cbd97438f146a7179a230a18e54316b25f0',
@@ -1143,7 +1143,7 @@ class LedgerInputIntegrityTest(unittest.TestCase):
             with self.subTest(optimized=optimized):
                 result = self.run_cli(self.raw_ledger, source_text, optimized)
                 self.assertEqual(result.returncode, 0, result.stderr)
-                self.assertIn('395 incomplete criteria, 25 reviewed design criteria, 17 reviewed implementation criteria, 1 reviewed import-integrity criterion, 3 reviewed support criteria', result.stdout)
+                self.assertIn('391 incomplete criteria, 25 reviewed design criteria, 21 reviewed implementation criteria, 1 reviewed import-integrity criterion, 3 reviewed support criteria', result.stdout)
                 self.assertIn('exact source criteria matched.', result.stdout)
                 self.assertEqual(result.stderr, '')
         self.assert_rejected('unreviewed change to complete prior v11 ledger history',
@@ -1189,11 +1189,11 @@ class ImportCriterionAcceptanceTest(unittest.TestCase):
 
     def test_only_literal_import_criterion_is_newly_complete(self):
         module.validate(self.ledger)
-        prior = module.reconstruct_prior_v8(module.reconstruct_prior_v10(module.reconstruct_prior_v11(module.reconstruct_prior_v12(module.reconstruct_prior_v13(module.reconstruct_prior_v14(self.ledger))))))
+        prior = module.reconstruct_prior_v8(module.reconstruct_prior_v10(module.reconstruct_prior_v11(module.reconstruct_prior_v12(module.reconstruct_prior_v13(module.reconstruct_prior_v14(module.reconstruct_prior_v15(self.ledger)))))))
         self.assertEqual('5db8320d3f26f0ddf24e751e41489aaec344f997eb52d408a95449b4b6cabdae',
                          module.json_digest(prior))
         # Keep this original import-only comparison at its reconstructed v9.
-        reviewed_v9 = module.reconstruct_prior_v9(module.reconstruct_prior_v10(module.reconstruct_prior_v11(module.reconstruct_prior_v12(module.reconstruct_prior_v13(module.reconstruct_prior_v14(self.ledger))))))
+        reviewed_v9 = module.reconstruct_prior_v9(module.reconstruct_prior_v10(module.reconstruct_prior_v11(module.reconstruct_prior_v12(module.reconstruct_prior_v13(module.reconstruct_prior_v14(module.reconstruct_prior_v15(self.ledger)))))))
         current = [c for issue in reviewed_v9['issues'] for c in issue['criteria']]
         original = [c for issue in prior['issues'] for c in issue['criteria']]
         self.assertEqual(441, len(current))
@@ -1450,7 +1450,7 @@ class ImportCriterionAcceptanceTest(unittest.TestCase):
                     ledger['issues'][20]['title'] += ' (all complete)'
                 with self.assertRaisesRegex(ValueError, 'preserve prior #21 context'):
                     module.validate(ledger)
-        prior = module.reconstruct_prior_v8(module.reconstruct_prior_v10(module.reconstruct_prior_v11(module.reconstruct_prior_v12(module.reconstruct_prior_v13(module.reconstruct_prior_v14(self.ledger))))))
+        prior = module.reconstruct_prior_v8(module.reconstruct_prior_v10(module.reconstruct_prior_v11(module.reconstruct_prior_v12(module.reconstruct_prior_v13(module.reconstruct_prior_v14(module.reconstruct_prior_v15(self.ledger)))))))
         self.assertEqual(8, prior['schema_version'])
         self.assertEqual(24, len(prior['evidence']))
         self.assertEqual(413, sum(c['status'] == 'incomplete' for i in prior['issues'] for c in i['criteria']))
@@ -1460,7 +1460,7 @@ class ImportCriterionAcceptanceTest(unittest.TestCase):
         original = copy.deepcopy(self.ledger)
         module.validate(self.ledger)
         self.assertEqual(original, self.ledger)
-        previous = module.reconstruct_prior_v8(module.reconstruct_prior_v10(module.reconstruct_prior_v11(module.reconstruct_prior_v12(module.reconstruct_prior_v13(module.reconstruct_prior_v14(self.ledger))))))
+        previous = module.reconstruct_prior_v8(module.reconstruct_prior_v10(module.reconstruct_prior_v11(module.reconstruct_prior_v12(module.reconstruct_prior_v13(module.reconstruct_prior_v14(module.reconstruct_prior_v15(self.ledger)))))))
         previous['issues'][20]['criteria'][0]['text'] = 'Only the returned prior copy changes.'
         previous['evidence']['pr-133']['scope_limit'] = 'Only the returned prior copy changes.'
         self.assertEqual(original, self.ledger)
@@ -1481,7 +1481,7 @@ class SupportOutcomeAcceptanceTest(unittest.TestCase):
     def test_only_three_literal_support_criteria_change_and_complete_v9_is_recovered(self):
         import hashlib
         module.validate(self.ledger)
-        prior = module.reconstruct_prior_v9(module.reconstruct_prior_v10(module.reconstruct_prior_v11(module.reconstruct_prior_v12(module.reconstruct_prior_v13(module.reconstruct_prior_v14(self.ledger))))))
+        prior = module.reconstruct_prior_v9(module.reconstruct_prior_v10(module.reconstruct_prior_v11(module.reconstruct_prior_v12(module.reconstruct_prior_v13(module.reconstruct_prior_v14(module.reconstruct_prior_v15(self.ledger)))))))
         self.assertEqual(9, prior['schema_version'])
         self.assertEqual('81314afc8892c8b6069fa6ccfdc35805f7feec3dbec3cf304eaccc392fa5c55b',
                          module.json_digest(prior))
@@ -1490,7 +1490,7 @@ class SupportOutcomeAcceptanceTest(unittest.TestCase):
         self.assertEqual('49fc9557d3fc383c355663c2a71cc5096a4e2dcca5b1ed91da7657e249d627c4',
                          hashlib.sha256(raw).hexdigest())
         # Preserve this earlier support-only comparison at reconstructed v10.
-        reviewed_v10 = module.reconstruct_prior_v10(module.reconstruct_prior_v11(module.reconstruct_prior_v12(module.reconstruct_prior_v13(module.reconstruct_prior_v14(self.ledger)))))
+        reviewed_v10 = module.reconstruct_prior_v10(module.reconstruct_prior_v11(module.reconstruct_prior_v12(module.reconstruct_prior_v13(module.reconstruct_prior_v14(module.reconstruct_prior_v15(self.ledger))))))
         current = [c for i in reviewed_v10['issues'] for c in i['criteria']]
         previous = [c for i in prior['issues'] for c in i['criteria']]
         self.assertEqual(441, len(current))
@@ -1826,7 +1826,7 @@ class SupportOutcomeAcceptanceTest(unittest.TestCase):
                 ledger['observed_on'] = 'future_observation'
             with self.assertRaises(ValueError):
                 module.validate(ledger)
-        for ref in module.reconstruct_prior_v9(module.reconstruct_prior_v10(module.reconstruct_prior_v11(module.reconstruct_prior_v12(module.reconstruct_prior_v13(module.reconstruct_prior_v14(self.ledger))))))['evidence']:
+        for ref in module.reconstruct_prior_v9(module.reconstruct_prior_v10(module.reconstruct_prior_v11(module.reconstruct_prior_v12(module.reconstruct_prior_v13(module.reconstruct_prior_v14(module.reconstruct_prior_v15(self.ledger)))))))['evidence']:
             ledger = copy.deepcopy(self.ledger)
             ledger['evidence'][ref]['scope_limit'] += ' and unrestricted support'
             with self.assertRaises(ValueError):
@@ -1839,7 +1839,7 @@ class SupportOutcomeAcceptanceTest(unittest.TestCase):
             with self.assertRaises(ValueError):
                 module.validate(ledger)
         for purpose in (module.PRIOR_V9_PURPOSE, 'All 441 criteria are complete.',
-                        self.ledger['purpose'].replace('395', '394')):
+                        self.ledger['purpose'].replace('391', '390')):
             ledger = copy.deepcopy(self.ledger)
             ledger['purpose'] = purpose
             with self.assertRaisesRegex(ValueError, 'unsupported ledger completion summary'):
@@ -1849,8 +1849,8 @@ class SupportOutcomeAcceptanceTest(unittest.TestCase):
         original = copy.deepcopy(self.ledger)
         module.validate(self.ledger)
         self.assertEqual(original, self.ledger)
-        prior = module.reconstruct_prior_v9(module.reconstruct_prior_v10(module.reconstruct_prior_v11(module.reconstruct_prior_v12(module.reconstruct_prior_v13(module.reconstruct_prior_v14(self.ledger))))))
-        earlier = module.reconstruct_prior_v8(module.reconstruct_prior_v10(module.reconstruct_prior_v11(module.reconstruct_prior_v12(module.reconstruct_prior_v13(module.reconstruct_prior_v14(self.ledger))))))
+        prior = module.reconstruct_prior_v9(module.reconstruct_prior_v10(module.reconstruct_prior_v11(module.reconstruct_prior_v12(module.reconstruct_prior_v13(module.reconstruct_prior_v14(module.reconstruct_prior_v15(self.ledger)))))))
+        earlier = module.reconstruct_prior_v8(module.reconstruct_prior_v10(module.reconstruct_prior_v11(module.reconstruct_prior_v12(module.reconstruct_prior_v13(module.reconstruct_prior_v14(module.reconstruct_prior_v15(self.ledger)))))))
         prior['issues'][32]['criteria'][0]['text'] = 'Changed only in the returned copy.'
         prior['evidence']['pr-430']['scope_limit'] = 'Changed only in the returned copy.'
         earlier['issues'][20]['criteria'][1]['text'] = 'Changed only in the returned copy.'
@@ -1874,7 +1874,7 @@ class RetainedEvaluationAcceptanceTest(unittest.TestCase):
 
     def test_only_four_retained_profile_criteria_extend_prior_v10(self):
         module.validate(self.ledger)
-        current_v11 = module.reconstruct_prior_v11(module.reconstruct_prior_v12(module.reconstruct_prior_v13(module.reconstruct_prior_v14(self.ledger))))
+        current_v11 = module.reconstruct_prior_v11(module.reconstruct_prior_v12(module.reconstruct_prior_v13(module.reconstruct_prior_v14(module.reconstruct_prior_v15(self.ledger)))))
         old = module.reconstruct_prior_v10(current_v11)
         self.assertEqual(module.PRIOR_V10_LEDGER_SHA256, module.json_digest(old))
         current = [c for i in current_v11['issues'] for c in i['criteria']]
@@ -2105,7 +2105,7 @@ class RetainedEvaluationAcceptanceTest(unittest.TestCase):
     def test_validation_and_prior_inverse_do_not_mutate_input(self):
         original = copy.deepcopy(self.ledger)
         module.validate(self.ledger)
-        previous = module.reconstruct_prior_v10(module.reconstruct_prior_v11(module.reconstruct_prior_v12(module.reconstruct_prior_v13(module.reconstruct_prior_v14(self.ledger)))))
+        previous = module.reconstruct_prior_v10(module.reconstruct_prior_v11(module.reconstruct_prior_v12(module.reconstruct_prior_v13(module.reconstruct_prior_v14(module.reconstruct_prior_v15(self.ledger))))))
         previous['issues'][83]['criteria'][0]['text'] = 'Only the returned copy changes.'
         previous['evidence']['pr-430']['scope_limit'] = 'Only the returned copy changes.'
         self.assertEqual(original, self.ledger)
@@ -2132,7 +2132,7 @@ class CompatiblePickerAcceptanceTest(unittest.TestCase):
 
     def test_only_four_picker_criteria_extend_the_exact_prior_v11(self):
         module.validate(self.ledger)
-        current_v12 = module.reconstruct_prior_v12(module.reconstruct_prior_v13(module.reconstruct_prior_v14(self.ledger)))
+        current_v12 = module.reconstruct_prior_v12(module.reconstruct_prior_v13(module.reconstruct_prior_v14(module.reconstruct_prior_v15(self.ledger))))
         previous = module.reconstruct_prior_v11(current_v12)
         self.assertEqual(module.PRIOR_V11_LEDGER_SHA256, module.json_digest(previous))
         current = [criterion for issue in current_v12['issues'] for criterion in issue['criteria']]
@@ -2160,7 +2160,7 @@ class CompatiblePickerAcceptanceTest(unittest.TestCase):
     def test_complete_prior_inverse_is_detached_and_never_changes_the_input(self):
         original = copy.deepcopy(self.ledger)
         module.validate(self.ledger)
-        previous = module.reconstruct_prior_v11(module.reconstruct_prior_v12(module.reconstruct_prior_v13(module.reconstruct_prior_v14(self.ledger))))
+        previous = module.reconstruct_prior_v11(module.reconstruct_prior_v12(module.reconstruct_prior_v13(module.reconstruct_prior_v14(module.reconstruct_prior_v15(self.ledger)))))
         self.assertEqual(module.PRIOR_96_ISSUE_SHA256,
                          module.json_digest(previous['issues'][95]))
         previous['issues'][95]['criteria'][0]['text'] = 'Only the returned copy changes.'
@@ -2246,7 +2246,7 @@ class CompatiblePickerAcceptanceTest(unittest.TestCase):
 
     def test_consumed_outputs_do_not_close_other_upstream_criteria(self):
         for number in (21, 37, 82):
-            target = module.reconstruct_prior_v12(module.reconstruct_prior_v13(module.reconstruct_prior_v14(self.ledger)))['issues'][number - 1]
+            target = module.reconstruct_prior_v12(module.reconstruct_prior_v13(module.reconstruct_prior_v14(module.reconstruct_prior_v15(self.ledger))))['issues'][number - 1]
             indexes = [n for n, c in enumerate(target['criteria']) if c['status'] == 'incomplete']
             self.assertTrue(indexes, number)
             for index in indexes:
@@ -2267,7 +2267,7 @@ class CompatiblePickerAcceptanceTest(unittest.TestCase):
             lambda d: d['issues'][81].update(title='Unreviewed upstream completion'),
         ):
             self.rejected(change)
-        previous = module.reconstruct_prior_v11(module.reconstruct_prior_v12(module.reconstruct_prior_v13(module.reconstruct_prior_v14(self.ledger))))
+        previous = module.reconstruct_prior_v11(module.reconstruct_prior_v12(module.reconstruct_prior_v13(module.reconstruct_prior_v14(module.reconstruct_prior_v15(self.ledger)))))
         for ref in previous['evidence']:
             self.rejected(lambda d, ref=ref: d['evidence'][ref].update(
                 scope_limit='This historical observation now accepts all deployments.'))
@@ -2453,7 +2453,7 @@ class MetadataReconciliationTest(unittest.TestCase):
 
     def test_complete_prior_v12_bytes_and_all_criterion_states_are_exact(self):
         module.validate(self.ledger)
-        current_v13 = module.reconstruct_prior_v13(module.reconstruct_prior_v14(self.ledger))
+        current_v13 = module.reconstruct_prior_v13(module.reconstruct_prior_v14(module.reconstruct_prior_v15(self.ledger)))
         import hashlib
         previous = module.reconstruct_prior_v12(current_v13)
         raw = (json.dumps(previous, indent=2, ensure_ascii=False) + '\n').encode('utf-8')
@@ -2481,7 +2481,7 @@ class MetadataReconciliationTest(unittest.TestCase):
 
     def test_exact_field_inverse_keeps_only_the_scoped_metadata_changes(self):
         module.validate(self.ledger)
-        current_v13 = module.reconstruct_prior_v13(module.reconstruct_prior_v14(self.ledger))
+        current_v13 = module.reconstruct_prior_v13(module.reconstruct_prior_v14(module.reconstruct_prior_v15(self.ledger)))
         previous = module.reconstruct_prior_v12(current_v13)
         expected = copy.deepcopy(previous)
         expected['schema_version'] = 13
@@ -2502,7 +2502,7 @@ class MetadataReconciliationTest(unittest.TestCase):
     def test_effective_placement_decisions_are_exact_and_do_not_complete_criteria(self):
         import hashlib
         # The placement amendment is historical; later #48 acceptance is separate.
-        historical_v14 = module.reconstruct_prior_v14(self.ledger)
+        historical_v14 = module.reconstruct_prior_v14(module.reconstruct_prior_v15(self.ledger))
         for number, path, revision in (
                 (48, 'docs/delivery/android/work-packages/02.01.md', '710d337fed2004689993c0b8bc01f12de780b04c'),
                 (59, 'docs/delivery/android/work-packages/02.05.md', '146413ff168583f4c2b0df87ab41d36e57f8ea85')):
@@ -2597,7 +2597,7 @@ class MetadataReconciliationTest(unittest.TestCase):
                     issue = changed['issues'][number - 1]
                     target = issue if location == 'issue' else issue['criteria'][0]
                     target['unreviewed_history'] = {'approved': True}
-                    previous = module.reconstruct_prior_v12(module.reconstruct_prior_v13(module.reconstruct_prior_v14(changed)))
+                    previous = module.reconstruct_prior_v12(module.reconstruct_prior_v13(module.reconstruct_prior_v14(module.reconstruct_prior_v15(changed))))
                     old_issue = previous['issues'][number - 1]
                     old_target = old_issue if location == 'issue' else old_issue['criteria'][0]
                     self.assertEqual({'approved': True}, old_target['unreviewed_history'])
@@ -2605,7 +2605,7 @@ class MetadataReconciliationTest(unittest.TestCase):
                         module.validate(changed)
         changed = copy.deepcopy(self.ledger)
         changed['issues'][47]['canonical_acceptance_record']['approved'] = True
-        self.assertTrue(module.reconstruct_prior_v12(module.reconstruct_prior_v13(module.reconstruct_prior_v14(changed)))['issues'][47]['canonical_acceptance_record']['approved'])
+        self.assertTrue(module.reconstruct_prior_v12(module.reconstruct_prior_v13(module.reconstruct_prior_v14(module.reconstruct_prior_v15(changed))))['issues'][47]['canonical_acceptance_record']['approved'])
         with self.assertRaises(ValueError):
             module.validate(changed)
 
@@ -2626,7 +2626,7 @@ class MetadataReconciliationTest(unittest.TestCase):
     def test_original_evidence_and_metadata_are_not_replaced_by_the_projection(self):
         changed = copy.deepcopy(self.ledger)
         changed['evidence']['pr-136']['scope_limit'] += ' All variants complete.'
-        self.assertEqual(changed['evidence']['pr-136'], module.reconstruct_prior_v12(module.reconstruct_prior_v13(module.reconstruct_prior_v14(changed)))['evidence']['pr-136'])
+        self.assertEqual(changed['evidence']['pr-136'], module.reconstruct_prior_v12(module.reconstruct_prior_v13(module.reconstruct_prior_v14(module.reconstruct_prior_v15(changed))))['evidence']['pr-136'])
         with self.assertRaises(ValueError):
             module.validate(changed)
         for field in ('observed_on', 'implementation_baseline', 'source'):
@@ -2651,13 +2651,13 @@ class MetadataReconciliationTest(unittest.TestCase):
     def test_validation_and_prior_copies_preserve_the_input(self):
         original = copy.deepcopy(self.ledger)
         module.validate(self.ledger)
-        first = module.reconstruct_prior_v12(module.reconstruct_prior_v13(module.reconstruct_prior_v14(self.ledger)))
-        second = module.reconstruct_prior_v12(module.reconstruct_prior_v13(module.reconstruct_prior_v14(self.ledger)))
+        first = module.reconstruct_prior_v12(module.reconstruct_prior_v13(module.reconstruct_prior_v14(module.reconstruct_prior_v15(self.ledger))))
+        second = module.reconstruct_prior_v12(module.reconstruct_prior_v13(module.reconstruct_prior_v14(module.reconstruct_prior_v15(self.ledger))))
         first['issues'][47]['canonical_acceptance_record']['path'] = 'only_the_copy'
         first['issues'][56]['criteria'][0]['partial_evidence_refs'].append('only_the_copy')
         first['evidence']['pr-136']['scope_limit'] = 'only_the_copy'
         self.assertEqual(original, self.ledger)
-        self.assertEqual(module.reconstruct_prior_v12(module.reconstruct_prior_v13(module.reconstruct_prior_v14(original))), second)
+        self.assertEqual(module.reconstruct_prior_v12(module.reconstruct_prior_v13(module.reconstruct_prior_v14(module.reconstruct_prior_v15(original)))), second)
 
     def test_cli_rejects_metadata_scope_and_placement_under_normal_and_optimized_python(self):
         cases = []
@@ -2712,7 +2712,7 @@ class PlacementOutcomeTest(unittest.TestCase):
         import hashlib
         module.validate(self.ledger)
         # Compare the #37 amendment at its original accepted v14 boundary.
-        current_v14 = module.reconstruct_prior_v14(self.ledger)
+        current_v14 = module.reconstruct_prior_v14(module.reconstruct_prior_v15(self.ledger))
         previous = module.reconstruct_prior_v13(current_v14)
         raw = (json.dumps(previous, ensure_ascii=False, indent=2) + '\n').encode()
         self.assertEqual(module.PRIOR_V13_FILE_BYTES, len(raw))
@@ -2977,7 +2977,7 @@ class PlacementOutcomeTest(unittest.TestCase):
     def test_validation_and_predecessor_reconstruction_never_mutate_input(self):
         original = copy.deepcopy(self.ledger)
         module.validate(self.ledger)
-        prior = module.reconstruct_prior_v13(module.reconstruct_prior_v14(self.ledger))
+        prior = module.reconstruct_prior_v13(module.reconstruct_prior_v14(module.reconstruct_prior_v15(self.ledger)))
         prior['issues'][36]['criteria'][0]['text'] = 'Only the returned copy changes.'
         prior['evidence']['pr-528']['scope_limit'] = 'Only the returned copy changes.'
         self.assertEqual(original, self.ledger)
@@ -3006,7 +3006,7 @@ class ApplicationFoundationAcceptanceTest(unittest.TestCase):
     def test_complete_prior_v14_bytes_and_all_original_observations_are_recovered(self):
         import hashlib
         module.validate(self.ledger)
-        previous = module.reconstruct_prior_v14(self.ledger)
+        previous = module.reconstruct_prior_v14(module.reconstruct_prior_v15(self.ledger))
         raw = (json.dumps(previous, indent=2, ensure_ascii=False) + '\n').encode('utf-8')
         self.assertEqual(659947, len(raw))
         self.assertEqual('a0082a409fb38a5e0537b71e33501aa57538784bef6859e34afd306aa528f8a8',
@@ -3023,8 +3023,10 @@ class ApplicationFoundationAcceptanceTest(unittest.TestCase):
 
     def test_only_three_foundation_criteria_extend_the_existing_acceptance_ledger(self):
         module.validate(self.ledger)
-        previous = module.reconstruct_prior_v14(self.ledger)
-        current = [c for i in self.ledger['issues'] for c in i['criteria']]
+        # Keep the accepted foundation-only comparison at its exact v15 layer.
+        current_v15 = module.reconstruct_prior_v15(self.ledger)
+        previous = module.reconstruct_prior_v14(current_v15)
+        current = [c for i in current_v15['issues'] for c in i['criteria']]
         prior = [c for i in previous['issues'] for c in i['criteria']]
         self.assertEqual(441, len(current))
         self.assertEqual([(c['id'], c['text'], c['text_sha256']) for c in prior],
@@ -3039,18 +3041,18 @@ class ApplicationFoundationAcceptanceTest(unittest.TestCase):
                                 (module.COMPLETE_SUPPORT_RELATION, 3)):
             self.assertEqual(count, sum(c['evidence_relation'] == relation for c in current))
         self.assertEqual([i for i in previous['issues'] if i['number'] != 48],
-                         [i for i in self.ledger['issues'] if i['number'] != 48])
+                         [i for i in current_v15['issues'] if i['number'] != 48])
         self.assertEqual(previous['evidence'],
-                         {k: v for k, v in self.ledger['evidence'].items() if k != 'pr-652'})
-        self.assertEqual(set(previous['evidence']) | {'pr-652'}, set(self.ledger['evidence']))
-        for criterion, old in zip(self.issue(self.ledger)['criteria'], self.issue(previous)['criteria']):
+                         {k: v for k, v in current_v15['evidence'].items() if k != 'pr-652'})
+        self.assertEqual(set(previous['evidence']) | {'pr-652'}, set(current_v15['evidence']))
+        for criterion, old in zip(self.issue(current_v15)['criteria'], self.issue(previous)['criteria']):
             expected = copy.deepcopy(old)
             expected.update(status='complete', completion_evidence=['pr-652'], remaining_engineering='',
                             evidence_relation=module.COMPLETE_IMPLEMENTATION_RELATION)
             self.assertEqual(expected, criterion)
 
     def test_existing_android_coordinate_and_partial_history_remain_unchanged(self):
-        previous = module.reconstruct_prior_v14(self.ledger)
+        previous = module.reconstruct_prior_v14(module.reconstruct_prior_v15(self.ledger))
         issue = self.issue(self.ledger)
         self.assertEqual({'repository': module.REPOSITORY,
                           'path': 'docs/delivery/android/work-packages/02.01.md'},
@@ -3158,7 +3160,7 @@ class ApplicationFoundationAcceptanceTest(unittest.TestCase):
                     'other-issue': changed['issues'][58],
                     'old-evidence': changed['evidence']['pr-136']}
                 targets[location]['unreviewed_history'] = {'accepted': True}
-                previous = module.reconstruct_prior_v14(changed)
+                previous = module.reconstruct_prior_v14(module.reconstruct_prior_v15(changed))
                 prior_targets = {
                     'ledger': previous,
                     'issue': self.issue(previous),
@@ -3174,7 +3176,7 @@ class ApplicationFoundationAcceptanceTest(unittest.TestCase):
             scope_limit='The original scaffold also establishes installed production success.'))
 
     def test_schema_and_issue_identity_aliases_do_not_enter_the_new_layer(self):
-        for version in (14, 16, True, '15', 15.0):
+        for version in (15, 17, True, '16', 16.0):
             with self.subTest(version=version):
                 self.rejected(lambda d, version=version: d.update(schema_version=version))
         for number in (48.0, True, '48'):
@@ -3195,13 +3197,13 @@ class ApplicationFoundationAcceptanceTest(unittest.TestCase):
     def test_validation_and_v14_reconstruction_never_mutate_the_caller(self):
         original = copy.deepcopy(self.ledger)
         module.validate(self.ledger)
-        first = module.reconstruct_prior_v14(self.ledger)
-        second = module.reconstruct_prior_v14(self.ledger)
+        first = module.reconstruct_prior_v14(module.reconstruct_prior_v15(self.ledger))
+        second = module.reconstruct_prior_v14(module.reconstruct_prior_v15(self.ledger))
         first['issues'][47]['criteria'][0]['partial_evidence_refs'].append('only_the_copy')
         first['issues'][58]['title'] = 'Only the returned copy changes.'
         first['evidence']['pr-136']['scope_limit'] = 'Only the returned copy changes.'
         self.assertEqual(original, self.ledger)
-        self.assertEqual(module.reconstruct_prior_v14(original), second)
+        self.assertEqual(module.reconstruct_prior_v14(module.reconstruct_prior_v15(original)), second)
         module.validate(self.ledger)
 
     def test_actual_signed_record_is_distinct_from_transport_preparation_and_native_execution(self):
@@ -3422,6 +3424,327 @@ class ApplicationFoundationAcceptanceTest(unittest.TestCase):
                             str(ROOT / 'scripts/check_delivery_ledger.py'), '--ledger', str(path)]
                         result = subprocess.run(command, capture_output=True, text=True, timeout=10)
                         self.assertEqual(1, result.returncode, result.stdout + result.stderr)
+                        self.assertIn('Delivery ledger check failed:', result.stderr)
+                        self.assertNotIn('PASS:', result.stdout)
+                        self.assertNotIn('Traceback', result.stderr)
+
+
+class SelectionHandoffAcceptanceTest(unittest.TestCase):
+    def setUp(self):
+        self.ledger = module.read_json(ROOT / 'docs/delivery/criterion-evidence.json')
+
+    @staticmethod
+    def issue(ledger):
+        return ledger['issues'][97]
+
+    @classmethod
+    def acceptance(cls, ledger):
+        return cls.issue(ledger)['accepted_implementation_outcome']
+
+    def rejected(self, mutation):
+        changed = copy.deepcopy(self.ledger)
+        mutation(changed)
+        self.assertNotEqual(module.json_digest(self.ledger), module.json_digest(changed))
+        with self.assertRaises(ValueError):
+            module.validate(changed)
+
+    def test_complete_v15_original_bytes_and_all_earlier_outcomes_are_recovered(self):
+        import hashlib
+        module.validate(self.ledger)
+        previous = module.reconstruct_prior_v15(self.ledger)
+        raw = (json.dumps(previous, indent=2, ensure_ascii=False) + '\n').encode()
+        self.assertEqual(676687, len(raw))
+        self.assertEqual('6bb1bfacfca018c0f4f4c2e7c4c279eb4c94b240971b800275b6e982ff60dafc',
+                         hashlib.sha256(raw).hexdigest())
+        self.assertEqual('6c258512f46a4e7cfcf79b7d1e8da85f56c5b7497bfc3978e005f01090b6da1e',
+                         module.json_digest(previous))
+        self.assertEqual(15, previous['schema_version'])
+        self.assertEqual(35, len(previous['evidence']))
+        self.assertEqual(module.PRIOR_V15_FILE_BYTES, len(raw))
+        self.assertEqual(module.PRIOR_V15_FILE_SHA256, hashlib.sha256(raw).hexdigest())
+        self.assertEqual(module.PRIOR_V15_LEDGER_SHA256, module.json_digest(previous))
+        module._validate_prior_v15(previous)
+        for field in ('observed_on', 'repository', 'implementation_baseline', 'source'):
+            self.assertEqual(previous[field], self.ledger[field])
+
+    def test_only_four_selection_criteria_and_the_effective_coordinate_change(self):
+        previous = module.reconstruct_prior_v15(self.ledger)
+        current = [c for i in self.ledger['issues'] for c in i['criteria']]
+        old = [c for i in previous['issues'] for c in i['criteria']]
+        self.assertEqual(441, len(current))
+        self.assertEqual([(c['id'], c['text'], c['text_sha256']) for c in old],
+                         [(c['id'], c['text'], c['text_sha256']) for c in current])
+        self.assertEqual(['98.1', '98.2', '98.3', '98.4'],
+                         [c['id'] for c, p in zip(current, old) if c != p])
+        self.assertEqual(50, sum(c['status'] == 'complete' for c in current))
+        self.assertEqual(391, sum(c['status'] == 'incomplete' for c in current))
+        for relation, count in ((module.COMPLETE_DESIGN_RELATION, 25),
+                                (module.COMPLETE_IMPLEMENTATION_RELATION, 21),
+                                (module.COMPLETE_IMPORT_RELATION, 1),
+                                (module.COMPLETE_SUPPORT_RELATION, 3)):
+            self.assertEqual(count, sum(c['evidence_relation'] == relation for c in current))
+        self.assertEqual([i for i in previous['issues'] if i['number'] != 98],
+                         [i for i in self.ledger['issues'] if i['number'] != 98])
+        self.assertEqual(previous['evidence'],
+                         {k: v for k, v in self.ledger['evidence'].items() if k not in ('pr-566', 'pr-576')})
+        expected = copy.deepcopy(self.issue(previous))
+        expected['canonical_acceptance_record']['repository'] = module.REPOSITORY
+        expected['accepted_implementation_outcome'] = copy.deepcopy(module.IMPLEMENTATION_98_ACCEPTANCE)
+        for criterion in expected['criteria']:
+            criterion.update(status='complete', completion_evidence=['pr-566', 'pr-576'],
+                             remaining_engineering='', evidence_relation=module.COMPLETE_IMPLEMENTATION_RELATION)
+        self.assertEqual(expected, self.issue(self.ledger))
+        self.assertEqual(['pr-137'], self.issue(self.ledger)['criteria'][0]['partial_evidence_refs'])
+
+    def test_signed_implementation_record_and_preparation_keep_distinct_observed_parents(self):
+        a = self.acceptance(self.ledger)
+        self.assertEqual('12b50e0fad40581d35ae472617f06d4f48ab230d', a['implementation_revision'])
+        self.assertEqual('03fd9e8b543506cddfc6f46e53c42f6ba79dc5a6', a['implementation_tree'])
+        self.assertEqual('fa1fece43fb0498465cc54363de132235ea2f18a', a['record_revision'])
+        self.assertEqual('0ca80b557829d9a36708551f061dd947e55ac460', a['record_tree'])
+        self.assertEqual(['bc664e3bb9f085bc1950f05a80cb3c43c7e7f925'], a['implementation_delivery']['parents'])
+        self.assertEqual(['20baabebcdec38f85c5816b7c15de091fa7bee13'], a['record_delivery']['parents'])
+        self.assertEqual('2026-10-19T14:05:39Z', a['implementation_delivery']['merged_at'])
+        self.assertEqual('2026-10-19T16:58:14Z', a['record_delivery']['merged_at'])
+        self.assertNotEqual(a['prepared_original']['revision'], a['implementation_revision'])
+        self.assertNotEqual(a['record_revision'], a['implementation_revision'])
+        for key in ('implementation_revision', 'implementation_tree', 'record_revision', 'record_tree'):
+            self.rejected(lambda d, key=key: self.acceptance(d).update({key: '0' * 40}))
+        for key in ('implementation_delivery', 'record_delivery'):
+            for field, value in (('signature_verified', False), ('signature_reason', 'unsigned'),
+                                  ('parents', []), ('merged_at', 'unobserved_future_delivery')):
+                self.rejected(lambda d, key=key, field=field, value=value:
+                              self.acceptance(d)[key].update({field: copy.deepcopy(value)}))
+        self.rejected(lambda d: self.acceptance(d)['prepared_original'].update(
+            revision=self.acceptance(d)['implementation_revision']))
+
+    def test_record_and_placement_bytes_bind_the_existing_delivered_documents(self):
+        import hashlib
+        a = self.acceptance(self.ledger)
+        for path, size, expected_sha, expected_blob in (
+                (a['record_path'], 29800, 'efa9f1a1e03ad6ba9532896f9bed610196c4a2e45296bb3a2fe8c948e794c2f5',
+                 'ab85a283d0955d546867b06ea5e7562b503ad010'),
+                (a['placement']['path'], 4871, '71ef903adb5887ac13a682c145f73ba823ee35a48c8fd24648c3886ef7687459',
+                 '1461ea8a948c16d8f9dc892009776f8b87686c3c')):
+            raw = (ROOT / path).read_bytes()
+            self.assertEqual(size, len(raw))
+            self.assertEqual(expected_sha, hashlib.sha256(raw).hexdigest())
+            self.assertEqual(expected_blob, hashlib.sha1(b'blob ' + str(len(raw)).encode() + b'\0' + raw).hexdigest())
+        self.assertEqual(a['record_revision'], a['placement']['effective_revision'])
+        self.assertEqual({'repository': module.REPOSITORY, 'path': a['record_path']},
+                         self.issue(self.ledger)['canonical_acceptance_record'])
+        self.assertEqual('Pick-Your-AI/pickyour.ai', a['placement']['historical_coordinate']['repository'])
+        for field in ('record_path', 'record_blob', 'record_sha256', 'record_url'):
+            self.rejected(lambda d, field=field: self.acceptance(d).update({field: 'another_record'}))
+        self.rejected(lambda d: self.acceptance(d)['placement'].update(effective_revision='0' * 40))
+        self.rejected(lambda d: self.issue(d)['canonical_acceptance_record'].update(repository='Pick-Your-AI/pickyour.ai'))
+        self.rejected(lambda d: self.issue(d)['canonical_acceptance_record'].update(approved=True))
+
+    def test_actual_receiving_roles_and_source_reviews_cannot_be_substituted(self):
+        a = self.acceptance(self.ledger)
+        self.assertEqual(['android_catalog_and_ux_receiver', 'independent_affected_data_consumer'],
+                         [x['role'] for x in a['receiving_reviews']])
+        self.assertEqual([6269464601, 6269539895],
+                         [int(x['url'].split('-')[-1]) for x in a['receiving_reviews']])
+        self.assertEqual(3, len(a['record_delivery']['source_reviews']))
+        self.assertTrue(all(x['state'] == 'COMMENTED' for x in a['record_delivery']['source_reviews']))
+        for index in range(2):
+            for field in a['receiving_reviews'][index]:
+                self.rejected(lambda d, index=index, field=field:
+                              self.acceptance(d)['receiving_reviews'][index].update({field: 'inferred_approval'}))
+        for index in range(3):
+            self.rejected(lambda d, index=index: self.acceptance(d)['record_delivery']['source_reviews'][index].update(state='APPROVED'))
+            self.rejected(lambda d, index=index: self.acceptance(d)['record_delivery']['source_reviews'][index].update(body_sha256='0' * 64))
+        self.rejected(lambda d: self.acceptance(d)['receiving_reviews'].reverse())
+        self.rejected(lambda d: self.acceptance(d).update(receiving_identity_scope='A separate human release owner approved everything.'))
+
+    def test_each_original_job_artifact_and_execution_boundary_is_fixed(self):
+        a = self.acceptance(self.ledger)
+        self.assertEqual((6306, 6314), (a['prepared_original']['passing_cases'], a['main_original']['passing_cases']))
+        self.assertEqual(('pull_request', 'push'), (a['prepared_original']['event'], a['main_original']['event']))
+        self.assertEqual([12192828305, 12192988906, 12193653052, 12194000269],
+                         [x['id'] for x in a['main_original']['original_artifacts']])
+        for key in ('prepared_original', 'main_original'):
+            value = a[key]
+            self.assertEqual(92, sum(x['successful_step_records'] for x in value['jobs']))
+            self.assertEqual([27, 58, 7], [x['successful_step_records'] for x in value['jobs']])
+            self.assertEqual(364, value['safe_crc_archive_members'])
+            self.assertEqual(44, value['configured_attendance_programs'])
+            self.assertEqual({'core': 333, 'preview': 148, 'scanner': 28}, value['python_executions'])
+            for index in range(4):
+                for field in ('id', 'bytes', 'sha256'):
+                    self.rejected(lambda d, key=key, index=index, field=field:
+                                  self.acceptance(d)[key]['original_artifacts'][index].pop(field))
+            for index in range(3):
+                self.rejected(lambda d, key=key, index=index:
+                              self.acceptance(d)[key]['jobs'][index].update(conclusion='cancelled'))
+            for field in ('revision', 'tree', 'event', 'observation_scope'):
+                self.rejected(lambda d, key=key, field=field:
+                              self.acceptance(d)[key].update({field: 'a_new_unexecuted_checkout'}))
+        self.rejected(lambda d: self.acceptance(d)['execution_preservation'].update(retained_prepared_case_identities=6314))
+        self.rejected(lambda d: self.acceptance(d)['execution_preservation'].update(added_main_recovery_case_identities=0))
+
+    def test_all_32_authored_regressions_and_original_source_pins_remain_bound(self):
+        a = self.acceptance(self.ledger)
+        cohorts = a['authored_regression_cohorts']
+        self.assertEqual([14, 8, 10], [len(x['methods']) for x in cohorts])
+        identities = [(x['class'], name) for x in cohorts for name in x['methods']]
+        self.assertEqual(32, len(set(identities)))
+        self.assertEqual(8, len(a['implementation_source_pins']))
+        record = (ROOT / a['record_path']).read_text(encoding='utf-8')
+        for index, cohort in enumerate(cohorts):
+            self.assertIn(cohort['class'], record)
+            self.assertIn(cohort['blob'], record)
+            self.assertIn(cohort['sha256'], record)
+            for name in cohort['methods']:
+                self.assertIn('`' + name + '`', record)
+            self.rejected(lambda d, index=index: self.acceptance(d)['authored_regression_cohorts'][index]['methods'].pop())
+            self.rejected(lambda d, index=index: self.acceptance(d)['authored_regression_cohorts'][index].update(blob='0' * 40))
+        self.rejected(lambda d: self.acceptance(d)['authored_regression_cohorts'][0]['methods'].append(
+            self.acceptance(d)['authored_regression_cohorts'][0]['methods'][0]))
+        for index in range(8):
+            self.rejected(lambda d, index=index: self.acceptance(d)['implementation_source_pins'][index].update(sha256='0' * 64))
+
+    def test_raw_scanner_findings_remain_at_their_distinct_original_ancestries(self):
+        a = self.acceptance(self.ledger)
+        for key, commits, findings in (('prepared_original', 239, 2), ('main_original', 238, 1)):
+            s = a[key]['scanner']
+            self.assertEqual((10, commits, findings, findings, 0),
+                             (s['raw_exit'], s['reachable_commits'], s['raw_findings'],
+                              s['reviewed_public_checksum_findings'], s['unresolved_findings']))
+            self.assertEqual('passed_with_reviewed_findings', s['disposition'])
+            for field, value in (('raw_exit', 0), ('raw_findings', 0), ('reachable_commits', commits + 1),
+                                  ('reviewed_public_checksum_findings', 0), ('unresolved_findings', 1)):
+                self.rejected(lambda d, key=key, field=field, value=value:
+                              self.acceptance(d)[key]['scanner'].update({field: value}))
+        self.rejected(lambda d: self.acceptance(d)['main_original'].update(
+            scanner=copy.deepcopy(self.acceptance(d)['prepared_original']['scanner'])))
+
+    def test_each_criterion_requires_its_complete_reviewed_evidence_and_no_unfinished_fields(self):
+        for index in range(4):
+            for field, value in (
+                    ('status', 'incomplete'), ('completion_evidence', []), ('completion_evidence', ['pr-137']),
+                    ('completion_evidence', ['pr-566']), ('completion_evidence', ['pr-576']),
+                    ('remaining_engineering', 'An unreviewed local behavior remains.'),
+                    ('external_prerequisites', [{'kind': 'owner_acceptance', 'requirement': 'Still pending'}]),
+                    ('evidence_relation', module.COMPLETE_DESIGN_RELATION)):
+                self.rejected(lambda d, index=index, field=field, value=value:
+                              self.issue(d)['criteria'][index].update({field: copy.deepcopy(value)}))
+        for key in ('pr-566', 'pr-576'):
+            self.rejected(lambda d, key=key: d['evidence'].pop(key))
+            self.rejected(lambda d, key=key: d['evidence'][key].update(observed_state='open'))
+        for key in ('accepted_design_outcome', 'accepted_support_outcome'):
+            self.rejected(lambda d, key=key: self.issue(d).update({key: {'approved': True}}))
+
+    def test_changed_literal_criterion_text_order_and_joint_source_rewrite_reject(self):
+        import hashlib
+        for index in range(4):
+            changed = copy.deepcopy(self.ledger)
+            c = self.issue(changed)['criteria'][index]
+            c['text'] += ' Every public domain and installed device is now accepted.'
+            c['text_sha256'] = hashlib.sha256(c['text'].encode()).hexdigest()
+            source = [{'number': i['number'], 'title': i['title'],
+                       'body': '## Acceptance criteria\n' + '\n'.join('- [x] ' + q['text'] for q in i['criteria']) +
+                       '\n## Delivery record\n`' + i['canonical_acceptance_record']['path'] + '`'}
+                      for i in changed['issues']]
+            with self.assertRaises(ValueError):
+                module.validate(changed, source)
+        self.rejected(lambda d: self.issue(d)['criteria'].reverse())
+        self.rejected(lambda d: self.issue(d)['criteria'].pop())
+        self.rejected(lambda d: self.issue(d)['criteria'].append(copy.deepcopy(self.issue(d)['criteria'][0])))
+        self.rejected(lambda d: self.issue(d)['criteria'][0].update(id='98.2'))
+        self.rejected(lambda d: self.acceptance(d)['implemented_subtasks'].pop())
+
+    def test_unknown_prior_context_and_other_evidence_survive_the_inverse_then_reject(self):
+        for location in ('ledger', 'issue', 'criterion', 'other-issue', 'old-evidence'):
+            changed = copy.deepcopy(self.ledger)
+            targets = {'ledger': changed, 'issue': self.issue(changed),
+                       'criterion': self.issue(changed)['criteria'][0],
+                       'other-issue': changed['issues'][75], 'old-evidence': changed['evidence']['pr-137']}
+            targets[location]['unreviewed_history'] = {'accepted': True}
+            previous = module.reconstruct_prior_v15(changed)
+            old_targets = {'ledger': previous, 'issue': self.issue(previous),
+                           'criterion': self.issue(previous)['criteria'][0],
+                           'other-issue': previous['issues'][75], 'old-evidence': previous['evidence']['pr-137']}
+            self.assertEqual({'accepted': True}, old_targets[location]['unreviewed_history'])
+            with self.assertRaises(ValueError):
+                module.validate(changed)
+        self.rejected(lambda d: self.issue(d)['criteria'][0]['partial_evidence_refs'].clear())
+        self.rejected(lambda d: self.issue(d).update(title='A broader replaced work package'))
+        for key in module.reconstruct_prior_v15(self.ledger)['evidence']:
+            self.rejected(lambda d, key=key: d['evidence'][key].update(scope_limit='Every deployment is accepted.'))
+
+    def test_local_prerequisite_intake_cannot_complete_other_rows_or_broaden_scope(self):
+        a = self.acceptance(self.ledger)
+        self.assertEqual([76, 82], [x['issue'] for x in a['consumed_prerequisites']])
+        self.assertEqual('android_local_catalog_selection_and_bounded_component_route_handoff', a['scope'])
+        self.assertFalse(a['accepted_behavior']['private_route']['public_domain_association_accepted'])
+        for number in (21, 67, 76, 82, 113, 124):
+            incomplete = next(c for c in self.ledger['issues'][number - 1]['criteria'] if c['status'] == 'incomplete')
+            index = self.ledger['issues'][number - 1]['criteria'].index(incomplete)
+            self.rejected(lambda d, number=number, index=index: d['issues'][number - 1]['criteria'][index].update(
+                status='complete', completion_evidence=['pr-566', 'pr-576'], remaining_engineering='',
+                external_prerequisites=[], evidence_relation=module.COMPLETE_IMPLEMENTATION_RELATION))
+        self.rejected(lambda d: self.acceptance(d)['consumed_prerequisites'].clear())
+        self.rejected(lambda d: self.acceptance(d)['scope_limits'].clear())
+        self.rejected(lambda d: self.acceptance(d)['accepted_behavior']['private_route'].update(public_domain_association_accepted=True))
+        self.rejected(lambda d: self.acceptance(d).update(scope='installed_production_and_all_upstream_features'))
+
+    def test_current_schema_exact_integer_and_boolean_receipt_types_reject_aliases(self):
+        for version in (15, 17, True, '16', 16.0):
+            self.rejected(lambda d, version=version: d.update(schema_version=version))
+        for number in (98.0, '98', True):
+            self.rejected(lambda d, number=number: self.issue(d).update(number=number))
+        for key in ('prepared_original', 'main_original'):
+            for field in ('attempt', 'passing_cases', 'safe_crc_archive_members'):
+                value = self.acceptance(self.ledger)[key][field]
+                self.rejected(lambda d, key=key, field=field, value=value:
+                              self.acceptance(d)[key].update({field: float(value)}))
+            self.rejected(lambda d, key=key: self.acceptance(d)[key]['scanner'].update(unresolved_findings=False))
+        self.rejected(lambda d: self.acceptance(d)['record_delivery'].update(signature_verified=1))
+        self.rejected(lambda d: self.acceptance(d)['accepted_behavior']['private_route'].update(public_domain_association_accepted=0))
+        self.rejected(lambda d: self.acceptance(d).update(record_bytes=float(self.acceptance(d)['record_bytes'])))
+
+    def test_inverse_is_detached_and_readme_keeps_the_entire_original_v15_narrative(self):
+        import hashlib
+        original = copy.deepcopy(self.ledger)
+        module.validate(self.ledger)
+        first = module.reconstruct_prior_v15(self.ledger)
+        second = module.reconstruct_prior_v15(self.ledger)
+        first['issues'][97]['criteria'][0]['partial_evidence_refs'].append('only_the_copy')
+        first['issues'][75]['title'] = 'Only the detached copy'
+        first['evidence']['pr-137']['scope_limit'] = 'Only the detached copy'
+        self.assertEqual(original, self.ledger)
+        self.assertEqual(second, module.reconstruct_prior_v15(original))
+        readme = (ROOT / 'docs/delivery/README.md').read_text(encoding='utf-8')
+        previous = '# Criterion evidence ledger\n\n' + readme[readme.index('## Version 15:'):]
+        self.assertEqual(90887, len(previous.encode()))
+        self.assertEqual('28a80a3166f46791a3661162942651fb05febb9ccc12abea419eb7dce1cea904',
+                         hashlib.sha256(previous.encode()).hexdigest())
+
+    def test_normal_and_optimized_cli_reject_forged_delivery_and_accept_exact_source(self):
+        source = [{'number': i['number'], 'title': i['title'],
+                   'body': '## Acceptance criteria\n' + '\n'.join('- [x] ' + c['text'] for c in i['criteria']) +
+                   '\n## Delivery record\n`' + i['canonical_acceptance_record']['path'] + '`'}
+                  for i in self.ledger['issues']]
+        changed = copy.deepcopy(self.ledger)
+        self.acceptance(changed)['main_original']['revision'] = self.acceptance(changed)['record_revision']
+        with tempfile.TemporaryDirectory(prefix='ledger-selection98-') as directory:
+            ledger_path = Path(directory) / 'ledger.json'
+            source_path = Path(directory) / 'issues.json'
+            source_path.write_text(json.dumps(source), encoding='utf-8')
+            for value, code in ((self.ledger, 0), (changed, 1)):
+                ledger_path.write_text(json.dumps(value), encoding='utf-8')
+                for optimized in (False, True):
+                    command = [sys.executable] + (['-O'] if optimized else []) + [
+                        str(ROOT / 'scripts/check_delivery_ledger.py'), '--ledger', str(ledger_path), '--issues', str(source_path)]
+                    result = subprocess.run(command, capture_output=True, text=True, timeout=10)
+                    self.assertEqual(code, result.returncode, result.stdout + result.stderr)
+                    if code == 0:
+                        self.assertIn('391 incomplete criteria, 25 reviewed design criteria, 21 reviewed implementation criteria', result.stdout)
+                        self.assertIn('exact source criteria matched.', result.stdout)
+                        self.assertEqual('', result.stderr)
+                    else:
                         self.assertIn('Delivery ledger check failed:', result.stderr)
                         self.assertNotIn('PASS:', result.stdout)
                         self.assertNotIn('Traceback', result.stderr)
