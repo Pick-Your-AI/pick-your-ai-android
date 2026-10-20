@@ -3,6 +3,7 @@ package ai.pickyour.android.preview
 import ai.pickyour.core.drafts.DraftStorageFailure
 import ai.pickyour.core.preview.PreviewDraftLoad
 import ai.pickyour.core.preview.PreviewDraftPersistence
+import ai.pickyour.core.preview.PreviewLibraryRead
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.TimeUnit
 
@@ -29,3 +30,10 @@ internal fun readDraftAfterOwnedWork(
     worker.submit {}.get(15, TimeUnit.SECONDS)
     return read()
 }
+
+/** Identity-only observation baseline; preserves the previous direct library read. */
+@Suppress("UNUSED_PARAMETER")
+internal fun readLibraryAfterOwnedWork(
+    activity: PreviewActivity,
+    read: () -> PreviewLibraryRead,
+): PreviewLibraryRead = read()
