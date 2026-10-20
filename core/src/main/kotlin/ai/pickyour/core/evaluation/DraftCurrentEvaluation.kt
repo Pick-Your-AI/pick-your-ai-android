@@ -28,6 +28,7 @@ class DraftCurrentInputs private constructor(
     private val catalogBytes: ByteArray,
     private val rulesBytes: ByteArray,
     private val catalog: ObjectNode,
+    private val ruleset: ObjectNode,
     val graph: DependencyGraph,
     val catalogId: String, val catalogRevision: BigInteger, val catalogHash: ArtifactHash,
     val rulesetId: String, val rulesetVersion: String, val rulesetHash: ArtifactHash,
@@ -35,6 +36,8 @@ class DraftCurrentInputs private constructor(
 ) {
     internal fun catalogBytes() = catalogBytes.copyOf()
     internal fun rulesBytes() = rulesBytes.copyOf()
+    internal fun provisionalGuidance(source: StoredDraft, findings: List<DraftRuleFinding>) =
+        currentProvisionalGuidance(source.content.components, ruleset, findings)
     internal fun samePins(other: DraftCurrentInputs) = catalogHash == other.catalogHash &&
         graphHash == other.graphHash && rulesetHash == other.rulesetHash
 
@@ -85,7 +88,7 @@ class DraftCurrentInputs private constructor(
             if (reader.read(gBytes.inputStream()) !is JsonInputResult.Parsed) return null
             val g = (DependencyGraphDecoder().decode(gBytes.inputStream()) as? DependencyGraphDecoding.Decoded)?.graph ?: return null
             if (g.schemaVersion != c["schema_version"].asText()) return null
-            return DraftCurrentInputs(cBytes, rBytes, c, g, c["id"].asText(), c["revision"].bigIntegerValue(),
+            return DraftCurrentInputs(cBytes, rBytes, c, r, g, c["id"].asText(), c["revision"].bigIntegerValue(),
                 currentHash(cBytes), r["id"].asText(), r["version"].asText(), currentHash(rBytes), currentHash(gBytes))
         }
     }
@@ -193,6 +196,10 @@ sealed class DraftCurrentOutcome private constructor(private val request: DraftC
     class Completed internal constructor(request: DraftCurrentEvaluation, findings: List<DraftRuleFinding>) : DraftCurrentOutcome(request) {
         val findings = currentList(findings.map { DraftRuleFinding(it.ruleId, it.outcome, it.severity, it.code,
             it.message, it.remediation, currentList(it.selectionIds)) })
+        private val guidance = request.inputs.provisionalGuidance(request.source, this.findings)
+        /** Captured local presentation only; the request, original findings and readiness are unchanged. */
+        fun provisionalGuidance(ruleId: String): ProvisionalFindingGuidance =
+            guidance[ruleId] ?: ProvisionalFindingGuidance.UNCLASSIFIED
     }
     class Unavailable internal constructor(request: DraftCurrentEvaluation, val reason: DraftCurrentUnavailable) : DraftCurrentOutcome(request)
 }
