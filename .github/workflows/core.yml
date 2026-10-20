@@ -580,6 +580,45 @@ jobs:
               raise SystemExit("Context policy preparation regression did not pass")
           print(f"Verified {len(cases)} exact context policy preparation and managed storage cases")
           PYTEST
+      - name: Require typed cost-policy preparation and managed storage regressions
+        run: |
+          python - <<'PYCOSTCORE'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          required = {
+              'ai.pickyour.core.preview.PreviewCostPolicySettingsTest': {
+                  'fourOptionalFieldsUseExactFrozenMetadataWithoutCurrencyOrDefaults()',
+                  'omissionFalseTrueAndExplicitZeroRemainIndependentSuppliedStates()',
+                  'decimalStringsRetainScaleWideDigitsAndTheirStringType()',
+                  'frozenTerminalLfIsRetainedWithoutTrimmingOrBroaderWhitespaceAdmission()',
+                  'malformedLocaleNegativeAndNondecimalBudgetInputsCannotPrepareACommand()',
+                  'suppliedEmptyTextRequiresCorrectionOrExplicitOmission()',
+                  'notificationUsesExactInclusivePercentageBoundsWithoutFloatingPointRounding()',
+                  'notificationRejectsLocaleSyntaxInjectionNonNumbersAndParserLimits()',
+                  'untouchedAdmittedNotificationNodeKeepsScaleAndRuntimeType()',
+                  'fieldAndCombinedTextBudgetsDoNotAllowAPartialSelection()',
+                  'independentErrorsRemainValueFreeAndCannotApplyValidSiblingValues()',
+                  'configurationPreservesIdentityFlagsNotesExtensionsLinksAndUnrelatedContent()',
+                  'currentNoopStaleAndDeletedManagedAuthorityRemainDistinct()',
+                  'savedValuesAndExplicitBuildProjectionRetainTypesHistoryAndPrivateMetadata()',
+                  'anotherSelectionKindCannotAcquireCostPolicyConfiguration()',
+              },
+          }
+          for name, expected in required.items():
+              path = pathlib.Path('core/build/test-results/test') / ('TEST-' + name + '.xml')
+              suite = ET.parse(path).getroot()
+              cases = suite.findall('testcase')
+              names = [case.attrib.get('name') for case in cases]
+              if suite.attrib.get('name') != name or any(case.attrib.get('classname') != name for case in cases):
+                  raise SystemExit('Foreign typed cost-policy report')
+              if len(names) != len(set(names)) or not expected.issubset(set(names)):
+                  raise SystemExit('Missing or repeated typed cost-policy regression')
+              if int(suite.attrib.get('tests', '-1')) != len(cases) or any(int(suite.attrib.get(key, '-1')) != 0 for key in ('failures', 'errors', 'skipped')):
+                  raise SystemExit('Typed cost-policy report totals did not pass')
+              if any(case.find(tag) is not None for case in cases for tag in ('failure', 'error', 'skipped')):
+                  raise SystemExit('Typed cost-policy regression did not execute successfully')
+              print(f'Verified {len(cases)} source-named typed cost-policy cases in {name}; no installed-device claim')
+          PYCOSTCORE
       - name: Require typed model preparation and managed storage regressions
         run: |
           python - <<'PYMODEL'
@@ -1170,6 +1209,54 @@ jobs:
                   raise SystemExit("Typed context policy Activity or checkpoint regression did not pass")
               print(f"Verified {len(cases)} simulated {name} cases; no installed-device claim")
           PYTEST
+      - name: Require typed cost-policy Activity and private recovery regressions
+        run: |
+          python - <<'PYCOSTNATIVE'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          required = {
+              'ai.pickyour.android.preview.CostPolicyFormCheckpointTest': {
+                  'exactDecimalStringsInvalidTextAndAllIdentityFieldsSurviveActualParcel',
+                  'absentFalseAndTrueBooleansRemainDistinctExactPrimitives',
+                  'combinedUtf16BoundRejectsOneExtraWithoutKeepingAValidPrefix',
+                  'exactKeysAndPrimitiveTypesRejectCoercionAndMissingPresence',
+                  'wrongVersionFormOrKindCannotSelectARecoveryProtocol',
+                  'capturedIdentityIsRequiredBoundedAndNeverFilledFromCurrentState',
+                  'existingRawContextAndModelReadersRemainSeparate',
+                  'savingFlagAndDescriptionsDoNotGrantAuthorityOrEchoEnteredValues',
+              },
+              'ai.pickyour.android.preview.CostPolicySettingsActivityTest': {
+                  'freshEditorKeepsEveryFieldAbsentAndUnchangedConfirmationCreatesNoRevision',
+                  'wideExactMoneyStringsAndPercentageSurviveSaveReopenWithoutChangingLineage',
+                  'omittedFalseTrueAndZeroStayDistinctAndOmissionRemovesOnlyChosenFields',
+                  'independentInvalidFieldsRetainExactInputAndDiskUntilCorrectionOrExplicitOmission',
+                  'suppliedEmptyTextRequiresCorrectionOrOmissionWithoutSavingSiblingValues',
+                  'canceledEditorAndRetainedChoiceCallbacksCannotReopenOrWrite',
+                  'invalidTypedInputSurvivesActualParcelButRequiresANewExplicitCommit',
+                  'newerSavedHeadRejectsManagedCommitAndKeepsAllRecoveredInputReadOnly',
+                  'differentDraftSelectionAndCatalogPinsNeverAcquireCurrentSaveAuthority',
+                  'inFlightTypedCostWriteFreezesEveryControlAndCannotReplayAfterAcknowledgment',
+                  'actualPauseRetiresChoiceAndEditControlsUntilFreshReviewedConfirmation',
+                  'oversizedTypedRecoveryKeepsOnlyTheMarkerWithoutAutomaticViewStateFallback',
+                  'legacyRawConfigureRecoveryRemainsExplicitAndFreshConfigureUsesTypedControls',
+                  'narrowRtlLargeTextKeepsTypedFieldsGuidanceAndConfirmationReachable',
+              },
+          }
+          for name, expected in required.items():
+              path = pathlib.Path('preview/build/test-results/testDebugUnitTest') / ('TEST-' + name + '.xml')
+              suite = ET.parse(path).getroot()
+              cases = suite.findall('testcase')
+              names = [case.attrib.get('name') for case in cases]
+              if suite.attrib.get('name') != name or any(case.attrib.get('classname') != name for case in cases):
+                  raise SystemExit('Foreign typed cost-policy report')
+              if len(names) != len(set(names)) or not expected.issubset(set(names)):
+                  raise SystemExit('Missing or repeated typed cost-policy regression')
+              if int(suite.attrib.get('tests', '-1')) != len(cases) or any(int(suite.attrib.get(key, '-1')) != 0 for key in ('failures', 'errors', 'skipped')):
+                  raise SystemExit('Typed cost-policy report totals did not pass')
+              if any(case.find(tag) is not None for case in cases for tag in ('failure', 'error', 'skipped')):
+                  raise SystemExit('Typed cost-policy regression did not execute successfully')
+              print(f'Verified {len(cases)} source-named typed cost-policy cases in {name}; no installed-device claim')
+          PYCOSTNATIVE
       - name: Require typed model Activity and private recovery regressions
         run: |
           python - <<'PYMODEL'

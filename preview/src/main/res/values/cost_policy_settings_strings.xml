@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cost_policy_editor_guidance">These are local planning preferences. A saved budget is not a price, cost estimate, notification service or enforced spending limit. Currency is not stored in these fields; review the draft currency separately.</string>
+    <string name="cost_policy_monthly">Monthly budget amount</string>
+    <string name="cost_policy_per_request">Per-request budget amount</string>
+    <string name="cost_policy_hard_cap">Request a hard cap</string>
+    <string name="cost_policy_notify">Notification threshold (%)</string>
+    <string name="cost_policy_not_supplied">Not supplied</string>
+    <string name="cost_policy_no">No</string>
+    <string name="cost_policy_yes">Yes</string>
+    <string name="cost_policy_supply">Supply %1$s</string>
+    <string name="cost_policy_amount_rule">Use non-negative decimal digits, with an optional decimal point and 1–12 digits after it. No sign, grouping separator, currency symbol or exponent. The exact entered amount is retained.</string>
+    <string name="cost_policy_cap_rule">Not supplied, No and Yes are separate choices. This records a preference; the preview does not enforce a spending limit.</string>
+    <string name="cost_policy_notify_rule">Enter a number from 0 through 100, inclusive. Use a decimal point if needed, without a percent sign or grouping separator. This does not create an alert.</string>
+    <string name="cost_policy_value_required">Enter a value or clear its Supply checkbox to leave it not supplied.</string>
+    <string name="cost_policy_number_invalid">Enter a valid number with a decimal point if needed; words, decimal commas and percent signs are not accepted.</string>
+    <string name="cost_policy_too_long">This input exceeds the existing local editor or numeric parsing limit.</string>
+    <string name="cost_policy_recovery_guidance">Unfinished input is retained only within the existing local recovery limit. After backgrounding or recreation, review it explicitly before committing. A changed saved draft or an in-flight write keeps recovered input read-only.</string>
+</resources>
