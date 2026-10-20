@@ -1,7 +1,7 @@
-"""Exact JSON numbers for the four structural frozen-fixture reference checkers.
+"""Exact JSON numbers for six structural frozen-fixture reference checkers.
 
 Their integer fields are inline in the selected root schemas. Reached external
-common-schema definitions are strings; this local extension is not a global
+common-schema definitions contain no integers; this extension is not a global
 replacement for validators selected by an external root's ``$schema``.
 """
 from decimal import Decimal, InvalidOperation
