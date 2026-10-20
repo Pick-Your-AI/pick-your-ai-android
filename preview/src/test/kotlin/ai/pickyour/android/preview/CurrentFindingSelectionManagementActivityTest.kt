@@ -507,7 +507,9 @@ class CurrentFindingSelectionManagementActivityTest {
         await { !field<Boolean>("storageBusy") }
         assertFalse(field<Boolean>("storageReady"))
         assertTrue(views().filterIsInstance<TextView>().any { it.text.toString() == activity.getString(R.string.draft_conflict) })
-        assertEquals(concurrent.draft.version, (store().load() as DraftLoad.Available).draft.version)
+        val retained = (store().load() as DraftLoad.Available).draft
+        assertEquals(concurrent.draft.version.number, retained.version.number)
+        assertEquals(concurrent.draft.version.hash.hex, retained.version.hash.hex)
         assertEquals(saved.components, loaded().components)
         assertTrue(loaded().components.selections.single { it.id == "sel_model_a_01" }.enabled)
         assertEquals(afterConcurrent, disk())
