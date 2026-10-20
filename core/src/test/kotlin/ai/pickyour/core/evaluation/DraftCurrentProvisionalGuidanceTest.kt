@@ -18,6 +18,7 @@ class DraftCurrentProvisionalGuidanceTest {
     private val mapper = ObjectMapper()
     private var serial = 0
     private val foundation = "rule.required.foundation"
+    private val foundationKinds = listOf("workload", "deployment_mode", "model", "context_policy")
     private val provider = "rule.model.provider.match"
     private val incomplete = ProvisionalFindingGuidance.INCOMPLETE
     private val incompatible = ProvisionalFindingGuidance.REPORTED_INCOMPATIBILITY
@@ -81,7 +82,9 @@ class DraftCurrentProvisionalGuidanceTest {
             assertEquals("error", row(actual, foundation).severity)
             assertTrue(row(actual, foundation).selectionIds.isEmpty())
             assertEquals(incomplete, actual.provisionalGuidance(foundation))
+            assertEquals(foundationKinds, actual.missingRequiredPrimaryKinds(foundation))
             assertEquals(unclassified, actual.provisionalGuidance("rule.unregistered"))
+            assertTrue(actual.missingRequiredPrimaryKinds("rule.unregistered").isEmpty())
         }
     }
 
@@ -97,7 +100,9 @@ class DraftCurrentProvisionalGuidanceTest {
         assertEquals(listOf(model.id, other.id).sorted(), row(actual, provider).selectionIds)
         assertEquals(listOf(model.id), row(actual, foundation).selectionIds)
         assertEquals(incompatible, actual.provisionalGuidance(provider))
+        assertTrue(actual.missingRequiredPrimaryKinds(provider).isEmpty())
         assertEquals(incomplete, actual.provisionalGuidance(foundation))
+        assertEquals(listOf("workload", "deployment_mode", "context_policy"), actual.missingRequiredPrimaryKinds(foundation))
         assertEquals("Selected model belongs to a different provider.", row(actual, provider).message)
     }
 
@@ -109,8 +114,12 @@ class DraftCurrentProvisionalGuidanceTest {
             assertEquals(expected, row(actual, provider).outcome)
             assertEquals("error", row(actual, provider).severity)
             assertEquals(unclassified, actual.provisionalGuidance(provider))
-            for (finding in actual.findings.filter { it.outcome != "fail" })
+            if (expected == "unknown") assertEquals(DraftCurrentUnknownPhase.ASSERTION, actual.unknownPhase(provider))
+            assertTrue(actual.missingRequiredPrimaryKinds(provider).isEmpty())
+            for (finding in actual.findings.filter { it.outcome != "fail" }) {
                 assertEquals(unclassified, actual.provisionalGuidance(finding.ruleId), finding.ruleId)
+                assertTrue(actual.missingRequiredPrimaryKinds(finding.ruleId).isEmpty(), finding.ruleId)
+            }
         }
     }
 
@@ -123,6 +132,7 @@ class DraftCurrentProvisionalGuidanceTest {
         assertEquals("fail", row(actual, foundation).outcome)
         assertEquals(listOf(fallback.id), row(actual, foundation).selectionIds)
         assertEquals(incomplete, actual.provisionalGuidance(foundation))
+        assertEquals(foundationKinds, actual.missingRequiredPrimaryKinds(foundation))
         assertFalse(source.content.components.selections.single { it.id == primary.id }.enabled)
         assertEquals("fallback", source.content.components.selections.single { it.id == fallback.id }.role)
     }
@@ -134,6 +144,7 @@ class DraftCurrentProvisionalGuidanceTest {
         assertEquals(Activation.DISABLED, empty.content.optional.getValue(OptionalTier.T3).activation)
         assertEquals("skipped", row(inactive, "rule.rag.knowledge").outcome)
         assertEquals(unclassified, inactive.provisionalGuidance("rule.rag.knowledge"))
+        assertTrue(inactive.missingRequiredPrimaryKinds("rule.rag.knowledge").isEmpty())
         val (_, active) = saved(DraftContent(optional = mapOf(OptionalTier.T3 to TierDraft(Activation.ENABLED)),
             components = DraftSelections(rows("rag_pipeline"))))
         val actual = completed(request(active, pins))
@@ -141,7 +152,9 @@ class DraftCurrentProvisionalGuidanceTest {
         assertEquals(listOf("sel_rag_pipeline"), row(actual, "rule.rag.knowledge").selectionIds)
         assertEquals("RAG pipeline lacks a knowledge base.", row(actual, "rule.rag.knowledge").message)
         assertEquals(incomplete, actual.provisionalGuidance("rule.rag.knowledge"))
+        assertEquals(listOf("knowledge_base"), actual.missingRequiredPrimaryKinds("rule.rag.knowledge"))
         assertEquals(unclassified, inactive.provisionalGuidance("rule.rag.knowledge"))
+        assertTrue(inactive.missingRequiredPrimaryKinds("rule.rag.knowledge").isEmpty())
     }
 
     @Test fun changedRulesetIdentityMetadataAndOrderRefuseAllCurrentFacets() {
@@ -159,7 +172,10 @@ class DraftCurrentProvisionalGuidanceTest {
             val actual = completed(request(source, inputs(rules = rules)))
             assertEquals("fail", row(actual, foundation).outcome)
             assertEquals(rules["id"].asText(), actual.binding.rulesetId)
-            for (finding in actual.findings) assertEquals(unclassified, actual.provisionalGuidance(finding.ruleId))
+            for (finding in actual.findings) {
+                assertEquals(unclassified, actual.provisionalGuidance(finding.ruleId))
+                assertTrue(actual.missingRequiredPrimaryKinds(finding.ruleId).isEmpty())
+            }
         }
     }
 
@@ -180,6 +196,8 @@ class DraftCurrentProvisionalGuidanceTest {
         assertEquals(values(before.findings), values(after.findings))
         assertEquals(incomplete, after.provisionalGuidance(foundation))
         assertEquals(incomplete, before.provisionalGuidance(foundation))
+        assertEquals(foundationKinds, after.missingRequiredPrimaryKinds(foundation))
+        assertEquals(foundationKinds, before.missingRequiredPrimaryKinds(foundation))
     }
 
     @Test fun callerMutationCannotChangeCapturedRulesFindingsOrGuidance() {
@@ -201,6 +219,12 @@ class DraftCurrentProvisionalGuidanceTest {
         assertEquals(before, values(captured.findings))
         assertEquals(incomplete, again.provisionalGuidance(foundation))
         assertEquals(incomplete, captured.provisionalGuidance(foundation))
+        assertEquals(foundationKinds, again.missingRequiredPrimaryKinds(foundation))
+        assertEquals(foundationKinds, captured.missingRequiredPrimaryKinds(foundation))
+        assertThrows(UnsupportedOperationException::class.java) {
+            (captured.missingRequiredPrimaryKinds(foundation) as MutableList<String>).clear()
+        }
+        assertEquals(foundationKinds, captured.missingRequiredPrimaryKinds(foundation))
         assertThrows(UnsupportedOperationException::class.java) { (captured.findings as MutableList).clear() }
         assertFalse(captured.findings.any { "private" in it.message })
     }
@@ -211,6 +235,7 @@ class DraftCurrentProvisionalGuidanceTest {
         val prior = completed(request(old, pins))
         assertEquals("pass", row(prior, foundation).outcome)
         assertEquals(unclassified, prior.provisionalGuidance(foundation))
+        assertTrue(prior.missingRequiredPrimaryKinds(foundation).isEmpty())
         val removed = (store.applySelection(DraftSelectionIntent(old.version,
             SelectionCommand.Remove("sel_model"))) as DraftSelectionSave.Saved).draft
         val removedRequest = request(removed, pins, old)
@@ -220,6 +245,7 @@ class DraftCurrentProvisionalGuidanceTest {
         val absent = completed(removedRequest)
         assertEquals("fail", row(absent, foundation).outcome)
         assertEquals(incomplete, absent.provisionalGuidance(foundation))
+        assertEquals(listOf("model"), absent.missingRequiredPrimaryKinds(foundation))
         val disabledRows = old.content.components.selections.map { if (it.id == "sel_model")
             LocalSelection.fromJson(it.toJson().put("enabled", false)) else it }
         val disabled = (store.save(removed.version, removed.content.withComponents(DraftSelections(disabledRows)),
@@ -232,6 +258,9 @@ class DraftCurrentProvisionalGuidanceTest {
         assertEquals(incomplete, inactive.provisionalGuidance(foundation))
         assertEquals(unclassified, prior.provisionalGuidance(foundation))
         assertEquals(incomplete, absent.provisionalGuidance(foundation))
+        assertEquals(listOf("model"), inactive.missingRequiredPrimaryKinds(foundation))
+        assertEquals(listOf("model"), absent.missingRequiredPrimaryKinds(foundation))
+        assertTrue(prior.missingRequiredPrimaryKinds(foundation).isEmpty())
         assertNotEquals(prior.binding.sourceHash, inactive.binding.sourceHash)
     }
 

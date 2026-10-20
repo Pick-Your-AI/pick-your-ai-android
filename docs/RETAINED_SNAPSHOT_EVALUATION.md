@@ -91,14 +91,17 @@ source text changes the bundle identity even when the projected Build is identic
 | --- | --- |
 | Unchanged frozen Python evaluator | `092c8a99495f9b5ae960df40b27e33f15eefe6d1a7cd80119658fdc79ada1a5a` |
 | Existing 14-schema CD-7 descriptor | `eaaf51a04c9bd0c7fce23e7ecc75724226e26b337cc1da04b88a59d2a912914f` |
-| Kotlin `FrozenDiagnosticEvaluator.kt` | `c8f4f35e0ce5e042578ac83fc8daa705139d27b00d1848d9ff20165e81de6fd1` |
+| Kotlin `FrozenDiagnosticEvaluator.kt` | `da06ae25f838617d99a3b1fb04ea29eb8986b0305ae051afd026426eebf98552` |
 | Kotlin `ReferenceReportAdapter.kt` | `d39e266490ffb7814b0bb2cc05a108d60206f036a3be7beb6c340b29723fa525` |
 
-The Current unknown-phase follow-up records the existing evaluator branch and
-therefore changes the shared interpreter's source bytes. Its descriptor advances
-from `b0bc63de8d6d4fed412344c4cb58864248782edf74aa9fb0fa75df9f3e80667f`
-to the value in the table. The profile name, frozen reference, schema descriptor,
-report receiver and fixed reference time remain unchanged.
+The earlier Current unknown-phase follow-up recorded the existing evaluator branch
+and advanced the interpreter descriptor from
+`b0bc63de8d6d4fed412344c4cb58864248782edf74aa9fb0fa75df9f3e80667f`
+to `c8f4f35e0ce5e042578ac83fc8daa705139d27b00d1848d9ff20165e81de6fd1`.
+The fresh retained-inspection observation below changes the full-evaluation
+wrapper's source bytes again, so the descriptor now binds the value in the table.
+The profile name, frozen reference, schema descriptor, report receiver and fixed
+reference time remain unchanged.
 
 The digest of `SnapshotEvaluationRequest` includes the implementation descriptor,
 so newly prepared retained requests have different digests after this change,
@@ -167,6 +170,60 @@ A distinct `observedAt` records the actual local observation; clock failure retu
 an explicit failure. Neither field establishes evidence freshness. Interruption
 before or after computation returns cancellation, and work-limit/unsupported/
 invalid-input/binding/output/engine failures do not return partial reports.
+
+### Observed phase of a fresh retained inspection
+
+A successful local inspection may expose the phase that its existing evaluator
+pass actually observed for an unknown finding. Unknown applicability means the
+assertion was not evaluated. An unknown assertion means applicability was true
+but the assertion did not determine a pass or fail. Neither observation identifies
+a particular missing input, causal explanation, feasible remedy or readiness.
+
+The public frozen evaluator still returns the same complete report shape and
+bytes. Its private detailed pass keeps the already-computed branch beside that
+report, without evaluating any expression again or charging different rule work.
+A retained-specific opaque trace is created only by that full pass and is bound
+to the exact captured request object and original computed accepted-report object.
+A copied, independently re-admitted or foreign report cannot borrow that trace,
+even if its serialized fields match. A new request with identical pins is also a
+different authority. Bare injected results remain phase-free.
+
+The local wrapper preserves complete report re-admission, exact JSON equality,
+all identity/detail checks, observation-clock handling and interruption checks
+before exposing its result. Failed or cancelled work returns no observed result;
+a later work-limit or unsupported-operation rejection discards every earlier
+partial observation. The result privately copies the observation map and exposes
+a phase only for a unique actual unknown finding in its own accepted report.
+Historical or imported report bytes alone cannot reconstruct this observation.
+
+The fresh saved-snapshot result description can display a separate fixed phase
+line. Recorded rule text remains quoted, and all result, severity, evidence,
+readiness, input and time disclosures stay intact. Generic report-only finding
+navigation receives no phase metadata. The existing session's attempt, request
+and ticket checks, showing-dialog ownership and finding retirement remain
+unchanged. These classes grant no draft, archive, navigation or remedy authority
+from the new line.
+
+The additive `RetainedSnapshotUnknownPhaseTest` suite defines eight controls:
+both actual unknown branches with the original exact work budgets; non-unknown
+controls; bare/re-admitted/foreign/reissued-result rejection; whole-attempt
+rejection after partial work; immutable observations, unchanged private bytes and
+a complete existing report golden; clock/interruption failures; and replaced or
+closed session delivery. Its requests pass through real saved-draft projection,
+acknowledgment and archival.
+
+Four `SnapshotUnknownPhaseActivityTest` methods define actual retained-inspection
+controls for applicability and assertion text, non-unknown absence, and
+cancellation/replacement/close with captured old controls. They retain real
+archive/input identity, private-byte, raw-detail, independent outcome/severity
+and no-navigation assertions. These are Robolectric source definitions, not
+installed-device observations.
+
+The new Core and Preview methods require exact source-specific CI execution
+under their strict attendance gates and the unchanged existing gates before
+delivery. Prior receipts retain their original source and preparation identities;
+they do not validate the changed wrapper or renderer. No new execution result is
+claimed by these source definitions.
 
 ### Supported semantic and numeric subset
 

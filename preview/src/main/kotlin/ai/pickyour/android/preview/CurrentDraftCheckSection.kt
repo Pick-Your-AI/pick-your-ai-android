@@ -209,6 +209,9 @@ internal class CurrentDraftCheckSection(
                 ProvisionalFindingGuidance.INCOMPLETE -> "\n\n" + activity.getString(R.string.findings_guidance_incomplete)
                 ProvisionalFindingGuidance.REPORTED_INCOMPATIBILITY -> "\n\n" + activity.getString(R.string.findings_guidance_incompatible)
                 ProvisionalFindingGuidance.UNCLASSIFIED -> ""
+            } + state.outcome.missingRequiredPrimaryKinds(row.ruleId).let { absent ->
+                if (absent.isEmpty()) "" else "\n\n" + activity.getString(R.string.current_finding_absent_primary,
+                    absent.joinToString(", ", transform = ::literal))
             }
         lateinit var detail: AlertDialog
         val context = LinearLayout(activity).apply {

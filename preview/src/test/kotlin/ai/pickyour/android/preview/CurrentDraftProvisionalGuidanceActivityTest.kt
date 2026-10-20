@@ -38,6 +38,7 @@ class CurrentDraftProvisionalGuidanceActivityTest {
     private lateinit var controller: ActivityController<PreviewActivity>
     private val activity get() = controller.get()
     private val foundation = "rule.required.foundation"
+    private val foundationKinds = listOf("workload", "deployment_mode", "model", "context_policy")
     private val provider = "rule.model.provider.match"
     private val incomplete = "Guidance: Incomplete (provisional)"
     private val incompatible = "Guidance: Reported incompatibility (provisional)"
@@ -231,12 +232,16 @@ class CurrentDraftProvisionalGuidanceActivityTest {
         return JSONArray("[$value]").getString(0)
     }
 
+    private fun absentChoices(kinds: List<String>) = "Observed in this saved draft (provisional): no enabled primary choice for " +
+        kinds.joinToString(", ", transform = ::quoted) + ". This is a selection observation; candidate feasibility is unverified."
+
     private fun verifyGuidance(current: PreviewCurrentDraftState.Current, id: String, guidance: String?,
-        unknownPhase: String? = null,
+        unknownPhase: String? = null, missingPrimaryKinds: List<String> = emptyList(),
     ) {
         val before = disk()
         val saved = loaded().baselineIdentity
         val binding = current.request.binding.copy()
+        assertEquals(missingPrimaryKinds, current.outcome.missingRequiredPrimaryKinds(id))
         val rows = current.outcome.findings
         val counts = listOf("pass", "fail", "unknown", "skipped").map { value -> rows.count { it.outcome == value } }
         assertEquals(rows.size, counts.sum())
@@ -266,8 +271,9 @@ class CurrentDraftProvisionalGuidanceActivityTest {
         assertEquals(before, disk())
 
         val phased = if (unknownPhase == null) previous else "$previous\n\n$unknownPhase"
-        val expected = if (guidance == null) phased else "$phased\n\n$guidance"
-        assertEquals("Only the expected observed phase and captured fail guidance may be appended", expected, text)
+        val guided = if (guidance == null) phased else "$phased\n\n$guidance"
+        val expected = if (missingPrimaryKinds.isEmpty()) guided else "$guided\n\n" + absentChoices(missingPrimaryKinds)
+        assertEquals("Only the expected phase, fail guidance and captured required-choice absences may be appended", expected, text)
 
         window.getButton(AlertDialog.BUTTON_POSITIVE).performClick(); idle()
         val list = dialog()
@@ -291,7 +297,7 @@ class CurrentDraftProvisionalGuidanceActivityTest {
         val current = admitted()
         assertTrue(field<PreviewStoredDraft>("savedRecord").components.selections.isEmpty())
         assertTrue(finding(current, foundation, "fail").selectionIds.isEmpty())
-        verifyGuidance(current, foundation, incomplete)
+        verifyGuidance(current, foundation, incomplete, missingPrimaryKinds = foundationKinds)
     }
 
     @Test fun mixedCurrentShowsReportedConflictAlongsideIndependentMissingChoices() {
@@ -310,7 +316,8 @@ class CurrentDraftProvisionalGuidanceActivityTest {
         // fabricated version mismatch or an external component-compatibility conclusion.
         assertEquals("2026.10-demo", other.catalogItemVersion)
         verifyGuidance(current, provider, incompatible)
-        verifyGuidance(current, foundation, incomplete)
+        verifyGuidance(current, foundation, incomplete,
+            missingPrimaryKinds = listOf("workload", "deployment_mode", "context_policy"))
     }
 
     @Test fun disabledPrimaryAndEnabledFallbackNeverSatisfyRequiredPresence() {
@@ -320,7 +327,7 @@ class CurrentDraftProvisionalGuidanceActivityTest {
         assertFalse(disabled.enabled)
         assertTrue(fallback.enabled)
         assertEquals(listOf(fallback.id), finding(current, foundation, "fail").selectionIds)
-        verifyGuidance(current, foundation, incomplete)
+        verifyGuidance(current, foundation, incomplete, missingPrimaryKinds = foundationKinds)
     }
 
     @Test fun realUnknownKeepsItsRawOutcomeAndMeaningWithoutProvisionalGuidance() {
@@ -352,5 +359,40 @@ class CurrentDraftProvisionalGuidanceActivityTest {
         finding(current, foundation, "fail")
         assertNotEquals(hash(document("ruleset").toString().toByteArray(Charsets.UTF_8)), current.request.binding.rulesetHash.hex)
         verifyGuidance(current, foundation, null)
+    }
+
+    @Test fun requiredAbsencesStayWithTheirSavedRevisionAndRetiredDetailCannotReturn() {
+        val all = foundationKinds.map { local(selection(it)) }
+        val complete = admitted(all)
+        finding(complete, foundation, "pass")
+        verifyGuidance(complete, foundation, null)
+
+        val missing = admitted(all.filter { it.kind != "model" })
+        finding(missing, foundation, "fail")
+        verifyGuidance(missing, foundation, incomplete, missingPrimaryKinds = listOf("model"))
+        val old = detail(missing, missing.outcome.findings.indexOfFirst { it.ruleId == foundation })
+        val capturedText = body(old)
+        assertTrue(capturedText.endsWith(absentChoices(listOf("model"))))
+        val oldContext = views(old.window!!.decorView).filterIsInstance<Button>()
+            .single { it.text.toString() == "Inspect affected selections" }
+
+        val restored = admitted(all)
+        finding(restored, foundation, "pass")
+        assertNotEquals(missing.request.binding, restored.request.binding)
+        assertEquals(listOf("model"), missing.outcome.missingRequiredPrimaryKinds(foundation))
+        assertTrue(restored.outcome.missingRequiredPrimaryKinds(foundation).isEmpty())
+        assertFalse(old.isShowing)
+        val latest = dialog()
+        val before = disk()
+        val saved = loaded().baselineIdentity
+        old.getButton(AlertDialog.BUTTON_POSITIVE).performClick(); idle()
+        old.getButton(AlertDialog.BUTTON_NEUTRAL).performClick(); idle()
+        oldContext.performClick(); idle()
+        assertSame(latest, dialog())
+        assertFalse(old.isShowing)
+        assertSame(restored, state())
+        assertEquals(saved, loaded().baselineIdentity)
+        assertEquals(before, disk())
+        verifyGuidance(restored, foundation, null)
     }
 }

@@ -230,6 +230,36 @@ jobs:
               raise SystemExit('Current unknown-phase regression did not execute successfully')
           print(f"Verified {len(cases)} exact producer-bound Current unknown-phase cases; no cause or feasible-action claim")
           PYCURRENTPHASE
+      - name: Require producer-bound retained unknown-phase regressions
+        run: |
+          python - <<'PYRETAINEDPHASE'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          name = 'ai.pickyour.core.evaluation.RetainedSnapshotUnknownPhaseTest'
+          expected = {
+              'unknownApplicabilityDoesNotEvaluateTheUnsupportedAssertion()',
+              'unknownAssertionRequiresConfirmedApplicabilityWithUnchangedBudget()',
+              'skippedPassAndFailReportsNeverAcquireUnknownPhase()',
+              'bareReparsedForeignAndReissuedResultsCannotBorrowProducerPhase()',
+              'laterWorkAndUnsupportedFailuresDiscardEveryPartialObservation()',
+              'immutableObservationsPreserveStoredInputsAndCompleteGoldenReportBytes()',
+              'cancellationAndClockFailureNeverExposeAnObservedResult()',
+              'replacementAndClosedSessionsCannotPublishAnOlderPhase()',
+          }
+          path = pathlib.Path('core/build/test-results/test') / ('TEST-' + name + '.xml')
+          suite = ET.parse(path).getroot()
+          cases = suite.findall('testcase')
+          names = [case.attrib.get('name') for case in cases]
+          if suite.tag != 'testsuite' or suite.attrib.get('name') != name or any(case.attrib.get('classname') != name for case in cases):
+              raise SystemExit('Foreign Retained unknown-phase regression report')
+          if len(cases) != len(suite.findall('.//testcase')) or set(names) != expected or len(names) != len(expected):
+              raise SystemExit('Missing, blank, nested, extra or repeated Retained unknown-phase regression')
+          if int(suite.attrib.get('tests', '-1')) != len(cases) or any(int(suite.attrib.get(key, '-1')) != 0 for key in ('failures', 'errors', 'skipped')):
+              raise SystemExit('Retained unknown-phase totals did not pass')
+          if any(suite.find('.//' + tag) is not None for tag in ('failure', 'error', 'skipped')):
+              raise SystemExit('Retained unknown-phase regression did not execute successfully')
+          print(f"Verified {len(cases)} exact producer-bound retained unknown-phase cases; no cause or feasible-action claim")
+          PYRETAINEDPHASE
       - name: Require selected historical cost admission regressions
         run: |
           python - <<'PYTEST'
@@ -3199,6 +3229,7 @@ jobs:
                   'realSkippedKeepsItsRawOutcomeAndMeaningWithoutProvisionalGuidance',
                   'matchingProviderPassNeverAcquiresConflictOrIncompleteGuidance',
                   'changedRegisteredRulesCannotBorrowProvisionalGuidance',
+                  'requiredAbsencesStayWithTheirSavedRevisionAndRetiredDetailCannotReturn',
               },
           }
           total = 0
@@ -3645,6 +3676,32 @@ jobs:
               total += len(cases)
           print(f"Verified {total} simulated saved-snapshot inspection cases; no installed-device claim")
           PYTEST
+      - name: Require actual retained unknown-phase Activity regressions
+        run: |
+          python - <<'PYRETAINEDPHASEACTIVITY'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          name = 'ai.pickyour.android.preview.SnapshotUnknownPhaseActivityTest'
+          expected = {
+              'freshApplicabilityObservationUsesTheActualPassAndPreservesPrivateBytes',
+              'freshAssertionObservationRequiresTrueApplicabilityWithoutInferringAnAction',
+              'nonUnknownRetainedFindingsNeverDisplayAnObservedUnknownPhase',
+              'cancellationReplacementAndCloseRetirePhaseAndCapturedControls',
+          }
+          path = pathlib.Path('preview/build/test-results/testDebugUnitTest') / ('TEST-' + name + '.xml')
+          suite = ET.parse(path).getroot()
+          cases = suite.findall('testcase')
+          names = [case.attrib.get('name') for case in cases]
+          if suite.tag != 'testsuite' or suite.attrib.get('name') != name or any(case.attrib.get('classname') != name for case in cases):
+              raise SystemExit('Foreign Retained unknown-phase Activity regression report')
+          if len(cases) != len(suite.findall('.//testcase')) or set(names) != expected or len(names) != len(expected):
+              raise SystemExit('Missing, blank, nested, extra or repeated Retained unknown-phase Activity regression')
+          if int(suite.attrib.get('tests', '-1')) != len(cases) or any(int(suite.attrib.get(key, '-1')) != 0 for key in ('failures', 'errors', 'skipped')):
+              raise SystemExit('Retained unknown-phase Activity totals did not pass')
+          if any(suite.find('.//' + tag) is not None for tag in ('failure', 'error', 'skipped')):
+              raise SystemExit('Retained unknown-phase Activity regression did not execute successfully')
+          print(f"Verified {len(cases)} exact retained unknown-phase Activity cases; no installed-device or TalkBack claim")
+          PYRETAINEDPHASEACTIVITY
       - name: Require catalog viewport restoration regressions to execute
         run: |
           python - <<'PYTEST'

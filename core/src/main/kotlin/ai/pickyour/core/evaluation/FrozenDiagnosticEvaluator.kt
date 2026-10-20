@@ -34,7 +34,42 @@ class FrozenDiagnosticEvaluator(private val maxWork: Int = 250_000) {
     private val reader = BoundedJsonReader(JsonInputLimits(maxBytes = 262_144, maxTokens = 20_000, maxStringLength = 4096))
     private val validator = FrozenSchemaValidator()
 
-    fun evaluate(build: InputStream, catalog: InputStream, ruleset: InputStream): DiagnosticEvaluation = try {
+    fun evaluate(build: InputStream, catalog: InputStream, ruleset: InputStream): DiagnosticEvaluation =
+        evaluateDetails(build, catalog, ruleset).evaluation
+
+    /** One full frozen pass; the retained trace is never constructed from a caller-supplied report. */
+    internal fun evaluateRetainedSnapshot(request: SnapshotEvaluationRequest): RetainedSnapshotTrace =
+        RetainedSnapshotTrace.evaluate(this, request)
+
+    internal class RetainedSnapshotTrace private constructor(
+        private val request: SnapshotEvaluationRequest,
+        val evaluation: DiagnosticEvaluation,
+        phases: Map<String, DraftCurrentUnknownPhase>,
+    ) {
+        private val phases = Collections.unmodifiableMap(LinkedHashMap(phases.mapValues { (_, phase) ->
+            when (phase) {
+                DraftCurrentUnknownPhase.APPLICABILITY -> SnapshotUnknownPhase.APPLICABILITY
+                DraftCurrentUnknownPhase.ASSERTION -> SnapshotUnknownPhase.ASSERTION
+            }
+        }))
+
+        internal fun phasesFor(request: SnapshotEvaluationRequest, report: ReportReception.Accepted): Map<String, SnapshotUnknownPhase> =
+            if (this.request === request && (evaluation as? DiagnosticEvaluation.Evaluated)?.report === report)
+                phases else emptyMap()
+
+        companion object {
+            internal fun evaluate(evaluator: FrozenDiagnosticEvaluator, request: SnapshotEvaluationRequest): RetainedSnapshotTrace {
+                val result = evaluator.evaluateDetails(request.bytes(SnapshotEvaluationSlot.BUILD).inputStream(),
+                    request.bytes(SnapshotEvaluationSlot.CATALOG).inputStream(), request.bytes(SnapshotEvaluationSlot.RULESET).inputStream())
+                return RetainedSnapshotTrace(request, result.evaluation, result.phases)
+            }
+        }
+    }
+
+    private class EvaluationDetails(val evaluation: DiagnosticEvaluation, val phases: Map<String, DraftCurrentUnknownPhase>)
+    private class FullReport(val output: ObjectNode, val phases: Map<String, DraftCurrentUnknownPhase>)
+
+    private fun evaluateDetails(build: InputStream, catalog: InputStream, ruleset: InputStream): EvaluationDetails = try {
         val b = parse(FrozenDocument.BUILD, build)
         val c = parse(FrozenDocument.CATALOG, catalog)
         val r = parse(FrozenDocument.RULESET, ruleset)
@@ -56,12 +91,12 @@ class FrozenDiagnosticEvaluator(private val maxWork: Int = 250_000) {
             if (item["version"] != selection["catalog_item_version"] || item["kind"] != selection["kind"])
                 fail(DiagnosticRejection.BINDING_MISMATCH)
         }
-        val output = Run(b, c, r).evaluate()
-        when (val received = ReferenceReportAdapter().receive(b.toString().byteInputStream(), r.toString().byteInputStream(), output.toString().byteInputStream())) {
-            is ReportReception.Accepted -> DiagnosticEvaluation.Evaluated(received)
-            is ReportReception.Rejected -> DiagnosticEvaluation.Rejected(DiagnosticRejection.INVALID_OUTPUT)
+        val result = Run(b, c, r).evaluate()
+        when (val received = ReferenceReportAdapter().receive(b.toString().byteInputStream(), r.toString().byteInputStream(), result.output.toString().byteInputStream())) {
+            is ReportReception.Accepted -> EvaluationDetails(DiagnosticEvaluation.Evaluated(received), result.phases)
+            is ReportReception.Rejected -> EvaluationDetails(DiagnosticEvaluation.Rejected(DiagnosticRejection.INVALID_OUTPUT), emptyMap())
         }
-    } catch (failure: Rejection) { DiagnosticEvaluation.Rejected(failure.reason) }
+    } catch (failure: Rejection) { EvaluationDetails(DiagnosticEvaluation.Rejected(failure.reason), emptyMap()) }
 
     private fun parse(type: FrozenDocument, stream: InputStream): ObjectNode {
         val value = (reader.read(stream) as? JsonInputResult.Parsed)?.value ?: fail(DiagnosticRejection.INVALID_INPUT)
@@ -308,7 +343,7 @@ class FrozenDiagnosticEvaluator(private val maxWork: Int = 250_000) {
                 else -> compare(op, value(e["left"]), value(e["right"]))
             }
         }
-        fun evaluate(): ObjectNode {
+        fun evaluate(): FullReport {
             val output = nodes.objectNode()
             for (key in listOf("schema_version")) output.set<JsonNode>(key, build[key])
             output.put("id", "evaluation.${build["id"].asText()}.r${build["revision"].bigIntegerValue()}")
@@ -324,7 +359,7 @@ class FrozenDiagnosticEvaluator(private val maxWork: Int = 250_000) {
             val summary = output.putObject("summary")
             for ((key, value) in mapOf("passed" to "pass", "failed" to "fail", "unknown" to "unknown", "skipped" to "skipped"))
                 summary.put(key, result.counts.getValue(value))
-            return output
+            return FullReport(output, result.phases)
         }
 
         fun evaluateFindings(): RuleResults {

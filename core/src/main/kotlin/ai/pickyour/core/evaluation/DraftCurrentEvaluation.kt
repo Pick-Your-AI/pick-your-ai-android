@@ -212,8 +212,9 @@ sealed class DraftCurrentOutcome private constructor(private val request: DraftC
             if (this.findings.singleOrNull { it.ruleId == ruleId }?.outcome == "unknown") phases[ruleId] else null
         private val guidance = request.inputs.provisionalGuidance(request.source, this.findings)
         /** Captured local presentation only; the request, original findings and readiness are unchanged. */
-        fun provisionalGuidance(ruleId: String): ProvisionalFindingGuidance =
-            guidance[ruleId] ?: ProvisionalFindingGuidance.UNCLASSIFIED
+        fun provisionalGuidance(ruleId: String): ProvisionalFindingGuidance = guidance.classification(ruleId)
+        /** Finite required-profile absences in this captured saved draft; no inferred cause or remedy. */
+        fun missingRequiredPrimaryKinds(ruleId: String): List<String> = guidance.missingRequiredPrimaryKinds(ruleId)
     }
     class Unavailable internal constructor(request: DraftCurrentEvaluation, val reason: DraftCurrentUnavailable) : DraftCurrentOutcome(request)
 }
