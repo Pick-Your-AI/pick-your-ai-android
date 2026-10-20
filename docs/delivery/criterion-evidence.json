@@ -1,10 +1,10 @@
 {
-  "schema_version": 14,
+  "schema_version": 15,
   "observed_on": "2026-10-18",
   "repository": "Pick-Your-AI/pick-your-ai-android",
   "implementation_baseline": "cc4869aa40316fe81b4e00a2e6b73a2df01a2329",
   "source": "Live GitHub issue-list read across all states; criterion order and exact text retained. Closed accepted issues remain in the source comparison.",
-  "purpose": "Living evidence index: 25 reviewed documentary/design criteria for Android #2/#20/#23/#24/#25/#34/#35/#47, 14 reviewed implementation criteria for #26/#37/#84/#96, the single reviewed import-integrity criterion 21.2 and 3 reviewed bounded support criteria for #33 are complete; 398 criteria remain incomplete. This does not replace acceptance receipts, GitHub issue status or native dependencies.",
+  "purpose": "Living evidence index: 25 reviewed documentary/design criteria for Android #2/#20/#23/#24/#25/#34/#35/#47, 17 reviewed implementation criteria for #26/#37/#48/#84/#96, the single reviewed import-integrity criterion 21.2 and 3 reviewed bounded support criteria for #33 are complete; 395 criteria remain incomplete. This does not replace acceptance receipts, GitHub issue status or native dependencies.",
   "evidence": {
     "pr-131": {
       "pr_url": "https://github.com/Pick-Your-AI/pick-your-ai-android/pull/131",
@@ -243,6 +243,13 @@
       "revision": "fbdd62a90d636136d47f3d83f03b2a6c3ad52322",
       "artifact_url": "https://github.com/Pick-Your-AI/pick-your-ai-android/blob/fbdd62a90d636136d47f3d83f03b2a6c3ad52322/core/src/main/kotlin/ai/pickyour/core/evidence/placement/PlacementDeployment.kt",
       "scope_limit": "Delivered the exact reviewed changed-basis UNKNOWN guard and permanent regression. The original SKIPPED failure, focused RED/GREEN and receiving417 remain historical; actual signed successor af8 main-push6186/526 separately includes112 placement+7 vectors+158 context with all prior names retained. This restores the selected opt-in boundary and grants no broader #37/default/native/provider/release authority."
+    },
+    "pr-652": {
+      "pr_url": "https://github.com/Pick-Your-AI/pick-your-ai-android/pull/652",
+      "observed_state": "merged",
+      "revision": "020d7fa2192cf3414e258c95f25554473fd3b14d",
+      "artifact_url": "https://github.com/Pick-Your-AI/pick-your-ai-android/blob/020d7fa2192cf3414e258c95f25554473fd3b14d/docs/delivery/android/work-packages/02.01.md",
+      "scope_limit": "Delivered the reviewed canonical #48 foundation receiving record at valid-signed020d, using actual independent6280278860 acceptance. The attributed bd248 archive audit, failed literal0f and cancelled retry, distinct successful a82 console/hosted validation, 15 exact inputs and independent website source/original execution remain separate. Only the three selected-foundation criteria are complete; no broader physical, release, account or operating acceptance."
     }
   },
   "issues": [
@@ -5095,45 +5102,359 @@
           "id": "48.1",
           "text": "Pinned compatible JDK/Gradle/Android/Kotlin dependencies, package ID decision, modular build, documented developer setup and clean-checkout build.",
           "text_sha256": "48394baee1202faa552240baa51f5a3a86724392455773034f4f03629a1f75f5",
-          "status": "incomplete",
+          "status": "complete",
           "partial_evidence_refs": [
             "pr-133",
             "pr-136"
           ],
-          "evidence_relation": "issue_context_only; inspect artifact scope before attributing any criterion result",
-          "remaining_engineering": "Extend unsigned diagnostic build to the accepted app/package and exercise actual install/launch.",
+          "evidence_relation": "criterion_complete_reviewed_implementation_outcome",
+          "remaining_engineering": "",
           "external_prerequisites": [],
-          "completion_evidence": []
+          "completion_evidence": [
+            "pr-652"
+          ]
         },
         {
           "id": "48.2",
           "text": "A fresh checkout builds with the documented pinned toolchain and installs/launches under the approved package identity.",
           "text_sha256": "ea26c0e64f5f5ea9f161699998d60ac1769e4a4e96fdd1d59e1f9e7f5382d9fe",
-          "status": "incomplete",
+          "status": "complete",
           "partial_evidence_refs": [
             "pr-133",
             "pr-136"
           ],
-          "evidence_relation": "issue_context_only; inspect artifact scope before attributing any criterion result",
-          "remaining_engineering": "Extend unsigned diagnostic build to the accepted app/package and exercise actual install/launch.",
+          "evidence_relation": "criterion_complete_reviewed_implementation_outcome",
+          "remaining_engineering": "",
           "external_prerequisites": [],
-          "completion_evidence": []
+          "completion_evidence": [
+            "pr-652"
+          ]
         },
         {
           "id": "48.3",
           "text": "Existing website checks remain independently runnable; no developer-specific configuration is required in source.",
           "text_sha256": "ae75fb12f1eda553f8eb6322e007c249bf6568d91c370939d48e64b5c774caa7",
-          "status": "incomplete",
+          "status": "complete",
           "partial_evidence_refs": [
             "pr-133",
             "pr-136"
           ],
-          "evidence_relation": "issue_context_only; inspect artifact scope before attributing any criterion result",
-          "remaining_engineering": "Extend unsigned diagnostic build to the accepted app/package and exercise actual install/launch.",
+          "evidence_relation": "criterion_complete_reviewed_implementation_outcome",
+          "remaining_engineering": "",
           "external_prerequisites": [],
-          "completion_evidence": []
+          "completion_evidence": [
+            "pr-652"
+          ]
         }
-      ]
+      ],
+      "accepted_implementation_outcome": {
+        "classification": "reviewed_implementation_outcome",
+        "scope": "android_selected_toolchain_core_and_opt_in_preview_foundation",
+        "criteria": [
+          "48.1",
+          "48.2",
+          "48.3"
+        ],
+        "implemented_subtasks": [
+          "Initialize the selected Android client and modules in the approved repository location.",
+          "Pin compatible toolchain/wrappers/dependencies, including JDK/Gradle/Kotlin where applicable.",
+          "Configure approved package identity, SDK support and debug/release variants.",
+          "Document clean-checkout setup without machine-specific paths or embedded credentials."
+        ],
+        "validation_methods": [
+          "Execute the documented build in an isolated clean checkout.",
+          "Install and launch the resulting debug artifact on an emulator or supported device."
+        ],
+        "evidence_refs": [
+          "pr-652"
+        ],
+        "record_repository": "Pick-Your-AI/pick-your-ai-android",
+        "record_path": "docs/delivery/android/work-packages/02.01.md",
+        "record_revision": "020d7fa2192cf3414e258c95f25554473fd3b14d",
+        "record_tree": "f2168e31dd21b2e135bfa6091817c5462f6221df",
+        "record_blob": "5a7793fa1daeee575e29be97c5a04ee252ee9871",
+        "record_bytes": 25962,
+        "record_sha256": "6f64954356c138abc7b7feb6a50347f9a36a5ef3c4724cb578e63166953eae8e",
+        "record_url": "https://github.com/Pick-Your-AI/pick-your-ai-android/blob/020d7fa2192cf3414e258c95f25554473fd3b14d/docs/delivery/android/work-packages/02.01.md",
+        "record_delivery": {
+          "pr": 652,
+          "merged_at": "2026-10-20T00:43:22Z",
+          "signature_verified": true,
+          "signature_reason": "valid",
+          "parents": [
+            "32f5bd7b70c411c8593338e5a9c726371281e806"
+          ],
+          "delivery_receipt": "https://github.com/Pick-Your-AI/pick-your-ai-android/pull/652#issuecomment-6280617503",
+          "source_revision": "11ff6e76c3a0dc8c2bd65e741346ce235208ecc1",
+          "source_tree": "c9f697dbc6277106b64f2b6f9060eb22e001f43c",
+          "source_signature": "unsigned_git_data_transport",
+          "source_parent": "4b9efe1dcdc60ba978906b446071d9b9d5fd9449",
+          "full_delivered_leaf_count": 721,
+          "unchanged_other_main_entries": 720,
+          "documentation_check_receipt": "https://github.com/Pick-Your-AI/pick-your-ai-android/pull/652#issuecomment-6280603000",
+          "check_scope": "The original signed preparation's Core, Preview and scanner passed. The separate installed original was in progress at record delivery; no actual-main or new native pass is inferred by this ledger."
+        },
+        "receiving_identity_scope": "Actual independent in-session Android technical and CI receiving under the maintainer's delegated engineering authority; no distinct-person/account APPROVED vote, absent-assignee reply or operational appointment is inferred.",
+        "receiving_reviews": [
+          {
+            "role": "actual_independent_android_technical_and_ci_receiving",
+            "url": "https://github.com/Pick-Your-AI/pick-your-ai-android/issues/48#issuecomment-6280278860",
+            "created_at": "2026-10-20T00:18:19Z",
+            "body_bytes": 6149,
+            "body_sha256": "078584b3b5fdc37003592a51797d98fd6fc6226a585a897466a42f9ad6112602",
+            "inspected_revision": "4b9efe1dcdc60ba978906b446071d9b9d5fd9449",
+            "disposition": "accepted_all_three_literal_foundation_criteria_and_four_subtasks_for_selected_preview_identity",
+            "scope": "Complete canonical record, ADR0008, source/build/install chain, current input preservation and website independence; source and retained original evidence only, with no new run or raw archive acquisition."
+          }
+        ],
+        "source_reviews": [
+          {
+            "url": "https://github.com/Pick-Your-AI/pick-your-ai-android/pull/652#pullrequestreview-5579377557",
+            "commit_id": "11ff6e76c3a0dc8c2bd65e741346ce235208ecc1",
+            "state": "COMMENTED",
+            "submitted_at": "2026-10-20T00:28:34Z",
+            "body_bytes": 3212,
+            "body_sha256": "a170bd8da511a09da928f84f63445de05b3d89442bb08202d2e05156c5467d0f"
+          },
+          {
+            "url": "https://github.com/Pick-Your-AI/pick-your-ai-android/pull/652#pullrequestreview-5579456649",
+            "commit_id": "11ff6e76c3a0dc8c2bd65e741346ce235208ecc1",
+            "state": "COMMENTED",
+            "submitted_at": "2026-10-20T00:41:42Z",
+            "body_bytes": 1625,
+            "body_sha256": "3046a11169905d3d017cee3c747616cb197c7e19f15a166a242444f037f1d210"
+          }
+        ],
+        "selected_client": {
+          "modules": [
+            ":core",
+            ":preview"
+          ],
+          "preview_opt_in": true,
+          "package_identity": "ai.pickyour.android.preview",
+          "toolchain": {
+            "jdk_major": 21,
+            "gradle": "8.11.1",
+            "kotlin": "2.1.20",
+            "android_gradle_plugin": "8.9.2"
+          },
+          "ordinary_debug": "unsigned_synthetic_preview",
+          "installed_copy": "separately_signed_disposable_test_copy",
+          "release_variant": "disabled",
+          "scope_limit": "Foundation identity already accepted through #34; future :app / ai.pickyour.android and production signing are separate outcomes."
+        },
+        "placement": {
+          "decision_path": "docs/decisions/0008-android-48-acceptance-record.md",
+          "decision_blob": "904da4ee38ec00ae57eb5ece2fbc4dd4a222eb97",
+          "effective_revision": "710d337fed2004689993c0b8bc01f12de780b04c",
+          "effective_delivery_pr": 448,
+          "retained_prior_coordinate": "v13 already places only Android 02.01 in Pick-Your-AI/pick-your-ai-android; this amendment does not move it.",
+          "identity_review": "https://github.com/Pick-Your-AI/pick-your-ai-android/pull/442#pullrequestreview-5564989747",
+          "receiving_review": "https://github.com/Pick-Your-AI/pick-your-ai-android/pull/448#pullrequestreview-5565750494",
+          "handoff": "https://github.com/Pick-Your-AI/pick-your-ai-android/issues/48#issuecomment-6257138171"
+        },
+        "prepared_original": {
+          "revision": "bd2487f63745c0b9d2f83835a810766cc2a043c1",
+          "tree": "4846f4ebfb499fe11ec8a99166ef23380e492b09",
+          "signature_verified": true,
+          "qualification": "https://github.com/Pick-Your-AI/pick-your-ai-android/pull/467#issuecomment-6274389871",
+          "qualification_scope": "Attributed independent original log/archive/source review, including exact producer/APK handoff, eight original images, rotations and final ACL restoration. This ledger performs no new execution or archive/pixel audit.",
+          "core_cases": 5993,
+          "preview_cases": 544,
+          "installed_cases": 4,
+          "navigation_contrast_ratio": "8.97386058887348:1",
+          "required_contrast_ratio": "3:1",
+          "older_failed_images": "retained_as_original_failed_evidence"
+        },
+        "foundation_delivery": {
+          "pr": 467,
+          "revision": "0f5fea42c5cd149472269da2e47559a24689ba71",
+          "tree": "c9e91124c0ebbfe101e73eaa0772c5f7d3af235f",
+          "signature_verified": true,
+          "parents": [
+            "5d9fb10d72ca059a93b00f3abf3b93da9d3e6897"
+          ],
+          "original_followthrough": "https://github.com/Pick-Your-AI/pick-your-ai-android/pull/467#issuecomment-6274771555",
+          "failed_main_original": {
+            "revision": "0f5fea42c5cd149472269da2e47559a24689ba71",
+            "conclusion": "failure",
+            "boundary": "SDK system-image archive preparation",
+            "installed_cases_executed": 0,
+            "final_receipt_validated": false,
+            "cause": "No cause beyond the observed archive-preparation failure is established."
+          },
+          "cancelled_retry": {
+            "conclusion": "cancelled",
+            "new_installed_job": false,
+            "scope": "The later job-only retry was cancelled without a new installed job; no later success is assigned to it."
+          }
+        },
+        "later_main_original": {
+          "revision": "a82e4066184850a4b4152378682055531bfeae5a",
+          "tree": "1287cdd361b71145aecfed7455c7132905cc8acc",
+          "signature_verified": true,
+          "parents": [
+            "0f5fea42c5cd149472269da2e47559a24689ba71"
+          ],
+          "selected_decoder_changes": 4,
+          "unchanged_other_parent_entries": 677,
+          "run_id": 39305746890,
+          "run_url": "https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39305746890",
+          "core_job_id": 118246154466,
+          "preview_job_id": 118246154111,
+          "installed_job_id": 118250826685,
+          "core_conclusion": "success",
+          "preview_conclusion": "success",
+          "installed_conclusion": "success",
+          "installed_completed_at": "2026-10-19T19:32:01Z",
+          "installed_cases": 4,
+          "all_declared_installed_steps_succeeded": 16,
+          "unsigned_apk_sha256": "846ec220e2d903dc5f385fa219e4d60e330a767c3139db212b98f83d3aff1808",
+          "final_source_bound_receipt_and_acl_validation": true,
+          "qualification": "https://github.com/Pick-Your-AI/pick-your-ai-android/pull/608#issuecomment-6275513012",
+          "decoded_console_bytes": 66340,
+          "decoded_console_sha256": "1a191984f10f9c2174d74219b9ef03fd942ed8774c36467bb13822376eec116e",
+          "uploaded_artifact": {
+            "id": 12215607030,
+            "bytes": 1117643,
+            "sha256": "f479a69976cecff9232480559750dc51f184c5410b88ef7afceac57ecbb43f27"
+          },
+          "personal_archive_received": false,
+          "personal_archive_audit": false,
+          "personal_junit_audit": false,
+          "personal_pixel_audit": false,
+          "observation_scope": "Complete actual decoded original console, all hosted step outcomes and final source-bound validators. Supported materialization did not provide local ZIP bytes; the successful hosted installation is retained within that narrower scope.",
+          "no_result_relabeling": "This successful later main-push execution neither repairs the literal0f failed outcome nor passes its cancelled retry."
+        },
+        "current_foundation_inputs": {
+          "executed_revision": "a82e4066184850a4b4152378682055531bfeae5a",
+          "inspected_revision": "4b9efe1dcdc60ba978906b446071d9b9d5fd9449",
+          "inspected_tree": "74ab033c81b3016e8c7acb41573d9336fb5557bc",
+          "preserved_through_record_revision": "020d7fa2192cf3414e258c95f25554473fd3b14d",
+          "paths": [
+            {
+              "path": "settings.gradle.kts",
+              "mode": "100644",
+              "type": "blob",
+              "blob": "da66557fffc059b8836a0f3b22536dc3cbea48fc"
+            },
+            {
+              "path": "build.gradle.kts",
+              "mode": "100644",
+              "type": "blob",
+              "blob": "ab50e98b093e74c3205975c93c979e008d8c07c3"
+            },
+            {
+              "path": "core/build.gradle.kts",
+              "mode": "100644",
+              "type": "blob",
+              "blob": "a59ad81dfaa59c2a9018726b1f685be23949d0e8"
+            },
+            {
+              "path": "preview/build.gradle.kts",
+              "mode": "100644",
+              "type": "blob",
+              "blob": "08611b4b7ef5135000c32e023bef9ca8934f7a0b"
+            },
+            {
+              "path": "gradle.properties",
+              "mode": "100644",
+              "type": "blob",
+              "blob": "5b9b501e5f55e0085d976899ad029728a22a845e"
+            },
+            {
+              "path": "gradle/wrapper/gradle-wrapper.properties",
+              "mode": "100644",
+              "type": "blob",
+              "blob": "eb1a55be0e150907b4442736a9f121cb6de6f2bd"
+            },
+            {
+              "path": "gradle/wrapper/gradle-wrapper.jar",
+              "mode": "100644",
+              "type": "blob",
+              "blob": "a4b76b9530d66f5e68d973ea569d8e19de379189"
+            },
+            {
+              "path": "gradle/wrapper/wrapper.sha256",
+              "mode": "100644",
+              "type": "blob",
+              "blob": "9d44ca8af69faa0e6e61caab80f7f72ecf82c3ef"
+            },
+            {
+              "path": "gradlew",
+              "mode": "100755",
+              "type": "blob",
+              "blob": "f5feea6d6b116baaca5a2642d4d9fa1f47d574a7"
+            },
+            {
+              "path": "gradlew.bat",
+              "mode": "100644",
+              "type": "blob",
+              "blob": "9d21a21834d5195c278ba17baec3115b2aaab06e"
+            },
+            {
+              "path": "core/gradle.lockfile",
+              "mode": "100644",
+              "type": "blob",
+              "blob": "596f93e213026a5e1a2faa286c1e384da022d7d1"
+            },
+            {
+              "path": "preview/gradle.lockfile",
+              "mode": "100644",
+              "type": "blob",
+              "blob": "10f0b93deee3b4b7ecd99c95a7bb5806e5054e2f"
+            },
+            {
+              "path": "gradle/verification-metadata.xml",
+              "mode": "100644",
+              "type": "blob",
+              "blob": "49109cf8496472aad2efb0c37f9b768fdcc09532"
+            },
+            {
+              "path": "preview/src/main/AndroidManifest.xml",
+              "mode": "100644",
+              "type": "blob",
+              "blob": "5f64a72f325a6548cea1cf0ac270f8fcef352d6d"
+            },
+            {
+              "path": "requirements-contracts.txt",
+              "mode": "100644",
+              "type": "blob",
+              "blob": "bd11036222d64a68a368bd74e87fbf7013039ee4"
+            }
+          ],
+          "observation_scope": "All 15 documented foundation inputs retain exact bytes/modes/types. This source preservation does not execute the changed later application tree."
+        },
+        "website_independence": {
+          "inspected_revision": "6cea6db8a7b66ce7da1f94814c04010ed1a66753",
+          "inspected_tree": "ef116ef4a20f44598740fe9b1550636e9a76ef99",
+          "signature_verified": true,
+          "package_blob": "931ab4034176af1b39d24c06ec8d6fe20909364b",
+          "workflow_blob": "e9124e185aa760b6ab4a7be74c1273092de02542",
+          "toolchain": "Node 22/npm",
+          "requires_android_sdk_or_gradle": false,
+          "source_observation": "The entire package scripts and CI retain independent quality, unit, contracts, build, browser and required-gate paths; no new website execution or deployment is claimed.",
+          "original_execution": {
+            "revision": "dc66a9e269917ab7241c7d08fd0e7f2a2f039872",
+            "run_id": 38996265873,
+            "quality_job_id": 117289398475,
+            "unit_job_id": 117289398447,
+            "build_job_id": 117289398500,
+            "required_gate_job_id": 117289742133,
+            "unit_cases": 65,
+            "unit_files": 6,
+            "scope": "Retained canonical record's original decoded quality/unit/build/ci-required results at their own source. The intentional dependency-review push skip remains distinct; no new audit, browser or deployment result is inferred."
+          },
+          "later_handoff": "https://github.com/Pick-Your-AI/pick-your-ai-android/issues/48#issuecomment-6257138171"
+        },
+        "scope_limits": [
+          "Only stable criteria48.1–48.3 and their four exact subtasks are accepted for the selected foundation.",
+          "All 128 other issue records, 34 prior evidence entries, 441 literal criterion identities/text hashes, prior partial evidence and all 43 prior completions remain unchanged.",
+          "Future production identity/signing, physical devices, TalkBack matrices, Play distribution, real data and release retain their own acceptance.",
+          "Ledger validation is source/receipt admission and does not perform new native, website, provider or account work.",
+          "Issue checkboxes and closure are reconciled separately after ordinary reviewed delivery of this ledger."
+        ]
+      }
     },
     {
       "number": 49,
