@@ -642,6 +642,7 @@ jobs:
                   'configurationPreservesWholeSelectionLinksAndOverallWorkloadAssumptions()',
                   'currentNoopStaleAndDeletedManagedAuthorityRemainDistinct()',
                   'savedValuesAndExplicitBuildProjectionRetainTypesHistoryAndPrivateMetadata()',
+                  'conflictingOverallObjectivesWithholdProjectionWithoutChangingSavedSelectionOrMetadata()',
                   'anotherSelectionKindCannotAcquireWorkloadConfiguration()',
               },
           }

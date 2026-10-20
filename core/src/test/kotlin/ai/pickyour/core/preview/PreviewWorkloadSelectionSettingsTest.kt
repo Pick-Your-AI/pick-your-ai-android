@@ -182,7 +182,12 @@ class PreviewWorkloadSelectionSettingsTest {
 
     @Test fun savedValuesAndExplicitBuildProjectionRetainTypesHistoryAndPrivateMetadata() {
         val store = LocalDraftStore(root)
-        val content = ProjectionFixtures.content(allKinds = true)
+        val complete = ProjectionFixtures.content(allKinds = true)
+        // Omit optional overall numbers so this success case does not contradict
+        // the independently edited Selection values. Required objectives stay exact.
+        val content = ProjectionFixtures.content(allKinds = true, workload = complete.workload.copy(
+            requestsPerDay = null, avgInputTokens = null, avgOutputTokens = null,
+            maxConcurrency = null, maxLatencyMs = null))
         val original = (store.save(null, content, mapOf("private.keep" to "literal")) as DraftSave.Saved).draft
         val source = original.content.components.selections.single { it.kind == "workload" }
         val originalBytes = raw()
@@ -206,12 +211,37 @@ class PreviewWorkloadSelectionSettingsTest {
         for (key in keys) assertTrue(projected["settings"][key].isNumber)
         assertEquals(BigInteger("9007199254740993"), projected["settings"]["concurrency"].bigIntegerValue())
         assertEquals(BigInteger("9223372036854775808"), projected["settings"]["latency_budget_ms"].bigIntegerValue())
+        for (field in listOf("requests_per_day", "avg_input_tokens", "avg_output_tokens", "max_concurrency", "max_latency_ms")) {
+            assertFalse(build["objectives"].has(field))
+        }
         val after = (store.load() as DraftLoad.Available).draft
         assertEquals(saved.version.number, after.version.number)
         assertEquals(saved.version.hash, after.version.hash)
         assertArrayEquals(savedBytes, raw())
         assertArrayEquals(originalBytes, (VerifiedArtifactCache(root.resolve("revisions"), LocalDraftStore.MAX_BYTES)
             .pinned(original.version.hash) as CacheRead.Available).bytes)
+    }
+
+    @Test fun conflictingOverallObjectivesWithholdProjectionWithoutChangingSavedSelectionOrMetadata() {
+        val store = LocalDraftStore(root)
+        val content = ProjectionFixtures.content(allKinds = true)
+        val original = (store.save(null, content, mapOf("private.keep" to "literal")) as DraftSave.Saved).draft
+        val source = original.content.components.selections.single { it.kind == "workload" }
+        val input = PreviewWorkloadSelectionInput("9007199254740993", "0", "17", "23", "9223372036854775808")
+        val saved = (store.applySelection(DraftSelectionIntent(original.version, command(source, input))) as DraftSelectionSave.Saved).draft
+        val savedBytes = raw()
+        val withheld = store.prepareSnapshotCandidate(saved.version, ProjectionFixtures.inputs()) as DraftProjectionPreparation.Withheld
+        assertEquals(keys.size, withheld.findings.size)
+        assertTrue(withheld.findings.all { it.problem == DraftProjectionProblem.CONFLICTING_WORKLOAD_INPUT })
+        assertEquals(keys.map { "/selections/${source.id}/settings/$it" }.toSet(), withheld.findings.map { it.path }.toSet())
+        assertEquals(content.workload, saved.content.workload)
+        assertEquals(input, PreviewWorkloadSelectionSettings.initial(saved.content.components.selections.single { it.kind == "workload" }))
+        val reopened = (LocalDraftStore(root).load() as DraftLoad.Available).draft
+        assertEquals(saved.content, reopened.content)
+        assertEquals(original.metadata, reopened.metadata)
+        assertEquals(saved.version.number, reopened.version.number)
+        assertEquals(saved.version.hash, reopened.version.hash)
+        assertArrayEquals(savedBytes, raw())
     }
 
     @Test fun anotherSelectionKindCannotAcquireWorkloadConfiguration() {

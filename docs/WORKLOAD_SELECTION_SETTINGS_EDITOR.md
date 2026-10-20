@@ -116,3 +116,22 @@ failure reproduction or a passing workload result. The initial c130 source and
 its independent reviews remain historical; this amendment, compilation and actual
 configured execution require their own qualification. Parsing, identity pins,
 settings, recovery, currentness and commit authority remain unchanged.
+
+## Projection fixture preserves contradiction admission
+
+The initial Core run exposed a contradiction in the new projection success
+fixture: it changed all five Selection values while retaining different supplied
+overall numeric objectives. The existing projector returned `Withheld`, and the
+test's cast to `Review` failed. This was not a failed durable save or permission
+to weaken projection admission.
+
+The success fixture now explicitly omits those five optional overall numbers,
+retaining its required objectives and budget. Every original exact-value,
+reopen, private-metadata, history and no-write assertion remains, with an added
+check that projection does not invent the omitted overall values. A separate
+control retains all five conflicting supplied objectives, requires the exact
+five conflict paths, and verifies the saved Selection, metadata, version and
+storage bytes remain unchanged. Its named workflow attendance requirement is
+additive. Production projection, preparation, persistence and native source are
+unchanged. The original failure remains distinct from any later execution of
+this corrected fixture; an authored correction alone supplies no passing result.
