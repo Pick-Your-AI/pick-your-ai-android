@@ -53,6 +53,13 @@ settings exceeding this small editor limit remain saved and cannot be truncated
 through this editor. Raw credentials must not be entered; applicable settings
 accept only opaque secret references under the frozen schema.
 
+Fresh CONFIGURE for an existing cost-policy selection now uses
+[four typed optional controls](COST_POLICY_SETTINGS_EDITOR.md). Exact decimal
+strings, percentage bounds and the separate omitted/false/true hard-cap choice
+retain the frozen receiver and managed save authority. Raw ADD and legacy raw
+CONFIGURE recovery remain explicit; this records planning preferences without
+adding prices, currency conversion, alerts or spending-limit enforcement.
+
 For partial [#99](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/99),
 new add/settings input also rejects URI authority userinfo in the frozen
 `model_provider.api_base_url`, `model.weights_uri`, `mcp_server.endpoint`,
@@ -147,3 +154,13 @@ artifact-linked inventory/source-input checks must pass on the reviewed receivin
 source before this UI slice is accepted for merge. Local core tests do not
 establish Android build, installed/emulated runtime, physical-device or release
 evidence.
+
+## Typed workload Selection CONFIGURE
+
+Existing workload selections expose five optional frozen integer settings
+through explicit Supply controls, exact numeric entry and independent errors.
+This edits only the selected component; the overall workload profile remains
+unchanged. Omission, allowed zero, exact admitted nodes, whole-selection CAS,
+no-op revisions and private reviewed recovery remain distinct. Raw ADD and
+legacy raw CONFIGURE recovery are preserved. See
+[the workload Selection editor guide](WORKLOAD_SELECTION_SETTINGS_EDITOR.md).
