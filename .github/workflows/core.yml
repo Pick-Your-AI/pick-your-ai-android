@@ -1940,6 +1940,8 @@ jobs:
               "closedDisclosureOwnerCannotReopenFromItsRetainedEntry",
               "declaredPreviewCapabilitiesMatchTheOfflineDisclosure",
               "narrowRtlLargeTextKeepsEveryDisclosureLineAndCloseReachable",
+              "privacyRetiresCatalogParentActionsWithoutChangingPendingOrStoredDraft",
+              "privacyRetiresCatalogDetailPriceAndSourceChildrenUntilFreshInspection",
           }
           cases = suite.findall("testcase")
           names = [case.attrib.get("name") for case in cases]
