@@ -19,6 +19,10 @@ whole-draft compatibility remains **unestablished**. Fixtures are bundled direct
 import, never copied into a real catalog. There is no real-data mode or promotion
 path, account, network, import or telemetry. Release variants are disabled.
 
+The [typed inference-engine editor](INFERENCE_SETTINGS_EDITOR.md) configures all four
+optional frozen settings for an existing selection, retaining exact integers and
+explicit absence through the existing managed save and private recovery paths.
+
 The [typed accelerator editor](ACCELERATOR_SETTINGS_EDITOR.md) configures the
 existing selection's required device count and optional tensor parallel groups.
 It preserves exact counts and explicit absence through the existing managed

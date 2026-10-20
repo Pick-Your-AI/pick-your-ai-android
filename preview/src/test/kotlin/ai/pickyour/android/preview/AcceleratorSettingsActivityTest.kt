@@ -411,8 +411,9 @@ class AcceleratorSettingsActivityTest {
                 assertTrue(pending.wasSaving)
                 assertEquals(PreviewAcceleratorInput("2", "9007199254740993"), pending.input)
                 release.countDown()
-                await { !form.isShowing && loaded().revision == before.revision + 1 }
+                // Pause retires the dialog before acknowledgment; finish the owned write before reading storage.
                 finishWork()
+                await { !form.isShowing && loaded().revision == before.revision + 1 }
             }
         } finally { release.countDown() }
         val saved = loaded()
@@ -518,4 +519,3 @@ class AcceleratorSettingsActivityTest {
         }
     }
 }
-
