@@ -1927,6 +1927,31 @@ jobs:
                   raise SystemExit("Current-draft regression did not execute successfully")
               print(f"Verified {len(cases)} source-named current-draft cases in {name}; no installed-device claim")
           PYCURRENT
+      - name: Require bounded library observation regressions
+        run: |
+          python - <<'PYLIBRARYOBSERVATION'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          name = "ai.pickyour.android.preview.LibraryReadObservationTest"
+          required = {
+              "busyListWaitsOnceForOwnedWorkerWithoutDispatchingTheMainLooperOrChangingFiles",
+              "availableListReturnsItsExactResultWhileUnrelatedWorkRemainsQueued",
+              "persistentBusyReturnsTheSecondActualFailureWithoutLoopingOrOpeningUi",
+              "corruptLibraryRootIsReturnedOnceWithoutAdoptingDifferentContents",
+          }
+          suite = ET.parse(pathlib.Path("preview/build/test-results/testDebugUnitTest") / f"TEST-{name}.xml").getroot()
+          cases = suite.findall("testcase")
+          actual = [case.attrib.get("name") for case in cases]
+          if suite.attrib.get("name") != name or any(case.attrib.get("classname") != name for case in cases):
+              raise SystemExit("Wrong library observation class")
+          if not required.issubset(set(actual)) or len(actual) != len(set(actual)):
+              raise SystemExit("Missing or repeated library observation regression")
+          if int(suite.attrib["tests"]) != len(cases) or any(int(suite.attrib.get(key, "0")) != 0 for key in ("failures", "errors", "skipped")):
+              raise SystemExit("Library observation totals did not execute cleanly")
+          if any(case.findall("failure") or case.findall("error") or case.findall("skipped") for case in cases):
+              raise SystemExit("Library observation regression failed, errored or skipped")
+          print(f"Verified {len(cases)} actual library observation cases; no product retry introduced")
+          PYLIBRARYOBSERVATION
       - name: Require actual native compatible-picker caller regressions
         run: |
           python - <<'PYCANDIDATES'
