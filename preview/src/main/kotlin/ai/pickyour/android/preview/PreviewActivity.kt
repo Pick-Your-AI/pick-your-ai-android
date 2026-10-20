@@ -207,7 +207,7 @@ class PreviewActivity : Activity() {
         draftSummary = CurrentDraftSummarySection(this) { !destroyed && diagnosticsResumed }
         content.addView(draftSummary)
         currentChecks = CurrentDraftCheckSection(this, worker, { !destroyed && diagnosticsResumed },
-            draftSummary::currentCheckStatus, ::prepareInspection)
+            draftSummary::currentCheckStatus, ::prepareInspection, ::reviewCurrentFindingSelection)
         content.addView(currentChecks)
         val titleLabel = text(R.string.draft_title)
         title = EditText(this).apply {
@@ -904,6 +904,26 @@ class PreviewActivity : Activity() {
             { workloadSection.reviewObjectiveInputs(pendingInputs) },
             { if (baseline != null) componentSection.reviewCurrentChoices(baseline) },
             { if (::planningSection.isInitialized) planningSection.reviewGuidance() })
+    }
+
+    /** Explicit navigation only; the existing editor retains every later confirmation and CAS check. */
+    private fun reviewCurrentFindingSelection(expected: PreviewStoredDraft, selectionId: String) {
+        val id = currentDraftId
+        val storage = storageAuthority
+        val authority = currentCheckAuthority
+        val inputs = currentCheckInputs
+        val fixture = catalogFixture
+        fun current() = !destroyed && !isFinishing && !isDestroyed && diagnosticsResumed &&
+            !entryBlocked && selectionResolved && storageReady && !storageBusy && matchesSaved() &&
+            savedRecord === expected && currentDraftId == id && storageAuthority === storage &&
+            currentCheckAuthority === authority && currentCheckInputs === inputs && inputs != null &&
+            catalogFixture === fixture && retry.isEnabled && fixture?.catalog?.hash == inputs.catalogHash.hex &&
+            componentCatalog?.hash?.hex == inputs.catalogHash.hex &&
+            ::componentSection.isInitialized && componentSection.canReviewCurrentChoices(expected)
+        if (!current()) return
+        catalog.cancelViewportRestore()
+        prepareInspection()
+        if (current()) componentSection.reviewCurrentSelection(expected, selectionId)
     }
 
     private fun invalidateCurrentChecks(reason: PreviewCurrentUnavailable) {
