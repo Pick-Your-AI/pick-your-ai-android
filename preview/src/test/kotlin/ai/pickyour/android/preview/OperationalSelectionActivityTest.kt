@@ -139,6 +139,26 @@ class OperationalSelectionActivityTest {
         form.getButton(AlertDialog.BUTTON_NEGATIVE).performClick()
         await { !form.isShowing }
     }
+    private fun assertConfiguredSettings(form: AlertDialog, selection: LocalSelection) {
+        assertEquals(entered.getValue(selection.kind), PreviewSelectionForms.settingsText(selection))
+        if (selection.kind != "cost_policy") {
+            assertEquals(entered.getValue(selection.kind), field(form, R.string.component_settings).text.toString())
+            return
+        }
+        assertEquals(1, views(form.window!!.decorView).filterIsInstance<CostPolicySettingsEditor>().size)
+        assertEquals("900719925474099312345678.000000000001", field(form, R.string.cost_policy_monthly).text.toString())
+        assertEquals("0.100000000001", field(form, R.string.cost_policy_per_request).text.toString())
+        assertEquals("99.123456789123456789", field(form, R.string.cost_policy_notify).text.toString())
+        val supplies = views(form.window!!.decorView).filterIsInstance<CheckBox>()
+        assertEquals(3, supplies.size)
+        assertTrue(supplies.all { it.isChecked })
+        val caption = views(form.window!!.decorView).filterIsInstance<TextView>().single {
+            it.text.toString() == activity.getString(R.string.cost_policy_hard_cap)
+        }
+        assertNotEquals(View.NO_ID, caption.labelFor)
+        val choice = requireNotNull(form.findViewById<Button>(caption.labelFor))
+        assertEquals(activity.getString(R.string.cost_policy_no), choice.text.toString())
+    }
     private fun roundTrip(state: Bundle): Bundle {
         val written = Parcel.obtain()
         val read = Parcel.obtain()
@@ -302,7 +322,7 @@ class OperationalSelectionActivityTest {
             assertEquals(entered.getValue(kind), PreviewSelectionForms.settingsText(saved.components.selections.single()))
             assertEquals(before.optionalTiers, saved.optionalTiers)
             val configure = action(saved.components.selections.single(), R.string.component_configure)
-            assertEquals(entered.getValue(kind), field(configure, R.string.component_settings).text.toString())
+            assertConfiguredSettings(configure, saved.components.selections.single())
             closeDialog(configure)
             coreGuidance()
         }
@@ -427,7 +447,7 @@ class OperationalSelectionActivityTest {
         }
         for (selection in before.components.selections) {
             val settings = action(selection, R.string.component_configure)
-            assertEquals(entered.getValue(selection.kind), field(settings, R.string.component_settings).text.toString())
+            assertConfiguredSettings(settings, selection)
             unchanged(settings)
             val role = action(selection, R.string.component_edit_role)
             assertEquals(selection.role, field(role, R.string.component_role).text.toString())
