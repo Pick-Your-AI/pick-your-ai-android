@@ -7,6 +7,10 @@ build and links those inputs to the exact core JAR and optional unsigned
 synthetic-preview APK produced in that checkout. This is a custom diagnostic
 inventory, not a release SBOM or a completed license review.
 
+The companion [SPDX runtime export](RUNTIME_SBOM.md) converts a qualified receipt
+to standard SPDX 2.3 JSON. The original inventory remains the source observation;
+the export preserves its scope and does not establish release or license acceptance.
+
 ## Reproduce from a clean checkout
 
 Use the [JVM core toolchain](CORE_FOUNDATION.md) and, for the optional preview, the
@@ -75,6 +79,10 @@ Git/Gradle/Kotlin bookkeeping and local SDK configuration are outside this sourc
 guard; external build-tool inputs are outside its project-source claim. This does
 not turn the build into a hermetic environment attestation.
 
+Git status, commit/tree lookup and tracked-blob inspection use literal objects
+with replacement lookup disabled. A local replacement ref cannot substitute a
+different source tree under the unchanged commit identifier.
+
 Each CI job also runs an actual ignored-input rejection regression. The helper
 creates a private disposable Git checkout, confirms clean Git status with an
 ignored schema or asset, executes the real pinned offline build, verifies the
@@ -89,6 +97,61 @@ python scripts/check_runtime_inventory_guards.py --preview
 
 The second command uses the configured Android SDK. These are packaging/source
 rejection checks; they do not install the APK.
+
+Each command admits its selected fixed report, `guard-ignored-core-schema.json`
+or `guard-ignored-preview-asset.json`, before starting that inspection. The
+checkout, `build` and `inventory` ancestors must be ordinary directories; an
+existing report must be a singly linked regular file. Unsafe entries and their
+targets remain untouched. Once admitted, only that command's stale report is
+retired, so a failed current inspection cannot leave an older success at the
+same path. The other command's report and unrelated peers remain. A complete
+result uses the private-sibling JSON publication boundary and stable-checkout
+limits described below. The host fixtures mock the expensive inspection while
+checking these real filesystem effects; CI still runs both actual packaged-input
+rejection checks.
+
+The core CI job also requires a source-identity regression against the actual
+inventory producer. A private Java-only Gradle project first produces a clean
+inventory. The helper then installs a Git replacement object that makes changed
+tracked Java source appear clean under the original commit. It requires the real
+task to build the changed class and reject that deceptive source identity without
+writing a new inventory. Finally, it removes the replacement, actually commits
+the changed source in the private repository, and requires a clean inventory for
+that new commit. This positive control prevents a blanket build failure from
+satisfying the rejection check.
+
+```sh
+python scripts/check_runtime_inventory_source.py
+```
+
+This check uses the existing pinned wrapper with a warmed Gradle cache, offline
+mode, strict verification and no persistent daemon. It adds no runtime dependency
+and needs no Android SDK. The fixture is removed afterward; the ordinary core
+artifact retains `build/inventory/source-identity-regression.json` plus the three
+original Gradle logs, actual fixture JARs and any newly written fixture inventories
+under `build/inventory/source-identity-regression/`. This checks the producer's
+source identity boundary, without establishing installed or release acceptance.
+
+Before that regression starts, its report and all nine fixed evidence destinations
+are admitted together: the canonical checkout, `build`, `inventory` and existing
+`source-identity-regression` directory must be ordinary directories, and each
+existing output must be a singly linked regular file. An aliased or nonregular
+late evidence entry rejects the operation before an earlier receipt or peer is
+retired. Only the admitted report and the three fixed `.log`/`.jar`/`.json` case
+sets are retired; unrelated peers remain. Ordinary stale evidence cannot describe
+the current inspection. New partial diagnostic files remain available if that
+inspection subsequently fails.
+
+The final JSON uses the same private-sibling publication boundary as the
+[packaged-policy report](PACKAGED_PREVIEW_POLICY.md). Serialization or replacement
+failure cannot leave partial final JSON. A completed regression whose actual
+producer incorrectly accepts replaced source still publishes its explicit
+`status: failed` report and exits unsuccessfully. These are stable-checkout
+safeguards, not protection against hostile concurrent namespace replacement or a
+claim of atomic multi-file retirement or power-loss durability. The normal and
+optimized `test_preview_policy.py` host fixtures cover destination admission and
+publication without executing the private Java producer; the configured CI step
+continues to require that actual producer exercise.
 
 The explicit POM artifact query needs five metadata files that the prior runtime
 resolution used Gradle module metadata instead of directly verifying. Their

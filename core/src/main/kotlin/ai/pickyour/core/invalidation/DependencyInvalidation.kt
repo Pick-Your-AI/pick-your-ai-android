@@ -1,5 +1,8 @@
 package ai.pickyour.core.invalidation
 
+import ai.pickyour.core.contracts.DependencyActivation
+import ai.pickyour.core.contracts.DependencyGraph
+
 /** Typed projection of an already validated frozen-v1 edge, not an alternate wire contract. */
 data class InvalidationEdge(
     val id: String,
@@ -33,7 +36,7 @@ class InvalidationContext(
 
 data class InvalidationResult(
     val changedKinds: List<String>,
-    /** Direct neighbours only, excluding changedKinds, as in the website reference. */
+    /** Direct-edge neighbours and activation-transition endpoints, excluding changedKinds. */
     val affectedKinds: List<String>,
     /** Includes changed kinds and both old/new identities, even when removed or disabled. */
     val selectionIdsToRecheck: List<String>,
@@ -41,12 +44,38 @@ data class InvalidationResult(
 )
 
 /**
- * Pure direct-adjacency invalidation, never compatibility evaluation or selection mutation.
+ * Pure invalidation through direct edges, never compatibility evaluation or selection mutation.
+ * A context-only activation transition rechecks both endpoints even when neither kind was edited.
  * Every edge is inspected once; cycles and self-loops cannot schedule recursive work.
  * Full evaluation remains the safe fallback when callers cannot identify all changed kinds.
  * Input graph must be schema/version validated before projecting its edges into this API.
  */
 object DependencyInvalidation {
+    /**
+     * Explicit projection of a decoded graph into the existing direct-adjacency policy below.
+     * Structural decoding does not establish the graph's authority or its binding to a build.
+     * Relationship/rationale stay in the immutable graph; this policy already treats all relationships
+     * as recheck neighbours and does not reinterpret them as compatibility requirements.
+     */
+    fun affectedByChange(
+        graph: DependencyGraph,
+        changedKinds: Set<String>,
+        before: InvalidationContext,
+        after: InvalidationContext,
+    ): InvalidationResult = affectedByChange(graph.edges.map { edge ->
+        val activation = when (edge.activation) {
+            DependencyActivation.ALWAYS -> EdgeActivation.ALWAYS
+            DependencyActivation.SELF_HOSTED -> EdgeActivation.SELF_HOSTED
+            DependencyActivation.NON_API -> EdgeActivation.NON_API
+            DependencyActivation.RAG_ENABLED -> EdgeActivation.RAG_ENABLED
+            DependencyActivation.AGENTS_ENABLED -> EdgeActivation.AGENTS_ENABLED
+            DependencyActivation.FINE_TUNING_ENABLED -> EdgeActivation.FINE_TUNING_ENABLED
+            DependencyActivation.IF_SELECTED -> EdgeActivation.IF_SELECTED
+            DependencyActivation.PRODUCTION_ONLY -> EdgeActivation.PRODUCTION_ONLY
+        }
+        InvalidationEdge(edge.id, edge.dependentKind, edge.dependsOnKind, activation)
+    }, changedKinds, before, after)
+
     fun affectedByChange(
         edges: List<InvalidationEdge>,
         changedKinds: Set<String>,
@@ -57,8 +86,11 @@ object DependencyInvalidation {
         val affected = mutableSetOf<String>()
         val via = mutableSetOf<String>()
         for (edge in edges) {
-            if (edge.dependentKind !in changed && edge.dependsOnKind !in changed) continue
-            if (active(edge, before) == false && active(edge, after) == false) continue
+            val beforeActive = active(edge, before)
+            val afterActive = active(edge, after)
+            val incident = edge.dependentKind in changed || edge.dependsOnKind in changed
+            if (!incident && beforeActive == afterActive) continue
+            if (beforeActive == false && afterActive == false) continue
             affected.add(edge.dependentKind)
             affected.add(edge.dependsOnKind)
             via.add(edge.id)

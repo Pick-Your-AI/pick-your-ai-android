@@ -49,7 +49,8 @@ class PreviewSelectionFormTest {
         assertEquals(model, result.content.components.selections.single())
         assertEquals(PreviewSelectionPreparation.Invalid, PreviewSelectionForms.replace(model, item(SelectionFixtures.selection("hosting_platform", "hosting")), catalog.hash.hex))
         assertTrue(PreviewSelectionForms.supported("deployment_mode"))
-        assertFalse(PreviewSelectionForms.supported("training_dataset"))
+        assertTrue(PreviewSelectionForms.supported("cost_policy"))
+        assertFalse(PreviewSelectionForms.supported("future_cost_policy"))
         assertEquals(model.settings.toString(), PreviewSelectionForms.settingsText(model))
     }
 }

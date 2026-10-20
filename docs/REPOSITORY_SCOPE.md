@@ -74,6 +74,85 @@ service placement or other work package. The executed draft/projection/private-
 archive model and its exact evidence remain distinct from future creation/removal
 UI, shared saved-build services, installed devices and release qualification.
 
+[ADR 0008](decisions/0008-android-48-acceptance-record.md) separately proposes
+placing only #48's [02.01 foundation record](delivery/android/work-packages/02.01.md)
+in Android. Placement becomes effective only after independent receiving review
+and normal reviewed delivery into Android main. The original website path remains
+history; all other work-package locations retain their existing authority. The
+selected `:core`/`:preview` toolchain and preview package evidence remain distinct
+from future product, device and release qualification; full #48 acceptance stays
+pending its literal criteria and current installed-delivery evidence.
+
+[ADR 0009](decisions/0009-android-33-acceptance-record.md) separately proposes
+placing only #33's [17.04 support receiving record](delivery/android/work-packages/17.04.md)
+in Android. Its effective event is independent receiving review and normal
+reviewed merge. The record preserves the original website destination, all three
+literal criteria, actual diagnostic and public browser-intake evidence, separate
+in-session support and affected local-data review, and unavailable-channel limits.
+It changes no implementation, other acceptance path, shared authority, operating
+commitment or release qualification. Canonical ledger reconciliation follows the
+actual reviewed record delivery.
+
+[ADR 0010](decisions/0010-android-84-acceptance-record.md) separately proposes
+placing only #84's [09.01 evaluator record](delivery/android/work-packages/09.01.md)
+in Android after its independent receiving review and normal reviewed delivery.
+It records the selected local retained-snapshot diagnostic interface, exact
+reference/configuration and native evidence, source-versus-observation identities,
+and explicit unsupported/unknown/current-request boundaries. The intended website
+path remains history. Available #49/#58 and transitive #21 outputs are received
+only at their stated scope; this decision changes no prerequisite edge or other
+work package. Shared services, qualified external metrics and product/device
+release retain their existing authorities.
+
+[ADR 0011](decisions/0011-android-59-acceptance-record.md) separately proposes
+placing only #59's [02.05 CI receiving record](delivery/android/work-packages/02.05.md)
+in Android, effective after independent receiving review and normal reviewed main
+delivery. The original website spelling/path remain history. The existing
+[CI operations reference](CI_BASELINE.md) stays distinct from criterion acceptance;
+the placement supplies no settings change, corrected installed result,
+credential-context review, whole-issue completion or ledger amendment.
+
+[ADR 0012](decisions/0012-android-37-acceptance-record.md) places only Android
+#37's [03.04 record](delivery/android/work-packages/03.04.md) in Android after its
+independent criterion/placement receiving review and normal reviewed delivery.
+It records the already selected synthetic normalized deployment, graph, memory,
+workload and context consumer, exact-version evidence and frozen-v1 preservation.
+The original intended website location remains history. This narrow decision
+changes no shared-service/contract authority, default dispatcher, prerequisite
+edge, other acceptance record or release boundary; exact #21 outputs and affected
+Android/web/iOS receiving remain explicit in the record.
+
+[ADR 0013](decisions/0013-android-96-acceptance-record.md) separately proposes
+placing only #96's [07.02 compatible-options receiving record](delivery/android/work-packages/07.02.md)
+in Android after independent receiving review and normal reviewed delivery. It
+preserves the historical website destination, all four literal criteria/tasks,
+the actual data-consumer and catalog/UX decisions, and exact source/original
+execution identities. The selected private stored-draft comparison leaves frozen
+archive admission and all shared authorities intact. Product/device and release
+qualification remain separate; this placement changes no other record, and
+strict-ledger reconciliation follows actual implementation and record delivery.
+
+[ADR 0014](decisions/0014-android-98-acceptance-record.md) separately places only
+#98's [07.05 selection handoff record](delivery/android/work-packages/07.05.md)
+in Android after independent receiving review and normal reviewed document
+delivery. Both actual catalog/UX and data-consumer decisions accept the implemented
+local search/detail and bounded component-route handoff, including the specific
+#76/#82 outputs consumed. Its original website coordinate remains history.
+The placement changes no other record, shared service, public App Link authority,
+prerequisite edge or release scope. Actual signed implementation and separate
+original-main evidence are recorded; strict ledger reconciliation remains a
+subsequent reviewed step.
+
+[ADR 0015](decisions/0015-android-100-acceptance-record.md) proposes placing only
+#100's [09.02 invalidation record](delivery/android/work-packages/09.02.md) here,
+effective through independent receiving review and normal reviewed delivery.
+The record maps the actual acknowledged saved-draft consumer and its original
+execution evidence to all four unchanged criteria. Its original website
+coordinate remains history; current estimate producers, other record locations,
+shared authorities and device/release acceptance retain their separate scopes.
+Actual criterion decisions and strict-ledger reconciliation follow their own
+reviewed delivery steps.
+
 The existing website remains static. The selected future server package is
 separately built/deployed at `Pick-Your-AI/pickyour.ai/services/planner-api` only
 through canonical owner/coordinator and operations review before dependent code;

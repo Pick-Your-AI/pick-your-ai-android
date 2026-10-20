@@ -20,8 +20,9 @@ internal class CatalogSourceNavigation(
     private val launch: (Intent) -> Unit = { activity.startActivity(it) },
 ) {
     private var currentDialog: AlertDialog? = null
+    private var retired = false
 
-    private fun current() = !activity.isFinishing && !activity.isDestroyed && isCurrent()
+    private fun current() = !retired && !activity.isFinishing && !activity.isDestroyed && isCurrent()
     private fun current(dialog: AlertDialog) = current() && currentDialog === dialog && dialog.isShowing
 
     private fun present(dialog: AlertDialog) {
@@ -34,6 +35,15 @@ internal class CatalogSourceNavigation(
     }
 
     fun show() = showPage(0)
+
+    /** Explicit owner retirement also closes a chooser or confirmation after its parent is gone. */
+    fun retire() {
+        if (retired) return
+        retired = true
+        val previous = currentDialog
+        currentDialog = null
+        previous?.dismiss()
+    }
 
     private fun showPage(page: Int) {
         if (!current()) return
@@ -52,7 +62,7 @@ internal class CatalogSourceNavigation(
         }
         lateinit var dialog: AlertDialog
         val builder = AlertDialog.Builder(activity)
-            .setTitle(activity.getString(R.string.catalog_source_page, page + 1, pages, detail.provenance.size))
+            .setTitle(activity.resources.getQuantityString(R.plurals.catalog_source_page, detail.provenance.size, page + 1, pages, detail.provenance.size))
             .setItems(rows.toTypedArray()) { _, index ->
                 if (current(dialog) && index in rows.indices) confirm(start + index)
             }

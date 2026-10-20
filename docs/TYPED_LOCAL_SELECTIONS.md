@@ -15,14 +15,16 @@ does not resolve them. Canonical receiving records remain `07.05.md` and `08.02.
 under `docs/delivery/android/work-packages/` in `Pick-Your-AI/pickyour.ai`; this file
 is implementation evidence, not a relocated acceptance record or closure receipt.
 
-The exact command subset is the frozen registry's T0/T1/T2/T3/T4 kinds: `workload`,
+The exact command subset is the frozen registry's T0–T6 kinds: `workload`,
 `deployment_mode`, `model_provider`,
 `model`, `context_policy`, `hosting_platform`, `accelerator`, `compute_profile`,
 `inference_engine`, `storage`, `data_source`, `knowledge_base`, `embedding_model`,
 `vector_database`, `rag_pipeline`, `agent_framework`, `tool`, `mcp_server`,
-`memory_store` and `integration`. All other valid frozen kinds can be retained,
-compared, duplicated and restored; their mutation commands return
-`UNSUPPORTED_KIND`. Optional legacy tier controls retain their existing meaning.
+`memory_store`, `integration`, `training_framework`, `training_compute`,
+`training_dataset`, `fine_tuned_model`, `guardrail`, `evaluation_suite`,
+`deployment_target`, `monitoring_stack` and `cost_policy`.
+Unregistered future kinds remain outside the frozen decoder and command boundary.
+Optional legacy tier controls retain their existing meaning.
 The [explicit foundation editor](FOUNDATION_SELECTIONS.md) adds only the two T0
 kinds to the same commands; it does not adapt placement or decide applicability.
 The [retrieval editor](RETRIEVAL_SELECTIONS.md) subsequently adds exactly the five
@@ -31,6 +33,18 @@ opaque tier inputs; they do not activate T3, resolve references or run retrieval
 The [agent editor](AGENT_SELECTIONS.md) then adds the five frozen T4 kinds through
 the same commands. Declared permission scopes, endpoints and opaque references
 remain input values; no connection, external action or permission grant follows.
+The [training editor](TRAINING_SELECTIONS.md) adds the four frozen T5 kinds with
+the same catalog, role, optional-intent and persistence boundaries. Its settings
+record entered assumptions; selected catalog lineage and recorded evidence remain
+separate from rights, measured training fit, pricing, export or serving authority.
+The [guardrail and evaluation editor](GUARDRAIL_EVALUATION_SELECTIONS.md) admits
+exactly those two core T6 kinds. Their settings never become measured results or
+policy authority. T6 has no optional-tier switch; its unavailable-coverage guidance
+remains present when the three existing optional tiers are disabled.
+The [operational editor](OPERATIONAL_SELECTIONS.md) subsequently admits the three
+remaining frozen T6 kinds. Deployment, monitoring and cost settings remain exact
+declared inputs, with no approval, capacity, monitoring, spending or readiness
+authority. This continuation leaves the same shared panel and write path intact.
 
 ## Payload and aggregate
 
@@ -53,8 +67,8 @@ It enforces unique selection IDs, unique `(kind, role)` pairs across both enable
 and disabled entries, unique link IDs, and existing endpoints. The role-scope
 invariant also appears in the frozen reference conformance tests; roles such as
 `primary` and `fallback` are examples, not a new enum. Only enabled selections count
-against registry cardinality. `workload`, `deployment_mode` and `context_policy`
-are cardinality-one; the other editable kinds are many. Disabled entries cannot
+against registry cardinality. `workload`, `deployment_mode`, `context_policy` and
+`cost_policy` are cardinality-one; the other editable kinds are many. Disabled entries cannot
 reuse an existing role.
 
 Local bounds are 256 selections and 1,024 links, plus the existing 1 MiB envelope,

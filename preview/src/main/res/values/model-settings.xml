@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="model_editor_guidance">All seven model settings are optional. Choose Supply to enter a value; clear Supply to remove that field. Empty supplied text needs correction. Nothing is filled from the catalog, and changing serving mode keeps the other supplied fields.</string>
+    <string name="model_temperature">Temperature</string>
+    <string name="model_top_p">Top p</string>
+    <string name="model_max_output">Maximum output tokens</string>
+    <string name="model_precision">Precision</string>
+    <string name="model_serving_mode">Serving mode</string>
+    <string name="model_credential">Credential reference</string>
+    <string name="model_weights">Weights URI</string>
+    <string name="model_supply">Supply %1$s</string>
+    <string name="model_not_supplied">Not supplied</string>
+    <string name="model_temperature_rule">temperature: a number from 0 through 2.</string>
+    <string name="model_top_p_rule">top_p: a number greater than 0 and no greater than 1.</string>
+    <string name="model_max_output_rule">max_output_tokens: a whole number of tokens, at least 1. This field does not infer a model capacity limit.</string>
+    <string name="model_choice_rule">%1$s: choose a literal value or leave it not supplied.</string>
+    <string name="model_credential_rule">credential_ref: enter an opaque secret:// reference, never a password. This screen does not resolve credentials. Invalid references are excluded from pending-input recovery.</string>
+    <string name="model_weights_rule">weights_uri: enter a URI without credentials in its authority. Paths, queries and fragments stay literal; this screen does not open the URI.</string>
+    <string name="model_recovery_guidance">Recovery retains at most 20,000 characters across these controls (some symbols count as two). Newly captured URI userinfo or an invalid credential reference is replaced by a fixed unavailable notice. The live text stays available for correction until the form closes.</string>
+    <string name="model_value_required">Enter a supplied value, or clear Supply to leave this field absent.</string>
+    <string name="model_number_invalid">Enter a JSON number using ASCII digits and a decimal point when needed.</string>
+    <string name="model_integer_invalid">Enter a whole JSON number using ASCII digits, without grouping or rounding.</string>
+    <string name="model_choice_invalid">Choose one of the listed literal values or Not supplied.</string>
+    <string name="model_reference_invalid">Enter a valid opaque secret:// reference; a password cannot be saved here.</string>
+    <string name="model_uri_invalid">Enter a valid URI without user information in its authority.</string>
+    <string name="model_too_long">This value exceeds the existing local JSON input limit. Shorten it before saving.</string>
+</resources>

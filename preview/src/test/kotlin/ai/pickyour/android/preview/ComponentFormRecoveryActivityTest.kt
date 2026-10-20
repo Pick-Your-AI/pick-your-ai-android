@@ -76,7 +76,7 @@ class ComponentFormRecoveryActivityTest {
     private fun worker(): ExecutorService = PreviewActivity::class.java.getDeclaredField("worker")
         .apply { isAccessible = true }.get(activity) as ExecutorService
     private fun adapter() = PreviewDraftLibrary(activity.noBackupFilesDir.toPath()).openLegacy()
-    private fun loaded() = (adapter().load() as PreviewDraftLoad.Available).record
+    private fun loaded() = (readDraftAfterOwnedWork(activity, ::adapter) as PreviewDraftLoad.Available).record
     private fun dialog() = ShadowAlertDialog.getLatestAlertDialog()!!
     private fun save() {
         button(R.string.save_draft).performClick()
@@ -215,16 +215,19 @@ class ComponentFormRecoveryActivityTest {
         val before = addModel()
         val selection = before.components.selections.single()
         val form = configure()
-        val raw = "{\"temperature\":0.5,\"unfinished\":"
-        field(form, R.string.component_settings).setText(raw)
+        val raw = "0.5, unfinished"
+        views(form.window!!.decorView).filterIsInstance<CheckBox>().single {
+            it.text.toString() == activity.getString(R.string.model_supply, activity.getString(R.string.model_temperature))
+        }.performClick()
+        field(form, R.string.model_temperature).setText(raw)
         recreate()
         val first = review()
-        assertEquals(raw, field(first, R.string.component_settings).text.toString())
+        assertEquals(raw, field(first, R.string.model_temperature).text.toString())
         recreate()
         val second = review()
         assertFalse(first.isShowing)
-        assertEquals(raw, field(second, R.string.component_settings).text.toString())
-        field(second, R.string.component_settings).setText("{\"temperature\":0.5}")
+        assertEquals(raw, field(second, R.string.model_temperature).text.toString())
+        field(second, R.string.model_temperature).setText("0.5")
         second.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
         await { !second.isShowing && loaded().revision == before.revision + 1 }
         val after = loaded()
@@ -310,8 +313,9 @@ class ComponentFormRecoveryActivityTest {
             recreate { state ->
                 assertTrue((ComponentFormRecovery.read(roundTrip(state)) as ComponentFormRecovery.Pending).form.wasSaving)
                 release.countDown()
-                await { !form.isShowing && loaded().revision == before.revision + 1 }
+                // Pause retires the dialog before acknowledgment; let the owned write finish before reading storage.
                 finishWork()
+                await { !form.isShowing && loaded().revision == before.revision + 1 }
             }
         } finally { release.countDown() }
         val committed = loaded()

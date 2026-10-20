@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.databind.node.ObjectNode
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestFactory
+import org.junit.jupiter.api.DynamicTest.dynamicTest
 import java.math.BigDecimal
 import java.math.BigInteger
 
@@ -163,7 +165,7 @@ class BuildComparisonTest {
         (links["links"] as ArrayNode).add(links["links"][0].deepCopy<ObjectNode>())
         assertEquals(SnapshotRead.Rejected(SnapshotProblem.DUPLICATE_LINK_ID), read(links))
         node.put("schema_version", "2.0.0")
-        assertEquals(SnapshotRead.Rejected(SnapshotProblem.SCHEMA_MISMATCH), read(node))
+        assertEquals("UNSUPPORTED_SCHEMA_VERSION", (read(node) as SnapshotRead.Rejected).reason.name)
     }
 
     @Test fun `malformed and oversized imports rejected without closing caller stream`() {
@@ -213,6 +215,90 @@ class BuildComparisonTest {
         assertEquals("null", result.changes[0].afterJson)
         assertNull(result.changes[1].beforeJson)
         assertEquals("null", result.changes[1].afterJson)
+    }
+
+    private fun rejectedInput(bytes: ByteArray, expectedReason: String) {
+        val original = bytes.copyOf()
+        var closed = false
+        val input = object : java.io.ByteArrayInputStream(bytes) {
+            override fun close() { closed = true; super.close() }
+        }
+        val result = ComparisonSnapshot.read(input, SnapshotIdentity("build.fixture.1", BigInteger.ONE))
+        assertTrue(result is SnapshotRead.Rejected)
+        assertEquals(expectedReason, (result as SnapshotRead.Rejected).reason.name)
+        assertEquals("Rejected(reason=$expectedReason)", result.toString())
+        assertFalse(closed)
+        assertArrayEquals(original, bytes)
+    }
+
+    @TestFactory fun `present textual unsupported versions have an explicit comparison diagnostic`() =
+        listOf("0.9.0", "1.0.1", "2.0.0", "", "1.0.0 ", "1.0.0\n", "v1.0.0", "not-a-version")
+            .mapIndexed { index, version -> dynamicTest("unsupported version spelling $index") {
+                rejectedInput(mapper.writeValueAsBytes(example().put("schema_version", version)), "UNSUPPORTED_SCHEMA_VERSION")
+            } }
+
+    @TestFactory fun `missing and nontextual versions retain schema mismatch`() =
+        listOf<Pair<String, (ObjectNode) -> Unit>>(
+            "missing" to { it.remove("schema_version"); Unit },
+            "null" to { it.putNull("schema_version"); Unit },
+            "boolean" to { it.put("schema_version", false); Unit },
+            "number" to { it.put("schema_version", 1); Unit },
+            "array" to { it.putArray("schema_version"); Unit },
+            "object" to { it.putObject("schema_version"); Unit },
+        ).map { (name, change) -> dynamicTest("version field $name") {
+            val node = example().also(change)
+            rejectedInput(mapper.writeValueAsBytes(node), "SCHEMA_MISMATCH")
+        } }
+
+    @TestFactory fun `supported version does not bypass the unchanged build schema`() =
+        listOf<Pair<String, (ObjectNode) -> Unit>>(
+            "extra field" to { it.put("unrecognized", true); Unit },
+            "invalid kind" to { (it["selections"][0] as ObjectNode).put("kind", "not_a_kind"); Unit },
+            "missing identity" to { it.remove("id"); Unit },
+        ).map { (name, change) -> dynamicTest("supported version $name") {
+            rejectedInput(mapper.writeValueAsBytes(example().also(change)), "SCHEMA_MISMATCH")
+        } }
+
+    @TestFactory fun `complete strict parse precedes either version outcome`() =
+        listOf("1.0.0", "2.0.0").flatMap { version ->
+            val prefix = "{\"schema_version\":\"$version\","
+            val inputs = listOf<Pair<String, () -> ByteArray>>(
+                "truncated object" to { prefix.toByteArray() },
+                "duplicate key" to { (prefix + "\"schema_version\":\"1.0.0\"}").toByteArray() },
+                "second value" to { mapper.writeValueAsBytes(example().put("schema_version", version)) + " {}".toByteArray() },
+                "invalid UTF8" to { (prefix + "\"name\":\"").toByteArray() + byteArrayOf(0xc3.toByte(), 0x28) + "\"}".toByteArray() },
+                "unpaired surrogate" to { (prefix + "\"name\":\"\\ud800\"}").toByteArray() },
+                "string bound" to { (prefix + "\"name\":\"" + "x".repeat(16_385) + "\"}").toByteArray() },
+                "name bound" to { (prefix + "\"" + "x".repeat(257) + "\":0}").toByteArray() },
+                "number bound" to { (prefix + "\"revision\":" + "1".repeat(129) + "}").toByteArray() },
+                "depth bound" to { (prefix + "\"extensions\":" + "[".repeat(33) + "0" + "]".repeat(33) + "}").toByteArray() },
+                "token bound" to { (prefix + "\"extensions\":[" + "0,".repeat(100_000) + "0]}").toByteArray() },
+                "byte bound" to { mapper.writeValueAsBytes(example().put("schema_version", version)) + ByteArray(1_048_576) { 32 } },
+            )
+            inputs.map { (name, bytes) -> dynamicTest("version $version rejects $name before classification") {
+                rejectedInput(bytes(), "INVALID_INPUT")
+            } }
+        }
+
+    @Test fun `version rejection preserves retained snapshot and cannot return comparison authority`() {
+        val original = example()
+        val bytes = mapper.writeValueAsBytes(original)
+        val retained = snapshot(original)
+        val unsupported = original.deepCopy().put("schema_version", "2.0.0")
+        rejectedInput(mapper.writeValueAsBytes(unsupported), "UNSUPPORTED_SCHEMA_VERSION")
+        settings(unsupported).put("concurrency", 99)
+        assertArrayEquals(bytes, mapper.writeValueAsBytes(original))
+        val comparison = BuildComparator.compare(retained, snapshot(original))
+        assertEquals(ComparisonCompleteness.COMPLETE, comparison.completeness)
+        assertEquals(SnapshotIdentityCondition.SAME_IDENTITY, comparison.identityCondition)
+        assertTrue(comparison.changes.isEmpty())
+        assertEquals(HistoricalOutputState.NOT_LOADED, comparison.historicalCost)
+        assertEquals(HistoricalOutputState.NOT_LOADED, comparison.historicalFindings)
+    }
+
+    @Test fun `the existing comparison problem order is retained`() {
+        assertEquals(listOf("INVALID_INPUT", "SCHEMA_MISMATCH", "IDENTITY_MISMATCH", "DUPLICATE_SELECTION_ID", "DUPLICATE_LINK_ID"),
+            SnapshotProblem.entries.take(5).map { it.name })
     }
 
 }

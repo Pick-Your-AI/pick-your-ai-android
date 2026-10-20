@@ -3,6 +3,7 @@ package ai.pickyour.android.preview
 import android.app.AlertDialog
 import android.os.Bundle
 import android.os.Looper
+import android.os.SystemClock
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
@@ -61,14 +62,15 @@ class CatalogPinRecoveryActivityTest {
         val caption = views().filterIsInstance<TextView>().single { it.text.toString() == activity.getString(label) }
         return activity.findViewById(caption.labelFor)
     }
-    private fun samples() = views().filterIsInstance<Button>().filter { it.text.toString().startsWith("Open FICTIONAL") }
+    private fun samples() = views().filterIsInstance<CatalogBrowseSection>().single().let(::views)
+        .filterIsInstance<Button>().filter { it.text.toString().contains("FICTIONAL") }
     private fun comparison() = views().filterIsInstance<CatalogComparisonSection>().single()
     private fun catalog() = views().filterIsInstance<CatalogBrowseSection>().single()
     private fun removals() = views().filterIsInstance<Button>().filter { it.text.toString().startsWith("Remove component ") }
     private fun dialog() = requireNotNull(ShadowAlertDialog.getLatestAlertDialog())
     private fun message(window: AlertDialog = dialog()) = shadowOf(window).message.toString()
     private fun dialogButton(label: Int, window: AlertDialog = dialog()) = button(label, window.window!!.decorView)
-    private fun idle() = shadowOf(Looper.getMainLooper()).idle()
+    private fun idle() = AutosaveUiClock.idle()
     private fun await(condition: () -> Boolean) {
         val deadline = System.nanoTime() + 15_000_000_000L
         while (System.nanoTime() < deadline) {
@@ -91,7 +93,7 @@ class CatalogPinRecoveryActivityTest {
         keys.forEach { assertEquals(it, before.get(it), after.get(it)) }
     }
     private fun adapter() = PreviewDraftLibrary(activity.noBackupFilesDir.toPath()).openLegacy()
-    private fun loaded() = (adapter().load() as PreviewDraftLoad.Available).record
+    private fun loaded() = (readDraftAfterOwnedWork(activity, ::adapter) as PreviewDraftLoad.Available).record
     private fun save() {
         button(R.string.save_draft).performClick()
         await { !button(R.string.save_draft).isEnabled && views().filterIsInstance<TextView>()
@@ -143,9 +145,11 @@ class CatalogPinRecoveryActivityTest {
     private fun files(root: Path) = Files.list(root).use { paths ->
         paths.toList().associate { it.fileName.toString() to Files.readAllBytes(it).toList() }
     }
+    private fun privateContents() = activity.noBackupFilesDir.walkTopDown().filter { it.isFile }
+        .associate { it.relativeTo(activity.noBackupFilesDir).path to it.readBytes().toList() }
     private fun worker() = PreviewActivity::class.java.getDeclaredField("worker").apply { isAccessible = true }.get(activity) as ExecutorService
 
-    @Test fun currentPinnedInspectionUsesCapturedDetailsWithoutCreatingACacheOrSaving() {
+    @Test fun currentPinnedInspectionUsesCapturedDetailsWithoutChangingRetainedBytesOrSaving() {
         save()
         val baseline = loaded().baselineIdentity
         field(R.string.draft_title).setText("pending pinned inspection")
@@ -153,7 +157,7 @@ class CatalogPinRecoveryActivityTest {
         field(R.string.workload_budget).setText("12.00")
         addPin("compute_profile")
         val before = state()
-        assertFalse(Files.exists(cacheRoot()))
+        val retainedBefore = files(cacheRoot())
         inspect().performClick()
         awaitResult(R.string.catalog_pin_captured)
         assertTrue(message().contains("cat.compute_profile.fixture"))
@@ -162,7 +166,7 @@ class CatalogPinRecoveryActivityTest {
         assertTrue(message().contains(activity.getString(R.string.catalog_pin_prices)))
         assertTrue(message().contains(activity.getString(R.string.catalog_price_unavailable)))
         assertFalse(message().contains("Recorded unit_price.amount:"))
-        assertFalse(Files.exists(cacheRoot()))
+        assertEquals(retainedBefore, files(cacheRoot()))
         dialogButton(R.string.catalog_pin_browse).performClick()
         idle()
         assertFalse(dialog().isShowing)
@@ -212,12 +216,14 @@ class CatalogPinRecoveryActivityTest {
         val current = document().put("revision", 6)
         showCatalog(current)
         val before = state()
+        val retainedBefore = files(cacheRoot())
         inspect().performClick()
         awaitResult(R.string.catalog_pin_missing)
         val failed = dialog()
         assertTrue(message().contains(pin(old).snapshotHash))
-        assertFalse(Files.exists(cacheRoot()))
+        assertEquals(retainedBefore, files(cacheRoot()))
         val cache = cache()
+        assertEquals(CacheRead.Missing, cache.pinned(hash(bytes(old))))
         install(cache, bytes(old))
         install(cache, bytes(current))
         val disk = files(cacheRoot())
@@ -335,6 +341,173 @@ class CatalogPinRecoveryActivityTest {
         assertDraftState(before)
     }
 
+    @Test fun actualPauseRetiresExactPinRecoveryAndCapturedActions() {
+        AutosaveUiClock.pause()
+        save()
+        val baseline = loaded().baselineIdentity
+        field(R.string.draft_title).setText("pending across exact pin pause")
+        field(R.string.context_objective).setText("preserved recovery objective")
+        addPin()
+        val before = state()
+        val retainedBytes = files(cacheRoot())
+        val entry = inspect()
+        entry.performClick()
+        awaitResult(R.string.catalog_pin_captured)
+        val previous = dialog()
+        val retry = dialogButton(R.string.catalog_pin_retry, previous)
+        val browse = dialogButton(R.string.catalog_pin_browse, previous)
+        val details = dialogButton(R.string.catalog_detail_browser_open, previous)
+        field(R.string.draft_title).requestFocus()
+        controller.pause()
+        try {
+            assertFalse("Pause must retire the exact pin recovery window", previous.isShowing)
+            retry.performClick(); browse.performClick(); details.performClick(); entry.performClick()
+            idle()
+            assertSame(previous, dialog())
+            assertFalse(previous.isShowing)
+            assertTrue(field(R.string.draft_title).hasFocus())
+        } finally { controller.resume() }
+        retry.performClick(); browse.performClick(); details.performClick(); idle()
+        assertSame(previous, dialog())
+        assertFalse(previous.isShowing)
+        assertTrue(field(R.string.draft_title).hasFocus())
+        assertDraftState(before)
+        assertEquals(retainedBytes, files(cacheRoot()))
+        assertEquals(baseline, loaded().baselineIdentity)
+        inspect().performClick()
+        awaitResult(R.string.catalog_pin_captured)
+        assertNotSame(previous, dialog())
+        assertTrue(message().contains(before.getStringArrayList("comparisonHashes")!!.single()))
+        assertTrue(message().contains("Requested item ID: \"cat.model.fixture\""))
+        assertDraftState(before)
+        assertEquals(retainedBytes, files(cacheRoot()))
+        assertEquals(baseline, loaded().baselineIdentity)
+        assertNull(shadowOf(activity).nextStartedActivity)
+    }
+
+    @Test fun actualPauseRetiresPinnedCompleteFieldAndValueCallbacks() {
+        AutosaveUiClock.pause()
+        save()
+        val baseline = loaded().baselineIdentity
+        field(R.string.context_objective).setText("pending during full pin inspection")
+        addPin()
+        val before = state()
+        val disk = privateContents()
+        for (openValue in listOf(false, true)) {
+            inspect().performClick()
+            awaitResult(R.string.catalog_pin_captured)
+            val parent = dialog()
+            val oldOpen = dialogButton(R.string.catalog_detail_browser_open, parent)
+            oldOpen.performClick(); idle()
+            val fields = dialog()
+            val index = (0 until fields.listView.adapter.count).single {
+                fields.listView.adapter.getItem(it).toString().startsWith("catalog_item.version") }
+            if (openValue) { shadowOf(fields).clickOnItem(index); idle() }
+            val previous = dialog()
+            val oldAction = previous.getButton(if (openValue) AlertDialog.BUTTON_NEGATIVE else AlertDialog.BUTTON_POSITIVE)
+            controller.pause()
+            try {
+                assertFalse("Pause retires the pin's complete field or value window", previous.isShowing)
+                shadowOf(fields).clickOnItem(index)
+                oldAction.performClick(); oldOpen.performClick(); idle()
+                assertSame(previous, dialog())
+                assertFalse(previous.isShowing)
+            } finally { controller.resume() }
+            shadowOf(fields).clickOnItem(index)
+            oldAction.performClick(); oldOpen.performClick(); idle()
+            assertSame(previous, dialog())
+            assertFalse(previous.isShowing)
+
+            inspect().performClick()
+            awaitResult(R.string.catalog_pin_captured)
+            dialogButton(R.string.catalog_detail_browser_open).performClick(); idle()
+            val freshFields = dialog()
+            shadowOf(freshFields).clickOnItem(index); idle()
+            val freshValue = dialog()
+            assertTrue(message().contains("\"2026.10-demo\""))
+            shadowOf(fields).clickOnItem(index)
+            oldAction.performClick(); oldOpen.performClick(); idle()
+            assertSame(freshValue, dialog())
+            assertTrue(freshValue.isShowing)
+            assertDraftState(before)
+            assertEquals(disk, privateContents())
+            assertEquals(baseline, loaded().baselineIdentity)
+        }
+        assertNull(shadowOf(activity).nextStartedActivity)
+    }
+
+    @Test fun pausedPinReadsAndPostedCompletionsCannotReviveTheirOrigin() {
+        AutosaveUiClock.pause()
+        save()
+        val baseline = loaded().baselineIdentity
+        field(R.string.draft_title).setText("pending while exact pin completion waits")
+        val old = document().put("revision", 41)
+        item(old).put("version", "pause.recorded.v1").put("name", "FICTIONAL retained pause version")
+        showCatalog(old)
+        addPin()
+        val current = document().put("revision", 42)
+        item(current).put("version", "pause.current.v2").put("name", "FICTIONAL current substitute")
+        showCatalog(current)
+        val cache = cache()
+        install(cache, bytes(old)); install(cache, bytes(current))
+        val before = state()
+        val disk = privateContents()
+        for (completionPosted in listOf(false, true)) for (resumeBeforeDelivery in listOf(false, true)) {
+            val entered = CountDownLatch(1)
+            val release = CountDownLatch(1)
+            val held = if (completionPosted) null else worker().submit {
+                entered.countDown(); release.await(15, TimeUnit.SECONDS)
+            }
+            var resumed = true
+            try {
+                if (held != null) assertTrue(entered.await(15, TimeUnit.SECONDS))
+                inspect().performClick()
+                val loading = dialog()
+                val retry = dialogButton(R.string.catalog_pin_retry, loading)
+                val browse = dialogButton(R.string.catalog_pin_browse, loading)
+                assertTrue(message().contains(activity.getString(R.string.catalog_pin_loading)))
+                // The worker has posted its real read result, but the paused main looper has not adopted it.
+                if (completionPosted) worker().submit {}.get(15, TimeUnit.SECONDS)
+                controller.pause()
+                resumed = false
+                assertFalse(loading.isShowing)
+                if (resumeBeforeDelivery) { controller.resume(); resumed = true }
+                release.countDown()
+                held?.get(15, TimeUnit.SECONDS)
+                worker().submit {}.get(15, TimeUnit.SECONDS)
+                idle()
+                retry.performClick(); browse.performClick(); idle()
+                assertSame(loading, dialog())
+                assertFalse(loading.isShowing)
+                if (!resumed) { controller.resume(); resumed = true }
+                retry.performClick(); browse.performClick(); idle()
+                assertSame(loading, dialog())
+                assertFalse(loading.isShowing)
+
+                inspect().performClick()
+                awaitResult(R.string.catalog_pin_retained)
+                val fresh = dialog()
+                assertTrue(message().contains(pin(old).snapshotHash))
+                assertTrue(message().contains("\"pause.recorded.v1\""))
+                assertTrue(message().contains("Revision: 41"))
+                assertFalse(message().contains("pause.current.v2"))
+                assertFalse(message().contains("FICTIONAL current substitute"))
+                assertFalse(message().contains(hash(bytes(current)).hex))
+                retry.performClick(); browse.performClick(); idle()
+                assertSame(fresh, dialog())
+                assertTrue(fresh.isShowing)
+                assertDraftState(before)
+                assertEquals(disk, privateContents())
+                assertEquals(baseline, loaded().baselineIdentity)
+                fresh.cancel(); idle()
+            } finally {
+                release.countDown()
+                if (!resumed) controller.resume()
+            }
+        }
+        assertNull(shadowOf(activity).nextStartedActivity)
+    }
+
     @Test fun newerInspectionReplacesQueuedOriginAndRetainedControlsCannotReplaceItsResult() {
         addPin("model")
         addPin("accelerator")
@@ -404,6 +577,9 @@ class CatalogPinRecoveryActivityTest {
     @Test fun comparisonAndPinInspectionRetireEachOthersRetainedActionsAndPreserveTrayPreferences() {
         save()
         val baseline = loaded().baselineIdentity
+        // Dialog frames must not advance this read-only case beyond the autosave deadline.
+        AutosaveUiClock.pause()
+        val pendingSince = SystemClock.uptimeMillis()
         field(R.string.context_objective).setText("pending comparison origin")
         addPin("model")
         addPin("accelerator")
@@ -428,11 +604,15 @@ class CatalogPinRecoveryActivityTest {
         assertFalse(views(currentComparison.window!!.decorView).filterIsInstance<android.widget.CheckBox>().single().isChecked)
         assertDraftState(before)
         assertEquals(baseline, loaded().baselineIdentity)
+        assertTrue("Read-only actions stay before autosave", SystemClock.uptimeMillis() in pendingSince until pendingSince + 750)
     }
 
     @Test fun snapshotReplacementRemovalReloadAndRecreationRetireTheActualInspectionOrigin() {
         save()
         val baseline = loaded().baselineIdentity
+        // Dialog frames must not advance this read-only case beyond the autosave deadline.
+        AutosaveUiClock.pause()
+        val pendingSince = SystemClock.uptimeMillis()
         field(R.string.draft_title).setText("pending lifecycle recovery")
         addPin()
         val before = state()
@@ -446,14 +626,15 @@ class CatalogPinRecoveryActivityTest {
         oldEntry.performClick(); oldRetry.performClick(); idle()
         assertSame(oldDialog, dialog())
         inspect().performClick()
-        awaitResult(R.string.catalog_pin_missing)
-        val missing = dialog()
-        val missedRetry = dialogButton(R.string.catalog_pin_retry)
+        awaitResult(R.string.catalog_pin_retained)
+        assertTrue(message().contains(before.getStringArrayList("comparisonHashes")!!.single()))
+        val retainedSnapshot = dialog()
+        val retainedSnapshotRetry = dialogButton(R.string.catalog_pin_retry)
         button(R.string.retry_catalog).performClick()
         await { button(R.string.retry_catalog).isEnabled }
-        assertFalse(missing.isShowing)
-        missedRetry.performClick(); idle()
-        assertSame(missing, dialog())
+        assertFalse(retainedSnapshot.isShowing)
+        retainedSnapshotRetry.performClick(); idle()
+        assertSame(retainedSnapshot, dialog())
         inspect().performClick()
         awaitResult(R.string.catalog_pin_captured)
         val beforeRecreation = dialog()
@@ -479,6 +660,7 @@ class CatalogPinRecoveryActivityTest {
         assertTrue(state().getStringArrayList("comparisonIds")!!.isEmpty())
         assertDraftState(before, includeTray = false)
         assertEquals(baseline, loaded().baselineIdentity)
+        assertTrue("Read-only actions stay before autosave", SystemClock.uptimeMillis() in pendingSince until pendingSince + 750)
     }
 
     @Test fun changedSavedBaselineRejectsRetainedRetryAndBrowseWithoutReplacingPendingInputs() {
@@ -547,6 +729,12 @@ class CatalogPinRecoveryActivityTest {
         val cache = VerifiedArtifactCache(target, PreviewCatalogPinResolver.MAX_BYTES)
         install(cache, bytes(old))
         val beforeFiles = files(target)
+        // Replace only the known initial bundled-cache fixture with this test's foreign symlink.
+        val bundled = activity.assets.open("catalog.json").use { it.readBytes() }
+        val initial = files(cacheRoot())
+        assertEquals(setOf("active", "lock", "${hash(bundled).hex}.bin"), initial.keys)
+        initial.keys.forEach { Files.delete(cacheRoot().resolve(it)) }
+        Files.delete(cacheRoot())
         Files.createSymbolicLink(cacheRoot(), target)
         restorePin(pin(old))
         val before = state()

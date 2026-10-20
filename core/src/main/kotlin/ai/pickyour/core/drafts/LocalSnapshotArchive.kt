@@ -61,6 +61,11 @@ class LocalSnapshotArchive internal constructor(
         SnapshotArchiveLoad.Available(current(namespace))
     }
 
+    /** Inspection never initializes a namespace, activates an empty head or repairs missing state. */
+    fun loadExisting(): SnapshotArchiveLoad = guarded({ SnapshotArchiveLoad.Failed(it) }) {
+        SnapshotArchiveLoad.Available(current(readNamespace()))
+    }
+
     /** Read the current indexed identity; a missing/corrupt index never falls back to another head. */
     fun read(key: SnapshotArchiveKey): SnapshotArchiveRead = guarded({ SnapshotArchiveRead.Failed(it) }) {
         val state = current(readNamespace())

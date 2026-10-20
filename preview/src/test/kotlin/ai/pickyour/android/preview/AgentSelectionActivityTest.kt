@@ -79,7 +79,7 @@ class AgentSelectionActivityTest {
     private fun currentId() = PreviewActivity::class.java.getDeclaredField("currentDraftId").apply { isAccessible = true }.get(activity) as PreviewDraftId
     private fun library() = PreviewDraftLibrary(activity.noBackupFilesDir.toPath())
     private fun adapter() = library().open(currentId())
-    private fun loaded() = (adapter().load() as PreviewDraftLoad.Available).record
+    private fun loaded() = (readDraftAfterOwnedWork(activity, ::adapter) as PreviewDraftLoad.Available).record
     private fun settings(selection: LocalSelection) = JSONObject(PreviewSelectionForms.settingsText(selection))
     private fun disk() = Files.walk(activity.noBackupFilesDir.toPath()).use { paths ->
         paths.filter { Files.isRegularFile(it) }.toList().associate {
@@ -110,12 +110,12 @@ class AgentSelectionActivityTest {
     private fun choices(kind: String): AlertDialog {
         await { button(R.string.component_choose_catalog).isEnabled }
         button(R.string.component_choose_catalog).performClick()
-        return select(dialog()) { it.startsWith("$kind ·") }
+        return select(dialog()) { it.startsWith("${componentTokenForLookup(activity, kind)} ·") }
     }
     private fun addForm(kind: String) = select(choices(kind)) { it == activity.getString(R.string.component_add) }
     private fun action(selection: LocalSelection, label: Int): AlertDialog {
         button(R.string.component_manage).performClick()
-        val actions = select(dialog()) { it.endsWith(" · ${selection.id}") }
+        val actions = select(dialog()) { it.endsWith(" · ${componentTokenForLookup(activity, selection.id)}") }
         return select(actions) { it == activity.getString(label) }
     }
     private fun commit(form: AlertDialog, previous: PreviewStoredDraft = loaded()): PreviewStoredDraft {

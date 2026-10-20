@@ -3,16 +3,21 @@ package ai.pickyour.android.preview
 import android.content.Context
 import android.text.BidiFormatter
 import android.text.TextDirectionHeuristics
+import android.view.View
 import ai.pickyour.core.contracts.ContractDecimal
 import ai.pickyour.core.contracts.ContractMoney
+import ai.pickyour.core.contracts.ContractRejected
 import ai.pickyour.core.preview.PreviewComparedValue
 import ai.pickyour.core.preview.PreviewComparedValueKind
 import ai.pickyour.core.pricing.InspectedCostEstimate
+import ai.pickyour.core.pricing.InspectedCostLine
+import ai.pickyour.core.pricing.RecordedCostArithmetic
+import ai.pickyour.core.pricing.RecordedProductObservation
 import java.math.RoundingMode
 import java.text.DecimalFormat
 import java.text.NumberFormat
 
-/** Bounded display of an inspected declaration. No arithmetic, currency conversion or rate selection. */
+/** Bounded declared values and separate unrounded-product observations; no billing or rate selection. */
 internal object CostInspectionText {
     private const val MAX_LINES = 8
     private const val MAX_LIST_ITEMS = 8
@@ -40,16 +45,42 @@ internal object CostInspectionText {
             context.getString(R.string.cost_unpriced, entries(value.reportedUnpricedSelectionIds)),
             context.getString(R.string.cost_unclassified, entries(value.unclassifiedActiveSelectionIds)),
             context.getString(R.string.cost_evidence_limits),
+            context.getString(R.string.cost_arithmetic_notice),
         )
         val shownLines = value.lines.take(MAX_LINES)
         val lines = shownLines.map { line ->
             context.getString(R.string.cost_line, literal(line.id), literal(line.selectionId), line.meter,
-                decimal(context, ContractDecimal.parse(line.quantity)), literal(line.rateId),
-                money(line.unitPrice), money(line.amount), line.method, line.confidence, entries(line.assumptions))
+                quantity(context, line.quantity), literal(line.rateId),
+                money(line.unitPrice), money(line.amount), line.method, line.confidence, entries(line.assumptions)) +
+                "\n" + arithmetic(context, line)
         }
         return (summary + context.resources.getQuantityString(R.plurals.cost_display_lines, value.lines.size,
             shownLines.size, value.lines.size) + lines +
             context.getString(R.string.cost_warnings, entries(value.warnings))).joinToString("\n\n")
+    }
+
+    private fun arithmetic(context: Context, line: InspectedCostLine): String {
+        val result = RecordedCostArithmetic.inspect(line)
+        val resource = when (result.observation) {
+            RecordedProductObservation.MATCHES_EXACT_PRODUCT -> R.string.cost_arithmetic_matches
+            RecordedProductObservation.DIFFERS_FROM_EXACT_PRODUCT -> R.string.cost_arithmetic_differs
+            RecordedProductObservation.EXACT_PRODUCT_OUTSIDE_PROFILE -> R.string.cost_arithmetic_precision
+            RecordedProductObservation.UNSUPPORTED_QUANTITY -> R.string.cost_arithmetic_quantity
+            RecordedProductObservation.DECIMAL_LIMIT_EXCEEDED -> R.string.cost_arithmetic_limit
+        }
+        return result.exactProduct?.let { product ->
+            context.getString(resource, literal(context, product), ltr(context, line.amount.currency))
+        } ?: context.getString(resource)
+    }
+
+    /** Frozen quantity strings can be retained even when they are not whole-string decimal values. */
+    private fun quantity(context: Context, recorded: String): String {
+        val value = try {
+            ContractDecimal.parse(recorded)
+        } catch (_: ContractRejected) {
+            return context.getString(R.string.cost_display_literal_quantity, literal(context, recorded))
+        }
+        return decimal(context, value)
     }
 
     /** The bounded canonical lexeme is always visible, even when localization cannot be offered. */
@@ -84,6 +115,6 @@ internal object CostInspectionText {
 
     // Source-provided control/format characters have already been escaped. Only our formatter adds bidi marks.
     private fun ltr(context: Context, value: String): String =
-        BidiFormatter.getInstance(context.resources.configuration.locales[0])
+        BidiFormatter.getInstance(context.resources.configuration.layoutDirection == View.LAYOUT_DIRECTION_RTL)
             .unicodeWrap(value, TextDirectionHeuristics.LTR)
 }

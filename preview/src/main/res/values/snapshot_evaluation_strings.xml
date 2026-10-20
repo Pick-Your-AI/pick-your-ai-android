@@ -1,0 +1,31 @@
+<resources>
+    <item name="snapshot_open" type="id" />
+    <item name="snapshot_status" type="id" />
+    <item name="snapshot_report" type="id" />
+    <item name="snapshot_findings" type="id" />
+    <string name="snapshot_open">Inspect saved snapshots</string>
+    <string name="snapshot_notice">Inspect rules for a separately retained private snapshot. Your current editor and pending changes are outside this inspection.</string>
+    <string name="snapshot_inventory_loading">Reading the saved-snapshot index…</string>
+    <string name="snapshot_inventory_unavailable">Saved snapshots unavailable: %1$s. No archive was initialized and no replacement snapshot was selected.</string>
+    <string name="snapshot_empty">The existing archive contains no saved snapshots. Snapshot creation is not connected to this preview.</string>
+    <string name="snapshot_choose_notice">Select the exact saved identity to inspect. Its retained inputs are independent of later draft edits or deletion.</string>
+    <string name="snapshot_choose">Choose a saved snapshot</string>
+    <string name="snapshot_entry">Build: %1$s\nRevision: %2$s</string>
+    <string name="snapshot_inspection">Saved-snapshot rule inspection</string>
+    <string name="snapshot_cancel">Cancel inspection</string>
+    <string name="snapshot_retry">Inspect again</string>
+    <string name="snapshot_findings">Inspect affected selections</string>
+    <string name="snapshot_findings_choose">Choose a reported finding</string>
+    <string name="snapshot_evaluating">%1$s\n\nChecking the retained bundle and evaluating its exact rules with the local inspection profile…</string>
+    <string name="snapshot_cancelled">%1$s\n\nInspection cancelled. No result is current. Inspect again to start a fresh request.</string>
+    <string name="snapshot_withheld">%1$s\n\nInspection withheld; no report was accepted.\n%2$s</string>
+    <string name="snapshot_failed">%1$s\n\nInspection unavailable: %2$s. No report was accepted. The saved bytes were not replaced.</string>
+    <string name="snapshot_result_notice">Local rule inspection of the selected retained inputs. This does not evaluate pending edits or establish production compatibility.</string>
+    <string name="snapshot_result">Result in this profile: %1$s\nReadiness in this profile: %2$s</string>
+    <string name="snapshot_times">Observed locally: %1$s\nFixed reference report time: %2$s (fixture time, not this execution time)</string>
+    <string name="snapshot_profile">Inspection profile: %1$s</string>
+    <string name="snapshot_receipt">Retained bundle SHA-256: %1$s\nCaptured index generation: %2$s\nCaptured index SHA-256: %3$s</string>
+    <string name="snapshot_binding">%1$s: %2$s at %3$s\nSHA-256: %4$s</string>
+    <string name="snapshot_limits">All rules are reevaluated. The exact graph is bound; its edges do not select or alter rules. No ResourceEstimate or CostEstimate is supplied. A retained Pricebook does not create a cost estimate or zero cost. Unknown and skipped remain distinct from passes. Findings describe this bounded rule profile, not measured capacity, quality, source rights or deployment authorization. This is a read-only historical inspection; it does not grant current archive or draft write authority.</string>
+    <string name="snapshot_affected">Affected active selection IDs: %1$s\nThese are the rule’s affected kinds, not a proven minimal cause.</string>
+</resources>

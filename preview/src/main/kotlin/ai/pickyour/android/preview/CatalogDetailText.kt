@@ -1,6 +1,9 @@
 package ai.pickyour.android.preview
 
 import android.content.Context
+import android.text.BidiFormatter
+import android.text.TextDirectionHeuristics
+import android.view.View
 import ai.pickyour.core.evidence.EvidenceLabel
 import ai.pickyour.core.preview.*
 import ai.pickyour.core.pricing.RecordedPricebook
@@ -28,7 +31,8 @@ internal object CatalogDetailText {
                     append("\\u" + char.code.toString(16).padStart(4, '0')) else append(char)
             }
         }
-        return if (raw.length > MAX_VALUE) context.getString(R.string.catalog_detail_truncated, safe) else safe
+        val displayed = ltr(context, safe)
+        return if (raw.length > MAX_VALUE) context.getString(R.string.catalog_detail_truncated, displayed) else displayed
     }
 
     fun fieldValue(context: Context, field: PreviewCatalogField): String = when (field.state) {
@@ -42,9 +46,9 @@ internal object CatalogDetailText {
 
     fun describe(context: Context, detail: PreviewCatalogDetails, pricebook: RecordedPricebook? = null,
                  includeSpecifications: Boolean = true): String {
-        fun text(raw: String?) = literal(context, raw)
+        fun text(raw: String?) = if (raw == null) literal(context, null) else ltr(context, literal(context, raw))
         fun fields(values: List<PreviewCatalogField>) = values.joinToString("\n") { field ->
-            context.getString(R.string.catalog_detail_field, field.name, field.type, fieldValue(context, field))
+            context.getString(R.string.catalog_detail_field, ltr(context, field.name), ltr(context, field.type), fieldValue(context, field))
         }
         val item = detail.item
         val sources = detail.provenance.take(MAX_PROVENANCE).mapIndexed { index, source ->
@@ -56,18 +60,20 @@ internal object CatalogDetailText {
                 EvidenceLabel.ESTIMATED -> R.string.label_estimated
             })
             context.getString(R.string.catalog_detail_source, index + 1, text(source.sourceUri),
-                text(source.checkedAt), source.rawStatus.encoded, label, text(source.notes))
+                text(source.checkedAt), ltr(context, source.rawStatus.encoded), label, text(source.notes))
         }
         return listOfNotNull(
-            context.getString(R.string.item_details, text(item.id), item.kind, text(item.version)),
-            context.getString(R.string.catalog_detail_snapshot, text(detail.snapshotId), detail.snapshotRevision.toString(), detail.snapshotHash),
+            context.getString(R.string.item_details, text(item.id), ltr(context, item.kind), text(item.version)),
+            context.getString(R.string.catalog_detail_snapshot, text(detail.snapshotId),
+                ltr(context, detail.snapshotRevision.toString()), ltr(context, detail.snapshotHash)),
             context.getString(R.string.catalog_detail_dates, text(detail.snapshotCapturedAt), text(detail.updatedAt)),
-            context.getString(R.string.catalog_detail_status, detail.status, detail.billingClass),
+            context.getString(R.string.catalog_detail_status, ltr(context, detail.status), ltr(context, detail.billingClass)),
             context.getString(R.string.catalog_detail_provider),
             context.getString(R.string.catalog_detail_description, text(detail.description)),
             if (includeSpecifications) context.getString(R.string.catalog_detail_specs, fields(detail.specs)) else null,
             context.getString(R.string.catalog_detail_license, fields(detail.license)),
-            context.getString(R.string.catalog_detail_source_count, sources.size, detail.provenance.size),
+            context.resources.getQuantityString(R.plurals.catalog_detail_source_count, detail.provenance.size,
+                sources.size, detail.provenance.size),
             sources.joinToString("\n\n"),
             context.getString(R.string.evidence_support_unestablished),
             context.getString(R.string.evidence_pinned),
@@ -76,4 +82,9 @@ internal object CatalogDetailText {
             context.getString(R.string.catalog_detail_source_limits),
         ).joinToString("\n\n")
     }
+
+    // Only escaped literals/JSON, closed schema tokens and canonical numeric/hash text reach this helper.
+    private fun ltr(context: Context, value: String): String =
+        BidiFormatter.getInstance(context.resources.configuration.layoutDirection == View.LAYOUT_DIRECTION_RTL)
+            .unicodeWrap(value, TextDirectionHeuristics.LTR)
 }

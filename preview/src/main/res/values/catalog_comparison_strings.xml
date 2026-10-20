@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="catalog_compare_heading">Component comparison</string>
-    <string name="catalog_compare_limit">Choose up to %1$d synthetic components from their details. Comparison does not change or save your draft.</string>
+    <plurals name="catalog_compare_limit">
+        <item quantity="one">Choose up to %1$d synthetic component from its details. Comparison does not change or save your draft.</item>
+        <item quantity="other">Choose up to %1$d synthetic components from their details. Comparison does not change or save your draft.</item>
+    </plurals>
     <string name="catalog_compare_add">Add to comparison</string>
     <string name="catalog_compare_open">Compare selected components</string>
     <string name="catalog_compare_count">Comparison tray: %1$d / %2$d</string>

@@ -2,7 +2,7 @@ package ai.pickyour.android.preview
 
 import android.app.AlertDialog
 import android.os.Bundle
-import android.os.Looper
+import android.os.SystemClock
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
@@ -58,13 +58,14 @@ class CatalogPriceBrowserActivityTest {
         assertNotEquals(View.NO_ID, caption.labelFor)
         return activity.findViewById(caption.labelFor)
     }
-    private fun samples() = views().filterIsInstance<Button>().filter { it.text.toString().startsWith("Open FICTIONAL") }
+    private fun samples() = views().filterIsInstance<CatalogBrowseSection>().single().let(::views)
+        .filterIsInstance<Button>().filter { it.text.toString().contains("FICTIONAL") }
     private fun adapter() = PreviewDraftLibrary(activity.noBackupFilesDir.toPath()).openLegacy()
-    private fun loaded() = (adapter().load() as PreviewDraftLoad.Available).record
+    private fun loaded() = (readDraftAfterOwnedWork(activity, ::adapter) as PreviewDraftLoad.Available).record
     private fun dialog() = requireNotNull(ShadowAlertDialog.getLatestAlertDialog())
     private fun rows(window: AlertDialog = dialog()) =
         (0 until window.listView.adapter.count).map { window.listView.adapter.getItem(it).toString() }
-    private fun idle() = shadowOf(Looper.getMainLooper()).idle()
+    private fun idle() = AutosaveUiClock.idle()
     private fun click(which: Int, window: AlertDialog = dialog()) { window.getButton(which).performClick(); idle() }
     private fun choose(index: Int, window: AlertDialog = dialog()) { shadowOf(window).clickOnItem(index); idle() }
     private fun await(condition: () -> Boolean) {
@@ -213,7 +214,7 @@ class CatalogPriceBrowserActivityTest {
             inspect(name); assertEquals(name, expected, value()); click(AlertDialog.BUTTON_NEGATIVE)
         }
         click(AlertDialog.BUTTON_NEGATIVE)
-        assertEquals(activity.getString(R.string.catalog_price_browser_page, 2, 2, 10), shadowOf(dialog()).title.toString())
+        assertEquals(activity.resources.getQuantityString(R.plurals.catalog_price_browser_page, 10, 2, 2, 10), shadowOf(dialog()).title.toString())
         assertEquals(2, rows().size)
         assertTrue(adapter().load() is PreviewDraftLoad.Missing)
         assertNull(shadowOf(activity).nextStartedActivity)
@@ -430,6 +431,9 @@ class CatalogPriceBrowserActivityTest {
         field(R.string.draft_title).setText("price lifecycle baseline")
         save()
         val baseline = loaded().baselineIdentity
+        // Dialog frames must not advance this read-only case beyond the autosave deadline.
+        AutosaveUiClock.pause()
+        val pendingSince = SystemClock.uptimeMillis()
         field(R.string.context_objective).setText("pending lifecycle objective")
         val oldRates = openActualBrowser()
         val before = state()
@@ -458,6 +462,7 @@ class CatalogPriceBrowserActivityTest {
         openActualBrowser(); choose(0); inspect("rate.unit_price.amount")
         assertEquals("\"0.80\"", value())
         assertNull(shadowOf(activity).nextStartedActivity)
+        assertTrue("Read-only actions stay before autosave", SystemClock.uptimeMillis() in pendingSince until pendingSince + 750)
     }
 
     @Test fun actualSavedBaselineChangeRetiresBrowserWithoutDiscardingPendingInputs() {

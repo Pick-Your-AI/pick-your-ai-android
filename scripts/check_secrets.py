@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import ast
 import datetime as dt
 import hashlib
 import io
@@ -13,6 +14,7 @@ import platform
 import re
 import shlex
 import shutil
+import stat
 import subprocess
 import sys
 import tarfile
@@ -33,9 +35,50 @@ MAX_TRACE_BYTES = 16 * 1024 * 1024
 MAX_TRACE_LINE_BYTES = 128 * 1024
 HISTORY_OPTIONS = ("--full-history", "--diff-merges=separate", "--text",
                    "--no-ext-diff", "--no-textconv", "HEAD")
-SOURCE_IGNORE_ERROR = "Source .gitleaksignore is forbidden; no scanner exceptions are accepted"
+SOURCE_IGNORE_ERROR = "Source .gitleaksignore is forbidden; source-supplied exceptions are not accepted"
 SCANNER_DIAGNOSTIC_ERROR = "Scanner emitted execution diagnostics; a complete scan was not established"
 HISTORY_COMPLETION_ERROR = "Git history completion was not verified; no complete scan was established"
+CHECKSUM_EVIDENCE_ERROR = "Reviewed public-checksum evidence did not match its immutable source binding"
+CHECKSUM_DISPOSITION = "android36-public-frozen-contract-checksum"
+MAX_REVIEWED_COMMITS = 32
+# This is one reviewed content disposition, not a configurable allowlist. The
+# exact original findings and independent public-byte proof are recorded in
+# docs/SECRET_SCANNING.md. All four regular blobs must match at each finding's
+# actual reachable commit; changing even unrelated fixture bytes needs review.
+CHECKSUM_PROOF = (
+    ("tests/fixtures/android-api-consumer-intake-v1.json",
+     "d2f15c794bf5a4b73b6dbb843006434f0bac84e2", 17594,
+     "48df93adc749ef07f81abe37e4d54a2a412558d0fd8c305ec6a3ab36b29e1879"),
+    ("contracts/v1/api/openapi.yaml",
+     "117483451e00ac7d87260565b509f81bf383e405", 12079,
+     "6a08d7230c23576889167da6cff48d95093da9dc04d4bfa6ece443ff35089a79"),
+    ("contracts/v1/IMPORT_MANIFEST.json",
+     "955704740fa9b16eb9b319726bfcb9ed1f8bbf47", 8426,
+     "ef6d5801eec10f3169e2bf84653e7026b33088e305a987991ec52faadcd7f554"),
+    ("contracts/v1/UPSTREAM_SHA256SUMS",
+     "26fd660b5161a9b93607bab7d3279991a2e90fa4", 4044,
+     "0587a133436268bc03684ad61ff29f3bd1a12eb83db8a497eabdbb8fd8803e15"),
+)
+CHECKSUM_LINE_DIGEST = "116c38a946cb9ae444e94cfd7ec4c60f9c37cde88e904199055924e5476a44ff"
+
+# The pinned scanner reports one public Python field-name alias in this exact
+# historical ledger commit. This is not an exemption for names, patterns or
+# digest-shaped values: the whole source and predecessor objects are fixed.
+LEDGER_ALIAS_DISPOSITION = "android587-public-ledger-field-alias"
+LEDGER_ALIAS_COMMIT = "9e67d54f6ac5492035894e2f38bb1df5ef0a7639"
+LEDGER_ALIAS_PARENT = "8bedd80dcc0b3cdd9756785c57cef0e54211c63b"
+LEDGER_ALIAS_LOCATION = ("generic-api-key", "scripts/check_delivery_ledger.py", 2111)
+LEDGER_ALIAS_LINE_SHA256 = "1a9b30c705f37aa8902687e023a795f0f8c8631fbeaab7e96057951b813c1bf1"
+LEDGER_PRIOR_CANONICAL_SHA256 = "1698ebb2a1c802a80e3562659afeee3ee828e81ee83e443b1bb9eafe9d9b3a23"
+LEDGER_ALIAS_PROOFS = (
+    (LEDGER_ALIAS_COMMIT, "scripts/check_delivery_ledger.py",
+     "10cefefdece146f73e533ac3e78417dbfef55da5", 173666,
+     "076d1bf370f5edbeea1d763d8f94cb1d38e013a71db4eebae39c031a034f0dbd"),
+    (LEDGER_ALIAS_PARENT, "docs/delivery/criterion-evidence.json",
+     "8b0e557e227db92a2383dc643200ca67e844a7ef", 551451,
+     "7b7a9ce256d4cb0e6766519c95c63bbe50f888c71fc7aaf5c7066fd6670a6152"),
+)
+LEDGER_EVIDENCE_ERROR = "Reviewed public-ledger alias evidence did not match its immutable source binding"
 
 
 class ScanFailure(RuntimeError):
@@ -171,6 +214,161 @@ def require_no_source_ignore(target: Path):
     raise ScanFailure(SOURCE_IGNORE_ERROR)
 
 
+def checksum_git(target: Path, *args: str) -> bytes:
+    """Read bounded immutable Git evidence without replacement-object aliases."""
+    try:
+        result = subprocess.run(["git", "--no-replace-objects", "-C", str(target), *args],
+                                capture_output=True, timeout=5)
+    except (OSError, subprocess.TimeoutExpired):
+        raise ScanFailure(CHECKSUM_EVIDENCE_ERROR) from None
+    require(result.returncode == 0 and not result.stderr and len(result.stdout) <= 65536,
+            CHECKSUM_EVIDENCE_ERROR)
+    return result.stdout
+
+
+def reviewed_checksum_blob(target: Path, commit: str, proof: tuple) -> bytes:
+    path, object_id, size, digest = proof
+    entry = f"100644 blob {object_id}\t{path}\0".encode()
+    require(checksum_git(target, "ls-tree", "-z", commit, "--", path) == entry,
+            CHECKSUM_EVIDENCE_ERROR)
+    require(checksum_git(target, "cat-file", "-s", object_id) == f"{size}\n".encode(),
+            CHECKSUM_EVIDENCE_ERROR)
+    data = checksum_git(target, "cat-file", "blob", object_id)
+    require(len(data) == size and hashlib.sha256(data).hexdigest() == digest,
+            CHECKSUM_EVIDENCE_ERROR)
+    return data
+
+
+def verify_checksum_finding(target: Path, commit: str, source_commit: str):
+    require(checksum_git(target, "rev-parse", "--verify", "HEAD") == (source_commit + "\n").encode(),
+            CHECKSUM_EVIDENCE_ERROR)
+    require(checksum_git(target, "cat-file", "-t", commit) == b"commit\n",
+            CHECKSUM_EVIDENCE_ERROR)
+    require(checksum_git(target, "merge-base", "--is-ancestor", commit, source_commit) == b"",
+            CHECKSUM_EVIDENCE_ERROR)
+    fixture, schema, manifest, upstream = [reviewed_checksum_blob(target, commit, proof)
+                                          for proof in CHECKSUM_PROOF]
+    require(hashlib.sha256(fixture.splitlines()[4]).hexdigest() == CHECKSUM_LINE_DIGEST and
+            json.loads(fixture)["openapi_sha256"] == hashlib.sha256(schema).hexdigest(),
+            CHECKSUM_EVIDENCE_ERROR)
+    # The complete manifest bytes above are pinned, including their selected
+    # upstream revision and this exact independently hashed public schema entry.
+    require(upstream.decode().splitlines().count(hashlib.sha256(schema).hexdigest() +
+                                                "  api/openapi.yaml") == 1,
+            CHECKSUM_EVIDENCE_ERROR)
+
+
+def reviewed_ledger_alias_blob(target: Path, index: int) -> bytes:
+    """Read only one of the two fixed larger proof objects, never arbitrary input."""
+    require(type(index) is int and index in (0, 1), LEDGER_EVIDENCE_ERROR)
+    revision, path, object_id, size, digest = LEDGER_ALIAS_PROOFS[index]
+    entry = f"100644 blob {object_id}\t{path}\0".encode()
+    require(checksum_git(target, "ls-tree", "-z", revision, "--", path) == entry,
+            LEDGER_EVIDENCE_ERROR)
+    require(checksum_git(target, "cat-file", "-s", object_id) == f"{size}\n".encode(),
+            LEDGER_EVIDENCE_ERROR)
+    try:
+        result = subprocess.run(["git", "--no-replace-objects", "-C", str(target),
+                                 "cat-file", "blob", object_id],
+                                capture_output=True, timeout=5)
+    except (OSError, subprocess.TimeoutExpired):
+        raise ScanFailure(LEDGER_EVIDENCE_ERROR) from None
+    require(result.returncode == 0 and not result.stderr and len(result.stdout) == size
+            and hashlib.sha256(result.stdout).hexdigest() == digest,
+            LEDGER_EVIDENCE_ERROR)
+    return result.stdout
+
+
+def verify_ledger_alias_finding(target: Path, source_commit: str):
+    require(checksum_git(target, "rev-parse", "--verify", "HEAD") == (source_commit + "\n").encode(),
+            LEDGER_EVIDENCE_ERROR)
+    require(checksum_git(target, "cat-file", "-t", LEDGER_ALIAS_COMMIT) == b"commit\n",
+            LEDGER_EVIDENCE_ERROR)
+    require(checksum_git(target, "merge-base", "--is-ancestor", LEDGER_ALIAS_COMMIT, source_commit) == b"",
+            LEDGER_EVIDENCE_ERROR)
+    require(checksum_git(target, "rev-list", "--parents", "-n", "1", LEDGER_ALIAS_COMMIT) ==
+            f"{LEDGER_ALIAS_COMMIT} {LEDGER_ALIAS_PARENT}\n".encode(), LEDGER_EVIDENCE_ERROR)
+    checker, prior = [reviewed_ledger_alias_blob(target, index) for index in (0, 1)]
+    try:
+        require(hashlib.sha256(checker.splitlines()[2110]).hexdigest() == LEDGER_ALIAS_LINE_SHA256,
+                LEDGER_EVIDENCE_ERROR)
+        assignments = {}
+        alias_names = tuple(f"PRIOR_V{version}_KEYS" for version in (11, 10, 9))
+        wanted = set(alias_names)
+        for node in ast.parse(checker).body:
+            if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
+                name = node.targets[0].id
+                if name in wanted:
+                    require(name not in assignments, LEDGER_EVIDENCE_ERROR)
+                    assignments[name] = node
+        require(set(assignments) == wanted and assignments[alias_names[0]].lineno == 2111,
+                LEDGER_EVIDENCE_ERROR)
+        for name, predecessor in zip(alias_names, alias_names[1:]):
+            value = assignments[name].value
+            require(isinstance(value, ast.Name) and value.id == predecessor, LEDGER_EVIDENCE_ERROR)
+        fields = ast.literal_eval(assignments[alias_names[-1]].value)
+        document = json.loads(prior)
+        canonical = json.dumps(document, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
+        require(type(fields) is tuple and fields == tuple(document) and len(fields) == 8
+                and all(type(field) is str for field in fields)
+                and hashlib.sha256(canonical).hexdigest() == LEDGER_PRIOR_CANONICAL_SHA256,
+                LEDGER_EVIDENCE_ERROR)
+    except (ValueError, SyntaxError, TypeError, KeyError, IndexError, RecursionError):
+        raise ScanFailure(LEDGER_EVIDENCE_ERROR) from None
+
+
+def classify_reviewed_findings(target: Path, source_commit: str, result: dict) -> dict:
+    """Preserve every raw finding and require immutable proof for either public disposition."""
+    require(isinstance(source_commit, str) and re.fullmatch(r"[0-9a-f]{40}", source_commit) is not None,
+            "Finding disposition has no exact source commit")
+    require(isinstance(result, dict) and set(result) == {"exit_code", "finding_count", "findings"},
+            "Finding disposition input has unexpected fields")
+    code, count, findings = (result[key] for key in ("exit_code", "finding_count", "findings"))
+    require(type(code) is int and code in (0, 10) and type(count) is int and count >= 0 and
+            isinstance(findings, list) and count == len(findings) and (code == 0) == (count == 0),
+            "Finding disposition input disagrees with scanner exit or count")
+    reviewed, unresolved, seen, verified_commits = [], [], set(), set()
+    ledger_alias_verified = False
+    for row in findings:
+        require(isinstance(row, dict) and set(row) == {"rule_id", "file", "line", "commit"},
+                "Finding disposition has unexpected metadata")
+        rule, path, line, commit = (row[key] for key in ("rule_id", "file", "line", "commit"))
+        require(isinstance(rule, str) and re.fullmatch(r"[a-z0-9-]{1,120}", rule) is not None and
+                isinstance(path, str) and 0 < len(path) <= 4096 and type(line) is int and line > 0 and
+                isinstance(commit, str) and re.fullmatch(r"[0-9a-f]{40}", commit) is not None,
+                "Finding disposition has malformed metadata")
+        identity = (rule, path, line, commit)
+        checksum_candidate = (rule, path, line) == ("generic-api-key", CHECKSUM_PROOF[0][0], 5)
+        ledger_candidate = (rule, path, line) == LEDGER_ALIAS_LOCATION and commit == LEDGER_ALIAS_COMMIT
+        # Separate parent diffs can repeat one literal public checksum finding.
+        # Preserve every occurrence; only its already verified immutable commit
+        # evidence permits repetition. Unknown duplicate metadata still fails.
+        require(identity not in seen or (checksum_candidate and commit in verified_commits)
+                or (ledger_candidate and ledger_alias_verified),
+                "Finding disposition cannot classify repeated metadata")
+        seen.add(identity)
+        if ledger_candidate:
+            if not ledger_alias_verified:
+                verify_ledger_alias_finding(target, source_commit)
+                ledger_alias_verified = True
+            reviewed.append({**row, "disposition": LEDGER_ALIAS_DISPOSITION,
+                             "file_blob": LEDGER_ALIAS_PROOFS[0][2],
+                             "file_sha256": LEDGER_ALIAS_PROOFS[0][4]})
+            continue
+        if not checksum_candidate:
+            unresolved.append(dict(row))
+            continue
+        if commit not in verified_commits:
+            require(len(verified_commits) < MAX_REVIEWED_COMMITS, "Reviewed finding commit limit exceeded")
+            verify_checksum_finding(target, commit, source_commit)
+            verified_commits.add(commit)
+        reviewed.append({**row, "disposition": CHECKSUM_DISPOSITION,
+                         "file_blob": CHECKSUM_PROOF[0][1], "file_sha256": CHECKSUM_PROOF[0][3]})
+    return {"policy": "reviewed-public-source-v2", "reviewed_count": len(reviewed),
+            "reviewed_findings": reviewed, "unresolved_count": len(unresolved),
+            "unresolved_findings": unresolved}
+
+
 def scan(binary: Path, target: Path, directory: Path, name: str, *, history: bool) -> dict:
     require_no_source_ignore(target)
     config, ignore = directory / "built-in-rules.toml", directory / "empty-ignore"
@@ -194,7 +392,7 @@ def scan(binary: Path, target: Path, directory: Path, name: str, *, history: boo
            if key not in ("GITLEAKS_CONFIG", "GITLEAKS_CONFIG_TOML")}
     if history:
         env.update(GIT_TRACE2_EVENT=str(trace.absolute()), GIT_TRACE2_EVENT_BRIEF="1",
-                   GIT_TRACE2_EVENT_NESTING="1")
+                   GIT_TRACE2_EVENT_NESTING="1", GIT_NO_REPLACE_OBJECTS="1")
     result = subprocess.run(args, env=env, capture_output=True, text=True, timeout=140)
     # Raw streams stay in memory; raw finding files stay in private temporary storage.
     require(result.returncode in (0, 10), f"Scanner execution failed with exit {result.returncode}")
@@ -320,6 +518,10 @@ def verify_detection_and_removal(binary: Path, directory: Path) -> dict:
     require(merged["exit_code"] == 10 and merged["finding_count"] == 2 and all(
             row == {"rule_id": "github-pat", "file": "fixture.txt", "line": 1, "commit": merge}
             for row in merged["findings"]), "Merge-only seeded credential was not detected")
+    fixture_git("replace", merge, first)
+    replaced = scan(binary, merge_repo, directory, "literal-history", history=True)
+    require(replaced == merged, "Local Git replacement refs changed the literal history scan")
+    fixture_git("replace", "-d", merge)
 
     # Force text patches for both contributor-controlled -diff attributes and
     # Git's automatic binary classification; neither may conceal source bytes.
@@ -387,11 +589,12 @@ def verify_detection_and_removal(binary: Path, directory: Path) -> dict:
             "history_completion_controls_passed": True,
             "binary_history_exit_code": 10, "binary_history_findings": 2,
             "binary_fixture_commit": binary_commit,
-            "merge_only_exit_code": 10, "merge_only_findings": 2, "merge_fixture_commit": merge}
+            "merge_only_exit_code": 10, "merge_only_findings": 2, "merge_fixture_commit": merge,
+            "literal_history_exit_code": 10, "literal_history_findings": 2}
 
 
 def git(*args: str) -> str:
-    result = subprocess.run(["git", *args], cwd=ROOT, capture_output=True, text=True, timeout=30)
+    result = subprocess.run(["git", "--no-replace-objects", *args], cwd=ROOT, capture_output=True, text=True, timeout=30)
     require(result.returncode == 0, "Required Git source inspection failed")
     return result.stdout.strip()
 
@@ -411,10 +614,50 @@ def inspect_source() -> dict:
             "reachable_commits": int(git("rev-list", "--count", "HEAD"))}
 
 
+def receipt_destination() -> Path:
+    """Admit the fixed sanitized output in a stable, non-aliased checkout."""
+    require(stat.S_ISDIR(ROOT.lstat().st_mode), "Scanner receipt root is not a directory")
+    for directory in (ROOT / "build", ROOT / "build/security"):
+        try:
+            entry = directory.lstat()
+        except FileNotFoundError:
+            break
+        require(stat.S_ISDIR(entry.st_mode), "Scanner receipt directory is not a regular directory")
+    receipt = ROOT / "build/security/secret-scan.json"
+    try:
+        entry = receipt.lstat()
+    except FileNotFoundError:
+        return receipt
+    require(stat.S_ISREG(entry.st_mode) and entry.st_nlink == 1,
+            "Scanner receipt is not a single-link regular file")
+    return receipt
+
+
+def publish_receipt(receipt: dict) -> None:
+    """Publish complete private JSON; never expose a partial final report."""
+    output = receipt_destination()
+    output.parent.mkdir(parents=True, exist_ok=True)
+    receipt_destination()
+    temporary_path = None
+    try:
+        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=output.parent,
+                                         prefix=".secret-scan.json.", delete=False) as temporary:
+            temporary_path = Path(temporary.name)
+            json.dump(receipt, temporary, indent=2, sort_keys=True)
+            temporary.write("\n")
+        receipt_destination()
+        temporary_path.replace(output)
+    finally:
+        if temporary_path is not None:
+            temporary_path.unlink(missing_ok=True)
+
+
 def main() -> int:
-    output = ROOT / "build" / "security"
-    output.mkdir(parents=True, exist_ok=True)
-    receipt_path = output / "secret-scan.json"
+    try:
+        receipt_destination().unlink(missing_ok=True)
+    except (OSError, ScanFailure):
+        print("Secret scan failed; sanitized receipt destination was not admitted")
+        return 1
     receipt = {"schema_version": 1, "status": "failed", "scope": "reachable-HEAD-history",
                "started_utc": dt.datetime.now(dt.timezone.utc).isoformat(),
                "scanner": {"version": VERSION, "archive_sha256": ARCHIVE_SHA256,
@@ -433,8 +676,9 @@ def main() -> int:
             binary = install_scanner(private)
             receipt["fixture"] = verify_detection_and_removal(binary, private)
             receipt["scan"] = scan(binary, ROOT, private, "history", history=True)
-            require(receipt["scan"]["finding_count"] == 0, "Secret findings require triage before integration")
-        receipt["status"] = "passed"
+            receipt["triage"] = classify_reviewed_findings(ROOT, receipt["source"]["commit"], receipt["scan"])
+            require(receipt["triage"]["unresolved_count"] == 0, "Secret findings require triage before integration")
+        receipt["status"] = ("passed_with_reviewed_findings" if receipt["triage"]["reviewed_count"] else "passed")
     except ScanFailure as error:
         receipt["error"] = str(error)
     except Exception as error:
@@ -442,9 +686,14 @@ def main() -> int:
         receipt["error"] = "Scanner operation failed: " + type(error).__name__
     finally:
         receipt["seconds"] = round(time.monotonic() - started, 3)
-        receipt_path.write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    try:
+        publish_receipt(receipt)
+    except Exception as error:
+        # Filesystem/serialization errors may contain private paths or content.
+        print("Secret scan failed; sanitized receipt publication failed: " + type(error).__name__)
+        return 1
     print("Secret scan " + receipt["status"] + "; sanitized receipt: build/security/secret-scan.json")
-    return 0 if receipt["status"] == "passed" else 1
+    return 0 if receipt["status"] in ("passed", "passed_with_reviewed_findings") else 1
 
 
 if __name__ == "__main__":

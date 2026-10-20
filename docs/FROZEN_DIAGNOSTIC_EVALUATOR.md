@@ -1,5 +1,10 @@
 # Bounded frozen diagnostic evaluator (Android #84, partial)
 
+The following is the historical diagnostic slice and its original receipts.
+The later [retained-snapshot inspection profile](RETAINED_SNAPSHOT_EVALUATION.md)
+adds an exact private input boundary, revocable native caller and explicit current
+limits; its source, receiving decisions and executions remain separately attributed.
+
 This bounded diagnostic slice was prepared through [PR #376](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/376)
 at signed staging commit `82c6b49aa4cfc86fef98bbdc67d5a82c140b97f8` and received
 on main through [PR #380](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/380)

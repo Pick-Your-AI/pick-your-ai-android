@@ -69,7 +69,10 @@ class LibraryDialogAuthorityTest {
     }
 
     private fun hasText(label: Int) = views().filterIsInstance<TextView>().any { it.text.toString() == activity.getString(label) }
-    private fun loaded() = (library.openLegacy().load() as PreviewDraftLoad.Available).record
+    private fun loaded() = (readDraftAfterOwnedWork(activity) { library.openLegacy() } as PreviewDraftLoad.Available).record
+    private fun listed() = readLibraryAfterOwnedWork(activity) { library.list() }.also {
+        assertTrue("Expected an available library after owned work, observed: $it", it is PreviewLibraryRead.Available)
+    }
     private fun dialog() = requireNotNull(ShadowAlertDialog.getLatestAlertDialog())
 
     private fun await(condition: () -> Boolean) {
@@ -114,7 +117,7 @@ class LibraryDialogAuthorityTest {
 
     private fun assertUnchanged(cancelled: AlertDialog) {
         finishWork()
-        val entries = (library.list() as PreviewLibraryRead.Available).entries
+        val entries = (listed() as PreviewLibraryRead.Available).entries
         assertEquals("A cancelled action must not change durable draft entries",
             listOf(PreviewDraftId("guest-draft")), entries.map { it.id })
         assertFalse(entries.single().deletionPending)
@@ -212,7 +215,7 @@ class LibraryDialogAuthorityTest {
         fun selected() = (PreviewActiveDraftStore(activity.noBackupFilesDir.toPath()).read() as? PreviewActiveRead.Selected)?.id
         fun entry(id: PreviewDraftId): AlertDialog {
             val picker = openLibrary()
-            val entries = (library.list() as PreviewLibraryRead.Available).entries
+            val entries = (listed() as PreviewLibraryRead.Available).entries
             val index = entries.indexOfFirst { it.id == id }
             assertTrue(index >= 0)
             shadowOf(picker).clickOnItem(index)
@@ -231,7 +234,7 @@ class LibraryDialogAuthorityTest {
         field(R.string.draft_title).setText("independent target")
         button(R.string.save_draft).performClick()
         await { hasText(R.string.draft_saved) }
-        val source = (library.open(original).load() as PreviewDraftLoad.Available).record
+        val source = (readDraftAfterOwnedWork(activity) { library.open(original) } as PreviewDraftLoad.Available).record
 
         button(R.string.library_duplicate).performClick()
         val duplicateConfirmation = dialog()
@@ -243,10 +246,10 @@ class LibraryDialogAuthorityTest {
         val copy = requireNotNull(selected())
         assertNotEquals(original, copy)
         assertEquals("independent target", field(R.string.draft_title).text.toString())
-        assertEquals(source.baselineIdentity, (library.open(original).load() as PreviewDraftLoad.Available).record.baselineIdentity)
+        assertEquals(source.baselineIdentity, (readDraftAfterOwnedWork(activity) { library.open(original) } as PreviewDraftLoad.Available).record.baselineIdentity)
         duplicate.performClick()
         finishWork()
-        assertEquals(3, (library.list() as PreviewLibraryRead.Available).entries.size)
+        assertEquals(3, (listed() as PreviewLibraryRead.Available).entries.size)
         assertEquals(copy, selected())
 
         entry(original).getButton(AlertDialog.BUTTON_POSITIVE).performClick()
@@ -260,13 +263,13 @@ class LibraryDialogAuthorityTest {
         dialog().getButton(AlertDialog.BUTTON_POSITIVE).performClick()
         finishWork()
         assertTrue(button(R.string.library_open).isEnabled)
-        assertTrue((library.list() as PreviewLibraryRead.Available).entries.none { it.id == copy })
+        assertTrue((listed() as PreviewLibraryRead.Available).entries.none { it.id == copy })
         assertEquals(original, selected())
         assertEquals("independent target", field(R.string.draft_title).text.toString())
-        assertEquals(source.baselineIdentity, (library.open(original).load() as PreviewDraftLoad.Available).record.baselineIdentity)
+        assertEquals(source.baselineIdentity, (readDraftAfterOwnedWork(activity) { library.open(original) } as PreviewDraftLoad.Available).record.baselineIdentity)
         assertEquals(baseline, loaded().baselineIdentity)
         assertEquals(setOf(PreviewDraftId("guest-draft"), original),
-            (library.list() as PreviewLibraryRead.Available).entries.map { it.id }.toSet())
+            (listed() as PreviewLibraryRead.Available).entries.map { it.id }.toSet())
     }
 
     @Test fun reopenConfirmationCannotAdoptANewerSavedBaseline() {

@@ -56,7 +56,10 @@ earlier project scan.
 `fetch-depth: 0` supplies reachable history. The driver rejects shallow history,
 changed tracked source, a driver not present at the recorded commit, or a mismatch
 between the workflow SHA and checkout. It records the exact source commit/tree and
-reachable commit count. Gitleaks receives `--full-history --diff-merges=separate
+reachable commit count. Scanner traversal and source metadata disable local Git
+replacement objects, matching the immutable checksum-evidence reader. Replacement
+refs cannot substitute a different source tree or ancestry for those checks.
+Gitleaks receives `--full-history --diff-merges=separate
 --text --no-ext-diff --no-textconv HEAD` as its Git log options. Explicit per-parent merge
 diffs include values introduced only by a merge resolution; the default Git patch
 log can omit them. Forced text patches prevent repository `-diff`/`binary`
@@ -73,8 +76,10 @@ cannot silently suppress findings. Before each normal scan, any `.gitleaksignore
 entry at the source root is rejected, including a directory or dangling symbolic
 link; unreadable entry metadata also fails. This is necessary because the pinned
 CLI additionally loads that source-root file despite an explicit ignore-file path.
-The empty override alone does not disable it. There are currently no accepted exceptions.
-Any future false-positive or revoked-history disposition requires a separate
+The empty override alone does not disable it. The two reviewed public-source
+dispositions below bind the exact contract checksum and historical ledger field
+alias; neither enables a source ignore file or rule suppression. Any additional
+false-positive or revoked-history disposition requires a separate
 independently reviewed change with exact immutable finding identity and its evidence;
 it must not quietly make the scanner accept arbitrary bypass comments.
 
@@ -101,6 +106,11 @@ no remote and are never published as project contributions. The pre-correction
 default patch log incorrectly returned no finding for this actual merge fixture;
 the corrected merge-diff command detects it. These are seeded pattern and history
 coverage checks, not a production credential-revocation exercise.
+
+The same temporary history is scanned again with local replacement metadata
+present. Its original finding identities must remain identical. A separate real
+Git regression checks that source metadata still names the literal tree and
+reachable commit count. These fixtures never change project references.
 
 Another private Git fixture has two token-bearing files: plain text explicitly
 marked `-diff` by its own `.gitattributes`, and a NUL-bearing file automatically
@@ -165,6 +175,31 @@ not printed; raw finding JSON and Git traces stay in the temporary directory and
 are removed on exit.
 The CLI also receives `--redact=100` as a separate precaution.
 
+The entry point admits the repository root, `build`, `build/security` and the
+fixed `secret-scan.json` entry before starting source or scanner work. Existing
+directory aliases, non-directory ancestors, nonregular outputs and multiply
+linked regular outputs fail without retiring or overwriting their targets. An
+ordinary stale report is removed only after admission, so it cannot describe an
+interrupted current inspection. Unrelated peer files remain untouched.
+
+Complete JSON is written into a mode-0600 private sibling, closed, rechecked
+against the admitted destination and then replaced into the final name. A
+serialization or replacement failure removes the temporary sibling and fails
+the command without publishing a partial report. Ordinary source/scanner errors
+still publish a sanitized `failed` receipt and return failure; unexpected error
+details remain excluded. Missing final evidence is not a successful scan.
+This is a stable-checkout filesystem safeguard. It does not establish protection
+against hostile concurrent namespace replacement or crash-durable publication.
+
+The seven output-boundary methods use 23 real disposable filesystem controls
+with scanner work controlled and process/network execution prohibited. They
+cover unsafe entries, unreadable metadata, stale retirement, a replaced output
+before publication, private success/failed reports and publication failures.
+These controls do not execute the pinned CLI or replace the real scanner and
+history fixtures in the configured check. The scanner pins, original finding
+and history algorithms, reviewed-checksum disposition and disclosure rules stay
+unchanged by this output correction.
+
 The seven-day `secret-scan-<workflow commit>` artifact contains only that sanitized
 receipt. The ordinary log prints the overall result and receipt path. Inspect the
 job status together with the exact receipt before calling a version clean; an
@@ -180,12 +215,144 @@ the credential is unusable. Any historical exception must carry the actual
 containment or false-positive evidence and independent review before integration.
 No automatic exception or history rewrite is performed by this check.
 
+### Exact public contract checksum disposition
+
+The original [#451](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/451)
+source `4df1006fd5204989456deb24fda1f116289b6491` and its signed prepared receiver
+`46b0056a370b9472acf84196a8782b0cf2a34ae7` both produced one `generic-api-key`
+finding at line 5 of `tests/fixtures/android-api-consumer-intake-v1.json`.
+That line records the SHA-256 of the already public frozen OpenAPI document.
+It is an integrity checksum, not an issued credential or an authentication claim.
+The fixture and its metadata key remain unchanged.
+
+The original [scanner run](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39169746580)
+is still failed. Artifact `12151314101` has ZIP SHA-256
+`47cfe22a999f073cd7c74aef7ed09d544e036a502541049378684a95de5b0a7b`;
+its sanitized receipt has SHA-256
+`6ecdad3a8260f63c6da4ceed14c248609a3c30ecf893408d58576d2fcf874d80`.
+It records raw exit 10, both immutable findings, 171 reachable commits and the
+passing seeded/history/error controls. The original failure is not replaced or
+relabeled by this later policy. Independent byte inspection proved that both
+finding commits contain exactly the accepted frozen inputs from signed main
+`e8241ef4ea75071339e6a945e48fc6d433819ffa`.
+
+The disposition `android36-public-frozen-contract-checksum` requires all four
+complete regular-file objects at each actual finding commit:
+
+| Input | Git blob | Bytes | SHA-256 |
+| --- | --- | ---: | --- |
+| `tests/fixtures/android-api-consumer-intake-v1.json` | `d2f15c794bf5a4b73b6dbb843006434f0bac84e2` | 17,594 | `48df93adc749ef07f81abe37e4d54a2a412558d0fd8c305ec6a3ab36b29e1879` |
+| `contracts/v1/api/openapi.yaml` | `117483451e00ac7d87260565b509f81bf383e405` | 12,079 | `6a08d7230c23576889167da6cff48d95093da9dc04d4bfa6ece443ff35089a79` |
+| `contracts/v1/IMPORT_MANIFEST.json` | `955704740fa9b16eb9b319726bfcb9ed1f8bbf47` | 8,426 | `ef6d5801eec10f3169e2bf84653e7026b33088e305a987991ec52faadcd7f554` |
+| `contracts/v1/UPSTREAM_SHA256SUMS` | `26fd660b5161a9b93607bab7d3279991a2e90fa4` | 4,044 | `0587a133436268bc03684ad61ff29f3bd1a12eb83db8a497eabdbb8fd8803e15` |
+
+The rule, path and starting line must also match exactly. Git reads disable
+replacement objects and require a real commit reachable from the recorded source
+HEAD, mode `100644`, the exact blob ID, exact byte count and full SHA-256 for every
+input. The fixture's fifth line is separately hashed, and its checksum must equal
+the independently hashed schema and the unique entry in the pinned upstream
+checksum list. A different fixture byte, file mode, object, provenance input,
+rule, path or line cannot receive this disposition. Even an unrelated edit to the
+fixture needs a newly reviewed content identity. Identical reviewed bytes carried
+through a later ordinary merge or signed squash may qualify, but that finding's
+actual immutable commit is always recorded; the original two commit IDs are never
+substituted for a new occurrence.
+
+The added evidence reads have five-second process deadlines and a 64 KiB output
+bound, with at most 32 distinct reviewed finding commits per scan. Repeated
+unreviewed metadata, malformed metadata and inconsistent counts fail closed; an
+unknown well-formed finding remains unresolved. The configured separate-parent
+history diffs can report the same public checksum at the same merge commit more
+than once. Each occurrence remains in the raw and reviewed finding lists, in its
+original order, and contributes to their counts. Repetition is accepted only
+after that actual commit has passed the complete immutable public-byte proof
+above; no raw finding is deduplicated and no additional content becomes eligible.
+Source-provided allow comments, ignore
+files, generic path/rule exceptions and automatic policy updates remain forbidden.
+The scanner's existing rules, Git history command, report limits, private Trace2
+limits, disclosure boundary and seeded controls are unchanged.
+
+The CLI still scans every reachable patch and returns its actual raw result.
+`scan.exit_code`, `scan.finding_count` and every sanitized `scan.findings` entry
+remain intact. The separate `triage` object records reviewed findings with their
+content identity and unresolved findings; their counts must account for all raw
+findings. `passed` still means zero raw findings. The distinct
+`passed_with_reviewed_findings` status means raw findings were retained, every one
+met this reviewed public-checksum proof, and zero findings remain unresolved.
+Any mixed or unreviewed result stays `failed`. Neither successful status asserts
+universal secret absence, and consumers must not present the reviewed status as a
+zero-finding scan.
+
+The disposition supplement requires independent source review, meaningful negative
+controls and the ordinary current-source checks before integration. Unit guards
+cover altered mode/blob/size/bytes, wrong metadata, missing or changed frozen
+bindings, replaced-object/error boundaries, resource limits and mixed-result
+receipt behavior. Actual pinned-CLI controls must separately exercise the original
+public finding and an additional unissued token-shaped finding; mocked evidence
+reads do not substitute for those real scanner results.
+
 The corrected candidate must pass the source guard tests, real scanner fixture,
 history check, existing core/native checks and independent review. A fresh main
 receipt then binds the delivered source. Those checks produce the existing unsigned
 diagnostic build; distribution under a product signing identity retains its own
 release gates. A monitored private intake channel, an actual urgent-update/rotation
 exercise and a distributable corrected release are not established here.
+
+### Exact historical public ledger field alias disposition
+
+The new [#587 scanner job 118223009693](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39300176688/job/118223009693)
+failed on actual preparation `c325b615aa6dfc68152ddc0e5618d627984e76c5`, tree
+`201e684a3f5df0ffaae4ed4c9cf668852d7a16c0`. Its original sanitized artifact
+`12210726268` is 1,417 bytes with ZIP SHA-256
+`e6b41e98462307b5241cffe3dbf4e4ebb2f4ffabe6a5c3d623d311399022b48c`.
+The acquired one-member archive passed size, digest, path, duplicate and CRC
+checks. It retains four raw findings: three previously reviewed contract checksums
+and one unresolved `generic-api-key` at historical commit
+`9e67d54f6ac5492035894e2f38bb1df5ef0a7639`,
+`scripts/check_delivery_ledger.py`, line 2111. This actual new acquisition does
+not replace the older uninspected failed-run artifact described in #587.
+
+A separate actual full-history scan with the same pinned 8.30.1 binary at exact
+`9e67d54f` reproduced that finding. The redacted original reports only line 2111,
+columns 2–32 in the Git patch. The match is the field-name alias assignment;
+**the adjacent digest is not the matched value**. Its right-hand identifier
+resolves through the preceding alias to the eight public top-level ledger field
+names. Source inspection parses these assignments without executing the historical
+Python module. The value is a schema-field identifier, with no authentication use.
+
+The new `android587-public-ledger-field-alias` disposition admits only this
+exact rule/path/line/commit tuple. It verifies the literal current HEAD, immutable
+reachability and the exact sole parent `8bedd80dcc0b3cdd9756785c57cef0e54211c63b`,
+then verifies both complete regular objects without Git replacement aliases:
+
+| Immutable proof | Bytes | SHA-256 |
+| --- | ---: | --- |
+| Finding commit's checker blob `10cefefdece146f73e533ac3e78417dbfef55da5` | 173,666 | `076d1bf370f5edbeea1d763d8f94cb1d38e013a71db4eebae39c031a034f0dbd` |
+| Parent's ledger blob `8b0e557e227db92a2383dc643200ca67e844a7ef` | 551,451 | `7b7a9ce256d4cb0e6766519c95c63bbe50f888c71fc7aaf5c7066fd6670a6152` |
+
+The exact matched line has SHA-256
+`1a9b30c705f37aa8902687e023a795f0f8c8631fbeaab7e96057951b813c1bf1`.
+The unique AST alias chain must resolve to the preceding document's exact eight
+field names; that complete document's canonical SHA-256 must equal
+`1698ebb2a1c802a80e3562659afeee3ee828e81ee83e443b1bb9eafe9d9b3a23`.
+No similarly named assignment, different commit/location, digest-shaped value or
+changed source object can borrow this disposition. Failed identity, Git, byte,
+alias or predecessor checks fail the scan with a fixed value-free error.
+
+Triage policy `reviewed-public-source-v2` retains every original finding and its
+scanner exit/count. Both public dispositions preserve repeated observations only
+after their own immutable proof succeeds; one disposition cannot substitute for
+the other. Any unresolved peer still fails the entry point. A successful result
+with either disposition is `passed_with_reviewed_findings`, never a raw-zero claim.
+The eight new guard methods exercise wrong identities/locations, altered proof
+metadata/bytes, failed or private Git output, alias/predecessor substitution,
+duplicate or mixed findings, and the retained entry-point failure boundary.
+
+The scanner rules, built-in configuration, full-history and completion checks,
+fixture controls, receipt privacy/publication and existing checksum proof remain
+unchanged. The historical source and failed runs remain intact. This bounded
+false-positive disposition supplies no credential rotation, release acceptance
+or permission to ignore other findings.
 
 ## Local reproduction and updates
 

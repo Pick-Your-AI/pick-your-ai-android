@@ -1,5 +1,12 @@
 # JVM core implementation and acceptance limits
 
+The opt-in [CD1-0.2 answer profile](ANSWER_PROFILE.md) retains original bytes,
+typed unresolved causes, field-specific known-value admission and explicit
+assumption/preset attribution through a small terminal rule policy. Its fixed
+canonical-reference corpus is separate from frozen readers and the existing
+diagnostic evaluator. Native schema budgets and partial #27 receiving limits
+are explicit; this package does not activate editor or evidence-policy behavior.
+
 The [frozen CostEstimate boundary](FROZEN_COST_ESTIMATE_BOUNDARY.md) preserves every
 recorded field, exact scalar string and ordered line as immutable Kotlin values.
 Its shared structural cases keep schema validity separate from the existing
@@ -93,8 +100,15 @@ permissions, no persisted checkout credentials, no signing or production secrets
 and pinned action revisions. JUnit reports and the core JAR are retained for seven
 days under the exact commit. This is a JVM/reference lane. A separate unsigned synthetic preview lane now
 builds an APK and runs Android lint; it does not produce a release AAB. Emulator
-and physical-device lanes are not yet present. Branch protection remains
-a separate repository setting; publishing this workflow does not make it required.
+verification now has a separate [installed-emulator lane](EMULATOR_SMOKE.md),
+delivered through [#467](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/467).
+It consumes the successful preview job's exact APK artifact, signs a temporary
+test copy and exercises four scenarios in its own AOSP emulator, with source,
+system-bar and KVM-cleanup receipt checks. Each observed result belongs to that
+run's exact source and APK; it does not supply physical-device or release
+acceptance. Branch protection remains a separate repository setting; publishing
+a workflow does not make its checks required. See [CI_BASELINE.md](CI_BASELINE.md)
+for the current four-check inventory and the separately observed settings gap.
 
 ## Criterion-level handoff
 
@@ -106,17 +120,37 @@ a separate repository setting; publishing this workflow does not make it require
 | #49 versioned fixtures and reference expectations | Exact upstream examples and 21 reference tests | Cross-language comparison, successor migration cases and accepted new semantics; frozen reference tests cannot approve queued changes |
 | #58 cancelled/superseded work and typed failures | Synchronized identity/ticket coordinator and race tests | UI observation, dispatchers, storage/network adapters and cancellation propagation |
 | #30/#31 untrusted import boundary | Bounded parser and adversarial tests | Disclosure projection, explicit user acceptance, Android document-provider lifecycle, actual draft import/export and receiving security review |
-| #59 reproducible checks and untrusted execution | Reference/JVM workflow with restricted token and retained artifacts | Product Android/emulator coverage, required-status setting and observed controlled hosted failure; the unsigned fixture preview has a separate build/lint lane |
+| #59 reproducible checks and untrusted execution | Reference/JVM workflow, unsigned preview build/lint, restricted token, retained artifacts and the recorded frozen-byte failure in [02.05](delivery/android/work-packages/02.05.md) | Required-status application/readback, actual credential-context review, corrected installed delivery and complete receiving acceptance |
 | #115 late/out-of-order analysis | Unique attempt identity, all input pins, cancellation and duplicate tests | Automatic reevaluation, durable-save sequencing, historical report persistence and integrated UI behavior |
 
-The implementation acceptance records listed below retain their canonical paths
-in `pickyour.ai`; the separately accepted decision-record placements are listed in
+The #48 and #59 acceptance records have the Android placements described below.
+Other record placements remain governed by their existing decisions in
 [repository scope](REPOSITORY_SCOPE.md). Parent coordination can
-copy the criterion evidence above into `03.01.md`, `02.01.md`, `03.06.md`, `02.04.md`,
-`11.03.md`, `14.05.md`, `02.05.md` and `09.06.md` under
+copy the criterion evidence above into `03.01.md`, `03.06.md`, `02.04.md`,
+`11.03.md`, `14.05.md` and `09.06.md` under
 `docs/delivery/android/work-packages/`, linking the merged PR and exact test runs.
 These are partial entries, not issue-closing receipts. No website changes are made
 by this repository.
+
+[ADR 0008](decisions/0008-android-48-acceptance-record.md) places only #48's
+[02.01 foundation record](delivery/android/work-packages/02.01.md) in Android,
+effective through reviewed [#448](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/448)
+at signed main
+[`710d337f`](https://github.com/Pick-Your-AI/pick-your-ai-android/commit/710d337fed2004689993c0b8bc01f12de780b04c).
+The record preserves the original website spelling and relative path as history
+and distinguishes the selected preview identity from future product qualification.
+Placement does not complete #48's literal criteria or current installed-delivery
+receiving.
+
+[ADR 0011](decisions/0011-android-59-acceptance-record.md) places only #59's
+[02.05 CI record](delivery/android/work-packages/02.05.md) in Android, effective
+through reviewed [#502](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/502)
+at signed main
+[`146413ff`](https://github.com/Pick-Your-AI/pick-your-ai-android/commit/146413ff168583f4c2b0df87ab41d36e57f8ea85).
+The original website spelling and relative path remain history. Placement does
+not complete required-status application/readback, credential-context review,
+installed-evidence receiving or whole-issue acceptance. All other record locations
+and the existing shared-ledger writing route remain unchanged.
 
 ## Observed local verification (2026-10-18)
 
@@ -224,11 +258,23 @@ structural and cross-document checks before accepting frozen reference reports.
 Its Python-generated cases and Kotlin negative tests are partial #32/#49/#84
 evidence, not a local evaluator or deployment approval.
 
+The [frozen catalog reader](FROZEN_CATALOG_BOUNDARY.md) retains complete snapshot
+and item envelopes, exact revisions, all canonical kinds, provenance and license
+fields, and immutable spec/extension JSON after kind-specific schema validation.
+Shared Python/Kotlin mutations exercise this structural boundary; publication,
+source acceptance, identity joins and existing preview catalog policy remain separate.
+
 The [quality-run decoder](QUALITY_RUN_BOUNDARY.md) preserves the separate frozen
 measured-run wire fields as immutable Kotlin values, including exact numbers and
 optional absence. Shared Python/Kotlin mutation cases and malformed-input tests
 cover this structural boundary; decoding does not authenticate or execute an
 evaluation, bind it to the current build, or certify its reported result.
+
+The [dependency graph decoder](DEPENDENCY_GRAPH_BOUNDARY.md) retains all frozen
+edge fields, order, duplicate/cyclic relationships and exact revisions as immutable
+values. Shared Python/Kotlin cases cover the structural boundary. An explicit
+overload projects those values into the existing direct-adjacency invalidation
+algorithm without changing its activation truth table or authorizing graph policy.
 
 The [frozen Event decoder](FROZEN_EVENT_BOUNDARY.md) retains every event and payload
 field as immutable typed values, with exact subject revisions and explicit optional
@@ -254,3 +300,26 @@ retains every frozen manifest/approval field, exact build revision, ordered arra
 and optional absence. Recorded statuses and approval decisions are unverified
 input; decoding grants no approval, URI access, deployment or release authority.
 Shared Python/Kotlin cases preserve frozen schema outcomes and sanitized failures.
+
+## Frozen EvaluationReport structural values
+
+The [frozen report reader](FROZEN_EVALUATION_REPORT_BOUNDARY.md) preserves all
+recorded fields, exact integer revisions/counters, optional absence and arbitrary
+immutable evidence JSON through the existing bounded parser and bundled schema.
+It does not bind a Build, run rules, reconcile findings or grant readiness. The
+existing reference receiver and inspection/caller APIs retain their stronger
+consistency and current-state boundaries. Its shared Python/Kotlin panel is
+additive to the original reference-report fixture check.
+
+The [frozen Build snapshot reader](FROZEN_BUILD_BOUNDARY.md) retains all recorded
+Build fields, exact revisions/objectives, ordered selections/relationships and
+optional policy/extension content as immutable or defensive values. Shared
+Python/Kotlin fixtures cover its unchanged structural boundary; decoding neither
+creates a local identity nor verifies domain consistency, source rights, ownership,
+compatibility, saved state or a recorded deployment claim.
+
+The [standalone Selection reader](FROZEN_SELECTION_BOUNDARY.md) reuses the same
+defensive selection values without constructing a Build or applying private draft
+policy. Callers must supply the accepted enclosing contract version explicitly:
+the frozen Selection has no `schema_version` field. Full bounded parsing precedes
+version/schema admission; no local identity, save or disclosure authority follows.

@@ -13,6 +13,8 @@ import android.widget.TextView
 import ai.pickyour.core.drafts.DraftDataClassification
 import ai.pickyour.core.preview.PreviewWorkloadCheckpoint
 import ai.pickyour.core.preview.PreviewWorkloadInputs
+import ai.pickyour.core.preview.PreviewWorkloadField
+import ai.pickyour.core.preview.PreviewWorkloadValidation
 import ai.pickyour.core.preview.PreviewObjectiveGuidance
 import ai.pickyour.core.preview.RequiredObjectiveInput
 
@@ -99,18 +101,32 @@ class WorkloadSection(context: Context, initial: PreviewWorkloadInputs,
         nextObjective = Button(context).apply {
             setText(R.string.objective_next_input)
             setOnClickListener {
-                if (!alive() || !editable) return@setOnClickListener
-                val next = (PreviewObjectiveGuidance.assess(inputs) as? PreviewObjectiveGuidance.Missing)?.inputs?.firstOrNull()
-                when (next) {
-                    RequiredObjectiveInput.REGION -> editors[0].requestFocus()
-                    RequiredObjectiveInput.CURRENCY -> editors[1].requestFocus()
-                    RequiredObjectiveInput.DATA_CLASSIFICATION -> classification.performClick()
-                    null -> Unit
-                }
+                reviewObjectiveInputs(inputs)
             }
         }
         addView(nextObjective)
         updateState()
+    }
+
+    /** Reuse the current input/error control, never substitute a guessed invalid field or old form. */
+    internal fun reviewObjectiveInputs(expected: PreviewWorkloadInputs) {
+        if (!alive() || !editable || inputs !== expected) return
+        val guidance = PreviewObjectiveGuidance.assess(inputs)
+        val target: View = when (guidance) {
+            is PreviewObjectiveGuidance.Missing -> when (guidance.inputs.firstOrNull()) {
+                RequiredObjectiveInput.REGION -> editors[0]
+                RequiredObjectiveInput.CURRENCY -> editors[1]
+                RequiredObjectiveInput.DATA_CLASSIFICATION -> classification
+                null -> return
+            }
+            PreviewObjectiveGuidance.InvalidInputs -> state
+            PreviewObjectiveGuidance.Answered -> return
+        }
+        if (!target.isEnabled) return
+        target.isFocusableInTouchMode = true
+        target.requestFocus()
+        target.requestRectangleOnScreen(android.graphics.Rect(0, 0, target.width, target.height), true)
+        if (target === classification) classification.performClick()
     }
 
     fun apply(value: PreviewWorkloadInputs) {
@@ -125,9 +141,20 @@ class WorkloadSection(context: Context, initial: PreviewWorkloadInputs,
         editors.forEach { it.isEnabled = value }; classification.isEnabled = value
         updateState()
     }
-    private fun classificationLabel(value: DraftDataClassification?): String = value?.encoded
-        ?: context.getString(R.string.workload_unanswered)
+    private fun classificationLabel(value: DraftDataClassification?): String = context.getString(when (value) {
+        null -> R.string.workload_unanswered
+        DraftDataClassification.PUBLIC -> R.string.workload_classification_public
+        DraftDataClassification.INTERNAL -> R.string.workload_classification_internal
+        DraftDataClassification.CONFIDENTIAL -> R.string.workload_classification_confidential
+        DraftDataClassification.RESTRICTED -> R.string.workload_classification_restricted
+    })
     private fun updateState() {
+        val invalidFields = PreviewWorkloadValidation.invalidFields(inputs)
+        editors.forEachIndexed { index, editor ->
+            val (field, message) = FIELD_ERRORS[index]
+            // Reapply even an unchanged message: Android can clear errors during a key edit.
+            editor.error = if (field in invalidFields) context.getString(message) else null
+        }
         classification.text = context.getString(R.string.workload_classification_value, classificationLabel(inputs.classification))
         state.setText(when {
             inputs.rejectedEdit -> R.string.workload_rejected
@@ -155,6 +182,16 @@ class WorkloadSection(context: Context, initial: PreviewWorkloadInputs,
     }
     companion object {
         private const val MAX_RAW_LENGTH = 16_385
+        private val FIELD_ERRORS = listOf(
+            PreviewWorkloadField.REGION to R.string.workload_error_region,
+            PreviewWorkloadField.CURRENCY to R.string.workload_error_currency,
+            PreviewWorkloadField.BUDGET to R.string.workload_error_budget,
+            PreviewWorkloadField.REQUESTS to R.string.workload_error_requests,
+            PreviewWorkloadField.INPUT_TOKENS to R.string.workload_error_input_tokens,
+            PreviewWorkloadField.OUTPUT_TOKENS to R.string.workload_error_output_tokens,
+            PreviewWorkloadField.CONCURRENCY to R.string.workload_error_concurrency,
+            PreviewWorkloadField.LATENCY to R.string.workload_error_latency,
+        )
         private fun values(v: PreviewWorkloadInputs) = listOf(v.region, v.currency, v.budget, v.requests,
             v.inputTokens, v.outputTokens, v.concurrency, v.latency)
         fun restore(bundle: Bundle?): PreviewWorkloadCheckpoint {

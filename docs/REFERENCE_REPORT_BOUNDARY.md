@@ -7,6 +7,25 @@ and checks the report's internal consistency against the Python reference profil
 It retains outcomes, severity, messages and evidence as an immutable JSON string.
 No revision is narrowed to a machine integer during comparison.
 
+Admission proceeds in Build, Ruleset, then EvaluationReport order. Each stream
+must first complete the strict bounded UTF-8/object parse through EOF. A present
+textual `schema_version` other than exactly `1.0.0` then returns
+`UNSUPPORTED_BUILD_SCHEMA_VERSION`, `UNSUPPORTED_RULESET_SCHEMA_VERSION`, or
+`UNSUPPORTED_REPORT_SCHEMA_VERSION` for the supplied input. Missing, null or
+non-text versions, malformed/duplicate/trailing input, read failures and exceeded
+budgets retain that input's `INVALID_*` result. Supported versions still require
+the complete fixed schema before later input or semantic binding checks. Rejection
+leaves later streams unread, all streams remain caller-owned, and diagnostics
+disclose no supplied version or content. Ruleset `version` remains its separate
+semantic binding; these diagnostics do not admit or migrate another wire schema.
+
+The local retained-evaluation descriptor records the current receiver source hash.
+This diagnostic change refreshes only `REPORT_RECEIVER_SHA256`; the reference,
+schemas, evaluator, profile ID and reference time remain unchanged. Its inclusion
+in the request digest intentionally distinguishes requests using this receiver
+from the prior receiver. Historical source and execution receipts retain their
+original descriptor identities.
+
 The adapter requires one finding per rule in reference order, the rule's severity,
 and the sorted active selection IDs for its affected kinds. Summary counts,
 result and readiness must agree with findings, `on_unknown` and build policy.
@@ -69,6 +88,12 @@ worker; concurrent inspection is disabled and destroyed Activities ignore late
 callbacks. Recreation resets this read-only diagnostic. This rendering is scoped
 to the fixed bundled fixture, not a general untrusted large-report renderer.
 
+The [literal presentation boundary](FINDINGS_PRESENTATION.md) now distinguishes
+absent, empty and literal sentinel text, escapes source controls and bounds each
+recorded value. Individual details disclose displayed/retained counts for their
+bounded evidence and selection lists; the complete accepted snapshot and all
+finding outcome counts remain intact.
+
 Four core projection tests retain all generated reference outcomes, warning
 failure independence, null/absence/large-number distinctions and immutable lists.
 A required Robolectric Activity case checks labels, evidence limitations and no
@@ -95,6 +120,13 @@ reason. This is conservative presentation of the existing receiving result, not
 a new frozen-schema restriction or a reinterpretation of the evaluator's findings.
 
 Sixteen selections appear per page, with all affected selections reachable.
+The page header uses a complete Android quantity resource selected by the total
+affected-selection count, including a last page with only one displayed row.
+Count digits use the resource locale; recorded IDs, roles, versions and revisions
+keep their existing literal or canonical values. An empty list retains its
+explicit no-affected-selection message, and unavailable context is not treated
+as a missing count. These English defaults prepare translation without supplying
+additional product languages or complete #65 acceptance.
 Identity text uses the existing literal helper: controls, formatting characters,
 surrogates and delimiters are escaped; values longer than 160 UTF-16 units have
 an explicit display-truncation marker. Complete immutable values remain retained.
@@ -114,10 +146,11 @@ projection and navigation.
 
 Three focused core regressions exercise multiple roles/versions, ambiguity
 including disabled rows, private-field omission and immutable copied collections.
-The mandatory nine-case native suite covers actual fixture navigation and pending
+The mandatory eleven-case native suite covers actual fixture navigation and pending
 draft authority, private/literal fields, ambiguity, full supported revision digits,
 complete paging, canceled and superseded controls, reverse-order receiving work,
-Activity recreation and measured 320dp RTL/200% text layout. Record actual
+Activity recreation, zero/one/multiple and whole-page totals, resource-locale
+digits, and measured 320dp RTL/200% text layout. Record actual
 execution, source hashes and independent review on the delivering PR; these
 tests are simulations and do not supply installed TalkBack or device acceptance.
 

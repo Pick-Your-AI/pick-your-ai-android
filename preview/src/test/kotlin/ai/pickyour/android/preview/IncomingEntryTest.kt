@@ -63,7 +63,7 @@ class IncomingEntryTest {
         button(R.string.save_draft).performClick()
         finishWork()
         val root = activity.noBackupFilesDir.toPath()
-        return root to (PreviewDraftLibrary(root).openLegacy().load() as PreviewDraftLoad.Available).record
+        return root to (readDraftAfterOwnedWork(activity) { PreviewDraftLibrary(root).openLegacy() } as PreviewDraftLoad.Available).record
     }
 
     private fun coldLaunch(intent: Intent) {
@@ -83,7 +83,7 @@ class IncomingEntryTest {
 
     private fun unchanged(root: Path, before: PreviewStoredDraft, active: PreviewActiveRead) {
         assertEquals(before.baselineIdentity,
-            (PreviewDraftLibrary(root).openLegacy().load() as PreviewDraftLoad.Available).record.baselineIdentity)
+            (readDraftAfterOwnedWork(activity) { PreviewDraftLibrary(root).openLegacy() } as PreviewDraftLoad.Available).record.baselineIdentity)
         assertEquals(active, PreviewActiveDraftStore(root).read())
         assertNull("An incoming payload must not be forwarded", shadowOf(activity).nextStartedActivity)
     }
@@ -106,7 +106,7 @@ class IncomingEntryTest {
         button(R.string.save_draft).performClick()
         finishWork()
         val root = activity.noBackupFilesDir.toPath()
-        val before = (PreviewDraftLibrary(root).openLegacy().load() as PreviewDraftLoad.Available).record
+        val before = (readDraftAfterOwnedWork(activity) { PreviewDraftLibrary(root).openLegacy() } as PreviewDraftLoad.Available).record
         val active = PreviewActiveDraftStore(root).read()
         controller.pause().stop().destroy()
 
@@ -118,7 +118,7 @@ class IncomingEntryTest {
             field(R.string.draft_title).text.toString())
         assertFalse("An unaccepted incoming target must not authorize a save", button(R.string.save_draft).isEnabled)
         assertEquals(before.baselineIdentity,
-            (PreviewDraftLibrary(root).openLegacy().load() as PreviewDraftLoad.Available).record.baselineIdentity)
+            (readDraftAfterOwnedWork(activity) { PreviewDraftLibrary(root).openLegacy() } as PreviewDraftLoad.Available).record.baselineIdentity)
         assertEquals(active, PreviewActiveDraftStore(root).read())
     }
 
@@ -169,7 +169,7 @@ class IncomingEntryTest {
         unchanged(root, before, active)
         button(R.string.save_draft).performClick()
         finishWork()
-        val after = (PreviewDraftLibrary(root).openLegacy().load() as PreviewDraftLoad.Available).record
+        val after = (readDraftAfterOwnedWork(activity) { PreviewDraftLibrary(root).openLegacy() } as PreviewDraftLoad.Available).record
         assertEquals("pending local title", after.fields.title)
         assertEquals("pending local objective", after.contextInput.objective)
         assertEquals("12.3400", after.workloadInput.monthlyBudgetAmount?.encoded)
@@ -244,10 +244,10 @@ class IncomingEntryTest {
         assertTrue(button(R.string.save_draft).isEnabled)
         button(R.string.save_draft).performClick()
         finishWork()
-        val after = (library.open(chosen.id).load() as PreviewDraftLoad.Available).record
+        val after = (readDraftAfterOwnedWork(activity) { library.open(chosen.id) } as PreviewDraftLoad.Available).record
         assertEquals(chosenRecord.revision + 1, after.revision)
         assertEquals("chosen draft after recreation", after.fields.title)
-        assertEquals(before.baselineIdentity, (library.openLegacy().load() as PreviewDraftLoad.Available).record.baselineIdentity)
+        assertEquals(before.baselineIdentity, (readDraftAfterOwnedWork(activity) { library.openLegacy() } as PreviewDraftLoad.Available).record.baselineIdentity)
     }
 
     @Test fun explicitNewDraftRecoveryCreatesANewIdentityWithoutReplacingThePriorDraft() {
@@ -265,7 +265,7 @@ class IncomingEntryTest {
         button(R.string.save_draft).performClick()
         finishWork()
         val library = PreviewDraftLibrary(root)
-        assertEquals("deliberate new local draft", (library.open(selected.id).load() as PreviewDraftLoad.Available).record.fields.title)
-        assertEquals(before.baselineIdentity, (library.openLegacy().load() as PreviewDraftLoad.Available).record.baselineIdentity)
+        assertEquals("deliberate new local draft", (readDraftAfterOwnedWork(activity) { library.open(selected.id) } as PreviewDraftLoad.Available).record.fields.title)
+        assertEquals(before.baselineIdentity, (readDraftAfterOwnedWork(activity) { library.openLegacy() } as PreviewDraftLoad.Available).record.baselineIdentity)
     }
 }

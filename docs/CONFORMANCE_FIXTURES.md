@@ -262,3 +262,14 @@ retain the old bytes and run both old and new scenarios. Updating a hash alone
 does not approve new semantics, upgrade an old observation, or change what an old
 snapshot meant. Broader runtime conformance stays with Android #84 and #32;
 synthetic cases establish no real vendor compatibility or research acceptance.
+
+The [Android #37 applicability mapping](PLACEMENT_RELATIONSHIPS.md) indexes all
+98 existing placement cases and distinguishes their structural dispositions
+from the remaining component, binding, memory and context behavior. Its proposed
+receiving profile changes no existing payload, admission or historical result.
+
+The separate [typed-comparison/0.1 test profile](TYPED_COMPARISON_PROFILE.md)
+consumes Research #493's exact 104-case corpus and pinned original reference.
+Its original-byte admission, explicit limits and named XML observations remain
+separate from these 223 structural cases, 34 private migrations and all frozen
+or default evaluator dispatch.

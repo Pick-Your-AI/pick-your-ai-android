@@ -59,9 +59,12 @@ class DraftRetrievalSelectionTest {
         }
         assertEquals(PreviewSelectionPreparation.Invalid, PreviewSelectionForms.add("vector", item("vector_database"),
             catalog.hash.hex, PreviewSelectionForm("entered", false, "{}")))
-        assertFalse(PreviewSelectionForms.supported("training_framework"))
-        assertFalse(PreviewSelectionForms.supported("training_dataset"))
-        assertFalse(PreviewSelectionForms.supported("deployment_target"))
+        assertTrue(PreviewSelectionForms.supported("cost_policy"))
+        assertFalse(PreviewSelectionForms.supported("future_cost_policy"))
+        assertTrue(PreviewSelectionForms.supported("monitoring_stack"))
+        assertFalse(PreviewSelectionForms.supported("future_monitoring_stack"))
+        assertTrue(PreviewSelectionForms.supported("deployment_target"))
+        assertFalse(PreviewSelectionForms.supported("future_deployment_target"))
     }
 
     @Test fun `every frozen retrieval setting retains exact numbers booleans references and unmeasured declarations`() {

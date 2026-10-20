@@ -1,0 +1,3009 @@
+{
+  "profile": "android-frozen-catalog-wire/v1",
+  "inputs": {
+    "schemas/catalog-snapshot.schema.json": "a5af428386768b698d280a18bf99c0e52364ee397a2075685213b3d0762693a4",
+    "schemas/catalog-item.schema.json": "81c960c6e7dfe046634062e3f9ce5a1089b1d88adbd9fd45d9a67dcfc0339a25",
+    "schemas/common.schema.json": "0342ce2f1114e7276fc7f6a08ff5b86e8727caadd83ae4f443de9a7e1431c43c",
+    "examples/catalog.json": "2e9120db823faef3e1e330a7d2e8067b3ab064328e2faed699d15cf41880fbf8"
+  },
+  "cases": [
+    {
+      "name": "complete original snapshot",
+      "target": "snapshot",
+      "expected": "decoded"
+    },
+    {
+      "name": "workload standalone item",
+      "target": "item",
+      "expected": "decoded",
+      "kind": "workload"
+    },
+    {
+      "name": "workload single item snapshot",
+      "target": "snapshot",
+      "expected": "decoded",
+      "kind": "workload"
+    },
+    {
+      "name": "workload mismatched tier",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "tier"
+          ],
+          "value": "T1"
+        }
+      ]
+    },
+    {
+      "name": "workload extra spec field",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "spec",
+            "unsupported_property"
+          ],
+          "value": true
+        }
+      ]
+    },
+    {
+      "name": "workload missing required spec field",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "spec",
+            "workload_type"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "deployment_mode standalone item",
+      "target": "item",
+      "expected": "decoded",
+      "kind": "deployment_mode"
+    },
+    {
+      "name": "deployment_mode single item snapshot",
+      "target": "snapshot",
+      "expected": "decoded",
+      "kind": "deployment_mode"
+    },
+    {
+      "name": "deployment_mode mismatched tier",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "deployment_mode",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "tier"
+          ],
+          "value": "T1"
+        }
+      ]
+    },
+    {
+      "name": "deployment_mode extra spec field",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "deployment_mode",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "spec",
+            "unsupported_property"
+          ],
+          "value": true
+        }
+      ]
+    },
+    {
+      "name": "deployment_mode missing required spec field",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "deployment_mode",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "spec",
+            "mode"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "model_provider standalone item",
+      "target": "item",
+      "expected": "decoded",
+      "kind": "model_provider"
+    },
+    {
+      "name": "model_provider single item snapshot",
+      "target": "snapshot",
+      "expected": "decoded",
+      "kind": "model_provider"
+    },
+    {
+      "name": "model_provider mismatched tier",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "model_provider",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "tier"
+          ],
+          "value": "T2"
+        }
+      ]
+    },
+    {
+      "name": "model_provider extra spec field",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "model_provider",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "spec",
+            "unsupported_property"
+          ],
+          "value": true
+        }
+      ]
+    },
+    {
+      "name": "model standalone item",
+      "target": "item",
+      "expected": "decoded",
+      "kind": "model"
+    },
+    {
+      "name": "model single item snapshot",
+      "target": "snapshot",
+      "expected": "decoded",
+      "kind": "model"
+    },
+    {
+      "name": "model mismatched tier",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "model",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "tier"
+          ],
+          "value": "T2"
+        }
+      ]
+    },
+    {
+      "name": "model extra spec field",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "model",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "spec",
+            "unsupported_property"
+          ],
+          "value": true
+        }
+      ]
+    },
+    {
+      "name": "model missing required spec field",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "model",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "spec",
+            "provider_ref"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "context_policy standalone item",
+      "target": "item",
+      "expected": "decoded",
+      "kind": "context_policy"
+    },
+    {
+      "name": "context_policy single item snapshot",
+      "target": "snapshot",
+      "expected": "decoded",
+      "kind": "context_policy"
+    },
+    {
+      "name": "context_policy mismatched tier",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "context_policy",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "tier"
+          ],
+          "value": "T2"
+        }
+      ]
+    },
+    {
+      "name": "context_policy extra spec field",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "context_policy",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "spec",
+            "unsupported_property"
+          ],
+          "value": true
+        }
+      ]
+    },
+    {
+      "name": "hosting_platform standalone item",
+      "target": "item",
+      "expected": "decoded",
+      "kind": "hosting_platform"
+    },
+    {
+      "name": "hosting_platform single item snapshot",
+      "target": "snapshot",
+      "expected": "decoded",
+      "kind": "hosting_platform"
+    },
+    {
+      "name": "hosting_platform mismatched tier",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "hosting_platform",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "tier"
+          ],
+          "value": "T3"
+        }
+      ]
+    },
+    {
+      "name": "hosting_platform extra spec field",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "hosting_platform",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "spec",
+            "unsupported_property"
+          ],
+          "value": true
+        }
+      ]
+    },
+    {
+      "name": "hosting_platform missing required spec field",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "hosting_platform",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "spec",
+            "hosting_type"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "accelerator standalone item",
+      "target": "item",
+      "expected": "decoded",
+      "kind": "accelerator"
+    },
+    {
+      "name": "accelerator single item snapshot",
+      "target": "snapshot",
+      "expected": "decoded",
+      "kind": "accelerator"
+    },
+    {
+      "name": "accelerator mismatched tier",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "accelerator",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "tier"
+          ],
+          "value": "T3"
+        }
+      ]
+    },
+    {
+      "name": "accelerator extra spec field",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "accelerator",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "spec",
+            "unsupported_property"
+          ],
+          "value": true
+        }
+      ]
+    },
+    {
+      "name": "accelerator missing required spec field",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "accelerator",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "spec",
+            "accelerator_type"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "compute_profile standalone item",
+      "target": "item",
+      "expected": "decoded",
+      "kind": "compute_profile"
+    },
+    {
+      "name": "compute_profile single item snapshot",
+      "target": "snapshot",
+      "expected": "decoded",
+      "kind": "compute_profile"
+    },
+    {
+      "name": "compute_profile mismatched tier",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "compute_profile",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "tier"
+          ],
+          "value": "T3"
+        }
+      ]
+    },
+    {
+      "name": "compute_profile extra spec field",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "compute_profile",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "spec",
+            "unsupported_property"
+          ],
+          "value": true
+        }
+      ]
+    },
+    {
+      "name": "compute_profile missing required spec field",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "compute_profile",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "spec",
+            "hosting_ref"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "inference_engine standalone item",
+      "target": "item",
+      "expected": "decoded",
+      "kind": "inference_engine"
+    },
+    {
+      "name": "inference_engine single item snapshot",
+      "target": "snapshot",
+      "expected": "decoded",
+      "kind": "inference_engine"
+    },
+    {
+      "name": "inference_engine mismatched tier",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "inference_engine",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "tier"
+          ],
+          "value": "T3"
+        }
+      ]
+    },
+    {
+      "name": "inference_engine extra spec field",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "inference_engine",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "spec",
+            "unsupported_property"
+          ],
+          "value": true
+        }
+      ]
+    },
+    {
+      "name": "inference_engine missing required spec field",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "inference_engine",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "spec",
+            "backends"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "storage standalone item",
+      "target": "item",
+      "expected": "decoded",
+      "kind": "storage"
+    },
+    {
+      "name": "storage single item snapshot",
+      "target": "snapshot",
+      "expected": "decoded",
+      "kind": "storage"
+    },
+    {
+      "name": "storage mismatched tier",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "storage",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "tier"
+          ],
+          "value": "T3"
+        }
+      ]
+    },
+    {
+      "name": "storage extra spec field",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "storage",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "spec",
+            "unsupported_property"
+          ],
+          "value": true
+        }
+      ]
+    },
+    {
+      "name": "storage missing required spec field",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "storage",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "spec",
+            "storage_type"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "data_source standalone item",
+      "target": "item",
+      "expected": "decoded",
+      "kind": "data_source"
+    },
+    {
+      "name": "data_source single item snapshot",
+      "target": "snapshot",
+      "expected": "decoded",
+      "kind": "data_source"
+    },
+    {
+      "name": "data_source mismatched tier",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "data_source",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "tier"
+          ],
+          "value": "T4"
+        }
+      ]
+    },
+    {
+      "name": "data_source extra spec field",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "data_source",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "spec",
+            "unsupported_property"
+          ],
+          "value": true
+        }
+      ]
+    },
+    {
+      "name": "data_source missing required spec field",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "data_source",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "spec",
+            "source_type"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "knowledge_base standalone item",
+      "target": "item",
+      "expected": "decoded",
+      "kind": "knowledge_base"
+    },
+    {
+      "name": "knowledge_base single item snapshot",
+      "target": "snapshot",
+      "expected": "decoded",
+      "kind": "knowledge_base"
+    },
+    {
+      "name": "knowledge_base mismatched tier",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "knowledge_base",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "tier"
+          ],
+          "value": "T4"
+        }
+      ]
+    },
+    {
+      "name": "knowledge_base extra spec field",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "knowledge_base",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "spec",
+            "unsupported_property"
+          ],
+          "value": true
+        }
+      ]
+    },
+    {
+      "name": "knowledge_base missing required spec field",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "knowledge_base",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "spec",
+            "data_source_refs"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "embedding_model standalone item",
+      "target": "item",
+      "expected": "decoded",
+      "kind": "embedding_model"
+    },
+    {
+      "name": "embedding_model single item snapshot",
+      "target": "snapshot",
+      "expected": "decoded",
+      "kind": "embedding_model"
+    },
+    {
+      "name": "embedding_model mismatched tier",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "embedding_model",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "tier"
+          ],
+          "value": "T4"
+        }
+      ]
+    },
+    {
+      "name": "embedding_model extra spec field",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "embedding_model",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "spec",
+            "unsupported_property"
+          ],
+          "value": true
+        }
+      ]
+    },
+    {
+      "name": "embedding_model missing required spec field",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "embedding_model",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "spec",
+            "provider_ref"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "vector_database standalone item",
+      "target": "item",
+      "expected": "decoded",
+      "kind": "vector_database"
+    },
+    {
+      "name": "vector_database single item snapshot",
+      "target": "snapshot",
+      "expected": "decoded",
+      "kind": "vector_database"
+    },
+    {
+      "name": "vector_database mismatched tier",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "vector_database",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "tier"
+          ],
+          "value": "T4"
+        }
+      ]
+    },
+    {
+      "name": "vector_database extra spec field",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "vector_database",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "spec",
+            "unsupported_property"
+          ],
+          "value": true
+        }
+      ]
+    },
+    {
+      "name": "vector_database missing required spec field",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "vector_database",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "spec",
+            "supported_metrics"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "rag_pipeline standalone item",
+      "target": "item",
+      "expected": "decoded",
+      "kind": "rag_pipeline"
+    },
+    {
+      "name": "rag_pipeline single item snapshot",
+      "target": "snapshot",
+      "expected": "decoded",
+      "kind": "rag_pipeline"
+    },
+    {
+      "name": "rag_pipeline mismatched tier",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "rag_pipeline",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "tier"
+          ],
+          "value": "T4"
+        }
+      ]
+    },
+    {
+      "name": "rag_pipeline extra spec field",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "rag_pipeline",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "spec",
+            "unsupported_property"
+          ],
+          "value": true
+        }
+      ]
+    },
+    {
+      "name": "rag_pipeline missing required spec field",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "rag_pipeline",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "spec",
+            "retrieval_mode"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "agent_framework standalone item",
+      "target": "item",
+      "expected": "decoded",
+      "kind": "agent_framework"
+    },
+    {
+      "name": "agent_framework single item snapshot",
+      "target": "snapshot",
+      "expected": "decoded",
+      "kind": "agent_framework"
+    },
+    {
+      "name": "agent_framework mismatched tier",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "agent_framework",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "tier"
+          ],
+          "value": "T5"
+        }
+      ]
+    },
+    {
+      "name": "agent_framework extra spec field",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "agent_framework",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "spec",
+            "unsupported_property"
+          ],
+          "value": true
+        }
+      ]
+    },
+    {
+      "name": "agent_framework missing required spec field",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "agent_framework",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "spec",
+            "programming_languages"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "tool standalone item",
+      "target": "item",
+      "expected": "decoded",
+      "kind": "tool"
+    },
+    {
+      "name": "tool single item snapshot",
+      "target": "snapshot",
+      "expected": "decoded",
+      "kind": "tool"
+    },
+    {
+      "name": "tool mismatched tier",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "tool",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "tier"
+          ],
+          "value": "T5"
+        }
+      ]
+    },
+    {
+      "name": "tool extra spec field",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "tool",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "spec",
+            "unsupported_property"
+          ],
+          "value": true
+        }
+      ]
+    },
+    {
+      "name": "tool missing required spec field",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "tool",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "spec",
+            "protocol"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "mcp_server standalone item",
+      "target": "item",
+      "expected": "decoded",
+      "kind": "mcp_server"
+    },
+    {
+      "name": "mcp_server single item snapshot",
+      "target": "snapshot",
+      "expected": "decoded",
+      "kind": "mcp_server"
+    },
+    {
+      "name": "mcp_server mismatched tier",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "mcp_server",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "tier"
+          ],
+          "value": "T5"
+        }
+      ]
+    },
+    {
+      "name": "mcp_server extra spec field",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "mcp_server",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "spec",
+            "unsupported_property"
+          ],
+          "value": true
+        }
+      ]
+    },
+    {
+      "name": "mcp_server missing required spec field",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "mcp_server",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "spec",
+            "transport"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "memory_store standalone item",
+      "target": "item",
+      "expected": "decoded",
+      "kind": "memory_store"
+    },
+    {
+      "name": "memory_store single item snapshot",
+      "target": "snapshot",
+      "expected": "decoded",
+      "kind": "memory_store"
+    },
+    {
+      "name": "memory_store mismatched tier",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "memory_store",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "tier"
+          ],
+          "value": "T5"
+        }
+      ]
+    },
+    {
+      "name": "memory_store extra spec field",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "memory_store",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "spec",
+            "unsupported_property"
+          ],
+          "value": true
+        }
+      ]
+    },
+    {
+      "name": "memory_store missing required spec field",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "memory_store",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "spec",
+            "memory_type"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "integration standalone item",
+      "target": "item",
+      "expected": "decoded",
+      "kind": "integration"
+    },
+    {
+      "name": "integration single item snapshot",
+      "target": "snapshot",
+      "expected": "decoded",
+      "kind": "integration"
+    },
+    {
+      "name": "integration mismatched tier",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "integration",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "tier"
+          ],
+          "value": "T5"
+        }
+      ]
+    },
+    {
+      "name": "integration extra spec field",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "integration",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "spec",
+            "unsupported_property"
+          ],
+          "value": true
+        }
+      ]
+    },
+    {
+      "name": "integration missing required spec field",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "integration",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "spec",
+            "integration_type"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "training_framework standalone item",
+      "target": "item",
+      "expected": "decoded",
+      "kind": "training_framework"
+    },
+    {
+      "name": "training_framework single item snapshot",
+      "target": "snapshot",
+      "expected": "decoded",
+      "kind": "training_framework"
+    },
+    {
+      "name": "training_framework mismatched tier",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "training_framework",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "tier"
+          ],
+          "value": "T6"
+        }
+      ]
+    },
+    {
+      "name": "training_framework extra spec field",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "training_framework",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "spec",
+            "unsupported_property"
+          ],
+          "value": true
+        }
+      ]
+    },
+    {
+      "name": "training_framework missing required spec field",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "training_framework",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "spec",
+            "methods"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "training_compute standalone item",
+      "target": "item",
+      "expected": "decoded",
+      "kind": "training_compute"
+    },
+    {
+      "name": "training_compute single item snapshot",
+      "target": "snapshot",
+      "expected": "decoded",
+      "kind": "training_compute"
+    },
+    {
+      "name": "training_compute mismatched tier",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "training_compute",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "tier"
+          ],
+          "value": "T6"
+        }
+      ]
+    },
+    {
+      "name": "training_compute extra spec field",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "training_compute",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "spec",
+            "unsupported_property"
+          ],
+          "value": true
+        }
+      ]
+    },
+    {
+      "name": "training_compute missing required spec field",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "training_compute",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "spec",
+            "compute_profile_ref"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "training_dataset standalone item",
+      "target": "item",
+      "expected": "decoded",
+      "kind": "training_dataset"
+    },
+    {
+      "name": "training_dataset single item snapshot",
+      "target": "snapshot",
+      "expected": "decoded",
+      "kind": "training_dataset"
+    },
+    {
+      "name": "training_dataset mismatched tier",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "training_dataset",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "tier"
+          ],
+          "value": "T6"
+        }
+      ]
+    },
+    {
+      "name": "training_dataset extra spec field",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "training_dataset",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "spec",
+            "unsupported_property"
+          ],
+          "value": true
+        }
+      ]
+    },
+    {
+      "name": "training_dataset missing required spec field",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "training_dataset",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "spec",
+            "data_source_refs"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "fine_tuned_model standalone item",
+      "target": "item",
+      "expected": "decoded",
+      "kind": "fine_tuned_model"
+    },
+    {
+      "name": "fine_tuned_model single item snapshot",
+      "target": "snapshot",
+      "expected": "decoded",
+      "kind": "fine_tuned_model"
+    },
+    {
+      "name": "fine_tuned_model mismatched tier",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "fine_tuned_model",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "tier"
+          ],
+          "value": "T6"
+        }
+      ]
+    },
+    {
+      "name": "fine_tuned_model extra spec field",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "fine_tuned_model",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "spec",
+            "unsupported_property"
+          ],
+          "value": true
+        }
+      ]
+    },
+    {
+      "name": "fine_tuned_model missing required spec field",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "fine_tuned_model",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "spec",
+            "base_model_ref"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "guardrail standalone item",
+      "target": "item",
+      "expected": "decoded",
+      "kind": "guardrail"
+    },
+    {
+      "name": "guardrail single item snapshot",
+      "target": "snapshot",
+      "expected": "decoded",
+      "kind": "guardrail"
+    },
+    {
+      "name": "guardrail mismatched tier",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "guardrail",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "tier"
+          ],
+          "value": "T0"
+        }
+      ]
+    },
+    {
+      "name": "guardrail extra spec field",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "guardrail",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "spec",
+            "unsupported_property"
+          ],
+          "value": true
+        }
+      ]
+    },
+    {
+      "name": "guardrail missing required spec field",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "guardrail",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "spec",
+            "targets"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "evaluation_suite standalone item",
+      "target": "item",
+      "expected": "decoded",
+      "kind": "evaluation_suite"
+    },
+    {
+      "name": "evaluation_suite single item snapshot",
+      "target": "snapshot",
+      "expected": "decoded",
+      "kind": "evaluation_suite"
+    },
+    {
+      "name": "evaluation_suite mismatched tier",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "evaluation_suite",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "tier"
+          ],
+          "value": "T0"
+        }
+      ]
+    },
+    {
+      "name": "evaluation_suite extra spec field",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "evaluation_suite",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "spec",
+            "unsupported_property"
+          ],
+          "value": true
+        }
+      ]
+    },
+    {
+      "name": "evaluation_suite missing required spec field",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "evaluation_suite",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "spec",
+            "metric_names"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "deployment_target standalone item",
+      "target": "item",
+      "expected": "decoded",
+      "kind": "deployment_target"
+    },
+    {
+      "name": "deployment_target single item snapshot",
+      "target": "snapshot",
+      "expected": "decoded",
+      "kind": "deployment_target"
+    },
+    {
+      "name": "deployment_target mismatched tier",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "deployment_target",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "tier"
+          ],
+          "value": "T0"
+        }
+      ]
+    },
+    {
+      "name": "deployment_target extra spec field",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "deployment_target",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "spec",
+            "unsupported_property"
+          ],
+          "value": true
+        }
+      ]
+    },
+    {
+      "name": "deployment_target missing required spec field",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "deployment_target",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "spec",
+            "target_type"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "monitoring_stack standalone item",
+      "target": "item",
+      "expected": "decoded",
+      "kind": "monitoring_stack"
+    },
+    {
+      "name": "monitoring_stack single item snapshot",
+      "target": "snapshot",
+      "expected": "decoded",
+      "kind": "monitoring_stack"
+    },
+    {
+      "name": "monitoring_stack mismatched tier",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "monitoring_stack",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "tier"
+          ],
+          "value": "T0"
+        }
+      ]
+    },
+    {
+      "name": "monitoring_stack extra spec field",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "monitoring_stack",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "spec",
+            "unsupported_property"
+          ],
+          "value": true
+        }
+      ]
+    },
+    {
+      "name": "monitoring_stack missing required spec field",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "monitoring_stack",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "spec",
+            "signals"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "cost_policy standalone item",
+      "target": "item",
+      "expected": "decoded",
+      "kind": "cost_policy"
+    },
+    {
+      "name": "cost_policy single item snapshot",
+      "target": "snapshot",
+      "expected": "decoded",
+      "kind": "cost_policy"
+    },
+    {
+      "name": "cost_policy mismatched tier",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "cost_policy",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "tier"
+          ],
+          "value": "T0"
+        }
+      ]
+    },
+    {
+      "name": "cost_policy extra spec field",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "cost_policy",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "spec",
+            "unsupported_property"
+          ],
+          "value": true
+        }
+      ]
+    },
+    {
+      "name": "cost_policy missing required spec field",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "cost_policy",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "spec",
+            "default_currency"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "snapshot missing schema_version",
+      "target": "snapshot",
+      "expected": "unsupported_version",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "schema_version"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "snapshot missing id",
+      "target": "snapshot",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "id"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "snapshot missing revision",
+      "target": "snapshot",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "revision"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "snapshot missing captured_at",
+      "target": "snapshot",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "captured_at"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "snapshot missing items",
+      "target": "snapshot",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "items"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "item missing schema_version",
+      "target": "item",
+      "expected": "unsupported_version",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "schema_version"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "item missing id",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "id"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "item missing kind",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "kind"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "item missing tier",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "tier"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "item missing name",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "name"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "item missing version",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "version"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "item missing status",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "status"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "item missing billing_class",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "billing_class"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "item missing spec",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "spec"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "item missing provenance",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "provenance"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "item missing updated_at",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "updated_at"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "item null version",
+      "target": "item",
+      "expected": "unsupported_version",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "schema_version"
+          ],
+          "value": null
+        }
+      ]
+    },
+    {
+      "name": "item boolean version",
+      "target": "item",
+      "expected": "unsupported_version",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "schema_version"
+          ],
+          "value": true
+        }
+      ]
+    },
+    {
+      "name": "item number version",
+      "target": "item",
+      "expected": "unsupported_version",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "schema_version"
+          ],
+          "value": 1
+        }
+      ]
+    },
+    {
+      "name": "item future version",
+      "target": "item",
+      "expected": "unsupported_version",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "schema_version"
+          ],
+          "value": "2.0.0"
+        }
+      ]
+    },
+    {
+      "name": "item empty version",
+      "target": "item",
+      "expected": "unsupported_version",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "schema_version"
+          ],
+          "value": ""
+        }
+      ]
+    },
+    {
+      "name": "item unknown root field",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "unknown_field"
+          ],
+          "value": null
+        }
+      ]
+    },
+    {
+      "name": "snapshot null version",
+      "target": "snapshot",
+      "expected": "unsupported_version",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "schema_version"
+          ],
+          "value": null
+        }
+      ]
+    },
+    {
+      "name": "snapshot boolean version",
+      "target": "snapshot",
+      "expected": "unsupported_version",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "schema_version"
+          ],
+          "value": true
+        }
+      ]
+    },
+    {
+      "name": "snapshot number version",
+      "target": "snapshot",
+      "expected": "unsupported_version",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "schema_version"
+          ],
+          "value": 1
+        }
+      ]
+    },
+    {
+      "name": "snapshot future version",
+      "target": "snapshot",
+      "expected": "unsupported_version",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "schema_version"
+          ],
+          "value": "2.0.0"
+        }
+      ]
+    },
+    {
+      "name": "snapshot empty version",
+      "target": "snapshot",
+      "expected": "unsupported_version",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "schema_version"
+          ],
+          "value": ""
+        }
+      ]
+    },
+    {
+      "name": "snapshot unknown root field",
+      "target": "snapshot",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "unknown_field"
+          ],
+          "value": null
+        }
+      ]
+    },
+    {
+      "name": "snapshot zero revision",
+      "target": "snapshot",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "revision"
+          ],
+          "value": 0
+        }
+      ]
+    },
+    {
+      "name": "snapshot negative revision",
+      "target": "snapshot",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "revision"
+          ],
+          "value": -1
+        }
+      ]
+    },
+    {
+      "name": "snapshot boolean revision",
+      "target": "snapshot",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "revision"
+          ],
+          "value": true
+        }
+      ]
+    },
+    {
+      "name": "snapshot null revision",
+      "target": "snapshot",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "revision"
+          ],
+          "value": null
+        }
+      ]
+    },
+    {
+      "name": "snapshot string revision",
+      "target": "snapshot",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "revision"
+          ],
+          "value": "1"
+        }
+      ]
+    },
+    {
+      "name": "snapshot fraction revision",
+      "target": "snapshot",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "revision"
+          ],
+          "value": 1.5
+        }
+      ]
+    },
+    {
+      "name": "snapshot exact wide revision",
+      "target": "snapshot",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "revision"
+          ],
+          "value": 123456789012345678901234567890
+        }
+      ]
+    },
+    {
+      "name": "snapshot empty items",
+      "target": "snapshot",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "items"
+          ],
+          "value": []
+        }
+      ]
+    },
+    {
+      "name": "snapshot null items",
+      "target": "snapshot",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "items"
+          ],
+          "value": null
+        }
+      ]
+    },
+    {
+      "name": "snapshot object items",
+      "target": "snapshot",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "items"
+          ],
+          "value": {}
+        }
+      ]
+    },
+    {
+      "name": "snapshot duplicate item identities preserved",
+      "target": "snapshot",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "items"
+          ],
+          "value": [
+            {
+              "schema_version": "1.0.0",
+              "id": "cat.workload.fixture",
+              "kind": "workload",
+              "tier": "T0",
+              "name": "FICTIONAL Workload",
+              "version": "2026.10-demo",
+              "status": "active",
+              "billing_class": "included",
+              "spec": {
+                "workload_type": "agentic",
+                "modalities": [
+                  "text"
+                ],
+                "concurrency": 2,
+                "requests_per_day": 200,
+                "avg_input_tokens": 700,
+                "avg_output_tokens": 400,
+                "data_classification": "internal"
+              },
+              "provenance": [
+                {
+                  "checked_at": "2026-10-16T09:00:00Z",
+                  "verification_status": "user_supplied",
+                  "notes": "FICTIONAL TEST FIXTURE. Not vendor specification or commercial pricing."
+                }
+              ],
+              "updated_at": "2026-10-16T09:00:00Z"
+            },
+            {
+              "schema_version": "1.0.0",
+              "id": "cat.workload.fixture",
+              "kind": "workload",
+              "tier": "T0",
+              "name": "FICTIONAL Workload",
+              "version": "2026.10-demo",
+              "status": "active",
+              "billing_class": "included",
+              "spec": {
+                "workload_type": "agentic",
+                "modalities": [
+                  "text"
+                ],
+                "concurrency": 2,
+                "requests_per_day": 200,
+                "avg_input_tokens": 700,
+                "avg_output_tokens": 400,
+                "data_classification": "internal"
+              },
+              "provenance": [
+                {
+                  "checked_at": "2026-10-16T09:00:00Z",
+                  "verification_status": "user_supplied",
+                  "notes": "FICTIONAL TEST FIXTURE. Not vendor specification or commercial pricing."
+                }
+              ],
+              "updated_at": "2026-10-16T09:00:00Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "snapshot nested unsupported version",
+      "target": "snapshot",
+      "expected": "schema_mismatch",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "items",
+            0,
+            "schema_version"
+          ],
+          "value": "2.0.0"
+        }
+      ]
+    },
+    {
+      "name": "item status active",
+      "target": "item",
+      "expected": "decoded",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "status"
+          ],
+          "value": "active"
+        }
+      ]
+    },
+    {
+      "name": "item status preview",
+      "target": "item",
+      "expected": "decoded",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "status"
+          ],
+          "value": "preview"
+        }
+      ]
+    },
+    {
+      "name": "item status deprecated",
+      "target": "item",
+      "expected": "decoded",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "status"
+          ],
+          "value": "deprecated"
+        }
+      ]
+    },
+    {
+      "name": "item status retired",
+      "target": "item",
+      "expected": "decoded",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "status"
+          ],
+          "value": "retired"
+        }
+      ]
+    },
+    {
+      "name": "item status unknown value",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "status"
+          ],
+          "value": "invalid"
+        }
+      ]
+    },
+    {
+      "name": "item status null",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "status"
+          ],
+          "value": null
+        }
+      ]
+    },
+    {
+      "name": "item status boolean",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "status"
+          ],
+          "value": false
+        }
+      ]
+    },
+    {
+      "name": "item billing_class free",
+      "target": "item",
+      "expected": "decoded",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "billing_class"
+          ],
+          "value": "free"
+        }
+      ]
+    },
+    {
+      "name": "item billing_class included",
+      "target": "item",
+      "expected": "decoded",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "billing_class"
+          ],
+          "value": "included"
+        }
+      ]
+    },
+    {
+      "name": "item billing_class metered",
+      "target": "item",
+      "expected": "decoded",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "billing_class"
+          ],
+          "value": "metered"
+        }
+      ]
+    },
+    {
+      "name": "item billing_class unknown",
+      "target": "item",
+      "expected": "decoded",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "billing_class"
+          ],
+          "value": "unknown"
+        }
+      ]
+    },
+    {
+      "name": "item billing_class unknown value",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "billing_class"
+          ],
+          "value": "invalid"
+        }
+      ]
+    },
+    {
+      "name": "item billing_class null",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "billing_class"
+          ],
+          "value": null
+        }
+      ]
+    },
+    {
+      "name": "item billing_class boolean",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "billing_class"
+          ],
+          "value": false
+        }
+      ]
+    },
+    {
+      "name": "provenance recorded verified",
+      "target": "item",
+      "expected": "decoded",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "provenance",
+            0,
+            "verification_status"
+          ],
+          "value": "verified"
+        }
+      ]
+    },
+    {
+      "name": "provenance recorded user_supplied",
+      "target": "item",
+      "expected": "decoded",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "provenance",
+            0,
+            "verification_status"
+          ],
+          "value": "user_supplied"
+        }
+      ]
+    },
+    {
+      "name": "provenance recorded estimated",
+      "target": "item",
+      "expected": "decoded",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "provenance",
+            0,
+            "verification_status"
+          ],
+          "value": "estimated"
+        }
+      ]
+    },
+    {
+      "name": "provenance recorded unverified",
+      "target": "item",
+      "expected": "decoded",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "provenance",
+            0,
+            "verification_status"
+          ],
+          "value": "unverified"
+        }
+      ]
+    },
+    {
+      "name": "unknown kind",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "kind"
+          ],
+          "value": "alien"
+        }
+      ]
+    },
+    {
+      "name": "unknown tier",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "tier"
+          ],
+          "value": "T7"
+        }
+      ]
+    },
+    {
+      "name": "empty name",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "name"
+          ],
+          "value": ""
+        }
+      ]
+    },
+    {
+      "name": "empty version",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "version"
+          ],
+          "value": ""
+        }
+      ]
+    },
+    {
+      "name": "duplicate tags",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "tags"
+          ],
+          "value": [
+            "same",
+            "same"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "empty provenance",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "provenance"
+          ],
+          "value": []
+        }
+      ]
+    },
+    {
+      "name": "relative source URI",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "provenance",
+            0,
+            "source_uri"
+          ],
+          "value": "relative"
+        }
+      ]
+    },
+    {
+      "name": "invalid verification",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "provenance",
+            0,
+            "verification_status"
+          ],
+          "value": "checked"
+        }
+      ]
+    },
+    {
+      "name": "invalid timestamp",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "provenance",
+            0,
+            "checked_at"
+          ],
+          "value": "2026-10-32T00:00:00Z"
+        }
+      ]
+    },
+    {
+      "name": "unknown provenance field",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "provenance",
+            0,
+            "extra"
+          ],
+          "value": true
+        }
+      ]
+    },
+    {
+      "name": "string license flag",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "license"
+          ],
+          "value": {}
+        },
+        {
+          "op": "set",
+          "path": [
+            "license",
+            "commercial_use_allowed"
+          ],
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "name": "numeric license flag",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "license"
+          ],
+          "value": {}
+        },
+        {
+          "op": "set",
+          "path": [
+            "license",
+            "self_hosting_allowed"
+          ],
+          "value": 0
+        }
+      ]
+    },
+    {
+      "name": "unknown license field",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "license"
+          ],
+          "value": {}
+        },
+        {
+          "op": "set",
+          "path": [
+            "license",
+            "extra"
+          ],
+          "value": "x"
+        }
+      ]
+    },
+    {
+      "name": "unnamespaced extension",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "extensions"
+          ],
+          "value": {
+            "not_namespaced": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "null optional description",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "description"
+          ],
+          "value": null
+        }
+      ]
+    },
+    {
+      "name": "null optional tags",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "tags"
+          ],
+          "value": null
+        }
+      ]
+    },
+    {
+      "name": "null optional license",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "license"
+          ],
+          "value": null
+        }
+      ]
+    },
+    {
+      "name": "null optional extensions",
+      "target": "item",
+      "expected": "schema_mismatch",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "extensions"
+          ],
+          "value": null
+        }
+      ]
+    },
+    {
+      "name": "empty optional fields remain present",
+      "target": "item",
+      "expected": "decoded",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "description"
+          ],
+          "value": ""
+        },
+        {
+          "op": "set",
+          "path": [
+            "tags"
+          ],
+          "value": []
+        },
+        {
+          "op": "set",
+          "path": [
+            "license"
+          ],
+          "value": {}
+        },
+        {
+          "op": "set",
+          "path": [
+            "extensions"
+          ],
+          "value": {}
+        }
+      ]
+    },
+    {
+      "name": "license flags preserve false and true",
+      "target": "item",
+      "expected": "decoded",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "license"
+          ],
+          "value": {
+            "spdx_id": "",
+            "commercial_use_allowed": false,
+            "self_hosting_allowed": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "inert source and original timestamp spelling",
+      "target": "item",
+      "expected": "decoded",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "provenance",
+            0,
+            "source_uri"
+          ],
+          "value": "file:///synthetic/catalog"
+        },
+        {
+          "op": "set",
+          "path": [
+            "provenance",
+            0,
+            "checked_at"
+          ],
+          "value": "2026-10-18T01:02:03.1200+05:30"
+        },
+        {
+          "op": "set",
+          "path": [
+            "provenance",
+            0,
+            "notes"
+          ],
+          "value": ""
+        }
+      ]
+    },
+    {
+      "name": "arbitrary namespaced extension values",
+      "target": "item",
+      "expected": "decoded",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "extensions"
+          ],
+          "value": {
+            "x_exact": 123456789012345678901234567890,
+            "x_nested": [
+              null,
+              false,
+              "unknown",
+              {
+                "field": []
+              }
+            ],
+            "x_decimal_string": "0.000000000001"
+          }
+        }
+      ]
+    },
+    {
+      "name": "schema terminal LF in extension name remains literal",
+      "target": "item",
+      "expected": "decoded",
+      "kind": "workload",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "extensions"
+          ],
+          "value": {
+            "x_note\n": true
+          }
+        }
+      ]
+    }
+  ]
+}

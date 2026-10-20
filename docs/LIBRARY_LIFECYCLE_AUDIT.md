@@ -37,6 +37,30 @@ rejected real packaged contamination and withheld a fresh receipt. The separate
 checked 116 reachable commits with zero findings and passed its failure controls.
 These are exact-main build, storage/JVM and simulated Activity observations.
 
+## Malformed private draft identity recovery
+
+The 2026-10-19 source review at `517025db301785f8e3689abdeeb47fc8d09b9afc`
+found that `onCreate` passed the saved draft and pending-deletion identity strings
+directly to the strict `PreviewDraftId` constructor. An unsupported identity could
+therefore throw before the recovery UI appeared. The private
+`DraftIdentityCheckpoint` now checks the primitive types and identity bounds as one
+pair. A malformed pair keeps visible pending input unbound, with no automatic
+active-draft lookup, save, Reopen or deletion replay. The value-free unavailable
+marker survives another recreation and ordinary launcher entry; only an explicit
+successful local-library/new-draft choice clears it. Existing missing/null legacy
+identity behavior is preserved. No stored draft or revision format changes.
+
+`DraftIdentityRecoveryActivityTest` covers malformed draft and deletion identities,
+wrong types and oversized values, repeated rejected recovery, explicit local
+selection and the valid checkpoint control. The workflow requires all six methods
+to execute successfully. Its observed execution belongs to the corresponding PR
+or main run; the test source alone supplies no pass or installed-device claim.
+Android's [saved-state guidance](https://developer.android.com/topic/libraries/architecture/saving-states)
+was checked on 2026-10-19: small transient identities support restoration, while
+the canonical local store remains the authority for persistent application data.
+This correction remains partial #76 and preserves every criterion and receiving
+path below.
+
 ## #86: Local build library
 
 The canonical `PreviewDraftLibrary` orchestrates `PreviewDraftPersistence` and
@@ -69,6 +93,32 @@ duplicate/reopen/delete journey through process recreation, comparing IDs,
 revisions and source state, plus a corrupt record and a storage-full failure among
 valid records. Injected IO failures and separate-JVM tests support those checks
 but do not establish a device's ENOSPC, filesystem or power-loss result.
+
+### Directory enumeration failures
+
+The library translates `DirectoryIteratorException` from a root or pending-deletion
+scan into its existing `IO_FAILURE` result. A partially enumerated directory does
+not become an available list or authorize creation of a new identity. The stream
+and library locks close before the caller receives the failure; retry uses a new
+ordinary operation. The public constructor still uses `Files.newDirectoryStream`.
+
+`PreviewDraftLibraryIterationTest` injects an I/O failure after one entry from an
+actual open directory stream. Its eight cases cover both `hasNext` and `next`,
+both directories, and listing and creation. They check typed failure, stream
+closure, unchanged retained file hashes, saved identity/content, pending-deletion
+visibility, and successful retry. The unchanged cases fail with the escaping
+wrapper before the correction and pass afterward. Local direct Kotlin/JUnit
+validation also passes the existing library, deletion, upgrade, pending-recovery
+and cache suites: 61 cases total, with no failures or skips. This focused local
+result does not replace the configured Gradle/native or installed receiving gates.
+
+The existing three-argument internal JVM constructor remains available through a
+delegating overload. The first configured native run in
+[PR #485](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/485) exposed its
+missing descriptor: four of 300 cases failed with `NoSuchMethodException`; that
+original failure is retained. A direct invocation of the restored descriptor
+preserves both checkpoint callbacks, typed cleanup failure and ordinary retry.
+The existing native cleanup tests and their configured gates remain unchanged.
 
 ## #76: Navigation and lifecycle
 

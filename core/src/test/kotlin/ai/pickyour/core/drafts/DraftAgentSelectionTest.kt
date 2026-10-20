@@ -56,9 +56,12 @@ class DraftAgentSelectionTest {
             assertEquals(original, result.content.withComponents(DraftSelections()))
             assertTrue(original.components.selections.isEmpty())
         }
-        assertFalse(PreviewSelectionForms.supported("training_framework"))
-        assertFalse(PreviewSelectionForms.supported("training_dataset"))
-        assertFalse(PreviewSelectionForms.supported("deployment_target"))
+        assertTrue(PreviewSelectionForms.supported("cost_policy"))
+        assertFalse(PreviewSelectionForms.supported("future_cost_policy"))
+        assertTrue(PreviewSelectionForms.supported("monitoring_stack"))
+        assertFalse(PreviewSelectionForms.supported("future_monitoring_stack"))
+        assertTrue(PreviewSelectionForms.supported("deployment_target"))
+        assertFalse(PreviewSelectionForms.supported("future_deployment_target"))
     }
 
     @Test fun `all frozen agent fields preserve exact scopes URIs references numbers and explicit false values`() {

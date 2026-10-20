@@ -1,0 +1,3460 @@
+{
+  "profile": "android-frozen-build-wire/v1",
+  "example_sha256": "26762208769a8cf1012b4f33b1c1608556d275187ce21117d0b9632cdf951864",
+  "schemas": {
+    "build.schema.json": "1beacb0b01fcdea0b8b47357cdf2e99d80a10b8a4218aaac9e3b6af55391b42a",
+    "selection.schema.json": "f8f189c6555fec41e616c32f081d06fab9f966b0fa4891ddca55580f577d51a8",
+    "common.schema.json": "0342ce2f1114e7276fc7f6a08ff5b86e8727caadd83ae4f443de9a7e1431c43c"
+  },
+  "cases": [
+    {
+      "name": "canonical full-stack synthetic fixture",
+      "expected": "decoded",
+      "operations": []
+    },
+    {
+      "name": "missing required schema_version",
+      "expected": "unsupported_version",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "schema_version"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "missing required id",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "id"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "missing required revision",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "revision"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "missing required name",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "name"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "missing required owner_ref",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "owner_ref"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "missing required lifecycle",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "lifecycle"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "missing required created_at",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "created_at"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "missing required updated_at",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "updated_at"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "missing required objectives",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "objectives"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "missing required locks",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "locks"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "missing required selections",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "selections"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "missing required links",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "links"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "unsupported future version",
+      "expected": "unsupported_version",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "schema_version"
+          ],
+          "value": "2.0.0"
+        }
+      ]
+    },
+    {
+      "name": "unsupported numeric version",
+      "expected": "unsupported_version",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "schema_version"
+          ],
+          "value": 1
+        }
+      ]
+    },
+    {
+      "name": "unsupported null version",
+      "expected": "unsupported_version",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "schema_version"
+          ],
+          "value": null
+        }
+      ]
+    },
+    {
+      "name": "unsupported boolean version",
+      "expected": "unsupported_version",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "schema_version"
+          ],
+          "value": true
+        }
+      ]
+    },
+    {
+      "name": "unknown property synthetic_extra",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "synthetic_extra"
+          ],
+          "value": "synthetic-private-build"
+        }
+      ]
+    },
+    {
+      "name": "unknown property objectives/synthetic_extra",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "objectives",
+            "synthetic_extra"
+          ],
+          "value": "synthetic-private-build"
+        }
+      ]
+    },
+    {
+      "name": "unknown property locks/synthetic_extra",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "locks",
+            "synthetic_extra"
+          ],
+          "value": "synthetic-private-build"
+        }
+      ]
+    },
+    {
+      "name": "unknown property policy/synthetic_extra",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "policy",
+            "synthetic_extra"
+          ],
+          "value": "synthetic-private-build"
+        }
+      ]
+    },
+    {
+      "name": "unknown property selections/0/synthetic_extra",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "selections",
+            "0",
+            "synthetic_extra"
+          ],
+          "value": "synthetic-private-build"
+        }
+      ]
+    },
+    {
+      "name": "unknown property links/0/synthetic_extra",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "links",
+            "0",
+            "synthetic_extra"
+          ],
+          "value": "synthetic-private-build"
+        }
+      ]
+    },
+    {
+      "name": "unknown property selections/3/settings/synthetic_extra",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "selections",
+            "3",
+            "settings",
+            "synthetic_extra"
+          ],
+          "value": "synthetic-private-build"
+        }
+      ]
+    },
+    {
+      "name": "invalid id",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "id"
+          ],
+          "value": ""
+        }
+      ]
+    },
+    {
+      "name": "invalid name",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "name"
+          ],
+          "value": ""
+        }
+      ]
+    },
+    {
+      "name": "invalid owner_ref",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "owner_ref"
+          ],
+          "value": ""
+        }
+      ]
+    },
+    {
+      "name": "invalid created_at",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "created_at"
+          ],
+          "value": ""
+        }
+      ]
+    },
+    {
+      "name": "invalid updated_at",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "updated_at"
+          ],
+          "value": ""
+        }
+      ]
+    },
+    {
+      "name": "invalid calendar created_at",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "created_at"
+          ],
+          "value": "2026-02-30T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "name": "invalid calendar updated_at",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "updated_at"
+          ],
+          "value": "2026-02-30T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "name": "recorded reversed timestamps retained",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "updated_at"
+          ],
+          "value": "2026-10-15T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "name": "lifecycle accepts draft",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "lifecycle"
+          ],
+          "value": "draft"
+        }
+      ]
+    },
+    {
+      "name": "lifecycle accepts validated",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "lifecycle"
+          ],
+          "value": "validated"
+        }
+      ]
+    },
+    {
+      "name": "lifecycle accepts ready",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "lifecycle"
+          ],
+          "value": "ready"
+        }
+      ]
+    },
+    {
+      "name": "lifecycle accepts deployed",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "lifecycle"
+          ],
+          "value": "deployed"
+        }
+      ]
+    },
+    {
+      "name": "lifecycle accepts archived",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "lifecycle"
+          ],
+          "value": "archived"
+        }
+      ]
+    },
+    {
+      "name": "lifecycle rejects unknown",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "lifecycle"
+          ],
+          "value": "future-value"
+        }
+      ]
+    },
+    {
+      "name": "lifecycle rejects null",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "lifecycle"
+          ],
+          "value": null
+        }
+      ]
+    },
+    {
+      "name": "lifecycle rejects number",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "lifecycle"
+          ],
+          "value": 1
+        }
+      ]
+    },
+    {
+      "name": "objectives/data_classification accepts public",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "objectives",
+            "data_classification"
+          ],
+          "value": "public"
+        }
+      ]
+    },
+    {
+      "name": "objectives/data_classification accepts internal",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "objectives",
+            "data_classification"
+          ],
+          "value": "internal"
+        }
+      ]
+    },
+    {
+      "name": "objectives/data_classification accepts confidential",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "objectives",
+            "data_classification"
+          ],
+          "value": "confidential"
+        }
+      ]
+    },
+    {
+      "name": "objectives/data_classification accepts restricted",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "objectives",
+            "data_classification"
+          ],
+          "value": "restricted"
+        }
+      ]
+    },
+    {
+      "name": "objectives/data_classification rejects unknown",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "objectives",
+            "data_classification"
+          ],
+          "value": "future-value"
+        }
+      ]
+    },
+    {
+      "name": "objectives/data_classification rejects null",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "objectives",
+            "data_classification"
+          ],
+          "value": null
+        }
+      ]
+    },
+    {
+      "name": "objectives/data_classification rejects number",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "objectives",
+            "data_classification"
+          ],
+          "value": 1
+        }
+      ]
+    },
+    {
+      "name": "policy/min_resource_confidence accepts estimated",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "policy",
+            "min_resource_confidence"
+          ],
+          "value": "estimated"
+        }
+      ]
+    },
+    {
+      "name": "policy/min_resource_confidence accepts calibrated",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "policy",
+            "min_resource_confidence"
+          ],
+          "value": "calibrated"
+        }
+      ]
+    },
+    {
+      "name": "policy/min_resource_confidence accepts verified",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "policy",
+            "min_resource_confidence"
+          ],
+          "value": "verified"
+        }
+      ]
+    },
+    {
+      "name": "policy/min_resource_confidence rejects unknown",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "policy",
+            "min_resource_confidence"
+          ],
+          "value": "future-value"
+        }
+      ]
+    },
+    {
+      "name": "policy/min_resource_confidence rejects null",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "policy",
+            "min_resource_confidence"
+          ],
+          "value": null
+        }
+      ]
+    },
+    {
+      "name": "policy/min_resource_confidence rejects number",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "policy",
+            "min_resource_confidence"
+          ],
+          "value": 1
+        }
+      ]
+    },
+    {
+      "name": "links/0/relation accepts uses",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "links",
+            "0",
+            "relation"
+          ],
+          "value": "uses"
+        }
+      ]
+    },
+    {
+      "name": "links/0/relation accepts provided_by",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "links",
+            "0",
+            "relation"
+          ],
+          "value": "provided_by"
+        }
+      ]
+    },
+    {
+      "name": "links/0/relation accepts runs_on",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "links",
+            "0",
+            "relation"
+          ],
+          "value": "runs_on"
+        }
+      ]
+    },
+    {
+      "name": "links/0/relation accepts served_by",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "links",
+            "0",
+            "relation"
+          ],
+          "value": "served_by"
+        }
+      ]
+    },
+    {
+      "name": "links/0/relation accepts stored_in",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "links",
+            "0",
+            "relation"
+          ],
+          "value": "stored_in"
+        }
+      ]
+    },
+    {
+      "name": "links/0/relation accepts indexes_with",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "links",
+            "0",
+            "relation"
+          ],
+          "value": "indexes_with"
+        }
+      ]
+    },
+    {
+      "name": "links/0/relation accepts reads_from",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "links",
+            "0",
+            "relation"
+          ],
+          "value": "reads_from"
+        }
+      ]
+    },
+    {
+      "name": "links/0/relation accepts derived_from",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "links",
+            "0",
+            "relation"
+          ],
+          "value": "derived_from"
+        }
+      ]
+    },
+    {
+      "name": "links/0/relation accepts secured_by",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "links",
+            "0",
+            "relation"
+          ],
+          "value": "secured_by"
+        }
+      ]
+    },
+    {
+      "name": "links/0/relation accepts evaluated_by",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "links",
+            "0",
+            "relation"
+          ],
+          "value": "evaluated_by"
+        }
+      ]
+    },
+    {
+      "name": "links/0/relation accepts observed_by",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "links",
+            "0",
+            "relation"
+          ],
+          "value": "observed_by"
+        }
+      ]
+    },
+    {
+      "name": "links/0/relation accepts deploys_to",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "links",
+            "0",
+            "relation"
+          ],
+          "value": "deploys_to"
+        }
+      ]
+    },
+    {
+      "name": "links/0/relation accepts trained_on",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "links",
+            "0",
+            "relation"
+          ],
+          "value": "trained_on"
+        }
+      ]
+    },
+    {
+      "name": "links/0/relation accepts calls",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "links",
+            "0",
+            "relation"
+          ],
+          "value": "calls"
+        }
+      ]
+    },
+    {
+      "name": "links/0/relation accepts exposes",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "links",
+            "0",
+            "relation"
+          ],
+          "value": "exposes"
+        }
+      ]
+    },
+    {
+      "name": "links/0/relation accepts feeds",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "links",
+            "0",
+            "relation"
+          ],
+          "value": "feeds"
+        }
+      ]
+    },
+    {
+      "name": "links/0/relation accepts other",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "links",
+            "0",
+            "relation"
+          ],
+          "value": "other"
+        }
+      ]
+    },
+    {
+      "name": "links/0/relation rejects unknown",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "links",
+            "0",
+            "relation"
+          ],
+          "value": "future-value"
+        }
+      ]
+    },
+    {
+      "name": "links/0/relation rejects null",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "links",
+            "0",
+            "relation"
+          ],
+          "value": null
+        }
+      ]
+    },
+    {
+      "name": "links/0/relation rejects number",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "links",
+            "0",
+            "relation"
+          ],
+          "value": 1
+        }
+      ]
+    },
+    {
+      "name": "missing required objective region",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "objectives",
+            "region"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "missing required objective currency",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "objectives",
+            "currency"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "missing required objective data_classification",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "objectives",
+            "data_classification"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "optional objective absence monthly_budget_amount",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "objectives",
+            "monthly_budget_amount"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "optional objective null monthly_budget_amount",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "objectives",
+            "monthly_budget_amount"
+          ],
+          "value": null
+        }
+      ]
+    },
+    {
+      "name": "optional objective absence requests_per_day",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "objectives",
+            "requests_per_day"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "optional objective null requests_per_day",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "objectives",
+            "requests_per_day"
+          ],
+          "value": null
+        }
+      ]
+    },
+    {
+      "name": "optional objective absence avg_input_tokens",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "objectives",
+            "avg_input_tokens"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "optional objective null avg_input_tokens",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "objectives",
+            "avg_input_tokens"
+          ],
+          "value": null
+        }
+      ]
+    },
+    {
+      "name": "optional objective absence avg_output_tokens",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "objectives",
+            "avg_output_tokens"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "optional objective null avg_output_tokens",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "objectives",
+            "avg_output_tokens"
+          ],
+          "value": null
+        }
+      ]
+    },
+    {
+      "name": "optional objective absence max_concurrency",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "objectives",
+            "max_concurrency"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "optional objective null max_concurrency",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "objectives",
+            "max_concurrency"
+          ],
+          "value": null
+        }
+      ]
+    },
+    {
+      "name": "optional objective absence max_latency_ms",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "objectives",
+            "max_latency_ms"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "optional objective null max_latency_ms",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "objectives",
+            "max_latency_ms"
+          ],
+          "value": null
+        }
+      ]
+    },
+    {
+      "name": "exact decimal spelling retained",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "objectives",
+            "monthly_budget_amount"
+          ],
+          "value": "1000000000000000000000000000000.123456789012"
+        }
+      ]
+    },
+    {
+      "name": "frozen final LF decimal retained",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "objectives",
+            "monthly_budget_amount"
+          ],
+          "value": "12.3400\n"
+        }
+      ]
+    },
+    {
+      "name": "budget rejects number",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "objectives",
+            "monthly_budget_amount"
+          ],
+          "value": 1.5
+        }
+      ]
+    },
+    {
+      "name": "budget rejects negative",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "objectives",
+            "monthly_budget_amount"
+          ],
+          "value": "-1"
+        }
+      ]
+    },
+    {
+      "name": "budget rejects exponent",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "objectives",
+            "monthly_budget_amount"
+          ],
+          "value": "1e3"
+        }
+      ]
+    },
+    {
+      "name": "budget rejects excess scale",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "objectives",
+            "monthly_budget_amount"
+          ],
+          "value": "0.1234567890123"
+        }
+      ]
+    },
+    {
+      "name": "revision accepts wide",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "revision"
+          ],
+          "value": 123456789012345678901234567890
+        }
+      ]
+    },
+    {
+      "name": "revision accepts minimum",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "revision"
+          ],
+          "value": 1
+        }
+      ]
+    },
+    {
+      "name": "revision rejects negative",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "revision"
+          ],
+          "value": -1
+        }
+      ]
+    },
+    {
+      "name": "revision rejects fraction",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "revision"
+          ],
+          "value": 1.5
+        }
+      ]
+    },
+    {
+      "name": "revision rejects boolean",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "revision"
+          ],
+          "value": true
+        }
+      ]
+    },
+    {
+      "name": "revision rejects string",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "revision"
+          ],
+          "value": "1"
+        }
+      ]
+    },
+    {
+      "name": "locks/dependency_graph_revision accepts wide",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "locks",
+            "dependency_graph_revision"
+          ],
+          "value": 123456789012345678901234567890
+        }
+      ]
+    },
+    {
+      "name": "locks/dependency_graph_revision accepts minimum",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "locks",
+            "dependency_graph_revision"
+          ],
+          "value": 1
+        }
+      ]
+    },
+    {
+      "name": "locks/dependency_graph_revision rejects negative",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "locks",
+            "dependency_graph_revision"
+          ],
+          "value": -1
+        }
+      ]
+    },
+    {
+      "name": "locks/dependency_graph_revision rejects fraction",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "locks",
+            "dependency_graph_revision"
+          ],
+          "value": 1.5
+        }
+      ]
+    },
+    {
+      "name": "locks/dependency_graph_revision rejects boolean",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "locks",
+            "dependency_graph_revision"
+          ],
+          "value": true
+        }
+      ]
+    },
+    {
+      "name": "locks/dependency_graph_revision rejects string",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "locks",
+            "dependency_graph_revision"
+          ],
+          "value": "1"
+        }
+      ]
+    },
+    {
+      "name": "objectives/requests_per_day accepts wide",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "objectives",
+            "requests_per_day"
+          ],
+          "value": 123456789012345678901234567890
+        }
+      ]
+    },
+    {
+      "name": "objectives/requests_per_day accepts minimum",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "objectives",
+            "requests_per_day"
+          ],
+          "value": 0
+        }
+      ]
+    },
+    {
+      "name": "objectives/requests_per_day rejects negative",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "objectives",
+            "requests_per_day"
+          ],
+          "value": -1
+        }
+      ]
+    },
+    {
+      "name": "objectives/requests_per_day rejects fraction",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "objectives",
+            "requests_per_day"
+          ],
+          "value": 1.5
+        }
+      ]
+    },
+    {
+      "name": "objectives/requests_per_day rejects boolean",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "objectives",
+            "requests_per_day"
+          ],
+          "value": true
+        }
+      ]
+    },
+    {
+      "name": "objectives/requests_per_day rejects string",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "objectives",
+            "requests_per_day"
+          ],
+          "value": "1"
+        }
+      ]
+    },
+    {
+      "name": "objectives/avg_input_tokens accepts wide",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "objectives",
+            "avg_input_tokens"
+          ],
+          "value": 123456789012345678901234567890
+        }
+      ]
+    },
+    {
+      "name": "objectives/avg_input_tokens accepts minimum",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "objectives",
+            "avg_input_tokens"
+          ],
+          "value": 0
+        }
+      ]
+    },
+    {
+      "name": "objectives/avg_input_tokens rejects negative",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "objectives",
+            "avg_input_tokens"
+          ],
+          "value": -1
+        }
+      ]
+    },
+    {
+      "name": "objectives/avg_input_tokens rejects fraction",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "objectives",
+            "avg_input_tokens"
+          ],
+          "value": 1.5
+        }
+      ]
+    },
+    {
+      "name": "objectives/avg_input_tokens rejects boolean",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "objectives",
+            "avg_input_tokens"
+          ],
+          "value": true
+        }
+      ]
+    },
+    {
+      "name": "objectives/avg_input_tokens rejects string",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "objectives",
+            "avg_input_tokens"
+          ],
+          "value": "1"
+        }
+      ]
+    },
+    {
+      "name": "objectives/avg_output_tokens accepts wide",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "objectives",
+            "avg_output_tokens"
+          ],
+          "value": 123456789012345678901234567890
+        }
+      ]
+    },
+    {
+      "name": "objectives/avg_output_tokens accepts minimum",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "objectives",
+            "avg_output_tokens"
+          ],
+          "value": 0
+        }
+      ]
+    },
+    {
+      "name": "objectives/avg_output_tokens rejects negative",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "objectives",
+            "avg_output_tokens"
+          ],
+          "value": -1
+        }
+      ]
+    },
+    {
+      "name": "objectives/avg_output_tokens rejects fraction",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "objectives",
+            "avg_output_tokens"
+          ],
+          "value": 1.5
+        }
+      ]
+    },
+    {
+      "name": "objectives/avg_output_tokens rejects boolean",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "objectives",
+            "avg_output_tokens"
+          ],
+          "value": true
+        }
+      ]
+    },
+    {
+      "name": "objectives/avg_output_tokens rejects string",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "objectives",
+            "avg_output_tokens"
+          ],
+          "value": "1"
+        }
+      ]
+    },
+    {
+      "name": "objectives/max_concurrency accepts wide",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "objectives",
+            "max_concurrency"
+          ],
+          "value": 123456789012345678901234567890
+        }
+      ]
+    },
+    {
+      "name": "objectives/max_concurrency accepts minimum",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "objectives",
+            "max_concurrency"
+          ],
+          "value": 1
+        }
+      ]
+    },
+    {
+      "name": "objectives/max_concurrency rejects negative",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "objectives",
+            "max_concurrency"
+          ],
+          "value": -1
+        }
+      ]
+    },
+    {
+      "name": "objectives/max_concurrency rejects fraction",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "objectives",
+            "max_concurrency"
+          ],
+          "value": 1.5
+        }
+      ]
+    },
+    {
+      "name": "objectives/max_concurrency rejects boolean",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "objectives",
+            "max_concurrency"
+          ],
+          "value": true
+        }
+      ]
+    },
+    {
+      "name": "objectives/max_concurrency rejects string",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "objectives",
+            "max_concurrency"
+          ],
+          "value": "1"
+        }
+      ]
+    },
+    {
+      "name": "objectives/max_latency_ms accepts wide",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "objectives",
+            "max_latency_ms"
+          ],
+          "value": 123456789012345678901234567890
+        }
+      ]
+    },
+    {
+      "name": "objectives/max_latency_ms accepts minimum",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "objectives",
+            "max_latency_ms"
+          ],
+          "value": 1
+        }
+      ]
+    },
+    {
+      "name": "objectives/max_latency_ms rejects negative",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "objectives",
+            "max_latency_ms"
+          ],
+          "value": -1
+        }
+      ]
+    },
+    {
+      "name": "objectives/max_latency_ms rejects fraction",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "objectives",
+            "max_latency_ms"
+          ],
+          "value": 1.5
+        }
+      ]
+    },
+    {
+      "name": "objectives/max_latency_ms rejects boolean",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "objectives",
+            "max_latency_ms"
+          ],
+          "value": true
+        }
+      ]
+    },
+    {
+      "name": "objectives/max_latency_ms rejects string",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "objectives",
+            "max_latency_ms"
+          ],
+          "value": "1"
+        }
+      ]
+    },
+    {
+      "name": "missing required lock catalog_snapshot_id",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "locks",
+            "catalog_snapshot_id"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "missing required lock ruleset_id",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "locks",
+            "ruleset_id"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "missing required lock ruleset_version",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "locks",
+            "ruleset_version"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "missing required lock dependency_graph_id",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "locks",
+            "dependency_graph_id"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "missing required lock dependency_graph_revision",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "locks",
+            "dependency_graph_revision"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "pricebook lock absence",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "locks",
+            "pricebook_id"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "invalid graph lock version",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "locks",
+            "ruleset_version"
+          ],
+          "value": "opaque"
+        }
+      ]
+    },
+    {
+      "name": "false policy fail_on_unknown",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "policy",
+            "fail_on_unknown"
+          ],
+          "value": false
+        }
+      ]
+    },
+    {
+      "name": "absent policy fail_on_unknown",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "policy",
+            "fail_on_unknown"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "null policy fail_on_unknown",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "policy",
+            "fail_on_unknown"
+          ],
+          "value": null
+        }
+      ]
+    },
+    {
+      "name": "false policy require_evaluations_for_production",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "policy",
+            "require_evaluations_for_production"
+          ],
+          "value": false
+        }
+      ]
+    },
+    {
+      "name": "absent policy require_evaluations_for_production",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "policy",
+            "require_evaluations_for_production"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "null policy require_evaluations_for_production",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "policy",
+            "require_evaluations_for_production"
+          ],
+          "value": null
+        }
+      ]
+    },
+    {
+      "name": "false policy allow_unverified_catalog_items",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "policy",
+            "allow_unverified_catalog_items"
+          ],
+          "value": false
+        }
+      ]
+    },
+    {
+      "name": "absent policy allow_unverified_catalog_items",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "policy",
+            "allow_unverified_catalog_items"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "null policy allow_unverified_catalog_items",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "policy",
+            "allow_unverified_catalog_items"
+          ],
+          "value": null
+        }
+      ]
+    },
+    {
+      "name": "absent policy",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "policy"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "empty policy",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "policy"
+          ],
+          "value": {}
+        }
+      ]
+    },
+    {
+      "name": "empty namespaced extensions",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "extensions"
+          ],
+          "value": {}
+        }
+      ]
+    },
+    {
+      "name": "nested opaque extension values",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "extensions"
+          ],
+          "value": {
+            "x_private": {
+              "array": [
+                null,
+                true,
+                9007199254740993,
+                {
+                  "s": "synthetic-private-build"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "non namespaced extension",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "extensions"
+          ],
+          "value": {
+            "private": "synthetic-private-build"
+          }
+        }
+      ]
+    },
+    {
+      "name": "empty links",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "links"
+          ],
+          "value": []
+        }
+      ]
+    },
+    {
+      "name": "too few selections",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "selections"
+          ],
+          "value": [
+            {
+              "id": "sel_workload",
+              "kind": "workload",
+              "catalog_item_id": "cat.workload.fixture",
+              "catalog_item_version": "2026.10-demo",
+              "role": "primary",
+              "enabled": true,
+              "settings": {
+                "concurrency": 2,
+                "requests_per_day": 200,
+                "avg_input_tokens": 700,
+                "avg_output_tokens": 400
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "duplicate selection IDs remain structural",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "selections"
+          ],
+          "value": [
+            {
+              "id": "sel_workload",
+              "kind": "workload",
+              "catalog_item_id": "cat.workload.fixture",
+              "catalog_item_version": "2026.10-demo",
+              "role": "primary",
+              "enabled": true,
+              "settings": {
+                "concurrency": 2,
+                "requests_per_day": 200,
+                "avg_input_tokens": 700,
+                "avg_output_tokens": 400
+              }
+            },
+            {
+              "id": "sel_deployment_mode",
+              "kind": "deployment_mode",
+              "catalog_item_id": "cat.deployment_mode.fixture",
+              "catalog_item_version": "2026.10-demo",
+              "role": "primary",
+              "enabled": true,
+              "settings": {}
+            },
+            {
+              "id": "sel_model_provider",
+              "kind": "model_provider",
+              "catalog_item_id": "cat.model_provider.fixture",
+              "catalog_item_version": "2026.10-demo",
+              "role": "primary",
+              "enabled": true,
+              "settings": {}
+            },
+            {
+              "id": "sel_model",
+              "kind": "model",
+              "catalog_item_id": "cat.model.fixture",
+              "catalog_item_version": "2026.10-demo",
+              "role": "primary",
+              "enabled": true,
+              "settings": {
+                "serving_mode": "weights",
+                "precision": "fp16",
+                "max_output_tokens": 512,
+                "temperature": 0.4
+              }
+            },
+            {
+              "id": "sel_context_policy",
+              "kind": "context_policy",
+              "catalog_item_id": "cat.context_policy.fixture",
+              "catalog_item_version": "2026.10-demo",
+              "role": "primary",
+              "enabled": true,
+              "settings": {
+                "requested_context_tokens": 4096,
+                "reserved_output_tokens": 512,
+                "truncation_strategy": "reject"
+              }
+            },
+            {
+              "id": "sel_hosting_platform",
+              "kind": "hosting_platform",
+              "catalog_item_id": "cat.hosting_platform.fixture",
+              "catalog_item_version": "2026.10-demo",
+              "role": "primary",
+              "enabled": true,
+              "settings": {
+                "region": "us-east-fixture",
+                "network_isolation": "private"
+              }
+            },
+            {
+              "id": "sel_accelerator",
+              "kind": "accelerator",
+              "catalog_item_id": "cat.accelerator.fixture",
+              "catalog_item_version": "2026.10-demo",
+              "role": "primary",
+              "enabled": true,
+              "settings": {
+                "device_count": 1,
+                "tensor_parallel_groups": 1
+              }
+            },
+            {
+              "id": "sel_compute_profile",
+              "kind": "compute_profile",
+              "catalog_item_id": "cat.compute_profile.fixture",
+              "catalog_item_version": "2026.10-demo",
+              "role": "primary",
+              "enabled": true,
+              "settings": {
+                "instances": 1,
+                "region": "us-east-fixture",
+                "reserved_hours_per_month": 720
+              }
+            },
+            {
+              "id": "sel_inference_engine",
+              "kind": "inference_engine",
+              "catalog_item_id": "cat.inference_engine.fixture",
+              "catalog_item_version": "2026.10-demo",
+              "role": "primary",
+              "enabled": true,
+              "settings": {
+                "precision": "fp16",
+                "tensor_parallel_size": 1,
+                "max_batch_tokens": 4096
+              }
+            },
+            {
+              "id": "sel_storage",
+              "kind": "storage",
+              "catalog_item_id": "cat.storage.fixture",
+              "catalog_item_version": "2026.10-demo",
+              "role": "primary",
+              "enabled": true,
+              "settings": {
+                "provisioned_gb": 50,
+                "region": "us-east-fixture"
+              }
+            },
+            {
+              "id": "sel_data_source",
+              "kind": "data_source",
+              "catalog_item_id": "cat.data_source.fixture",
+              "catalog_item_version": "2026.10-demo",
+              "role": "primary",
+              "enabled": true,
+              "settings": {
+                "enabled": true
+              }
+            },
+            {
+              "id": "sel_knowledge_base",
+              "kind": "knowledge_base",
+              "catalog_item_id": "cat.knowledge_base.fixture",
+              "catalog_item_version": "2026.10-demo",
+              "role": "primary",
+              "enabled": true,
+              "settings": {
+                "chunk_size_tokens": 300,
+                "chunk_overlap_tokens": 30,
+                "acl_enforced": true
+              }
+            },
+            {
+              "id": "sel_embedding_model",
+              "kind": "embedding_model",
+              "catalog_item_id": "cat.embedding_model.fixture",
+              "catalog_item_version": "2026.10-demo",
+              "role": "primary",
+              "enabled": true,
+              "settings": {
+                "output_dimensions": 768
+              }
+            },
+            {
+              "id": "sel_vector_database",
+              "kind": "vector_database",
+              "catalog_item_id": "cat.vector_database.fixture",
+              "catalog_item_version": "2026.10-demo",
+              "role": "primary",
+              "enabled": true,
+              "settings": {
+                "index_dimension": 768,
+                "similarity_metric": "cosine",
+                "region": "us-east-fixture",
+                "index_name": "fixture-collection"
+              }
+            },
+            {
+              "id": "sel_rag_pipeline",
+              "kind": "rag_pipeline",
+              "catalog_item_id": "cat.rag_pipeline.fixture",
+              "catalog_item_version": "2026.10-demo",
+              "role": "primary",
+              "enabled": true,
+              "settings": {
+                "top_k": 5,
+                "max_chunks": 8
+              }
+            },
+            {
+              "id": "sel_agent_framework",
+              "kind": "agent_framework",
+              "catalog_item_id": "cat.agent_framework.fixture",
+              "catalog_item_version": "2026.10-demo",
+              "role": "primary",
+              "enabled": true,
+              "settings": {
+                "agent_count": 2,
+                "max_iterations": 8
+              }
+            },
+            {
+              "id": "sel_tool",
+              "kind": "tool",
+              "catalog_item_id": "cat.tool.fixture",
+              "catalog_item_version": "2026.10-demo",
+              "role": "primary",
+              "enabled": true,
+              "settings": {
+                "enabled": true,
+                "allowed_scopes": [
+                  "fixture.write"
+                ]
+              }
+            },
+            {
+              "id": "sel_mcp_server",
+              "kind": "mcp_server",
+              "catalog_item_id": "cat.mcp_server.fixture",
+              "catalog_item_version": "2026.10-demo",
+              "role": "primary",
+              "enabled": true,
+              "settings": {
+                "read_only": false
+              }
+            },
+            {
+              "id": "sel_memory_store",
+              "kind": "memory_store",
+              "catalog_item_id": "cat.memory_store.fixture",
+              "catalog_item_version": "2026.10-demo",
+              "role": "primary",
+              "enabled": true,
+              "settings": {
+                "ttl_hours": 720
+              }
+            },
+            {
+              "id": "sel_integration",
+              "kind": "integration",
+              "catalog_item_id": "cat.integration.fixture",
+              "catalog_item_version": "2026.10-demo",
+              "role": "primary",
+              "enabled": true,
+              "settings": {
+                "enabled": true,
+                "rate_limit_per_minute": 60
+              }
+            },
+            {
+              "id": "sel_training_framework",
+              "kind": "training_framework",
+              "catalog_item_id": "cat.training_framework.fixture",
+              "catalog_item_version": "2026.10-demo",
+              "role": "primary",
+              "enabled": true,
+              "settings": {
+                "method": "lora",
+                "epochs": 3,
+                "batch_size": 2
+              }
+            },
+            {
+              "id": "sel_training_compute",
+              "kind": "training_compute",
+              "catalog_item_id": "cat.training_compute.fixture",
+              "catalog_item_version": "2026.10-demo",
+              "role": "primary",
+              "enabled": true,
+              "settings": {
+                "gpu_hours_budget": 25
+              }
+            },
+            {
+              "id": "sel_training_dataset",
+              "kind": "training_dataset",
+              "catalog_item_id": "cat.training_dataset.fixture",
+              "catalog_item_version": "2026.10-demo",
+              "role": "primary",
+              "enabled": true,
+              "settings": {
+                "train_split": 0.8,
+                "eval_split": 0.1,
+                "test_split": 0.1,
+                "redaction_enabled": true
+              }
+            },
+            {
+              "id": "sel_fine_tuned_model",
+              "kind": "fine_tuned_model",
+              "catalog_item_id": "cat.fine_tuned_model.fixture",
+              "catalog_item_version": "2026.10-demo",
+              "role": "primary",
+              "enabled": true,
+              "settings": {
+                "use_adapter": true
+              }
+            },
+            {
+              "id": "sel_guardrail",
+              "kind": "guardrail",
+              "catalog_item_id": "cat.guardrail.fixture",
+              "catalog_item_version": "2026.10-demo",
+              "role": "primary",
+              "enabled": true,
+              "settings": {
+                "enforcement": "block",
+                "failure_action": "fail_closed"
+              }
+            },
+            {
+              "id": "sel_evaluation_suite",
+              "kind": "evaluation_suite",
+              "catalog_item_id": "cat.evaluation_suite.fixture",
+              "catalog_item_version": "2026.10-demo",
+              "role": "primary",
+              "enabled": true,
+              "settings": {
+                "gate_required": true,
+                "minimum_score": 0.85
+              }
+            },
+            {
+              "id": "sel_deployment_target",
+              "kind": "deployment_target",
+              "catalog_item_id": "cat.deployment_target.fixture",
+              "catalog_item_version": "2026.10-demo",
+              "role": "primary",
+              "enabled": true,
+              "settings": {
+                "environment": "production",
+                "replicas_min": 1,
+                "replicas_max": 2,
+                "region": "us-east-fixture"
+              }
+            },
+            {
+              "id": "sel_monitoring_stack",
+              "kind": "monitoring_stack",
+              "catalog_item_id": "cat.monitoring_stack.fixture",
+              "catalog_item_version": "2026.10-demo",
+              "role": "primary",
+              "enabled": true,
+              "settings": {
+                "sample_rate": 0.1,
+                "retention_days": 30
+              }
+            },
+            {
+              "id": "sel_cost_policy",
+              "kind": "cost_policy",
+              "catalog_item_id": "cat.cost_policy.fixture",
+              "catalog_item_version": "2026.10-demo",
+              "role": "primary",
+              "enabled": true,
+              "settings": {
+                "monthly_budget_amount": "1000.00",
+                "enforce_hard_cap": true,
+                "notify_at_pct": 80
+              }
+            },
+            {
+              "id": "sel_model",
+              "kind": "model",
+              "catalog_item_id": "cat.model.fixture",
+              "catalog_item_version": "2026.10-demo",
+              "role": "primary",
+              "enabled": true,
+              "settings": {
+                "serving_mode": "weights",
+                "precision": "fp16",
+                "max_output_tokens": 512,
+                "temperature": 0.4
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "duplicate link IDs remain structural",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "links"
+          ],
+          "value": [
+            {
+              "id": "link.01",
+              "from_selection_id": "sel_model",
+              "to_selection_id": "sel_model_provider",
+              "relation": "provided_by"
+            },
+            {
+              "id": "link.02",
+              "from_selection_id": "sel_model",
+              "to_selection_id": "sel_context_policy",
+              "relation": "uses"
+            },
+            {
+              "id": "link.03",
+              "from_selection_id": "sel_compute_profile",
+              "to_selection_id": "sel_hosting_platform",
+              "relation": "runs_on"
+            },
+            {
+              "id": "link.04",
+              "from_selection_id": "sel_compute_profile",
+              "to_selection_id": "sel_accelerator",
+              "relation": "uses"
+            },
+            {
+              "id": "link.05",
+              "from_selection_id": "sel_model",
+              "to_selection_id": "sel_inference_engine",
+              "relation": "served_by"
+            },
+            {
+              "id": "link.06",
+              "from_selection_id": "sel_inference_engine",
+              "to_selection_id": "sel_compute_profile",
+              "relation": "runs_on"
+            },
+            {
+              "id": "link.07",
+              "from_selection_id": "sel_knowledge_base",
+              "to_selection_id": "sel_data_source",
+              "relation": "reads_from"
+            },
+            {
+              "id": "link.08",
+              "from_selection_id": "sel_rag_pipeline",
+              "to_selection_id": "sel_knowledge_base",
+              "relation": "reads_from"
+            },
+            {
+              "id": "link.09",
+              "from_selection_id": "sel_rag_pipeline",
+              "to_selection_id": "sel_embedding_model",
+              "relation": "uses"
+            },
+            {
+              "id": "link.10",
+              "from_selection_id": "sel_rag_pipeline",
+              "to_selection_id": "sel_vector_database",
+              "relation": "indexes_with"
+            },
+            {
+              "id": "link.11",
+              "from_selection_id": "sel_vector_database",
+              "to_selection_id": "sel_storage",
+              "relation": "stored_in"
+            },
+            {
+              "id": "link.12",
+              "from_selection_id": "sel_memory_store",
+              "to_selection_id": "sel_vector_database",
+              "relation": "stored_in"
+            },
+            {
+              "id": "link.13",
+              "from_selection_id": "sel_agent_framework",
+              "to_selection_id": "sel_rag_pipeline",
+              "relation": "uses"
+            },
+            {
+              "id": "link.14",
+              "from_selection_id": "sel_agent_framework",
+              "to_selection_id": "sel_tool",
+              "relation": "calls"
+            },
+            {
+              "id": "link.15",
+              "from_selection_id": "sel_agent_framework",
+              "to_selection_id": "sel_mcp_server",
+              "relation": "calls"
+            },
+            {
+              "id": "link.16",
+              "from_selection_id": "sel_mcp_server",
+              "to_selection_id": "sel_tool",
+              "relation": "exposes"
+            },
+            {
+              "id": "link.17",
+              "from_selection_id": "sel_integration",
+              "to_selection_id": "sel_tool",
+              "relation": "exposes"
+            },
+            {
+              "id": "link.18",
+              "from_selection_id": "sel_fine_tuned_model",
+              "to_selection_id": "sel_model",
+              "relation": "derived_from"
+            },
+            {
+              "id": "link.19",
+              "from_selection_id": "sel_fine_tuned_model",
+              "to_selection_id": "sel_training_dataset",
+              "relation": "trained_on"
+            },
+            {
+              "id": "link.20",
+              "from_selection_id": "sel_fine_tuned_model",
+              "to_selection_id": "sel_training_framework",
+              "relation": "uses"
+            },
+            {
+              "id": "link.21",
+              "from_selection_id": "sel_training_compute",
+              "to_selection_id": "sel_compute_profile",
+              "relation": "runs_on"
+            },
+            {
+              "id": "link.22",
+              "from_selection_id": "sel_training_dataset",
+              "to_selection_id": "sel_data_source",
+              "relation": "reads_from"
+            },
+            {
+              "id": "link.23",
+              "from_selection_id": "sel_deployment_target",
+              "to_selection_id": "sel_hosting_platform",
+              "relation": "runs_on"
+            },
+            {
+              "id": "link.24",
+              "from_selection_id": "sel_deployment_target",
+              "to_selection_id": "sel_model",
+              "relation": "deploys_to"
+            },
+            {
+              "id": "link.25",
+              "from_selection_id": "sel_agent_framework",
+              "to_selection_id": "sel_guardrail",
+              "relation": "secured_by"
+            },
+            {
+              "id": "link.26",
+              "from_selection_id": "sel_agent_framework",
+              "to_selection_id": "sel_evaluation_suite",
+              "relation": "evaluated_by"
+            },
+            {
+              "id": "link.27",
+              "from_selection_id": "sel_agent_framework",
+              "to_selection_id": "sel_monitoring_stack",
+              "relation": "observed_by"
+            },
+            {
+              "id": "link.01",
+              "from_selection_id": "sel_model",
+              "to_selection_id": "sel_model_provider",
+              "relation": "provided_by"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "unresolved relationship remains structural",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "links",
+            "0",
+            "to_selection_id"
+          ],
+          "value": "sel_absent"
+        }
+      ]
+    },
+    {
+      "name": "missing selection id",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "selections",
+            "0",
+            "id"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "missing selection kind",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "selections",
+            "0",
+            "kind"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "missing selection catalog_item_id",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "selections",
+            "0",
+            "catalog_item_id"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "missing selection catalog_item_version",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "selections",
+            "0",
+            "catalog_item_version"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "missing selection role",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "selections",
+            "0",
+            "role"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "missing selection enabled",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "selections",
+            "0",
+            "enabled"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "missing selection settings",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "selections",
+            "0",
+            "settings"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "unknown selection kind",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "selections",
+            "0",
+            "kind"
+          ],
+          "value": "unknown_kind"
+        }
+      ]
+    },
+    {
+      "name": "selection role invalid",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "selections",
+            "0",
+            "role"
+          ],
+          "value": "invalid role"
+        }
+      ]
+    },
+    {
+      "name": "selection enabled must be boolean",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "selections",
+            "0",
+            "enabled"
+          ],
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "name": "selection arbitrary version text",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "selections",
+            "0",
+            "catalog_item_version"
+          ],
+          "value": "opaque-version\n"
+        }
+      ]
+    },
+    {
+      "name": "selection empty notes and extensions",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "selections",
+            "0",
+            "notes"
+          ],
+          "value": ""
+        },
+        {
+          "op": "set",
+          "path": [
+            "selections",
+            "0",
+            "extensions"
+          ],
+          "value": {}
+        }
+      ]
+    },
+    {
+      "name": "selection private reference remains inert",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "selections",
+            "3",
+            "settings",
+            "credential_ref"
+          ],
+          "value": "secret://synthetic/private-build"
+        },
+        {
+          "op": "set",
+          "path": [
+            "selections",
+            "3",
+            "settings",
+            "weights_uri"
+          ],
+          "value": "file:///synthetic/private-build"
+        }
+      ]
+    },
+    {
+      "name": "invalid secret reference",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "selections",
+            "3",
+            "settings",
+            "credential_ref"
+          ],
+          "value": "raw-synthetic-private-build"
+        }
+      ]
+    },
+    {
+      "name": "invalid settings URI",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "selections",
+            "3",
+            "settings",
+            "weights_uri"
+          ],
+          "value": "not a URI"
+        }
+      ]
+    },
+    {
+      "name": "missing relationship id",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "links",
+            "0",
+            "id"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "missing relationship from_selection_id",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "links",
+            "0",
+            "from_selection_id"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "missing relationship to_selection_id",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "links",
+            "0",
+            "to_selection_id"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "missing relationship relation",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "remove",
+          "path": [
+            "links",
+            "0",
+            "relation"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "relationship required false",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "links",
+            "0",
+            "required"
+          ],
+          "value": false
+        }
+      ]
+    },
+    {
+      "name": "relationship required null",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": [
+            "links",
+            "0",
+            "required"
+          ],
+          "value": null
+        }
+      ]
+    },
+    {
+      "name": "number-revision-fraction",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["revision"],
+          "value": 1.0000000000000001
+        }
+      ]
+    },
+    {
+      "name": "number-dependency-revision-fraction",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["locks","dependency_graph_revision"],
+          "value": 1.0000000000000001
+        }
+      ]
+    },
+    {
+      "name": "number-requests-fraction",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["objectives","requests_per_day"],
+          "value": 1.0000000000000001
+        }
+      ]
+    },
+    {
+      "name": "number-input-tokens-fraction",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["objectives","avg_input_tokens"],
+          "value": 1.0000000000000001
+        }
+      ]
+    },
+    {
+      "name": "number-output-tokens-fraction",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["objectives","avg_output_tokens"],
+          "value": 1.0000000000000001
+        }
+      ]
+    },
+    {
+      "name": "number-concurrency-fraction",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["objectives","max_concurrency"],
+          "value": 1.0000000000000001
+        }
+      ]
+    },
+    {
+      "name": "number-latency-fraction",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["objectives","max_latency_ms"],
+          "value": 1.0000000000000001
+        }
+      ]
+    },
+    {
+      "name": "number-revision-wide-fraction",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["revision"],
+          "value": 9007199254740992.1
+        }
+      ]
+    },
+    {
+      "name": "number-revision-below-minimum",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["revision"],
+          "value": 0.99999999999999999999
+        }
+      ]
+    },
+    {
+      "name": "number-negative-input-underflow",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["objectives","avg_input_tokens"],
+          "value": -1e-9999
+        }
+      ]
+    },
+    {
+      "name": "number-revision-integral-decimal",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["revision"],
+          "value": 1.0
+        }
+      ]
+    },
+    {
+      "name": "number-revision-integral-exponent",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["revision"],
+          "value": 1000e-3
+        }
+      ]
+    },
+    {
+      "name": "number-revision-wide-integral-exponent",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["revision"],
+          "value": 1e40
+        }
+      ]
+    },
+    {
+      "name": "number-revision-wide-integer",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["revision"],
+          "value": 9007199254740993
+        }
+      ]
+    },
+    {
+      "name": "number-zero-input-decimal",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["objectives","avg_input_tokens"],
+          "value": -0.0
+        }
+      ]
+    },
+    {
+      "name": "number-selection-integral-decimal",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["selections","0","settings","concurrency"],
+          "value": 1.0
+        }
+      ]
+    },
+    {
+      "name": "number-selection-integral-exponent",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["selections","4","settings","requested_context_tokens"],
+          "value": 1000e-3
+        }
+      ]
+    },
+    {
+      "name": "number-selection-zero-exponent",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["selections","4","settings","reserved_output_tokens"],
+          "value": -0e-4
+        }
+      ]
+    },
+    {
+      "name": "number-selection-workload-fraction",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["selections","0","settings","concurrency"],
+          "value": 1.0000000000000001
+        }
+      ]
+    },
+    {
+      "name": "number-selection-context-fraction",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["selections","4","settings","requested_context_tokens"],
+          "value": 1.0000000000000001
+        }
+      ]
+    },
+    {
+      "name": "number-selection-model-fraction",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["selections","3","settings","max_output_tokens"],
+          "value": 1.0000000000000001
+        }
+      ]
+    },
+    {
+      "name": "number-selection-negative-count-underflow",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["selections","0","settings","requests_per_day"],
+          "value": -1e-9999
+        }
+      ]
+    },
+    {
+      "name": "number-temperature-above-maximum",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["selections","3","settings","temperature"],
+          "value": 2.0000000000000001
+        }
+      ]
+    },
+    {
+      "name": "number-top-p-above-maximum",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["selections","3","settings","top_p"],
+          "value": 1.0000000000000001
+        }
+      ]
+    },
+    {
+      "name": "number-dataset-split-above-maximum",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["selections","22","settings","train_split"],
+          "value": 1.0000000000000001
+        }
+      ]
+    },
+    {
+      "name": "number-storage-negative-underflow",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["selections","9","settings","provisioned_gb"],
+          "value": -1e-9999
+        }
+      ]
+    },
+    {
+      "name": "number-top-p-tiny-positive",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["selections","3","settings","top_p"],
+          "value": 1e-400
+        }
+      ]
+    },
+    {
+      "name": "number-learning-rate-tiny-positive",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["selections","20","settings","learning_rate"],
+          "value": 1e-400
+        }
+      ]
+    },
+    {
+      "name": "number-score-large-finite",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["selections","25","settings","minimum_score"],
+          "value": 1e400
+        }
+      ]
+    },
+    {
+      "name": "number-temperature-zero-exponent",
+      "expected": "decoded",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["selections","3","settings","temperature"],
+          "value": -0e-4
+        }
+      ]
+    },
+    {
+      "name": "number-selection-tiny-fraction",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["selections","0","settings","concurrency"],
+          "value": 1e-400
+        }
+      ]
+    },
+    {
+      "name": "number-selection-below-minimum",
+      "expected": "schema_mismatch",
+      "operations": [
+        {
+          "op": "set",
+          "path": ["selections","0","settings","concurrency"],
+          "value": 0.99999999999999999999
+        }
+      ]
+    }
+  ]
+}

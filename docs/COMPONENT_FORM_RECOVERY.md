@@ -4,12 +4,21 @@ This is a bounded native-preview continuation of
 [#76](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/76),
 [#98](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/98) and
 [#112](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/112).
-It preserves unfinished local add/settings/role input when Android supplies saved
-Activity state. Canonical receiving paths and the broader work-package criteria
+It preserves unfinished local add/settings/role input during Activity backgrounding
+and when Android supplies saved Activity state. Canonical receiving paths and the broader work-package criteria
 remain unchanged. The catalog is still synthetic, and a locally saved component
 does not establish compatibility, pricing, deployment requirements or readiness.
 
 ## User behavior and authority
+
+When the Activity pauses, it captures the current form through the same bounded
+checkpoint serializer, including its in-flight flag and the typed context/model
+policies. It then detaches every dialog and form owner before closing the windows.
+Retained entry, picker, confirmation and form controls cannot dispatch a write or
+replace pending input while paused, and retired controls remain inert after resume.
+Resuming refreshes availability without reopening a window or restoring consent.
+Pending editable input still requires explicit review; pickers and confirmations
+without editable input are simply retired.
 
 After recreation, the old dialog is closed. **Review pending component input**
 opens a fresh form only when the original local draft ID, acknowledged revision
@@ -76,6 +85,59 @@ and [Parcelables and bundles](https://developer.android.com/guide/components/act
 The preview adds no disk checkpoint, backup entitlement, transport, automatic
 clipboard access, intent route or migration. Do not enter provider credentials.
 
+## URI user information in newly captured settings
+
+This additional [#99](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/99)
+slice applies when an open **Add** or **Edit settings** form is captured into new
+Activity state, before or after a rejected commit and while a submitted operation
+is still in flight. It uses the form's original catalog/selection kind, including
+when another writer has changed the saved baseline. It never looks up a newer
+selection to classify the old text. Role-only capture is unchanged.
+
+After the existing combined 20,000-character and identity bounds, the
+[recovery policy](../core/src/main/kotlin/ai/pickyour/core/preview/PreviewSelectionRecoveryPolicy.kt)
+checks only the five URI fields in the existing
+[new-input policy](../core/src/main/kotlin/ai/pickyour/core/preview/PreviewSelectionSensitiveInput.kt):
+`model_provider.api_base_url`, `model.weights_uri`, `mcp_server.endpoint`,
+`integration.endpoint` and `fine_tuned_model.artifact_uri`. A successfully parsed
+URI whose raw hierarchical authority contains `@` is positively classified. This
+includes registry authorities. Custom schemes and `@` in a path, query, fragment
+or opaque URI retain their exact meaning. The policy does not enable another
+editor kind or inspect arbitrary fields, opaque credential references or query
+values for possible secrets.
+
+The classifier uses the existing bounded JSON reader with a caller-specific
+20,000-character string limit and 65,536-byte input limit. Its other structural,
+Unicode and numeric bounds remain unchanged. This lets it recognize a complete
+URI between the editor's 16,384-character limit and the recovery limit. Input
+over the combined recovery budget becomes the existing generic unavailable
+marker before classification; no valid prefix is parsed or retained. Malformed
+JSON, malformed URI syntax, wrong field types, duplicate keys and other parser
+rejections remain **unclassified** and keep ordinary invalid-text recovery.
+Admission remains fail-closed under its original schema and editor limits.
+
+A positive classification replaces the new checkpoint with exactly
+`version=1`, `unavailable=true`, `reason="uri_userinfo"`. It carries no entered
+text or draft, selection or catalog identity. A distinct fixed message explains
+why input was excluded and asks the user to check the saved draft; it never
+claims that an in-flight operation failed. Review is unavailable and explicit
+Discard permits another edit. Repeated recreation/resaving preserves only that
+fixed marker. Older readers already treat it as unavailable, while unknown or
+malformed reasons remain generic unavailable state. Both settings forms disclose
+this capture exclusion before their fields.
+
+Saving a checkpoint while the Activity remains resumed does not clear or alter
+the still-open editor. The user can correct its input and explicitly commit once
+in that form. Pausing instead retires the form after capture; any retained input
+then follows the explicit review or unavailable-marker flow. Restoring the marker
+prepares no command, changes no saved revision and never retries an uncertain
+write. This is not a migration or redactor for existing recovery state: legacy
+version-1/2 `Pending` records remain readable and can be resaved with their exact
+raw content, including in stale/read-only or in-flight recovery. Malformed or
+otherwise unclassified new text can also remain. Saved history, role-only edits,
+private archives and future export/disclosure requirements are unchanged; this
+does not complete #99 or establish a general credential-free checkpoint contract.
+
 ## Validation and remaining acceptance
 
 `ComponentFormRecoveryActivityTest` drives actual platform Views, the serial
@@ -89,12 +151,29 @@ through `Parcel` marshalling and unmarshalling before the new Activity consumes
 them. The cancellation test waits for Android's posted standard dismissal before
 asserting completed cancellation.
 
-`ComponentFormCheckpointTest` has four required cases covering maximum Unicode
+`ComponentFormCheckpointTest` retains its four original required cases covering maximum Unicode
 input including supplementary characters, separators and NUL; malformed types,
 versions and modes; a non-truncating oversized marker; and configure/in-flight
 shape preservation. The maximum-input specimen must serialize below 48 KiB for
 the component checkpoint alone. This is a simulated measurement assertion, not
 an installed device or whole-Activity Binder guarantee.
+
+Two additional container cases cover exact value-free exclusion/resaving and
+unknown or malformed marker reasons. `ComponentFormUserinfoRecoveryActivityTest`
+adds fourteen actual Activity-capture simulations: open/rejected add and
+configure, in-flight capture, repeated exclusion/discard, stale configure,
+same-process correction with one explicit save, complete long URI and over-budget
+boundaries, ordinary invalid text, legitimate URI/opaque-reference controls and
+legacy read-only raw resaving. A separate queued-preparation case keeps a test
+barrier held through old-Activity destruction and replacement-Activity creation,
+observes shutdown interruption, then releases it explicitly and checks that
+retired controls cannot write. This is queued preparation retirement, not a
+claim that a storage write was already executing. The causal baseline uses the original thirteen test
+methods on unchanged product source; its eight proposed exclusion cases fail
+and its five compatibility controls pass. This is additional privacy hardening,
+not a claim that the earlier raw recovery contract already excluded such input.
+The separate Core policy suite exercises all five frozen fields, exact authority
+semantics, parser boundaries and unchanged admission behavior.
 
 The original baseline regression failed because recreation had no pending-input
 review action; the new implementation must pass it and all current main tests.
@@ -102,6 +181,15 @@ The hosted workflow additionally requires every new case by exact suite/name,
 unique identities, matching report totals and no failure, error or skip. Strict
 dependency verification, unsigned assembly, lint, source/artifact inventory and
 independent receiving review remain merge gates.
+
+The additional role and typed-model pause regressions replay retained positive
+buttons, picker callbacks and recovery controls across an actual simulated
+`Activity.pause()`/`resume()` pair. They require unchanged acknowledged components
+and revision before a fresh reviewed confirmation, exact bounded input recovery,
+and one explicit new revision. A separate picker/confirmation case retains no
+editable checkpoint and checks that resume never restores the earlier consent.
+These simulations also keep already admitted writes and their in-flight recovery
+separate from attempts to dispatch a new write after pause.
 
 Actual installed system process death, recovery across the supported device and
 OS matrix, complete navigation/secure-entry routing, physical persistence faults,

@@ -11,10 +11,11 @@ acceptance, publisher registration, device qualification and release remain
 separate gates in the [repository scope](REPOSITORY_SCOPE.md).
 
 The current diagnostic browses the unmodified frozen-v1 catalog and supports typed
-draft editing, explicit local save/reopen, a local library, retained history and
-read-only comparison and report inspection. The fixture diagnostics operate on
-the original bundled inputs; they do not evaluate the edited guest draft, whose
-compatibility remains **unknown**. Fixtures are bundled directly from the verified
+draft editing, automatic valid-form saves, explicit save/reopen, a local library, retained history and
+read-only comparison and report inspection. The fixture inspections operate on
+the original bundled inputs. The separate [saved-draft check receiver](CURRENT_DRAFT_REEVALUATION.md)
+reevaluates actual acknowledged typed draft inputs against those synthetic pins;
+whole-draft compatibility remains **unestablished**. Fixtures are bundled directly from the verified
 import, never copied into a real catalog. There is no real-data mode or promotion
 path, account, network, import or telemetry. Release variants are disabled.
 
@@ -24,9 +25,42 @@ Activity discards worker results. An explicit saved-state Bundle carries bounded
 pending inputs, draft identity, the acknowledged baseline and exact catalog pins;
 the catalog and durable state are reloaded after recreation. A missing exact
 selection is shown as unavailable, never silently replaced. Bundle restoration
-does not acknowledge persistence. Explicit Save uses the canonical revision
+does not acknowledge persistence. Automatic form saves and explicit Save use the canonical revision
 store; the local library and recovery flows below retain their own validation
-limits. Autosave and installed process-death qualification remain separate.
+limits. The [autosave continuation](AUTOSAVE_REVIEW.md) records its captured-input,
+failure and recreation boundaries; installed process-death qualification remains separate.
+
+## Core planning guidance (#41 / #52, partial)
+
+The editable draft keeps guardrail, evaluation, deployment, monitoring and
+cost-policy planning visible when T3–T5 are disabled. The panel reports enabled
+and disabled choices from one saved revision. Unsaved edits are identified;
+loading or unavailable storage withholds old counts rather than treating them as
+missing choices. Each area describes the next configuration step and the evidence
+or external action that remains unestablished.
+
+Each browse action opens its exact frozen T6 kind, clears conflicting catalog
+search/facets and preserves the sort order. It neither selects a component nor
+changes pending fields, saved history or catalog pins. The existing synthetic
+catalog and remaining T6 product/evidence scope remain explicit. Recorded configuration
+does not establish measured safety/quality, executed deployment, active monitoring,
+price coverage or an enforced spending limit.
+The [guardrail/evaluation forms](GUARDRAIL_EVALUATION_SELECTIONS.md) and
+[operational forms](OPERATIONAL_SELECTIONS.md) admit the exact five frozen kinds
+through the existing explicit controls. Their seventeen optional settings retain
+requested values, independent of T3–T5 intent, without completing per-mode
+readiness, detailed export, approvals or operational execution.
+
+`PreviewT6GuidanceTest` defines core registry, optional-tier and recorded-state
+regressions; `T6PlanningActivityTest` adds five named lifecycle, navigation and
+large-text/RTL cases to the existing simulated UI task and execution guard.
+Passing execution must be established by the corresponding test reports.
+The implementation follows Android's [Views accessibility guidance](https://developer.android.com/guide/topics/ui/accessibility/views/principles-views)
+for labelled system controls and section headings (source reviewed 2026-10-18).
+That source review is limited to these controls; it is not a TalkBack or device test. This
+slice adds no measured-result receiver, saved/shared evidence attachment,
+provisioning or production service. Full #41/#52 receiving criteria, installed
+Android/TalkBack and release evidence remain separate; acceptance paths are unchanged.
 
 ## Reproduce
 
@@ -50,9 +84,11 @@ unregistered experimental identity `ai.pickyour.android.preview`. Debug signing
 is disabled: this unsigned build creates no key and cannot be installed directly. Do not
 publish this diagnostic as the product.
 
-After separately authorized signing with existing suitable debug material,
-on an available emulator/device install using `adb install -r` and explicitly
-launch the diagnostic. Verify the synthetic notice, validation result, font
+The [installed-emulator CI lane](EMULATOR_SMOKE.md) signs a separate temporary copy
+with a disposable test certificate and installs only into its newly created AVD.
+Its source and observed run receipt define the bounded automated cases. For
+separately authorized manual device testing, use suitable diagnostic signing
+material and explicitly install/launch the diagnostic. Verify the synthetic notice, validation result, font
 scaling, TalkBack order/announcements, keyboard access, RTL, system insets,
 rotation, backgrounding and repeated validation. A successful build or lint check
 alone does not establish those results.
@@ -202,7 +238,7 @@ Lint reported no issues. The frozen hash verifier and 21 Python reference tests
 also passed. No rendered-device, TalkBack or installation result is claimed.
 
 
-## Explicit local guest save and reopen
+## Local guest save and reopen
 
 The guest form now uses [PreviewDraftPersistence](../core/src/main/kotlin/ai/pickyour/core/preview/PreviewDraftPersistence.kt)
 over the canonical `LocalDraftStore`; no second persistence engine, shared Draft
@@ -214,23 +250,31 @@ Missing version/hash stays unresolved, and catalog replacement never silently
 selects a new version. The sample is displayed as unavailable until the user
 explicitly selects a current sample or clears the form.
 
-Save is explicit, not autosave. The UI displays saving only during the worker
-transaction and saved only after `PreviewDraftSave.Saved`. All edits/selection
-controls are temporarily disabled during load/save; duplicate saves are disabled.
-The single worker serializes IO. Failure preserves visible fields; stale tokens
-block saving until explicit reopen, and uncertain outcomes require reread before
-retry. Reopen requires confirmation before replacing the visible unsaved form.
-Clear modifies the form only; a later Save commits an empty form as a new revision
-and retains old history. Unsupported/corrupt persisted formats are never reset.
-History/size exhaustion has distinct feedback and never trims revisions silently.
+Valid form edits schedule a save after 750 milliseconds without another edit;
+**Save locally** commits them immediately. An unedited missing draft is not
+automatically created. The same single worker performs canonical persistence.
+The UI displays saving while the write is pending and saved only after
+`PreviewDraftSave.Saved` matches the currently visible complete form. Title,
+objective, context and workload inputs remain editable during a form save. Newer
+inputs stay visibly unconfirmed and are queued using the acknowledged baseline
+only after success. Navigation and explicit domain commands stay disabled during
+that write; load/domain operations still freeze form editing.
+
+Failure preserves visible fields and pauses automatic retries. The pause survives
+recreation; an explicit Save retries a known failed write. Stale or uncertain
+authority requires confirmed reopen before any retry. Reopen replaces the visible
+form only after confirmation and a successful load. Clear and history form-copy
+are ordinary pending edits; their valid complete form is saved after the pause or
+by Save locally. Old history remains retained. Unsupported/corrupt formats are
+never reset, and history/size exhaustion never silently trims earlier revisions.
 
 On recreation the form's small Bundle preserves pending fields; disk load establishes
 which fields are actually acknowledged. Bundle restoration is never itself a saved
 acknowledgment. Destroyed activities ignore worker callbacks. Interrupted storage
 may return failure/uncertainty; the next load reopens the canonical head. Unsaved
 edits can still be lost if Android stops the app without saved-instance restoration;
-this limitation is visible. Rapid editing, autosave and full draft-library workflow
-remain separate acceptance work rather than a promised no-loss property.
+this limitation is visible. The new [autosave source/tests](AUTOSAVE_REVIEW.md)
+do not establish installed process-death recovery or a general no-loss property.
 
 Root initialization runs off the UI thread. It synchronizes the platform-managed
 app-data parent after requesting the no-backup directory, creates the dedicated
@@ -262,12 +306,38 @@ PR head; emulator/device, TalkBack, rotation and process-termination flows remai
 unexecuted until an instrumented installation is actually tested. This change does
 not generate a signing key or install/release an app.
 
-Partial criteria: #86 local open/save and recovery; #67 canonical storage integration;
+Historical explicit-save slice: #86 local open/save and recovery; #67 canonical storage integration;
 #122 acknowledgment and retained pending fields; #76 lifecycle restoration. Still
-missing are recoverable draft deletion, autosave/domain revision UI,
+missing at that earlier source checkpoint were recoverable draft deletion, autosave/domain revision UI,
 retention UX, installed-process-death evidence and receiving acceptance. Canonical
 records remain `11.01.md`, `12.01.md`, `08.06.md` and `02.03.md` under the existing
 website Android work-package path. No issue closes.
+
+### Typed guidance when a local draft cannot be opened
+
+The active-draft load screen uses the existing typed storage failure to explain
+the recovery requirement. An unsupported local or preview format requires a
+compatible reader; unverified or malformed retained data requires a readable
+copy; a read-limit failure requires a reader supporting the retained size and
+format. None of these messages promises an available app update, changes the
+stored data or enables saving. The existing library action can open another
+local draft through its own confirmation flow. Temporary or unclassified read
+failures retain the explicit Reopen saved copy retry.
+
+`DraftLoadRecoveryActivityTest` exercises five simulated Android cases using
+real canonical files: a future local envelope, future preview metadata,
+hash-corrupt retained bytes, missing required form metadata and a busy store
+lock. The cases check pending text, selected sample and local draft identity;
+failed loads, attempted disabled saves, explicit failed retries and recreation
+must preserve the seeded file hashes. Releasing the busy lock alone does not
+retry; an explicit successful reopen uses the same saved baseline. CI requires
+all five named cases to execute without failures or skips.
+
+This is a bounded contribution to #81's unavailable-version and local-failure
+guidance. #58's typed asynchronous architecture, broader loading/offline,
+permission/server/conflict states, Android UX/accessibility receiving review
+and the canonical `06.05.md` acceptance record remain separate. Simulated
+Android tests do not establish installed-device or complete #81 acceptance.
 
 ## Retained guest form history
 
@@ -277,9 +347,9 @@ or unsupported private guest metadata is shown as unavailable; it is not replace
 with an empty or current form. Migrated missing earlier history remains unavailable.
 
 Choosing a usable entry asks before replacing unsaved form edits. Confirmation
-copies only its guest fields into the editor, with no storage side effect. The user
-must explicitly Save locally to append a new EDIT using the current expected-head
-token. Existing domain content and current unrelated metadata stay intact. This is
+copies only its guest fields into the editor. A subsequent automatic or explicit
+form save appends a new EDIT using the current expected-head token. Existing
+domain content and current unrelated metadata stay intact. This is
 not canonical domain RESTORE, a report/price replay, or a complete revision editor.
 A dialog whose captured baseline was superseded by another in-Activity operation
 cannot copy into the editor; a different writer still fails the canonical save CAS.
@@ -418,7 +488,8 @@ snapshot validation. No issue acceptance or device qualification is claimed.
 
 Partial #122 integration now exposes a separate **Review domain restore** action
 from a supported retained history entry. The existing **Copy form to editor**
-operation still copies title/sample only and requires a later explicit save.
+operation still copies title/sample only and requires a subsequent automatic or
+explicit form save.
 Domain restore instead previews retained objective/context, opaque primary-model
 input and optional-tier activation/selection/setting counts. Its second explicit
 confirmation commits `LocalDraftStore.restore` with the original loaded token.
@@ -748,8 +819,8 @@ and the current draft remain unchanged.
 
 These are bounded in-memory fixture pages, not a remote pagination protocol. API
 cursor contracts, cancellable remote search, next-page network failure/retry,
-reverse-order transport responses, real catalog publication/labels, exact pixel
-scroll restoration and installed navigation/accessibility/process-death evidence
+reverse-order transport responses, real catalog publication/labels and installed
+navigation/accessibility/process-death evidence
 remain separate #82 acceptance work. The generic catalog-loading worker applies
 the current query state when a fixture read finishes, so an earlier query cannot
 append rows into a newer query. No search request is sent to a service and no
@@ -928,3 +999,32 @@ Lint retained zero errors and nine warning entries across the same three kinds.
 Frozen/reference and delivery-ledger checks passed. Hosted exact-head verification,
 reviewed signed delivery, installed-device evidence and complete work-package
 acceptance remain separate; these observations do not close a delivery criterion.
+
+[Catalog viewport restoration](CATALOG_VIEWPORT.md) supplies the bounded local
+list-position portion of #82 criterion 3. The Activity retains the first visible
+catalog row's exact ID, version, snapshot hash and offset in transient Bundle
+state. After the same snapshot and current layout load, it restores that row once;
+new navigation cancels a pending restoration. Twelve required simulated tests cover
+the actual Activity's details/recreation path and the restoration, mismatch,
+loading, lifecycle and input boundaries. Installed navigation, accessibility,
+process-death and canonical receiving evidence remain separate requirements.
+
+## Recorded resource input inspection
+
+The [resource inspection guide](RECORDED_RESOURCE_INSPECTION.md) describes the explicit
+synthetic Build/ResourceEstimate reader and complete native field browser. It keeps
+all applicability limits, recorded conditions and the separate guest autosave authority
+visible; it produces no accepted capacity or memory-fit result.
+
+## Complete recorded cost inspection
+
+The [complete cost browser](COMPLETE_COST_INSPECTION.md) makes every retained
+fixed-example line, assumption, warning, reference and input value reachable
+behind the existing bounded summary. New request/window identities and Activity
+pause/destroy retirement fence canceled or replaced reads and controls. The
+canonical cost adapter and formatter retain exact declared values and unestablished
+freshness/free/included/budget status; guest input, autosave and current-draft
+evaluation remain separately owned. The workflow requires all 21
+`CostInspectionActivityTest` cases and all 8 `CostSiblingInspectionActivityTest`
+cases; actual source/execution receipts and installed/physical/release results
+remain distinct. Partial refs #103.
