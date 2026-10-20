@@ -88,3 +88,36 @@ rights, secret storage/resolution, connector execution, synchronization, freshne
 real catalog data, installed-device accessibility or process-death durability.
 Broader #99/#127 and the work-package's literal acceptance, record placement,
 review, device and release criteria remain open.
+
+## Separate installed configure/save/reopen preparation
+
+A subsequent five-file harness change adds
+`typed_data_source_acknowledged_save_survives_force_stop` to the installed
+synthetic lane described in [EMULATOR_SMOKE.md](EMULATOR_SMOKE.md). This is a
+source protocol, not a claimed passing execution of this feature.
+
+The proposed case creates and captures an actual draft and Selection through
+the existing ADD form, then opens this typed CONFIGURE editor. It observes all
+three fields omitted, supplies exact refresh text `60`, chooses inner
+`enabled=true`, and leaves `connector_secret_ref` omitted and outer
+`Selection.enabled=false`. It requires the existing changed-selection
+acknowledgment only after the exact form and Commit control retire. The existing
+force-stop/relaunch helper must observe a different process ID; reopening must
+retain the same actual draft ID, Selection ID, complete displayed row and
+configured values.
+
+Omission is established through the current unchecked Supply control, disabled
+adjacent editor and exact hint `Optional; supply explicitly`, not by treating
+the accessibility hint as entered text. The inner choice uses the actual Material
+single-choice rows. The outer `Enable selection` action is observed without
+activating it. The receipt retains the three phase observations and separate save
+and reload acknowledgments; a passing label alone is rejected.
+
+These observations exercise the production managed save and reader through
+visible installed controls. They do not directly inspect private storage bytes,
+resolve a secret reference, execute a connector, prove general numeric storage
+representation or establish physical-device/accessibility acceptance. The four
+existing installed cases and 25-minute cap are preserved. Runtime fit of the
+additional journey remains unproved until its own actual execution. This
+preparation does not close #99/#127 or assign an earlier generic installed pass
+to the new typed journey.

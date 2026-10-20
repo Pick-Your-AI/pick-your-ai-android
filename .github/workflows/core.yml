@@ -3578,7 +3578,7 @@ jobs:
           test -x "$ANDROID_HOME/build-tools/35.0.0/aapt"
           test -x "$ANDROID_HOME/build-tools/35.0.0/apksigner"
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'system-images;android-35;default;x86_64'
-      - name: Exercise the unchanged cases under one temporary original-user KVM ACL
+      - name: Exercise five installed cases under one temporary original-user KVM ACL
         run: /usr/bin/python3 -I scripts/android_kvm_acl.py --run
       - name: Verify or finish the exact owned ACL restoration
         if: always()
@@ -3604,7 +3604,7 @@ jobs:
                   receipt["unsigned_apk_sha256"] == context["unsigned_apk_sha256"] and
                   receipt["emulator_binary_sha256"] == boundary["emulator_package"]["binary_sha256"],
                   "The boundary and installed receipts must identify the same source, APK and emulator binary")
-          print("All four installed AOSP-emulator cases passed with the exact original KVM ACL restored; physical-device acceptance remains separate")
+          print("All five installed AOSP-emulator cases passed with the exact original KVM ACL restored; physical-device acceptance remains separate")
           PYSMOKE
       - name: Retain installed-emulator observations
         if: always()
