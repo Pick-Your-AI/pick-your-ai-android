@@ -48,6 +48,12 @@ jobs:
         run: |
           python scripts/check_conformance_fixtures.py
           python -m unittest discover -s scripts/tests -p 'test_conformance_fixtures.py' -v
+      - name: Verify typed comparison input and receipt guards
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          python -m unittest discover -s scripts/tests -p 'test_typed_comparison_fixtures.py' -v
+          python -O -m unittest discover -s scripts/tests -p 'test_typed_comparison_fixtures.py' -v
       - name: Verify runtime SPDX mapping and stale-evidence guards
         run: python -m unittest discover -s scripts/tests -p 'test_runtime_sbom.py' -v
       - name: Check wrapper integrity
@@ -581,6 +587,10 @@ jobs:
         run: |
           mkdir -p build/conformance
           python scripts/check_conformance_fixtures.py --reports core/build/test-results/test --exit-code 0 --output build/conformance/qualified.json
+      - name: Require exact typed comparison outcomes and admission cases
+        run: |
+          mkdir -p build/conformance
+          python scripts/check_typed_comparison_fixtures.py --reports core/build/test-results/test --test-exit-code 0 > build/conformance/typed-comparison-qualified.json
       - name: Reject ignored packaged contract schemas
         run: python scripts/check_runtime_inventory_guards.py
       - name: Require actual inventory producer to reject Git replacement objects
