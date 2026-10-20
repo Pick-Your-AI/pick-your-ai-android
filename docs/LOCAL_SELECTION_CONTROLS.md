@@ -35,6 +35,14 @@ Its twelve optional deployment, monitoring and cost settings remain declared
 inputs. Approval, capacity, observation, price coverage and runtime actions still
 require separate evidence; one shared planning panel retains that distinction.
 
+The [typed hosting-platform settings editor](HOSTING_PLATFORM_SETTINGS_EDITOR.md)
+adds a bounded existing-`hosting_platform` CONFIGURE form for partial
+[#99](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/99). It preserves
+literal region text, opaque account references and the optional frozen network
+isolation choice through the same complete Selection and managed revision path.
+These are declared settings; no account, region or network is verified. Raw ADD,
+legacy raw Configure recovery and the other typed editors retain their routes.
+
 The saved-component section exposes a separate exact-fixture component chooser.
 It does not reinterpret the old guest sample-selection metadata as a typed domain
 selection. Every listed item keeps its exact kind, catalog ID, version and captured
@@ -170,3 +178,11 @@ unchanged. Omission, allowed zero, exact admitted nodes, whole-selection CAS,
 no-op revisions and private reviewed recovery remain distinct. Raw ADD and
 legacy raw CONFIGURE recovery are preserved. See
 [the workload Selection editor guide](WORKLOAD_SELECTION_SETTINGS_EDITOR.md).
+
+Fresh **Edit settings** for `deployment_target` now uses
+[five explicit typed controls](DEPLOYMENT_TARGET_SETTINGS_EDITOR.md). Environment
+remains a frozen checked choice, replica counts retain exact optional integers,
+and Region and Approval ticket reference retain literal strings including an
+explicitly supplied empty value. Raw Add and legacy raw Configure recovery stay
+on their existing paths. The form preserves original identity, foreground and
+managed-save authority; it supplies no deployment, capacity or approval verdict.
