@@ -9,7 +9,15 @@
     "first_disconnect_utc": "2026-10-20T14:41:00Z",
     "last_probe_utc": "2026-10-20T15:01:15Z",
     "error": "409 Conflict environment_offline: Environment is not connected",
-    "approval_rejection": false
+    "approval_rejection": false,
+    "final_probe": {
+      "started_at_utc": "2026-10-20T15:13:48Z",
+      "ended_at_utc": "2026-10-20 15:15:09 UTC",
+      "status": "terminated_without_response",
+      "recovery_established": false,
+      "last_definitive_error": "409 environment_offline: Environment is not connected",
+      "last_definitive_probe_utc": "2026-10-20T15:01:15Z"
+    }
   },
   "delivered": {
     "evaluation": {
@@ -144,7 +152,8 @@
       },
       "expected_source_paths": 36,
       "expected_added_paths": 32,
-      "expected_edited_paths": 4
+      "expected_edited_paths": 4,
+      "expected_counts_are_only_for_historical_af6_base": true
     }
   },
   "native_review": {
@@ -166,5 +175,15 @@
     "Fresh final source CI and signed protected delivery",
     "Main synchronization",
     "Whole issue criteria including actual workloads, hardware, accessibility and operational acceptance where required"
-  ]
+  ],
+  "receiving_main_observation": {
+    "observed_at_utc": "2026-10-20T15:08:48Z",
+    "commit": "6ebb0e4a30529afc82abb84a5ad741ec1557235f",
+    "tree": "5c86b32c6fcee072a289c4ee8a4d2d1994956c40",
+    "parent": "af6abfc95ab227ac005a82488a6b4762f0ba4f6e",
+    "signature_verified": true,
+    "title": "docs(delivery): reconcile accepted Android #100 and Core CI budget (#747)",
+    "inspection_scope": "Commit metadata only; no original evidence or source acquired.",
+    "implication": "The composition proposal's af6 base is historical. Include the current accepted main changes and independently review the resulting composition before publication."
+  }
 }
