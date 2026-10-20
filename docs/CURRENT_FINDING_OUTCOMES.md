@@ -188,6 +188,37 @@ and their existing attendance guard stay unchanged. This corrects the obsolete
 text oracle; it does not permit provisional guidance for an unknown finding or
 change product behavior. Fresh configured execution remains required.
 
+### Corrected-stage Preview result and Core fixture compilation
+
+Source `70128ee5896557fe0053518c0e17f9e0c71c6154` (tree
+`595c417563cee92ff1312e8d7d093bc982bf4d43`) ran through signed preparation
+`ad942cc654449b88bf0ce9b5a8106303eecb4ea8` with the identical tree. Its
+[Preview job](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39452570403/job/118730973390)
+passed the strict Gradle command and all later configured steps. The
+[source-bound original receipt](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/752#issuecomment-6295381457)
+records all 95 successful steps and 85 exact executed shell bodies, including
+the strict five-method outcome-meaning and seven-method provisional-guidance
+attendance gates. This qualifies the corrected Preview text assertions on that
+source; it does not execute the eight new Core methods.
+
+The same preparation's
+[Core job](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39452570403/job/118730972788)
+passed retained-profile verification and compiled production, then failed
+`:core:compileTestKotlin` at `DraftCurrentUnknownPhaseTest.kt:34:41`:
+`No type arguments expected for fun deepCopy(): ObjectNode!.`
+The rules fixture's `template` already has type `ObjectNode`, whose
+`deepCopy()` override takes no type argument. The earlier copy from a
+`JsonNode` receiver remains a separate, unchanged generic call.
+
+The correction removes only `<ObjectNode>` from that typed-template call.
+All eight test identities, assertions, budget controls, producer code, profile
+pin and workflow programs remain unchanged. No Core Kotlin tests ran in the
+failed attempt, so none of the eight new methods has passing execution evidence
+from it. Their corrected source still requires its own configured compilation
+and execution. The successful Preview and failed Core originals remain
+attributed to `70128ee5`/`ad942cc6`; neither is relabelled as the result of
+this fixture correction.
+
 ## Acceptance boundary
 
 This is a current-only explanation contribution to

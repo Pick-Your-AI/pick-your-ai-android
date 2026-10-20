@@ -31,7 +31,7 @@ class DraftCurrentUnknownPhaseTest {
         val template = rules["rules"][0].deepCopy<ObjectNode>()
         val rows = rules.putArray("rules")
         stages.forEachIndexed { index, (applicable, assertion) ->
-            val rule = template.deepCopy<ObjectNode>().put("id", "rule.phase.${index + 1}")
+            val rule = template.deepCopy().put("id", "rule.phase.${index + 1}")
                 .put("message", suppliedMessage).put("remediation", suppliedGuidance)
             rule.set<JsonNode>("applies_when", mapper.readTree(applicable))
             rule.set<JsonNode>("assert", mapper.readTree(assertion))
