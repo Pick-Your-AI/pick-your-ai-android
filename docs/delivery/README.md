@@ -1,5 +1,111 @@
 # Criterion evidence ledger
 
+## Version 16: received local catalog selection and component links
+
+This amendment records **50 of 441 criteria complete; 391 remain incomplete**.
+Only **98.1–98.4** change from incomplete to complete. The exact four original
+subtasks are accepted for the bounded Android local handoff. All 128 other issue
+objects, 437 other criterion objects, 35 prior evidence objects, earlier partial
+context and all 441 literal IDs/text/hash triples remain unchanged.
+
+The [07.05 acceptance record](android/work-packages/07.05.md) and
+[ADR0014](../decisions/0014-android-98-acceptance-record.md) were already delivered
+in [#576](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/576), at valid
+signed `fa1fece43fb0498465cc54363de132235ea2f18a`, tree
+`0ca80b557829d9a36708551f061dd947e55ac460`, sole parent
+`20baabebcdec38f85c5816b7c15de091fa7bee13`, on 2026-10-19 at 16:58:14 UTC.
+Their exact bytes are retained. This ledger changes only #98's effective record
+repository to Android; the original website coordinate remains in the fixed
+placement receipt and entire preceding ledger image.
+
+### Delivered behavior and real receiving decisions
+
+[#566](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/566) delivered valid
+signed `12b50e0fad40581d35ae472617f06d4f48ab230d`, tree
+`03fd9e8b543506cddfc6f46e53c42f6ba79dc5a6`, sole parent
+`bc664e3bb9f085bc1950f05a80cb3c43c7e7f925`, at 14:05:39 UTC on 2026-10-19.
+Search/detail selection and the private bounded component route preserve exact
+catalog kind/item/version/snapshot, intended draft/role, saved revision and
+storage authority. Add or replacement requires explicit user action and the
+existing canonical transaction. Duplicate taps, repeated navigation, removed
+targets and changed revisions cannot silently overwrite a newer draft. Opening
+a link never edits a draft or substitutes an unavailable pin.
+
+Both required technical receiving responsibilities are actual public decisions:
+
+- [Catalog/UX receiving6269464601](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/98#issuecomment-6269464601)
+  accepted all four literal criteria, context/recovery and the named local inputs.
+- [Data-consumer receiving6269539895](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/98#issuecomment-6269539895)
+  accepted exact identity, expected-revision persistence, role/cardinality and
+  replay behavior at the selected local catalog/profile boundary.
+
+These are delegated in-session engineering decisions, published through the
+connected account. They establish no separate human account's formal approval,
+historical assignee commitment or release appointment. The record's three source
+reviews retain their actual `COMMENTED` state and inspected source revisions.
+Both roles explicitly received the available local #76 navigation and #82 loaded
+catalog outputs for this consumer. Their wider issues remain separate.
+
+### Original executions retain their exact checkouts
+
+| Original scope | Exact revision | Core | Simulated Preview | Total |
+| --- | --- | ---: | ---: | ---: |
+| Signed preparation, pull_request attempt1 | `f44684d019ab21c04ad06395196d07cdd9c94223` | 5819 /106 suites | 487 /46 suites | 6306 PASS |
+| Signed implementation main, push attempt1 | `12b50e0fad40581d35ae472617f06d4f48ab230d` | 5819 /106 suites | 495 /46 suites | 6314 PASS |
+
+The [prepared qualification6268641401](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/566#issuecomment-6268641401)
+and [actual-main qualification6269561061](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/566#issuecomment-6269561061)
+bind the complete original archive/XML/log/source observations. Each has 92
+successful job-step records, 44 configured attendance programs, 364 safe CRC
+archive members, and 333 Core /148 Preview /28 scanner Python executions. All
+6306 prior identities remain once in the main result; the only additions are
+eight accepted recovery cases. The same 32 authored selection cases—14 parser,
+eight search handoff, ten incoming link—pass in both distinct originals.
+
+Scanner outcomes remain `passed_with_reviewed_findings`: prepared f446 had raw
+exit10, two reviewed public-checksum findings over239 reachable commits; main12b
+had raw exit10, one over238. Both had zero unresolved findings. This is not a
+zero-finding claim. The exact eight artifact IDs/sizes/digests, original job IDs,
+receiving bodies, source pins and named selection methods are fixed in the new
+receipt. The dated 07.05/ADR files are unchanged, avoiding circular future pins.
+
+This amendment attributes those existing public qualifications; it performs no
+new Android product run or recovery of the old raw archives. The prior unpublished
+190-control preparation was lost with its workspace. The present source is a new
+reconstruction against the actual accepted v15 predecessor, not a claim that the
+old private source or artifacts survived. The separate reviewed21.3/113.2 offer
+is not included, and its original disposition remains unchanged.
+
+### Strict predecessor and regression admission
+
+The v16 wrapper first requires the exact four #98 criteria, full observed
+implementation/record/receiving receipts and effective coordinate. It reconstructs
+the preceding v15 object in a detached copy, invokes the unchanged historical
+validator, then verifies the complete prior-history identity. The original v15
+file is 676687 bytes, SHA-256
+`6bb1bfacfca018c0f4f4c2e7c4c279eb4c94b240971b800275b6e982ff60dafc`;
+its canonical JSON digest is
+`6c258512f46a4e7cfcf79b7d1e8da85f56c5b7497bfc3978e005f01090b6da1e`.
+All earlier inverse functions and validator bodies stay unchanged. Unknown
+fields survive the new inverse so historical validation can reject them.
+
+All 195 preceding test identities are retained. Their outer history calls now
+remove v16 before entering the existing inverses; original layer-specific
+counts remain at their own versions. Current schema/summary examples are updated
+to remain actual rejected mutations. Fifteen added cases cover the complete
+predecessor, exact four-row change, signed source/record distinction, document
+bytes, actual roles, original jobs/artifacts, all32 selection identities, raw
+scanner scope, incomplete/borrowed evidence, joint source forgery, unknown
+history, prerequisite limits, JSON type aliases, detached copies/README history,
+and normal/optimized CLI admission. Their execution result belongs to the actual
+source run recorded in this PR; source declarations alone are not a pass.
+
+The totals are 25 design, 21 implementation, one import-integrity and three
+bounded support criteria. Public domain App Links, installed-device behavior,
+governed real data, other prerequisite outcomes and release work retain their
+own acceptance. Ordinary reviewed ledger delivery and fresh native readback
+precede final issue/Project reconciliation; this source change performs neither.
+
 ## Version 15: the received selected Android foundation for #48
 
 This amendment records **25 reviewed design criteria, 17 reviewed implementation
@@ -69,7 +175,7 @@ The distinct signed successor `a82e4066`, sole `0f` parent, has its own
 and installed job118250826685. Its [qualified original
 console6275513012](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/608#issuecomment-6275513012)
 records the exact source/APK join, four installed cases and all 16 successful
-declared steps, including final source-bound receipt and ACL validation. The
+recorded steps, including final source-bound receipt and ACL validation. The
 66,340-byte original console's SHA-256 is fixed, as are the uploaded artifact
 identity and the exact unsigned APK.
 

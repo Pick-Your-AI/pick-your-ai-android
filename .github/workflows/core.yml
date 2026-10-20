@@ -1154,6 +1154,7 @@ jobs:
                   'cancelConfigurePreservesTheAcknowledgedModel',
                   'legacyRawModelCheckpointsKeepInvalidTextWithoutFreshAuthority',
                   'sevenValuesSaveExactlyAndModeSwitchDoesNotEraseAnotherField',
+                  'actualPauseRetiresTypedModelControlsAndRequiresFreshReview',
                   'suppliedEmptyFieldsKeepIndependentErrorsUntilCorrectedOrExplicitlyRemoved',
                   'absentTypedCommitClosesWithoutCreatingAnotherRevisionOrDefaults',
                   'allPresenceAndInvalidOrdinaryTextRecoverOnlyAfterExplicitReview',
@@ -1266,6 +1267,8 @@ jobs:
                   "duplicateAndInvalidRolesRemainVisibleUntilOneCorrectedExplicitCommit",
                   "noOpCancellationAndRetiredControlsCannotConsumeARevisionOrReplaceNewInput",
                   "repeatedRecreationKeepsExactRoleInputAndRequiresFreshConfirmation",
+                  "actualPauseRetiresRoleCommitAndPreservesInputForExplicitReview",
+                  "actualPauseRetiresSelectionPickersAndConfirmationWithoutRestoringConsent",
                   "changedSavedHeadKeepsRecoveredRoleReadOnlyEvenAfterExplicitReopen",
                   "differentDraftOrMissingSelectionCannotAdoptTheMatchingCurrentBaseline",
                   "inFlightRoleCheckpointNeverReplaysAfterTheOriginalWriteCompletes",
@@ -1772,6 +1775,7 @@ jobs:
           suite = ET.parse(report).getroot()
           expected = {
               "actualSavedComparisonPreservesPendingInputsAndDurableBaseline",
+              "actualPauseRejectsHistoryEntryAndRetainedCopyControls",
               "everyChangedFieldAfterTheOldHundredRowLimitIsReachable",
               "fullKeysAndLiteralPartsPreserveUnicodeControlsAndDecimalSpelling",
               "absentEmptyAndLiteralSentinelsStayDistinctDuringInspection",
@@ -1937,6 +1941,8 @@ jobs:
               "closedDisclosureOwnerCannotReopenFromItsRetainedEntry",
               "declaredPreviewCapabilitiesMatchTheOfflineDisclosure",
               "narrowRtlLargeTextKeepsEveryDisclosureLineAndCloseReachable",
+              "privacyRetiresCatalogParentActionsWithoutChangingPendingOrStoredDraft",
+              "privacyRetiresCatalogDetailPriceAndSourceChildrenUntilFreshInspection",
           }
           cases = suite.findall("testcase")
           names = [case.attrib.get("name") for case in cases]
@@ -1959,6 +1965,8 @@ jobs:
           suite = ET.parse(report).getroot()
           expected = {
               "twoOlderRevisionsExcludeSavedHeadAndPendingInputsWithoutWriting",
+              "actualPauseRetiresRevisionPickerAndRequiresFreshExplicitEntry",
+              "actualPauseRetiresQueuedComparisonAndCompleteValueControls",
               "reversedAndIdenticalPairsRetainTheChosenDirection",
               "changingBeforeRevisionRetiresBothOldPickerControls",
               "cancellationAtEitherPickerOrPreparationCannotResumeThePair",
@@ -2228,6 +2236,7 @@ jobs:
           suite = ET.parse(report).getroot()
           expected = {
               "explicitSavedDraftsKeepBothOlderSourcesAndPendingInputsThroughFullValueInspection",
+              "actualPauseRetiresLibraryReadAndValueControlsWithoutReopening",
               "reversedSameAndReselectedSourcesNeverReuseAnEarlierPickerDirection",
               "cancellationAtEveryPickerAndEitherWorkerBoundaryCannotResumeInspection",
               "replacingALoadOrComparisonWithHistoryRejectsTheLateResult",

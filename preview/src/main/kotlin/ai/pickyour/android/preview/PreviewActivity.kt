@@ -333,7 +333,8 @@ class PreviewActivity : Activity() {
         }
         content.addView(tierSection)
         compatibleOptions = CompatibleOptionsPicker(this, worker) { !destroyed && diagnosticsResumed }
-        componentSection = SelectionEditSection(this, ::commitSelection, ::showCompatibleOptions) {
+        componentSection = SelectionEditSection(this, ::commitSelection, ::showCompatibleOptions,
+            isResumed = { !destroyed && diagnosticsResumed }) {
             compatibleOptions.dismiss()
             invalidateCurrentChecks(PreviewCurrentUnavailable.EDITING)
             // The section has finished changing its form ownership before this read-only refresh.
@@ -456,6 +457,7 @@ class PreviewActivity : Activity() {
         help.attach(content)
         privacy = LocalPrivacy(this, beforeShow = {
             retireInspectionWindows()
+            retireCatalogDetailInspection()
             if (::costInspection.isInitialized) costInspection.dismiss()
         }) {
             !destroyed && diagnosticsResumed
@@ -943,7 +945,7 @@ class PreviewActivity : Activity() {
     }
 
     private fun showHistory() {
-        if (destroyed) return
+        if (destroyed || !diagnosticsResumed) return
         val baseline = savedRecord ?: return
         if (!storageReady || storageBusy) return
         retireInspectionWindows()
@@ -993,7 +995,7 @@ class PreviewActivity : Activity() {
     }
 
     private fun historyDialogIsCurrent(dialog: DialogInterface, baseline: PreviewStoredDraft): Boolean =
-        !destroyed && historyDialog === dialog && (dialog as? AlertDialog)?.isShowing == true &&
+        !destroyed && diagnosticsResumed && historyDialog === dialog && (dialog as? AlertDialog)?.isShowing == true &&
             storageReady && !storageBusy && savedRecord === baseline
 
     private fun AlertDialog.Builder.showHistoryDialog(): AlertDialog {
@@ -1015,14 +1017,14 @@ class PreviewActivity : Activity() {
     }
 
     private fun showComparisonPicker(baseline: PreviewStoredDraft, pickBoth: Boolean = false) {
-        if (destroyed || isFinishing) return
+        if (destroyed || isFinishing || !diagnosticsResumed) return
         if (!storageReady || storageBusy || savedRecord !== baseline) return
         retireInspectionWindows()
         val request = Any()
         revisionRequest = request
         val authority = storageAuthority
         val draftId = currentDraftId
-        fun current() = !destroyed && !isFinishing && storageReady && !storageBusy &&
+        fun current() = !destroyed && !isFinishing && diagnosticsResumed && storageReady && !storageBusy &&
             currentDraftId == draftId && savedRecord === baseline && storageAuthority === authority && revisionRequest === request
         val revisions = baseline.history.reversed()
         val rows = revisions.map { getString(R.string.history_revision, it.revision.toString()) }.toTypedArray()
@@ -1126,7 +1128,7 @@ class PreviewActivity : Activity() {
     }
 
     private fun showLibraryComparison() {
-        if (destroyed || isFinishing || storageBusy || entryBlocked || !selectionResolved) return
+        if (destroyed || isFinishing || !diagnosticsResumed || storageBusy || entryBlocked || !selectionResolved) return
         retireInspectionWindows()
         catalogComparison.dismissInspection()
         catalogPinRecovery.dismiss()
@@ -1136,7 +1138,7 @@ class PreviewActivity : Activity() {
         val authority = storageAuthority
         val draftId = currentDraftId
         val baseline = savedRecord
-        fun current() = !destroyed && !isFinishing && !storageBusy && !entryBlocked && selectionResolved &&
+        fun current() = !destroyed && !isFinishing && diagnosticsResumed && !storageBusy && !entryBlocked && selectionResolved &&
             currentDraftId == draftId && savedRecord === baseline && storageAuthority === authority && revisionRequest === request
         libraryComparison = LibraryRevisionComparison(this, { task -> worker.execute { task() } },
             { library().list() }, ::current).also { it.show() }
@@ -1144,7 +1146,7 @@ class PreviewActivity : Activity() {
 
     private fun commitSelection(expected: PreviewStoredDraft, hash: String?, prepare: () -> PreviewSelectionPreparation,
         completed: (Boolean, String) -> Unit) {
-        if (destroyed || !storageReady || storageBusy || savedRecord !== expected || !matchesSaved() ||
+        if (destroyed || !diagnosticsResumed || !storageReady || storageBusy || savedRecord !== expected || !matchesSaved() ||
             hash != null && componentCatalog?.hash?.hex != hash) { completed(false, getString(R.string.draft_reconcile)); return }
         val id = currentDraftId
         val snapshot = componentCatalog
@@ -1741,14 +1743,17 @@ class PreviewActivity : Activity() {
     override fun onResume() {
         super.onResume()
         diagnosticsResumed = true
+        if (::componentSection.isInitialized) componentSection.resume()
         updateDraftSummary()
         updateCurrentChecks()
     }
 
     override fun onPause() {
         diagnosticsResumed = false
+        if (::componentSection.isInitialized) componentSection.pause()
         retireCatalogDetailInspection()
         retireHistoryInspection()
+        retireRevisionInspection()
         invalidateCurrentChecks(PreviewCurrentUnavailable.BACKGROUND)
         if (::catalogPinRecovery.isInitialized) catalogPinRecovery.dismiss()
         if (::compatibleOptions.isInitialized) compatibleOptions.dismiss()

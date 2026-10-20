@@ -92,9 +92,9 @@ They do not depend on onDestroy being delivered to preserve guest data.
 
 ## Meaningful validation
 
-The 18 methods in
+The original 18-method group in
 [CostInspectionActivityTest](../preview/src/test/kotlin/ai/pickyour/android/preview/CostInspectionActivityTest.kt)
-exercise real Views, the unchanged frozen input adapter, queued workers and the
+exercises real Views, the unchanged frozen input adapter, queued workers and the
 canonical local store in a simulated Activity:
 
 - Full packaged fields/documents and summary/detail identity; eleven lines,
@@ -118,6 +118,12 @@ canonical local store in a simulated Activity:
 - The actual 749 ms plus 1 ms autosave boundary and exactly one resulting revision;
   a 320 dp RTL window at 200% font scale with complete reachable value lines and
   reachable controls.
+
+Three later presentation-retirement methods bring `CostInspectionActivityTest`
+to 21 cases. The eight `CostSiblingInspectionActivityTest` cases described below
+cover the shared Activity boundary separately. The current workflow requires all
+21 cost and all eight sibling cases; the historical runs below retain their
+original counts and source identities.
 
 The workflow requires every named new method, exact suite/class identity,
 consistent report totals and zero failures/errors/skips/duplicates, without
