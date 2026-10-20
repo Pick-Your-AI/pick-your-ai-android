@@ -456,6 +456,7 @@ class PreviewActivity : Activity() {
         help.attach(content)
         privacy = LocalPrivacy(this, beforeShow = {
             retireInspectionWindows()
+            retireCatalogDetailInspection()
             if (::costInspection.isInitialized) costInspection.dismiss()
         }) {
             !destroyed && diagnosticsResumed
