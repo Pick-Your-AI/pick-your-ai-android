@@ -1775,6 +1775,7 @@ jobs:
           suite = ET.parse(report).getroot()
           expected = {
               "actualSavedComparisonPreservesPendingInputsAndDurableBaseline",
+              "actualPauseRejectsHistoryEntryAndRetainedCopyControls",
               "everyChangedFieldAfterTheOldHundredRowLimitIsReachable",
               "fullKeysAndLiteralPartsPreserveUnicodeControlsAndDecimalSpelling",
               "absentEmptyAndLiteralSentinelsStayDistinctDuringInspection",
@@ -1964,6 +1965,8 @@ jobs:
           suite = ET.parse(report).getroot()
           expected = {
               "twoOlderRevisionsExcludeSavedHeadAndPendingInputsWithoutWriting",
+              "actualPauseRetiresRevisionPickerAndRequiresFreshExplicitEntry",
+              "actualPauseRetiresQueuedComparisonAndCompleteValueControls",
               "reversedAndIdenticalPairsRetainTheChosenDirection",
               "changingBeforeRevisionRetiresBothOldPickerControls",
               "cancellationAtEitherPickerOrPreparationCannotResumeThePair",
@@ -2170,6 +2173,7 @@ jobs:
           suite = ET.parse(report).getroot()
           expected = {
               "explicitSavedDraftsKeepBothOlderSourcesAndPendingInputsThroughFullValueInspection",
+              "actualPauseRetiresLibraryReadAndValueControlsWithoutReopening",
               "reversedSameAndReselectedSourcesNeverReuseAnEarlierPickerDirection",
               "cancellationAtEveryPickerAndEitherWorkerBoundaryCannotResumeInspection",
               "replacingALoadOrComparisonWithHistoryRejectsTheLateResult",
