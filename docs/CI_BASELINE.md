@@ -52,6 +52,21 @@ tests GitHub's prepared merge commit. Record the artifact ID, downloaded ZIP SHA
 embedded source/tree where supplied and the observed test result before relying on
 an artifact. An expired or unavailable artifact is an evidence gap, not a pass.
 
+### Configured and recorded job steps
+
+Keep workflow-defined steps separate from runner lifecycle steps. The [a82
+installed job](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39305746890/job/118250826685)
+records **16 successful steps**: **11 configured steps** in [its exact
+workflow](https://github.com/Pick-Your-AI/pick-your-ai-android/blob/a82e4066184850a4b4152378682055531bfeae5a/.github/workflows/core.yml),
+`Set up job`, three post-action cleanup steps and `Complete job`.
+
+The [historical foundation record](https://github.com/Pick-Your-AI/pick-your-ai-android/blob/020d7fa2192cf3414e258c95f25554473fd3b14d/docs/delivery/android/work-packages/02.01.md)
+labels that total as “declared”; the fixed v15 receipt key is likewise named
+`all_declared_installed_steps_succeeded`. Both describe **16 recorded steps**,
+including the five runner lifecycle steps. The signed record and the ledger's
+original keys, values and hashes remain unchanged; this clarification changes
+no test count, execution result or acceptance outcome.
+
 The ordinary preview artifact remains unsigned. Simulated Activity tests do not
 establish installation, physical-device behavior, a release signature or store
 acceptance. [Signed main `0f5fea42`](https://github.com/Pick-Your-AI/pick-your-ai-android/commit/0f5fea42c5cd149472269da2e47559a24689ba71)

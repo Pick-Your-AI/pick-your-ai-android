@@ -133,4 +133,10 @@ Copy this revision’s title and sample selection into the editor? This replaces
     <string name="context_policy_enum">Choose one of the listed values or Not supplied.</string>
     <string name="context_policy_too_long">This input is too long for the editor.</string>
     <string name="draft_identity_unavailable">The saved draft identity could not be restored. Your visible edits have not been saved or applied to another draft. Choose a draft from the local library or explicitly create a new one to continue.</string>
+    <string name="legacy_back_title">Leave the editor?</string>
+    <string name="legacy_back_message">Some changes have not been confirmed as saved. Leaving discards those pending changes. Saved drafts stay on this device.</string>
+    <string name="legacy_back_stay">Stay in editor</string>
+    <string name="legacy_back_leave">Leave without saving</string>
+    <string name="legacy_back_wait_title">Local storage is busy</string>
+    <string name="legacy_back_wait_message">Wait for the current storage operation to settle before leaving with pending fields.</string>
 </resources>
