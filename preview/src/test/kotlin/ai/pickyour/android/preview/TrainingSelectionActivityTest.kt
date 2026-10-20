@@ -451,8 +451,8 @@ class TrainingSelectionActivityTest {
             recreate { state ->
                 assertTrue((ComponentFormRecovery.read(roundTrip(state)) as ComponentFormRecovery.Pending).form.wasSaving)
                 release.countDown()
-                await { !form.isShowing && loaded().revision == before.revision + 1 }
                 finishWork()
+                await { !form.isShowing && loaded().revision == before.revision + 1 }
             }
         } finally { release.countDown() }
         val saved = loaded()
