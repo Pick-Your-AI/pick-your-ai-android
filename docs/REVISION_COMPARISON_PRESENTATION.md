@@ -66,7 +66,8 @@ the pinned API-28 runtime:
 
 Expected directional markers are literal API-28 strings; expected text does not
 call the production formatter. The two title expectations in the existing narrow
-RTL library test include the new markers. Its complete layout, reachability,
+RTL library test and the literal-value expectation in the existing narrow RTL
+revision-pair test include the new markers. Their complete layout, reachability,
 source-identity and navigation assertions remain intact. The workflow requires
 all six new class-qualified methods exactly once, matching suite totals and no
 failed, errored or skipped result, after the actual native unit-test command.
