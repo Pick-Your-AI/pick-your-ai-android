@@ -90,8 +90,9 @@ class CatalogSelectionHandoffActivityTest {
     private fun currentId() = PreviewActivity::class.java.getDeclaredField("currentDraftId")
         .apply { isAccessible = true }.get(activity) as PreviewDraftId
 
-    private fun loaded() = (PreviewDraftLibrary(activity.noBackupFilesDir.toPath())
-        .open(currentId()).load() as PreviewDraftLoad.Available).record
+    private fun loaded() = (readDraftAfterOwnedWork(activity) {
+        PreviewDraftLibrary(activity.noBackupFilesDir.toPath()).open(currentId())
+    } as PreviewDraftLoad.Available).record
 
     private fun emptyDraft(): PreviewStoredDraft {
         val previous = currentId()

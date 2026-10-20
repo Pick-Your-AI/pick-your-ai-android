@@ -79,7 +79,7 @@ class AgentSelectionActivityTest {
     private fun currentId() = PreviewActivity::class.java.getDeclaredField("currentDraftId").apply { isAccessible = true }.get(activity) as PreviewDraftId
     private fun library() = PreviewDraftLibrary(activity.noBackupFilesDir.toPath())
     private fun adapter() = library().open(currentId())
-    private fun loaded() = (adapter().load() as PreviewDraftLoad.Available).record
+    private fun loaded() = (readDraftAfterOwnedWork(activity, ::adapter) as PreviewDraftLoad.Available).record
     private fun settings(selection: LocalSelection) = JSONObject(PreviewSelectionForms.settingsText(selection))
     private fun disk() = Files.walk(activity.noBackupFilesDir.toPath()).use { paths ->
         paths.filter { Files.isRegularFile(it) }.toList().associate {
