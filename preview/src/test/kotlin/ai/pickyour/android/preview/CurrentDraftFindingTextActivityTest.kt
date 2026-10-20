@@ -42,7 +42,7 @@ import java.util.concurrent.TimeUnit
 class CurrentDraftFindingTextActivityTest {
     private lateinit var controller: ActivityController<PreviewActivity>
     private val activity get() = controller.get()
-    private val ruleId = "rule.tool.mutation.guardrails"
+    private val ruleId = "rule.model.serving.mode.selfhost"
     private val message = "A".repeat(159) + "\uD83D\uDE00\u202e\n\\\"" + "B".repeat(330) + " MESSAGE END"
     private val guidance = "Observed guidance: " + "C".repeat(155) + "\t\u2066\\\"" + "D".repeat(210) + " GUIDANCE END"
 
@@ -109,6 +109,7 @@ class CurrentDraftFindingTextActivityTest {
     private fun installText(observation: String = message, remediation: String = guidance): PreviewCurrentDraftState.Current {
         val prior = state()
         val saved = field<PreviewStoredDraft>("savedRecord")
+        assertTrue("The actual saved draft has no deployment-mode selection", saved.components.selections.isEmpty())
         val before = disk()
         val rules = JSONObject(String(fixture("ruleset"), Charsets.UTF_8))
         val rows = rules.getJSONArray("rules")
@@ -123,7 +124,7 @@ class CurrentDraftFindingTextActivityTest {
         finishWork()
         val current = state() as PreviewCurrentDraftState.Current
         val finding = current.outcome.findings.single { it.ruleId == ruleId }
-        assertEquals("Missing external metrics remain unknown", "unknown", finding.outcome)
+        assertEquals("A missing deployment-mode selection remains unknown", "unknown", finding.outcome)
         assertEquals("The evaluator must retain the admitted raw explanation", observation, finding.message)
         assertEquals("The evaluator must retain the admitted raw guidance", remediation, finding.remediation)
         assertEquals(inputs.rulesetHash, current.request.binding.rulesetHash)
