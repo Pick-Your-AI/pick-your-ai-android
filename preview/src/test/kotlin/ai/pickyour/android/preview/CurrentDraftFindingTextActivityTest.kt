@@ -1,6 +1,7 @@
 package ai.pickyour.android.preview
 
 import android.app.AlertDialog
+import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
@@ -451,7 +452,12 @@ class CurrentDraftFindingTextActivityTest {
         await { state() is PreviewCurrentDraftState.Current }
         val resumed = state() as PreviewCurrentDraftState.Current
         val recreated = retained(resumed)
-        controller.recreate(); finishWork()
+        val savedState = Bundle()
+        controller.pause().stop().saveInstanceState(savedState).destroy()
+        controller = Robolectric.buildActivity(PreviewActivity::class.java).setup(savedState)
+        // Deliver controlled traversal frames before requiring the new window to be attached.
+        finishWork()
+        assertTrue(activity.window.decorView.isAttachedToWindow)
         await { state() is PreviewCurrentDraftState.Current }
         recreated.replay()
         assertFalse(dialog().isShowing)

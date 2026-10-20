@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="current_finding_full_text">Full text</string>
+    <string name="current_finding_explanation">Explanation</string>
+    <string name="current_finding_guidance">Rule guidance</string>
+    <string name="current_finding_text_part">%1$s — part %2$d of %3$d</string>
+    <string name="current_finding_back_detail">Back to observation</string>
+    <string name="current_finding_back_fields">Back to fields</string>
+    <string name="current_finding_next_part">Next part</string>
+    <string name="current_finding_previous_part">Previous part</string>
+</resources>
