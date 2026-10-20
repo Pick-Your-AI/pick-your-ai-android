@@ -143,6 +143,16 @@ prerequisite edge or release scope. Actual signed implementation and separate
 original-main evidence are recorded; strict ledger reconciliation remains a
 subsequent reviewed step.
 
+[ADR 0015](decisions/0015-android-100-acceptance-record.md) proposes placing only
+#100's [09.02 invalidation record](delivery/android/work-packages/09.02.md) here,
+effective through independent receiving review and normal reviewed delivery.
+The record maps the actual acknowledged saved-draft consumer and its original
+execution evidence to all four unchanged criteria. Its original website
+coordinate remains history; current estimate producers, other record locations,
+shared authorities and device/release acceptance retain their separate scopes.
+Actual criterion decisions and strict-ledger reconciliation follow their own
+reviewed delivery steps.
+
 The existing website remains static. The selected future server package is
 separately built/deployed at `Pick-Your-AI/pickyour.ai/services/planner-api` only
 through canonical owner/coordinator and operations review before dependent code;
