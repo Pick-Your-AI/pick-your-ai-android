@@ -31,6 +31,9 @@ import org.robolectric.annotation.LooperMode
 import org.robolectric.shadows.ShadowAlertDialog
 import java.math.BigInteger
 import java.util.concurrent.AbstractExecutorService
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.TimeUnit
 
 /** Real receiving adapter and native controls in a simulation, not installed-device acceptance. */
@@ -89,6 +92,35 @@ class FindingsSelectionActivityTest {
     private fun assertNoDraftWrite() {
         assertTrue(PreviewDraftLibrary(activity.noBackupFilesDir.toPath()).openLegacy().load() is PreviewDraftLoad.Missing)
         assertNull(shadowOf(activity).nextStartedActivity)
+    }
+    private fun worker() = PreviewActivity::class.java.getDeclaredField("worker").apply { isAccessible = true }
+        .get(activity) as ExecutorService
+    private fun finishFindingWork() {
+        worker().submit {}.get(15, TimeUnit.SECONDS)
+        idle()
+    }
+    private fun blockWorker(): CountDownLatch {
+        val entered = CountDownLatch(1)
+        val release = CountDownLatch(1)
+        worker().submit { entered.countDown(); release.await(15, TimeUnit.SECONDS) }
+        assertTrue(entered.await(15, TimeUnit.SECONDS))
+        return release
+    }
+    private fun editorState(): Map<String, Any?> {
+        val state = Bundle().also { controller.saveInstanceState(it) }
+        val keys = listOf("title", "objective", "contextInput", "selectedId", "selectedVersion",
+            "selectedCatalogHash", "draftId", "draftBaseline", "selectionResolved", "draftRequiresReopen",
+            "workload.rejectedEdit", "workload.classification") + (0..7).map { "workload." + it }
+        @Suppress("DEPRECATION")
+        return keys.associateWith { state.get(it) }
+    }
+    private fun privateFiles() = activity.noBackupFilesDir.walkTopDown().filter { it.isFile }
+        .associate { it.relativeTo(activity.noBackupFilesDir).path to it.readBytes().toList() }
+    private fun saveTitle(value: String) {
+        title().setText(value)
+        button(R.string.save_draft).performClick()
+        await { !button(R.string.save_draft).isEnabled && views().filterIsInstance<TextView>()
+            .any { it.text.toString() == activity.getString(R.string.draft_saved) } }
     }
     private fun recreate() {
         val state = Bundle()
@@ -401,6 +433,175 @@ class FindingsSelectionActivityTest {
         assertNoDraftWrite()
     }
 
+    @Test fun actualPauseRetiresFindingsAndCapturedSelectionCallbacks() {
+        AutosaveUiClock.pause()
+        title().setText("pending survives findings pause")
+        val page = openActualContext()
+        val retainedRow = controls().first { it.text.toString().startsWith("Inspect selection ") }
+        controller.pause()
+        try {
+            assertFalse("Paused Activity must retire its Findings window", page.isShowing)
+            retainedRow.performClick()
+            button(R.string.findings_inspect).performClick()
+            button(R.string.findings_browse).performClick()
+            idle()
+            assertSame(page, dialog())
+            assertFalse(page.isShowing)
+        } finally {
+            controller.resume()
+        }
+        retainedRow.performClick()
+        button(R.string.findings_browse).performClick()
+        idle()
+        assertSame(page, dialog())
+        assertFalse(page.isShowing)
+        assertFalse(button(R.string.findings_browse).isEnabled)
+        assertTrue(button(R.string.findings_inspect).isEnabled)
+        assertEquals("pending survives findings pause", title().text.toString())
+        val fresh = openActualContext()
+        assertNotSame(page, fresh)
+        assertTrue(fresh.isShowing)
+        inspectSelection(3)
+        assertTrue(text().contains("Recorded role: \"primary\""))
+        assertNoDraftWrite()
+    }
+
+    @Test fun actualPauseRetiresFindingPickerAndDetailCallbacks() {
+        AutosaveUiClock.pause()
+        title().setText("pending picker and detail inspection")
+        val before = editorState()
+        val bytes = privateFiles()
+        for (openDetail in listOf(false, true)) {
+            button(R.string.findings_inspect).performClick()
+            await { button(R.string.findings_browse).isEnabled }
+            button(R.string.findings_browse).performClick()
+            val picker = dialog()
+            if (openDetail) { shadowOf(picker).clickOnItem(0); idle() }
+            val previous = dialog()
+            val oldOpen = if (openDetail) previous.getButton(AlertDialog.BUTTON_NEUTRAL) else null
+            controller.pause()
+            try {
+                assertFalse("Pause retires the currently owned finding window", previous.isShowing)
+                shadowOf(picker).clickOnItem(0)
+                oldOpen?.performClick()
+                idle()
+                assertSame(previous, dialog())
+                assertFalse(previous.isShowing)
+            } finally { controller.resume() }
+            shadowOf(picker).clickOnItem(0)
+            oldOpen?.performClick()
+            button(R.string.findings_browse).performClick()
+            idle()
+            assertSame(previous, dialog())
+            assertFalse(previous.isShowing)
+            assertFalse(button(R.string.findings_browse).isEnabled)
+            assertTrue(button(R.string.findings_inspect).isEnabled)
+            assertEquals(before, editorState())
+            assertEquals(bytes, privateFiles())
+        }
+        assertTrue(openActualContext().isShowing)
+        assertEquals(before, editorState())
+        assertEquals(bytes, privateFiles())
+        assertNoDraftWrite()
+    }
+
+    @Test fun pausedAndResumedActivityDiscardsQueuedFindingReports() {
+        AutosaveUiClock.pause()
+        saveTitle("saved before delayed findings")
+        val bytes = privateFiles()
+        assertTrue("The preservation check includes an explicitly saved local draft", bytes.isNotEmpty())
+        title().setText("pending while findings are delayed")
+        val before = editorState()
+        for (deliverAfterResume in listOf(false, true)) {
+            val release = blockWorker()
+            var resumed = true
+            try {
+                button(R.string.findings_inspect).performClick()
+                assertFalse(button(R.string.findings_inspect).isEnabled)
+                assertTrue(views().filterIsInstance<TextView>().any {
+                    it.text.toString() == activity.getString(R.string.findings_loading) })
+                controller.pause()
+                resumed = false
+                if (deliverAfterResume) { controller.resume(); resumed = true }
+                release.countDown()
+                finishFindingWork()
+                assertTrue(button(R.string.findings_inspect).isEnabled)
+                assertFalse(button(R.string.findings_browse).isEnabled)
+                assertTrue(views().filterIsInstance<TextView>().any {
+                    it.text.toString() == activity.getString(R.string.findings_notice) })
+            } finally {
+                release.countDown()
+                if (!resumed) controller.resume()
+            }
+            button(R.string.findings_browse).performClick()
+            idle()
+            assertFalse(ShadowAlertDialog.getLatestAlertDialog()?.isShowing == true)
+            assertEquals(before, editorState())
+            assertEquals(bytes, privateFiles())
+        }
+        assertTrue(openActualContext().isShowing)
+        assertEquals(before, editorState())
+        assertEquals(bytes, privateFiles())
+        assertNull(shadowOf(activity).nextStartedActivity)
+    }
+
+    @Test fun rejectedFindingDispatchAllowsExplicitRetryWithoutDraftWrites() {
+        AutosaveUiClock.pause()
+        saveTitle("saved before rejected findings")
+        val bytes = privateFiles()
+        assertTrue(bytes.isNotEmpty())
+        title().setText("pending across rejected findings")
+        val before = editorState()
+        val executor = QueuedExecutor().apply { rejectNext = true }
+        val section = FindingsInspectionSection(activity, executor) { true }
+        val container = LinearLayout(activity)
+        section.attach(container)
+        val inspect = button(R.string.findings_inspect, container)
+        val browse = button(R.string.findings_browse, container)
+        try {
+            inspect.performClick()
+            assertEquals(0, executor.tasks.size)
+            assertTrue(inspect.isEnabled)
+            assertFalse(browse.isEnabled)
+            assertTrue(views(container).filterIsInstance<TextView>().any {
+                it.text.toString() == activity.getString(R.string.findings_rejected, "UNAVAILABLE") })
+            assertFalse(views(container).filterIsInstance<TextView>().any {
+                it.text.toString() == activity.getString(R.string.findings_loading) })
+            browse.performClick()
+            assertFalse(ShadowAlertDialog.getLatestAlertDialog()?.isShowing == true)
+
+            inspect.performClick()
+            assertEquals(1, executor.tasks.size)
+            executor.tasks.single().run()
+            idle()
+            assertTrue(browse.isEnabled)
+            browse.performClick()
+            val picker = dialog()
+            shadowOf(picker).clickOnItem(0)
+            idle()
+            assertNotSame(picker, dialog())
+            assertTrue(dialog().isShowing)
+            assertTrue(text().contains("Outcome: pass · Severity: error"))
+
+            inspect.performClick()
+            assertEquals(2, executor.tasks.size)
+            val retired = dialog()
+            section.close()
+            executor.tasks.last().run()
+            inspect.performClick()
+            browse.performClick()
+            idle()
+            assertEquals(2, executor.tasks.size)
+            assertFalse(inspect.isEnabled)
+            assertFalse(browse.isEnabled)
+            assertSame(retired, dialog())
+            assertFalse(retired.isShowing)
+            assertEquals(before, editorState())
+            assertEquals(bytes, privateFiles())
+            assertNull(shadowOf(activity).nextStartedActivity)
+        } finally { section.close(); executor.shutdownNow() }
+    }
+
     @Test fun destroyedActivityRetiresRecordedSelectionWindowsAndCallbacks() {
         title().setText("pending survives recreation")
         val page = openActualContext()
@@ -467,8 +668,12 @@ class FindingsSelectionActivityTest {
 
     private class QueuedExecutor : AbstractExecutorService() {
         val tasks = mutableListOf<Runnable>()
+        var rejectNext = false
         private var stopped = false
-        override fun execute(command: Runnable) { check(!stopped); tasks += command }
+        override fun execute(command: Runnable) {
+            if (stopped || rejectNext) { rejectNext = false; throw RejectedExecutionException() }
+            tasks += command
+        }
         override fun shutdown() { stopped = true }
         override fun shutdownNow(): MutableList<Runnable> { stopped = true; return mutableListOf() }
         override fun isShutdown() = stopped

@@ -98,7 +98,7 @@ internal class CurrentDraftSummarySection(
             isEnabled = active() && current()
         }.also { detailsToggle = it; componentDetails.addView(it) }
         val body = LinearLayout(activity).apply { orientation = VERTICAL }.also(componentDetails::addView)
-        fun literal(raw: String) = BidiFormatter.getInstance(activity.resources.configuration.locales[0])
+        fun literal(raw: String) = BidiFormatter.getInstance(activity.resources.configuration.layoutDirection == View.LAYOUT_DIRECTION_RTL)
             .unicodeWrap(CatalogDetailText.literal(activity, raw), TextDirectionHeuristics.LTR)
         fun text(value: String) { body.addView(TextView(activity).apply { text = value }) }
         fun render() {

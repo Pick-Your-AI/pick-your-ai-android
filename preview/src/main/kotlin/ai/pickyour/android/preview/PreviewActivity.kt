@@ -416,7 +416,7 @@ class PreviewActivity : Activity() {
         CostInspectionSection(this, worker) { !destroyed }.attach(content)
         resourceInspection = ResourceInspectionSection(this, worker, { !destroyed && diagnosticsResumed }, catalog::cancelViewportRestore)
         resourceInspection.attach(content)
-        findings = FindingsInspectionSection(this, worker) { !destroyed }
+        findings = FindingsInspectionSection(this, worker) { !destroyed && diagnosticsResumed }
         findings.attach(content)
         snapshots = SnapshotEvaluationSection(this, worker) { !destroyed && diagnosticsResumed }
         snapshots.attach(content)
@@ -718,7 +718,7 @@ class PreviewActivity : Activity() {
     }
 
     private fun showPinnedDetails(pin: PreviewCatalogPin, captured: PreviewCatalogBrowser?, originIsCurrent: () -> Boolean) {
-        if (destroyed || storageBusy || !originIsCurrent()) return
+        if (destroyed || !diagnosticsResumed || storageBusy || !originIsCurrent()) return
         retireRevisionInspection()
         catalogDetailDialog?.dismiss()
         catalogDetailDialog = null
@@ -729,7 +729,7 @@ class PreviewActivity : Activity() {
         val baseline = savedRecord
         val draftId = currentDraftId
         catalogPinRecovery.open(pin, captured) {
-            !destroyed && !storageBusy && savedRecord === baseline && currentDraftId == draftId && originIsCurrent()
+            !destroyed && diagnosticsResumed && !storageBusy && savedRecord === baseline && currentDraftId == draftId && originIsCurrent()
         }
     }
 
@@ -1642,11 +1642,13 @@ class PreviewActivity : Activity() {
 
     override fun onPause() {
         diagnosticsResumed = false
+        if (::catalogPinRecovery.isInitialized) catalogPinRecovery.dismiss()
         if (::compatibleOptions.isInitialized) compatibleOptions.dismiss()
         if (::draftSummary.isInitialized) draftSummary.retireActions()
         if (::diagnostics.isInitialized) diagnostics.dismiss()
         if (::help.isInitialized) help.dismiss()
         if (::privacy.isInitialized) privacy.dismiss()
+        if (::findings.isInitialized) findings.dismiss()
         if (::snapshots.isInitialized) snapshots.dismiss()
         if (::resourceInspection.isInitialized) resourceInspection.dismiss()
         super.onPause()

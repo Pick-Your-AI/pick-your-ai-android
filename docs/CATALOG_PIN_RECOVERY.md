@@ -145,6 +145,15 @@ Each visible dialog has its own identity and `isShowing` check; retained retry o
 browse controls cannot revive a dismissed view. Activity destruction is terminal
 and cancels only this controller's own future before the existing worker shutdown.
 
+Activity pause now also retires the exact pin request, its future and any complete
+detail child through the controller's existing dismissal operation. The entry
+action and captured request origin both require the Activity's existing resumed
+predicate. Returning to the Activity permits a fresh explicit inspection of the
+same comparison pin; old retry, browse, field and value callbacks stay retired.
+A worker result that was queued or already posted before pause cannot reopen its
+old request after resume. The comparison entries, selected draft, pending fields
+and exact historical bytes remain intact.
+
 Inspection controls use a themed vertical header above the independently
 scrolling native message. Their labels wrap, and all three available actions have
 48 dp minimum dimensions. The comparison entry also has a bounded action label
@@ -191,6 +200,30 @@ separately, and sequential current-source execution supplies the final result.
 After a later recreation timeout, the test setup explicitly awaits both catalog
 controls and restored draft storage before dispatching inspection; catalog
 completion alone does not establish the Activity's storage readiness.
+
+Three additional mandatory Activity methods cover the pause transition. The
+original single-method execution failed on accepted
+`8dc2db3de6350697928afcf8d8b9b6e27d15f307` because the exact-pin recovery window
+remained showing; the identical method passed after the Activity correction.
+The focused class now has seventeen methods, retaining the fourteen existing
+recovery and layout cases. The added cases exercise parent recovery controls,
+complete-field and complete-value children, and both a queued read and an already
+posted completion on either side of resume. Fresh explicit inspection still
+resolves the exact recorded version and hash while a different current catalog
+is available. The latter cases compare all private file bytes and saved/pending
+state before and after the transitions. Original failed, corrected and final
+class executions retain their distinct source identities and receipts.
+
+```sh
+./gradlew --offline --no-daemon --dependency-verification=strict \
+  -PandroidPreview=true :preview:testDebugUnitTest \
+  --tests ai.pickyour.android.preview.CatalogPinRecoveryActivityTest
+```
+
+This lifecycle correction is also partial Android #81 recovery work. Its
+canonical `docs/delivery/android/work-packages/06.05.md` record in
+`Pick-Your-AI/pickyour.ai` remains separate from this simulated evidence and the
+broader system-state recovery matrix.
 
 Real historical catalog acquisition and publication status, applicable pinned
 pricebook evidence, installed recovery and assistive-technology behavior, and

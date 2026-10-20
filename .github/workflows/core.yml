@@ -60,6 +60,41 @@ jobs:
         run: sha256sum --check gradle/wrapper/wrapper.sha256
       - name: Compile and test JVM core
         run: ./gradlew --no-daemon --dependency-verification=strict --init-script scripts/runtime_inventory.init.gradle.kts :core:check :core:assemble runtimeInventory
+      - name: Require selected historical cost admission regressions
+        run: |
+          python - <<'PYTEST'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          name = "ai.pickyour.core.comparison.SelectedCostComparisonTest"
+          expected = {
+              "default costs stay not loaded and structural comparison remains unchanged()",
+              "explicit missing input differs from no attempted admission on either side()",
+              "requested estimate and arbitrary precision selected revision are admitted exactly()",
+              "admitted cost cannot move to changed settings roles objectives or locks under reused identity()",
+              "explicit costs for both changed selected records retain their own Build contents()",
+              "equivalent selected JSON values match without requiring property order or numeric spelling()",
+              "stale revision different Build and different locked pricebook reject the supplied estimate()",
+              "matching Build fields do not override the explicitly requested estimate identity()",
+              "complete unsupported input differs from malformed or failed provider input()",
+              "missing selected Pricebook pin stays unavailable without a current Pricebook fallback()",
+              "existing cost integrity rejections survive selected admission without partial records()",
+              "changed currency period Pricebook and dated evidence stay literal and noncomparable()",
+              "complete original line evidence and unsupported quantity survive the selection boundary()",
+              "empty unknown coverage is admitted evidence and never a missing or accepted total()",
+              "reused estimate identities still expose differing complete records()",
+              "line limits return no partial comparison and a later bounded request starts cleanly()",
+              "reversing selected inputs preserves both records without reassigning one side()",
+              "caller mutation and stream closure cannot change admitted records or retained results()",
+          }
+          suite = ET.parse(pathlib.Path("core/build/test-results/test") / f"TEST-{name}.xml").getroot()
+          cases = suite.findall("testcase")
+          names = [case.attrib.get("name") for case in cases]
+          if suite.attrib.get("name") != name or any(case.attrib.get("classname") != name for case in cases) or set(names) != expected or len(names) != len(expected):
+              raise SystemExit("Missing, foreign or repeated selected-cost regression")
+          if int(suite.attrib["tests"]) != len(cases) or any(int(suite.attrib.get(key, "0")) != 0 for key in ("failures", "errors", "skipped")) or any(case.findall("failure") or case.findall("error") or case.findall("skipped") for case in cases):
+              raise SystemExit("Selected-cost regressions did not execute cleanly")
+          print(f"Verified {len(cases)} selected historical cost admissions; pricing comparability remains unestablished")
+          PYTEST
       - name: Require explicitly supplied historical findings regressions
         run: |
           python - <<'PYTEST'
@@ -1873,6 +1908,9 @@ jobs:
               "unsupportedInvalidAndAbsentVersionsHaveDistinctRecoverableMessagesAndPreserveBytes",
               "corruptAndBusyRetainedCachesNeverFallBackAndBusyRecoveryUsesTheExactPin",
               "cancelledLoadingAndResultCallbacksCannotReopenOrNavigateAfterDismissal",
+              "actualPauseRetiresExactPinRecoveryAndCapturedActions",
+              "actualPauseRetiresPinnedCompleteFieldAndValueCallbacks",
+              "pausedPinReadsAndPostedCompletionsCannotReviveTheirOrigin",
               "newerInspectionReplacesQueuedOriginAndRetainedControlsCannotReplaceItsResult",
               "actualDetailAndPinInspectionRetireEachOthersRetainedActionsWithoutChangingPendingFields",
               "comparisonAndPinInspectionRetireEachOthersRetainedActionsAndPreserveTrayPreferences",
@@ -2020,6 +2058,10 @@ jobs:
               "allAffectedSelectionsRemainReachableAcrossBoundedPages",
               "cancelledFindingAndSelectionCallbacksCannotOpenDetailsOrPages",
               "replacementInspectionAndSourceIdentityRevokeRetainedContextCallbacks",
+              "actualPauseRetiresFindingsAndCapturedSelectionCallbacks",
+              "actualPauseRetiresFindingPickerAndDetailCallbacks",
+              "pausedAndResumedActivityDiscardsQueuedFindingReports",
+              "rejectedFindingDispatchAllowsExplicitRetryWithoutDraftWrites",
               "destroyedActivityRetiresRecordedSelectionWindowsAndCallbacks",
               "narrowRtlLargeTextContextActionsRemainVisibleAndComplete",
               "selectionPageCountsRetainEmptySingleAndWholePagedTotals",
@@ -2096,6 +2138,12 @@ jobs:
               'ai.pickyour.android.preview.SnapshotEvaluationActivityTest': {
                   'actualActivityMissingArchiveRemainsMissingAndPendingEditorIsPreserved',
                   'actualActivityReadsExactRetainedInputsAfterSourceDeletionWithoutEvaluatingPendingEdits',
+                  'actualRetainedFindingNavigationKeepsRecordedIdentityAndPendingEdits',
+                  'findingNavigationRequiresCurrentAcceptedResultAndFreshRetry',
+                  'retryAndDismissRetireRetainedFindingControls',
+                  'switchingRetainedRevisionsRetiresCapturedFindingSelectionCallbacks',
+                  'actualActivityPauseAndRecreationRetireRetainedFindingNavigation',
+                  'retainedFindingEntryRemainsReachableWithLargeFontInNarrowRtl',
                   'emptyAndPartiallyLostNamespacesAreExplicitWithoutIndexOrSealRepair',
                   'cancelledAndReplacedPickersCannotOpenRetainedItemCallbacks',
                   'cancelBeforeQueuedEvaluationPreventsEngineWorkAndFreshRetryWorks',
