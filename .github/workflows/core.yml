@@ -48,6 +48,12 @@ jobs:
         run: |
           python scripts/check_conformance_fixtures.py
           python -m unittest discover -s scripts/tests -p 'test_conformance_fixtures.py' -v
+      - name: Verify typed comparison input and receipt guards
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          python -m unittest discover -s scripts/tests -p 'test_typed_comparison_fixtures.py' -v
+          python -O -m unittest discover -s scripts/tests -p 'test_typed_comparison_fixtures.py' -v
       - name: Verify runtime SPDX mapping and stale-evidence guards
         run: python -m unittest discover -s scripts/tests -p 'test_runtime_sbom.py' -v
       - name: Check wrapper integrity
@@ -540,6 +546,50 @@ jobs:
               raise SystemExit("Context policy preparation regression did not pass")
           print(f"Verified {len(cases)} exact context policy preparation and managed storage cases")
           PYTEST
+      - name: Require typed model preparation and managed storage regressions
+        run: |
+          python - <<'PYMODEL'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          required = {
+              'ai.pickyour.core.preview.PreviewModelSettingsTest': {
+                  'sevenOptionalFieldsRetainExactFrozenMetadataWithoutConditionalDefaults()',
+                  'initialAbsenceExplicitZeroAndRemovalDoNotInventSuppliedValues()',
+                  'suppliedEmptyAndWhitespaceStayInvalidForEveryTextControl()',
+                  'temperatureAndTopPUseExactInclusiveAndExclusiveDecimalBounds()',
+                  'outputTokensKeepWideExactIntegersAndMathematicalIntegerAliases()',
+                  'numericSyntaxRejectsLocaleCoercionNonNumbersAndOversizedRepresentations()',
+                  'numericFieldCannotInjectAnotherKeyDuplicateOrTrailingDocument()',
+                  'untouchedAdmittedNumericNodesPreserveTheirExactScaleAndType()',
+                  'everyCanonicalPrecisionAndServingModeRemainIndependentOptionalChoices()',
+                  'enumDisplayLabelsUnknownEmptyAndCaseAliasesAreNeverWireValues()',
+                  'opaqueCredentialReferencePreservesFrozenFindAndTerminalLfSemantics()',
+                  'legitimateUrisRemainLiteralWithoutOpeningOrCatalogCompatibilityInference()',
+                  'authorityUserinfoAndMalformedUnicodeCannotPrepareAnySave()',
+                  'recoveryPrivacyClassificationDoesNotDependOnOtherFieldValidity()',
+                  'wholeSelectionAdmissionRejectsCombinedSettingsBeyondTheExistingBudget()',
+                  'configurePreservesIdentityRoleFlagsNotesExtensionsLinksAndUnrelatedContent()',
+                  'currentNoopStaleAndDeletedManagedAuthorityRemainDistinct()',
+                  'managedSevenTypedValuesRoundTripThroughAnExplicitValidatedBuildCandidate()',
+                  'errorsInputAndPreparationDescriptionsNeverEchoSuppliedValues()',
+              },
+          }
+          for qualified, expected in required.items():
+              module = 'core' if qualified.startswith('ai.pickyour.core.') else 'preview'
+              task = 'test' if module == 'core' else 'testDebugUnitTest'
+              suite = ET.parse(pathlib.Path(module) / 'build/test-results' / task / ('TEST-' + qualified + '.xml')).getroot()
+              cases = suite.findall('testcase')
+              names = [case.attrib['name'] for case in cases]
+              if suite.attrib.get('name') != qualified or any(case.attrib.get('classname') != qualified for case in cases):
+                  raise SystemExit('Wrong typed model regression suite')
+              if not expected <= set(names) or len(names) != len(set(names)):
+                  raise SystemExit('Missing or repeated typed model regression')
+              if int(suite.attrib['tests']) != len(cases) or any(int(suite.attrib[key]) for key in ('failures', 'errors', 'skipped')):
+                  raise SystemExit('Typed model totals do not match passing execution')
+              if any(case.findall('failure') or case.findall('error') or case.findall('skipped') for case in cases):
+                  raise SystemExit('Typed model regression did not pass')
+              print(f"Verified {len(cases)} {qualified} cases; no installed-device claim")
+          PYMODEL
       - name: Require every retained configuration golden
         run: |
           python - <<'PYCONFIGURATION'
@@ -581,6 +631,10 @@ jobs:
         run: |
           mkdir -p build/conformance
           python scripts/check_conformance_fixtures.py --reports core/build/test-results/test --exit-code 0 --output build/conformance/qualified.json
+      - name: Require exact typed comparison outcomes and admission cases
+        run: |
+          mkdir -p build/conformance
+          python scripts/check_typed_comparison_fixtures.py --reports core/build/test-results/test --test-exit-code 0 > build/conformance/typed-comparison-qualified.json
       - name: Reject ignored packaged contract schemas
         run: python scripts/check_runtime_inventory_guards.py
       - name: Require actual inventory producer to reject Git replacement objects
@@ -1082,6 +1136,66 @@ jobs:
                   raise SystemExit("Typed context policy Activity or checkpoint regression did not pass")
               print(f"Verified {len(cases)} simulated {name} cases; no installed-device claim")
           PYTEST
+      - name: Require typed model Activity and private recovery regressions
+        run: |
+          python - <<'PYMODEL'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          required = {
+              'ai.pickyour.android.preview.ModelSettingsActivityTest': {
+                  'temperatureHasAnExplicitOptionalTypedControl',
+                  'topPHasAnExplicitOptionalTypedControl',
+                  'maxOutputTokensHasAnExplicitOptionalTypedControl',
+                  'precisionHasAnExplicitOptionalTypedControl',
+                  'servingModeHasAnExplicitOptionalTypedControl',
+                  'credentialReferenceHasAnExplicitOptionalTypedControl',
+                  'weightsUriHasAnExplicitOptionalTypedControl',
+                  'modelAddStillUsesRawJsonAndDoesNotPrefillOptionalSettings',
+                  'cancelConfigurePreservesTheAcknowledgedModel',
+                  'legacyRawModelCheckpointsKeepInvalidTextWithoutFreshAuthority',
+                  'sevenValuesSaveExactlyAndModeSwitchDoesNotEraseAnotherField',
+                  'suppliedEmptyFieldsKeepIndependentErrorsUntilCorrectedOrExplicitlyRemoved',
+                  'absentTypedCommitClosesWithoutCreatingAnotherRevisionOrDefaults',
+                  'allPresenceAndInvalidOrdinaryTextRecoverOnlyAfterExplicitReview',
+                  'invalidNumericTextCannotHideWeightsUserinfoFromNewRecoveryCapture',
+                  'invalidCredentialCaptureIsUnavailableWithoutClearingLiveCorrectionText',
+                  'changedSavedHeadRetainsSevenInputsReadOnlyUntilExplicitDiscardAndReopen',
+                  'wrongDraftSelectionAndCatalogIdentityNeverReceiveFreshModelSaveAuthority',
+                  'inFlightTypedModelFreezesAllControlsAndNeverReplaysAfterAcknowledgment',
+                  'retiredPrecisionPickerAndSupplyControlCannotReviveAClosedForm',
+                  'staleManagedCommitCannotOverwriteAnotherWriterOrReenableTypedControls',
+                  'oversizedTypedModelRecoveryHasNoPrefixAndNoAutomaticViewStateFallback',
+              },
+              'ai.pickyour.android.preview.ModelFormCheckpointTest': {
+                  'allSevenPrimitiveValuesAndExplicitAbsenceSurviveActualParcelRoundTrip',
+                  'combinedTwentyThousandUtf16BudgetIncludesEveryFieldAndRejectsOneExtra',
+                  'strictPrimitiveKeysDoNotCoerceAbsentEmptyOrWrongTypedValues',
+                  'wrongVersionFormKindAndEnumValuesNeverSelectAnotherRecoveryProtocol',
+                  'allOriginalIdentityFieldsAreRequiredBoundedAndNotReplacedByCurrentIdentity',
+                  'userinfoIsExcludedIndependentlyOfInvalidNumericTextWithAValueFreeMarker',
+                  'invalidTypedCredentialNeverPersistsAPasswordWhileValidOpaqueBytesAreRetained',
+                  'legitimateAtSignsAndOrdinaryMalformedUriTextRemainPrivateCorrectionInput',
+                  'forgedTypedSensitivePayloadsCannotBypassTheReadSidePrivacyCheck',
+                  'rawModelV1V2AndTypedContextV3RemainSeparateUnmodifiedReaders',
+                  'savingFlagIsOnlyRetainedStateAndDescriptionsStayValueFree',
+              },
+          }
+          for qualified, expected in required.items():
+              module = 'core' if qualified.startswith('ai.pickyour.core.') else 'preview'
+              task = 'test' if module == 'core' else 'testDebugUnitTest'
+              suite = ET.parse(pathlib.Path(module) / 'build/test-results' / task / ('TEST-' + qualified + '.xml')).getroot()
+              cases = suite.findall('testcase')
+              names = [case.attrib['name'] for case in cases]
+              if suite.attrib.get('name') != qualified or any(case.attrib.get('classname') != qualified for case in cases):
+                  raise SystemExit('Wrong typed model regression suite')
+              if not expected <= set(names) or len(names) != len(set(names)):
+                  raise SystemExit('Missing or repeated typed model regression')
+              if int(suite.attrib['tests']) != len(cases) or any(int(suite.attrib[key]) for key in ('failures', 'errors', 'skipped')):
+                  raise SystemExit('Typed model totals do not match passing execution')
+              if any(case.findall('failure') or case.findall('error') or case.findall('skipped') for case in cases):
+                  raise SystemExit('Typed model regression did not pass')
+              print(f"Verified {len(cases)} {qualified} cases; no installed-device claim")
+          PYMODEL
       - name: Require bounded component form recovery regressions to execute
         run: |
           python - <<'PYTEST'
@@ -1917,6 +2031,31 @@ jobs:
                   raise SystemExit("Current-draft regression did not execute successfully")
               print(f"Verified {len(cases)} source-named current-draft cases in {name}; no installed-device claim")
           PYCURRENT
+      - name: Require bounded library observation regressions
+        run: |
+          python - <<'PYLIBRARYOBSERVATION'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          name = "ai.pickyour.android.preview.LibraryReadObservationTest"
+          required = {
+              "busyListWaitsOnceForOwnedWorkerWithoutDispatchingTheMainLooperOrChangingFiles",
+              "availableListReturnsItsExactResultWhileUnrelatedWorkRemainsQueued",
+              "persistentBusyReturnsTheSecondActualFailureWithoutLoopingOrOpeningUi",
+              "corruptLibraryRootIsReturnedOnceWithoutAdoptingDifferentContents",
+          }
+          suite = ET.parse(pathlib.Path("preview/build/test-results/testDebugUnitTest") / f"TEST-{name}.xml").getroot()
+          cases = suite.findall("testcase")
+          actual = [case.attrib.get("name") for case in cases]
+          if suite.attrib.get("name") != name or any(case.attrib.get("classname") != name for case in cases):
+              raise SystemExit("Wrong library observation class")
+          if not required.issubset(set(actual)) or len(actual) != len(set(actual)):
+              raise SystemExit("Missing or repeated library observation regression")
+          if int(suite.attrib["tests"]) != len(cases) or any(int(suite.attrib.get(key, "0")) != 0 for key in ("failures", "errors", "skipped")):
+              raise SystemExit("Library observation totals did not execute cleanly")
+          if any(case.findall("failure") or case.findall("error") or case.findall("skipped") for case in cases):
+              raise SystemExit("Library observation regression failed, errored or skipped")
+          print(f"Verified {len(cases)} actual library observation cases; no product retry introduced")
+          PYLIBRARYOBSERVATION
       - name: Require actual current-finding full-text regressions
         run: |
           python - <<'PYFINDINGTEXT'
@@ -2099,6 +2238,7 @@ jobs:
               "actualPauseRetiresEveryCurrentDetailChildBeforeItsCallbacksCanReopen",
               "actualRecreationRetiresCurrentSourceRecoveryWithoutLosingDraftState",
               "explicitlyRetiredSourceConfirmationCannotDispatchOrReopen",
+              "sharedInspectionEntryRetiresCurrentSourceRecoveryBeforeOpeningItsWindow",
               "actualReloadSnapshotReplacementAndRecreationRetireCapturedFullValues",
               "storageReconciliationPermanentlyRetiresFullValuesWithAnUnchangedMissingBaseline",
               "exactRetainedDetailOpensEveryOldValueWithoutActivatingOrSubstitutingCurrentData",

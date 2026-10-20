@@ -7,6 +7,7 @@ import android.os.Looper
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.TextView
 import ai.pickyour.core.drafts.*
@@ -343,7 +344,10 @@ class CurrentDraftSummaryActivityTest {
         assertEquals("primary", loaded().components.selections.single().role)
 
         val configure = savedComponentFormFromSummary(0)
-        dialogField(configure, R.string.component_settings).setText("{\"temperature\":0.5}")
+        views(configure.window!!.decorView).filterIsInstance<CheckBox>().single {
+            it.text.toString() == activity.getString(R.string.model_supply, activity.getString(R.string.model_temperature))
+        }.performClick()
+        dialogField(configure, R.string.model_temperature).setText("0.5")
         commitFormAndReviewCurrentComponents(configure, "configure")
         assertEquals("{\"temperature\":0.5}", PreviewSelectionForms.settingsText(loaded().components.selections.single()))
 
