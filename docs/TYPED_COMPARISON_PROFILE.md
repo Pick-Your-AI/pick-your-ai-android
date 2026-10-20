@@ -63,10 +63,13 @@ could otherwise bypass.
 
 | Operation | Selected behavior |
 | --- | --- |
-| `eq`, `ne` | Recursive typed equality and its three-valued complement; arrays keep order, object keys remain literal |
-| `lt`, `lte`, `gt`, `gte` | Exact comparison in supported numeric or text domains; incompatible types remain unknown |
+| `eq`, `ne` | Typed scalar equality and its three-valued complement; arrays, objects and incompatible scalar domains remain unknown |
+| `lt`, `lte`, `gt`, `gte` | Exact numeric comparison, including accepted numeric strings; nonnumeric operands remain unknown |
 | `in`, `contains` | Directional membership or text containment within the selected compatible domains |
 | `intersects`, `subset_of` | Full bounded array membership comparisons, with the selected any/all three-valued reduction |
+
+Within membership, array and object elements use recursive equality; array
+positions and exact object key sets remain significant.
 
 Booleans and numbers remain different domains. JSON integers and decimals use
 `BigInteger`/`BigDecimal`; finite canonical nonnegative decimal strings follow
