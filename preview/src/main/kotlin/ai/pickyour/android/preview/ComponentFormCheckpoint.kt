@@ -96,6 +96,7 @@ internal sealed interface ComponentFormRecovery {
     class TypedModelPending(val form: ModelFormCheckpoint) : ComponentFormRecovery
     class TypedComputePending(val form: ComputeFormCheckpoint) : ComponentFormRecovery
     class TypedDataSourcePending(val form: DataSourceFormCheckpoint) : ComponentFormRecovery
+    class TypedModelProviderPending(val form: ModelProviderFormCheckpoint) : ComponentFormRecovery
 
     fun save(outState: Bundle) {
         outState.remove(KEY)
@@ -108,6 +109,7 @@ internal sealed interface ComponentFormRecovery {
             is TypedModelPending -> outState.putBundle(KEY, form.bundle() ?: unavailable())
             is TypedComputePending -> outState.putBundle(KEY, form.bundle() ?: unavailable())
             is TypedDataSourcePending -> outState.putBundle(KEY, form.bundle() ?: unavailable())
+            is TypedModelProviderPending -> outState.putBundle(KEY, form.bundle() ?: unavailable())
         }
     }
 
@@ -133,6 +135,8 @@ internal sealed interface ComponentFormRecovery {
                     ComputeFormCheckpoint.read(value)?.let(::TypedComputePending) ?: Unavailable
                 } else if (value.get("version") == DataSourceFormCheckpoint.VERSION) {
                     DataSourceFormCheckpoint.read(value)?.let(::TypedDataSourcePending) ?: Unavailable
+                } else if (value.get("version") == ModelProviderFormCheckpoint.VERSION) {
+                    ModelProviderFormCheckpoint.read(value)?.let(::TypedModelProviderPending) ?: Unavailable
                 } else ComponentFormCheckpoint.read(value)?.let(::Pending) ?: Unavailable
             }
         } catch (_: RuntimeException) {
