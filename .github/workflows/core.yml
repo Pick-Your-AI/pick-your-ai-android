@@ -624,6 +624,43 @@ jobs:
                   raise SystemExit('Typed model regression did not pass')
               print(f"Verified {len(cases)} {qualified} cases; no installed-device claim")
           PYMODEL
+      - name: Require typed data-source preparation and managed storage regressions
+        run: |
+          python - <<'PYDATASOURCE'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          expected = {
+              'ai.pickyour.core.preview.PreviewDataSourceSettingsTest': {
+                  'exactFrozenThreeFieldMetadataKeepsEverySettingOptional()',
+                  'absentFalseAndTrueDoNotChangeOuterSelectionEnabled()',
+                  'exactIntegralMinutesRetainWideValuesAndAcceptedDecimalAliases()',
+                  'emptySuppliedMinutesRemainInvalidUntilExplicitlyOmitted()',
+                  'minuteSyntaxRejectsCoercionAndBoundedReaderOverflow()',
+                  'numericControlCannotInjectAnotherSettingOrTrailingDocument()',
+                  'opaqueReferencesStayLiteralIncludingFrozenFinalLfSemantics()',
+                  'malformedReferencesNeverBecomeCredentialsOrTrimmedValues()',
+                  'fieldErrorsAreIndependentAndCannotPublishAPartialCommand()',
+                  'untouchedIntegralAliasAndRemovedSiblingUseOnlyFinalSettingsAdmission()',
+                  'finalWholeSelectionAndSettingsBudgetsStillRejectWithoutFieldErrors()',
+                  'exactConfigurePreservesMetadataLinksPeersAndOtherDraftInputs()',
+                  'managedNoopStaleAndDeletedSaveAuthorityRemainDistinct()',
+                  'typedSettingsRoundTripThroughStorageAndExplicitFrozenBuildProjection()',
+                  'descriptionsAndIssuesDoNotEchoInputAndOtherKindsAreRejected()',
+              },
+          }
+          for name, required in expected.items():
+              report = pathlib.Path('core/build/test-results/test') / f"TEST-{name}.xml"
+              suite = ET.parse(report).getroot()
+              cases = suite.findall("testcase")
+              names = [case.get("name") for case in cases]
+              if suite.get("name") != name or set(names) != required or len(names) != len(required):
+                  raise SystemExit("Missing, extra or repeated typed data-source regression")
+              if int(suite.get("tests", "-1")) != len(cases) or any(int(suite.get(key, "-1")) != 0 for key in ("failures", "errors", "skipped")):
+                  raise SystemExit("Typed data-source totals do not match passing execution")
+              if any(case.get("classname") != name or any(case.find(tag) is not None for tag in ("failure", "error", "skipped")) for case in cases):
+                  raise SystemExit("Typed data-source regression did not execute and pass")
+          print("Verified typed data-source Core cases; no connector execution or whole-issue acceptance inferred")
+          PYDATASOURCE
       - name: Require typed compute preparation and managed storage regressions
         run: |
           python - <<'PYCOMPUTE'
@@ -1300,6 +1337,53 @@ jobs:
                   raise SystemExit('Typed model regression did not pass')
               print(f"Verified {len(cases)} {qualified} cases; no installed-device claim")
           PYMODEL
+      - name: Require typed data-source Activity and private recovery regressions
+        run: |
+          python - <<'PYDATASOURCE'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          expected = {
+              'ai.pickyour.android.preview.DataSourceSettingsActivityTest': {
+                  'optionalDataSourceFieldsHaveLabeledPrivateNativeControls',
+                  'genericDataSourceAddRetainsExplicitRawSettingsAndOuterEnabled',
+                  'exactThreeFieldSaveAndReopenPreserveSelectionAndUnrelatedDraftState',
+                  'falseTrueAndNotSuppliedRemainDistinctWithoutChangingTheComponentFlag',
+                  'independentFieldErrorsPreserveRawInputAndAcknowledgedStorage',
+                  'cancelAndUntouchedCommitDoNotSaveDefaultsOrAnotherRevision',
+                  'rawMinutesAndFalseRecoverOnlyAfterReviewWhileOldControlsRemainRetired',
+                  'wrongDraftSelectionAndCatalogIdentitiesNeverReceiveFreshSaveAuthority',
+                  'changedSavedHeadKeepsPendingValuesReadOnlyUntilExplicitDiscardAndReopen',
+                  'inFlightSaveFreezesAllControlsAndRecoveryNeverReplaysTheCommit',
+                  'actualPauseRetiresOpenBooleanPickerAndRequiresFreshInputReview',
+                  'canceledAndConsumedBooleanChoicesCannotReplaceTheCurrentChoice',
+                  'invalidConnectorReferenceRemainsLiveButIsExcludedFromRecovery',
+                  'oversizedInputRetainsNoPrefixOrAutomaticViewState',
+                  'staleManagedCommitCannotOverwriteAnotherWriterOrReenableControls',
+                  'legacyRawDataSourceCheckpointsKeepTheirOriginalCorrectionReader',
+              },
+              'ai.pickyour.android.preview.DataSourceFormCheckpointTest': {
+                  'optionalRawMinutesAndThreeBooleanStatesSurviveParcelWithoutCoercion',
+                  'malformedOrCredentialLikeReferenceIsExcludedWithoutRetainingOtherInput',
+                  'aggregateUtf16LimitRejectsWholeInputWithoutAPrefixFallback',
+                  'exactPrimitiveShapeRejectsMissingFieldsBooleanAliasesAndExtraAuthority',
+                  'everyIdentityRemainsRequiredAndBoundedWithoutCurrentStateSubstitution',
+                  'legacyRawDataSourceAndNumericTypedComputeReadersRemainIndependent',
+                  'savingFlagAndDescriptionsCarryInputWithoutClaimingAcknowledgement',
+              },
+          }
+          for name, required in expected.items():
+              report = pathlib.Path('preview/build/test-results/testDebugUnitTest') / f"TEST-{name}.xml"
+              suite = ET.parse(report).getroot()
+              cases = suite.findall("testcase")
+              names = [case.get("name") for case in cases]
+              if suite.get("name") != name or set(names) != required or len(names) != len(required):
+                  raise SystemExit("Missing, extra or repeated typed data-source regression")
+              if int(suite.get("tests", "-1")) != len(cases) or any(int(suite.get(key, "-1")) != 0 for key in ("failures", "errors", "skipped")):
+                  raise SystemExit("Typed data-source totals do not match passing execution")
+              if any(case.get("classname") != name or any(case.find(tag) is not None for tag in ("failure", "error", "skipped")) for case in cases):
+                  raise SystemExit("Typed data-source regression did not execute and pass")
+          print("Verified typed data-source simulated Activity and recovery cases; no connector execution or whole-issue acceptance inferred")
+          PYDATASOURCE
       - name: Require typed compute Activity and private recovery regressions
         run: |
           python - <<'PYCOMPUTE'
