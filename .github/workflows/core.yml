@@ -158,6 +158,36 @@ jobs:
                   raise SystemExit("Current-draft regression did not execute successfully")
               print(f"Verified {len(cases)} source-named current-draft cases in {name}; no installed-device claim")
           PYCURRENT
+      - name: Require producer-bound Current unknown-phase regressions
+        run: |
+          python - <<'PYCURRENTPHASE'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          name = 'ai.pickyour.core.evaluation.DraftCurrentUnknownPhaseTest'
+          expected = {
+              'unknownApplicabilityDoesNotEvaluateUnsupportedAssertion()',
+              'unknownAssertionRequiresConfirmedApplicability()',
+              'skippedPassAndFailFindingsHaveNoUnknownPhase()',
+              'absentFabricatedAndForeignTracesCannotSupplyPhase()',
+              'sameInputReissuedRequestCannotBorrowAnOldTrace()',
+              'partialWorkOrUnsupportedFailureDiscardsEveryPhase()',
+              'traceAndCompletedCopiesAreImmutableAndPreserveStoredBytes()',
+              'currentTraceDoesNotChangeFrozenReportsOrLegacyFindingBytes()',
+          }
+          path = pathlib.Path('core/build/test-results/test') / ('TEST-' + name + '.xml')
+          suite = ET.parse(path).getroot()
+          cases = suite.findall('testcase')
+          names = [case.attrib.get('name') for case in cases]
+          if suite.tag != 'testsuite' or suite.attrib.get('name') != name or any(case.attrib.get('classname') != name for case in cases):
+              raise SystemExit('Foreign Current unknown-phase regression report')
+          if len(cases) != len(suite.findall('.//testcase')) or set(names) != expected or len(names) != len(expected):
+              raise SystemExit('Missing, blank, nested, extra or repeated Current unknown-phase regression')
+          if int(suite.attrib.get('tests', '-1')) != len(cases) or any(int(suite.attrib.get(key, '-1')) != 0 for key in ('failures', 'errors', 'skipped')):
+              raise SystemExit('Current unknown-phase totals did not pass')
+          if any(suite.find('.//' + tag) is not None for tag in ('failure', 'error', 'skipped')):
+              raise SystemExit('Current unknown-phase regression did not execute successfully')
+          print(f"Verified {len(cases)} exact producer-bound Current unknown-phase cases; no cause or feasible-action claim")
+          PYCURRENTPHASE
       - name: Require selected historical cost admission regressions
         run: |
           python - <<'PYTEST'

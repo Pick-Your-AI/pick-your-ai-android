@@ -190,12 +190,26 @@ class DraftCurrentEvaluation internal constructor(
     }
 }
 
+/** Observed evaluation phase only; no missing-input, causal or feasible-action claim. */
+enum class DraftCurrentUnknownPhase { APPLICABILITY, ASSERTION }
+
 sealed class DraftCurrentOutcome private constructor(private val request: DraftCurrentEvaluation) {
     val binding get() = request.binding
     fun belongsTo(expected: DraftCurrentEvaluation) = request === expected
-    class Completed internal constructor(request: DraftCurrentEvaluation, findings: List<DraftRuleFinding>) : DraftCurrentOutcome(request) {
-        val findings = currentList(findings.map { DraftRuleFinding(it.ruleId, it.outcome, it.severity, it.code,
+    class Completed private constructor(request: DraftCurrentEvaluation, observedFindings: List<DraftRuleFinding>,
+        observedPhases: Map<String, DraftCurrentUnknownPhase>,
+    ) : DraftCurrentOutcome(request) {
+        internal constructor(request: DraftCurrentEvaluation, findings: List<DraftRuleFinding>) :
+            this(request, findings, emptyMap())
+        internal constructor(request: DraftCurrentEvaluation, findings: List<DraftRuleFinding>,
+            trace: FrozenDiagnosticEvaluator.CurrentDraftTrace,
+        ) : this(request, findings, trace.phasesFor(request, findings))
+        val findings = currentList(observedFindings.map { DraftRuleFinding(it.ruleId, it.outcome, it.severity, it.code,
             it.message, it.remediation, currentList(it.selectionIds)) })
+        private val phases = Collections.unmodifiableMap(LinkedHashMap(observedPhases))
+        /** Only this request's actual produced unknown finding may expose its observed phase. */
+        fun unknownPhase(ruleId: String): DraftCurrentUnknownPhase? =
+            if (this.findings.singleOrNull { it.ruleId == ruleId }?.outcome == "unknown") phases[ruleId] else null
         private val guidance = request.inputs.provisionalGuidance(request.source, this.findings)
         /** Captured local presentation only; the request, original findings and readiness are unchanged. */
         fun provisionalGuidance(ruleId: String): ProvisionalFindingGuidance =
@@ -210,9 +224,9 @@ class DraftCurrentEvaluator {
         fun unavailable(reason: DraftCurrentUnavailable) = DraftCurrentOutcome.Unavailable(request, reason)
         if (optionalUnresolved(request.source)) return unavailable(DraftCurrentUnavailable.OPTIONAL_INTENT_UNRESOLVED)
         return try {
-            val context = DraftDiagnosticContext.create(request.source.content.components, request.source.content.workload)
-            when (val result = FrozenDiagnosticEvaluator().evaluateDraft(context, request.inputs.catalogBytes(), request.inputs.rulesBytes())) {
-                is DraftRuleEvaluation.Evaluated -> DraftCurrentOutcome.Completed(request, result.findings)
+            val trace = FrozenDiagnosticEvaluator().evaluateCurrentDraft(request)
+            when (val result = trace.evaluation) {
+                is DraftRuleEvaluation.Evaluated -> DraftCurrentOutcome.Completed(request, result.findings, trace)
                 is DraftRuleEvaluation.Rejected -> unavailable(DraftCurrentUnavailable.valueOf(result.reason.name))
             }
         } catch (_: RuntimeException) { unavailable(DraftCurrentUnavailable.INVALID_INPUT) }
