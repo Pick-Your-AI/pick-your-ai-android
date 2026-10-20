@@ -177,9 +177,15 @@
     }
   },
   "native_review": {
-    "completed_for_initial_tree": false,
-    "helper_and_added_activity_proposal_reviewed_without_proposal_blocker": true,
-    "actual_corrected_files_and_complete_parcel_body_pending": true
+    "initial_candidate_cleared": false,
+    "complete_proposal_review": {
+      "receipt": "maintenance/continuation/2026-10-20-training-editors/proposal-review.json",
+      "confirmed_blocking_findings": 0,
+      "conditional_fixture_shape_check_pending": true
+    },
+    "actual_corrected_files_pending": true,
+    "actual_source_clearance": false,
+    "natural_execution_pending": true
   },
   "existing_claim_comment_ids": {
     "compute": 6291567463,

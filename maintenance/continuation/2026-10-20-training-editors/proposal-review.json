@@ -1,0 +1,46 @@
+{
+  "status": "PROPOSAL_ONLY_NO_DELIVERY_CLEARANCE",
+  "recorded_at_utc": "2026-10-20 15:22:58 UTC",
+  "reviewer": "independent native review lane",
+  "proposal": {
+    "commit": "250fb7e91f6ea44ce0b0c0351b8ab5f435106682",
+    "path": "maintenance/continuation/2026-10-20-training-editors/fine-model-recovery-correction.py.txt",
+    "bytes": 13642,
+    "sha256": "93254262649a556f15284496d3f6d93e87a79f4d283669ba6305de74ff336ea0",
+    "git_blob": "8d768a3b2ee57c6f7f283b8dcaa3358a55cadc9b"
+  },
+  "reviewed": [
+    "Complete proposed existing capture-API helper and all three typed entry-point guards",
+    "Complete added Activity parity case",
+    "Complete revised serialized/UTF-16 boundary test",
+    "Complete new Parcel and direct-read parity test"
+  ],
+  "confirmed_blocking_findings": [],
+  "conclusions": [
+    "The full-settings generic capture API is the normative oracle; no private URI-policy mapping is inferred.",
+    "Measured JSON overhead and supplementary UTF-16 arithmetic separate exact wrapper, wrapper-overflow and raw-overflow boundaries.",
+    "Pending, exclusion and unavailable cases preserve the existing API outcome at proposal level."
+  ],
+  "conditional_verification_item": {
+    "confirmed_defect": false,
+    "subject": "Otherwise-well-formed incoming typed Bundle used to prove the direct-read guard",
+    "detail": "The proposal replaces artifactUri, revision and Boolean fields in a default valid checkpoint bundle. Verify the actual initial key list and default helper. If separate string-presence flags exist, align them with input != null; if they do not exist, no such change is needed.",
+    "reason": "The regression must reject because of the new capture guard, not because an earlier structural mismatch invalidates the manually reconstructed input.",
+    "literal_initial_key_list_available_to_this_followup": false
+  },
+  "no_additional_source_or_policy_or_local_reads": true,
+  "actual_corrected_files_applied": false,
+  "actual_corrected_files_reviewed": false,
+  "revised_tree_cleared": false,
+  "initial_candidate_tree": "2250b369adf5533ab579b2debae30c7d12560969",
+  "initial_candidate_cleared": false,
+  "required_after_recovery": [
+    "Apply correction to verified original input",
+    "Inspect actual fixture key/value/presence shape",
+    "Review exact changed source and all entry points",
+    "Regenerate attendance guards and source receipt",
+    "Verify complete inverse/source proofs",
+    "Review final current-main composition",
+    "Qualify fresh natural CI before ordinary delivery"
+  ]
+}
