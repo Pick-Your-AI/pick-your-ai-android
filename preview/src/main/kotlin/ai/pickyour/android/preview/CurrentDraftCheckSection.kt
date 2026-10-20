@@ -11,6 +11,7 @@ import android.widget.TextView
 import ai.pickyour.core.evaluation.DraftCurrentInputs
 import ai.pickyour.core.evaluation.DraftCurrentUnavailable
 import ai.pickyour.core.evaluation.DraftCurrentRecheck
+import ai.pickyour.core.evaluation.ProvisionalFindingGuidance
 import ai.pickyour.core.preview.PreviewCurrentDraftAnalysis
 import ai.pickyour.core.preview.PreviewCurrentDraftState
 import ai.pickyour.core.preview.PreviewCurrentUnavailable
@@ -198,6 +199,10 @@ internal class CurrentDraftCheckSection(
                 "unknown" -> "\n\n" + activity.getString(R.string.current_finding_unknown_meaning)
                 "skipped" -> "\n\n" + activity.getString(R.string.current_finding_skipped_meaning)
                 else -> ""
+            } + when (state.outcome.provisionalGuidance(row.ruleId)) {
+                ProvisionalFindingGuidance.INCOMPLETE -> "\n\n" + activity.getString(R.string.findings_guidance_incomplete)
+                ProvisionalFindingGuidance.REPORTED_INCOMPATIBILITY -> "\n\n" + activity.getString(R.string.findings_guidance_incompatible)
+                ProvisionalFindingGuidance.UNCLASSIFIED -> ""
             }
         lateinit var detail: AlertDialog
         val context = LinearLayout(activity).apply {
