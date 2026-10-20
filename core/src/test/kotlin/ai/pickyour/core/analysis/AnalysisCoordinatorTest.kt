@@ -111,4 +111,85 @@ class AnalysisCoordinatorTest {
         assertThrows(IllegalArgumentException::class.java) { identity.copy(catalog = " ") }
         assertThrows(IllegalArgumentException::class.java) { identity.copy(costEvidence = "") }
     }
+
+    @Test
+    fun `bound identity diagnostics redact every private input while preserving values`() {
+        val privateIdentity = diagnosticIdentity()
+        val coordinator = AnalysisCoordinator<String>()
+        assertTrue(coordinator.bind(privateIdentity))
+        val idle = coordinator.snapshot() as AnalysisState.Idle
+        assertSame(privateIdentity, idle.identity)
+
+        val (draftId, revision, catalog, graph, ruleset, pricebook, costEvidence, resourceEvidence) = privateIdentity
+        assertEquals(
+            listOf("private-draft-marker", 791337L, "private-catalog-marker", "private-graph-marker",
+                "private-rules-marker", "private-prices-marker", "private-cost-marker", "private-resource-marker"),
+            listOf(draftId, revision, catalog, graph, ruleset, pricebook, costEvidence, resourceEvidence),
+        )
+        assertEquals(privateIdentity, privateIdentity.copy())
+        assertEquals(privateIdentity.hashCode(), privateIdentity.copy().hashCode())
+        assertEquals("replacement", privateIdentity.copy(draftId = "replacement").draftId)
+        assertEquals("private-draft-marker", privateIdentity.draftId)
+        assertFalse(coordinator.bind(privateIdentity.copy()))
+
+        val diagnostics = listOf(privateIdentity.toString(), idle.toString())
+        for (diagnostic in diagnostics) {
+            for (privateValue in diagnosticMarkers()) {
+                assertFalse(diagnostic.contains(privateValue), "A diagnostic exposed a private analysis input")
+            }
+        }
+    }
+
+    @Test
+    fun `successful snapshot diagnostics redact report while preserving data class behavior`() {
+        val privateIdentity = diagnosticIdentity()
+        val coordinator = AnalysisCoordinator<String>()
+        val ticket = coordinator.start(privateIdentity)
+        val report = "private-report-marker"
+        assertTrue(coordinator.succeed(ticket, report))
+        val succeeded = coordinator.snapshot() as AnalysisState.Succeeded<String>
+
+        assertSame(ticket, succeeded.ticket)
+        assertSame(privateIdentity, succeeded.ticket.identity)
+        assertEquals(report, succeeded.report)
+        val (retainedTicket, retainedReport) = succeeded
+        assertSame(ticket, retainedTicket)
+        assertEquals(report, retainedReport)
+        assertEquals(succeeded, succeeded.copy())
+        assertEquals(succeeded.hashCode(), succeeded.copy().hashCode())
+        val replacement = succeeded.copy(report = "replacement")
+        assertSame(ticket, replacement.ticket)
+        assertEquals("replacement", replacement.report)
+        assertNotEquals(succeeded, replacement)
+        assertEquals(report, succeeded.report)
+
+        val diagnostic = succeeded.toString()
+        for (privateValue in diagnosticMarkers() + report) {
+            assertFalse(diagnostic.contains(privateValue), "A diagnostic exposed private analysis data")
+        }
+    }
+
+    @Test
+    fun `successful snapshot diagnostics never invoke report toString`() {
+        val report = object {
+            override fun toString(): String = error("Report formatting must not run for a state diagnostic")
+        }
+        val coordinator = AnalysisCoordinator<Any>()
+        val ticket = coordinator.start(diagnosticIdentity())
+        assertTrue(coordinator.succeed(ticket, report))
+        val succeeded = coordinator.snapshot() as AnalysisState.Succeeded<Any>
+        assertSame(report, succeeded.report)
+        assertDoesNotThrow { succeeded.toString() }
+        assertSame(report, succeeded.report)
+    }
+
+    private fun diagnosticIdentity() = AnalysisIdentity(
+        "private-draft-marker", 791337, "private-catalog-marker", "private-graph-marker",
+        "private-rules-marker", "private-prices-marker", "private-cost-marker", "private-resource-marker",
+    )
+
+    private fun diagnosticMarkers() = listOf(
+        "private-draft-marker", "791337", "private-catalog-marker", "private-graph-marker",
+        "private-rules-marker", "private-prices-marker", "private-cost-marker", "private-resource-marker",
+    )
 }
