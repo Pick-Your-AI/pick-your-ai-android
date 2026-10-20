@@ -87,7 +87,7 @@ explicit validated Build-candidate round trip. The
 [7 private-checkpoint cases](../preview/src/test/kotlin/ai/pickyour/android/preview/InferenceFormCheckpointTest.kt)
 exercise actual Parcel round trips, exact identities/types, combined budgets,
 protocol separation and retained in-flight state. The
-[15 Activity cases](../preview/src/test/kotlin/ai/pickyour/android/preview/InferenceSettingsActivityTest.kt)
+[16 Activity cases](../preview/src/test/kotlin/ai/pickyour/android/preview/InferenceSettingsActivityTest.kt)
 use the real worker and local store in Robolectric to check native controls,
 exact save, error correction, cancellation, no-op, raw ADD and legacy recovery,
 private recreation, wrong identities, in-flight retirement, stale saves and
