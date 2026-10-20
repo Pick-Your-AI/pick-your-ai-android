@@ -6,6 +6,7 @@ import ai.pickyour.core.importing.JsonInputResult
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.networknt.schema.ExecutionContext
 import com.networknt.schema.JsonSchema
 import com.networknt.schema.JsonMetaSchema
 import com.networknt.schema.Vocabulary
@@ -22,6 +23,7 @@ import java.nio.ByteBuffer
 import java.nio.charset.CodingErrorAction
 import java.security.MessageDigest
 import java.util.IdentityHashMap
+import java.util.function.Consumer
 import java.util.regex.Pattern
 
 /**
@@ -38,7 +40,9 @@ class KnownAnswerSchema private constructor(private val original: ByteArray, pri
     private val compiled: JsonSchema by lazy { schemaBoundary { compile() } }
 
     internal fun requireValid(value: JsonNode) {
-        val valid = schemaBoundary { compiled.validate(value).isEmpty() }
+        val valid = schemaBoundary {
+            compiled.validate(value, Consumer<ExecutionContext>(Cd1ReferenceBudget::begin)).isEmpty()
+        }
         cd1Require(valid, Cd1Problem.VALUE_SCHEMA_MISMATCH)
     }
 
@@ -61,6 +65,10 @@ class KnownAnswerSchema private constructor(private val original: ByteArray, pri
                             in Cd1ContainsCountKeyword.names -> Cd1ContainsCountKeyword(keyword)
                             else -> keyword
                         }
+                    }.toTypedArray())
+                } else if (iri == "https://json-schema.org/draft/2020-12/vocab/core") {
+                    Vocabulary(iri, *vocabulary.keywords.map { keyword ->
+                        if (keyword.value == "\$ref") Cd1ReferenceBudget.wrap(keyword) else keyword
                     }.toTypedArray())
                 } else vocabulary
             }.build())

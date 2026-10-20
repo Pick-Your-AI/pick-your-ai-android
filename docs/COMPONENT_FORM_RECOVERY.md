@@ -191,6 +191,18 @@ editable checkpoint and checks that resume never restores the earlier consent.
 These simulations also keep already admitted writes and their in-flight recovery
 separate from attempts to dispatch a new write after pause.
 
+The six remaining foundation, retrieval, agent, training, guardrail and operational
+in-flight fixtures release their held worker, then use the existing bounded
+worker/UI fence before their first canonical-store read. Pause now dismisses the
+old form before the admitted write necessarily finishes; dialog invisibility is
+therefore not a storage-acknowledgment barrier. Their exact saved revision,
+settings, checkpoint, read-only recovery and retired-control assertions remain
+unchanged. The original d3250c2e integration reported 778 simulated cases with one
+training timeout at this unfenced read boundary; its typed write disposition was
+not retained, so that artifact does not establish a BUSY result. This fixture
+ordering does not change product synchronization, repeat a write, extend a
+timeout or infer a corrected execution result.
+
 Actual installed system process death, recovery across the supported device and
 OS matrix, complete navigation/secure-entry routing, physical persistence faults,
 TalkBack and keyboard qualification, named receiving acceptance and release

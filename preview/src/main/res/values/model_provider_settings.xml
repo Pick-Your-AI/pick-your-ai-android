@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="model_provider_editor_guidance">Optional provider settings stay absent until supplied. Region is literal, unverified text; these controls do not contact a provider or resolve a credential.</string>
+    <string name="model_provider_region">Region</string>
+    <string name="model_provider_credential">Credential reference</string>
+    <string name="model_provider_api_base_url">API base URL</string>
+    <string name="model_provider_region_rule">Preserve the exact region text. A supplied empty string or whitespace is different from not supplied; this is not a verified location.</string>
+    <string name="model_provider_credential_rule">Use only an allowed opaque secret reference, such as secret://provider/key. Never paste a credential value.</string>
+    <string name="model_provider_api_base_url_rule">Use an admitted URI without user information in its authority. Its spelling is preserved; the address is not opened or verified.</string>
+    <string name="model_provider_not_supplied">Not supplied</string>
+    <string name="model_provider_supply">Supply %1$s</string>
+    <string name="model_provider_supplied_value">Supplied value</string>
+    <string name="model_provider_empty_value">Supplied empty string</string>
+    <string name="model_provider_recovery_guidance">Pending typed input is kept only in bounded private recovery. Recovery excludes invalid credential references and recognized URI user information. Restored input must be reviewed and never proves that a save completed.</string>
+    <string name="model_provider_text_invalid">Enter valid Unicode text, or clear Supply to leave the field absent.</string>
+    <string name="model_provider_reference_invalid">Enter an allowed secret reference, or clear Supply. Do not enter a credential value.</string>
+    <string name="model_provider_uri_invalid">Enter an admitted URI without authority user information, or clear Supply.</string>
+    <string name="model_provider_too_long">This field exceeds the local editor limit. Shorten it before saving.</string>
+</resources>

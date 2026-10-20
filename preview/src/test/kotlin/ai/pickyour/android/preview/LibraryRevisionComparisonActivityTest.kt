@@ -156,6 +156,80 @@ class LibraryRevisionComparisonActivityTest {
         keys.forEach { assertEquals(it, expected.get(it), actual.get(it)) }
     }
 
+    @Test fun actualPauseRetiresLibraryReadAndValueControlsWithoutReopening() {
+        histories()
+        finishWork()
+        field(R.string.draft_title).setText("pending library pause")
+        field(R.string.context_objective).setText("pending library objective")
+        field(R.string.workload_currency).setText("invalid")
+        val before = state()
+        val bytes = disk()
+        val left = loaded().baselineIdentity
+        val right = loaded(second).baselineIdentity
+        val entry = button(R.string.library_compare_open)
+        val release = blockWorker()
+        lateinit var loading: AlertDialog
+        try {
+            entry.performClick(); idle()
+            loading = dialog()
+            assertTrue(loading.isShowing)
+            assertTrue(texts().contains(activity.getString(R.string.library_compare_loading)))
+            controller.pause()
+            try {
+                assertFalse("Pause must retire the pending library comparison", loading.isShowing)
+                release.countDown()
+                finishWork()
+                entry.performClick()
+                finishWork()
+                assertSame("A late read or paused entry cannot open a library picker", loading, dialog())
+                assertFalse(dialog().isShowing)
+                assertState(before)
+                assertEquals(bytes, disk())
+            } finally {
+                controller.resume()
+            }
+        } finally {
+            release.countDown()
+        }
+        finishWork()
+        assertSame("Resume cannot revive the captured library request", loading, dialog())
+        assertFalse(dialog().isShowing)
+
+        pair()
+        inspectObjective()
+        click(R.string.revision_compare_inspect_after)
+        assertEquals("text: \"saved after\"", literal())
+        val obsolete = dialog()
+        val retained = controls(obsolete)
+        assertTrue(retained.isNotEmpty())
+        controller.pause()
+        try {
+            assertFalse("Pause must retire the captured library value owner", obsolete.isShowing)
+            retained.forEach { it.performClick() }
+            entry.performClick()
+            finishWork()
+            assertSame(obsolete, dialog())
+            assertFalse(dialog().isShowing)
+        } finally {
+            controller.resume()
+        }
+        idle()
+        assertSame(obsolete, dialog())
+        assertFalse(dialog().isShowing)
+        pair(before = second, after = first)
+        assertSources(0, 0, before = second, after = first)
+        val fresh = dialog()
+        retained.forEach { it.performClick() }
+        finishWork()
+        assertSame("Retired library value controls cannot replace the fresh pair", fresh, dialog())
+        assertTrue(fresh.isShowing)
+        assertState(before)
+        assertEquals(bytes, disk())
+        assertEquals(left, loaded().baselineIdentity)
+        assertEquals(right, loaded(second).baselineIdentity)
+        assertNull(shadowOf(activity).nextStartedActivity)
+    }
+
     @Test fun explicitSavedDraftsKeepBothOlderSourcesAndPendingInputsThroughFullValueInspection() {
         histories()
         field(R.string.draft_title).setText("pending title")
@@ -364,8 +438,8 @@ class LibraryRevisionComparisonActivityTest {
             chooseDraft(first); assertLayout(dialog())
             chooseRevision(0); chooseDraft(second); chooseRevision(0); awaitBrowser(); assertLayout(dialog())
             assertSources(0, 0)
-            assertTrue(texts().contains(activity.getString(R.string.library_compare_saved_title, "text: \"before title\"")))
-            assertTrue(texts().contains(activity.getString(R.string.library_compare_saved_title, "text: \"after title\"")))
+            assertTrue(texts().contains(activity.getString(R.string.library_compare_saved_title, "text: \u200f\u202a\"before title\"\u202c\u200f")))
+            assertTrue(texts().contains(activity.getString(R.string.library_compare_saved_title, "text: \u200f\u202a\"after title\"\u202c\u200f")))
         } finally { RuntimeEnvironment.setFontScale(1f) }
     }
 }

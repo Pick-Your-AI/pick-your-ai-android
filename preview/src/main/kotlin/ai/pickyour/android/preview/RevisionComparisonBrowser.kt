@@ -54,7 +54,8 @@ internal class RevisionComparisonBrowser private constructor(
             PreviewComparedValueKind.ABSENT -> activity.getString(R.string.revision_compare_absent)
             PreviewComparedValueKind.EMPTY -> activity.getString(R.string.context_empty)
             PreviewComparedValueKind.TEXT -> {
-                val text = activity.getString(R.string.revision_compare_text, value.quotedLiteral)
+                val text = ComponentSelectionText.format(activity, R.string.revision_compare_text,
+                    requireNotNull(value.quotedLiteral))
                 if (value.truncated) activity.getString(R.string.revision_compare_truncated, text) else text
             }
         }
@@ -80,7 +81,8 @@ internal class RevisionComparisonBrowser private constructor(
             for (index in start until end) {
                 val change = changes[index]
                 text(activity.getString(R.string.revision_compare_row, change.field,
-                    change.key?.let { " [${literal(it)}]" }.orEmpty(), literal(change.before), literal(change.after)))
+                    change.key?.let { activity.getString(R.string.revision_compare_key_suffix, literal(it)) }.orEmpty(),
+                    literal(change.before), literal(change.after)))
                 action(activity.getString(R.string.revision_compare_inspect, index + 1, change.field)) { showChange(index) }
             }
             if (page + 1 < pages) action(R.string.revision_compare_next_changes) { showChanges(page + 1) }
@@ -95,7 +97,8 @@ internal class RevisionComparisonBrowser private constructor(
         present {
             changeHeading(index)
             text(activity.getString(R.string.revision_compare_row, change.field,
-                change.key?.let { " [${literal(it)}]" }.orEmpty(), literal(change.before), literal(change.after)))
+                change.key?.let { activity.getString(R.string.revision_compare_key_suffix, literal(it)) }.orEmpty(),
+                literal(change.before), literal(change.after)))
             text(activity.getString(R.string.revision_compare_inspection_hint))
             if (change.key == null) text(activity.getString(R.string.revision_compare_no_key))
             else action(R.string.revision_compare_inspect_key) { showValue(index, Value.KEY, 0) }

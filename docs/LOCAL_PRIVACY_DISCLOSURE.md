@@ -34,7 +34,8 @@ export, support or navigation must revisit this map and the displayed text.
 
 [`LocalPrivacy`](../preview/src/main/kotlin/ai/pickyour/android/preview/LocalPrivacy.kt)
 accepts its Activity, a lifecycle predicate and an admitted before-display
-callback that retires older comparison and complete cost inspections. It receives no draft,
+callback that retires older catalog parent, detail, price and source windows,
+along with comparison and complete cost inspections. It receives no draft,
 report, URI, storage handle or external dispatcher. Its only dialog action is
 Close. Opening a fresh dialog retires the prior one; delayed dismissal of a
 prior dialog cannot clear the current reference. Pause dismisses it, and
@@ -55,7 +56,7 @@ read on 2026-10-19; device behavior remains a separate evidence boundary.
 ## Regression boundary
 
 `LocalPrivacyActivityTest` uses the actual Activity, controls and private files
-in Robolectric SDK 28. Its seven methods cover fixed nonidentifying disclosures,
+in Robolectric SDK 28. Its nine methods cover fixed nonidentifying disclosures,
 the enabled manifest capability boundary, cancel/replace behavior, pause/resume,
 terminal owners, recreation, and each rendered line at 320dp with RTL and 2x
 font scaling. The preservation cases seed acknowledged private draft text,
@@ -64,7 +65,14 @@ hashes of files in both private storage roots. `AutosaveUiClock` pumps requested
 UI frames while remaining strictly before the real 750ms autosave deadline.
 Opening this view is not allowed to write just because a test advanced time.
 
-The workflow requires exactly these seven named cases, the matching suite and
+Two catalog interaction methods replay retained parent and detail/price/source
+controls while Privacy is open, after it closes and after fresh inspection.
+They require the older owners to retire, preserve pending and stored data, and
+keep fresh selection and inspection usable. The source-recovery sample has no
+URI and exercises missing-source Back recovery; it does not add a browser
+destination or establish an external-navigation result.
+
+The workflow requires exactly these nine named cases, the matching suite and
 class identities, no duplicates/failures/errors/skips, and consistent totals.
 These are native-control JVM simulations, not installed-device network traces,
 manual TalkBack traversal, physical-device deletion/backup observations, a
