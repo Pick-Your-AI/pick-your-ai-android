@@ -120,7 +120,8 @@ internal class SelectionEditSection(private val activity: Activity,
             recovery is ComponentFormRecovery.TypedEmbeddingModelPending ||
             recovery is ComponentFormRecovery.TypedComputePending ||
             recovery is ComponentFormRecovery.TypedInferencePending ||
-            recovery is ComponentFormRecovery.TypedAcceleratorPending) View.VISIBLE else View.GONE
+            recovery is ComponentFormRecovery.TypedAcceleratorPending ||
+            recovery is ComponentFormRecovery.TypedModelProviderPending) View.VISIBLE else View.GONE
         discardRecovery.visibility = if (noRecovery) View.GONE else View.VISIBLE
         reviewRecovery.isEnabled = foreground
         discardRecovery.isEnabled = foreground
@@ -213,6 +214,10 @@ internal class SelectionEditSection(private val activity: Activity,
         }
         (recovery as? ComponentFormRecovery.TypedAcceleratorPending)?.let {
             reviewTypedAcceleratorInput(it.form)
+            return
+        }
+        (recovery as? ComponentFormRecovery.TypedModelProviderPending)?.let {
+            reviewTypedModelProviderInput(it.form)
             return
         }
         val pending = (recovery as? ComponentFormRecovery.Pending)?.form ?: return
@@ -398,6 +403,30 @@ internal class SelectionEditSection(private val activity: Activity,
             text = activity.getString(R.string.component_recovery_identity, pending.draftId, pending.selectionId)
         })
         layout.addView(EmbeddingModelSettingsEditor.readOnly(activity, pending.input))
+        show(AlertDialog.Builder(activity).setTitle(R.string.component_recovery_review)
+            .setView(ScrollView(activity).apply { addView(layout) }).setNegativeButton(R.string.close, null).create())
+    }
+
+    private fun reviewTypedModelProviderInput(pending: ModelProviderFormCheckpoint) {
+        val expected = baseline
+        val selection = expected?.components?.selections?.singleOrNull { it.id == pending.selectionId }
+        if (editable && expected != null && currentDraftId == pending.draftId &&
+            expected.baselineIdentity == pending.baseline && !pending.wasSaving &&
+            selection != null && selection.kind == PreviewModelProviderSettings.KIND &&
+            selection.catalogItemId == pending.catalogItemId && selection.catalogItemVersion == pending.catalogItemVersion) {
+            recovery = ComponentFormRecovery.None
+            update(baseline, editable)
+            modelProviderSettingsForm(expected, selection, pending)
+            return
+        }
+        val layout = LinearLayout(activity).apply { orientation = VERTICAL }
+        layout.addView(TextView(activity).apply {
+            setText(if (pending.wasSaving) R.string.component_recovery_saving else R.string.component_recovery_changed)
+        })
+        layout.addView(TextView(activity).apply {
+            text = activity.getString(R.string.component_recovery_identity, pending.draftId, pending.selectionId)
+        })
+        layout.addView(ModelProviderSettingsEditor.readOnly(activity, pending.input))
         show(AlertDialog.Builder(activity).setTitle(R.string.component_recovery_review)
             .setView(ScrollView(activity).apply { addView(layout) }).setNegativeButton(R.string.close, null).create())
     }
@@ -673,6 +702,10 @@ internal class SelectionEditSection(private val activity: Activity,
             inferenceSettingsForm(expected, selection)
             return
         }
+        if (restored == null && selection.kind == PreviewModelProviderSettings.KIND) {
+            modelProviderSettingsForm(expected, selection)
+            return
+        }
         if (restored == null && selection.kind == PreviewContextPolicySettings.KIND) {
             contextSettingsForm(expected, selection)
             return
@@ -937,6 +970,45 @@ internal class SelectionEditSection(private val activity: Activity,
                 if (active(expected) && editor.input() == raw) editor.showIssues(result.get()?.issues.orEmpty())
             }) {
                 PreviewEmbeddingModelSettings.configure(selection, raw).also(result::set).preparation
+            }
+        }
+    }
+
+    private fun modelProviderSettingsForm(expected: PreviewStoredDraft, selection: LocalSelection,
+        restored: ModelProviderFormCheckpoint? = null) {
+        if (!canOpen(expected) || selection.kind != PreviewModelProviderSettings.KIND) return
+        val draftId = requireNotNull(currentDraftId)
+        val layout = LinearLayout(activity).apply { orientation = VERTICAL }
+        layout.addView(TextView(activity).apply { setText(R.string.component_settings_warning) })
+        layout.addView(TextView(activity).apply { setText(R.string.model_provider_recovery_guidance) })
+        lateinit var dialog: AlertDialog
+        val editor = ModelProviderSettingsEditor(activity, restored?.input ?: PreviewModelProviderSettings.initial(selection)) {
+            active(expected) && open(dialog) && formBinding?.saving == false
+        }.also(layout::addView)
+        val feedback = feedback().also(layout::addView)
+        dialog = show(AlertDialog.Builder(activity).setTitle(label(selection))
+            .setView(ScrollView(activity).apply { addView(layout) })
+            .setNegativeButton(R.string.close, null).setPositiveButton(R.string.component_commit, null).create(), feedback)
+        val binding = FormBinding(dialog) { saving ->
+            ModelProviderFormCheckpoint(draftId, expected.baselineIdentity, selection.id, selection.catalogItemId,
+                selection.catalogItemVersion, editor.input(), saving).recovery()
+        }
+        binding.onFreeze = editor::freeze
+        binding.onClose = editor::close
+        binding.onStateChange = {
+            editor.freeze(binding.saving || !active(expected))
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = !binding.saving && active(expected)
+        }
+        formBinding = binding
+        update(baseline, editable)
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+            if (!active(expected) || binding.saving) return@setOnClickListener
+            val raw = editor.input()
+            val result = java.util.concurrent.atomic.AtomicReference<PreviewModelProviderPreparation?>()
+            submit(dialog, expected, null, onRejected = {
+                if (active(expected) && editor.input() == raw) editor.showIssues(result.get()?.issues.orEmpty())
+            }) {
+                PreviewModelProviderSettings.configure(selection, raw).also(result::set).preparation
             }
         }
     }
