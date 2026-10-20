@@ -117,7 +117,9 @@ internal class SelectionEditSection(private val activity: Activity,
         })
         reviewRecovery.visibility = if (recovery is ComponentFormRecovery.Pending ||
             recovery is ComponentFormRecovery.TypedContextPending || recovery is ComponentFormRecovery.TypedModelPending ||
+            recovery is ComponentFormRecovery.TypedWorkloadSelectionPending ||
             recovery is ComponentFormRecovery.TypedComputePending ||
+            recovery is ComponentFormRecovery.TypedCostPolicyPending ||
             recovery is ComponentFormRecovery.TypedModelProviderPending) View.VISIBLE else View.GONE
         discardRecovery.visibility = if (noRecovery) View.GONE else View.VISIBLE
         reviewRecovery.isEnabled = foreground
@@ -197,8 +199,16 @@ internal class SelectionEditSection(private val activity: Activity,
             reviewTypedModelInput(it.form)
             return
         }
+        (recovery as? ComponentFormRecovery.TypedWorkloadSelectionPending)?.let {
+            reviewTypedWorkloadSelectionInput(it.form)
+            return
+        }
         (recovery as? ComponentFormRecovery.TypedComputePending)?.let {
             reviewTypedComputeInput(it.form)
+            return
+        }
+        (recovery as? ComponentFormRecovery.TypedCostPolicyPending)?.let {
+            reviewTypedCostPolicyInput(it.form)
             return
         }
         (recovery as? ComponentFormRecovery.TypedModelProviderPending)?.let {
@@ -296,6 +306,30 @@ internal class SelectionEditSection(private val activity: Activity,
             .setView(ScrollView(activity).apply { addView(layout) }).setNegativeButton(R.string.close, null).create())
     }
 
+    private fun reviewTypedWorkloadSelectionInput(pending: WorkloadSelectionFormCheckpoint) {
+        val expected = baseline
+        val selection = expected?.components?.selections?.singleOrNull { it.id == pending.selectionId }
+        if (editable && expected != null && currentDraftId == pending.draftId &&
+            expected.baselineIdentity == pending.baseline && !pending.wasSaving &&
+            selection != null && selection.kind == PreviewWorkloadSelectionSettings.KIND &&
+            selection.catalogItemId == pending.catalogItemId && selection.catalogItemVersion == pending.catalogItemVersion) {
+            recovery = ComponentFormRecovery.None
+            update(baseline, editable)
+            workloadSelectionSettingsForm(expected, selection, pending)
+            return
+        }
+        val layout = LinearLayout(activity).apply { orientation = VERTICAL }
+        layout.addView(TextView(activity).apply {
+            setText(if (pending.wasSaving) R.string.component_recovery_saving else R.string.component_recovery_changed)
+        })
+        layout.addView(TextView(activity).apply {
+            text = activity.getString(R.string.component_recovery_identity, pending.draftId, pending.selectionId)
+        })
+        layout.addView(WorkloadSelectionSettingsEditor.readOnly(activity, pending.input))
+        show(AlertDialog.Builder(activity).setTitle(R.string.component_recovery_review)
+            .setView(ScrollView(activity).apply { addView(layout) }).setNegativeButton(R.string.close, null).create())
+    }
+
     private fun reviewTypedComputeInput(pending: ComputeFormCheckpoint) {
         val expected = baseline
         val selection = expected?.components?.selections?.singleOrNull { it.id == pending.selectionId }
@@ -316,6 +350,30 @@ internal class SelectionEditSection(private val activity: Activity,
             text = activity.getString(R.string.component_recovery_identity, pending.draftId, pending.selectionId)
         })
         layout.addView(ComputeSettingsEditor.readOnly(activity, pending.input))
+        show(AlertDialog.Builder(activity).setTitle(R.string.component_recovery_review)
+            .setView(ScrollView(activity).apply { addView(layout) }).setNegativeButton(R.string.close, null).create())
+    }
+
+    private fun reviewTypedCostPolicyInput(pending: CostPolicyFormCheckpoint) {
+        val expected = baseline
+        val selection = expected?.components?.selections?.singleOrNull { it.id == pending.selectionId }
+        if (editable && expected != null && currentDraftId == pending.draftId &&
+            expected.baselineIdentity == pending.baseline && !pending.wasSaving &&
+            selection != null && selection.kind == PreviewCostPolicySettings.KIND &&
+            selection.catalogItemId == pending.catalogItemId && selection.catalogItemVersion == pending.catalogItemVersion) {
+            recovery = ComponentFormRecovery.None
+            update(baseline, editable)
+            costPolicySettingsForm(expected, selection, pending)
+            return
+        }
+        val layout = LinearLayout(activity).apply { orientation = VERTICAL }
+        layout.addView(TextView(activity).apply {
+            setText(if (pending.wasSaving) R.string.component_recovery_saving else R.string.component_recovery_changed)
+        })
+        layout.addView(TextView(activity).apply {
+            text = activity.getString(R.string.component_recovery_identity, pending.draftId, pending.selectionId)
+        })
+        layout.addView(CostPolicySettingsEditor.readOnly(activity, pending.input))
         show(AlertDialog.Builder(activity).setTitle(R.string.component_recovery_review)
             .setView(ScrollView(activity).apply { addView(layout) }).setNegativeButton(R.string.close, null).create())
     }
@@ -599,6 +657,10 @@ internal class SelectionEditSection(private val activity: Activity,
                 .setNegativeButton(R.string.close, null).create())
             return
         }
+        if (restored == null && selection.kind == PreviewWorkloadSelectionSettings.KIND) {
+            workloadSelectionSettingsForm(expected, selection)
+            return
+        }
         if (restored == null && selection.kind == PreviewModelSettings.KIND) {
             modelSettingsForm(expected, selection)
             return
@@ -613,6 +675,10 @@ internal class SelectionEditSection(private val activity: Activity,
         }
         if (restored == null && selection.kind == PreviewComputeSettings.KIND) {
             computeSettingsForm(expected, selection)
+            return
+        }
+        if (restored == null && selection.kind == PreviewCostPolicySettings.KIND) {
+            costPolicySettingsForm(expected, selection)
             return
         }
         val layout = LinearLayout(activity).apply { orientation = VERTICAL }
@@ -718,6 +784,52 @@ internal class SelectionEditSection(private val activity: Activity,
         }
     }
 
+    private fun workloadSelectionSettingsForm(expected: PreviewStoredDraft, selection: LocalSelection,
+        restored: WorkloadSelectionFormCheckpoint? = null) {
+        if (!canOpen(expected) || selection.kind != PreviewWorkloadSelectionSettings.KIND) return
+        val draftId = requireNotNull(currentDraftId)
+        val layout = LinearLayout(activity).apply { orientation = VERTICAL }
+        layout.addView(TextView(activity).apply {
+            text = label(selection)
+            setSingleLine(false)
+            ellipsize = null
+            setTextIsSelectable(true)
+        })
+        layout.addView(TextView(activity).apply { setText(R.string.component_settings_warning) })
+        foundationGuidance(layout, selection.kind)
+        layout.addView(TextView(activity).apply { setText(R.string.workload_selection_recovery_guidance) })
+        lateinit var dialog: AlertDialog
+        val editor = WorkloadSelectionSettingsEditor(activity, restored?.input ?: PreviewWorkloadSelectionSettings.initial(selection)) {
+            active(expected) && open(dialog) && formBinding?.saving == false
+        }.also(layout::addView)
+        val feedback = feedback().also(layout::addView)
+        dialog = show(AlertDialog.Builder(activity).setTitle(R.string.workload_selection_settings_title)
+            .setView(ScrollView(activity).apply { addView(layout) })
+            .setNegativeButton(R.string.close, null).setPositiveButton(R.string.component_commit, null).create(), feedback)
+        val binding = FormBinding(dialog) { saving ->
+            WorkloadSelectionFormCheckpoint(draftId, expected.baselineIdentity, selection.id, selection.catalogItemId,
+                selection.catalogItemVersion, editor.input(), saving).recovery()
+        }
+        binding.onFreeze = editor::freeze
+        binding.onClose = editor::close
+        binding.onStateChange = {
+            editor.freeze(binding.saving || !active(expected))
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = !binding.saving && active(expected)
+        }
+        formBinding = binding
+        update(baseline, editable)
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+            if (!active(expected) || binding.saving) return@setOnClickListener
+            val raw = editor.input()
+            val result = java.util.concurrent.atomic.AtomicReference<PreviewWorkloadSelectionPreparation?>()
+            submit(dialog, expected, null, onRejected = {
+                if (active(expected) && editor.input() == raw) editor.showIssues(result.get()?.issues.orEmpty())
+            }) {
+                PreviewWorkloadSelectionSettings.configure(selection, raw).also(result::set).preparation
+            }
+        }
+    }
+
     private fun computeSettingsForm(expected: PreviewStoredDraft, selection: LocalSelection,
         restored: ComputeFormCheckpoint? = null) {
         if (!canOpen(expected) || selection.kind != PreviewComputeSettings.KIND) return
@@ -753,6 +865,52 @@ internal class SelectionEditSection(private val activity: Activity,
                 if (active(expected) && editor.input() == raw) editor.showIssues(result.get()?.issues.orEmpty())
             }) {
                 PreviewComputeSettings.configure(selection, raw).also(result::set).preparation
+            }
+        }
+    }
+
+    private fun costPolicySettingsForm(expected: PreviewStoredDraft, selection: LocalSelection,
+        restored: CostPolicyFormCheckpoint? = null) {
+        if (!canOpen(expected) || selection.kind != PreviewCostPolicySettings.KIND) return
+        val draftId = requireNotNull(currentDraftId)
+        val layout = LinearLayout(activity).apply { orientation = VERTICAL }
+        layout.addView(TextView(activity).apply {
+            text = label(selection)
+            setSingleLine(false)
+            ellipsize = null
+            setTextIsSelectable(true)
+        })
+        layout.addView(TextView(activity).apply { setText(R.string.component_settings_warning) })
+        operationalGuidance(layout, selection.kind)
+        layout.addView(TextView(activity).apply { setText(R.string.cost_policy_recovery_guidance) })
+        lateinit var dialog: AlertDialog
+        val editor = CostPolicySettingsEditor(activity, restored?.input ?: PreviewCostPolicySettings.initial(selection)) {
+            active(expected) && open(dialog) && formBinding?.saving == false
+        }.also(layout::addView)
+        val feedback = feedback().also(layout::addView)
+        dialog = show(AlertDialog.Builder(activity).setTitle(R.string.cost_policy_settings_title)
+            .setView(ScrollView(activity).apply { addView(layout) })
+            .setNegativeButton(R.string.close, null).setPositiveButton(R.string.component_commit, null).create(), feedback)
+        val binding = FormBinding(dialog) { saving ->
+            CostPolicyFormCheckpoint(draftId, expected.baselineIdentity, selection.id, selection.catalogItemId,
+                selection.catalogItemVersion, editor.input(), saving).recovery()
+        }
+        binding.onFreeze = editor::freeze
+        binding.onClose = editor::close
+        binding.onStateChange = {
+            editor.freeze(binding.saving || !active(expected))
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = !binding.saving && active(expected)
+        }
+        formBinding = binding
+        update(baseline, editable)
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+            if (!active(expected) || binding.saving) return@setOnClickListener
+            val raw = editor.input()
+            val result = java.util.concurrent.atomic.AtomicReference<PreviewCostPolicyPreparation?>()
+            submit(dialog, expected, null, onRejected = {
+                if (active(expected) && editor.input() == raw) editor.showIssues(result.get()?.issues.orEmpty())
+            }) {
+                PreviewCostPolicySettings.configure(selection, raw).also(result::set).preparation
             }
         }
     }
