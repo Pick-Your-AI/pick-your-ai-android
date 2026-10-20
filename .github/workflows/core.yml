@@ -2056,6 +2056,37 @@ jobs:
               raise SystemExit("Library observation regression failed, errored or skipped")
           print(f"Verified {len(cases)} actual library observation cases; no product retry introduced")
           PYLIBRARYOBSERVATION
+      - name: Require actual current-finding full-text regressions
+        run: |
+          python - <<'PYFINDINGTEXT'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          name = "ai.pickyour.android.preview.CurrentDraftFindingTextActivityTest"
+          required = {
+              "ordinaryCurrentDetailKeepsOutcomeSeverityAndSavedBytes",
+              "longCurrentFieldsRoundTripAllEscapedUtf16Parts",
+              "exactBoundariesSynthesizedEmptyGuidanceAndRtlRemainDistinguished",
+              "fieldAndRowBackNavigationRetainsCapturedFinding",
+              "dismissedAndSupersededCallbacksRemainInert",
+              "siblingEntryRetiresFieldChooserAndAllPartActions",
+              "retryRetiresTextBeforeQueuedResultAndFreshReentryWorks",
+              "pendingEditSaveAndInputReplacementNeverReviveOldText",
+              "storeSwitchPauseAndRecreationNeverRestoreOldFieldAuthority",
+          }
+          path = pathlib.Path("preview/build/test-results/testDebugUnitTest") / f"TEST-{name}.xml"
+          suite = ET.parse(path).getroot()
+          cases = suite.findall("testcase")
+          names = [case.attrib.get("name", "") for case in cases]
+          if suite.tag != "testsuite" or suite.attrib.get("name") != name or any(case.attrib.get("classname") != name for case in cases):
+              raise SystemExit("Foreign current-finding full-text report")
+          if len(cases) != len(list(suite.iter("testcase"))) or any(not item.strip() for item in names) or len(names) != len(set(names)) or not required.issubset(names):
+              raise SystemExit("Missing, empty, nested or repeated current-finding full-text regression")
+          if int(suite.attrib.get("tests", "-1")) != len(cases) or any(int(suite.attrib.get(key, "-1")) != 0 for key in ("failures", "errors", "skipped")):
+              raise SystemExit("Current-finding full-text totals did not pass")
+          if any(case.find(".//" + tag) is not None for case in cases for tag in ("failure", "error", "skipped")):
+              raise SystemExit("Current-finding full-text regression did not execute successfully")
+          print(f"Verified {len(cases)} distinct passing current-finding full-text cases, including all {len(required)} required names; no installed-device claim")
+          PYFINDINGTEXT
       - name: Require actual native compatible-picker caller regressions
         run: |
           python - <<'PYCANDIDATES'
