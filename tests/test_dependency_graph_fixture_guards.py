@@ -16,6 +16,7 @@ SCRIPT = Path('scripts/check_dependency_graph_fixtures.py')
 OUTPUT = Path('core/src/test/resources/contracts/dependency-graph-cases.json')
 INPUT_PATHS = (
     SCRIPT,
+    Path('scripts/frozen_fixture_numbers.py'),
     Path('scripts/reference_fixture_output.py'),
     *(path.relative_to(ROOT) for path in sorted((ROOT / 'contracts/v1').rglob('*'))
       if path.is_file()),
@@ -25,8 +26,8 @@ EXECUTIONS = (
     ('optimized-flag', ('-O',), None),
     ('optimized-environment', (), '1'),
 )
-SUCCESS = ("159 dependency graph cases agree with the frozen Python schema: "
-           "{'decoded': 104, 'unsupported_version': 4, 'schema_mismatch': 50, 'invalid_input': 1}\n")
+SUCCESS = ("172 dependency graph cases agree with the frozen Python schema: "
+           "{'decoded': 109, 'unsupported_version': 4, 'schema_mismatch': 58, 'invalid_input': 1}\n")
 SENTINEL = b'controlled unrelated retained bytes\n'
 
 
@@ -61,17 +62,18 @@ class DependencyGraphFixtureGuardTests(unittest.TestCase):
             # reference rejection or final filesystem failure, never an expected fixture.
             patches = {
                 'format': 'patch.dict(FormatChecker.checkers, {}, clear=True)',
-                'reference': 'patch.object(Draft202012Validator, "is_valid", return_value=False)',
+                'reference': 'patch.object(FixtureValidator, "is_valid", return_value=False)',
                 'replace': ('patch.object(Path, "replace", '
                             'side_effect=OSError("controlled replacement failure"))'),
             }
             injection = (
                 'from pathlib import Path\n'
                 'from unittest.mock import patch\n'
-                'from jsonschema import Draft202012Validator, FormatChecker\n'
+                'from jsonschema import FormatChecker\n'
                 'import runpy, sys\n'
                 'script = Path(sys.argv[1])\n'
                 'sys.path.insert(0, str(script.parent))\n'
+                'from frozen_fixture_numbers import FixtureValidator\n'
                 'sys.argv = sys.argv[1:]\n'
                 f'with {patches[fault]}:\n'
                 '    runpy.run_path(str(script), run_name="__main__")\n'
