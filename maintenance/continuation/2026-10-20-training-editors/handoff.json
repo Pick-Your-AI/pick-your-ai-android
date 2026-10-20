@@ -1,0 +1,170 @@
+{
+  "status": "BLOCKED_ENVIRONMENT_OFFLINE_NOT_COMPLETE",
+  "recorded_at_utc": "2026-10-20T15:05:35Z",
+  "repository": "Pick-Your-AI/pick-your-ai-android",
+  "checkpoint_branch": "continuation/20261020-training-editors-fb637",
+  "checkpoint_base": "af6abfc95ab227ac005a82488a6b4762f0ba4f6e",
+  "checkpoint_base_tree": "edf325dd41d36ca522a7f2307f247dc4ab882ae6",
+  "local_environment": {
+    "first_disconnect_utc": "2026-10-20T14:41:00Z",
+    "last_probe_utc": "2026-10-20T15:01:15Z",
+    "error": "409 Conflict environment_offline: Environment is not connected",
+    "approval_rejection": false
+  },
+  "delivered": {
+    "evaluation": {
+      "pull_request": 750,
+      "main_commit": "af6abfc95ab227ac005a82488a6b4762f0ba4f6e",
+      "tree": "edf325dd41d36ca522a7f2307f247dc4ab882ae6",
+      "parent": "7cdaac6205899a55d945c32caad2c755b248196d",
+      "ordinary_merge": true,
+      "receiver_originals_qualified": true,
+      "acceptance_comment": 6293450677,
+      "main_workflow_not_observed_as_of_utc": "2026-10-20T15:01:11Z"
+    }
+  },
+  "training_compute": {
+    "pull_request": 751,
+    "state": "open",
+    "head": "e2b6e7ed53f99f8c8b230191e61da46c8b6d5b8f",
+    "preparation": "f63ceb723b1984bbc287d3548381512f6ef89606",
+    "tree": "238c4e31d6ddc354cbdb0d8344e2df2361e3f17c",
+    "base_at_run": "7cdaac6205899a55d945c32caad2c755b248196d",
+    "source_reviewed": true,
+    "core_original_qualified": {
+      "cases": 8276,
+      "suites": 138,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0,
+      "job": 118678371943,
+      "artifact": 12272938278,
+      "receipt_sha256": "e18110e4e015ae9922579554055e4f1d2696bd2e9f58ec5fedaaf65eeb5d3295"
+    },
+    "preview_original_qualified": {
+      "cases": 994,
+      "suites": 93,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0,
+      "job": 118678372670,
+      "artifact": 12274090102
+    },
+    "scanner_original_qualified": {
+      "tests": 45,
+      "reviewed_findings": 3,
+      "unresolved_findings": 0,
+      "job": 118678369735
+    },
+    "installed_status": "SUCCESS_METADATA_AND_ORIGINAL_LOG_CHECKED_ZIP_CONTENTS_PENDING",
+    "main_merged": false
+  },
+  "local_sources": [
+    {
+      "scope": "training compute",
+      "path": "/tmp/android-training-compute-fb637-20261020",
+      "tree": "238c4e31d6ddc354cbdb0d8344e2df2361e3f17c",
+      "published_in_pr": 751
+    },
+    {
+      "scope": "training dataset",
+      "path": "/tmp/android-training-dataset-fb637-20261020",
+      "tree": "1aba2c8c6795cd835d961cfaa3ae324e4f7f6eda",
+      "published": false,
+      "source_reviewed": true
+    },
+    {
+      "scope": "training framework",
+      "path": "/tmp/android-training-framework-fb637-20261020",
+      "tree": "cad82092d34bf3810417f881f4c5cb584a3509b4",
+      "published": false,
+      "source_reviewed": true
+    },
+    {
+      "scope": "dataset/framework composition",
+      "path": "/tmp/android-training-settings-integration-fb637-20261020",
+      "tree": "82a04264e347e21bba69678790e7515ce1b25545",
+      "published": false,
+      "source_reviewed": true,
+      "independent_receipt_sha256": "adbd92a10c8b3ec2f460b3c07440e47d8771a1830dcdcb31b779bbc90c7bf90c"
+    },
+    {
+      "scope": "fine-tuned model initial candidate",
+      "path": "/tmp/android-fine-tuned-model-fb637-20261020",
+      "tree": "2250b369adf5533ab579b2debae30c7d12560969",
+      "published": false,
+      "cleared": false,
+      "blocker": "Native recovery must preserve the existing full-settings capture API outcomes. Correction has not been applied."
+    },
+    {
+      "scope": "final accepted-main composition",
+      "path": "/tmp/android-training-main-integration-fb637-20261020",
+      "source_candidate_written": false,
+      "published": false,
+      "proposal_only": true
+    }
+  ],
+  "fine_model_core_pair": {
+    "independent_source_review_completed": true,
+    "execution_claim": false,
+    "declared_tests": 20,
+    "main": {
+      "bytes": 5519,
+      "sha256": "a99049262f7b80c2eb81601397c875aaefebac304c86ee7935ce3b0482813257",
+      "blob": "8863e3b1feae906b073b60f24624d4d9b8439847"
+    },
+    "test": {
+      "bytes": 26012,
+      "sha256": "42c71563aa5c9549c87e9b63298335f22ecb7da5483c44dbd6c2188507fda4aa",
+      "blob": "2819d91b046a53d65afbe2db67afbee071fc0a8c"
+    },
+    "review_receipt_local_write_unconfirmed": true
+  },
+  "proposals": {
+    "correction": {
+      "path": "fine-model-recovery-correction.py.txt",
+      "bytes": 13642,
+      "sha256": "93254262649a556f15284496d3f6d93e87a79f4d283669ba6305de74ff336ea0",
+      "git_blob": "8d768a3b2ee57c6f7f283b8dcaa3358a55cadc9b",
+      "applied": false,
+      "actual_revised_files_reviewed": false
+    },
+    "composition": {
+      "path": "compose-training-on-evaluation.py.txt",
+      "bytes": 15948,
+      "sha256": "e23a23bf81291dff43989451c852d67a97df9b036019de6674c9d0d231a79457",
+      "git_blob": "258c114aeeed24c4471a547cbb475df2eb7c521f",
+      "applied": false,
+      "stale_fine_tree_assertion_requires_reviewed_update": true,
+      "predicted_only": {
+        "core_cases": 8352,
+        "core_suites": 142,
+        "preview_cases": 1092,
+        "preview_suites": 101
+      },
+      "expected_source_paths": 36,
+      "expected_added_paths": 32,
+      "expected_edited_paths": 4
+    }
+  },
+  "native_review": {
+    "completed_for_initial_tree": false,
+    "helper_and_added_activity_proposal_reviewed_without_proposal_blocker": true,
+    "actual_corrected_files_and_complete_parcel_body_pending": true
+  },
+  "existing_claim_comment_ids": {
+    "compute": 6291567463,
+    "dataset": 6292098014,
+    "framework": 6292609800,
+    "fine_model": 6293209779
+  },
+  "preservation_limit": "This branch preserves proposal text and this handoff only. It does not preserve inaccessible local candidate files, CI archive bytes or other local receipts.",
+  "unresolved_acceptance": [
+    "Independent actual-byte native recovery review",
+    "Complete original installed artifact qualification",
+    "Exact accepted-main composition review",
+    "Fresh final source CI and signed protected delivery",
+    "Main synchronization",
+    "Whole issue criteria including actual workloads, hardware, accessibility and operational acceptance where required"
+  ]
+}

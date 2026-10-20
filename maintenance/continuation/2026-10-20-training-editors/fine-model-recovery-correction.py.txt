@@ -1,0 +1,207 @@
+from pathlib import Path
+import json,hashlib
+root=Path('/tmp/android-fine-tuned-model-fb637-20261020')
+receipt=json.loads((root/'source-preparation-receipt.json').read_text())
+assert receipt['candidate_tree']=='2250b369adf5533ab579b2debae30c7d12560969'
+for path,meta in receipt['files'].items():
+    b=(root/'candidate'/path).read_bytes()
+    assert hashlib.sha256(b).hexdigest()==meta['sha256'],path
+
+p=root/'candidate/preview/src/main/kotlin/ai/pickyour/android/preview/FineTunedModelFormCheckpoint.kt'
+s=p.read_text().replace('import android.os.Bundle\n','import android.os.Bundle\nimport org.json.JSONObject\n')
+old='''    fun recovery(): ComponentFormRecovery = if (bounded()) ComponentFormRecovery.TypedFineTunedModelPending(this)
+        else ComponentFormRecovery.Unavailable
+
+    fun bundle(): Bundle? = if (!bounded()) null else Bundle().apply {'''
+new='''    /** Use the existing full-settings capture gate without inspecting or changing its private policy. */
+    private fun inputRecovery(): ComponentFormRecovery {
+        val settings = JSONObject().apply {
+            input.useAdapter?.let { put(PreviewFineTunedModelSettings.USE_ADAPTER, it) }
+            input.artifactUri?.let { put(PreviewFineTunedModelSettings.ARTIFACT_URI, it) }
+            input.revision?.let { put(PreviewFineTunedModelSettings.REVISION, it) }
+        }.toString()
+        return ComponentFormCheckpoint(ComponentFormCheckpoint.CONFIGURE, draftId, baseline, selectionId,
+            null, null, null, null, "", settings, false, wasSaving)
+            .captureNewSettings(PreviewFineTunedModelSettings.KIND)
+    }
+
+    fun recovery(): ComponentFormRecovery {
+        if (!bounded()) return ComponentFormRecovery.Unavailable
+        return when (inputRecovery()) {
+            is ComponentFormRecovery.Pending -> ComponentFormRecovery.TypedFineTunedModelPending(this)
+            ComponentFormRecovery.UriUserinfoExcluded -> ComponentFormRecovery.UriUserinfoExcluded
+            else -> ComponentFormRecovery.Unavailable
+        }
+    }
+
+    fun bundle(): Bundle? = if (recovery() !is ComponentFormRecovery.TypedFineTunedModelPending) null else Bundle().apply {'''
+assert s.count(old)==1;s=s.replace(old,new)
+old='                .takeIf { it.bounded() }'
+assert s.count(old)==1
+s=s.replace(old,'                .takeIf { it.recovery() is ComponentFormRecovery.TypedFineTunedModelPending }')
+p.write_text(s)
+
+p=root/'candidate/preview/src/test/kotlin/ai/pickyour/android/preview/FineTunedModelFormCheckpointTest.kt'
+s=p.read_text().replace('import android.os.Parcel\n','import android.os.Parcel\nimport org.json.JSONObject\n')
+anchor='    @Test fun optionalLiteralStringsAndThreeBooleanStatesSurviveParcelWithoutCoercion() {'
+helpers='''    private fun rawSettings(input: PreviewFineTunedModelInput) = JSONObject().apply {
+        input.useAdapter?.let { put("use_adapter", it) }
+        input.artifactUri?.let { put("artifact_uri", it) }
+        input.revision?.let { put("revision", it) }
+    }.toString()
+    private fun legacyRecovery(input: PreviewFineTunedModelInput) =
+        ComponentFormCheckpoint(ComponentFormCheckpoint.CONFIGURE, "draft_fixture", "baseline_fixture",
+            "selection_fixture", null, null, null, null, "", rawSettings(input), false, false)
+            .captureNewSettings("fine_tuned_model")
+
+'''
+assert s.count(anchor)==1;s=s.replace(anchor,helpers+anchor)
+a=s.index('    @Test fun aggregateUtf16LimitRejectsWholeInputWithoutAPrefixFallback() {')
+b=s.index('\n    @Test',a+1)
+s=s[:a]+'''    @Test fun aggregateUtf16AndSerializedCaptureLimitsRejectWholeInputWithoutAPrefixFallback() {
+        val uri = "https://example.invalid/model"
+        val shell = PreviewFineTunedModelInput(useAdapter = false, artifactUri = uri, revision = "")
+        val exact = shell.copy(revision = "x".repeat(ComponentFormCheckpoint.MAX_RAW_CHARACTERS - rawSettings(shell).length))
+        assertEquals(ComponentFormCheckpoint.MAX_RAW_CHARACTERS, rawSettings(exact).length)
+        assertEquals(exact, (ComponentFormRecovery.read(captured(exact)) as ComponentFormRecovery.TypedFineTunedModelPending).form.input)
+        assertNull(checkpoint(exact.copy(revision = exact.revision + "x")).bundle())
+        val empty = PreviewFineTunedModelInput(revision = "")
+        val remaining = ComponentFormCheckpoint.MAX_RAW_CHARACTERS - rawSettings(empty).length
+        val symbols = empty.copy(revision = "\\uD83D\\uDE00".repeat(remaining / 2) + "x".repeat(remaining % 2))
+        assertEquals(ComponentFormCheckpoint.MAX_RAW_CHARACTERS, rawSettings(symbols).length)
+        assertNotNull(checkpoint(symbols).bundle())
+        assertSame(ComponentFormRecovery.Unavailable, checkpoint(symbols.copy(revision = symbols.revision + "x")).recovery())
+        val rawOverflow = PreviewFineTunedModelInput(revision = "x".repeat(ComponentFormCheckpoint.MAX_RAW_CHARACTERS + 1))
+        assertNull(checkpoint(rawOverflow).bundle())
+        assertSame(ComponentFormRecovery.Unavailable, checkpoint(rawOverflow).recovery())
+    }
+
+    @Test fun existingRawRecoveryPolicyRemainsAuthoritativeForEveryTypedEntryPoint() {
+        val escaped = PreviewFineTunedModelInput(artifactUri = "\\\"".repeat(ComponentFormCheckpoint.MAX_RAW_CHARACTERS / 2))
+        assertTrue(requireNotNull(escaped.artifactUri).length <= ComponentFormCheckpoint.MAX_RAW_CHARACTERS)
+        assertTrue(rawSettings(escaped).length > ComponentFormCheckpoint.MAX_RAW_CHARACTERS)
+        assertSame(ComponentFormRecovery.Unavailable, legacyRecovery(escaped))
+        for (input in listOf(PreviewFineTunedModelInput(),
+            PreviewFineTunedModelInput(false, "https://example.invalid/model", ""),
+            PreviewFineTunedModelInput(true, "https://synthetic-user:synthetic-token@example.invalid/model", "private revision"),
+            PreviewFineTunedModelInput(artifactUri = "unfinished URI", revision = "partial"),
+            escaped)) {
+            val expected = legacyRecovery(input)
+            val typed = checkpoint(input)
+            val recovery = typed.recovery()
+            val state = Bundle().also(recovery::save)
+            if (expected is ComponentFormRecovery.Pending) {
+                assertTrue(recovery is ComponentFormRecovery.TypedFineTunedModelPending)
+                assertEquals(input, (ComponentFormRecovery.read(parcel(state))
+                    as ComponentFormRecovery.TypedFineTunedModelPending).form.input)
+                assertEquals(input, requireNotNull(FineTunedModelFormCheckpoint.read(requireNotNull(typed.bundle()))).input)
+            } else {
+                assertTrue(expected === ComponentFormRecovery.UriUserinfoExcluded || expected === ComponentFormRecovery.Unavailable)
+                assertSame(expected, recovery)
+                assertNull(typed.bundle())
+                assertSame(expected, ComponentFormRecovery.read(parcel(state)))
+                val marker = requireNotNull(state.getBundle(ComponentFormRecovery.KEY))
+                assertEquals(if (expected === ComponentFormRecovery.UriUserinfoExcluded)
+                    setOf("version", "unavailable", "reason") else setOf("version", "unavailable"), marker.keySet())
+                val incoming = requireNotNull(checkpoint().bundle()).apply {
+                    putString("artifactUri", input.artifactUri)
+                    putString("revision", input.revision)
+                    putBoolean("useAdapterSupplied", input.useAdapter != null)
+                    putBoolean("useAdapter", input.useAdapter ?: false)
+                }
+                assertNull(FineTunedModelFormCheckpoint.read(incoming))
+                assertSame(ComponentFormRecovery.Unavailable, ComponentFormRecovery.read(parcel(outer(incoming))))
+            }
+        }
+    }
+''' +s[b:]
+p.write_text(s)
+
+p=root/'candidate/preview/src/test/kotlin/ai/pickyour/android/preview/FineTunedModelSettingsActivityTest.kt'
+s=p.read_text()
+anchor='    @Test fun oversizedInputRetainsNoPrefixOrAutomaticViewState() {'
+extra='''    @Test fun typedPauseRecoveryPreservesTheExistingRawCaptureOutcomeWithoutSaving() {
+        val before = seedFineTunedModel()
+        val cases = listOf(
+            PreviewFineTunedModelInput(false, "https://synthetic-user:synthetic-token@example.invalid/model", "private revision"),
+            PreviewFineTunedModelInput(false, "\\\"".repeat(ComponentFormCheckpoint.MAX_RAW_CHARACTERS / 2), "private revision"))
+        for (input in cases) {
+            val form = configure()
+            enter(form, textCaptions[0], requireNotNull(input.artifactUri))
+            enter(form, textCaptions[1], requireNotNull(input.revision))
+            choose(adapterChoice(form), "False")
+            val target = selection()
+            val raw = JSONObject().put("use_adapter", false).put("artifact_uri", input.artifactUri)
+                .put("revision", input.revision).toString()
+            val expected = ComponentFormCheckpoint(ComponentFormCheckpoint.CONFIGURE, currentId().value,
+                before.baselineIdentity, target.id, null, null, null, null, "", raw, false, false)
+                .captureNewSettings(PreviewFineTunedModelSettings.KIND)
+            val retired = form.getButton(AlertDialog.BUTTON_POSITIVE)
+            recreate { state ->
+                val recovered = ComponentFormRecovery.read(parcel(state))
+                if (expected is ComponentFormRecovery.Pending) {
+                    assertEquals(input, (recovered as ComponentFormRecovery.TypedFineTunedModelPending).form.input)
+                } else {
+                    assertSame(expected, recovered)
+                    val marker = requireNotNull(state.getBundle(ComponentFormRecovery.KEY))
+                    assertEquals(if (expected === ComponentFormRecovery.UriUserinfoExcluded)
+                        setOf("version", "unavailable", "reason") else setOf("version", "unavailable"), marker.keySet())
+                }
+            }
+            assertFalse(form.isShowing)
+            retired.performClick(); finishWork()
+            assertEquals(before.baselineIdentity, loaded().baselineIdentity)
+            if (expected is ComponentFormRecovery.Pending) {
+                val restored = reviewPending()
+                assertEquals(input.artifactUri, textField(restored, textCaptions[0]).text.toString())
+                assertEquals(input.revision, textField(restored, textCaptions[1]).text.toString())
+                assertEquals("False", adapterChoice(restored).text.toString())
+                dismiss(restored)
+            } else {
+                assertEquals(View.GONE, button(R.string.component_recovery_review).visibility)
+                assertFalse(button(R.string.component_manage).isEnabled)
+                assertTrue(views().filterIsInstance<TextView>().none {
+                    it.text.toString().contains(requireNotNull(input.revision))
+                })
+                button(R.string.component_recovery_discard).performClick()
+                val fresh = configure()
+                for (caption in textCaptions) {
+                    assertFalse(supply(fresh, caption).isChecked)
+                    assertEquals("", textField(fresh, caption).text.toString())
+                }
+                assertEquals("Not supplied", adapterChoice(fresh).text.toString())
+                dismiss(fresh)
+            }
+            assertEquals(before.baselineIdentity, loaded().baselineIdentity)
+        }
+    }
+
+'''
+assert s.count(anchor)==1;s=s.replace(anchor,extra+anchor);p.write_text(s)
+
+p=root/'candidate/docs/FINE_TUNED_MODEL_SETTINGS_EDITOR.md';s=p.read_text()
+old='''The two raw strings share the existing 20,000 UTF-16-unit recovery budget. A partial
+or invalid URI remains correction input; a supplied empty revision remains present.
+Oversized state becomes unavailable as a whole, without prefix retention or
+substitution of current identities. The checkpoint grants no admission, save or
+retry authority.'''
+new='''The two raw strings share the existing 20,000 UTF-16-unit recovery budget. The
+complete JSON representation of all supplied settings must also pass the existing
+generic CONFIGURE capture gate. JSON overhead and escaping can exceed that gate's
+budget even when the raw strings fit. Its existing URI-userinfo exclusion and
+unavailable outcomes propagate unchanged, without inspecting or changing the
+underlying policy. Only its pending-input outcome can produce typed recovery.
+Direct Bundle serialization and reconstruction use this same gate.
+
+A partial or invalid URI remains correction input only when that existing capture
+gate permits it; a supplied empty revision remains present. Excluded or oversized
+state retains only the established marker, with no prefix or current-identity
+substitution. The checkpoint grants no admission, save or retry authority.'''
+assert s.count(old)==1;s=s.replace(old,new)
+s=s.replace('legacy raw correction and oversized state. Its 320 dp RTL case at twice the font',
+'legacy raw correction, parity with the existing raw capture outcomes and oversized\nstate. Its 320 dp RTL case at twice the font')
+s=s.replace('aggregate UTF-16 limits, partial URI correction, saving state and independent raw',
+'raw and serialized UTF-16 limits, capture-gate parity across all three typed entry\npoints, partial URI correction, saving state and independent raw')
+p.write_text(s)
+p=root/'check-source.py';s=p.read_text();assert '[7,10,17,20]' in s;p.write_text(s.replace('[7,10,17,20]','[8,10,18,20]'))
+print('Applied source-review correction through the existing opaque capture API; original inputs remain preserved in the prior source receipt. Regenerate exact guards/source receipt before further review.')

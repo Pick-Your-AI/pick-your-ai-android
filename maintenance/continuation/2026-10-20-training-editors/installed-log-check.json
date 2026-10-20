@@ -1,0 +1,45 @@
+{
+  "status": "ORIGINAL_LOG_CHECKED_ARTIFACT_CONTENTS_PENDING",
+  "checked_at_utc": "2026-10-20T15:05:35Z",
+  "repository": "Pick-Your-AI/pick-your-ai-android",
+  "pull_request": 751,
+  "head_sha": "e2b6e7ed53f99f8c8b230191e61da46c8b6d5b8f",
+  "preparation_sha": "f63ceb723b1984bbc287d3548381512f6ef89606",
+  "source_tree": "238c4e31d6ddc354cbdb0d8344e2df2361e3f17c",
+  "run_id": 39437520629,
+  "job_id": 118687504118,
+  "started_at": "2026-10-20T14:32:28Z",
+  "completed_at": "2026-10-20T14:54:57Z",
+  "conclusion": "success",
+  "original_log": {
+    "bytes": 67412,
+    "sha256": "f4880188b651880ea56e63a7f8f915a549f47d984afb616e735a40fe9d8ccfaf",
+    "git_blob": "16d876165ff1bc100752c3fbfd328f0b05f1ea4f",
+    "acquired_once": true,
+    "persisted_to_local_file": false
+  },
+  "all_16_terminal_steps_success": true,
+  "all_6_complete_run_programs_match_reviewed_workflow": true,
+  "action_pins": [
+    "actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+    "actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3",
+    "actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065",
+    "actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093",
+    "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02"
+  ],
+  "input_artifact_id": 12274090102,
+  "input_artifact_digest": "sha256:abbcb28a4e78705068949b70f099203df7e5b9e0486717d0ed3dc9f9cf1fd5cb",
+  "expected_apk_sha256": "e7ad6a951e813abc7c3781be6bdac26be87c2222010fac87ea5da9cb00dea175",
+  "log_reports_four_existing_emulator_cases_and_original_acl_restoration": true,
+  "artifact": {
+    "id": 12274948277,
+    "name": "android-installed-kvm-f63ceb723b1984bbc287d3548381512f6ef89606",
+    "size_in_bytes": 1121980,
+    "metadata_digest": "sha256:d744898fce76d07be06fb11aa7520697e6d96ca304335143ac320f9369121364",
+    "download_reference_acquired_once": true,
+    "bytes_retrieved_and_verified": false,
+    "archive_members_inspected": false
+  },
+  "remaining_gate": "Restore local execution, retrieve the already acquired file reference, independently verify ZIP size/digest, member safety, receipt linkage and all installed observations before full qualification.",
+  "limitation": "This partial check is not original ZIP qualification, new-editor installed/process-death/accessibility/physical-device acceptance, or integrated/main execution."
+}

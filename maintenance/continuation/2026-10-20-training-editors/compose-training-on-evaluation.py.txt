@@ -1,0 +1,261 @@
+from pathlib import Path
+import json,hashlib,difflib,re,yaml,ast,posixpath,xml.etree.ElementTree as ET
+
+root=Path('/tmp/android-training-main-integration-fb637-20261020')
+out=root/'candidate'
+out.mkdir(exist_ok=True)
+compute=Path('/tmp/android-training-compute-fb637-20261020')
+pair=Path('/tmp/android-training-settings-integration-fb637-20261020')
+fine=Path('/tmp/android-fine-tuned-model-fb637-20261020')
+evaluation=Path('/tmp/native-evaluation-suite-fb637')
+main_commit=json.loads((root/'references/main-commit.json').read_text())
+main_tree=json.loads((root/'references/main-tree.json').read_text())
+assert main_commit['sha']=='af6abfc95ab227ac005a82488a6b4762f0ba4f6e'
+assert main_commit['tree']['sha']==main_tree['sha']=='edf325dd41d36ca522a7f2307f247dc4ab882ae6'
+assert main_commit['verification']['verified'] and not main_tree['truncated']
+assert [p['sha'] for p in main_commit['parents']]==['7cdaac6205899a55d945c32caad2c755b248196d']
+
+def git(kind,data):
+    return hashlib.sha1(kind.encode()+b' '+str(len(data)).encode()+b'\0'+data).hexdigest()
+def metadata(data):
+    return {'bytes':len(data),'sha256':hashlib.sha256(data).hexdigest(),'git_blob':git('blob',data),'mode':'100644'}
+def write(path,data):
+    p=out/path;p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(data)
+def tree_hash(entries):
+    children={}
+    for path,obj in entries.items():
+        parts=path.split('/');node=children
+        for part in parts[:-1]:node=node.setdefault(part,{})
+        node[parts[-1]]=obj
+    def walk(node):
+        records=[]
+        for name,value in node.items():
+            directory='sha' not in value
+            mode='40000' if directory else value['mode']
+            sha=walk(value) if directory else value['sha']
+            records.append((name+'/' if directory else name,mode.encode()+b' '+name.encode()+b'\0'+bytes.fromhex(sha)))
+        return git('tree',b''.join(data for _,data in sorted(records)))
+    return walk(children)
+
+leaves={e['path']:{k:e[k] for k in ('mode','type','sha')} for e in main_tree['tree'] if e['type']!='tree'}
+assert len(leaves)==838 and tree_hash(leaves)==main_tree['sha']
+cr=json.loads((compute/'source-review-receipt.json').read_text())
+pr=json.loads((pair/'source-preparation-receipt.json').read_text())
+fr=json.loads((fine/'source-preparation-receipt.json').read_text())
+assert cr['expected_tree']=='238c4e31d6ddc354cbdb0d8344e2df2361e3f17c'
+assert pr['candidate_tree']=='82a04264e347e21bba69678790e7515ce1b25545'
+assert fr['candidate_tree']=='2250b369adf5533ab579b2debae30c7d12560969'
+assert pr['edited']==fr['edited']
+for e in cr['files']:
+    b=(compute/'candidate'/e['path']).read_bytes()
+    assert metadata(b)['bytes']==e['bytes'] and metadata(b)['sha256']==e['sha256'] and git('blob',b)==e['sha']
+for lane,receipt in [(pair,pr),(fine,fr)]:
+    for path,meta in receipt['files'].items():
+        b=(lane/'candidate'/path).read_bytes()
+        assert all(metadata(b)[key]==meta[key] for key in ('bytes','sha256','git_blob')),(path,'frozen source changed')
+
+# First join the separately reviewed dataset/framework and fine-model insertion families on compute.
+proofs=[]
+def compose(base,first,second,path,scope):
+    lines=base.splitlines(keepends=True);families=[];insertions=[]
+    for family_id,source in enumerate((first,second)):
+        changed=source.splitlines(keepends=True);family=[]
+        for tag,i,j,k,l in difflib.SequenceMatcher(a=lines,b=changed,autojunk=False).get_opcodes():
+            if tag=='equal':continue
+            assert tag=='insert' and i==j,(path,scope,tag)
+            part=''.join(changed[k:l]);family.append(part);insertions.append((i,family_id,part))
+        restored=source
+        for part in family:
+            assert restored.count(part)==1,(path,'ambiguous insertion')
+            restored=restored.replace(part,'',1)
+        assert restored==base
+        families.append(family)
+    result='';previous=0
+    for position,family_id,part in sorted(insertions):
+        result+=''.join(lines[previous:position])+part;previous=position
+    result+=''.join(lines[previous:])
+    for family,expected in zip(families,(second,first)):
+        restored=result
+        for part in family:
+            assert restored.count(part)==1
+            restored=restored.replace(part,'',1)
+        assert restored==expected,(path,'whole opposite source inverse')
+    restored=result
+    for family in families:
+        for part in family:restored=restored.replace(part,'',1)
+    assert restored==base
+    proofs.append({'scope':scope,'path':path,'base_blob':git('blob',base.encode()),
+        'first_blob':git('blob',first.encode()),'second_blob':git('blob',second.encode()),
+        'combined_blob':git('blob',result.encode()),'insertion_families':[len(f) for f in families],
+        'both_cross_inverses_and_base_inverse_exact':True})
+    return result
+
+training_shared={}
+for path in pr['edited']:
+    base=(fine/'base'/path).read_text()
+    assert base==(compute/'candidate'/path).read_text()
+    training_shared[path]=compose(base,(pair/'candidate'/path).read_text(),(fine/'candidate'/path).read_text(),
+        path,'reviewed dataset/framework plus fine-tuned model on compute7db')
+
+# Carry all reviewed new files, then reconcile the three actual evaluation/main overlap paths.
+for path in cr['added']:
+    assert path not in leaves
+    write(path,(compute/'candidate'/path).read_bytes())
+for lane,receipt in [(pair,pr),(fine,fr)]:
+    for path in receipt['added']:
+        assert path not in leaves,path
+        write(path,(lane/'candidate'/path).read_bytes())
+
+overlap=['.github/workflows/core.yml',
+         'preview/src/main/kotlin/ai/pickyour/android/preview/ComponentFormCheckpoint.kt',
+         'preview/src/main/kotlin/ai/pickyour/android/preview/SelectionEditSection.kt']
+accepted_inputs={}
+for path in overlap:
+    accepted=evaluation/('revision-2' if path.endswith('SelectionEditSection.kt') else 'candidate')/path
+    b=accepted.read_bytes()
+    assert git('blob',b)==leaves[path]['sha'],(path,'not actual accepted main')
+    accepted_inputs[path]=metadata(b)
+    base=(evaluation/'base'/path).read_text()
+    joined=compose(base,b.decode(),training_shared[path],path,'actual accepted evaluation af6 plus all four training editors')
+    # Removing only the three new families must recover the already reviewed evaluation/compute composition.
+    restore=joined
+    for lane in [Path('/tmp/android-training-dataset-fb637-20261020'),
+                 Path('/tmp/android-training-framework-fb637-20261020'),fine]:
+        name={'SelectionEditSection.kt':'selection-insertions.json',
+              'ComponentFormCheckpoint.kt':'checkpoint-insertions.json','core.yml':'workflow-insertions.json'}[Path(path).name]
+        for part in json.loads((lane/name).read_text()):
+            assert restore.count(part)==1,(path,'new family is not whole')
+            restore=restore.replace(part,'',1)
+    reference=(compute/'composition-evaluation-compute'/path).read_text()
+    assert restore==reference,(path,'evaluation/compute reviewed reference differs')
+    write(path,joined.encode())
+legacy='preview/src/test/kotlin/ai/pickyour/android/preview/TrainingSelectionActivityTest.kt'
+assert git('blob',(compute/'base'/legacy).read_bytes())==leaves[legacy]['sha']
+write(legacy,training_shared[legacy].encode())
+
+# Guides describe the final four typed CONFIGURE paths while preserving all four raw ADD flows.
+edits=[
+('docs/TRAINING_COMPUTE_SETTINGS_EDITOR.md',
+ 'and false spot choice. The other three kinds keep their original raw readback.',
+ 'and false spot choice. Dataset, framework and fine-tuned model have their own\\ntyped CONFIGURE readback branches; all four generic ADD paths retain raw input.'),
+('docs/TRAINING_DATASET_SETTINGS_EDITOR.md',
+ 'false redaction. The framework has its own typed readback branch; the remaining\\nfine-tuned-model kind keeps its raw settings readback.',
+ 'false redaction. Framework and fine-tuned model have their own typed CONFIGURE\\nreadback branches; all four generic ADD paths retain raw input.'),
+('docs/TRAINING_FRAMEWORK_SETTINGS_EDITOR.md',
+ 'method while retaining the existing training-compute and dataset branches.',
+ 'method while retaining the training-compute, dataset and fine-tuned-model branches.'),
+('docs/FINE_TUNED_MODEL_SETTINGS_EDITOR.md',
+ 'existing training-compute branch.',
+ 'training-compute, dataset and framework branches.')
+]
+for path,old,new in edits:
+    old=old.replace('\\n','\n');new=new.replace('\\n','\n')
+    p=out/path;s=p.read_text();assert s.count(old)==1,(path,'guide anchor')
+    p.write_text(s.replace(old,new,1))
+
+# Retain the previously reviewed dataset/framework cross-reader test and extend the fine-model boundary.
+path='preview/src/test/kotlin/ai/pickyour/android/preview/FineTunedModelFormCheckpointTest.kt'
+p=out/path;s=p.read_text()
+anchor='import ai.pickyour.core.preview.PreviewFineTunedModelInput\n'
+assert s.count(anchor)==1
+s=s.replace(anchor,anchor+'import ai.pickyour.core.preview.PreviewTrainingDatasetInput\nimport ai.pickyour.core.preview.PreviewTrainingFrameworkInput\n')
+anchor='        assertNull(TrainingComputeFormCheckpoint.read(requireNotNull(checkpoint().bundle())))\n'
+assert s.count(anchor)==1
+extra='''        val dataset = TrainingDatasetFormCheckpoint("draft_fixture", "baseline_fixture", "selection_dataset",
+            "training.dataset.fixture", "1", PreviewTrainingDatasetInput(trainSplit = "unfinished", redactionEnabled = false), false)
+        val datasetState = Bundle().also { dataset.recovery().save(it) }
+        assertEquals(dataset.input, (ComponentFormRecovery.read(parcel(datasetState))
+            as ComponentFormRecovery.TypedTrainingDatasetPending).form.input)
+        assertNull(FineTunedModelFormCheckpoint.read(requireNotNull(dataset.bundle())))
+        assertNull(TrainingDatasetFormCheckpoint.read(requireNotNull(checkpoint().bundle())))
+        val framework = TrainingFrameworkFormCheckpoint("draft_fixture", "baseline_fixture", "selection_framework",
+            "training.framework.fixture", "1", PreviewTrainingFrameworkInput(method = "lora", epochs = "unfinished"), false)
+        val frameworkState = Bundle().also { framework.recovery().save(it) }
+        assertEquals(framework.input, (ComponentFormRecovery.read(parcel(frameworkState))
+            as ComponentFormRecovery.TypedTrainingFrameworkPending).form.input)
+        assertNull(FineTunedModelFormCheckpoint.read(requireNotNull(framework.bundle())))
+        assertNull(TrainingFrameworkFormCheckpoint.read(requireNotNull(checkpoint().bundle())))
+'''
+s=s.replace(anchor,anchor+extra);p.write_text(s)
+
+# Prove the exact final tree and retain all accepted-main leaves not deliberately edited.
+files={};candidate=dict(leaves);counts={}
+for p in sorted(out.rglob('*')):
+    if not p.is_file():continue
+    assert not p.is_symlink()
+    path=p.relative_to(out).as_posix();b=p.read_bytes();s=b.decode()
+    assert s.endswith('\n') and '\r' not in s
+    files[path]=metadata(b);candidate[path]={'mode':'100644','type':'blob','sha':git('blob',b)}
+    if path.endswith('Test.kt'):
+        names=re.findall(r'@Test[\s\S]*?fun (\w+)\(',s)
+        assert len(names)==len(set(names));counts[path]=len(names)
+added=sorted(set(candidate)-set(leaves))
+edited=sorted(path for path in leaves if candidate[path]!=leaves[path])
+assert len(files)==36 and len(added)==32 and len(edited)==4
+assert set(edited)==set(overlap+[legacy])
+assert len(candidate)==870
+assert all(candidate[p]==v for p,v in leaves.items() if p not in edited)
+contracts={p:v for p,v in leaves.items() if p.startswith('contracts/')}
+assert len(contracts)==46 and all(candidate[p]==v for p,v in contracts.items())
+assert sorted(counts.values())==[7,7,7,8,10,17,17,17,18,19,19,20,20]
+
+wf_path='.github/workflows/core.yml'
+before=yaml.safe_load((evaluation/'candidate'/wf_path).read_text())
+after=yaml.safe_load((out/wf_path).read_text())
+is_new=lambda step:bool(re.search(r'typed (?:training-(?:compute|dataset|framework)|fine-tuned-model) ',step.get('name','')))
+guards=[]
+for job_id,job in before['jobs'].items():
+    assert [step for step in after['jobs'][job_id]['steps'] if not is_new(step)]==job['steps']
+for job in after['jobs'].values():
+    for step in job['steps']:
+        if not is_new(step):continue
+        program=step['run'].split('\n',1)[1].rsplit('\n',2)[0]
+        # The final heredoc marker is a standalone identifier; parse only the Python body.
+        marker=step['run'].splitlines()[0].split("'")[1]
+        program=step['run'].split('\n',1)[1].rsplit(marker,1)[0]
+        module=ast.parse(program)
+        assignment=next(n for n in module.body if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='expected' for t in n.targets))
+        expected=ast.literal_eval(assignment.value)
+        for cls,names in expected.items():
+            directory='core/src/test/kotlin/ai/pickyour/core/preview' if cls.startswith('ai.pickyour.core.') else 'preview/src/test/kotlin/ai/pickyour/android/preview'
+            source=(out/directory/(cls.rsplit('.',1)[1]+'.kt')).read_text()
+            declared=re.findall(r'@Test[\s\S]*?fun (\w+)\(',source)
+            if cls.startswith('ai.pickyour.core.'):declared=[name+'()' for name in declared]
+            assert set(declared)==names and len(declared)==len(names)
+        guards.append(step['name'])
+assert len(guards)==8
+
+labels=set()
+for name,count in [('training_compute',18),('training_dataset',17),('training_framework',18),('fine_tuned_model',18)]:
+    xml=ET.parse(out/f'preview/src/main/res/values/{name}_settings.xml').getroot()
+    ids=[entry.get('name') for entry in xml]
+    assert len(ids)==len(set(ids))==count and not labels.intersection(ids),(name,len(ids))
+    labels.update(ids)
+used=set()
+for path in files:
+    if path.endswith('.kt'):
+        used.update(re.findall(r'R\.string\.((?:training_(?:compute|dataset|framework)|fine_tuned_model)_\w+)',(out/path).read_text()))
+assert used==labels
+for path in files:
+    if path.endswith('.md'):
+        for target in re.findall(r'\]\(([^)]+)\)',(out/path).read_text()):
+            if target.startswith('https://'):continue
+            assert posixpath.normpath(str(Path(path).parent/target)) in candidate,(path,target)
+
+receipt={'scope':'Complete source composition on the actual accepted evaluation main; not product/test execution or main delivery',
+ 'accepted_main':main_commit['sha'],'accepted_main_tree':main_tree['sha'],
+ 'input_trees':{'compute':cr['expected_tree'],'dataset_framework':pr['candidate_tree'],'fine_tuned_model':fr['candidate_tree']},
+ 'candidate_tree':tree_hash(candidate),'added':added,'edited':edited,'files':files,
+ 'accepted_evaluation_inputs':accepted_inputs,'composition_proofs':proofs,
+ 'unchanged_prior_leaves':len(leaves)-len(edited),'all_prior_untouched_modes_and_blobs_exact':True,
+ 'frozen_v1_leaves':45,'other_contract_directory_paths':['contracts/.gitignore'],'contract_directory_unchanged':True,
+ 'test_method_counts':counts,'resource_strings':len(labels),'new_attendance_guards':guards,
+ 'all_accepted_workflow_steps_unchanged':True,
+ 'integration_changes':['Four guide paragraphs describe all four typed CONFIGURE paths and retained raw ADD flows',
+  'Fine-model existing checkpoint case additionally verifies dataset/framework Parcel dispatch and mutual reader rejection',
+  'Previously independently reviewed dataset/framework cross-reader additions remain unchanged'],
+ 'predicted_execution_if_all_cases_pass':{'core_suites':142,'core_cases':8352,'preview_suites':101,'preview_cases':1092},
+ 'prediction_is_not_execution_evidence':True,
+ 'next_gate':'Independent exact composition review; ordinary signed staging and normal main receiver with original natural CI qualification'}
+(root/'source-composition-receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
+print(json.dumps({k:v for k,v in receipt.items() if k not in ('files','added','edited','composition_proofs','accepted_evaluation_inputs')},indent=2))
