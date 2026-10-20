@@ -126,7 +126,27 @@
       "sha256": "42c71563aa5c9549c87e9b63298335f22ecb7da5483c44dbd6c2188507fda4aa",
       "blob": "2819d91b046a53d65afbe2db67afbee071fc0a8c"
     },
-    "review_receipt_local_write_unconfirmed": true
+    "review_receipt_local_write_unconfirmed": true,
+    "remote_preservation": {
+      "verified_at_utc": "2026-10-20T15:18:05Z",
+      "source": "Exact retained original authoring bytes; both expected identities matched before upload and after independent root GitHub readback.",
+      "files": [
+        {
+          "path": "maintenance/continuation/2026-10-20-training-editors/inputs/PreviewFineTunedModelSettings.kt.txt",
+          "bytes": 5519,
+          "sha256": "a99049262f7b80c2eb81601397c875aaefebac304c86ee7935ce3b0482813257",
+          "git_blob": "8863e3b1feae906b073b60f24624d4d9b8439847"
+        },
+        {
+          "path": "maintenance/continuation/2026-10-20-training-editors/inputs/PreviewFineTunedModelSettingsTest.kt.txt",
+          "bytes": 26012,
+          "sha256": "42c71563aa5c9549c87e9b63298335f22ecb7da5483c44dbd6c2188507fda4aa",
+          "git_blob": "2819d91b046a53d65afbe2db67afbee071fc0a8c"
+        }
+      ],
+      "source_changed": false,
+      "execution_claim": false
+    }
   },
   "proposals": {
     "correction": {
@@ -167,7 +187,7 @@
     "framework": 6292609800,
     "fine_model": 6293209779
   },
-  "preservation_limit": "This branch preserves proposal text and this handoff only. It does not preserve inaccessible local candidate files, CI archive bytes or other local receipts.",
+  "preservation_limit": "This branch preserves proposal text, this handoff, and the two exact reviewed fine-model Core input files. It does not preserve inaccessible native/shared candidate files, the full dataset/framework candidates, CI archive bytes or other local receipts.",
   "unresolved_acceptance": [
     "Independent actual-byte native recovery review",
     "Complete original installed artifact qualification",

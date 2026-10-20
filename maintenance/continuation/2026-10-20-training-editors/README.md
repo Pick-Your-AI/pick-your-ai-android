@@ -4,6 +4,7 @@ Status: blocked by an offline local execution environment. This branch is a rest
 
 ## What is preserved
 
+- The two exact, previously reviewed fine-tuned-model Core source/test inputs under inputs/, retained as .kt.txt files. Their original byte counts, SHA-256 hashes and Git blob identities were independently checked after GitHub readback.
 - The exact unexecuted fine-tuned-model recovery correction proposal.
 - The exact unexecuted final composition proposal.
 - Source identities, completed deliveries, ownership, and remaining gates in handoff.json.
@@ -13,7 +14,7 @@ The proposal files deliberately end in .py.txt. They depend on existing files un
 
 ## What is not preserved by this branch
 
-The offline local dataset, framework, combined dataset/framework, and fine-model source candidates; local test archives and qualification receipts; helper scripts not included here; and downloaded artifact bytes. Their recorded local paths and hashes identify work that existed before disconnection but are not a promise that those files will remain available. The candidate tree IDs are calculated local identities. Exact reads of the fine-model and pair tree IDs returned GitHub 404 on 20 October.
+The offline local dataset, framework, combined dataset/framework, and fine-model native/shared source candidates; local test archives and qualification receipts; helper scripts not included here; and downloaded artifact bytes. Their recorded local paths and hashes identify work that existed before disconnection but are not a promise that those files will remain available. Only the two Core files explicitly listed above are backed up as source inputs here. The complete candidate tree IDs are calculated local identities. Exact reads of the fine-model and pair tree IDs returned GitHub 404 on 20 October.
 
 The training-compute source already exists in PR #751. Evaluation PR #750 is already merged. This branch starts from the accepted evaluation commit and adds only these checkpoint files.
 
@@ -30,6 +31,6 @@ The training-compute source already exists in PR #751. Evaluation PR #750 is alr
 
 ## Important boundaries
 
-The known fine-model candidate is not cleared for merge. Its Core pair completed independent source review, but the native recovery correction is only a proposal. Predicted test totals are not executed test results. Existing installed smoke cases do not establish new-editor process-death behavior, physical-device acceptance, accessibility acceptance, real training/evaluation, or release readiness.
+The known fine-model candidate is not cleared for merge. Its preserved Core pair completed independent source review; it has not been newly edited or executed by this checkpoint. The native recovery correction is only a proposal. Predicted test totals are not executed test results. Existing installed smoke cases do not establish new-editor process-death behavior, physical-device acceptance, accessibility acceptance, real training/evaluation, or release readiness.
 
 This checkpoint does not reserve main or supersede another active owner's work. No external Codex task is part of this continuation.

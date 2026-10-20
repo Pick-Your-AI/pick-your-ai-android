@@ -1,0 +1,399 @@
+package ai.pickyour.core.preview
+
+import ai.pickyour.core.cache.CacheRead
+import ai.pickyour.core.cache.VerifiedArtifactCache
+import ai.pickyour.core.contracts.FrozenDocument
+import ai.pickyour.core.contracts.FrozenSchemaValidator
+import ai.pickyour.core.contracts.FrozenValidation
+import ai.pickyour.core.drafts.*
+import ai.pickyour.core.importing.BoundedJsonReader
+import ai.pickyour.core.importing.JsonInputLimits
+import ai.pickyour.core.importing.JsonInputResult
+import com.fasterxml.jackson.databind.JsonNode
+import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.io.TempDir
+import java.nio.file.Path
+
+class PreviewFineTunedModelSettingsTest {
+    @TempDir lateinit var root: Path
+    private val catalog = SelectionFixtures.catalog()
+    private val settingKeys = listOf("use_adapter", "artifact_uri", "revision")
+    private val textKeys = settingKeys.drop(1)
+
+    private fun selection(settings: String = "{}"): LocalSelection {
+        val node = SelectionFixtures.node("fine_tuned_model", "sel_fine_tuned_model", "primary", false)
+        node.set<JsonNode>("settings", (BoundedJsonReader().read(settings.toByteArray().inputStream()) as JsonInputResult.Parsed).value)
+        return LocalSelection.fromJson(node)
+    }
+
+    private fun only(key: String, raw: String?): PreviewFineTunedModelInput = when (key) {
+        "artifact_uri" -> PreviewFineTunedModelInput(artifactUri = raw)
+        "revision" -> PreviewFineTunedModelInput(revision = raw)
+        else -> error("Unexpected fixture setting")
+    }
+
+    private fun command(source: LocalSelection, input: PreviewFineTunedModelInput) =
+        (PreviewFineTunedModelSettings.configure(source, input).preparation as PreviewSelectionPreparation.Ready).command
+
+    private fun configured(source: LocalSelection, input: PreviewFineTunedModelInput): LocalSelection =
+        (DraftSelectionCommands.apply(DraftContent(components = DraftSelections(listOf(source))), command(source, input))
+            as SelectionEdit.Ready).content.components.selections.single()
+
+    private fun invalid(input: PreviewFineTunedModelInput, key: String, problem: PreviewFineTunedModelProblem) {
+        val source = selection("""{"use_adapter":true,"artifact_uri":"urn:example:model","revision":"original"}""")
+        val before = source.toJson()
+        val result = PreviewFineTunedModelSettings.configure(source, input)
+        assertSame(PreviewSelectionPreparation.Invalid, result.preparation)
+        assertEquals(listOf(key), result.issues.map { it.field })
+        assertEquals(problem, result.issues.single().problem)
+        assertEquals(before, source.toJson())
+    }
+
+    private fun nearBudgetSelection(settings: String = "{}"): LocalSelection {
+        val node = selection(settings).toJson().put("notes", "")
+        val extension = node.putObject("extensions").putObject("x_fixture")
+        repeat(65) { extension.put("part$it", "x".repeat(16_000)) }
+        val targetBytes = JsonInputLimits().maxBytes - 32
+        node.put("notes", "n".repeat(targetBytes - SelectionFixtures.mapper.writeValueAsBytes(node).size))
+        assertEquals(targetBytes, SelectionFixtures.mapper.writeValueAsBytes(node).size)
+        return LocalSelection.fromJson(node)
+    }
+
+    @Test fun frozenMetadataKeepsOptionalBooleanUriAndUnconstrainedRevisionWithoutDefaults() {
+        val fields = PreviewFineTunedModelSettings.fields
+        assertEquals("fine_tuned_model", PreviewFineTunedModelSettings.KIND)
+        assertEquals(settingKeys, listOf(PreviewFineTunedModelSettings.USE_ADAPTER,
+            PreviewFineTunedModelSettings.ARTIFACT_URI, PreviewFineTunedModelSettings.REVISION))
+        assertEquals(settingKeys, fields.map { it.key })
+        assertEquals(listOf(PreviewSettingType.BOOLEAN, PreviewSettingType.STRING, PreviewSettingType.STRING),
+            fields.map { it.type })
+        assertTrue(fields.none { it.required })
+        assertEquals(listOf(null, "uri", null), fields.map { it.format })
+        assertTrue(fields.all { it.minimum == null && it.exclusiveMinimum == null && it.maximum == null &&
+            it.minimumLength == null && it.pattern == null && it.enumValues.isEmpty() })
+        assertThrows(UnsupportedOperationException::class.java) { (fields as MutableList).clear() }
+    }
+
+    @Test fun allEightPresenceCombinationsRoundTripWithoutInventedDefaults() {
+        val empty = selection()
+        assertEquals(PreviewFineTunedModelInput(), PreviewFineTunedModelSettings.initial(empty))
+        val source = selection("""{"use_adapter":true,"artifact_uri":"urn:example:old","revision":"old"}""")
+        for (mask in 0..7) {
+            val input = PreviewFineTunedModelInput(
+                useAdapter = false.takeIf { (mask and 1) != 0 },
+                artifactUri = "urn:example:new".takeIf { (mask and 2) != 0 },
+                revision = "".takeIf { (mask and 4) != 0 })
+            val changed = configured(source, input)
+            for ((index, key) in settingKeys.withIndex())
+                assertEquals((mask and (1 shl index)) != 0, changed.settings.has(key))
+            assertEquals(Integer.bitCount(mask), changed.settings.size())
+            assertEquals(input, PreviewFineTunedModelSettings.initial(changed))
+            assertEquals(empty, configured(changed, PreviewFineTunedModelInput()))
+            assertEquals(3, source.settings.size())
+        }
+    }
+
+    @Test fun missingFalseAndTrueAdapterStatesRemainIndependentOfOuterSelectionEnabled() {
+        for (outer in listOf(false, true)) for (state in listOf<Boolean?>(null, false, true)) {
+            val source = LocalSelection.fromJson(selection().toJson().put("enabled", outer))
+            val input = PreviewFineTunedModelInput(state, "urn:example:model", "")
+            val changed = configured(source, input)
+            assertEquals(state != null, changed.settings.has("use_adapter"))
+            assertEquals(state, PreviewFineTunedModelSettings.initial(changed).useAdapter)
+            if (state != null) {
+                assertTrue(changed.settings["use_adapter"].isBoolean)
+                assertEquals(state, changed.settings["use_adapter"].booleanValue())
+            }
+            assertEquals(outer, changed.enabled)
+            assertEquals(input, PreviewFineTunedModelSettings.initial(changed))
+            val removed = configured(changed, input.copy(useAdapter = null))
+            assertFalse(removed.settings.has("use_adapter"))
+            assertEquals(input.copy(useAdapter = null), PreviewFineTunedModelSettings.initial(removed))
+        }
+    }
+
+    @Test fun emptyWhitespaceNewlineUnicodeAndTypeLookingRevisionsRemainExactStrings() {
+        for (raw in listOf("", " ", "\t\r\n", "unknown", "not_applicable", "null", "true", "false", "0", "1e0",
+            "  revision  ", "v1\nv2\n", "é", "e\u0301", "模型/版本🧪", "a\u0000b", "\u2028\u2029")) {
+            val changed = configured(selection(), PreviewFineTunedModelInput(revision = raw))
+            assertEquals(1, changed.settings.size())
+            assertTrue(changed.settings["revision"].isTextual)
+            assertEquals(raw, changed.settings["revision"].textValue())
+            assertEquals(raw, PreviewFineTunedModelSettings.initial(changed).revision)
+            assertFalse(changed.settings.has("use_adapter"))
+            assertFalse(changed.settings.has("artifact_uri"))
+        }
+    }
+
+    @Test fun absoluteUrisRemainExactStringsWithoutSchemeHostOrEscapeNormalization() {
+        for (raw in listOf("https://example.invalid/model?tag=v1#weights",
+            "HTTPS://EXAMPLE.invalid/a%2fb?revision=%E2%9C%93#part", "s3://bucket/model.safetensors",
+            "urn:example:model:rev-1", "file:///tmp/model%20weights.bin", "mailto:artifact@example.invalid",
+            "https://user:password@example.invalid/model")) {
+            val changed = configured(selection(), PreviewFineTunedModelInput(artifactUri = raw))
+            assertEquals(1, changed.settings.size())
+            assertTrue(changed.settings["artifact_uri"].isTextual)
+            assertEquals(raw, changed.settings["artifact_uri"].textValue())
+            assertEquals(raw, PreviewFineTunedModelSettings.initial(changed).artifactUri)
+        }
+    }
+
+    @Test fun relativeWhitespaceAndMalformedPercentEscapesRemainUriErrors() {
+        for (raw in listOf("", " ", "\n", "relative/path", "/absolute/path", "//example.invalid/model",
+            "https://example.invalid/a b", "https://example.invalid/%", "https://example.invalid/%2",
+            "https://example.invalid/%GG", "https://example.invalid/model\n", " https://example.invalid/model",
+            "https://example.invalid/\u0000", "://example.invalid", "1https://example.invalid/model"))
+            invalid(PreviewFineTunedModelInput(artifactUri = raw), "artifact_uri", PreviewFineTunedModelProblem.URI)
+    }
+
+    @Test fun uriAdmissionMatchesTheFrozenFormatForLiteralUnicodeAndUnusualAbsoluteForms() {
+        val validator = FrozenSchemaValidator()
+        for (raw in listOf("https://例え.テスト/模型", "https://example.invalid/é", "http://[::1]/weights",
+            "http://[v1.fe]/weights", "x:a%20b", "file:relative/path", "https://example.invalid/%00",
+            "https://example.invalid:99999/model", "https://")) {
+            val source = selection()
+            val node = source.toJson().also { it.putObject("settings").put("artifact_uri", raw) }
+            val frozen = validator.validate(FrozenDocument.SELECTION,
+                SelectionFixtures.mapper.writeValueAsBytes(node).inputStream())
+            val result = PreviewFineTunedModelSettings.configure(source, PreviewFineTunedModelInput(artifactUri = raw))
+            when (frozen) {
+                FrozenValidation.Valid -> {
+                    assertTrue(result.issues.isEmpty())
+                    assertTrue(result.preparation is PreviewSelectionPreparation.Ready)
+                    assertEquals(raw, configured(source, PreviewFineTunedModelInput(artifactUri = raw)).settings["artifact_uri"].textValue())
+                }
+                FrozenValidation.SchemaMismatch -> {
+                    assertSame(PreviewSelectionPreparation.Invalid, result.preparation)
+                    assertEquals(listOf(PreviewFineTunedModelIssue("artifact_uri", PreviewFineTunedModelProblem.URI)), result.issues)
+                }
+                is FrozenValidation.InvalidInput -> fail<Unit>("Small well-formed URI fixture did not reach frozen format validation")
+            }
+        }
+    }
+
+    @Test fun jsonLookingRevisionAndEncodedUriTextCannotInjectSettingsOrDocuments() {
+        for (raw in listOf("\"", "\\", "{}", "[]", "{\"use_adapter\":true}",
+            "x\",\"use_adapter\":true,\"revision\":\"injected", "x\"}{}", "\\u0000", "${'$'}ref")) {
+            val changed = configured(selection(), PreviewFineTunedModelInput(false, "urn:example:model", raw))
+            assertEquals(settingKeys.toSet(), changed.settings.fieldNames().asSequence().toSet())
+            assertFalse(changed.settings["use_adapter"].booleanValue())
+            assertEquals("urn:example:model", changed.settings["artifact_uri"].textValue())
+            assertEquals(raw, changed.settings["revision"].textValue())
+        }
+        val uri = "https://example.invalid/%22%7D%2C%22use_adapter%22%3Atrue"
+        val changed = configured(selection(), PreviewFineTunedModelInput(artifactUri = uri))
+        assertEquals(1, changed.settings.size())
+        assertEquals(uri, changed.settings["artifact_uri"].textValue())
+    }
+
+    @Test fun malformedUtf16CannotBeRepairedIntoAdmittedText() {
+        for (key in textKeys) for (raw in listOf("\uD800", "\uDC00", "prefix\uD800suffix", "\uD800\uD800", "\uDC00\uD800"))
+            invalid(only(key, raw), key, PreviewFineTunedModelProblem.TEXT)
+        val raw = "paired:\uD83E\uDDEA:end"
+        assertEquals(raw, configured(selection(), PreviewFineTunedModelInput(revision = raw)).settings["revision"].textValue())
+    }
+
+    @Test fun textControlCeilingsPrecedeFormatAndMalformedTextFeedback() {
+        for (key in textKeys) for (raw in listOf("x".repeat(PreviewSelectionForms.MAX_SETTINGS_TEXT + 1),
+            " ".repeat(PreviewSelectionForms.MAX_SETTINGS_TEXT + 1),
+            "\uD800".repeat(PreviewSelectionForms.MAX_SETTINGS_TEXT + 1)))
+            invalid(only(key, raw), key, PreviewFineTunedModelProblem.TOO_LONG)
+    }
+
+    @Test fun utf16ReaderLimitsRemainSeparateFromSerializedSettingsAndSelectionBudgets() {
+        val limit = JsonInputLimits().maxStringLength
+        val prefix = "urn:example:"
+        val supplementary = "\uD83E\uDDEA".repeat(limit / 2)
+        assertEquals(limit, supplementary.length)
+        assertEquals(limit * 2, supplementary.toByteArray(Charsets.UTF_8).size)
+        for ((key, raw) in listOf("artifact_uri" to prefix + "u".repeat(limit - prefix.length),
+            "revision" to "r".repeat(limit), "revision" to supplementary, "revision" to "\u0000".repeat(limit))) {
+            assertEquals(limit, raw.length)
+            val source = selection()
+            val result = PreviewFineTunedModelSettings.configure(source, only(key, raw))
+            assertTrue(result.issues.isEmpty())
+            val settings = SelectionFixtures.mapper.createObjectNode().put(key, raw).toString()
+            val complete = PreviewSelectionForms.configure(source, settings)
+            assertEquals(complete.javaClass, result.preparation.javaClass)
+            if (complete is PreviewSelectionPreparation.Ready) {
+                assertTrue(result.preparation is PreviewSelectionPreparation.Ready)
+                assertEquals(raw, configured(source, only(key, raw)).settings[key].textValue())
+            } else assertSame(PreviewSelectionPreparation.Invalid, result.preparation)
+            if (raw.firstOrNull() == '\u0000') {
+                assertTrue(settings.length > PreviewSelectionForms.MAX_SETTINGS_TEXT)
+                assertSame(PreviewSelectionPreparation.Invalid, result.preparation)
+            }
+        }
+        invalid(PreviewFineTunedModelInput(artifactUri = prefix + "u".repeat(limit + 1 - prefix.length)),
+            "artifact_uri", PreviewFineTunedModelProblem.TOO_LONG)
+        for (raw in listOf("r".repeat(limit + 1), supplementary + "x"))
+            invalid(PreviewFineTunedModelInput(revision = raw), "revision", PreviewFineTunedModelProblem.TOO_LONG)
+    }
+
+    @Test fun independentUriAndRevisionErrorsCannotPublishAPartialCommand() {
+        val source = selection("""{"use_adapter":true,"artifact_uri":"urn:example:original","revision":"original"}""")
+        val before = source.toJson()
+        val result = PreviewFineTunedModelSettings.configure(source, PreviewFineTunedModelInput(false, "unfinished", "\uD800"))
+        assertSame(PreviewSelectionPreparation.Invalid, result.preparation)
+        assertEquals(textKeys, result.issues.map { it.field })
+        assertEquals(listOf(PreviewFineTunedModelProblem.URI, PreviewFineTunedModelProblem.TEXT), result.issues.map { it.problem })
+        assertEquals(before, source.toJson())
+        val long = "x".repeat(PreviewSelectionForms.MAX_SETTINGS_TEXT + 1)
+        val bothLong = PreviewFineTunedModelSettings.configure(source, PreviewFineTunedModelInput(null, long, long))
+        assertSame(PreviewSelectionPreparation.Invalid, bothLong.preparation)
+        assertEquals(textKeys, bothLong.issues.map { it.field })
+        assertTrue(bothLong.issues.all { it.problem == PreviewFineTunedModelProblem.TOO_LONG })
+        val corrected = configured(source, PreviewFineTunedModelInput(false, "urn:example:corrected", ""))
+        assertEquals(PreviewFineTunedModelInput(false, "urn:example:corrected", ""), PreviewFineTunedModelSettings.initial(corrected))
+        assertEquals(before, source.toJson())
+    }
+
+    @Test fun finalWholeSelectionBudgetRejectsWithoutInventingFieldErrors() {
+        val source = nearBudgetSelection()
+        val before = source.toJson()
+        assertTrue(PreviewFineTunedModelSettings.configure(source,
+            PreviewFineTunedModelInput(revision = "r".repeat(7))).preparation is PreviewSelectionPreparation.Ready)
+        for (input in listOf(PreviewFineTunedModelInput(revision = "模".repeat(7)),
+            PreviewFineTunedModelInput(revision = "r".repeat(100)),
+            PreviewFineTunedModelInput(false, "urn:example:" + "u".repeat(100), "r".repeat(100)))) {
+            val result = PreviewFineTunedModelSettings.configure(source, input)
+            assertSame(PreviewSelectionPreparation.Invalid, result.preparation)
+            assertTrue(result.issues.isEmpty())
+            assertEquals(before, source.toJson())
+        }
+    }
+
+    @Test fun simultaneousSiblingRemovalAdmitsTheFinalSelectionNearItsByteBudget() {
+        val wideUri = "urn:example:" + "u".repeat(1_024)
+        val wideRevision = "r".repeat(1_024)
+        for ((rawSettings, input) in listOf(
+            """{"use_adapter":true,"artifact_uri":"urn:example:a","revision":"$wideRevision"}""" to
+                PreviewFineTunedModelInput(artifactUri = wideUri),
+            """{"use_adapter":true,"artifact_uri":"$wideUri","revision":"r"}""" to
+                PreviewFineTunedModelInput(revision = wideRevision))) {
+            val source = nearBudgetSelection(rawSettings)
+            val before = source.toJson()
+            val changed = configured(source, input)
+            assertEquals(1, changed.settings.size())
+            assertEquals(input, PreviewFineTunedModelSettings.initial(changed))
+            assertEquals(source.toJson()["notes"], changed.toJson()["notes"])
+            assertEquals(source.toJson()["extensions"], changed.toJson()["extensions"])
+            assertEquals(before, source.toJson())
+        }
+    }
+
+    @Test fun unchangedInputsRetainExactLiteralStringsAndProduceANoop() {
+        val uri = "HTTPS://EXAMPLE.invalid/model%2fpart?tag=%41"
+        val revision = "  e\u0301\n模型🧪  "
+        val settings = SelectionFixtures.mapper.createObjectNode().put("use_adapter", false)
+            .put("artifact_uri", uri).put("revision", revision)
+        val source = selection(settings.toString())
+        val input = PreviewFineTunedModelSettings.initial(source)
+        assertEquals(PreviewFineTunedModelInput(false, uri, revision), input)
+        val noop = configured(source, input)
+        assertEquals(source, noop)
+        assertEquals(PreviewSelectionForms.settingsText(source), PreviewSelectionForms.settingsText(noop))
+        val changedAdapter = configured(source, input.copy(useAdapter = true))
+        for (key in textKeys) {
+            assertEquals(source.settings[key], changedAdapter.settings[key])
+            assertEquals(source.settings[key].javaClass, changedAdapter.settings[key].javaClass)
+        }
+    }
+
+    @Test fun configurationPreservesMetadataLinksPeersAndOtherDraftInputs() {
+        val node = selection().toJson().put("notes", "literal unknown")
+        node.putObject("extensions").putObject("x_private").put("kept", "not_applicable")
+        val source = LocalSelection.fromJson(node)
+        val peer = SelectionFixtures.selection("model", "sel_model")
+        val link = SelectionFixtures.link("link.fixture", source.id, peer.id, false)
+        val before = DraftContent("objective", "context", workload = DraftWorkload(region = "entered"),
+            components = DraftSelections(listOf(source, peer), listOf(link)))
+        val changed = (DraftSelectionCommands.apply(before, command(source,
+            PreviewFineTunedModelInput(false, "urn:example:model", ""))) as SelectionEdit.Ready).content
+        val selected = changed.components.selections.first()
+        assertEquals(source.toJson().also { it.set<JsonNode>("settings", selected.settings) }, selected.toJson())
+        assertEquals(before, changed.withComponents(before.components))
+        assertEquals(before.components.links, changed.components.links)
+        assertEquals(peer, changed.components.selections.last())
+        selected.settings.removeAll()
+        assertEquals(3, changed.components.selections.first().settings.size())
+        assertEquals(0, source.settings.size())
+    }
+
+    @Test fun closedFineTunedSettingsRejectUnknownMembersAndNonContractJsonTypes() {
+        val source = selection("""{"use_adapter":false,"revision":""}""")
+        val before = source.toJson()
+        for (raw in listOf("""{"use_adapter":true,"future_setting":"value"}""",
+            """{"use_adapter":null}""", """{"use_adapter":0}""", """{"use_adapter":"false"}""",
+            """{"artifact_uri":null}""", """{"artifact_uri":false}""", """{"artifact_uri":1}""",
+            """{"revision":null}""", """{"revision":true}""", """{"revision":1}""",
+            """{"revision":[]}""", """{"revision":{}}"""))
+            assertSame(PreviewSelectionPreparation.Invalid, PreviewSelectionForms.configure(source, raw))
+        assertThrows(IllegalArgumentException::class.java) { selection("""{"revision":"","unknown":0}""") }
+        assertEquals(before, source.toJson())
+    }
+
+    @Test fun managedNoopStaleAndDeletedSaveAuthorityRemainDistinct() {
+        val library = PreviewDraftLibrary(root)
+        val created = library.create() as PreviewLibraryCreate.Saved
+        val adapter = library.open(created.id)
+        val source = selection("""{"use_adapter":false,"artifact_uri":"urn:example:model","revision":"original"}""")
+        val input = PreviewFineTunedModelSettings.initial(source)
+        val before = (adapter.applySelection(created.record,
+            SelectionCommand.Add(source, SelectionFixtures.choice(catalog, source)), catalog) as PreviewSelectionSave.Saved).record
+        val noop = adapter.applySelection(before, command(source, input)) as PreviewSelectionSave.Saved
+        assertNull(noop.change)
+        assertEquals(before.baselineIdentity, noop.record.baselineIdentity)
+        val saved = (adapter.applySelection(before, command(source, input.copy(revision = ""))) as PreviewSelectionSave.Saved).record
+        assertEquals(before.revision + 1, saved.revision)
+        assertSame(PreviewSelectionSave.Conflict,
+            adapter.applySelection(before, command(source, input.copy(useAdapter = true))))
+        assertEquals(PreviewLibraryDelete.Deleted, library.delete(created.id, saved))
+        assertTrue(adapter.applySelection(saved, command(source, input.copy(artifactUri = null))) is PreviewSelectionSave.Failed)
+    }
+
+    @Test fun typedSettingsRoundTripThroughStorageAndExplicitFrozenBuildProjection() {
+        val store = LocalDraftStore(root)
+        val original = (store.save(null, ProjectionFixtures.content(allKinds = true),
+            mapOf("private.keep" to "literal")) as DraftSave.Saved).draft
+        val source = original.content.components.selections.single { it.kind == "fine_tuned_model" }
+        val input = PreviewFineTunedModelInput(false, "https://EXAMPLE.invalid/model%2fpart?tag=%41", " \n模型🧪\t")
+        val saved = (store.applySelection(DraftSelectionIntent(original.version, command(source, input))) as DraftSelectionSave.Saved).draft
+        val reopened = (LocalDraftStore(root).load() as DraftLoad.Available).draft
+        assertEquals(saved.content, reopened.content)
+        assertEquals(original.metadata, reopened.metadata)
+        val bytes = (VerifiedArtifactCache(root.resolve("revisions"), LocalDraftStore.MAX_BYTES).active() as CacheRead.Available).bytes
+        val review = store.prepareSnapshotCandidate(reopened.version, ProjectionFixtures.inputs()) as DraftProjectionPreparation.Review
+        val created = store.createSnapshotCandidate(review,
+            review.acknowledgeRetainedOnly(review.retainedOnlyPaths.toSet())) as DraftProjectionCreation.Created
+        val build = (BoundedJsonReader().read(created.candidate.bytes().inputStream()) as JsonInputResult.Parsed).value
+        val projected = build["selections"].single { it["kind"].textValue() == "fine_tuned_model" }
+        assertEquals(saved.content.components.selections.single { it.kind == "fine_tuned_model" }.toJson(), projected)
+        assertTrue(projected["settings"]["use_adapter"].isBoolean)
+        assertFalse(projected["settings"]["use_adapter"].booleanValue())
+        assertTrue(textKeys.all { projected["settings"][it].isTextual })
+        assertEquals(input.artifactUri, projected["settings"]["artifact_uri"].textValue())
+        assertEquals(input.revision, projected["settings"]["revision"].textValue())
+        assertArrayEquals(bytes, (VerifiedArtifactCache(root.resolve("revisions"), LocalDraftStore.MAX_BYTES).active() as CacheRead.Available).bytes)
+    }
+
+    @Test fun descriptionsAndImmutableIssuesNeverEchoInputAndOtherKindsAreRejected() {
+        val privateValue = "synthetic-private-value"
+        val input = PreviewFineTunedModelInput(false, privateValue, privateValue + "\uD800")
+        val result = PreviewFineTunedModelSettings.configure(selection(), input)
+        assertEquals(2, result.issues.size)
+        for (text in listOf(input.toString(), result.toString(), result.issues.toString())) assertFalse(text.contains(privateValue))
+        assertThrows(UnsupportedOperationException::class.java) { (result.issues as MutableList).clear() }
+        val supplied = mutableListOf(PreviewFineTunedModelIssue("artifact_uri", PreviewFineTunedModelProblem.URI))
+        val copied = PreviewFineTunedModelPreparation(PreviewSelectionPreparation.Invalid, supplied)
+        supplied.clear()
+        assertEquals(listOf(PreviewFineTunedModelIssue("artifact_uri", PreviewFineTunedModelProblem.URI)), copied.issues)
+        assertThrows(UnsupportedOperationException::class.java) { (copied.issues as MutableList).clear() }
+        val other = SelectionFixtures.selection("model")
+        val rejected = PreviewFineTunedModelSettings.configure(other, input)
+        assertSame(PreviewSelectionPreparation.Invalid, rejected.preparation)
+        assertTrue(rejected.issues.isEmpty())
+        assertThrows(IllegalArgumentException::class.java) { PreviewFineTunedModelSettings.initial(other) }
+    }
+}

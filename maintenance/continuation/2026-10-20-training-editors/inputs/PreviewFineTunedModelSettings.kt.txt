@@ -1,0 +1,104 @@
+package ai.pickyour.core.preview
+
+import ai.pickyour.core.contracts.FrozenDocument
+import ai.pickyour.core.contracts.FrozenSchemaValidator
+import ai.pickyour.core.contracts.FrozenValidation
+import ai.pickyour.core.drafts.LocalSelection
+import ai.pickyour.core.importing.JsonRejection
+import java.nio.CharBuffer
+import java.nio.charset.CharacterCodingException
+import java.nio.charset.CodingErrorAction
+import java.util.Collections
+
+/** Null is absent; false and every admitted string, including an empty revision, remain supplied. */
+data class PreviewFineTunedModelInput(
+    val useAdapter: Boolean? = null,
+    val artifactUri: String? = null,
+    val revision: String? = null,
+) {
+    override fun toString() = "PreviewFineTunedModelInput"
+}
+
+enum class PreviewFineTunedModelProblem { URI, TEXT, TOO_LONG }
+data class PreviewFineTunedModelIssue(val field: String, val problem: PreviewFineTunedModelProblem) {
+    override fun toString() = "PreviewFineTunedModelIssue"
+}
+class PreviewFineTunedModelPreparation internal constructor(
+    val preparation: PreviewSelectionPreparation,
+    issues: List<PreviewFineTunedModelIssue>,
+) {
+    val issues: List<PreviewFineTunedModelIssue> = Collections.unmodifiableList(issues.toList())
+    override fun toString() = "PreviewFineTunedModelPreparation"
+}
+
+/** Frozen requested settings only; no artifact fetch, adapter execution or provenance is established. */
+object PreviewFineTunedModelSettings {
+    const val KIND = "fine_tuned_model"
+    const val USE_ADAPTER = "use_adapter"
+    const val ARTIFACT_URI = "artifact_uri"
+    const val REVISION = "revision"
+    val fields: List<PreviewSettingField> get() = checkNotNull(PreviewSettingsMetadata.fields(KIND))
+    private fun field(key: String) = fields.single { it.key == key }
+    private val validator by lazy { FrozenSchemaValidator() }
+
+    fun initial(selection: LocalSelection): PreviewFineTunedModelInput {
+        require(selection.kind == KIND)
+        val settings = selection.settings
+        return PreviewFineTunedModelInput(settings.get(USE_ADAPTER)?.booleanValue(),
+            settings.get(ARTIFACT_URI)?.textValue(), settings.get(REVISION)?.textValue())
+    }
+
+    /** Independent field feedback precedes admission of the complete prospective Selection. */
+    fun configure(selection: LocalSelection, input: PreviewFineTunedModelInput): PreviewFineTunedModelPreparation {
+        if (selection.kind != KIND) return invalid(emptyList())
+        val settings = selection.settings
+        val issues = mutableListOf<PreviewFineTunedModelIssue>()
+        val adapter = field(USE_ADAPTER)
+        check(!adapter.required && adapter.type == PreviewSettingType.BOOLEAN) {
+            "Fine-tuned model adapter metadata differs"
+        }
+        if (input.useAdapter == null) settings.remove(USE_ADAPTER) else settings.put(USE_ADAPTER, input.useAdapter)
+        for ((key, raw) in listOf(ARTIFACT_URI to input.artifactUri, REVISION to input.revision)) {
+            val definition = field(key)
+            check(!definition.required && definition.type == PreviewSettingType.STRING &&
+                definition.format == (if (key == ARTIFACT_URI) "uri" else null)) {
+                "Fine-tuned model text metadata differs"
+            }
+            if (raw == null) settings.remove(key)
+            else if (text(selection, key, raw, issues)) settings.put(key, raw)
+        }
+        if (issues.isNotEmpty()) return invalid(issues)
+        // Apply every omission first; retained notes and extensions share the final Selection budgets.
+        return PreviewFineTunedModelPreparation(PreviewSelectionForms.configure(selection, settings.toString()), emptyList())
+    }
+
+    private fun invalid(issues: List<PreviewFineTunedModelIssue>) =
+        PreviewFineTunedModelPreparation(PreviewSelectionPreparation.Invalid, issues)
+
+    private fun text(selection: LocalSelection, key: String, raw: String,
+        issues: MutableList<PreviewFineTunedModelIssue>): Boolean {
+        fun reject(problem: PreviewFineTunedModelProblem): Boolean {
+            issues += PreviewFineTunedModelIssue(key, problem)
+            return false
+        }
+        if (raw.length > PreviewSelectionForms.MAX_SETTINGS_TEXT) return reject(PreviewFineTunedModelProblem.TOO_LONG)
+        try {
+            // Validate raw UTF-16 before a JSON serializer could replace an unpaired surrogate.
+            Charsets.UTF_8.newEncoder().onMalformedInput(CodingErrorAction.REPORT)
+                .onUnmappableCharacter(CodingErrorAction.REPORT).encode(CharBuffer.wrap(raw))
+        } catch (_: CharacterCodingException) { return reject(PreviewFineTunedModelProblem.TEXT) }
+        // Keep admitted Selection identity, but isolate this field from sibling and optional metadata budgets.
+        val isolated = selection.toJson().also {
+            it.remove(listOf("notes", "extensions"))
+            it.putObject("settings").put(key, raw)
+        }
+        return when (val validation = validator.validate(FrozenDocument.SELECTION,
+            isolated.toString().toByteArray(Charsets.UTF_8).inputStream())) {
+            FrozenValidation.Valid -> true
+            is FrozenValidation.InvalidInput -> reject(if (validation.reason == JsonRejection.LIMIT_EXCEEDED)
+                PreviewFineTunedModelProblem.TOO_LONG else PreviewFineTunedModelProblem.TEXT)
+            FrozenValidation.SchemaMismatch -> reject(if (key == ARTIFACT_URI)
+                PreviewFineTunedModelProblem.URI else PreviewFineTunedModelProblem.TEXT)
+        }
+    }
+}
