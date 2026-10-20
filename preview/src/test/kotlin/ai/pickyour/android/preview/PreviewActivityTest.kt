@@ -11,6 +11,7 @@ import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputConnection
 import android.widget.Button
+import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.TextView
 import ai.pickyour.core.drafts.*
@@ -2871,7 +2872,10 @@ class PreviewActivityTest {
         assertFalse(selection.enabled)
         assertEquals(before.revision + 1, current.revision)
         val settings = componentAction(0)
-        dialogField(settings, R.string.component_settings).setText("{\"temperature\":0.25}")
+        views(settings.window!!.decorView).filterIsInstance<CheckBox>().single {
+            it.text.toString() == activity.getString(R.string.model_supply, activity.getString(R.string.model_temperature))
+        }.performClick()
+        dialogField(settings, R.string.model_temperature).setText("0.25")
         settings.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
         await { !settings.isShowing && loaded().revision == current.revision + 1 }
         current = loaded()
@@ -2951,7 +2955,10 @@ class PreviewActivityTest {
         assertEquals(baseline, loaded().baselineIdentity)
         val configure = componentAction(0)
         val retired = configure.getButton(AlertDialog.BUTTON_POSITIVE)
-        dialogField(configure, R.string.component_settings).setText("{\"temperature\":0.75}")
+        views(configure.window!!.decorView).filterIsInstance<CheckBox>().single {
+            it.text.toString() == activity.getString(R.string.model_supply, activity.getString(R.string.model_temperature))
+        }.performClick()
+        dialogField(configure, R.string.model_temperature).setText("0.75")
         recreate()
         await { hasText(R.string.draft_saved) }
         retired.performClick()
