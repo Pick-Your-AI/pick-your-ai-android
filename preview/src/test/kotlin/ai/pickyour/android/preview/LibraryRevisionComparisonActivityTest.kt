@@ -438,8 +438,8 @@ class LibraryRevisionComparisonActivityTest {
             chooseDraft(first); assertLayout(dialog())
             chooseRevision(0); chooseDraft(second); chooseRevision(0); awaitBrowser(); assertLayout(dialog())
             assertSources(0, 0)
-            assertTrue(texts().contains(activity.getString(R.string.library_compare_saved_title, "text: \"before title\"")))
-            assertTrue(texts().contains(activity.getString(R.string.library_compare_saved_title, "text: \"after title\"")))
+            assertTrue(texts().contains(activity.getString(R.string.library_compare_saved_title, "text: \u200f\u202a\"before title\"\u202c\u200f")))
+            assertTrue(texts().contains(activity.getString(R.string.library_compare_saved_title, "text: \u200f\u202a\"after title\"\u202c\u200f")))
         } finally { RuntimeEnvironment.setFontScale(1f) }
     }
 }

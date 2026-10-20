@@ -421,7 +421,7 @@ class RevisionPairComparisonActivityTest {
         assertMeasuredControls(dialog())
         assertTrue(texts().contains(activity.getString(R.string.revision_compare_title, "0", "1")))
         inspectObjective(); click(R.string.revision_compare_inspect_after)
-        assertEquals("text: \"stored after\"", literal())
+        assertEquals("text: \u200f\u202a\"stored after\"\u202c\u200f", literal())
         assertMeasuredControls(dialog())
     }
 
