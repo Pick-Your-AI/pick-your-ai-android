@@ -266,7 +266,7 @@ class PreviewPolicyTest(unittest.TestCase):
                     changed["outputs"][0]["file"] = "different.apk"
                 inventory_path.write_text(json.dumps(changed))
                 with self.subTest(mutation=mutation), \
-                     patch.object(policy, "command", side_effect=["a" * 40 + "\n" + "b" * 40, ""]), \
+                     patch.object(policy, "source_identity", return_value={"commit": "a" * 40, "tree": "b" * 40}), \
                      patch.object(policy, "inspect_apk") as inspect, \
                      self.assertRaisesRegex(policy.PolicyFailure, expected):
                     policy.check(root, root / "unused-tool")
@@ -336,6 +336,99 @@ class PreviewPolicyTest(unittest.TestCase):
                 self.assertEqual(1, policy.main())
                 self.assertFalse(output.exists())
                 self.assertNotIn("sentinel", str(printed.call_args_list))
+
+
+class InspectionSourceBytesTest(unittest.TestCase):
+    def check_hidden_edit(self, flag, during_inspection):
+        # Only this disposable repository receives index flags or commits. The
+        # actual source helper runs Git; only the heavy APK/tool observation is mocked.
+        fixture_environment = {key: value for key, value in os.environ.items() if not key.startswith("GIT_")}
+        fixture_environment.update({"GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull,
+                                    "GIT_TERMINAL_PROMPT": "0"})
+        with patch.dict(os.environ, fixture_environment, clear=True), tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            def git(*arguments):
+                return subprocess.run(["git", "--no-replace-objects", *arguments], cwd=root, check=True,
+                                      stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=30).stdout.decode().strip()
+            git("init", "--quiet", "--template=")
+            (root / ".gitignore").write_text("build/\n**/build/\n")
+            tracked = root / "tracked.txt"
+            original = b"original synthetic source\n"
+            tracked.write_bytes(original)
+            aapt2 = root / "aapt2-fixture"
+            aapt2.write_bytes(b"synthetic tool identity")
+            git("add", "--all")
+            git("-c", "user.name=Inspection source fixture", "-c", "user.email=inspection@example.invalid",
+                "-c", "commit.gpgsign=false", "-c", "core.hooksPath=" + os.devnull,
+                "commit", "--quiet", "--no-verify", "-m", "Disposable source baseline")
+            identity = policy.source_identity(root)
+            apk = root / policy.APK_PATH
+            apk.parent.mkdir(parents=True)
+            apk.write_bytes(b"unchanged synthetic artifact")
+            apk_hash = policy.sha256(apk)
+            inventory = root / "build/inventory/runtime-inventory.json"
+            inventory.parent.mkdir(parents=True)
+            inventory.write_text(json.dumps({"schema_version": 1, "scope": "resolved-runtime-classpaths",
+                "source": identity, "outputs": [{"kind": "unsigned-debug-preview", "file": policy.APK_PATH,
+                "sha256": apk_hash, "bytes": apk.stat().st_size}]}))
+            inventory_hash = policy.sha256(inventory)
+            git("update-index", flag, "--", "tracked.txt")
+            inject = False
+            def change_source():
+                changed = b"private! synthetic source\n"
+                self.assertEqual(len(original), len(changed))
+                tracked.write_bytes(changed)
+                self.assertEqual("", git("status", "--porcelain", "--untracked-files=all"))
+            def inspect(*_):
+                if inject:
+                    change_source()
+                return {"sha256": apk_hash}
+            with patch.object(policy, "inspect_apk", side_effect=inspect) as inspected, \
+                 patch.object(policy, "aapt2_version", return_value="Android Asset Packaging Tool (aapt) 2.19-11948202"):
+                # An index hint alone is harmless; unchanged bytes must still pass.
+                self.assertEqual("passed", policy.check(root, aapt2)["status"])
+                inspected.reset_mock()
+                if during_inspection:
+                    inject = True
+                else:
+                    change_source()
+                receipt = root / "build/inventory/preview-policy.json"
+                receipt.write_text('{"status":"passed","source":"old"}\n')
+                with patch.object(policy, "ROOT", root), \
+                     patch.object(sys, "argv", ["inspection", "--aapt2", str(aapt2)]), \
+                     redirect_stdout(io.StringIO()) as messages:
+                    result = policy.main()
+                new_receipt = receipt.exists()
+                failure = None
+                try:
+                    policy.source_identity(root)
+                except policy.PolicyFailure as error:
+                    failure = str(error)
+                negative_inspections = inspected.call_count
+                self.assertEqual(apk_hash, policy.sha256(apk))
+                self.assertEqual(inventory_hash, policy.sha256(inventory))
+                inject = False
+                tracked.write_bytes(original)
+                self.assertEqual("", git("status", "--porcelain", "--untracked-files=all"))
+                self.assertEqual("passed", policy.check(root, aapt2)["status"])
+                self.assertEqual(identity, policy.source_identity(root))
+                self.assertEqual(apk_hash, policy.sha256(apk))
+                self.assertEqual(inventory_hash, policy.sha256(inventory))
+                self.assertEqual(("SOURCE_CHANGED", 1, False), (failure, result, new_receipt))
+                self.assertNotIn("private!", messages.getvalue())
+                self.assertEqual(1 if during_inspection else 0, negative_inspections)
+
+    def test_assume_unchanged_source_edit_before_policy_inspection_rejects(self):
+        self.check_hidden_edit("--assume-unchanged", False)
+
+    def test_skip_worktree_source_edit_before_policy_inspection_rejects(self):
+        self.check_hidden_edit("--skip-worktree", False)
+
+    def test_assume_unchanged_source_edit_during_policy_inspection_rejects(self):
+        self.check_hidden_edit("--assume-unchanged", True)
+
+    def test_skip_worktree_source_edit_during_policy_inspection_rejects(self):
+        self.check_hidden_edit("--skip-worktree", True)
 
 
 COMMANDS = (
