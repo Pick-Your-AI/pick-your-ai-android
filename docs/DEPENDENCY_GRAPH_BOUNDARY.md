@@ -107,13 +107,23 @@ complete direct schema dependency and canonical example:
 | `schemas/dependency-graph.schema.json` | `fb6a8bb42a9424d4ff2b520301f816c247789a3d70d1124afea1a8dc5ed5bd75` |
 | `examples/dependency-graph.json` | `e9b3bca19a9cf8241fd74f6618824882a3413649822add88be1ac93cb3f1bacc` |
 
-The [159 shared cases](../core/src/test/resources/contracts/dependency-graph-cases.json)
+The [172 shared cases](../core/src/test/resources/contracts/dependency-graph-cases.json)
 cover all 29 kinds at both endpoints, all 32 relationship/activation combinations,
 required/null/wrong-type fields, exact revisions, future versions, unsupported
 placement fields, duplicate/cyclic/self edges and whole-document rejection. The
 [checker](../scripts/check_dependency_graph_fixtures.py) verifies deterministic
 fixture bytes and actual Python Draft202012Validator outcomes against the pinned
 schema; its explicit `--write` mode regenerates only the synthetic test fixture.
+The original 159 cases are preserved in their original order. Thirteen appended
+revision cases cover fractional values that binary floats would round to
+integers, values immediately below the positive minimum, tiny signed fractions,
+negative zero, exact wide decimal/exponent integers and finite exponents beyond
+the binary-float range. The checker reads numeric tokens exactly and extends
+only its local integer predicate; the frozen schema and its positive minimum
+remain unchanged. Non-JSON numeric constants are rejected before reference
+validation or output publication. All existing output admission and atomic-write
+guards still apply.
+
 The Kotlin test executes those same expected outcomes through the public decoder,
 checks every typed field and reopens every accepted JSON representation.
 

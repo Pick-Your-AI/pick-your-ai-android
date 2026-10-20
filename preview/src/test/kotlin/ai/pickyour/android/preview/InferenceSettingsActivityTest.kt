@@ -205,6 +205,14 @@ class InferenceSettingsActivityTest {
             val control = number(form, caption)
             assertEquals("", control.text.toString())
             assertFalse(control.isEnabled)
+            assertEquals(activity.getString(R.string.inference_not_supplied), control.hint.toString())
+            supply(form, caption).performClick()
+            assertTrue(control.isEnabled)
+            assertEquals("", control.text.toString())
+            assertNull(control.hint)
+            supply(form, caption).performClick()
+            assertFalse(control.isEnabled)
+            assertEquals(activity.getString(R.string.inference_not_supplied), control.hint.toString())
         }
         assertEquals(before.baselineIdentity, loaded().baselineIdentity)
         dismiss(form)
@@ -549,7 +557,7 @@ class InferenceSettingsActivityTest {
     @Test fun independentSuppliedErrorsPersistUntilCorrectionOrExplicitRemoval() {
         val before = seedInference()
         val form = configure()
-        textCaptions.forEach { enter(form, it, "") }
+        textCaptions.forEach { enter(form, it, ""); assertNull(number(form, it).hint) }
         form.getButton(AlertDialog.BUTTON_POSITIVE).performClick(); finishWork()
         assertTrue(form.isShowing)
         textCaptions.forEach {
@@ -597,7 +605,7 @@ class InferenceSettingsActivityTest {
         assertFalse(form.isShowing)
         assertFalse(button(R.string.component_manage).isEnabled)
         val restored = reviewPending()
-        textCaptions.forEach { assertTrue(supply(restored, it).isChecked) }
+        textCaptions.forEach { assertTrue(supply(restored, it).isChecked); assertNull(number(restored, it).hint) }
         assertEquals("1,5", number(restored, "Tensor parallel size").text.toString())
         assertEquals("", number(restored, "Maximum batch tokens").text.toString())
         assertEquals("tf32", choice(restored, "Precision").text.toString())

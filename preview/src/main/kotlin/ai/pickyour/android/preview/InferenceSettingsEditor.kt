@@ -55,7 +55,7 @@ internal class InferenceSettingsEditor(
             minLines = 1
             maxLines = 4
             setText(initial ?: "")
-            setHint(R.string.inference_not_supplied)
+            hint = if (initial == null) activity.getString(R.string.inference_not_supplied) else null
             isEnabled = initial != null
             addTextChangedListener(object : TextWatcher {
                 override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
@@ -76,6 +76,7 @@ internal class InferenceSettingsEditor(
                 }
                 supplied[key] = checked
                 if (!checked) editor.setText("")
+                editor.hint = if (checked) null else activity.getString(R.string.inference_not_supplied)
                 editor.error = null
                 editor.isEnabled = checked
             }

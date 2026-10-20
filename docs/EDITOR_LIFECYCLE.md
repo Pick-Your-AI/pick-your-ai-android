@@ -31,6 +31,29 @@ Catalog, findings and cost sections have their own terminal guards in the accept
 catalog lifecycle delivery; this slice does not replace or duplicate those controllers.
 No schema, persistence transaction, analysis semantics or issue status changes here.
 
+## Foreground history and revision inspections (#76, partial)
+
+History entry, retained-revision comparison and saved-library comparison require a
+resumed Activity. Their retained callbacks also check foreground admission before
+opening a child, copying historical guest fields or publishing a worker result.
+Pause retires the existing revision inspection request, pickers and complete-value
+owners as well as the history dialog. Resuming does not restore the old request
+or reopen a window; a fresh explicit inspection captures its own authority.
+
+This reuses the existing retirement operation and preserves the original saved
+baseline, storage-operation identity, pending fields and read-only comparison
+inputs. A read or comparison already queued on the serial worker may finish, but
+its retired request cannot display a result. Already admitted canonical writes,
+their acknowledgment and component recovery retain their separate behavior.
+
+Four additional SDK 28 Activity regressions cover a retained revision picker,
+queued revision result and complete-value controls, a queued library read and its
+value controls, and a retained history entry/copy action. They check pause, resume
+without automatic reopening, stale controls after a fresh request, pending state
+and durable bytes using the existing finite worker barriers. The CI attendance
+sets require all four methods. These simulated controls do not establish Android
+system process death, physical-device accessibility or complete #76 acceptance.
+
 ## Unfinished component input (#76 / #98 / #112, partial)
 
 The [component form recovery](COMPONENT_FORM_RECOVERY.md) checkpoint carries a
@@ -93,3 +116,44 @@ are consolidated into the existing suite with their independent-review origin
 preserved; current-main CI must execute all twelve and the accepted recorded-price
 browser cases. Full #86 and #76 acceptance remains open, with canonical receiving
 paths unchanged.
+
+## Foreground local storage dialogs (#76, partial)
+
+New, duplicate, pending-recovery copy, Library and Reopen now use the same
+foreground-session boundary as the existing inspection windows. Their entry
+points require a resumed, non-finishing Activity. A confirmation or row callback
+must belong to the exact currently showing storage dialog while storage is idle;
+visibility alone cannot supply authority. Pause, destruction, replacement, sibling
+inspection and a newly admitted storage operation detach that owner before
+dismissing the old window. Resume does not reopen it or restore its callbacks.
+Fresh explicit entry captures a new window and the existing baseline/operation
+checks still apply, including Reopen's missing-state and conflict protection.
+
+Library reads carry a separate presentation request identity. A queued read may
+finish and release the existing busy state after pause, but its retired request
+cannot display a picker or empty/failure message after resume. New presentation
+requires a fresh foreground request. Local storage result messages likewise
+require foreground admission; a background completion does not open a modal.
+
+This boundary controls admission and presentation, not canonical write completion.
+A New operation already accepted before pause still creates its durable draft and
+continues through the existing active-selection/open acknowledgment. An admitted
+delete still completes its named canonical operation. No foreground check is added
+inside those private continuations, and no transaction, compare-and-swap check,
+pending-cleanup identity, source record, pending form or recovery format changes.
+
+`StorageDialogLifecycleActivityTest` adds thirteen SDK 28 Activity cases. The
+retained-New causal method checks the actual durable entry list after pause/resume;
+its original foreground and held-worker creation controls remain unchanged. The
+additional cases hold a real Library read across pause/resume, replay retired
+picker/entry/Delete/duplicate/recovery/Reopen callbacks, reject background entry,
+exercise replacement and sibling/storage-start retirement, and complete an
+already-admitted delete without a background result dialog. Fresh Library and
+Reopen actions remain usable. Both worker phases are settled before durable
+observations; a dismissed dialog is not used as a write-acknowledgment signal.
+
+The workflow requires all thirteen distinct named cases and retains the existing
+twelve local-dialog authority cases. These simulations do not establish installed
+process death, device accessibility, durable filesystem fault qualification, the
+separately owned legacy Back or viewport/focus work, or complete #76 acceptance.
+The issue's original criteria, prerequisite and canonical receiving path remain.

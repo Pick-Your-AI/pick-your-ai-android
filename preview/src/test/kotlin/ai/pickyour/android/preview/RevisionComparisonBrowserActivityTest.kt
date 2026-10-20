@@ -158,6 +158,68 @@ class RevisionComparisonBrowserActivityTest {
     private fun show(result: PreviewRevisionComparison, current: () -> Boolean = { true }): RevisionComparisonBrowser =
         RevisionComparisonBrowser(activity, result, current).also { it.show(); idle() }
 
+    @Test fun actualPauseRejectsHistoryEntryAndRetainedCopyControls() {
+        prepareSavedHistory()
+        finishWork()
+        AutosaveUiClock.pause()
+        field(R.string.draft_title).setText("pending history pause")
+        field(R.string.context_objective).setText("pending history objective")
+        field(R.string.workload_currency).setText("invalid")
+        val before = state()
+        val baseline = loaded().baselineIdentity
+        fun storedBytes() = java.nio.file.Files.walk(activity.noBackupFilesDir.toPath()).use { paths ->
+            paths.filter { java.nio.file.Files.isRegularFile(it) }.toList().associate {
+                activity.noBackupFilesDir.toPath().relativize(it).toString() to
+                    java.security.MessageDigest.getInstance("SHA-256").digest(java.nio.file.Files.readAllBytes(it)).toList()
+            }
+        }
+        val bytes = storedBytes()
+        val entry = button(R.string.draft_history)
+        entry.performClick(); idle()
+        val history = dialog()
+        val compare = history.getButton(AlertDialog.BUTTON_POSITIVE)
+        select(history, 1)
+        val obsolete = dialog()
+        val copy = obsolete.getButton(AlertDialog.BUTTON_POSITIVE)
+        assertNotSame(history, obsolete)
+        assertTrue(obsolete.isShowing && copy.isEnabled)
+
+        controller.pause()
+        try {
+            assertFalse(obsolete.isShowing)
+            copy.performClick()
+            entry.performClick()
+            finishWork()
+            assertSame("Paused history entry must not reacquire editing context", obsolete, dialog())
+            assertFalse(dialog().isShowing)
+            assertState(before)
+            assertEquals(bytes, storedBytes())
+        } finally {
+            controller.resume()
+        }
+        idle()
+        assertSame("Resume alone cannot reopen retired history", obsolete, dialog())
+        assertFalse(dialog().isShowing)
+        copy.performClick(); compare.performClick(); select(history, 1)
+        finishWork()
+        assertSame(obsolete, dialog())
+
+        entry.performClick(); idle()
+        val fresh = dialog()
+        assertTrue(fresh.isShowing)
+        copy.performClick(); compare.performClick(); select(history, 1)
+        idle()
+        assertSame("Retained history controls cannot borrow the new history owner", fresh, dialog())
+        fresh.getButton(AlertDialog.BUTTON_POSITIVE).performClick(); idle()
+        select(dialog(), 1)
+        awaitBrowser()
+        finishWork()
+        assertState(before)
+        assertEquals(bytes, storedBytes())
+        assertEquals(baseline, loaded().baselineIdentity)
+        assertNull(shadowOf(activity).nextStartedActivity)
+    }
+
     @Test fun actualSavedComparisonPreservesPendingInputsAndDurableBaseline() {
         prepareSavedHistory()
         val baseline = loaded().baselineIdentity

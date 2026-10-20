@@ -97,7 +97,10 @@ class PreviewActivity : Activity() {
     private lateinit var retryDeleteButton: Button
     private var pendingDeleteId: PreviewDraftId? = null
     private var savedRecord: PreviewStoredDraft? = null // UI-thread owned.
+    private var storageDialog: AlertDialog? = null
+    private var libraryRequest: Any? = null
     private var historyDialog: AlertDialog? = null
+    private var legacyBackDialog: AlertDialog? = null
     private var revisionDialog: AlertDialog? = null
     private var revisionRequest: Any? = null
     private var revisionBrowser: RevisionComparisonBrowser? = null
@@ -107,10 +110,12 @@ class PreviewActivity : Activity() {
     private var failedReadCheckpoint: PreviewDraftRestoration? = null
     private var storageBusy = true
         set(value) {
+            retireLegacyBackDialog()
             if (value) {
                 autosave.cancel()
                 failedReadCheckpoint = null
                 storageAuthority = Any()
+                retireStorageDialog()
                 retireRevisionInspection()
                 if (::compatibleOptions.isInitialized) compatibleOptions.dismiss()
                 invalidateCurrentChecks(PreviewCurrentUnavailable.STORAGE_UNCONFIRMED)
@@ -272,7 +277,7 @@ class PreviewActivity : Activity() {
         reopen = Button(this).apply {
             setText(R.string.reopen_draft)
             setOnClickListener {
-                if (destroyed || storageBusy || !selectionResolved) return@setOnClickListener
+                if (!storageDialogAdmission() || storageBusy || !selectionResolved) return@setOnClickListener
                 retireInspectionWindows()
                 val baseline = savedRecord
                 val draftId = currentDraftId
@@ -280,7 +285,7 @@ class PreviewActivity : Activity() {
                 val keepingEdits = if (storageReady) PreviewDraftRestoration.capture(baseline, true, false)
                     else failedReadCheckpoint ?: PreviewDraftRestoration.capture(baseline, false, false)
                 fun current(confirmation: DialogInterface) =
-                    (confirmation as? AlertDialog)?.isShowing == true && !destroyed && !storageBusy &&
+                    storageDialogIsCurrent(confirmation) &&
                         selectionResolved && currentDraftId == draftId && savedRecord === baseline && storageAuthority === authority
                 AlertDialog.Builder(this@PreviewActivity).setTitle(R.string.reopen_draft)
                     .setMessage(R.string.reopen_warning)
@@ -297,7 +302,7 @@ class PreviewActivity : Activity() {
                     }
                     .setPositiveButton(R.string.reopen_confirm) { confirmation, _ ->
                         if (current(confirmation)) loadDraft(false)
-                    }.show()
+                    }.showStorageDialog()
             }
         }
         content.addView(save)
@@ -332,7 +337,8 @@ class PreviewActivity : Activity() {
                 setDraftActivation(expected, tier, activation)
         }
         content.addView(tierSection)
-        compatibleOptions = CompatibleOptionsPicker(this, worker) { !destroyed && diagnosticsResumed }
+        compatibleOptions = CompatibleOptionsPicker(this, worker,
+            beforeInspect = { catalog.cancelViewportRestore(); prepareInspection() }) { !destroyed && diagnosticsResumed }
         componentSection = SelectionEditSection(this, ::commitSelection, ::showCompatibleOptions,
             isResumed = { !destroyed && diagnosticsResumed }) {
             compatibleOptions.dismiss()
@@ -819,6 +825,7 @@ class PreviewActivity : Activity() {
 
     private fun formChanged(edited: Boolean = true) {
         if (destroyed) return
+        retireLegacyBackDialog()
         if (::compatibleOptions.isInitialized) compatibleOptions.dismiss()
         invalidateCurrentChecks(PreviewCurrentUnavailable.EDITING)
         updateContextState()
@@ -930,7 +937,7 @@ class PreviewActivity : Activity() {
     }
 
     private fun updateAutosave() {
-        if (!storageReady || storageBusy || !selectionResolved || !autosaveRequested || matchesSaved() || autosave.isPaused) {
+        if (isFinishing || !storageReady || storageBusy || !selectionResolved || !autosaveRequested || matchesSaved() || autosave.isPaused) {
             autosave.cancel()
             return
         }
@@ -945,7 +952,7 @@ class PreviewActivity : Activity() {
     }
 
     private fun showHistory() {
-        if (destroyed) return
+        if (destroyed || !diagnosticsResumed) return
         val baseline = savedRecord ?: return
         if (!storageReady || storageBusy) return
         retireInspectionWindows()
@@ -995,7 +1002,7 @@ class PreviewActivity : Activity() {
     }
 
     private fun historyDialogIsCurrent(dialog: DialogInterface, baseline: PreviewStoredDraft): Boolean =
-        !destroyed && historyDialog === dialog && (dialog as? AlertDialog)?.isShowing == true &&
+        !destroyed && diagnosticsResumed && historyDialog === dialog && (dialog as? AlertDialog)?.isShowing == true &&
             storageReady && !storageBusy && savedRecord === baseline
 
     private fun AlertDialog.Builder.showHistoryDialog(): AlertDialog {
@@ -1017,14 +1024,14 @@ class PreviewActivity : Activity() {
     }
 
     private fun showComparisonPicker(baseline: PreviewStoredDraft, pickBoth: Boolean = false) {
-        if (destroyed || isFinishing) return
+        if (destroyed || isFinishing || !diagnosticsResumed) return
         if (!storageReady || storageBusy || savedRecord !== baseline) return
         retireInspectionWindows()
         val request = Any()
         revisionRequest = request
         val authority = storageAuthority
         val draftId = currentDraftId
-        fun current() = !destroyed && !isFinishing && storageReady && !storageBusy &&
+        fun current() = !destroyed && !isFinishing && diagnosticsResumed && storageReady && !storageBusy &&
             currentDraftId == draftId && savedRecord === baseline && storageAuthority === authority && revisionRequest === request
         val revisions = baseline.history.reversed()
         val rows = revisions.map { getString(R.string.history_revision, it.revision.toString()) }.toTypedArray()
@@ -1106,7 +1113,10 @@ class PreviewActivity : Activity() {
 
     /** A new inspection owns its sibling windows; data refresh alone does not revoke fixed reports. */
     private fun retireInspectionWindows() {
+        retireStorageDialog()
+        retireLegacyBackDialog()
         retireRevisionInspection()
+        if (::compatibleOptions.isInitialized) compatibleOptions.dismissInspection()
         if (::snapshots.isInitialized) snapshots.dismiss()
         if (::costInspection.isInitialized) costInspection.dismissInspection()
         if (::resourceInspection.isInitialized) resourceInspection.dismissInspection()
@@ -1128,7 +1138,7 @@ class PreviewActivity : Activity() {
     }
 
     private fun showLibraryComparison() {
-        if (destroyed || isFinishing || storageBusy || entryBlocked || !selectionResolved) return
+        if (destroyed || isFinishing || !diagnosticsResumed || storageBusy || entryBlocked || !selectionResolved) return
         retireInspectionWindows()
         catalogComparison.dismissInspection()
         catalogPinRecovery.dismiss()
@@ -1138,7 +1148,7 @@ class PreviewActivity : Activity() {
         val authority = storageAuthority
         val draftId = currentDraftId
         val baseline = savedRecord
-        fun current() = !destroyed && !isFinishing && !storageBusy && !entryBlocked && selectionResolved &&
+        fun current() = !destroyed && !isFinishing && diagnosticsResumed && !storageBusy && !entryBlocked && selectionResolved &&
             currentDraftId == draftId && savedRecord === baseline && storageAuthority === authority && revisionRequest === request
         libraryComparison = LibraryRevisionComparison(this, { task -> worker.execute { task() } },
             { library().list() }, ::current).also { it.show() }
@@ -1361,17 +1371,37 @@ class PreviewActivity : Activity() {
         }
     }
 
-    /** Retire inspections when the storage dialog is presented, including delayed results. */
-    private fun AlertDialog.Builder.showStorageDialog(): AlertDialog {
+    private fun storageDialogAdmission() = !destroyed && !isFinishing && diagnosticsResumed
+
+    private fun storageDialogIsCurrent(dialog: DialogInterface) =
+        storageDialogAdmission() && !storageBusy && storageDialog === dialog &&
+            (dialog as? AlertDialog)?.isShowing == true
+
+    private fun retireStorageDialog() {
+        libraryRequest = null
+        val previous = storageDialog
+        storageDialog = null
+        previous?.dismiss()
+    }
+
+    /** Presentation authority is separate from an already admitted canonical storage operation. */
+    private fun AlertDialog.Builder.showStorageDialog(): AlertDialog? {
+        if (!storageDialogAdmission()) return null
         retireInspectionWindows()
         if (::costInspection.isInitialized) costInspection.dismiss()
-        return show()
+        val next = create()
+        storageDialog = next
+        next.setOnDismissListener { if (storageDialog === next) storageDialog = null }
+        next.show()
+        return next
     }
 
     private fun showLibrary() {
-        if (destroyed) return
+        if (!storageDialogAdmission()) return
         if (storageBusy) return
         storageBusy = true
+        val request = Any()
+        libraryRequest = request
         updateEditingEnabled()
         worker.execute {
             val result = try { library().list() } catch (_: Exception) { null }
@@ -1379,6 +1409,7 @@ class PreviewActivity : Activity() {
                 if (!destroyed) {
                     storageBusy = false
                     updateEditingEnabled()
+                    if (!storageDialogAdmission() || libraryRequest !== request) return@runOnUiThread
                     val entries = (result as? PreviewLibraryRead.Available)?.entries
                     if (entries == null || entries.isEmpty()) {
                         AlertDialog.Builder(this).setMessage(if (entries == null) R.string.library_failed else R.string.library_empty)
@@ -1391,17 +1422,17 @@ class PreviewActivity : Activity() {
                                 ?: getString(R.string.library_unavailable), entry.id.value)
                         }.toTypedArray()
                         AlertDialog.Builder(this).setTitle(R.string.library_open).setItems(labels) { picker, index ->
-                            if ((picker as? AlertDialog)?.isShowing != true || destroyed || storageBusy) return@setItems
+                            if (!storageDialogIsCurrent(picker)) return@setItems
                             val entry = entries[index]
                             if (entry.deletionPending) confirmDelete(entry)
                             else AlertDialog.Builder(this).setTitle(getString(R.string.library_local_id, entry.id.value))
                                 .setMessage(R.string.library_switch_warning)
                                 .setNegativeButton(R.string.keep_edits, null)
                                 .setNeutralButton(R.string.library_delete) { detail, _ ->
-                                    if ((detail as? AlertDialog)?.isShowing == true) confirmDelete(entry)
+                                    if (storageDialogIsCurrent(detail)) confirmDelete(entry)
                                 }
                                 .setPositiveButton(R.string.library_open_selected) { detail, _ ->
-                                    if ((detail as? AlertDialog)?.isShowing == true && !storageBusy) openDraftTarget(entry.id)
+                                    if (storageDialogIsCurrent(detail)) openDraftTarget(entry.id)
                                 }.showStorageDialog()
                         }.setNegativeButton(R.string.close, null).showStorageDialog()
                     }
@@ -1416,13 +1447,13 @@ class PreviewActivity : Activity() {
     }
 
     private fun confirmDelete(id: PreviewDraftId, expected: PreviewStoredDraft?, retry: Boolean) {
-        if (destroyed) return
+        if (!storageDialogAdmission()) return
         if (storageBusy) return
         val pending = pendingDeleteId
         if (pending != null && pending != id) {
             AlertDialog.Builder(this).setMessage(getString(R.string.library_existing_cleanup, pending.value))
                 .setPositiveButton(R.string.library_retry_delete) { redirect, _ ->
-                    if ((redirect as? AlertDialog)?.isShowing == true) confirmDelete(pending, null, true)
+                    if (storageDialogIsCurrent(redirect)) confirmDelete(pending, null, true)
                 }
                 .setNegativeButton(R.string.close, null).showStorageDialog()
             return
@@ -1432,7 +1463,7 @@ class PreviewActivity : Activity() {
             .setMessage(getString(if (retryOnly) R.string.library_retry_warning else R.string.library_delete_warning, id.value))
             .setNegativeButton(R.string.keep_edits, null)
             .setPositiveButton(if (retryOnly) R.string.library_retry_delete else R.string.library_delete) { confirmation, _ ->
-                if ((confirmation as? AlertDialog)?.isShowing == true && !storageBusy) deleteDraft(id, expected, retryOnly)
+                if (storageDialogIsCurrent(confirmation)) deleteDraft(id, expected, retryOnly)
             }.showStorageDialog()
     }
 
@@ -1525,20 +1556,20 @@ class PreviewActivity : Activity() {
     }
 
     private fun confirmCreate(duplicate: Boolean) {
-        if (destroyed) return
+        if (!storageDialogAdmission()) return
         if (storageBusy) return
         val source = if (duplicate) savedRecord ?: return else null
         AlertDialog.Builder(this).setTitle(if (duplicate) R.string.library_duplicate else R.string.library_new)
             .setMessage(if (duplicate) R.string.library_duplicate_warning else R.string.library_new_warning)
             .setNegativeButton(R.string.keep_edits, null)
             .setPositiveButton(R.string.library_continue) { confirmation, _ ->
-                if ((confirmation as? AlertDialog)?.isShowing == true && !storageBusy &&
+                if (storageDialogIsCurrent(confirmation) &&
                     (!duplicate || savedRecord === source && storageReady)) createDraft(source)
             }.showStorageDialog()
     }
 
     private fun confirmRecoveryCopy() {
-        if (destroyed || storageBusy) return
+        if (!storageDialogAdmission() || storageBusy) return
         val source = savedRecord ?: return
         val rawWorkload = workloadSection.inputs
         val workload = rawWorkload.parsed() ?: return
@@ -1548,7 +1579,7 @@ class PreviewActivity : Activity() {
             .setMessage(getString(R.string.recovery_warning, source.revision.toString()))
             .setNegativeButton(R.string.keep_edits, null)
             .setPositiveButton(R.string.recovery_confirm) { confirmation, _ ->
-                if ((confirmation as? AlertDialog)?.isShowing == true && !destroyed && !storageBusy &&
+                if (storageDialogIsCurrent(confirmation) &&
                     savedRecord === source && fields() == pending.fields &&
                     domainContext == pending.context && workloadSection.inputs === rawWorkload)
                     createDraft(source, pending)
@@ -1638,7 +1669,7 @@ class PreviewActivity : Activity() {
     }
 
     private fun saveDraft(request: PreviewAutosaveRequest? = null) {
-        if (destroyed) return
+        if (destroyed || isFinishing) return
         if (!storageReady || storageBusy) return
         val id = currentDraftId
         val pending = pendingInput() ?: return
@@ -1683,6 +1714,58 @@ class PreviewActivity : Activity() {
         } catch (_: RejectedExecutionException) {
             accept(PreviewDraftSave.Failed(DraftStorageFailure.IO_FAILURE))
         }
+    }
+
+    private fun retireLegacyBackDialog() {
+        val previous = legacyBackDialog
+        legacyBackDialog = null
+        previous?.dismiss()
+    }
+
+    /** API 31+ retains the platform's task-background/predictive Back behavior unchanged. */
+    @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
+    override fun onBackPressed() {
+        if (android.os.Build.VERSION.SDK_INT >= 31 || !environmentAdmitted || !::workloadSection.isInitialized) {
+            super.onBackPressed()
+            return
+        }
+        if (destroyed || isFinishing || !diagnosticsResumed) return
+        val baseline = savedRecord
+        val pendingFields = fields()
+        val pendingContext = domainContext
+        val pendingWorkload = workloadSection.inputs
+        val changed = pendingFields != (baseline?.fields ?: PreviewDraftFields()) ||
+            pendingContext != (baseline?.contextInput ?: PreviewDraftContext()) ||
+            pendingWorkload != PreviewWorkloadInputs.from(baseline?.workloadInput ?: DraftWorkload())
+        if (!changed) {
+            super.onBackPressed()
+            return
+        }
+        retireInspectionWindows()
+        val id = currentDraftId
+        val authority = storageAuthority
+        val busy = storageBusy
+        lateinit var dialog: AlertDialog
+        fun current() = !destroyed && !isFinishing && diagnosticsResumed && !storageBusy &&
+            legacyBackDialog === dialog && dialog.isShowing && currentDraftId == id &&
+            savedRecord === baseline && storageAuthority === authority && fields() == pendingFields &&
+            domainContext == pendingContext && workloadSection.inputs == pendingWorkload
+        val builder = AlertDialog.Builder(this)
+            .setTitle(if (busy) R.string.legacy_back_wait_title else R.string.legacy_back_title)
+            .setMessage(if (busy) R.string.legacy_back_wait_message else R.string.legacy_back_message)
+            .setNegativeButton(R.string.legacy_back_stay, null)
+        if (!busy) builder.setPositiveButton(R.string.legacy_back_leave) { _, _ ->
+            if (current()) {
+                retireLegacyBackDialog()
+                autosaveRequested = false
+                autosave.cancel()
+                super.onBackPressed()
+            }
+        }
+        dialog = builder.create()
+        legacyBackDialog = dialog
+        dialog.setOnDismissListener { if (legacyBackDialog === dialog) legacyBackDialog = null }
+        dialog.show()
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -1750,9 +1833,12 @@ class PreviewActivity : Activity() {
 
     override fun onPause() {
         diagnosticsResumed = false
+        retireStorageDialog()
+        retireLegacyBackDialog()
         if (::componentSection.isInitialized) componentSection.pause()
         retireCatalogDetailInspection()
         retireHistoryInspection()
+        retireRevisionInspection()
         invalidateCurrentChecks(PreviewCurrentUnavailable.BACKGROUND)
         if (::catalogPinRecovery.isInitialized) catalogPinRecovery.dismiss()
         if (::compatibleOptions.isInitialized) compatibleOptions.dismiss()
@@ -1769,6 +1855,8 @@ class PreviewActivity : Activity() {
 
     override fun onDestroy() {
         destroyed = true
+        retireStorageDialog()
+        retireLegacyBackDialog()
         retireHistoryInspection()
         if (::compatibleOptions.isInitialized) compatibleOptions.close()
         if (::currentChecks.isInitialized) currentChecks.close()

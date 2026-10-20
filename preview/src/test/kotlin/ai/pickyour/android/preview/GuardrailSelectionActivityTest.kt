@@ -134,6 +134,28 @@ class GuardrailSelectionActivityTest {
         checkbox(form).isChecked = enabled
         return commit(form)
     }
+    private fun assertConfiguredSettings(form: AlertDialog, selection: LocalSelection) {
+        if (selection.kind == PreviewEvaluationSuiteSettings.KIND) {
+            assertEquals("-9007199254740993.123456789", field(form, R.string.evaluation_suite_score).text.toString())
+            assertEquals("999999999999999999999999", field(form, R.string.evaluation_suite_dataset).text.toString())
+            val shown = views(form.window!!.decorView)
+            for (label in listOf(R.string.evaluation_suite_score, R.string.evaluation_suite_dataset)) {
+                val supply = shown.filterIsInstance<CheckBox>().single {
+                    it.text.toString() == activity.getString(R.string.evaluation_suite_supply, activity.getString(label))
+                }
+                assertTrue(supply.isChecked)
+            }
+            val gateLabel = shown.filterIsInstance<TextView>().single {
+                it.text.toString() == activity.getString(R.string.evaluation_suite_gate)
+            }
+            assertNotEquals(View.NO_ID, gateLabel.labelFor)
+            val gate = requireNotNull(form.findViewById<Button>(gateLabel.labelFor))
+            assertEquals(activity.getString(R.string.evaluation_suite_false), gate.text.toString())
+        } else {
+            assertEquals(entered.getValue(selection.kind), field(form, R.string.component_settings).text.toString())
+        }
+    }
+
     private fun closeDialog(form: AlertDialog) {
         form.getButton(AlertDialog.BUTTON_NEGATIVE).performClick()
         await { !form.isShowing }
@@ -305,7 +327,7 @@ class GuardrailSelectionActivityTest {
             assertEquals(entered.getValue(kind), PreviewSelectionForms.settingsText(saved.components.selections.single()))
             assertEquals(before.optionalTiers, saved.optionalTiers)
             val configure = action(saved.components.selections.single(), R.string.component_configure)
-            assertEquals(entered.getValue(kind), field(configure, R.string.component_settings).text.toString())
+            assertConfiguredSettings(configure, saved.components.selections.single())
             closeDialog(configure)
             coreGuidance()
         }
@@ -392,7 +414,7 @@ class GuardrailSelectionActivityTest {
         }
         for (selection in before.components.selections) {
             val settings = action(selection, R.string.component_configure)
-            assertEquals(entered.getValue(selection.kind), field(settings, R.string.component_settings).text.toString())
+            assertConfiguredSettings(settings, selection)
             unchanged(settings)
             val role = action(selection, R.string.component_edit_role)
             assertEquals(selection.role, field(role, R.string.component_role).text.toString())
@@ -505,8 +527,9 @@ class GuardrailSelectionActivityTest {
             recreate { state ->
                 assertTrue((ComponentFormRecovery.read(roundTrip(state)) as ComponentFormRecovery.Pending).form.wasSaving)
                 release.countDown()
-                await { !form.isShowing && loaded().revision == before.revision + 1 }
+                // Pause retires the dialog before acknowledgment; finish the owned write before reading storage.
                 finishWork()
+                await { !form.isShowing && loaded().revision == before.revision + 1 }
             }
         } finally { release.countDown() }
         val saved = loaded()

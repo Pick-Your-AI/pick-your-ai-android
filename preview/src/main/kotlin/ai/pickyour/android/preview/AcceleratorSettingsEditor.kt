@@ -46,7 +46,7 @@ internal class AcceleratorSettingsEditor(
             minLines = 1
             maxLines = 4
             setText(initial ?: "")
-            if (!required) setHint(R.string.accelerator_not_supplied)
+            hint = if (!required && initial == null) activity.getString(R.string.accelerator_not_supplied) else null
             isEnabled = required || initial != null
             addTextChangedListener(object : TextWatcher {
                 override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
@@ -70,6 +70,7 @@ internal class AcceleratorSettingsEditor(
                     }
                     supplied[key] = checked
                     if (!checked) editor.setText("")
+                    editor.hint = if (checked) null else activity.getString(R.string.accelerator_not_supplied)
                     editor.error = null
                     editor.isEnabled = checked
                 }
