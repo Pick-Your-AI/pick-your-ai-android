@@ -595,6 +595,7 @@ class CostPolicySettingsActivityTest {
         controller = Robolectric.buildActivity(PreviewActivity::class.java).setup()
         await { button(R.string.save_draft).isEnabled && button(R.string.retry_catalog).isEnabled }
         val before = seed()
+        val target = selection()
         val form = configure()
         fill(form)
         val root = form.window!!.decorView
@@ -606,6 +607,13 @@ class CostPolicySettingsActivityTest {
             View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY))
         root.layout(0, 0, width, height)
         assertEquals(View.LAYOUT_DIRECTION_RTL, root.layoutDirection)
+        val identity = views(root).filterIsInstance<TextView>().single {
+            it.text.toString() == ComponentSelectionText.selection(activity, target)
+        }
+        val identityLayout = requireNotNull(identity.layout)
+        for (line in 0 until identityLayout.lineCount) reachable(identity, root,
+            Rect(0, identity.totalPaddingTop + identityLayout.getLineTop(line), identity.width,
+                identity.totalPaddingTop + identityLayout.getLineBottom(line)))
         for (control in views(root).filterIsInstance<Button>().filter { it.isShown && it.text.isNotBlank() }) {
             assertTrue(control.width >= (48 * density).toInt())
             assertTrue(control.height >= (48 * density).toInt())
@@ -630,7 +638,10 @@ class CostPolicySettingsActivityTest {
         for (view in views(root).filterIsInstance<TextView>().filter { it.isShown && it.text.isNotBlank() }) {
             val layout = requireNotNull(view.layout)
             assertEquals(view.text.length, layout.getLineEnd(layout.lineCount - 1))
-            for (line in 0 until layout.lineCount) assertEquals(0, layout.getEllipsisCount(line))
+            for (line in 0 until layout.lineCount) assertEquals(
+                "Visible cost-policy text must not be ellipsized: " + view.javaClass.simpleName +
+                    " id=" + view.id + " text=" + view.text,
+                0, layout.getEllipsisCount(line))
         }
         assertEquals(before.revision + 1, commit(form, before).revision)
         assertEquals(PreviewCostPolicyInput("900719925474099312345678.000000000001",

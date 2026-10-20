@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="cost_policy_settings_title">Cost policy</string>
     <string name="cost_policy_editor_guidance">These are local planning preferences. A saved budget is not a price, cost estimate, notification service or enforced spending limit. Currency is not stored in these fields; review the draft currency separately.</string>
     <string name="cost_policy_monthly">Monthly budget amount</string>
     <string name="cost_policy_per_request">Per-request budget amount</string>

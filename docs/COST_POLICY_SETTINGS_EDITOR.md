@@ -128,3 +128,27 @@ broader answer-state storage/export, comprehensive localization and actual
 installed/physical-device, keyboard, TalkBack, process-death and release
 qualification keep their own acceptance boundaries. The generic four-case
 installed harness is not a qualification of this new typed editor.
+
+## Large-text identity presentation correction
+
+The first complete hosted cost-policy preparation, `4189a2863acc8edfef9f24ab9135ff82320502a6`
+(tree `3a423dea2bd65e7da9595f02748e0838a67344d1`), compiled the native tests and
+executed 800 cases. Its narrow 320dp RTL / 2x-text case failed the existing
+no-ellipsis assertion with 41 omitted characters; the other 799 cases passed.
+The failure did not record the particular view, so the exact original control
+is not established by that receipt. The separate Core original executed 6,619
+passing cases. Installed execution was skipped after the native failure.
+
+The typed cost-policy form had placed its complete selection identity in the
+platform dialog title, whose standard layout permits end ellipsis. The form now
+uses the short “Cost policy” title and displays the entire unchanged selection
+label as selectable multiline text inside its existing scrollable content.
+This changes presentation only: selection identity, settings parsing, recovery,
+currentness, submission and storage authority remain unchanged.
+
+The same native regression retains every existing visible-text, touch-target,
+field/guidance reachability and exact-save assertion. It additionally scrolls
+every line of the exact selection label into view. Any later ellipsis failure
+now identifies its view and text. The original failed run remains distinct from
+validation of this correction; this source change alone supplies no passing
+native, installed-device, accessibility-service or release evidence.
