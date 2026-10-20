@@ -6,8 +6,10 @@ import ai.pickyour.core.drafts.*
 import ai.pickyour.core.importing.BoundedJsonReader
 import ai.pickyour.core.importing.JsonInputResult
 import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.ObjectMapper
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.function.Executable
 import org.junit.jupiter.api.io.TempDir
 import java.math.BigDecimal
 import java.math.BigInteger
@@ -156,6 +158,50 @@ class PreviewEmbeddingModelSettingsTest {
         invalid(source, PreviewEmbeddingModelInput(region = "x".repeat(PreviewSelectionForms.MAX_SETTINGS_TEXT + 1)),
             "region", PreviewEmbeddingModelProblem.TOO_LONG)
         assertEquals("{}", PreviewSelectionForms.settingsText(source))
+    }
+
+    @Test fun textReplacementUsesFinalSiblingRemovalOrShrinkWithinWholeSelectionBudget() {
+        val prefix = "secret://synthetic/"
+        fun credential(length: Int) = prefix + "a".repeat(length - prefix.length)
+        val node = ObjectMapper().createObjectNode().put("id", "selection_embedding").put("kind", "embedding_model")
+            .put("catalog_item_id", "embedding_fixture").put("catalog_item_version", "1")
+            .put("role", "primary").put("enabled", true)
+        node.putObject("settings").put("credential_ref", credential(8_000)).put("region", "r".repeat(8_000))
+        val extensions = node.putObject("extensions")
+        repeat(64) { extensions.put("x_budget_" + it.toString().padStart(2, '0'), "x".repeat(16_000)) }
+        val original = LocalSelection.fromJson(node)
+        val originalJson = original.toJson()
+        assertEquals(1_041_298, originalJson.toString().toByteArray(Charsets.UTF_8).size)
+        assertEquals(16_033, original.settings.toString().length)
+
+        val cases = listOf("credential_ref" to "region", "region" to "credential_ref").flatMap { (growing, sibling) ->
+            listOf(false, true).map { shrink -> Executable {
+                val settings = original.settings
+                settings.put(growing, if (growing == "credential_ref") credential(16_300) else "r".repeat(16_300))
+                if (shrink) settings.put(sibling, if (sibling == "credential_ref") credential(20) else "s".repeat(20))
+                else settings.remove(sibling)
+                val expected = LocalSelection.fromJson(original.toJson().also { it.set<JsonNode>("settings", settings) })
+                assertTrue(expected.toJson().toString().toByteArray(Charsets.UTF_8).size < 1_048_576)
+                assertTrue(settings.toString().length <= PreviewSelectionForms.MAX_SETTINGS_TEXT)
+                val obsoleteSibling = original.settings.also { it.set<JsonNode>(growing, settings[growing]) }
+                assertThrows(IllegalArgumentException::class.java) {
+                    LocalSelection.fromJson(original.toJson().also { it.set<JsonNode>("settings", obsoleteSibling) })
+                }
+
+                val input = PreviewEmbeddingModelInput(credentialRef = settings.get("credential_ref")?.textValue(),
+                    region = settings.get("region")?.textValue())
+                val result = PreviewEmbeddingModelSettings.configure(original, input)
+                val operation = if (shrink) "shrink" else "remove"
+                assertTrue(result.preparation is PreviewSelectionPreparation.Ready,
+                    "$growing with $operation of $sibling must admit the valid final selection")
+                assertTrue(result.issues.isEmpty())
+                val changed = DraftSelectionCommands.apply(DraftContent(components = DraftSelections(listOf(original))),
+                    (result.preparation as PreviewSelectionPreparation.Ready).command) as SelectionEdit.Ready
+                assertEquals(expected, changed.content.components.selections.single())
+                assertEquals(originalJson, original.toJson())
+            } }
+        }
+        assertAll("All four valid text replacements retain the canonical final budget", cases)
     }
 
     @Test fun configurationPreservesSelectionIdentityNotesExtensionsLinksAndUnrelatedDraftContent() {

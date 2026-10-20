@@ -127,7 +127,7 @@ object PreviewEmbeddingModelSettings {
         }
         // Region intentionally accepts supplied empty/whitespace text under its unchanged frozen string rule.
         val value = mapper.nodeFactory.textNode(raw)
-        val oneField = selection.settings.also { it.set<JsonNode>(key, value) }
+        val oneField = mapper.createObjectNode().also { it.set<JsonNode>(key, value) }
         val accepted = try {
             LocalSelection.fromJson(selection.toJson().also { it.set<JsonNode>("settings", oneField) })
             true

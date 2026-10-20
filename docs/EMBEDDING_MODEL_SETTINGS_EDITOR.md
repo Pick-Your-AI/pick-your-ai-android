@@ -80,7 +80,7 @@ reference** caption was absent; there were no errors or skips. Earlier cache
 directory and sandbox daemon-socket setup stops executed no tests and are
 retained separately.
 
-The implementation adds [13 Core cases](../core/src/test/kotlin/ai/pickyour/core/preview/PreviewEmbeddingModelSettingsTest.kt),
+The implementation adds [14 Core cases](../core/src/test/kotlin/ai/pickyour/core/preview/PreviewEmbeddingModelSettingsTest.kt),
 [16 Activity cases](../preview/src/test/kotlin/ai/pickyour/android/preview/EmbeddingModelSettingsActivityTest.kt)
 and [8 checkpoint cases](../preview/src/test/kotlin/ai/pickyour/android/preview/EmbeddingModelFormCheckpointTest.kt).
 They cover exact frozen admission, absence/empty distinction, wide integers,
