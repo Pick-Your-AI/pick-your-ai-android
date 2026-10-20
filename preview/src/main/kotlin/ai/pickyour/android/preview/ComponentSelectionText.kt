@@ -23,4 +23,10 @@ internal object ComponentSelectionText {
         // Let each value keep its natural direction; only the resource owns prose and word order.
         return context.getString(resource, *values.map { bidi.unicodeWrap(it) }.toTypedArray())
     }
+
+    fun indexed(context: Context, resource: Int, index: Int, vararg values: String): String {
+        val bidi = BidiFormatter.getInstance(context.resources.configuration.layoutDirection == View.LAYOUT_DIRECTION_RTL)
+        // Keep the number typed so the resource locale formats it; isolate only displayed text values.
+        return context.getString(resource, index, *values.map { bidi.unicodeWrap(it) }.toTypedArray())
+    }
 }

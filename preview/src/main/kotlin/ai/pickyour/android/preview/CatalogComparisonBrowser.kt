@@ -52,7 +52,7 @@ internal class CatalogComparisonBrowser(
     private fun current(dialog: AlertDialog) = current() && currentDialog === dialog && dialog.isShowing
     private fun literal(raw: String?) = CatalogDetailText.literal(activity, raw)
     private fun identity(index: Int): String = details[index].item.let { item ->
-        activity.getString(R.string.catalog_compare_identity, index + 1,
+        ComponentSelectionText.indexed(activity, R.string.catalog_compare_identity, index + 1,
             literal(item.name), literal(item.id), literal(item.version))
     }
     private fun fieldHeading(row: PreviewCatalogComparisonRow) = activity.getString(
