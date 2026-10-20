@@ -97,6 +97,7 @@ internal sealed interface ComponentFormRecovery {
     class TypedWorkloadSelectionPending(val form: WorkloadSelectionFormCheckpoint) : ComponentFormRecovery
     class TypedComputePending(val form: ComputeFormCheckpoint) : ComponentFormRecovery
     class TypedDataSourcePending(val form: DataSourceFormCheckpoint) : ComponentFormRecovery
+    class TypedEvaluationSuitePending(val form: EvaluationSuiteFormCheckpoint) : ComponentFormRecovery
     class TypedTrainingComputePending(val form: TrainingComputeFormCheckpoint) : ComponentFormRecovery
     class TypedModelProviderPending(val form: ModelProviderFormCheckpoint) : ComponentFormRecovery
     class TypedCostPolicyPending(val form: CostPolicyFormCheckpoint) : ComponentFormRecovery
@@ -114,6 +115,7 @@ internal sealed interface ComponentFormRecovery {
             is TypedWorkloadSelectionPending -> outState.putBundle(KEY, form.bundle() ?: unavailable())
             is TypedComputePending -> outState.putBundle(KEY, form.bundle() ?: unavailable())
             is TypedDataSourcePending -> outState.putBundle(KEY, form.bundle() ?: unavailable())
+            is TypedEvaluationSuitePending -> outState.putBundle(KEY, form.bundle() ?: unavailable())
             is TypedTrainingComputePending -> outState.putBundle(KEY, form.bundle() ?: unavailable())
             is TypedModelProviderPending -> outState.putBundle(KEY, form.bundle() ?: unavailable())
             is TypedCostPolicyPending -> outState.putBundle(KEY, form.bundle() ?: unavailable())
@@ -146,6 +148,8 @@ internal sealed interface ComponentFormRecovery {
                     ComputeFormCheckpoint.read(value)?.let(::TypedComputePending) ?: Unavailable
                 } else if (value.get("version") == DataSourceFormCheckpoint.VERSION) {
                     DataSourceFormCheckpoint.read(value)?.let(::TypedDataSourcePending) ?: Unavailable
+                } else if (value.get("version") == EvaluationSuiteFormCheckpoint.VERSION) {
+                    EvaluationSuiteFormCheckpoint.read(value)?.let(::TypedEvaluationSuitePending) ?: Unavailable
                 } else if (value.get("version") == TrainingComputeFormCheckpoint.VERSION) {
                     TrainingComputeFormCheckpoint.read(value)?.let(::TypedTrainingComputePending) ?: Unavailable
                 } else if (value.get("version") == ModelProviderFormCheckpoint.VERSION) {

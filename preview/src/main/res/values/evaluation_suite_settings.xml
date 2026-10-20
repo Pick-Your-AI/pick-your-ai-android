@@ -1,0 +1,20 @@
+<resources>
+    <string name="evaluation_suite_settings_title">Evaluation-suite settings</string>
+    <string name="evaluation_suite_editor_guidance">These optional settings record a requested evaluation configuration. A score threshold and requested gate do not supply a measured result, enforce a gate or establish quality or safety.</string>
+    <string name="evaluation_suite_score">Minimum score</string>
+    <string name="evaluation_suite_number_rule">Supply an exact JSON number. The contract sets no score range, unit, percentage scale or recommended threshold.</string>
+    <string name="evaluation_suite_dataset">Dataset size</string>
+    <string name="evaluation_suite_dataset_rule">Supply an exact whole number, at least 1. This is a configured size, not a verified dataset count.</string>
+    <string name="evaluation_suite_gate">Gate required</string>
+    <string name="evaluation_suite_gate_rule">Not supplied, false and true are distinct. This requests a gate; it does not enforce one or change whether this component is enabled.</string>
+    <string name="evaluation_suite_not_supplied">Not supplied</string>
+    <string name="evaluation_suite_false">False</string>
+    <string name="evaluation_suite_true">True</string>
+    <string name="evaluation_suite_supply">Supply %1$s</string>
+    <string name="evaluation_suite_optional_value">Optional; supply explicitly</string>
+    <string name="evaluation_suite_value_required">Enter a value or clear the supply option.</string>
+    <string name="evaluation_suite_number_invalid">Enter an exact JSON number without grouping or locale separators.</string>
+    <string name="evaluation_suite_integer_invalid">Enter an exact JSON whole number without grouping or locale separators.</string>
+    <string name="evaluation_suite_too_long">This input exceeds the local editor limit.</string>
+    <string name="evaluation_suite_recovery_guidance">Pending input is retained only within the local recovery limit and requires explicit review. Recovering input does not confirm a save or authorize an evaluation.</string>
+</resources>

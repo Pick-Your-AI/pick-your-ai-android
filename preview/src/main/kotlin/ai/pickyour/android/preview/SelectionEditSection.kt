@@ -120,6 +120,7 @@ internal class SelectionEditSection(private val activity: Activity,
             recovery is ComponentFormRecovery.TypedWorkloadSelectionPending ||
             recovery is ComponentFormRecovery.TypedComputePending ||
             recovery is ComponentFormRecovery.TypedDataSourcePending ||
+            recovery is ComponentFormRecovery.TypedEvaluationSuitePending ||
             recovery is ComponentFormRecovery.TypedTrainingComputePending ||
             recovery is ComponentFormRecovery.TypedCostPolicyPending ||
             recovery is ComponentFormRecovery.TypedModelProviderPending ||
@@ -212,6 +213,10 @@ internal class SelectionEditSection(private val activity: Activity,
         }
         (recovery as? ComponentFormRecovery.TypedDataSourcePending)?.let {
             reviewTypedDataSourceInput(it.form)
+            return
+        }
+        (recovery as? ComponentFormRecovery.TypedEvaluationSuitePending)?.let {
+            reviewTypedEvaluationSuiteInput(it.form)
             return
         }
         (recovery as? ComponentFormRecovery.TypedTrainingComputePending)?.let {
@@ -389,6 +394,30 @@ internal class SelectionEditSection(private val activity: Activity,
             text = activity.getString(R.string.component_recovery_identity, pending.draftId, pending.selectionId)
         })
         layout.addView(DataSourceSettingsEditor.readOnly(activity, pending.input))
+        show(AlertDialog.Builder(activity).setTitle(R.string.component_recovery_review)
+            .setView(ScrollView(activity).apply { addView(layout) }).setNegativeButton(R.string.close, null).create())
+    }
+
+    private fun reviewTypedEvaluationSuiteInput(pending: EvaluationSuiteFormCheckpoint) {
+        val expected = baseline
+        val selection = expected?.components?.selections?.singleOrNull { it.id == pending.selectionId }
+        if (editable && expected != null && currentDraftId == pending.draftId &&
+            expected.baselineIdentity == pending.baseline && !pending.wasSaving &&
+            selection != null && selection.kind == PreviewEvaluationSuiteSettings.KIND &&
+            selection.catalogItemId == pending.catalogItemId && selection.catalogItemVersion == pending.catalogItemVersion) {
+            recovery = ComponentFormRecovery.None
+            update(baseline, editable)
+            evaluationSuiteSettingsForm(expected, selection, pending)
+            return
+        }
+        val layout = LinearLayout(activity).apply { orientation = VERTICAL }
+        layout.addView(TextView(activity).apply {
+            setText(if (pending.wasSaving) R.string.component_recovery_saving else R.string.component_recovery_changed)
+        })
+        layout.addView(TextView(activity).apply {
+            text = activity.getString(R.string.component_recovery_identity, pending.draftId, pending.selectionId)
+        })
+        layout.addView(EvaluationSuiteSettingsEditor.readOnly(activity, pending.input))
         show(AlertDialog.Builder(activity).setTitle(R.string.component_recovery_review)
             .setView(ScrollView(activity).apply { addView(layout) }).setNegativeButton(R.string.close, null).create())
     }
@@ -768,6 +797,10 @@ internal class SelectionEditSection(private val activity: Activity,
             dataSourceSettingsForm(expected, selection)
             return
         }
+        if (restored == null && selection.kind == PreviewEvaluationSuiteSettings.KIND) {
+            evaluationSuiteSettingsForm(expected, selection)
+            return
+        }
         if (restored == null && selection.kind == PreviewTrainingComputeSettings.KIND) {
             trainingComputeSettingsForm(expected, selection)
             return
@@ -1004,6 +1037,53 @@ internal class SelectionEditSection(private val activity: Activity,
                 if (active(expected) && editor.input() == raw) editor.showIssues(result.get()?.issues.orEmpty())
             }) {
                 PreviewDataSourceSettings.configure(selection, raw).also(result::set).preparation
+            }
+        }
+    }
+
+    private fun evaluationSuiteSettingsForm(expected: PreviewStoredDraft, selection: LocalSelection,
+        restored: EvaluationSuiteFormCheckpoint? = null) {
+        if (!canOpen(expected) || selection.kind != PreviewEvaluationSuiteSettings.KIND) return
+        val draftId = requireNotNull(currentDraftId)
+        val layout = LinearLayout(activity).apply { orientation = VERTICAL }
+        layout.addView(TextView(activity).apply {
+            text = label(selection)
+            setSingleLine(false)
+            ellipsize = null
+            setTextIsSelectable(true)
+            isSaveEnabled = false
+        })
+        layout.addView(TextView(activity).apply { setText(R.string.component_settings_warning) })
+        guardrailGuidance(layout, selection.kind)
+        layout.addView(TextView(activity).apply { setText(R.string.evaluation_suite_recovery_guidance) })
+        lateinit var dialog: AlertDialog
+        val editor = EvaluationSuiteSettingsEditor(activity, restored?.input ?: PreviewEvaluationSuiteSettings.initial(selection)) {
+            active(expected) && open(dialog) && formBinding?.saving == false
+        }.also(layout::addView)
+        val feedback = feedback().also(layout::addView)
+        dialog = show(AlertDialog.Builder(activity).setTitle(R.string.evaluation_suite_settings_title)
+            .setView(ScrollView(activity).apply { addView(layout) })
+            .setNegativeButton(R.string.close, null).setPositiveButton(R.string.component_commit, null).create(), feedback)
+        val binding = FormBinding(dialog) { saving ->
+            EvaluationSuiteFormCheckpoint(draftId, expected.baselineIdentity, selection.id, selection.catalogItemId,
+                selection.catalogItemVersion, editor.input(), saving).recovery()
+        }
+        binding.onFreeze = editor::freeze
+        binding.onClose = editor::close
+        binding.onStateChange = {
+            editor.freeze(binding.saving || !active(expected))
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = !binding.saving && active(expected)
+        }
+        formBinding = binding
+        update(baseline, editable)
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+            if (!active(expected) || binding.saving) return@setOnClickListener
+            val raw = editor.input()
+            val result = java.util.concurrent.atomic.AtomicReference<PreviewEvaluationSuitePreparation?>()
+            submit(dialog, expected, null, onRejected = {
+                if (active(expected) && editor.input() == raw) editor.showIssues(result.get()?.issues.orEmpty())
+            }) {
+                PreviewEvaluationSuiteSettings.configure(selection, raw).also(result::set).preparation
             }
         }
     }
