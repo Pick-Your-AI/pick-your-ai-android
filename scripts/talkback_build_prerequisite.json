@@ -1,0 +1,77 @@
+{
+  "schema": "talkback-build-prerequisite/v1",
+  "upstream": {
+    "repository": "google/talkback",
+    "commit": "229212fdf5842191d0a93fc95d9ca1423b346866",
+    "tree": "3b119bb75fb2b2839ddc7d8d68c0aa2516375dbc",
+    "release": "TfPu_release_16_2"
+  },
+  "tools": {
+    "gradle": "8.13",
+    "gradle_sha256": "20f1b1176237254a6fc204d8434196fa11a4cfb387567519c61556e8710aed78",
+    "java_major": 17,
+    "compile_sdk": "android-36",
+    "build_tools": "35.0.0",
+    "ndk": "21.4.7075529"
+  },
+  "wrapper_blobs": {
+    "gradlew": "f5feea6d6b116baaca5a2642d4d9fa1f47d574a7",
+    "gradle/wrapper/gradle-wrapper.jar": "a4b76b9530d66f5e68d973ea569d8e19de379189",
+    "gradle/wrapper/gradle-wrapper.properties": "eb1a55be0e150907b4442736a9f121cb6de6f2bd"
+  },
+  "overlays": {
+    "build.gradle": {
+      "before_blob": "dcd26f0a88e5e431c5918a2d35158b5e30465c42",
+      "before_sha256": "559470e1b9c5a679c8b95a29da11fdb45e4588c76fcd384438f4a5c373e3807d",
+      "after_blob": "9749205e393abe0f053bbd82a634b3bddfefad28",
+      "after_sha256": "2bb824877464506e8450b915d16a8191188b2dc7143a21ad8555a0882bd53cef",
+      "replacements": [
+        [
+          "final BUILD_TIMESTAMP = new Date().format('yyyy_MM_dd_HHmm')",
+          "final BUILD_TIMESTAMP = 'prerequisite_229212fdf584'"
+        ]
+      ]
+    },
+    "shared.gradle": {
+      "before_blob": "c783e539d04078e89ffdcfa1c22f7d0a5342db45",
+      "before_sha256": "5437099f56e417df79d67ec6ac2fd728d6a918ce29b1d48ef875886782659527",
+      "after_blob": "29592b088be228f9a7f2cea3e07e62a0f6577df9",
+      "after_sha256": "355425a6f4098a7a9715f68bbf49e2531714a2fa069e5d6ab38981cac18e15bb",
+      "replacements": [
+        [
+          "abiFilters \"armeabi-v7a\", \"arm64-v8a\"",
+          "abiFilters \"x86_64\""
+        ],
+        [
+          "implementation 'com.mcxiaoke.volley:library:1.0.+'",
+          "implementation 'com.mcxiaoke.volley:library:1.0.19'"
+        ]
+      ]
+    }
+  },
+  "expected": {
+    "task": ":assemblePhoneDebug",
+    "abi": "x86_64",
+    "package": "com.android.talkback",
+    "application": "com.google.android.accessibility.talkback.TalkBackApplication",
+    "service": "com.google.android.marvin.talkback.TalkBackService",
+    "native_libraries": [
+      "libbrlttywrap.so",
+      "liblouis.so",
+      "liblouiswrap.so"
+    ],
+    "version_name": "TfPu_release_16_2-prerequisite_229212fdf584",
+    "dependency_components": [
+      "com.android.tools.build:gradle:8.11.1",
+      "org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.23",
+      "com.mcxiaoke.volley:library:1.0.19"
+    ]
+  },
+  "limits": {
+    "apk_bytes": 536870912,
+    "zip_entries": 100000,
+    "entry_bytes": 134217728,
+    "uncompressed_bytes": 1073741824,
+    "dependency_artifacts": 20000
+  }
+}

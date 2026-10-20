@@ -1,0 +1,103 @@
+name: TalkBack x86_64 build prerequisite
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/talkback-build-prerequisite.yml
+      - scripts/talkback_build_prerequisite.json
+      - scripts/talkback_build_prerequisite.py
+      - scripts/talkback_dependency_observation.gradle
+      - scripts/tests/test_talkback_build_prerequisite.py
+      - docs/TALKBACK_BUILD_PREREQUISITE.md
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: talkback-build-prerequisite-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-prerequisite:
+    name: Source-built TalkBack x86_64 prerequisite
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+        working-directory: project
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+      GRADLE_USER_HOME: ${{ runner.temp }}/talkback-gradle-user-home
+    steps:
+      - name: Check out this exact project source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          path: project
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Select Python for the prerequisite guards
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.12"
+      - name: Run bounded source and package guard regressions
+        run: python -I -B scripts/tests/test_talkback_build_prerequisite.py
+      - name: Check out the pinned official TalkBack source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: google/talkback
+          ref: 229212fdf5842191d0a93fc95d9ca1423b346866
+          path: talkback-source
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Select the required JDK major version
+        uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Install the declared SDK build packages
+        run: |
+          set -euo pipefail
+          test -n "$ANDROID_HOME"
+          test -x "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
+            "platforms;android-36" "build-tools;35.0.0" "ndk;21.4.7075529"
+      - name: Prepare the isolated wrapper and exact upstream overlays
+        run: |
+          set -euo pipefail
+          python -I -B scripts/talkback_build_prerequisite.py prepare \
+            --project "$GITHUB_WORKSPACE/project" \
+            --upstream "$GITHUB_WORKSPACE/talkback-source" \
+            --work "$RUNNER_TEMP/talkback-prerequisite" \
+            --expected-project "$GITHUB_SHA"
+      - name: Build only the official phone debug variant for x86_64
+        run: |
+          set -euo pipefail
+          build_root="$RUNNER_TEMP/talkback-prerequisite"
+          java -version > "$build_root/java-version.txt" 2>&1
+          "$build_root/wrapper/gradlew" --version > "$build_root/gradle-version.txt"
+          "$build_root/wrapper/gradlew" \
+            --project-dir "$GITHUB_WORKSPACE/talkback-source" \
+            --init-script "$GITHUB_WORKSPACE/project/scripts/talkback_dependency_observation.gradle" \
+            -Dtalkback.prerequisite.dependencies="$build_root/dependencies.json" \
+            -Dorg.gradle.jvmargs="-Xmx4g -Dfile.encoding=UTF-8" \
+            --no-daemon --no-configuration-cache --no-build-cache --no-parallel \
+            --max-workers=2 --stacktrace :assemblePhoneDebug
+      - name: Bind the APK, ELF and declared service to the source and build tools
+        run: |
+          set -euo pipefail
+          python -I -B scripts/talkback_build_prerequisite.py record \
+            --project "$GITHUB_WORKSPACE/project" \
+            --upstream "$GITHUB_WORKSPACE/talkback-source" \
+            --work "$RUNNER_TEMP/talkback-prerequisite" \
+            --expected-project "$GITHUB_SHA" \
+            --sdk "$ANDROID_HOME"
+      - name: Retain only the verified build prerequisite
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: talkback-x86_64-build-prerequisite-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/talkback-prerequisite/artifacts/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
