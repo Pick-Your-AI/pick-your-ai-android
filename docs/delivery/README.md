@@ -69,7 +69,7 @@ The distinct signed successor `a82e4066`, sole `0f` parent, has its own
 and installed job118250826685. Its [qualified original
 console6275513012](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/608#issuecomment-6275513012)
 records the exact source/APK join, four installed cases and all 16 successful
-declared steps, including final source-bound receipt and ACL validation. The
+recorded steps, including final source-bound receipt and ACL validation. The
 66,340-byte original console's SHA-256 is fixed, as are the uploaded artifact
 identity and the exact unsigned APK.
 
