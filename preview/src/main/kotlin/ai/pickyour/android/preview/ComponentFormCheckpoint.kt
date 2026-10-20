@@ -94,8 +94,10 @@ internal sealed interface ComponentFormRecovery {
     class Pending(val form: ComponentFormCheckpoint) : ComponentFormRecovery
     class TypedContextPending(val form: ContextPolicyFormCheckpoint) : ComponentFormRecovery
     class TypedModelPending(val form: ModelFormCheckpoint) : ComponentFormRecovery
+    class TypedWorkloadSelectionPending(val form: WorkloadSelectionFormCheckpoint) : ComponentFormRecovery
     class TypedComputePending(val form: ComputeFormCheckpoint) : ComponentFormRecovery
     class TypedModelProviderPending(val form: ModelProviderFormCheckpoint) : ComponentFormRecovery
+    class TypedCostPolicyPending(val form: CostPolicyFormCheckpoint) : ComponentFormRecovery
 
     fun save(outState: Bundle) {
         outState.remove(KEY)
@@ -106,8 +108,10 @@ internal sealed interface ComponentFormRecovery {
             is Pending -> outState.putBundle(KEY, form.bundle() ?: unavailable())
             is TypedContextPending -> outState.putBundle(KEY, form.bundle() ?: unavailable())
             is TypedModelPending -> outState.putBundle(KEY, form.bundle() ?: unavailable())
+            is TypedWorkloadSelectionPending -> outState.putBundle(KEY, form.bundle() ?: unavailable())
             is TypedComputePending -> outState.putBundle(KEY, form.bundle() ?: unavailable())
             is TypedModelProviderPending -> outState.putBundle(KEY, form.bundle() ?: unavailable())
+            is TypedCostPolicyPending -> outState.putBundle(KEY, form.bundle() ?: unavailable())
         }
     }
 
@@ -125,6 +129,9 @@ internal sealed interface ComponentFormRecovery {
                 else if (value.get("unavailable") == true) {
                     if (value.get("version") == 1 && value.get("reason") == URI_USERINFO) UriUserinfoExcluded else Unavailable
                 }
+                else if (value.get("version") == WorkloadSelectionFormCheckpoint.VERSION) {
+                    WorkloadSelectionFormCheckpoint.read(value)?.let(::TypedWorkloadSelectionPending) ?: Unavailable
+                }
                 else if (value.get("version") == ContextPolicyFormCheckpoint.VERSION) {
                     ContextPolicyFormCheckpoint.read(value)?.let(::TypedContextPending) ?: Unavailable
                 } else if (value.get("version") == ModelFormCheckpoint.VERSION) {
@@ -133,6 +140,8 @@ internal sealed interface ComponentFormRecovery {
                     ComputeFormCheckpoint.read(value)?.let(::TypedComputePending) ?: Unavailable
                 } else if (value.get("version") == ModelProviderFormCheckpoint.VERSION) {
                     ModelProviderFormCheckpoint.read(value)?.let(::TypedModelProviderPending) ?: Unavailable
+                } else if (value.get("version") == CostPolicyFormCheckpoint.VERSION) {
+                    CostPolicyFormCheckpoint.read(value)?.let(::TypedCostPolicyPending) ?: Unavailable
                 } else ComponentFormCheckpoint.read(value)?.let(::Pending) ?: Unavailable
             }
         } catch (_: RuntimeException) {
