@@ -170,3 +170,11 @@ unchanged. Omission, allowed zero, exact admitted nodes, whole-selection CAS,
 no-op revisions and private reviewed recovery remain distinct. Raw ADD and
 legacy raw CONFIGURE recovery are preserved. See
 [the workload Selection editor guide](WORKLOAD_SELECTION_SETTINGS_EDITOR.md).
+
+Fresh **Edit settings** for `deployment_target` now uses
+[five explicit typed controls](DEPLOYMENT_TARGET_SETTINGS_EDITOR.md). Environment
+remains a frozen checked choice, replica counts retain exact optional integers,
+and Region and Approval ticket reference retain literal strings including an
+explicitly supplied empty value. Raw Add and legacy raw Configure recovery stay
+on their existing paths. The form preserves original identity, foreground and
+managed-save authority; it supplies no deployment, capacity or approval verdict.

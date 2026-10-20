@@ -749,6 +749,46 @@ jobs:
               total += len(cases)
           print('typed_workload_selection_core_cases=' + str(total))
           PYWORKLOADSELECTIONCORE
+      - name: Require typed deployment-target preparation and managed storage regressions
+        run: |
+          python - <<'PYDEPLOYMENT'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          required = {
+              'ai.pickyour.core.preview.PreviewDeploymentTargetSettingsTest': {
+                  'fiveOptionalFieldsUseFrozenEnumsTypesAndIndependentBounds()',
+                  'absenceZeroAndEmptyLiteralStringsRemainDistinctWithoutDefaults()',
+                  'environmentAcceptsOnlyExplicitFrozenChoicesAndDoesNotNormalizeAliases()',
+                  'exactReplicaIntegersHaveNoMachineWidthOrInventedCrossFieldCeiling()',
+                  'emptyAndFractionalReplicaTextNeedsCorrectionWithoutImplicitRemoval()',
+                  'replicaSyntaxRejectsLocaleCoercionNonNumbersAndReaderOverflows()',
+                  'replicaControlsCannotInjectDuplicateFieldsOrAnotherDocument()',
+                  'regionAndApprovalTicketPreserveLiteralTextWithoutReferenceAuthority()',
+                  'malformedUnicodeAndOversizedTextYieldIndependentValueFreeIssues()',
+                  'untouchedAdmittedIntegerNodesKeepScaleAndTypeWhenLiteralTextChanges()',
+                  'invalidSiblingFieldsAndAggregateEscapingCannotPublishPartialCommands()',
+                  'configurationPreservesIdentityFlagsNotesExtensionsLinksAndUnrelatedDraftContent()',
+                  'noOpStaleAndDeletedManagedSaveAuthorityRemainDistinct()',
+                  'savedSettingsReopenAndProjectWithoutChangingHistoryOrPrivateMetadata()',
+                  'diagnosticsDoNotEchoPrivateValuesAndOtherKindsCannotAcquireThisEditor()',
+              },
+          }
+          for qualified, expected in required.items():
+              module = 'core' if qualified.startswith('ai.pickyour.core.') else 'preview'
+              task = 'test' if module == 'core' else 'testDebugUnitTest'
+              suite = ET.parse(pathlib.Path(module) / 'build/test-results' / task / ('TEST-' + qualified + '.xml')).getroot()
+              cases = suite.findall('testcase')
+              names = [case.attrib['name'] for case in cases]
+              if suite.attrib.get('name') != qualified or any(case.attrib.get('classname') != qualified for case in cases):
+                  raise SystemExit('Wrong typed deployment-target regression suite')
+              if not expected <= set(names) or len(names) != len(set(names)):
+                  raise SystemExit('Missing or repeated typed deployment-target regression')
+              if int(suite.attrib['tests']) != len(cases) or any(int(suite.attrib[key]) for key in ('failures', 'errors', 'skipped')):
+                  raise SystemExit('Typed deployment-target totals do not match passing execution')
+              if any(case.findall('failure') or case.findall('error') or case.findall('skipped') for case in cases):
+                  raise SystemExit('Typed deployment-target regression did not pass')
+              print(f"Verified {len(cases)} {qualified} cases; no installed-device claim")
+          PYDEPLOYMENT
       - name: Require typed compute preparation and managed storage regressions
         run: |
           python - <<'PYCOMPUTE'
@@ -1584,6 +1624,57 @@ jobs:
               total += len(cases)
           print('typed_workload_selection_preview_cases=' + str(total))
           PYWORKLOADSELECTIONNATIVE
+      - name: Require typed deployment-target Activity and private recovery regressions
+        run: |
+          python - <<'PYDEPLOYMENT'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          required = {
+              'ai.pickyour.android.preview.DeploymentTargetSettingsActivityTest': {
+                  'fiveOptionalFieldsHaveLabeledPrivateControlsWithoutSuppliedDefaults',
+                  'addStaysRawAndDoesNotChooseAnEnvironmentOrReplicaCount',
+                  'explicitEnvironmentChoiceIsCheckedAndClosingThePickerDoesNotEdit',
+                  'fiveExactValuesSaveAndReopenWithIdentityAndUnrelatedDraftDataIntact',
+                  'explicitZeroAndEmptyReferenceRemainUntilEachSuppliedFieldIsRemoved',
+                  'invalidNumbersKeepFieldErrorsIndependentAndCannotReplaceSavedValues',
+                  'cancelAndUnchangedCommitKeepTheAcknowledgedRevisionAndDisk',
+                  'invalidPendingTextAndPresenceRecoverOnlyAfterReviewWithOldControlsRetired',
+                  'aChangedSavedHeadKeepsOriginalPendingValuesReadOnlyUntilExplicitDiscard',
+                  'wrongDraftBaselineSelectionAndCatalogPinsCannotAcquireSaveAuthority',
+                  'anInFlightWriteFreezesEveryControlAndRecoveredInputCannotReplayIt',
+                  'staleManagedCommitCannotOverwriteAnotherWriterOrReenableTheForm',
+                  'actualPauseRetiresTheChoiceAndFormUntilFreshReviewedConfirmation',
+                  'oversizedPendingInputKeepsOnlyAnUnavailableMarkerWithoutViewStateFallback',
+                  'legacyRawRecoveryKeepsItsReaderAndFreshConfigureReturnsToTypedControls',
+                  'narrowRtlLargeTextKeepsIdentityFieldsGuidanceAndConfirmationReachable',
+              },
+              'ai.pickyour.android.preview.DeploymentTargetFormCheckpointTest': {
+                  'omissionExplicitZeroInvalidNumericTextAndLiteralStringsSurviveParcel',
+                  'totalUtf16BudgetIncludesEveryFieldAndNeverRetainsAnOversizedPrefix',
+                  'closedPrimitiveShapeRejectsMissingOptionalKeysAndTypeCoercions',
+                  'unknownEnvironmentCannotReconstructANativeChoiceOrGrantAuthority',
+                  'versionFormAndKindCannotSelectAnUnrelatedRecoveryProtocol',
+                  'everyOriginalIdentityRemainsRequiredBoundedAndUnsubstituted',
+                  'rawComputeAndProviderReadersKeepTheirSeparateExistingProtocols',
+                  'savingFlagAndDescriptionsNeverBecomeApprovalOrWriteAuthority',
+              },
+          }
+          for qualified, expected in required.items():
+              module = 'core' if qualified.startswith('ai.pickyour.core.') else 'preview'
+              task = 'test' if module == 'core' else 'testDebugUnitTest'
+              suite = ET.parse(pathlib.Path(module) / 'build/test-results' / task / ('TEST-' + qualified + '.xml')).getroot()
+              cases = suite.findall('testcase')
+              names = [case.attrib['name'] for case in cases]
+              if suite.attrib.get('name') != qualified or any(case.attrib.get('classname') != qualified for case in cases):
+                  raise SystemExit('Wrong typed deployment-target regression suite')
+              if not expected <= set(names) or len(names) != len(set(names)):
+                  raise SystemExit('Missing or repeated typed deployment-target regression')
+              if int(suite.attrib['tests']) != len(cases) or any(int(suite.attrib[key]) for key in ('failures', 'errors', 'skipped')):
+                  raise SystemExit('Typed deployment-target totals do not match passing execution')
+              if any(case.findall('failure') or case.findall('error') or case.findall('skipped') for case in cases):
+                  raise SystemExit('Typed deployment-target regression did not pass')
+              print(f"Verified {len(cases)} {qualified} cases; no installed-device claim")
+          PYDEPLOYMENT
       - name: Require typed compute Activity and private recovery regressions
         run: |
           python - <<'PYCOMPUTE'
