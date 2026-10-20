@@ -26,7 +26,7 @@ object RetainedEvaluationProfile {
     const val ID = "local-retained-frozen-v1-no-external-evidence/1"
     const val REFERENCE_SHA256 = "092c8a99495f9b5ae960df40b27e33f15eefe6d1a7cd80119658fdc79ada1a5a"
     const val SCHEMAS_SHA256 = "eaaf51a04c9bd0c7fce23e7ecc75724226e26b337cc1da04b88a59d2a912914f"
-    const val EVALUATOR_SHA256 = "b0bc63de8d6d4fed412344c4cb58864248782edf74aa9fb0fa75df9f3e80667f"
+    const val EVALUATOR_SHA256 = "c8f4f35e0ce5e042578ac83fc8daa705139d27b00d1848d9ff20165e81de6fd1"
     const val REPORT_RECEIVER_SHA256 = "d39e266490ffb7814b0bb2cc05a108d60206f036a3be7beb6c340b29723fa525"
     const val REFERENCE_TIME = "2026-10-16T09:00:00Z"
 }

@@ -48,11 +48,16 @@ Unknown findings from a bare result, a different request, or a copied/foreign
 list retain the general explanation without a phase. A later work-limit or
 unsupported-operation rejection exposes no partial phase result.
 
-This is a Current-only result detail. It neither adds a frozen field nor changes
-a ruleset, profile, input digest, verdict, summary, readiness decision, stored
-draft, historical report, or existing selection-management authority. The
-coordinator's existing request ownership and pre/post durable-source checks
-continue to admit or retire the entire result together.
+This is a Current-only result detail. It adds no frozen field and changes no
+ruleset, Current request binding, verdict, summary, readiness decision, stored
+draft, historical report, or existing selection-management authority. The shared
+evaluator's source bytes do change, so its private retained-evaluation descriptor
+and newly prepared retained-request digests advance as documented in the
+[retained profile](RETAINED_SNAPSHOT_EVALUATION.md#version-and-implementation-descriptors).
+The profile name, frozen reference/schema/report-receiver descriptors and fixed
+reference time remain unchanged. The coordinator's existing request ownership
+and pre/post durable-source checks continue to admit or retire the entire Current
+result together.
 
 ## Existing destinations and lifetime
 
@@ -128,9 +133,60 @@ suite/class identity, consistent totals and no nested, duplicate, extra, failed,
 errored or skipped observations. The existing five-method Preview gate and every
 earlier gate remain unchanged.
 
-This follow-up has source and test definitions only until its own concrete
-candidate is compiled and executed. The qualified #748 source and job originals
-remain evidence for that unchanged predecessor, not execution of this addition.
+This follow-up requires its own concrete source to be compiled and executed.
+The qualified #748 source and job originals remain evidence for that unchanged
+predecessor, not execution of this addition.
+
+### Initial stage and retained-profile reconciliation
+
+The initial unsigned source `a6869be74783588122981ad72adc22fa3a2e2543`
+(tree `efa49e9b9432e687f5340dd49095c8f62017fd50`) ran through signed preparation
+`4e94d876df9dbf1ae5309d280ea04dde8d70346f` with the identical tree. Its
+[Core job](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39448236691/job/118715768764)
+failed during frozen-input verification, before Gradle or Kotlin compilation:
+the retained profile still declared evaluator SHA-256
+`b0bc63de8d6d4fed412344c4cb58864248782edf74aa9fb0fa75df9f3e80667f`,
+while the reviewed implementation bytes hash to
+`c8f4f35e0ce5e042578ac83fc8daa705139d27b00d1848d9ff20165e81de6fd1`.
+That Core attempt executed none of the eight new Kotlin methods and uploaded no
+Core artifact files. Its original output remains attributed to that source.
+
+The profile correction updates only that implementation pin and these
+profile/current explanations. The evaluator, phase carrier, eight Core test
+definitions, five outcome-meaning Preview methods, workflow, frozen inputs,
+reference goldens and all verifier programs remain byte-identical to the initial
+stage. The existing profile mutation tests still require the actual source hash
+and reject stale, wrong, missing or duplicate pins. The corrected source must
+pass the unchanged configured CI before a new execution receipt can be recorded.
+
+### First Preview result and guidance-text reconciliation
+
+The same preparation's
+[Preview job](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39448236691/job/118715768149)
+compiled Core production, Preview production and Preview tests before reporting
+`1003 tests completed, 1 failed`. Its 52 Gradle tasks executed, but the combined
+command failed at `:preview:testDebugUnitTest`; the later attendance gates were
+skipped. This job did not run the eight Core test methods. Its original log and
+aggregate belong to `a6869be7`/`4e94d876`, not the corrected source.
+
+The sole named failure was
+`CurrentDraftProvisionalGuidanceActivityTest.realUnknownKeepsItsRawOutcomeAndMeaningWithoutProvisionalGuidance`,
+a `ComparisonFailure` at the original helper line 263. That helper expected the
+complete recorded detail and generic unknown meaning with no further paragraph.
+The exact admitted rule applies when the primary model exists; this case has
+that model but no selected provider, and its real assertion outcome is unknown.
+The reviewed renderer therefore also appends the observed assertion phase.
+The console identifies the failed comparison; the expected-paragraph mismatch
+is established from the test, exact rule and renderer source, without claiming
+an independent reparse of the uploaded report.
+
+The existing case now explicitly requires `ASSERTION` and `UNCLASSIFIED`
+provisional guidance, then compares the complete detail against a fixed phase
+paragraph. The original raw-field/prefix, input binding, summary, saved bytes,
+Back, reopen and fresh-inspection assertions remain. All seven method identities
+and their existing attendance guard stay unchanged. This corrects the obsolete
+text oracle; it does not permit provisional guidance for an unknown finding or
+change product behavior. Fresh configured execution remains required.
 
 ## Acceptance boundary
 
