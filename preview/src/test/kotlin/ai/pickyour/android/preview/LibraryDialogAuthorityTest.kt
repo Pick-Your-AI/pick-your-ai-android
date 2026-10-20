@@ -70,7 +70,9 @@ class LibraryDialogAuthorityTest {
 
     private fun hasText(label: Int) = views().filterIsInstance<TextView>().any { it.text.toString() == activity.getString(label) }
     private fun loaded() = (readDraftAfterOwnedWork(activity) { library.openLegacy() } as PreviewDraftLoad.Available).record
-    private fun listed() = readLibraryAfterOwnedWork(activity) { library.list() }
+    private fun listed() = readLibraryAfterOwnedWork(activity) { library.list() }.also {
+        assertTrue("Expected an available library after owned work, observed: $it", it is PreviewLibraryRead.Available)
+    }
     private fun dialog() = requireNotNull(ShadowAlertDialog.getLatestAlertDialog())
 
     private fun await(condition: () -> Boolean) {
