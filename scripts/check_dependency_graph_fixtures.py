@@ -5,9 +5,10 @@ import hashlib
 import json
 from pathlib import Path
 
-from jsonschema import Draft202012Validator, FormatChecker
+from jsonschema import FormatChecker
 from referencing import Registry, Resource
 
+from frozen_fixture_numbers import FixtureValidator, exact_decimal, read_json, reject_non_json_number
 from reference_fixture_output import output_path, write_output
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -101,6 +102,24 @@ def vectors(schema, original):
     add("terminal-lf-edge-id-preserved", ["edges", "0", "id"], "edge.valid\n", expected="decoded")
     add("terminal-cr-id-rejected", ["id"], "graph.valid\r")
     add("terminal-cr-edge-id-rejected", ["edges", "0", "id"], "edge.valid\r")
+    # Append to the original corpus: never round a fractional revision into an
+    # admitted integer or turn a finite integral exponent into float infinity.
+    for name, raw, expected in (
+        ("rounded-up-fractional-revision", "1.0000000000000001", "schema_mismatch"),
+        ("rounded-large-fractional-revision", "9007199254740992.1", "schema_mismatch"),
+        ("rounded-below-minimum-revision", "0.99999999999999999999", "schema_mismatch"),
+        ("tiny-positive-fractional-revision", "1e-9999", "schema_mismatch"),
+        ("tiny-negative-fractional-revision", "-1e-9999", "schema_mismatch"),
+        ("negative-zero-decimal-revision", "-0.00", "schema_mismatch"),
+        ("exact-wide-integral-decimal-revision", "9007199254740993.0", "decoded"),
+        ("exact-wide-integral-exponent-revision", "90071992547409930e-1", "decoded"),
+        ("integral-negative-exponent-revision", "1000e-3", "decoded"),
+        ("huge-integral-exponent-revision", "1e9999", "decoded"),
+        ("huge-negative-integral-exponent-revision", "-1e9999", "schema_mismatch"),
+        ("many-digit-integral-decimal-revision", "123456789012345678901234567890123456789.000", "decoded"),
+        ("many-digit-fractional-revision", "123456789012345678901234567890123456789.000000001", "schema_mismatch"),
+    ):
+        add(name, ["revision"], raw=raw, expected=expected)
     if len({case["name"] for case in cases}) != len(cases):
         raise ValueError("Duplicate graph fixture name")
     return cases
@@ -112,7 +131,8 @@ def mutate(original, case):
         return value
     path = case["path"]
     if not path:
-        return json.loads(case["json"])
+        return json.loads(case["json"], parse_float=exact_decimal,
+                          parse_constant=reject_non_json_number)
     parent = value
     for part in path[:-1]:
         parent = parent[int(part)] if isinstance(parent, list) else parent[part]
@@ -120,7 +140,8 @@ def mutate(original, case):
     if case["operation"] == "remove":
         del parent[key]
     else:
-        parent[key] = json.loads(case["json"])
+        parent[key] = json.loads(case["json"], parse_float=exact_decimal,
+                                 parse_constant=reject_non_json_number)
     return value
 
 
@@ -132,17 +153,17 @@ def main():
     for path, digest in PINS.items():
         if hashlib.sha256((BASE / path).read_bytes()).hexdigest() != digest:
             raise ValueError("Frozen graph input identity changed")
-    schema = json.loads((BASE / "schemas/dependency-graph.schema.json").read_text())
-    original = json.loads((BASE / "examples/dependency-graph.json").read_text())
+    schema = read_json(BASE / "schemas/dependency-graph.schema.json")
+    original = read_json(BASE / "examples/dependency-graph.json")
     cases = vectors(schema, original)
     fixture = {"profile": "android-dependency-graph-wire/v1", "input_sha256": PINS, "cases": cases}
     encoded = json.dumps(fixture, ensure_ascii=False, indent=2) + "\n"
     formats = FormatChecker()
     if not {"date-time", "uri"} <= formats.checkers.keys():
         raise ValueError("Frozen graph format checkers unavailable; install requirements-contracts.txt")
-    schemas = [json.loads(path.read_text()) for path in (BASE / "schemas").glob("*.schema.json")]
+    schemas = [read_json(path) for path in (BASE / "schemas").glob("*.schema.json")]
     registry = Registry().with_resources((item["$id"], Resource.from_contents(item)) for item in schemas)
-    validator = Draft202012Validator(schema, registry=registry, format_checker=formats)
+    validator = FixtureValidator(schema, registry=registry, format_checker=formats)
     counts = {"decoded": 0, "unsupported_version": 0, "schema_mismatch": 0, "invalid_input": 0}
     for case in cases:
         value = mutate(original, case)
