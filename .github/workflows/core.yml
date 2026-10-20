@@ -2068,6 +2068,7 @@ jobs:
               "actualPauseRetiresEveryCurrentDetailChildBeforeItsCallbacksCanReopen",
               "actualRecreationRetiresCurrentSourceRecoveryWithoutLosingDraftState",
               "explicitlyRetiredSourceConfirmationCannotDispatchOrReopen",
+              "sharedInspectionEntryRetiresCurrentSourceRecoveryBeforeOpeningItsWindow",
               "actualReloadSnapshotReplacementAndRecreationRetireCapturedFullValues",
               "storageReconciliationPermanentlyRetiresFullValuesWithAnUnchangedMissingBaseline",
               "exactRetainedDetailOpensEveryOldValueWithoutActivatingOrSubstitutingCurrentData",

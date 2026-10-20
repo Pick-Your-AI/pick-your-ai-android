@@ -625,6 +625,42 @@ class CatalogDetailBrowserActivityTest {
         assertNull(shadowOf(activity).nextStartedActivity)
     }
 
+    @Test fun sharedInspectionEntryRetiresCurrentSourceRecoveryBeforeOpeningItsWindow() {
+        save()
+        val baseline = loaded().baselineIdentity
+        AutosaveUiClock.pause()
+        field(R.string.context_objective).setText("pending source to sibling inspection")
+        val parent = openActualDetail()
+        click(AlertDialog.BUTTON_NEUTRAL, parent)
+        val chooser = dialog()
+        choose(0)
+        val recovery = dialog()
+        val back = recovery.getButton(AlertDialog.BUTTON_POSITIVE)
+        assertTrue(recovery.isShowing)
+        val before = state()
+        val disk = privateFiles()
+        button(R.string.help_open).performClick(); idle()
+        val help = dialog()
+        assertNotNull(help.findViewById<Button>(R.id.help_bug))
+        assertTrue(help.isShowing)
+        assertFalse("Shared inspection entry closes the former source child", recovery.isShowing)
+        back.performClick(); choose(0, chooser); idle()
+        assertSame(help, dialog())
+        assertTrue(help.isShowing)
+        assertDraftState(before)
+        val fresh = openActualDetail()
+        assertFalse(help.isShowing)
+        click(AlertDialog.BUTTON_NEUTRAL, fresh)
+        val current = dialog()
+        back.performClick(); choose(0, chooser); idle()
+        assertSame(current, dialog())
+        assertTrue(current.isShowing)
+        assertDraftState(before)
+        assertEquals(baseline, loaded().baselineIdentity)
+        assertEquals(disk, privateFiles())
+        assertNull(shadowOf(activity).nextStartedActivity)
+    }
+
     @Test fun actualReloadSnapshotReplacementAndRecreationRetireCapturedFullValues() {
         save()
         val baseline = loaded().baselineIdentity

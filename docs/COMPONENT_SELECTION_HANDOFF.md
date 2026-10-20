@@ -24,6 +24,11 @@ baseline. Pending fields retain their ordinary 750 ms autosave behavior; opening
 a search result performs no implicit save. A detail action captured before a
 saved revision changes cannot acquire the later revision's selection authority.
 
+Starting a draft storage operation retires the current catalog details and their
+child inspections. A retained **Use in draft** action cannot reopen them or take
+authority over the acknowledged revision. After the save completes, a fresh
+explicit detail action can enter the selection form for that saved revision.
+
 The action enters [SelectionEditSection](../preview/src/main/kotlin/ai/pickyour/android/preview/SelectionEditSection.kt)'s
 existing explicit Add/Replace chooser. The form retains its captured draft
 revision, exact kind/item/version, entered role and optional replacement selection.
