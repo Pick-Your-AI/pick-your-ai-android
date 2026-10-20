@@ -2999,6 +2999,30 @@ jobs:
               raise SystemExit('Revision comparison presentation regression did not pass')
           print(f'Verified {len(cases)} simulated revision comparison presentation tests; no installed-device claim')
           PYREVISIONTEXT
+      - name: Require catalog comparison caption regressions
+        run: |
+          python - <<'PYCOMPARISONTEXT'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          qualified = 'ai.pickyour.android.preview.CatalogComparisonPresentationTest'
+          expected = {
+              'ltrTrayIsolatesRtlNameAndVersionWithoutChangingExactPinRemoval',
+              'forcedRtlCaptionsUseScreenDirectionAndKeepLocalizedIndexAndRawState',
+              'valueNavigationKeepsCapturedSidesAndRetiresControlsWithIsolatedCaptions',
+              'unavailableTrayCaptionsKeepExactRecoveryPinsAndCurrentness',
+          }
+          report = pathlib.Path('preview/build/test-results/testDebugUnitTest') / ('TEST-' + qualified + '.xml')
+          suite = ET.parse(report).getroot()
+          cases = suite.findall('testcase')
+          identities = [(case.attrib['classname'], case.attrib['name']) for case in cases]
+          if suite.attrib['name'] != qualified or set(identities) != {(qualified, name) for name in expected} or len(identities) != len(expected):
+              raise SystemExit('Missing, unexpected or repeated catalog comparison caption regression')
+          if int(suite.attrib['tests']) != len(cases) or any(int(suite.attrib.get(key, '0')) != 0 for key in ('failures', 'errors', 'skipped')):
+              raise SystemExit('Catalog comparison caption suite did not execute cleanly')
+          if any(case.findall('failure') or case.findall('error') or case.findall('skipped') for case in cases):
+              raise SystemExit('Catalog comparison caption regression did not pass')
+          print(f'Verified {len(cases)} simulated catalog comparison caption tests; no installed-device claim')
+          PYCOMPARISONTEXT
       - name: Verify complete cost-inspection Activity attendance
         run: |
           python - <<'PY'
