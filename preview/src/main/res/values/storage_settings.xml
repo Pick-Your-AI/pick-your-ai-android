@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="storage_editor_guidance">Declared storage settings. These values do not verify provisioned capacity, location or encryption.</string>
+    <string name="storage_provisioned">Provisioned storage (GB)</string>
+    <string name="storage_region">Region</string>
+    <string name="storage_encryption_key">Encryption key reference</string>
+    <string name="storage_supply">Supply %1$s</string>
+    <string name="storage_not_supplied">Not supplied</string>
+    <string name="storage_empty_value">Supplied empty value</string>
+    <string name="storage_supplied_value">Supplied value</string>
+    <string name="storage_provisioned_rule">Optional nonnegative number in GB. Use a dot for decimals and omit units from the value. Supplied zero differs from not supplied.</string>
+    <string name="storage_region_rule">Optional literal region text. Empty, whitespace and the word unknown remain supplied text; they do not verify a location.</string>
+    <string name="storage_encryption_key_rule">Optional opaque secret:// reference. Do not paste an encryption key. This editor does not resolve or verify the reference.</string>
+    <string name="storage_recovery_guidance">Pending storage input is private and has not been saved. Review the original selection and current revision before continuing.</string>
+    <string name="storage_required">Enter a value or turn off Supply to leave this field not supplied.</string>
+    <string name="storage_number_invalid">Enter a valid number using a dot for decimals and no units.</string>
+    <string name="storage_range_invalid">Enter a number greater than or equal to zero.</string>
+    <string name="storage_text_invalid">Use valid text for this field.</string>
+    <string name="storage_reference_invalid">Use an opaque secret:// reference. Do not paste a key.</string>
+    <string name="storage_too_long">This input exceeds the local editor limit. Shorten it before continuing.</string>
+</resources>

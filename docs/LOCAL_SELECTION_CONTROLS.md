@@ -35,6 +35,14 @@ Its twelve optional deployment, monitoring and cost settings remain declared
 inputs. Approval, capacity, observation, price coverage and runtime actions still
 require separate evidence; one shared planning panel retains that distinction.
 
+The [typed storage settings editor](STORAGE_SETTINGS_EDITOR.md) adds a bounded
+existing-`storage` CONFIGURE form for partial
+[#99](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/99). It preserves
+exact nonnegative capacity, literal region text and opaque key references through
+explicit supply controls, whole Selection admission and the managed revision path.
+Capacity, keys and encryption remain declared inputs. Raw ADD, legacy raw
+Configure recovery and the other typed editors retain their existing routes.
+
 The saved-component section exposes a separate exact-fixture component chooser.
 It does not reinterpret the old guest sample-selection metadata as a typed domain
 selection. Every listed item keeps its exact kind, catalog ID, version and captured
