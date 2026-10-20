@@ -117,3 +117,24 @@ measured readiness, live monitoring and billing behavior remain separate. The
 shared unconditional T6 guidance remains visible, and existing per-kind
 operational guidance is retained in the form. This slice does not complete the
 whole #99 or #52 acceptance criteria or change the frozen research contract.
+
+## Explicit control sizes after the first hosted layout result
+
+The first source-stage Android job for #733 failed the existing visible-button
+minimum-height assertion in
+`narrowRtlLargeTextKeepsIdentityFieldsGuidanceAndConfirmationReachable`.
+The original assertion did not name the button or record its measured size;
+it does not establish which individual control caused the failure.
+
+The deployment editor now gives its environment button and all four Supply
+checkboxes explicit minimum width and height of 48dp, rounded up to whole pixels
+and preserving any larger existing minimum. Text length and inherited theme
+dimensions no longer determine whether these controls receive that minimum.
+The existing scrolling layout, field values, presence controls, callbacks and
+confirmation authority are unchanged.
+
+The same regression retains every dimension, ancestor-containment, complete-text,
+ellipsis and final-save assertion. Dimension failures now identify the widget,
+label and measured size. The original failed result remains separate; a fresh
+configured Android result is required for this correction. These simulated
+checks do not establish installed or physical-device accessibility.

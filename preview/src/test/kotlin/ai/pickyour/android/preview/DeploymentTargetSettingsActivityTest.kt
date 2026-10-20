@@ -622,8 +622,12 @@ class DeploymentTargetSettingsActivityTest {
             Rect(0, identity.totalPaddingTop + identityLayout.getLineTop(line), identity.width,
                 identity.totalPaddingTop + identityLayout.getLineBottom(line)))
         for (control in views(root).filterIsInstance<Button>().filter { it.isShown && it.text.isNotBlank() }) {
-            assertTrue(control.width >= (48 * density).toInt())
-            assertTrue(control.height >= (48 * density).toInt())
+            val description = control.javaClass.simpleName + " id=" + control.id + " text=" + control.text +
+                " measured=" + control.width + "x" + control.height + " minimum=" + (48 * density).toInt()
+            assertTrue("Deployment button must meet minimum width: " + description,
+                control.width >= (48 * density).toInt())
+            assertTrue("Deployment button must meet minimum height: " + description,
+                control.height >= (48 * density).toInt())
             reachable(control, root)
         }
         for (caption in textCaptions) {

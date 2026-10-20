@@ -70,6 +70,7 @@ internal class DeploymentTargetSettingsEditor(
         val supply = CheckBox(activity).apply {
             id = View.generateViewId()
             isSaveEnabled = false
+            keepMinimumTouchTarget()
             text = activity.getString(R.string.deployment_target_supply, activity.getString(title))
             isChecked = initial != null
             setOnCheckedChangeListener { _, checked ->
@@ -104,6 +105,7 @@ internal class DeploymentTargetSettingsEditor(
         environmentControl.apply {
             id = View.generateViewId()
             isSaveEnabled = false
+            keepMinimumTouchTarget()
             setSingleLine(false)
             text = environment ?: activity.getString(R.string.deployment_target_not_supplied)
             setOnClickListener {
@@ -124,6 +126,14 @@ internal class DeploymentTargetSettingsEditor(
         addView(environmentControl)
         addView(TextView(activity).apply { setText(R.string.deployment_target_environment_rule) })
         addView(environmentError)
+    }
+
+    private fun Button.keepMinimumTouchTarget() {
+        val minimum = kotlin.math.ceil(48 * resources.displayMetrics.density.toDouble()).toInt()
+        minHeight = maxOf(minHeight, minimum)
+        minimumHeight = maxOf(minimumHeight, minimum)
+        minWidth = maxOf(minWidth, minimum)
+        minimumWidth = maxOf(minimumWidth, minimum)
     }
 
     fun input(): PreviewDeploymentTargetInput {
