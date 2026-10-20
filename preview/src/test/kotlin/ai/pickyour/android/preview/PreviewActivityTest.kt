@@ -924,9 +924,12 @@ class PreviewActivityTest {
         assertFalse((PreviewDraftLibrary(root).list() as PreviewLibraryRead.Available).entries.any { it.id == second })
         dialog().getButton(AlertDialog.BUTTON_POSITIVE).performClick()
 
-        // A's positive control belongs to this still-live Activity, but B now owns the receipt.
-        assertTrue(firstConfirmation.isShowing)
+        // B replaced A's window and now owns the receipt, even in this live Activity.
+        assertFalse(firstConfirmation.isShowing)
+        val currentDialog = dialog()
         retainedPositive.performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+        assertSame(currentDialog, dialog())
         await { button(R.string.library_open).isEnabled }
         assertTrue(button(R.string.library_retry_delete).isEnabled)
         button(R.string.library_retry_delete).performClick()
@@ -966,10 +969,32 @@ class PreviewActivityTest {
         assertTrue((PreviewDraftLibrary(root).list() as PreviewLibraryRead.Available).entries.isEmpty())
         dialog().getButton(AlertDialog.BUTTON_POSITIVE).performClick()
 
+        val authorityField = PreviewActivity::class.java.getDeclaredField("storageAuthority").apply { isAccessible = true }
+        val pendingField = PreviewActivity::class.java.getDeclaredField("pendingDeleteId").apply { isAccessible = true }
+        val busyField = PreviewActivity::class.java.getDeclaredField("storageBusy").apply { isAccessible = true }
+        val currentAuthority = authorityField.get(activity)
+        val pendingCleanup = pendingField.get(activity)
+        assertNotNull(pendingCleanup)
         FileChannel.open(root.resolve(".preview-library.lock"), WRITE).use { channel ->
             channel.lock().use {
-                assertTrue(firstConfirmation.isShowing)
+                assertFalse(firstConfirmation.isShowing)
+                val currentDialog = dialog()
+                assertFalse(busyField.getBoolean(activity))
                 retainedPositive.performClick()
+                shadowOf(Looper.getMainLooper()).idle()
+                assertSame(currentDialog, dialog())
+                assertSame(currentAuthority, authorityField.get(activity))
+                assertEquals(pendingCleanup, pendingField.get(activity))
+                assertFalse(busyField.getBoolean(activity))
+                assertTrue(button(R.string.library_open).isEnabled)
+
+                // Only a fresh current confirmation may exercise the same-id retry authority.
+                button(R.string.library_retry_delete).performClick()
+                val retry = dialog()
+                assertNotSame(firstConfirmation, retry)
+                assertTrue(retry.isShowing)
+                assertEquals(activity.getString(R.string.library_retry_warning, id.value), shadowOf(retry).message.toString())
+                retry.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
                 await { button(R.string.library_open).isEnabled }
                 assertEquals(activity.getString(R.string.library_retry_failed), shadowOf(dialog()).message.toString())
                 assertTrue(button(R.string.library_retry_delete).isEnabled)
@@ -2823,10 +2848,10 @@ class PreviewActivityTest {
         await { !add.isShowing && hasText(R.string.component_saved) }
         val before = loaded()
         val configure = componentAction(0)
-        val settings = dialogField(configure, R.string.component_settings)
-        assertTrue(settings.text.toString().contains(original))
+        val settings = dialogField(configure, R.string.model_provider_credential)
+        assertEquals(original, settings.text.toString())
         val connection = literalInputConnection(settings)
-        val raw = "{\n  \"credential_ref\": \"secret://fixture/Pending:Case_A\"\n}"
+        val raw = "secret://fixture/Pending:Case_A\n"
         assertTrue(connection.setSelection(0, settings.length()))
         assertTrue(connection.commitText(raw, 1))
         assertEquals(raw, settings.text.toString())

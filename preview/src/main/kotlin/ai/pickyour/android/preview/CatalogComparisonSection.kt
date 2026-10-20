@@ -84,7 +84,7 @@ class CatalogComparisonSection(
         render()
     }
 
-    private fun identity(index: Int, entry: PreviewCatalogTrayEntry): String = activity.getString(
+    private fun identity(index: Int, entry: PreviewCatalogTrayEntry): String = ComponentSelectionText.indexed(activity,
         R.string.catalog_compare_identity, index + 1,
         entry.detail?.item?.name?.let(::literal) ?: activity.getString(R.string.catalog_compare_missing_name),
         literal(entry.pin.id), literal(entry.pin.version),
@@ -120,7 +120,7 @@ class CatalogComparisonSection(
                 }
             }, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
             entries.addView(Button(activity).apply {
-                text = activity.getString(R.string.catalog_compare_remove, index + 1, literal(entry.pin.version))
+                text = ComponentSelectionText.indexed(activity, R.string.catalog_compare_remove, index + 1, literal(entry.pin.version))
                 setOnClickListener { control ->
                     if (!active() || control.parent !== entries) return@setOnClickListener
                     tray = tray.remove(entry.pin)

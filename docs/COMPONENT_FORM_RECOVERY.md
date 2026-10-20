@@ -12,7 +12,7 @@ does not establish compatibility, pricing, deployment requirements or readiness.
 ## User behavior and authority
 
 When the Activity pauses, it captures the current form through the same bounded
-checkpoint serializer, including its in-flight flag and the typed context/model
+checkpoint serializer, including its in-flight flag and the typed editor
 policies. It then detaches every dialog and form owner before closing the windows.
 Retained entry, picker, confirmation and form controls cannot dispatch a write or
 replace pending input while paused, and retired controls remain inert after resume.
@@ -68,6 +68,13 @@ settings checkpoint cannot smuggle an entered role. Resaving a supported
 checkpoint uses version 2 without changing its exact input. Version 3 and malformed
 mode-specific shapes remain unavailable. The durable draft's format 5 is a separate
 version boundary, not a Bundle migration or recovered save token.
+
+The separate [typed cost-policy reader](COST_POLICY_SETTINGS_EDITOR.md) uses
+private version 8 and an exact `configure_cost_policy` shape. Three optional
+text fields share the same raw-input budget; an explicitly present nullable
+Boolean preserves omission versus false. Draft/baseline/selection/catalog pins
+and the in-flight flag constrain review. It does not change the raw version-1/2
+reader, existing typed readers, durable format or frozen contract version.
 
 Oversized input is never prefix-truncated into apparently valid JSON. Unsupported
 versions, shapes or primitive types and over-budget state produce a small
@@ -191,8 +198,30 @@ editable checkpoint and checks that resume never restores the earlier consent.
 These simulations also keep already admitted writes and their in-flight recovery
 separate from attempts to dispatch a new write after pause.
 
+The six remaining foundation, retrieval, agent, training, guardrail and operational
+in-flight fixtures release their held worker, then use the existing bounded
+worker/UI fence before their first canonical-store read. Pause now dismisses the
+old form before the admitted write necessarily finishes; dialog invisibility is
+therefore not a storage-acknowledgment barrier. Their exact saved revision,
+settings, checkpoint, read-only recovery and retired-control assertions remain
+unchanged. The original d3250c2e integration reported 778 simulated cases with one
+training timeout at this unfenced read boundary; its typed write disposition was
+not retained, so that artifact does not establish a BUSY result. This fixture
+ordering does not change product synchronization, repeat a write, extend a
+timeout or infer a corrected execution result.
+
 Actual installed system process death, recovery across the supported device and
 OS matrix, complete navigation/secure-entry routing, physical persistence faults,
 TalkBack and keyboard qualification, named receiving acceptance and release
 evidence remain outstanding. This slice does not close any of the three full
 work packages or claim completion of the separate installed four-case harness.
+
+## Typed workload Selection pending input
+
+Fresh existing-workload CONFIGURE uses the private `typed-workload/1` protocol
+for five optional integer inputs and their exact supplied/omitted states. The
+strict primitive/identity and aggregate 20,000-character boundary grants no
+replacement save authority. Same-identity non-saving input needs explicit
+review and a new commit; changed or in-flight input is read-only. Raw legacy
+recovery remains raw. See [the scoped editor guide](WORKLOAD_SELECTION_SETTINGS_EDITOR.md)
+for the frozen field, lifecycle and original-evidence boundaries.

@@ -260,12 +260,42 @@ def inspect_apk(apk: Path, aapt2: Path) -> dict[str, object]:
 
 
 def source_identity(root: Path) -> dict[str, str]:
-    # One resolved commit supplies both fields; a separate current-tree check
-    # rejects a tracked edit instead of attributing it to the committed source.
-    fields = command(["git", "show", "-s", "--format=%H%n%T", "HEAD"], root).strip().splitlines()
+    # Both inspection callers use this before and after their artifact work.
+    # Index hints may hide tracked edits from status, so qualify actual bytes
+    # against the same literal committed tree that supplies the receipt identity.
+    git = ["git", "--no-replace-objects"]
+    fields = command([*git, "show", "-s", "--format=%H%n%T", "HEAD"], root).strip().splitlines()
     require(len(fields) == 2 and all(re.fullmatch(r"[0-9a-f]{40}", value) for value in fields),
             "SOURCE_IDENTITY_INVALID")
-    require(not command(["git", "status", "--porcelain", "--untracked-files=all"], root).strip(), "SOURCE_CHANGED")
+    require(not command([*git, "status", "--porcelain", "--untracked-files=all"], root).strip(), "SOURCE_CHANGED")
+    require(root.is_dir() and not root.is_symlink(), "SOURCE_CHANGED")
+    tree = command([*git, "ls-tree", "-rlz", "--full-tree", fields[1]], root)
+    for entry in tree.split("\0"):
+        if not entry:
+            continue
+        metadata, name = entry.split("\t", 1)
+        mode, kind, blob, length = metadata.split()
+        require(mode in {"100644", "100755"} and kind == "blob" and
+                re.fullmatch(r"[0-9a-f]{40}", blob) is not None and
+                re.fullmatch(r"[0-9]+", length) is not None, "SOURCE_IDENTITY_INVALID")
+        parts = name.split("/")
+        require(all(part not in {"", ".", ".."} for part in parts), "SOURCE_IDENTITY_INVALID")
+        path = root
+        for part in parts:
+            path /= part
+            require(not path.is_symlink(), "SOURCE_CHANGED")
+        size = int(length)
+        require(path.is_file() and path.stat().st_size == size, "SOURCE_CHANGED")
+        hasher = hashlib.sha1(f"blob {size}\0".encode())
+        with path.open("rb") as source:
+            remaining = size
+            while remaining:
+                block = source.read(min(65536, remaining))
+                require(bool(block), "SOURCE_CHANGED")
+                hasher.update(block)
+                remaining -= len(block)
+            require(not source.read(1), "SOURCE_CHANGED")
+        require(hasher.hexdigest() == blob, "SOURCE_CHANGED")
     return {"commit": fields[0], "tree": fields[1]}
 
 

@@ -35,6 +35,14 @@ Its twelve optional deployment, monitoring and cost settings remain declared
 inputs. Approval, capacity, observation, price coverage and runtime actions still
 require separate evidence; one shared planning panel retains that distinction.
 
+The [typed hosting-platform settings editor](HOSTING_PLATFORM_SETTINGS_EDITOR.md)
+adds a bounded existing-`hosting_platform` CONFIGURE form for partial
+[#99](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/99). It preserves
+literal region text, opaque account references and the optional frozen network
+isolation choice through the same complete Selection and managed revision path.
+These are declared settings; no account, region or network is verified. Raw ADD,
+legacy raw Configure recovery and the other typed editors retain their routes.
+
 The saved-component section exposes a separate exact-fixture component chooser.
 It does not reinterpret the old guest sample-selection metadata as a typed domain
 selection. Every listed item keeps its exact kind, catalog ID, version and captured
@@ -53,6 +61,13 @@ settings exceeding this small editor limit remain saved and cannot be truncated
 through this editor. Raw credentials must not be entered; applicable settings
 accept only opaque secret references under the frozen schema.
 
+Fresh CONFIGURE for an existing cost-policy selection now uses
+[four typed optional controls](COST_POLICY_SETTINGS_EDITOR.md). Exact decimal
+strings, percentage bounds and the separate omitted/false/true hard-cap choice
+retain the frozen receiver and managed save authority. Raw ADD and legacy raw
+CONFIGURE recovery remain explicit; this records planning preferences without
+adding prices, currency conversion, alerts or spending-limit enforcement.
+
 For partial [#99](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/99),
 new add/settings input also rejects URI authority userinfo in the frozen
 `model_provider.api_base_url`, `model.weights_uri`, `mcp_server.endpoint`,
@@ -65,6 +80,12 @@ This is a specific userinfo boundary, not secret-pattern detection in arbitrary
 text or query values. Frozen/history decoding, retained records, role-only edits
 and replacement remain unchanged; this does not complete #99 or qualify exports,
 diagnostics, installed-device behavior or release.
+
+Fresh **Edit settings** for `model_provider` now offers
+[three typed optional controls](MODEL_PROVIDER_SETTINGS_EDITOR.md). They preserve
+literal Region text, including a supplied empty string, exact opaque credential
+references and admitted API base URIs. Each field remains absent until explicitly
+supplied. Raw Add and legacy raw Configure recovery retain their existing paths.
 
 New Activity captures of open add/settings forms also exclude positively
 recognized URI user information under the same five-field policy. They retain
@@ -147,3 +168,21 @@ artifact-linked inventory/source-input checks must pass on the reviewed receivin
 source before this UI slice is accepted for merge. Local core tests do not
 establish Android build, installed/emulated runtime, physical-device or release
 evidence.
+
+## Typed workload Selection CONFIGURE
+
+Existing workload selections expose five optional frozen integer settings
+through explicit Supply controls, exact numeric entry and independent errors.
+This edits only the selected component; the overall workload profile remains
+unchanged. Omission, allowed zero, exact admitted nodes, whole-selection CAS,
+no-op revisions and private reviewed recovery remain distinct. Raw ADD and
+legacy raw CONFIGURE recovery are preserved. See
+[the workload Selection editor guide](WORKLOAD_SELECTION_SETTINGS_EDITOR.md).
+
+Fresh **Edit settings** for `deployment_target` now uses
+[five explicit typed controls](DEPLOYMENT_TARGET_SETTINGS_EDITOR.md). Environment
+remains a frozen checked choice, replica counts retain exact optional integers,
+and Region and Approval ticket reference retain literal strings including an
+explicitly supplied empty value. Raw Add and legacy raw Configure recovery stay
+on their existing paths. The form preserves original identity, foreground and
+managed-save authority; it supplies no deployment, capacity or approval verdict.
