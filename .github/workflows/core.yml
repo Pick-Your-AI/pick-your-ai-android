@@ -2119,6 +2119,33 @@ jobs:
               raise SystemExit("Current-finding affected-selection regression did not execute successfully")
           print(f"Verified {len(cases)} distinct passing current-finding affected-selection cases, including all {len(required)} required names; no installed-device claim")
           PYFINDINGCONTEXT
+      - name: Require actual current-finding outcome-meaning regressions
+        run: |
+          python - <<'PYFINDINGOUTCOME'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          name = "ai.pickyour.android.preview.CurrentDraftFindingOutcomeActivityTest"
+          required = {
+              "unresolvedApplicabilityExplainsUnknownWithoutRewritingWarningOrRecordedText",
+              "unresolvedEligibleAssertionHasTheSameUnknownMeaningWithoutInferringACause",
+              "falseApplicabilityExplainsSkippedWithoutPromotingErrorSeverityToFailureOrPass",
+              "naturalFailKeepsItsExactOriginalDetailDespiteMisleadingRecordedStatusWords",
+              "admittedSyntheticPassKeepsItsExactOriginalDetailDespiteErrorSeverity",
+          }
+          path = pathlib.Path("preview/build/test-results/testDebugUnitTest") / f"TEST-{name}.xml"
+          suite = ET.parse(path).getroot()
+          cases = suite.findall("testcase")
+          names = [case.attrib.get("name", "") for case in cases]
+          if suite.tag != "testsuite" or suite.attrib.get("name") != name or any(case.attrib.get("classname") != name for case in cases):
+              raise SystemExit("Foreign current-finding outcome-meaning report")
+          if len(cases) != len(list(suite.iter("testcase"))) or any(not item.strip() for item in names) or len(names) != len(set(names)) or not required.issubset(names):
+              raise SystemExit("Missing, empty, nested or repeated current-finding outcome-meaning regression")
+          if int(suite.attrib.get("tests", "-1")) != len(cases) or any(int(suite.attrib.get(key, "-1")) != 0 for key in ("failures", "errors", "skipped")):
+              raise SystemExit("Current-finding outcome-meaning totals did not pass")
+          if any(case.find(".//" + tag) is not None for case in cases for tag in ("failure", "error", "skipped")):
+              raise SystemExit("Current-finding outcome-meaning regression did not execute successfully")
+          print(f"Verified {len(cases)} distinct passing current-finding outcome-meaning cases, including all {len(required)} required names; no installed-device claim")
+          PYFINDINGOUTCOME
       - name: Require actual native compatible-picker caller regressions
         run: |
           python - <<'PYCANDIDATES'

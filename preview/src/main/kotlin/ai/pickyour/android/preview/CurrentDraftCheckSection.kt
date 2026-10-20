@@ -194,7 +194,11 @@ internal class CurrentDraftCheckSection(
         val row = state.outcome.findings[index]
         val text = activity.getString(R.string.current_check_finding, literal(row.ruleId), literal(row.outcome),
             literal(row.severity), literal(row.message), literal(row.remediation),
-            row.selectionIds.joinToString(", ", transform = ::literal))
+            row.selectionIds.joinToString(", ", transform = ::literal)) + when (row.outcome) {
+                "unknown" -> "\n\n" + activity.getString(R.string.current_finding_unknown_meaning)
+                "skipped" -> "\n\n" + activity.getString(R.string.current_finding_skipped_meaning)
+                else -> ""
+            }
         lateinit var detail: AlertDialog
         val context = LinearLayout(activity).apply {
             orientation = VERTICAL
