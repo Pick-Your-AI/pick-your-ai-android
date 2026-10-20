@@ -172,11 +172,16 @@ class RecordedCostArithmeticTextTest {
         }
         try {
             val container = LinearLayout(activity)
-            CostInspectionSection(activity, worker) { true }.attach(container)
-            val button = container.getChildAt(0) as Button
-            val output = container.getChildAt(1) as TextView
+            CostInspectionSection(activity, worker, alive = { true }).attach(container)
+            val children = (0 until container.childCount).map(container::getChildAt)
+            val button = children.filterIsInstance<Button>().single {
+                it.text.toString() == activity.getString(R.string.cost_inspect)
+            }
             assertTrue(button.performClick())
             assertTrue(button.isEnabled)
+            val output = children.filterIsInstance<TextView>().single {
+                it.text.contains(activity.getString(R.string.cost_arithmetic_notice))
+            }
             assertTrue(output.text.contains("Additional arithmetic observation"))
             assertTrue(output.text.contains("Exact quantity × unit price: \"576\"; currency USD"))
             assertTrue(output.text.contains("Budget pass: not established"))

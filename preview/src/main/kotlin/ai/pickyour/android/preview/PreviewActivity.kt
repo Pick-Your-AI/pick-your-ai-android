@@ -120,6 +120,7 @@ class PreviewActivity : Activity() {
         }
     private var restoringFields = false
     private var restoration: PreviewDraftRestoration? = null
+    private lateinit var costInspection: CostInspectionSection
     private lateinit var resourceInspection: ResourceInspectionSection
     private lateinit var findings: FindingsInspectionSection
     private lateinit var snapshots: SnapshotEvaluationSection
@@ -427,7 +428,9 @@ class PreviewActivity : Activity() {
             }
         }
         content.addView(run)
-        CostInspectionSection(this, worker) { !destroyed }.attach(content)
+        costInspection = CostInspectionSection(this, worker, { !destroyed && diagnosticsResumed },
+            { catalog.cancelViewportRestore(); prepareInspection() })
+        costInspection.attach(content)
         resourceInspection = ResourceInspectionSection(this, worker, { !destroyed && diagnosticsResumed },
             { catalog.cancelViewportRestore(); prepareInspection() })
         resourceInspection.attach(content)
@@ -454,7 +457,10 @@ class PreviewActivity : Activity() {
                 else catalogFixture?.helpIdentity ?: HelpCatalogIdentity.UNAVAILABLE_OR_LOADING
             }, beforeShow = ::prepareInspection)
         help.attach(content)
-        privacy = LocalPrivacy(this, beforeShow = { retireInspectionWindows() }) {
+        privacy = LocalPrivacy(this, beforeShow = {
+            retireInspectionWindows()
+            if (::costInspection.isInitialized) costInspection.dismiss()
+        }) {
             !destroyed && diagnosticsResumed
         }
         privacy.attach(content)
@@ -1098,6 +1104,7 @@ class PreviewActivity : Activity() {
     private fun retireInspectionWindows() {
         retireRevisionInspection()
         if (::snapshots.isInitialized) snapshots.dismiss()
+        if (::costInspection.isInitialized) costInspection.dismissInspection()
         if (::resourceInspection.isInitialized) resourceInspection.dismissInspection()
         if (::findings.isInitialized) findings.dismissInspection()
         if (::help.isInitialized) help.dismiss()
@@ -1358,6 +1365,7 @@ class PreviewActivity : Activity() {
     /** Retire inspections when the storage dialog is presented, including delayed results. */
     private fun AlertDialog.Builder.showStorageDialog(): AlertDialog {
         retireInspectionWindows()
+        if (::costInspection.isInitialized) costInspection.dismiss()
         return show()
     }
 
@@ -1752,6 +1760,7 @@ class PreviewActivity : Activity() {
         if (::privacy.isInitialized) privacy.dismiss()
         if (::findings.isInitialized) findings.dismiss()
         if (::snapshots.isInitialized) snapshots.dismiss()
+        if (::costInspection.isInitialized) costInspection.dismiss()
         if (::resourceInspection.isInitialized) resourceInspection.dismiss()
         super.onPause()
     }
@@ -1766,6 +1775,7 @@ class PreviewActivity : Activity() {
         savingInput = null
         if (::findings.isInitialized) findings.close()
         if (::snapshots.isInitialized) snapshots.close()
+        if (::costInspection.isInitialized) costInspection.close()
         if (::resourceInspection.isInitialized) resourceInspection.close()
         if (::diagnostics.isInitialized) diagnostics.close()
         if (::help.isInitialized) help.close()
