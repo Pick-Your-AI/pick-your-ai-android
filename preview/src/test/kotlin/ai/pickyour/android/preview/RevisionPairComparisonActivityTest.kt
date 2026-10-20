@@ -139,6 +139,118 @@ class RevisionPairComparisonActivityTest {
         keys.forEach { assertEquals(it, expected.get(it), actual.get(it)) }
     }
 
+    @Test fun actualPauseRetiresRevisionPickerAndRequiresFreshExplicitEntry() {
+        history()
+        finishWork()
+        field(R.string.draft_title).setText("pending paused comparison")
+        field(R.string.context_objective).setText("pending paused objective")
+        field(R.string.workload_currency).setText("invalid")
+        val before = state()
+        val bytes = disk()
+        val baseline = loaded().baselineIdentity
+        val entry = button(R.string.revision_compare_pair_open)
+        val obsolete = chooseAfter(0)
+
+        controller.pause()
+        try {
+            assertFalse("Pause must retire the current revision picker before returning", obsolete.isShowing)
+            select(obsolete, 1)
+            entry.performClick()
+            finishWork()
+            assertSame("A paused entry or retained row cannot create another comparison", obsolete, dialog())
+            assertFalse(dialog().isShowing)
+            assertState(before)
+            assertEquals(bytes, disk())
+        } finally {
+            controller.resume()
+        }
+        idle()
+        assertSame("Resume alone must not reopen the retired comparison", obsolete, dialog())
+        assertFalse(dialog().isShowing)
+        select(obsolete, 1)
+        finishWork()
+        assertSame(obsolete, dialog())
+
+        val fresh = chooseBefore()
+        select(obsolete, 2)
+        assertSame("The retired picker cannot borrow a fresh request's authority", fresh, dialog())
+        select(fresh, 0)
+        select(dialog(), 1)
+        awaitBrowser(0, 1)
+        assertTrue(texts().any { it.contains("stored before") && it.contains("stored after") })
+        finishWork()
+        assertState(before)
+        assertEquals(bytes, disk())
+        assertEquals(baseline, loaded().baselineIdentity)
+        assertNull(shadowOf(activity).nextStartedActivity)
+    }
+
+    @Test fun actualPauseRetiresQueuedComparisonAndCompleteValueControls() {
+        history()
+        finishWork()
+        field(R.string.draft_title).setText("pending comparison worker")
+        field(R.string.workload_currency).setText("invalid")
+        val before = state()
+        val bytes = disk()
+        val baseline = loaded().baselineIdentity
+        val picker = chooseAfter(0)
+        val release = blockWorker()
+        lateinit var waiting: AlertDialog
+        try {
+            select(picker, 1)
+            waiting = dialog()
+            assertTrue(waiting.isShowing)
+            assertTrue(texts().contains(activity.getString(R.string.revision_compare_preparing, "0", "1")))
+            controller.pause()
+            try {
+                assertFalse("Pause must retire the queued revision comparison", waiting.isShowing)
+                release.countDown()
+                finishWork()
+                assertSame("The completed worker cannot publish into a paused Activity", waiting, dialog())
+                assertFalse(dialog().isShowing)
+            } finally {
+                controller.resume()
+            }
+        } finally {
+            release.countDown()
+        }
+        finishWork()
+        assertSame("Resume cannot revive the retired worker request", waiting, dialog())
+        assertFalse(dialog().isShowing)
+
+        openPair(0, 1)
+        inspectObjective()
+        click(R.string.revision_compare_inspect_before)
+        assertEquals("text: \"stored before\"", literal())
+        val obsolete = dialog()
+        val retained = views(obsolete.window!!.decorView).filterIsInstance<Button>()
+            .filter { it.visibility == View.VISIBLE && it.text.isNotBlank() }
+        assertTrue(retained.isNotEmpty())
+        controller.pause()
+        try {
+            assertFalse("Pause must retire the complete revision value owner", obsolete.isShowing)
+            retained.forEach { it.performClick() }
+            finishWork()
+            assertSame(obsolete, dialog())
+            assertFalse(dialog().isShowing)
+        } finally {
+            controller.resume()
+        }
+        idle()
+        assertSame(obsolete, dialog())
+        assertFalse(dialog().isShowing)
+        openPair(1, 0)
+        val fresh = dialog()
+        retained.forEach { it.performClick() }
+        finishWork()
+        assertSame("Retired value controls cannot replace the new comparison", fresh, dialog())
+        assertTrue(fresh.isShowing)
+        assertState(before)
+        assertEquals(bytes, disk())
+        assertEquals(baseline, loaded().baselineIdentity)
+        assertNull(shadowOf(activity).nextStartedActivity)
+    }
+
     @Test fun twoOlderRevisionsExcludeSavedHeadAndPendingInputsWithoutWriting() {
         history()
         field(R.string.draft_title).setText("pending title")

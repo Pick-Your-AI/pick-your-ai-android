@@ -31,6 +31,29 @@ Catalog, findings and cost sections have their own terminal guards in the accept
 catalog lifecycle delivery; this slice does not replace or duplicate those controllers.
 No schema, persistence transaction, analysis semantics or issue status changes here.
 
+## Foreground history and revision inspections (#76, partial)
+
+History entry, retained-revision comparison and saved-library comparison require a
+resumed Activity. Their retained callbacks also check foreground admission before
+opening a child, copying historical guest fields or publishing a worker result.
+Pause retires the existing revision inspection request, pickers and complete-value
+owners as well as the history dialog. Resuming does not restore the old request
+or reopen a window; a fresh explicit inspection captures its own authority.
+
+This reuses the existing retirement operation and preserves the original saved
+baseline, storage-operation identity, pending fields and read-only comparison
+inputs. A read or comparison already queued on the serial worker may finish, but
+its retired request cannot display a result. Already admitted canonical writes,
+their acknowledgment and component recovery retain their separate behavior.
+
+Four additional SDK 28 Activity regressions cover a retained revision picker,
+queued revision result and complete-value controls, a queued library read and its
+value controls, and a retained history entry/copy action. They check pause, resume
+without automatic reopening, stale controls after a fresh request, pending state
+and durable bytes using the existing finite worker barriers. The CI attendance
+sets require all four methods. These simulated controls do not establish Android
+system process death, physical-device accessibility or complete #76 acceptance.
+
 ## Unfinished component input (#76 / #98 / #112, partial)
 
 The [component form recovery](COMPONENT_FORM_RECOVERY.md) checkpoint carries a
