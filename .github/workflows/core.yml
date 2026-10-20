@@ -707,6 +707,46 @@ jobs:
                   raise SystemExit('Typed model-provider regression did not pass')
               print(f"Verified {len(cases)} {qualified} cases; no installed-device claim")
           PYMODEL
+      - name: Require typed RAG-pipeline preparation and managed storage regressions
+        run: |
+          python - <<'PYRAG'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          required = {
+              'ai.pickyour.core.preview.PreviewRagPipelineSettingsTest': {
+                  'fieldsMatchTheOptionalFrozenTypesAndBoundsWithoutAddedRelations()',
+                  'absenceFalseTrueAndRemovalRemainDistinct()',
+                  'bothCountsKeepWideExactIntegersAndMathematicalIntegerAliases()',
+                  'bothCountsUseFrozenMinimumWithoutAnInventedRelativeLimit()',
+                  'suppliedBlankNumbersNeedCorrectionRatherThanRemoval()',
+                  'numericSyntaxRejectsCoercionFractionsAndMalformedUnicode()',
+                  'numericControlsRejectInjectedKeysDuplicatesAndTrailingDocuments()',
+                  'existingParserAndControlBudgetsRemainFieldErrors()',
+                  'independentErrorsDoNotPublishPartialSettings()',
+                  'untouchedAdmittedNumericNodesRetainClassAndScale()',
+                  'completeSelectionBudgetRejectsOtherwiseValidGrowth()',
+                  'completeSelectionAdmissionUsesFinalSiblingRemovalOrShrink()',
+                  'configurePreservesCompleteSelectionAndUnrelatedDraftData()',
+                  'managedNoopFalseAcknowledgmentStaleAndDeletedAuthorityRemainDistinct()',
+                  'canonicalRejectionCannotReplaceAcknowledgedStorage()',
+                  'typedValuesRoundTripThroughManagedStorageAndExplicitFrozenBuildProjection()',
+                  'wrongKindsAndDiagnosticDescriptionsRemainValueFree()',
+              },
+          }
+          for qualified, expected in required.items():
+              module = 'core' if qualified.startswith('ai.pickyour.core.') else 'preview'
+              task = 'test' if module == 'core' else 'testDebugUnitTest'
+              suite = ET.parse(pathlib.Path(module) / 'build/test-results' / task / ('TEST-' + qualified + '.xml')).getroot()
+              cases = suite.findall('testcase')
+              identities = [(case.attrib['classname'], case.attrib['name']) for case in cases]
+              if suite.attrib['name'] != qualified or set(identities) != {(qualified, name) for name in expected} or len(identities) != len(expected):
+                  raise SystemExit('Missing, unexpected or repeated typed RAG-pipeline regression')
+              if int(suite.attrib['tests']) != len(cases) or any(int(suite.attrib.get(key, '0')) != 0 for key in ('failures', 'errors', 'skipped')):
+                  raise SystemExit('Typed RAG-pipeline totals do not match passing execution')
+              if any(case.findall('failure') or case.findall('error') or case.findall('skipped') for case in cases):
+                  raise SystemExit('Typed RAG-pipeline regression did not pass')
+              print(f'Verified {len(cases)} {qualified} cases; no installed-device claim')
+          PYRAG
       - name: Require typed compute preparation and managed storage regressions
         run: |
           python - <<'PYCOMPUTE'
@@ -1569,6 +1609,57 @@ jobs:
                   raise SystemExit('Typed model-provider regression did not pass')
               print(f"Verified {len(cases)} {qualified} cases; no installed-device claim")
           PYMODEL
+      - name: Require typed RAG-pipeline Activity and private recovery regressions
+        run: |
+          python - <<'PYRAG'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          required = {
+              'ai.pickyour.android.preview.RagPipelineSettingsActivityTest': {
+                  'configureShowsTypedOptionalRagPipelineFields',
+                  'labelledControlsAndSupplyHintsKeepEveryOptionalStatePrivateAndExplicit',
+                  'ragAddKeepsTheExplicitRawSettingsRoleAndEnabledPath',
+                  'exactOptionalIntegersAndFalseSaveAndReopenWithoutChangingSelectionOrOtherDraftState',
+                  'explicitFalseTrueAndAbsenceRemainThreeDifferentSavedStates',
+                  'everyOptionalValueCanBeRemovedWithoutCreatingDefaults',
+                  'independentNumericErrorsRetainLiteralInputAndCannotReplaceAcknowledgedSettings',
+                  'cancelAndUnchangedCommitDoNotCreateARevisionOrOptionalDefaults',
+                  'invalidInputAndExplicitFalseRecoverOnlyAfterReviewWithRetiredControls',
+                  'changedSavedHeadKeepsPendingRagInputReadOnlyUntilDiscardAndReopen',
+                  'everyOriginalIdentityAndTheRagKindRemainNecessaryForWritableRecovery',
+                  'inFlightRagSaveFreezesAllControlsAndRecoveryCannotReplayTheAcknowledgedWrite',
+                  'actualPauseRetiresRagControlsAndRequiresExplicitReviewBeforeEditing',
+                  'staleManagedRagCommitCannotOverwriteAnotherWriterOrRestoreSaveAuthority',
+                  'combinedOversizedInputRetainsNoRecoveryPrefixOrAutomaticViewState',
+                  'readOnlyLiteralStateWordsAndSuppliedEmptyRemainDifferentFromAbsence',
+                  'legacyRawRagRecoveryStillUsesItsOriginalCorrectionReader',
+              },
+              'ai.pickyour.android.preview.RagPipelineFormCheckpointTest': {
+                  'allTwelvePresenceCombinationsAndFiveOriginalIdentitiesSurviveActualParcelRoundTrip',
+                  'suppliedEmptyMalformedAndExactNumericTextRemainsPrivatePendingInput',
+                  'closedKeysAndExactPrimitiveTypesRejectMissingExtraAndCoercedPayloads',
+                  'namespacedVersionFormAndKindNeverAliasAnotherRecoveryProtocol',
+                  'rerankAbsenceFalseAndTrueRemainDistinctAndForgedAbsenceTrueIsRejected',
+                  'combinedTwentyThousandUtf16BudgetRejectsEitherOverflowWithoutKeepingAPrefix',
+                  'everyOriginalIdentityIsRequiredBoundedAndNeverReplacedWhileDecoding',
+                  'legacyRawComputeAndProviderRecoveriesKeepTheirSeparateOriginalReaders',
+                  'savingFlagRemainsRetainedStateAndDescriptionsNeverDiscloseInputValues',
+              },
+          }
+          for qualified, expected in required.items():
+              module = 'core' if qualified.startswith('ai.pickyour.core.') else 'preview'
+              task = 'test' if module == 'core' else 'testDebugUnitTest'
+              suite = ET.parse(pathlib.Path(module) / 'build/test-results' / task / ('TEST-' + qualified + '.xml')).getroot()
+              cases = suite.findall('testcase')
+              identities = [(case.attrib['classname'], case.attrib['name']) for case in cases]
+              if suite.attrib['name'] != qualified or set(identities) != {(qualified, name) for name in expected} or len(identities) != len(expected):
+                  raise SystemExit('Missing, unexpected or repeated typed RAG-pipeline regression')
+              if int(suite.attrib['tests']) != len(cases) or any(int(suite.attrib.get(key, '0')) != 0 for key in ('failures', 'errors', 'skipped')):
+                  raise SystemExit('Typed RAG-pipeline totals do not match passing execution')
+              if any(case.findall('failure') or case.findall('error') or case.findall('skipped') for case in cases):
+                  raise SystemExit('Typed RAG-pipeline regression did not pass')
+              print(f'Verified {len(cases)} {qualified} cases; no installed-device claim')
+          PYRAG
       - name: Require typed compute Activity and private recovery regressions
         run: |
           python - <<'PYCOMPUTE'
@@ -3263,6 +3354,30 @@ jobs:
               raise SystemExit('Revision comparison presentation regression did not pass')
           print(f'Verified {len(cases)} simulated revision comparison presentation tests; no installed-device claim')
           PYREVISIONTEXT
+      - name: Require catalog comparison caption regressions
+        run: |
+          python - <<'PYCOMPARISONTEXT'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          qualified = 'ai.pickyour.android.preview.CatalogComparisonPresentationTest'
+          expected = {
+              'ltrTrayIsolatesRtlNameAndVersionWithoutChangingExactPinRemoval',
+              'forcedRtlCaptionsUseScreenDirectionAndKeepLocalizedIndexAndRawState',
+              'valueNavigationKeepsCapturedSidesAndRetiresControlsWithIsolatedCaptions',
+              'unavailableTrayCaptionsKeepExactRecoveryPinsAndCurrentness',
+          }
+          report = pathlib.Path('preview/build/test-results/testDebugUnitTest') / ('TEST-' + qualified + '.xml')
+          suite = ET.parse(report).getroot()
+          cases = suite.findall('testcase')
+          identities = [(case.attrib['classname'], case.attrib['name']) for case in cases]
+          if suite.attrib['name'] != qualified or set(identities) != {(qualified, name) for name in expected} or len(identities) != len(expected):
+              raise SystemExit('Missing, unexpected or repeated catalog comparison caption regression')
+          if int(suite.attrib['tests']) != len(cases) or any(int(suite.attrib.get(key, '0')) != 0 for key in ('failures', 'errors', 'skipped')):
+              raise SystemExit('Catalog comparison caption suite did not execute cleanly')
+          if any(case.findall('failure') or case.findall('error') or case.findall('skipped') for case in cases):
+              raise SystemExit('Catalog comparison caption regression did not pass')
+          print(f'Verified {len(cases)} simulated catalog comparison caption tests; no installed-device claim')
+          PYCOMPARISONTEXT
       - name: Verify complete cost-inspection Activity attendance
         run: |
           python - <<'PY'
