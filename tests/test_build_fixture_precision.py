@@ -184,7 +184,7 @@ class BuildFixturePrecisionTests(unittest.TestCase):
         with self.copied_checkout() as root:
             for token in ("NaN", "Infinity", "-Infinity"):
                 with self.subTest(token=token):
-                    self.witness(root, ["extensions"], '{"untrusted":' + token + "}")
+                    self.witness(root, ["extensions"], '{"x_untrusted":' + token + "}")
                     result = self.run_checker(root)
                     self.assertNotEqual(0, result.returncode)
                     self.assertIn("Non-JSON numeric constant", result.stderr)
