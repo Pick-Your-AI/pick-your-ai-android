@@ -73,6 +73,12 @@ text or query values. Frozen/history decoding, retained records, role-only edits
 and replacement remain unchanged; this does not complete #99 or qualify exports,
 diagnostics, installed-device behavior or release.
 
+Fresh **Edit settings** for `model_provider` now offers
+[three typed optional controls](MODEL_PROVIDER_SETTINGS_EDITOR.md). They preserve
+literal Region text, including a supplied empty string, exact opaque credential
+references and admitted API base URIs. Each field remains absent until explicitly
+supplied. Raw Add and legacy raw Configure recovery retain their existing paths.
+
 New Activity captures of open add/settings forms also exclude positively
 recognized URI user information under the same five-field policy. They retain
 only a fixed exclusion reason, without clearing the live correction text or
