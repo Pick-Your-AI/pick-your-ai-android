@@ -29,6 +29,11 @@ It preserves exact counts and explicit absence through the existing managed
 save and private recovery paths. Declared settings do not establish hardware
 verification, capacity or compatibility.
 
+The [typed RAG-pipeline editor](RAG_PIPELINE_SETTINGS_EDITOR.md) configures the
+existing selection's optional Top K, maximum chunks and reranking choice. Exact
+integers, explicit false and absence remain distinct through managed save and
+private recovery. Saving these planning settings does not run retrieval or reranking.
+
 The launcher is the only exported component. The manifest requests no permissions,
 disables backup and cleartext traffic. Catalog and build structural validation run on a worker thread. A destroyed
 Activity discards worker results. An explicit saved-state Bundle carries bounded
