@@ -333,7 +333,8 @@ class PreviewActivity : Activity() {
         }
         content.addView(tierSection)
         compatibleOptions = CompatibleOptionsPicker(this, worker) { !destroyed && diagnosticsResumed }
-        componentSection = SelectionEditSection(this, ::commitSelection, ::showCompatibleOptions) {
+        componentSection = SelectionEditSection(this, ::commitSelection, ::showCompatibleOptions,
+            isResumed = { !destroyed && diagnosticsResumed }) {
             compatibleOptions.dismiss()
             invalidateCurrentChecks(PreviewCurrentUnavailable.EDITING)
             // The section has finished changing its form ownership before this read-only refresh.
@@ -1144,7 +1145,7 @@ class PreviewActivity : Activity() {
 
     private fun commitSelection(expected: PreviewStoredDraft, hash: String?, prepare: () -> PreviewSelectionPreparation,
         completed: (Boolean, String) -> Unit) {
-        if (destroyed || !storageReady || storageBusy || savedRecord !== expected || !matchesSaved() ||
+        if (destroyed || !diagnosticsResumed || !storageReady || storageBusy || savedRecord !== expected || !matchesSaved() ||
             hash != null && componentCatalog?.hash?.hex != hash) { completed(false, getString(R.string.draft_reconcile)); return }
         val id = currentDraftId
         val snapshot = componentCatalog
@@ -1741,12 +1742,14 @@ class PreviewActivity : Activity() {
     override fun onResume() {
         super.onResume()
         diagnosticsResumed = true
+        if (::componentSection.isInitialized) componentSection.resume()
         updateDraftSummary()
         updateCurrentChecks()
     }
 
     override fun onPause() {
         diagnosticsResumed = false
+        if (::componentSection.isInitialized) componentSection.pause()
         retireCatalogDetailInspection()
         retireHistoryInspection()
         invalidateCurrentChecks(PreviewCurrentUnavailable.BACKGROUND)
