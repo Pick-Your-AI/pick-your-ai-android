@@ -68,6 +68,14 @@ retain the frozen receiver and managed save authority. Raw ADD and legacy raw
 CONFIGURE recovery remain explicit; this records planning preferences without
 adding prices, currency conversion, alerts or spending-limit enforcement.
 
+Fresh CONFIGURE for `monitoring_stack` uses
+[three typed optional controls](MONITORING_STACK_SETTINGS_EDITOR.md): exact sample
+fraction, whole retention days and an opaque credential reference. Each preserves
+omission independently; the final complete Selection still uses the existing
+validation and managed save path. Newly captured typed recovery excludes
+unrecognized credential input without resolving any reference or activating
+monitoring. Raw Add and legacy raw Configure recovery remain explicit.
+
 For partial [#99](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/99),
 new add/settings input also rejects URI authority userinfo in the frozen
 `model_provider.api_base_url`, `model.weights_uri`, `mcp_server.endpoint`,

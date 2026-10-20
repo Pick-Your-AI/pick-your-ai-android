@@ -104,6 +104,7 @@ internal sealed interface ComponentFormRecovery {
     class TypedDeploymentTargetPending(val form: DeploymentTargetFormCheckpoint) : ComponentFormRecovery
     class TypedHostingPlatformPending(val form: HostingPlatformFormCheckpoint) : ComponentFormRecovery
     class TypedKnowledgeBasePending(val form: KnowledgeBaseFormCheckpoint) : ComponentFormRecovery
+    class TypedMonitoringStackPending(val form: MonitoringStackFormCheckpoint) : ComponentFormRecovery
 
     fun save(outState: Bundle) {
         outState.remove(KEY)
@@ -124,6 +125,7 @@ internal sealed interface ComponentFormRecovery {
             is TypedDeploymentTargetPending -> outState.putBundle(KEY, form.bundle() ?: unavailable())
             is TypedHostingPlatformPending -> outState.putBundle(KEY, form.bundle() ?: unavailable())
             is TypedKnowledgeBasePending -> outState.putBundle(KEY, form.bundle() ?: unavailable())
+            is TypedMonitoringStackPending -> outState.putBundle(KEY, form.bundle() ?: unavailable())
         }
     }
 
@@ -166,6 +168,8 @@ internal sealed interface ComponentFormRecovery {
                     HostingPlatformFormCheckpoint.read(value)?.let(::TypedHostingPlatformPending) ?: Unavailable
                 } else if (value.get("version") == KnowledgeBaseFormCheckpoint.VERSION) {
                     KnowledgeBaseFormCheckpoint.read(value)?.let(::TypedKnowledgeBasePending) ?: Unavailable
+                } else if (value.get("version") == MonitoringStackFormCheckpoint.VERSION) {
+                    MonitoringStackFormCheckpoint.read(value)?.let(::TypedMonitoringStackPending) ?: Unavailable
                 } else ComponentFormCheckpoint.read(value)?.let(::Pending) ?: Unavailable
             }
         } catch (_: RuntimeException) {

@@ -123,6 +123,7 @@ internal class SelectionEditSection(private val activity: Activity,
             recovery is ComponentFormRecovery.TypedEvaluationSuitePending ||
             recovery is ComponentFormRecovery.TypedTrainingComputePending ||
             recovery is ComponentFormRecovery.TypedCostPolicyPending ||
+            recovery is ComponentFormRecovery.TypedMonitoringStackPending ||
             recovery is ComponentFormRecovery.TypedModelProviderPending ||
             recovery is ComponentFormRecovery.TypedDeploymentTargetPending ||
             recovery is ComponentFormRecovery.TypedHostingPlatformPending ||
@@ -227,6 +228,10 @@ internal class SelectionEditSection(private val activity: Activity,
         }
         (recovery as? ComponentFormRecovery.TypedCostPolicyPending)?.let {
             reviewTypedCostPolicyInput(it.form)
+            return
+        }
+        (recovery as? ComponentFormRecovery.TypedMonitoringStackPending)?.let {
+            reviewTypedMonitoringStackInput(it.form)
             return
         }
         (recovery as? ComponentFormRecovery.TypedModelProviderPending)?.let {
@@ -476,6 +481,30 @@ internal class SelectionEditSection(private val activity: Activity,
             text = activity.getString(R.string.component_recovery_identity, pending.draftId, pending.selectionId)
         })
         layout.addView(CostPolicySettingsEditor.readOnly(activity, pending.input))
+        show(AlertDialog.Builder(activity).setTitle(R.string.component_recovery_review)
+            .setView(ScrollView(activity).apply { addView(layout) }).setNegativeButton(R.string.close, null).create())
+    }
+
+    private fun reviewTypedMonitoringStackInput(pending: MonitoringStackFormCheckpoint) {
+        val expected = baseline
+        val selection = expected?.components?.selections?.singleOrNull { it.id == pending.selectionId }
+        if (editable && expected != null && currentDraftId == pending.draftId &&
+            expected.baselineIdentity == pending.baseline && !pending.wasSaving &&
+            selection != null && selection.kind == PreviewMonitoringStackSettings.KIND &&
+            selection.catalogItemId == pending.catalogItemId && selection.catalogItemVersion == pending.catalogItemVersion) {
+            recovery = ComponentFormRecovery.None
+            update(baseline, editable)
+            monitoringStackSettingsForm(expected, selection, pending)
+            return
+        }
+        val layout = LinearLayout(activity).apply { orientation = VERTICAL }
+        layout.addView(TextView(activity).apply {
+            setText(if (pending.wasSaving) R.string.component_recovery_saving else R.string.component_recovery_changed)
+        })
+        layout.addView(TextView(activity).apply {
+            text = activity.getString(R.string.component_recovery_identity, pending.draftId, pending.selectionId)
+        })
+        layout.addView(MonitoringStackSettingsEditor.readOnly(activity, pending.input))
         show(AlertDialog.Builder(activity).setTitle(R.string.component_recovery_review)
             .setView(ScrollView(activity).apply { addView(layout) }).setNegativeButton(R.string.close, null).create())
     }
@@ -879,6 +908,10 @@ internal class SelectionEditSection(private val activity: Activity,
             knowledgeBaseSettingsForm(expected, selection)
             return
         }
+        if (restored == null && selection.kind == PreviewMonitoringStackSettings.KIND) {
+            monitoringStackSettingsForm(expected, selection)
+            return
+        }
         val layout = LinearLayout(activity).apply { orientation = VERTICAL }
         layout.addView(TextView(activity).apply { setText(R.string.component_settings_warning) })
         foundationGuidance(layout, selection.kind)
@@ -1243,6 +1276,52 @@ internal class SelectionEditSection(private val activity: Activity,
                 if (active(expected) && editor.input() == raw) editor.showIssues(result.get()?.issues.orEmpty())
             }) {
                 PreviewCostPolicySettings.configure(selection, raw).also(result::set).preparation
+            }
+        }
+    }
+
+    private fun monitoringStackSettingsForm(expected: PreviewStoredDraft, selection: LocalSelection,
+        restored: MonitoringStackFormCheckpoint? = null) {
+        if (!canOpen(expected) || selection.kind != PreviewMonitoringStackSettings.KIND) return
+        val draftId = requireNotNull(currentDraftId)
+        val layout = LinearLayout(activity).apply { orientation = VERTICAL }
+        layout.addView(TextView(activity).apply {
+            text = label(selection)
+            setSingleLine(false)
+            ellipsize = null
+            setTextIsSelectable(true)
+        })
+        layout.addView(TextView(activity).apply { setText(R.string.component_settings_warning) })
+        operationalGuidance(layout, selection.kind)
+        layout.addView(TextView(activity).apply { setText(R.string.monitoring_stack_recovery_guidance) })
+        lateinit var dialog: AlertDialog
+        val editor = MonitoringStackSettingsEditor(activity, restored?.input ?: PreviewMonitoringStackSettings.initial(selection)) {
+            active(expected) && open(dialog) && formBinding?.saving == false
+        }.also(layout::addView)
+        val feedback = feedback().also(layout::addView)
+        dialog = show(AlertDialog.Builder(activity).setTitle(R.string.monitoring_stack_settings_title)
+            .setView(ScrollView(activity).apply { addView(layout) })
+            .setNegativeButton(R.string.close, null).setPositiveButton(R.string.component_commit, null).create(), feedback)
+        val binding = FormBinding(dialog) { saving ->
+            MonitoringStackFormCheckpoint(draftId, expected.baselineIdentity, selection.id, selection.catalogItemId,
+                selection.catalogItemVersion, editor.input(), saving).recovery()
+        }
+        binding.onFreeze = editor::freeze
+        binding.onClose = editor::close
+        binding.onStateChange = {
+            editor.freeze(binding.saving || !active(expected))
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = !binding.saving && active(expected)
+        }
+        formBinding = binding
+        update(baseline, editable)
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+            if (!active(expected) || binding.saving) return@setOnClickListener
+            val raw = editor.input()
+            val result = java.util.concurrent.atomic.AtomicReference<PreviewMonitoringStackPreparation?>()
+            submit(dialog, expected, null, onRejected = {
+                if (active(expected) && editor.input() == raw) editor.showIssues(result.get()?.issues.orEmpty())
+            }) {
+                PreviewMonitoringStackSettings.configure(selection, raw).also(result::set).preparation
             }
         }
     }
