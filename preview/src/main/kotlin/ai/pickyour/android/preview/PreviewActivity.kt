@@ -337,7 +337,8 @@ class PreviewActivity : Activity() {
                 setDraftActivation(expected, tier, activation)
         }
         content.addView(tierSection)
-        compatibleOptions = CompatibleOptionsPicker(this, worker) { !destroyed && diagnosticsResumed }
+        compatibleOptions = CompatibleOptionsPicker(this, worker,
+            beforeInspect = { catalog.cancelViewportRestore(); prepareInspection() }) { !destroyed && diagnosticsResumed }
         componentSection = SelectionEditSection(this, ::commitSelection, ::showCompatibleOptions,
             isResumed = { !destroyed && diagnosticsResumed }) {
             compatibleOptions.dismiss()
@@ -1115,6 +1116,7 @@ class PreviewActivity : Activity() {
         retireStorageDialog()
         retireLegacyBackDialog()
         retireRevisionInspection()
+        if (::compatibleOptions.isInitialized) compatibleOptions.dismissInspection()
         if (::snapshots.isInitialized) snapshots.dismiss()
         if (::costInspection.isInitialized) costInspection.dismissInspection()
         if (::resourceInspection.isInitialized) resourceInspection.dismissInspection()

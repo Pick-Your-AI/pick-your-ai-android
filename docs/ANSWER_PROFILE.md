@@ -134,12 +134,21 @@ rejection into a pass, a known false fact or an automatic profile downgrade.
 | Regular expressions | At most 256 printable ASCII characters; literals, escaped punctuation, positive ASCII character classes, dot and start/end anchors; at most one quantified atom, requiring a start anchor; explicit finite repetition bounds at most 1,024 |
 | Unsupported regex forms | Groups, alternation, backreferences, shorthand/Unicode classes, negated classes, inline flags, repeated quantifiers and non-ASCII pattern source reject; this is a portable subset, not general Python/Java regex equivalence |
 | Reference resolution | Only the eight pinned bundled 2020-12 meta-schema resources and document-local references; arbitrary URL, file and classpath retrieval is denied |
+| Reference applications | At most 4,096 document-local `$ref` applications per provided-value read, including repeated applications of a cached target; exceeding the limit produces `INVALID_FIELD_SCHEMA` before a predicate runs |
 
 Portable regex/count syntax is checked at actual schema locations, including
 unused definitions, but never inside arbitrary annotations. The marker-specific
 policy remains lazy and reference-scoped. Progressing local recursive schemas
 are supported; a recursive application that cannot progress rejects, preserving
 the reference's failure instead of inventing a terminal finding.
+
+The reference-application counter is private to each read's validation context;
+independent and concurrent reads do not share it. It is checked before the
+referenced validator expands its target, so a compact branching schema cannot
+request unbounded repeated reference expansion during one read. Missing and
+unresolved values still do not compile or validate an unused field schema.
+This is a local work limit, not a bound on total heap use or a change to frozen
+schemas, retained input bytes, or the selected research profile.
 
 All original numeric tokens are checked before any read, including unread values.
 Plain integers remain exact within the token budget. Float tokens must preserve

@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="alternative_inspect" type="id" />
+    <item name="alternative_scope" type="id" />
+    <item name="alternative_overview" type="id" />
+    <item name="alternative_rules" type="id" />
+    <item name="alternative_records" type="id" />
+    <string name="alternative_inspect">Inspect current and alternative findings</string>
+    <string name="alternative_title">Current and alternative observations</string>
+    <string name="alternative_loading">Checking the saved current context and this one alternative using the captured catalog, rules and workload. No partial observations are shown.</string>
+    <string name="alternative_scope">These local rule observations compare the saved current context, one alternative, and the same slot left empty. Every rule is retained, including unchanged failures, unknown and skipped outcomes. An outcome change does not establish its cause or measured improvement. Browsing changes no draft or choice.</string>
+    <string name="alternative_limits">Free text objectives remain outside these checks. Evidence applicability, cost, resources, measured quality and runtime readiness are not established. Return to the choice picker to make a separate explicit selection.</string>
+    <string name="alternative_summary">Saved local revision %1$s. %2$d rule observations. Original choice verdict: %3$s.</string>
+    <string name="alternative_overview">Captured basis and limits</string>
+    <string name="alternative_rules">All rule observations (%1$d)</string>
+    <string name="alternative_records">Complete captured contexts and selections</string>
+    <string name="alternative_no_current">No saved selection occupies this exact slot. The current context still contains the other saved selections and workload.</string>
+    <string name="alternative_has_current">The saved selection in this exact slot is the current choice. The alternative preserves the captured slot identity, role, workload and other selections.</string>
+    <string name="alternative_slot_empty">The slot-empty basis removes this exact selection and its incident links. It explains the existing choice verdict; it does not replace the saved current context.</string>
+    <string name="alternative_context_format">Contexts contain decoded local values. Original file formatting is not represented. All private field groups remain bound to the saved source, including those the rules do not interpret.</string>
+    <string name="alternative_rule_row">Rule %1$d · current %2$s → alternative %3$s</string>
+    <string name="alternative_rule_title">Rule observation %1$d</string>
+    <string name="alternative_page">%1$s · page %2$d of %3$d</string>
+    <string name="alternative_back">Back</string>
+    <string name="alternative_next">Next page</string>
+    <string name="alternative_previous">Previous page</string>
+    <string name="alternative_next_part">Next part</string>
+    <string name="alternative_previous_part">Previous part</string>
+    <string name="alternative_retry">Retry this captured observation</string>
+    <string name="alternative_value">%1$s · part %2$d of %3$d\n\n%4$s\n\nComplete values are split into literal parts. No source text is opened or executed.</string>
+    <string name="alternative_text">Recorded text</string>
+    <string name="alternative_json">Captured local JSON</string>
+    <string name="alternative_boolean">Local comparison flag</string>
+    <string name="alternative_local">Local binding or explanation</string>
+    <string name="alternative_no_reason">No candidate reason was returned by the existing slot-empty comparison. The complete findings remain available here.</string>
+    <string name="alternative_pass">pass</string>
+    <string name="alternative_fail">fail</string>
+    <string name="alternative_unknown">unknown</string>
+    <string name="alternative_skipped">skipped</string>
+    <string name="alternative_unavailable">This captured comparison is unavailable. No rule rows or replacement authority are supplied. Close it to correct or reload the source, then recalculate the choice picker.</string>
+    <string name="alternative_dispatch_failed">The local worker could not accept the inspection. Retry explicitly while this captured choice is still current.</string>
+    <string name="alternative_invalid_input">A required captured input could not be read within its supported local format.</string>
+    <string name="alternative_binding_mismatch">The request, option or result does not belong to this exact captured choice.</string>
+    <string name="alternative_invalid_slot">The captured slot is no longer a supported choice context.</string>
+    <string name="alternative_baseline_unavailable">The captured slot-empty findings are unavailable.</string>
+    <string name="alternative_work_limit">The local evaluation reached its work bound. A partial comparison cannot be used.</string>
+    <string name="alternative_unsupported">A reached operation or operand is outside the local evaluator profile. It remains unresolved.</string>
+    <string name="alternative_invalid_output">The complete observations did not match the captured rules and original choice result.</string>
+    <string name="alternative_cancelled">This observation was cancelled.</string>
+    <string name="alternative_optional_unresolved">Optional tier intent must be resolved and saved before recalculating choices. Inspection never activates a tier.</string>
+    <string name="alternative_gap_objective">The free text objective is retained in the saved source and is not interpreted as a rule or policy.</string>
+    <string name="alternative_gap_evidence">No external evidence applicability decision is supplied for either choice.</string>
+    <string name="alternative_gap_cost">No comparable cost estimate is supplied for either choice; absence is not zero cost.</string>
+    <string name="alternative_gap_resource">No comparable resource estimate is supplied for either choice; absence is not sufficient capacity.</string>
+    <string name="alternative_gap_quality">No measured quality comparison is supplied.</string>
+    <string name="alternative_gap_readiness">No runtime readiness, deployment, promotion or permission is established.</string>
+</resources>
