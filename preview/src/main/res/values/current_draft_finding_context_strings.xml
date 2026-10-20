@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="current_finding_context">Inspect affected selections</string>
+    <string name="current_finding_context_page">Affected selections %1$d–%2$d of %3$d</string>
+    <string name="current_finding_context_next">Next selections</string>
+    <string name="current_finding_context_previous">Previous selections</string>
+    <string name="current_finding_context_back">Back to affected selections</string>
+    <string name="current_finding_context_empty">This finding reports no affected selection IDs. This does not identify a missing choice or establish readiness. No other selection is substituted.</string>
+    <string name="current_finding_selection_title">Captured saved selection</string>
+    <string name="current_finding_selection_fields">Selection ID: %1$s\nKind: %2$s\nRole: %3$s\nCatalog item: %4$s\nCaptured version: %5$s\nEnabled: %6$s\n\nThese are the saved values captured for this reported ID. Being listed here does not establish cause or a verified fix.</string>
+    <string name="current_finding_selection_unavailable">Context is unavailable for the reported selection %1$s because this saved record has no unique matching ID.</string>
+    <string name="current_finding_selection_back">Back to captured selection</string>
+    <string name="current_finding_version_full">Complete version</string>
+    <string name="current_finding_version_part">Captured version — part %1$d of %2$d</string>
+</resources>

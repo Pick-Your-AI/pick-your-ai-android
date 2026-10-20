@@ -60,6 +60,56 @@ jobs:
         run: sha256sum --check gradle/wrapper/wrapper.sha256
       - name: Compile and test JVM core
         run: ./gradlew --no-daemon --dependency-verification=strict --init-script scripts/runtime_inventory.init.gradle.kts :core:check :core:assemble runtimeInventory
+      - name: Require current and recorded provisional-guidance Core regressions
+        run: |
+          python - <<'PYCURRENTGUIDANCE'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          required = {
+              'ai.pickyour.core.evaluation.DraftCurrentProvisionalGuidanceTest': {
+                  'bothRegisteredProfilesUseRealEmptyCurrentFailureWithoutChangingFindings()',
+                  'realProviderConflictAndMissingFoundationKeepIndependentGuidance()',
+                  'realPassUnknownAndSkippedNeverAcquireProvisionalGuidance()',
+                  'disabledPrimaryAndEnabledFallbackRemainMissingRequiredPresence()',
+                  'optionalRequiredGuidanceAppearsOnlyForAnActuallyFailedActiveRule()',
+                  'changedRulesetIdentityMetadataAndOrderRefuseAllCurrentFacets()',
+                  'objectKeyOrderDoesNotChangeTheRegisteredCurrentProfile()',
+                  'callerMutationCannotChangeCapturedRulesFindingsOrGuidance()',
+                  'removedAndDisabledPredecessorIdsCannotSupplyCurrentPresence()',
+                  'unavailableCurrentAttemptsDoNotProduceGuidanceBearingOutcomes()',
+              },
+              'ai.pickyour.core.evaluation.ProvisionalFindingGuidanceTest': {
+                  'both exact profiles recognize the same failed presence and fit contexts()',
+                  'pass unknown and skipped never acquire either provisional label()',
+                  'all required conjunction rows need an actual failure and a missing primary choice()',
+                  'present choice failures use only the finite fit inventory and leave other rules unclassified()',
+                  'overlapping required and fit rows distinguish absence from a reported conflict()',
+                  'object key order is irrelevant while rules and expression array order stay pinned()',
+                  'unrecognized identity and changed metadata cannot borrow the registered rules()',
+                  'raw floating types cannot impersonate integral pinned operands()',
+                  'duplicate IDs including disabled rows withhold every guidance facet()',
+                  'ambiguous referenced roles are withheld while an independent missing choice remains visible()',
+                  'fallback and disabled selections never substitute for the required primary()',
+                  'captured guidance stays with its admitted Build and exposes no private source fields()',
+              },
+          }
+          total = 0
+          for name, expected in required.items():
+              path = pathlib.Path('core/build/test-results/test') / f"TEST-{name}.xml"
+              suite = ET.parse(path).getroot()
+              cases = suite.findall("testcase")
+              names = [case.attrib.get("name", "") for case in cases]
+              if suite.tag != "testsuite" or suite.attrib.get("name") != name or any(case.attrib.get("classname") != name for case in cases):
+                  raise SystemExit('Foreign current and recorded provisional-guidance report')
+              if len(cases) != len(list(suite.iter("testcase"))) or any(not item.strip() for item in names) or len(names) != len(set(names)) or not expected.issubset(names):
+                  raise SystemExit('Missing, empty, nested or repeated current and recorded provisional-guidance regression')
+              if int(suite.attrib.get("tests", "-1")) != len(cases) or any(int(suite.attrib.get(key, "-1")) != 0 for key in ("failures", "errors", "skipped")):
+                  raise SystemExit('Current and recorded provisional-guidance totals did not pass')
+              if any(case.find(".//" + tag) is not None for case in cases for tag in ("failure", "error", "skipped")):
+                  raise SystemExit('Current and recorded provisional-guidance regression did not execute successfully')
+              total += len(cases)
+          print(f"Verified {total} distinct passing current and recorded provisional-guidance cases across {len(required)} suites; no installed-device claim")
+          PYCURRENTGUIDANCE
       - name: Require current-draft binding and invalidation Core regressions
         run: |
           python - <<'PYCURRENT'
@@ -2346,6 +2396,98 @@ jobs:
               raise SystemExit("Current-finding full-text regression did not execute successfully")
           print(f"Verified {len(cases)} distinct passing current-finding full-text cases, including all {len(required)} required names; no installed-device claim")
           PYFINDINGTEXT
+      - name: Require actual current-finding affected-selection regressions
+        run: |
+          python - <<'PYFINDINGCONTEXT'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          name = "ai.pickyour.android.preview.CurrentDraftFindingContextActivityTest"
+          required = {
+              "actualCurrentContextResolvesReportedRolesAndVersionsWithoutWrites",
+              "completeVersionPreservesEveryEscapedUtf16PartAndTail",
+              "noAffectedIdsRemainExplicitWithoutInventingMissingChoices",
+              "contextListPagingAndBackKeepTheSameFindingAndSelection",
+              "dismissedAndSupersededContextControlsNeverRevive",
+              "siblingEntryRetiresContextRowsAndVersionCallbacks",
+              "retryAndInputReplacementRetireContextBeforeFreshPublication",
+              "savedReplacementAndDisableNeverRedirectOldContext",
+              "storeSwitchPauseAndRecreationCannotRestoreContextAuthority",
+              "narrowLargeTextKeepsContextActionMessageAndExistingButtonsReachable",
+          }
+          path = pathlib.Path("preview/build/test-results/testDebugUnitTest") / f"TEST-{name}.xml"
+          suite = ET.parse(path).getroot()
+          cases = suite.findall("testcase")
+          names = [case.attrib.get("name", "") for case in cases]
+          if suite.tag != "testsuite" or suite.attrib.get("name") != name or any(case.attrib.get("classname") != name for case in cases):
+              raise SystemExit("Foreign current-finding affected-selection report")
+          if len(cases) != len(list(suite.iter("testcase"))) or any(not item.strip() for item in names) or len(names) != len(set(names)) or not required.issubset(names):
+              raise SystemExit("Missing, empty, nested or repeated current-finding affected-selection regression")
+          if int(suite.attrib.get("tests", "-1")) != len(cases) or any(int(suite.attrib.get(key, "-1")) != 0 for key in ("failures", "errors", "skipped")):
+              raise SystemExit("Current-finding affected-selection totals did not pass")
+          if any(case.find(".//" + tag) is not None for case in cases for tag in ("failure", "error", "skipped")):
+              raise SystemExit("Current-finding affected-selection regression did not execute successfully")
+          print(f"Verified {len(cases)} distinct passing current-finding affected-selection cases, including all {len(required)} required names; no installed-device claim")
+          PYFINDINGCONTEXT
+      - name: Require actual current-finding outcome-meaning regressions
+        run: |
+          python - <<'PYFINDINGOUTCOME'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          name = "ai.pickyour.android.preview.CurrentDraftFindingOutcomeActivityTest"
+          required = {
+              "unresolvedApplicabilityExplainsUnknownWithoutRewritingWarningOrRecordedText",
+              "unresolvedEligibleAssertionHasTheSameUnknownMeaningWithoutInferringACause",
+              "falseApplicabilityExplainsSkippedWithoutPromotingErrorSeverityToFailureOrPass",
+              "naturalFailKeepsItsExactOriginalDetailDespiteMisleadingRecordedStatusWords",
+              "admittedSyntheticPassKeepsItsExactOriginalDetailDespiteErrorSeverity",
+          }
+          path = pathlib.Path("preview/build/test-results/testDebugUnitTest") / f"TEST-{name}.xml"
+          suite = ET.parse(path).getroot()
+          cases = suite.findall("testcase")
+          names = [case.attrib.get("name", "") for case in cases]
+          if suite.tag != "testsuite" or suite.attrib.get("name") != name or any(case.attrib.get("classname") != name for case in cases):
+              raise SystemExit("Foreign current-finding outcome-meaning report")
+          if len(cases) != len(list(suite.iter("testcase"))) or any(not item.strip() for item in names) or len(names) != len(set(names)) or not required.issubset(names):
+              raise SystemExit("Missing, empty, nested or repeated current-finding outcome-meaning regression")
+          if int(suite.attrib.get("tests", "-1")) != len(cases) or any(int(suite.attrib.get(key, "-1")) != 0 for key in ("failures", "errors", "skipped")):
+              raise SystemExit("Current-finding outcome-meaning totals did not pass")
+          if any(case.find(".//" + tag) is not None for case in cases for tag in ("failure", "error", "skipped")):
+              raise SystemExit("Current-finding outcome-meaning regression did not execute successfully")
+          print(f"Verified {len(cases)} distinct passing current-finding outcome-meaning cases, including all {len(required)} required names; no installed-device claim")
+          PYFINDINGOUTCOME
+      - name: Require actual current provisional-guidance Activity regressions
+        run: |
+          python - <<'PYACTIVITYGUIDANCE'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          required = {
+              'ai.pickyour.android.preview.CurrentDraftProvisionalGuidanceActivityTest': {
+                  'emptyCurrentFailureShowsProvisionalIncompleteWithoutChangingItsVerdict',
+                  'mixedCurrentShowsReportedConflictAlongsideIndependentMissingChoices',
+                  'disabledPrimaryAndEnabledFallbackNeverSatisfyRequiredPresence',
+                  'realUnknownKeepsItsRawOutcomeAndMeaningWithoutProvisionalGuidance',
+                  'realSkippedKeepsItsRawOutcomeAndMeaningWithoutProvisionalGuidance',
+                  'matchingProviderPassNeverAcquiresConflictOrIncompleteGuidance',
+                  'changedRegisteredRulesCannotBorrowProvisionalGuidance',
+              },
+          }
+          total = 0
+          for name, expected in required.items():
+              path = pathlib.Path('preview/build/test-results/testDebugUnitTest') / f"TEST-{name}.xml"
+              suite = ET.parse(path).getroot()
+              cases = suite.findall("testcase")
+              names = [case.attrib.get("name", "") for case in cases]
+              if suite.tag != "testsuite" or suite.attrib.get("name") != name or any(case.attrib.get("classname") != name for case in cases):
+                  raise SystemExit('Foreign current provisional-guidance Activity report')
+              if len(cases) != len(list(suite.iter("testcase"))) or any(not item.strip() for item in names) or len(names) != len(set(names)) or not expected.issubset(names):
+                  raise SystemExit('Missing, empty, nested or repeated current provisional-guidance Activity regression')
+              if int(suite.attrib.get("tests", "-1")) != len(cases) or any(int(suite.attrib.get(key, "-1")) != 0 for key in ("failures", "errors", "skipped")):
+                  raise SystemExit('Current provisional-guidance activity totals did not pass')
+              if any(case.find(".//" + tag) is not None for case in cases for tag in ("failure", "error", "skipped")):
+                  raise SystemExit('Current provisional-guidance activity regression did not execute successfully')
+              total += len(cases)
+          print(f"Verified {total} distinct passing current provisional-guidance Activity cases across {len(required)} suites; no installed-device claim")
+          PYACTIVITYGUIDANCE
       - name: Require alternative sibling inspection retirement regressions
         run: |
           python - <<'PYALTERNATIVESIBLING'
