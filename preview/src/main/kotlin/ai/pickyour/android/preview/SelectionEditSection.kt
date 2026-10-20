@@ -117,10 +117,15 @@ internal class SelectionEditSection(private val activity: Activity,
         })
         reviewRecovery.visibility = if (recovery is ComponentFormRecovery.Pending ||
             recovery is ComponentFormRecovery.TypedContextPending || recovery is ComponentFormRecovery.TypedModelPending ||
+            recovery is ComponentFormRecovery.TypedEmbeddingModelPending ||
             recovery is ComponentFormRecovery.TypedWorkloadSelectionPending ||
             recovery is ComponentFormRecovery.TypedComputePending ||
             recovery is ComponentFormRecovery.TypedCostPolicyPending ||
+            recovery is ComponentFormRecovery.TypedInferencePending ||
+            recovery is ComponentFormRecovery.TypedAcceleratorPending ||
             recovery is ComponentFormRecovery.TypedModelProviderPending ||
+            recovery is ComponentFormRecovery.TypedAgentFrameworkPending ||
+            recovery is ComponentFormRecovery.TypedRagPipelinePending ||
             recovery is ComponentFormRecovery.TypedDeploymentTargetPending) View.VISIBLE else View.GONE
         discardRecovery.visibility = if (noRecovery) View.GONE else View.VISIBLE
         reviewRecovery.isEnabled = foreground
@@ -200,12 +205,24 @@ internal class SelectionEditSection(private val activity: Activity,
             reviewTypedModelInput(it.form)
             return
         }
+        (recovery as? ComponentFormRecovery.TypedEmbeddingModelPending)?.let {
+            reviewTypedEmbeddingModelInput(it.form)
+            return
+        }
         (recovery as? ComponentFormRecovery.TypedWorkloadSelectionPending)?.let {
             reviewTypedWorkloadSelectionInput(it.form)
             return
         }
         (recovery as? ComponentFormRecovery.TypedComputePending)?.let {
             reviewTypedComputeInput(it.form)
+            return
+        }
+        (recovery as? ComponentFormRecovery.TypedInferencePending)?.let {
+            reviewTypedInferenceInput(it.form)
+            return
+        }
+        (recovery as? ComponentFormRecovery.TypedAcceleratorPending)?.let {
+            reviewTypedAcceleratorInput(it.form)
             return
         }
         (recovery as? ComponentFormRecovery.TypedCostPolicyPending)?.let {
@@ -218,6 +235,14 @@ internal class SelectionEditSection(private val activity: Activity,
         }
         (recovery as? ComponentFormRecovery.TypedDeploymentTargetPending)?.let {
             reviewTypedDeploymentTargetInput(it.form)
+            return
+        }
+        (recovery as? ComponentFormRecovery.TypedRagPipelinePending)?.let {
+            reviewTypedRagPipelineInput(it.form)
+            return
+        }
+        (recovery as? ComponentFormRecovery.TypedAgentFrameworkPending)?.let {
+            reviewTypedAgentFrameworkInput(it.form)
             return
         }
         val pending = (recovery as? ComponentFormRecovery.Pending)?.form ?: return
@@ -359,6 +384,78 @@ internal class SelectionEditSection(private val activity: Activity,
             .setView(ScrollView(activity).apply { addView(layout) }).setNegativeButton(R.string.close, null).create())
     }
 
+    private fun reviewTypedInferenceInput(pending: InferenceFormCheckpoint) {
+        val expected = baseline
+        val selection = expected?.components?.selections?.singleOrNull { it.id == pending.selectionId }
+        if (editable && expected != null && currentDraftId == pending.draftId &&
+            expected.baselineIdentity == pending.baseline && !pending.wasSaving &&
+            selection != null && selection.kind == PreviewInferenceSettings.KIND &&
+            selection.catalogItemId == pending.catalogItemId && selection.catalogItemVersion == pending.catalogItemVersion) {
+            recovery = ComponentFormRecovery.None
+            update(baseline, editable)
+            inferenceSettingsForm(expected, selection, pending)
+            return
+        }
+        val layout = LinearLayout(activity).apply { orientation = VERTICAL }
+        layout.addView(TextView(activity).apply {
+            setText(if (pending.wasSaving) R.string.component_recovery_saving else R.string.component_recovery_changed)
+        })
+        layout.addView(TextView(activity).apply {
+            text = activity.getString(R.string.component_recovery_identity, pending.draftId, pending.selectionId)
+        })
+        layout.addView(InferenceSettingsEditor.readOnly(activity, pending.input))
+        show(AlertDialog.Builder(activity).setTitle(R.string.component_recovery_review)
+            .setView(ScrollView(activity).apply { addView(layout) }).setNegativeButton(R.string.close, null).create())
+    }
+
+    private fun reviewTypedAcceleratorInput(pending: AcceleratorFormCheckpoint) {
+        val expected = baseline
+        val selection = expected?.components?.selections?.singleOrNull { it.id == pending.selectionId }
+        if (editable && expected != null && currentDraftId == pending.draftId &&
+            expected.baselineIdentity == pending.baseline && !pending.wasSaving &&
+            selection != null && selection.kind == PreviewAcceleratorSettings.KIND &&
+            selection.catalogItemId == pending.catalogItemId && selection.catalogItemVersion == pending.catalogItemVersion) {
+            recovery = ComponentFormRecovery.None
+            update(baseline, editable)
+            acceleratorSettingsForm(expected, selection, pending)
+            return
+        }
+        val layout = LinearLayout(activity).apply { orientation = VERTICAL }
+        layout.addView(TextView(activity).apply {
+            setText(if (pending.wasSaving) R.string.component_recovery_saving else R.string.component_recovery_changed)
+        })
+        layout.addView(TextView(activity).apply {
+            text = activity.getString(R.string.component_recovery_identity, pending.draftId, pending.selectionId)
+        })
+        layout.addView(AcceleratorSettingsEditor.readOnly(activity, pending.input))
+        show(AlertDialog.Builder(activity).setTitle(R.string.component_recovery_review)
+            .setView(ScrollView(activity).apply { addView(layout) }).setNegativeButton(R.string.close, null).create())
+    }
+
+    private fun reviewTypedEmbeddingModelInput(pending: EmbeddingModelFormCheckpoint) {
+        val expected = baseline
+        val selection = expected?.components?.selections?.singleOrNull { it.id == pending.selectionId }
+        if (editable && expected != null && currentDraftId == pending.draftId &&
+            expected.baselineIdentity == pending.baseline && !pending.wasSaving &&
+            selection != null && selection.kind == PreviewEmbeddingModelSettings.KIND &&
+            selection.catalogItemId == pending.catalogItemId && selection.catalogItemVersion == pending.catalogItemVersion) {
+            recovery = ComponentFormRecovery.None
+            update(baseline, editable)
+            embeddingModelSettingsForm(expected, selection, pending)
+            return
+        }
+        val layout = LinearLayout(activity).apply { orientation = VERTICAL }
+        layout.addView(TextView(activity).apply {
+            setText(if (pending.wasSaving) R.string.component_recovery_saving else R.string.component_recovery_changed)
+        })
+        layout.addView(TextView(activity).apply {
+            text = activity.getString(R.string.component_recovery_identity, pending.draftId, pending.selectionId)
+        })
+        layout.addView(EmbeddingModelSettingsEditor.readOnly(activity, pending.input))
+        show(AlertDialog.Builder(activity).setTitle(R.string.component_recovery_review)
+            .setView(ScrollView(activity).apply { addView(layout) }).setNegativeButton(R.string.close, null).create())
+    }
+
     private fun reviewTypedCostPolicyInput(pending: CostPolicyFormCheckpoint) {
         val expected = baseline
         val selection = expected?.components?.selections?.singleOrNull { it.id == pending.selectionId }
@@ -427,6 +524,54 @@ internal class SelectionEditSection(private val activity: Activity,
             text = activity.getString(R.string.component_recovery_identity, pending.draftId, pending.selectionId)
         })
         layout.addView(DeploymentTargetSettingsEditor.readOnly(activity, pending.input))
+        show(AlertDialog.Builder(activity).setTitle(R.string.component_recovery_review)
+            .setView(ScrollView(activity).apply { addView(layout) }).setNegativeButton(R.string.close, null).create())
+    }
+
+    private fun reviewTypedRagPipelineInput(pending: RagPipelineFormCheckpoint) {
+        val expected = baseline
+        val selection = expected?.components?.selections?.singleOrNull { it.id == pending.selectionId }
+        if (editable && expected != null && currentDraftId == pending.draftId &&
+            expected.baselineIdentity == pending.baseline && !pending.wasSaving &&
+            selection != null && selection.kind == PreviewRagPipelineSettings.KIND &&
+            selection.catalogItemId == pending.catalogItemId && selection.catalogItemVersion == pending.catalogItemVersion) {
+            recovery = ComponentFormRecovery.None
+            update(baseline, editable)
+            ragPipelineSettingsForm(expected, selection, pending)
+            return
+        }
+        val layout = LinearLayout(activity).apply { orientation = VERTICAL }
+        layout.addView(TextView(activity).apply {
+            setText(if (pending.wasSaving) R.string.component_recovery_saving else R.string.component_recovery_changed)
+        })
+        layout.addView(TextView(activity).apply {
+            text = activity.getString(R.string.component_recovery_identity, pending.draftId, pending.selectionId)
+        })
+        layout.addView(RagPipelineSettingsEditor.readOnly(activity, pending.input))
+        show(AlertDialog.Builder(activity).setTitle(R.string.component_recovery_review)
+            .setView(ScrollView(activity).apply { addView(layout) }).setNegativeButton(R.string.close, null).create())
+    }
+
+    private fun reviewTypedAgentFrameworkInput(pending: AgentFrameworkFormCheckpoint) {
+        val expected = baseline
+        val selection = expected?.components?.selections?.singleOrNull { it.id == pending.selectionId }
+        if (editable && expected != null && currentDraftId == pending.draftId &&
+            expected.baselineIdentity == pending.baseline && !pending.wasSaving &&
+            selection != null && selection.kind == PreviewAgentFrameworkSettings.KIND &&
+            selection.catalogItemId == pending.catalogItemId && selection.catalogItemVersion == pending.catalogItemVersion) {
+            recovery = ComponentFormRecovery.None
+            update(baseline, editable)
+            agentFrameworkSettingsForm(expected, selection, pending)
+            return
+        }
+        val layout = LinearLayout(activity).apply { orientation = VERTICAL }
+        layout.addView(TextView(activity).apply {
+            setText(if (pending.wasSaving) R.string.component_recovery_saving else R.string.component_recovery_changed)
+        })
+        layout.addView(TextView(activity).apply {
+            text = activity.getString(R.string.component_recovery_identity, pending.draftId, pending.selectionId)
+        })
+        layout.addView(AgentFrameworkSettingsEditor.readOnly(activity, pending.input))
         show(AlertDialog.Builder(activity).setTitle(R.string.component_recovery_review)
             .setView(ScrollView(activity).apply { addView(layout) }).setNegativeButton(R.string.close, null).create())
     }
@@ -686,6 +831,10 @@ internal class SelectionEditSection(private val activity: Activity,
                 .setNegativeButton(R.string.close, null).create())
             return
         }
+        if (restored == null && selection.kind == PreviewAcceleratorSettings.KIND) {
+            acceleratorSettingsForm(expected, selection)
+            return
+        }
         if (restored == null && selection.kind == PreviewWorkloadSelectionSettings.KIND) {
             workloadSelectionSettingsForm(expected, selection)
             return
@@ -694,8 +843,24 @@ internal class SelectionEditSection(private val activity: Activity,
             modelSettingsForm(expected, selection)
             return
         }
+        if (restored == null && selection.kind == PreviewEmbeddingModelSettings.KIND) {
+            embeddingModelSettingsForm(expected, selection)
+            return
+        }
+        if (restored == null && selection.kind == PreviewInferenceSettings.KIND) {
+            inferenceSettingsForm(expected, selection)
+            return
+        }
         if (restored == null && selection.kind == PreviewModelProviderSettings.KIND) {
             modelProviderSettingsForm(expected, selection)
+            return
+        }
+        if (restored == null && selection.kind == PreviewRagPipelineSettings.KIND) {
+            ragPipelineSettingsForm(expected, selection)
+            return
+        }
+        if (restored == null && selection.kind == PreviewAgentFrameworkSettings.KIND) {
+            agentFrameworkSettingsForm(expected, selection)
             return
         }
         if (restored == null && selection.kind == PreviewContextPolicySettings.KIND) {
@@ -902,6 +1067,124 @@ internal class SelectionEditSection(private val activity: Activity,
         }
     }
 
+    private fun inferenceSettingsForm(expected: PreviewStoredDraft, selection: LocalSelection,
+        restored: InferenceFormCheckpoint? = null) {
+        if (!canOpen(expected) || selection.kind != PreviewInferenceSettings.KIND) return
+        val draftId = requireNotNull(currentDraftId)
+        val layout = LinearLayout(activity).apply { orientation = VERTICAL }
+        layout.addView(TextView(activity).apply { setText(R.string.component_settings_warning) })
+        layout.addView(TextView(activity).apply { setText(R.string.inference_recovery_guidance) })
+        lateinit var dialog: AlertDialog
+        val editor = InferenceSettingsEditor(activity, restored?.input ?: PreviewInferenceSettings.initial(selection)) {
+            active(expected) && open(dialog) && formBinding?.saving == false
+        }.also(layout::addView)
+        val feedback = feedback().also(layout::addView)
+        dialog = show(AlertDialog.Builder(activity).setTitle(label(selection))
+            .setView(ScrollView(activity).apply { addView(layout) })
+            .setNegativeButton(R.string.close, null).setPositiveButton(R.string.component_commit, null).create(), feedback)
+        val binding = FormBinding(dialog) { saving ->
+            InferenceFormCheckpoint(draftId, expected.baselineIdentity, selection.id, selection.catalogItemId,
+                selection.catalogItemVersion, editor.input(), saving).recovery()
+        }
+        binding.onFreeze = editor::freeze
+        binding.onClose = editor::close
+        binding.onStateChange = {
+            editor.freeze(binding.saving || !active(expected))
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = !binding.saving && active(expected)
+        }
+        formBinding = binding
+        update(baseline, editable)
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+            if (!active(expected) || binding.saving) return@setOnClickListener
+            val raw = editor.input()
+            val result = java.util.concurrent.atomic.AtomicReference<PreviewInferencePreparation?>()
+            submit(dialog, expected, null, onRejected = {
+                if (active(expected) && editor.input() == raw) editor.showIssues(result.get()?.issues.orEmpty())
+            }) {
+                PreviewInferenceSettings.configure(selection, raw).also(result::set).preparation
+            }
+        }
+    }
+
+    private fun acceleratorSettingsForm(expected: PreviewStoredDraft, selection: LocalSelection,
+        restored: AcceleratorFormCheckpoint? = null) {
+        if (!canOpen(expected) || selection.kind != PreviewAcceleratorSettings.KIND) return
+        val draftId = requireNotNull(currentDraftId)
+        val layout = LinearLayout(activity).apply { orientation = VERTICAL }
+        layout.addView(TextView(activity).apply { setText(R.string.component_settings_warning) })
+        layout.addView(TextView(activity).apply { setText(R.string.component_recovery_limit) })
+        lateinit var dialog: AlertDialog
+        val editor = AcceleratorSettingsEditor(activity, restored?.input ?: PreviewAcceleratorSettings.initial(selection)) {
+            active(expected) && open(dialog) && formBinding?.saving == false
+        }.also(layout::addView)
+        val feedback = feedback().also(layout::addView)
+        dialog = show(AlertDialog.Builder(activity).setTitle(label(selection))
+            .setView(ScrollView(activity).apply { addView(layout) })
+            .setNegativeButton(R.string.close, null).setPositiveButton(R.string.component_commit, null).create(), feedback)
+        val binding = FormBinding(dialog) { saving ->
+            AcceleratorFormCheckpoint(draftId, expected.baselineIdentity, selection.id, selection.catalogItemId,
+                selection.catalogItemVersion, editor.input(), saving).recovery()
+        }
+        binding.onFreeze = editor::freeze
+        binding.onClose = editor::close
+        binding.onStateChange = {
+            editor.freeze(binding.saving || !active(expected))
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = !binding.saving && active(expected)
+        }
+        formBinding = binding
+        update(baseline, editable)
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+            if (!active(expected) || binding.saving) return@setOnClickListener
+            val raw = editor.input()
+            val result = java.util.concurrent.atomic.AtomicReference<PreviewAcceleratorPreparation?>()
+            submit(dialog, expected, null, onRejected = {
+                if (active(expected) && editor.input() == raw) editor.showIssues(result.get()?.issues.orEmpty())
+            }) {
+                PreviewAcceleratorSettings.configure(selection, raw).also(result::set).preparation
+            }
+        }
+    }
+
+    private fun embeddingModelSettingsForm(expected: PreviewStoredDraft, selection: LocalSelection,
+        restored: EmbeddingModelFormCheckpoint? = null) {
+        if (!canOpen(expected) || selection.kind != PreviewEmbeddingModelSettings.KIND) return
+        val draftId = requireNotNull(currentDraftId)
+        val layout = LinearLayout(activity).apply { orientation = VERTICAL }
+        layout.addView(TextView(activity).apply { setText(R.string.component_settings_warning) })
+        retrievalGuidance(layout, selection.kind)
+        layout.addView(TextView(activity).apply { setText(R.string.embedding_model_recovery_guidance) })
+        lateinit var dialog: AlertDialog
+        val editor = EmbeddingModelSettingsEditor(activity, restored?.input ?: PreviewEmbeddingModelSettings.initial(selection)) {
+            active(expected) && open(dialog) && formBinding?.saving == false
+        }.also(layout::addView)
+        val feedback = feedback().also(layout::addView)
+        dialog = show(AlertDialog.Builder(activity).setTitle(label(selection))
+            .setView(ScrollView(activity).apply { addView(layout) })
+            .setNegativeButton(R.string.close, null).setPositiveButton(R.string.component_commit, null).create(), feedback)
+        val binding = FormBinding(dialog) { saving ->
+            EmbeddingModelFormCheckpoint(draftId, expected.baselineIdentity, selection.id, selection.catalogItemId,
+                selection.catalogItemVersion, editor.input(), saving).recovery()
+        }
+        binding.onFreeze = editor::freeze
+        binding.onClose = editor::close
+        binding.onStateChange = {
+            editor.freeze(binding.saving || !active(expected))
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = !binding.saving && active(expected)
+        }
+        formBinding = binding
+        update(baseline, editable)
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+            if (!active(expected) || binding.saving) return@setOnClickListener
+            val raw = editor.input()
+            val result = java.util.concurrent.atomic.AtomicReference<PreviewEmbeddingModelPreparation?>()
+            submit(dialog, expected, null, onRejected = {
+                if (active(expected) && editor.input() == raw) editor.showIssues(result.get()?.issues.orEmpty())
+            }) {
+                PreviewEmbeddingModelSettings.configure(selection, raw).also(result::set).preparation
+            }
+        }
+    }
+
     private fun costPolicySettingsForm(expected: PreviewStoredDraft, selection: LocalSelection,
         restored: CostPolicyFormCheckpoint? = null) {
         if (!canOpen(expected) || selection.kind != PreviewCostPolicySettings.KIND) return
@@ -1028,6 +1311,86 @@ internal class SelectionEditSection(private val activity: Activity,
                 if (active(expected) && editor.input() == raw) editor.showIssues(result.get()?.issues.orEmpty())
             }) {
                 PreviewDeploymentTargetSettings.configure(selection, raw).also(result::set).preparation
+            }
+        }
+    }
+
+    private fun ragPipelineSettingsForm(expected: PreviewStoredDraft, selection: LocalSelection,
+        restored: RagPipelineFormCheckpoint? = null) {
+        if (!canOpen(expected) || selection.kind != PreviewRagPipelineSettings.KIND) return
+        val draftId = requireNotNull(currentDraftId)
+        val layout = LinearLayout(activity).apply { orientation = VERTICAL }
+        layout.addView(TextView(activity).apply { setText(R.string.component_settings_warning) })
+        retrievalGuidance(layout, selection.kind)
+        layout.addView(TextView(activity).apply { setText(R.string.rag_pipeline_recovery_guidance) })
+        lateinit var dialog: AlertDialog
+        val editor = RagPipelineSettingsEditor(activity, restored?.input ?: PreviewRagPipelineSettings.initial(selection)) {
+            active(expected) && open(dialog) && formBinding?.saving == false
+        }.also(layout::addView)
+        val feedback = feedback().also(layout::addView)
+        dialog = show(AlertDialog.Builder(activity).setTitle(label(selection))
+            .setView(ScrollView(activity).apply { addView(layout) })
+            .setNegativeButton(R.string.close, null).setPositiveButton(R.string.component_commit, null).create(), feedback)
+        val binding = FormBinding(dialog) { saving ->
+            RagPipelineFormCheckpoint(draftId, expected.baselineIdentity, selection.id, selection.catalogItemId,
+                selection.catalogItemVersion, editor.input(), saving).recovery()
+        }
+        binding.onFreeze = editor::freeze
+        binding.onClose = editor::close
+        binding.onStateChange = {
+            editor.freeze(binding.saving || !active(expected))
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = !binding.saving && active(expected)
+        }
+        formBinding = binding
+        update(baseline, editable)
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+            if (!active(expected) || binding.saving) return@setOnClickListener
+            val raw = editor.input()
+            val result = java.util.concurrent.atomic.AtomicReference<PreviewRagPipelinePreparation?>()
+            submit(dialog, expected, null, onRejected = {
+                if (active(expected) && editor.input() == raw) editor.showIssues(result.get()?.issues.orEmpty())
+            }) {
+                PreviewRagPipelineSettings.configure(selection, raw).also(result::set).preparation
+            }
+        }
+    }
+
+    private fun agentFrameworkSettingsForm(expected: PreviewStoredDraft, selection: LocalSelection,
+        restored: AgentFrameworkFormCheckpoint? = null) {
+        if (!canOpen(expected) || selection.kind != PreviewAgentFrameworkSettings.KIND) return
+        val draftId = requireNotNull(currentDraftId)
+        val layout = LinearLayout(activity).apply { orientation = VERTICAL }
+        layout.addView(TextView(activity).apply { setText(R.string.component_settings_warning) })
+        agentGuidance(layout, selection.kind)
+        layout.addView(TextView(activity).apply { setText(R.string.agent_framework_recovery_guidance) })
+        lateinit var dialog: AlertDialog
+        val editor = AgentFrameworkSettingsEditor(activity, restored?.input ?: PreviewAgentFrameworkSettings.initial(selection)) {
+            active(expected) && open(dialog) && formBinding?.saving == false
+        }.also(layout::addView)
+        val feedback = feedback().also(layout::addView)
+        dialog = show(AlertDialog.Builder(activity).setTitle(label(selection))
+            .setView(ScrollView(activity).apply { addView(layout) })
+            .setNegativeButton(R.string.close, null).setPositiveButton(R.string.component_commit, null).create(), feedback)
+        val binding = FormBinding(dialog) { saving ->
+            AgentFrameworkFormCheckpoint(draftId, expected.baselineIdentity, selection.id, selection.catalogItemId,
+                selection.catalogItemVersion, editor.input(), saving).recovery()
+        }
+        binding.onFreeze = editor::freeze
+        binding.onClose = editor::close
+        binding.onStateChange = {
+            editor.freeze(binding.saving || !active(expected))
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = !binding.saving && active(expected)
+        }
+        formBinding = binding
+        update(baseline, editable)
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+            if (!active(expected) || binding.saving) return@setOnClickListener
+            val raw = editor.input()
+            val result = java.util.concurrent.atomic.AtomicReference<PreviewAgentFrameworkPreparation?>()
+            submit(dialog, expected, null, onRejected = {
+                if (active(expected) && editor.input() == raw) editor.showIssues(result.get()?.issues.orEmpty())
+            }) {
+                PreviewAgentFrameworkSettings.configure(selection, raw).also(result::set).preparation
             }
         }
     }

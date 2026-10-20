@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="agent_framework_editor_guidance">These optional settings describe this plan. Supply a value only when you want it included; saving does not run agents or grant tool permissions.</string>
+    <string name="agent_framework_agent_count">Agent count</string>
+    <string name="agent_framework_max_iterations">Maximum iterations</string>
+    <string name="agent_framework_timeout_ms">Timeout (milliseconds)</string>
+    <string name="agent_framework_supply">Supply %1$s</string>
+    <string name="agent_framework_not_supplied">Not supplied</string>
+    <string name="agent_framework_supplied_value">Supplied value</string>
+    <string name="agent_framework_empty_value">Supplied empty value</string>
+    <string name="agent_framework_integer_rule">Use a whole number of at least 1.</string>
+    <string name="agent_framework_value_required">Enter a value, or clear Supply to leave this setting absent.</string>
+    <string name="agent_framework_integer_invalid">Enter a valid whole number, or clear Supply to leave this setting absent.</string>
+    <string name="agent_framework_too_long">This value is too long. Shorten it before saving.</string>
+    <string name="agent_framework_recovery_guidance">Long pending input can make the entire form unavailable after interruption. Review recovered input before saving; recovery does not confirm that a save completed.</string>
+</resources>
