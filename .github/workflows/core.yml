@@ -1073,6 +1073,41 @@ jobs:
               raise SystemExit("Local dialog authority result count does not match executed cases")
           print(f"Verified {len(cases)} simulated local dialog authority tests; no installed-device claim")
           PYTEST
+      - name: Require foreground storage-dialog lifecycle regressions to execute
+        run: |
+          python - <<'PYSTORAGELIFECYCLE'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          name = "ai.pickyour.android.preview.StorageDialogLifecycleActivityTest"
+          required = {
+              "pausedNewConfirmationCannotCreateOrSwitchDraftAfterResume",
+              "foregroundNewConfirmationCreatesAndSelectsItsActualDraft",
+              "admittedNewCreationStillCompletesAndSelectsAcrossPause",
+              "queuedLibraryReadCannotPublishAfterPauseAndResume",
+              "pausedLibraryPickerCannotOpenAChildOrBorrowFreshWindowAuthority",
+              "pausedLibraryEntryCannotOpenOrDeleteItsCapturedDraft",
+              "pausedDeleteConfirmationCannotDeleteItsAcknowledgedDraft",
+              "pausedDuplicateAndRecoveryConfirmationsCannotCreateOrSwitchDraft",
+              "pausedReopenCannotReadOrDiscardPendingInputUntilFreshConsent",
+              "pausedStorageEntryButtonsCannotPresentOrQueueAnOperation",
+              "replacementAndDismissalCannotTransferStorageConfirmationAuthority",
+              "inspectionEntryAndStorageStartRetireUnadmittedConfirmation",
+              "admittedDeleteCompletesWhilePausedWithoutPublishingAResultDialog",
+          }
+          report = pathlib.Path("preview/build/test-results/testDebugUnitTest") / f"TEST-{name}.xml"
+          suite = ET.parse(report).getroot()
+          cases = suite.findall("testcase")
+          names = [case.attrib.get("name", "") for case in cases]
+          if suite.tag != "testsuite" or suite.attrib.get("name") != name or any(case.attrib.get("classname") != name for case in cases):
+              raise SystemExit("Foreign storage-dialog lifecycle report")
+          if len(cases) != len(list(suite.iter("testcase"))) or any(not item.strip() for item in names) or len(names) != len(set(names)) or not required.issubset(names):
+              raise SystemExit("Missing, empty, nested or repeated storage-dialog lifecycle regression")
+          if int(suite.attrib.get("tests", "-1")) != len(cases) or any(int(suite.attrib.get(key, "-1")) != 0 for key in ("failures", "errors", "skipped")):
+              raise SystemExit("Storage-dialog lifecycle totals did not pass")
+          if any(case.find(".//" + tag) is not None for case in cases for tag in ("failure", "error", "skipped")):
+              raise SystemExit("Storage-dialog lifecycle regression did not execute successfully")
+          print(f"Verified {len(cases)} distinct passing storage-dialog lifecycle cases, including all {len(required)} required names; no installed-device claim")
+          PYSTORAGELIFECYCLE
       - name: Require incoming-entry recovery regressions to execute
         run: |
           python - <<'PYTEST'
