@@ -485,6 +485,104 @@
           "sel_model\n"
         ]
       }
+    },
+    {
+      "name": "fractional revision beyond binary integer precision",
+      "expected": "schema_mismatch",
+      "set": {
+        "build_revision": 9007199254740992.1
+      }
+    },
+    {
+      "name": "fractional revision above one beyond binary precision",
+      "expected": "schema_mismatch",
+      "set": {
+        "build_revision": 1.0000000000000001
+      }
+    },
+    {
+      "name": "fractional revision below one beyond binary precision",
+      "expected": "schema_mismatch",
+      "set": {
+        "build_revision": 0.99999999999999999
+      }
+    },
+    {
+      "name": "fractional revision beyond decimal context precision",
+      "expected": "schema_mismatch",
+      "set": {
+        "build_revision": 123456789012345678901234567890.1
+      }
+    },
+    {
+      "name": "tiny positive fractional revision",
+      "expected": "schema_mismatch",
+      "set": {
+        "build_revision": 1e-1000
+      }
+    },
+    {
+      "name": "integral decimal revision",
+      "expected": "decoded",
+      "set": {
+        "build_revision": 1.0
+      }
+    },
+    {
+      "name": "integral exponent revision",
+      "expected": "decoded",
+      "set": {
+        "build_revision": 1.00e2
+      }
+    },
+    {
+      "name": "exact wide integer revision",
+      "expected": "decoded",
+      "set": {
+        "build_revision": 9007199254740993
+      }
+    },
+    {
+      "name": "exact wide decimal revision",
+      "expected": "decoded",
+      "set": {
+        "build_revision": 9007199254740993.0
+      }
+    },
+    {
+      "name": "finite large exponent revision",
+      "expected": "decoded",
+      "set": {
+        "build_revision": 1e1000
+      }
+    },
+    {
+      "name": "zero decimal revision",
+      "expected": "schema_mismatch",
+      "set": {
+        "build_revision": 0.0
+      }
+    },
+    {
+      "name": "negative integral exponent revision",
+      "expected": "schema_mismatch",
+      "set": {
+        "build_revision": -1e2
+      }
+    },
+    {
+      "name": "boolean revision",
+      "expected": "schema_mismatch",
+      "set": {
+        "build_revision": true
+      }
+    },
+    {
+      "name": "null revision",
+      "expected": "schema_mismatch",
+      "set": {
+        "build_revision": null
+      }
     }
   ]
 }

@@ -48,8 +48,9 @@ class ResourceEstimateTest {
             val result = decoder.decode(input.toString().byteInputStream())
             val actual = when (result) {
                 is ResourceEstimateDecoding.Decoded -> {
-                    assertEquals(input, parse(result.estimate.json.toByteArray()))
-                    assertEquals(input, parse(decode(result.estimate.json.toByteArray()).json.toByteArray()))
+                    val expectedValues = parse(input.toString().toByteArray())
+                    assertEquals(expectedValues, parse(result.estimate.json.toByteArray()))
+                    assertEquals(expectedValues, parse(decode(result.estimate.json.toByteArray()).json.toByteArray()))
                     "decoded"
                 }
                 ResourceEstimateDecoding.UnsupportedVersion -> "unsupported_version"
