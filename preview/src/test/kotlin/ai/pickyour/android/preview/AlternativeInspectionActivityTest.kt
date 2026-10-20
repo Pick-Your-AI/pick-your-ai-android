@@ -601,4 +601,92 @@ class AlternativeInspectionActivityTest {
         next.performClick(); layout(dialog()); noLinks(); lines(dialog().findViewById(android.R.id.message))
         assertEquals(before, disk()); assertTrue(loaded().components.selections.isEmpty())
     }
+
+    private val observedAssertionPhase = "Unknown phase: This rule applies, but its assertion did not determine a pass or fail. " +
+        "This phase does not identify a cause or a feasible next action."
+    private val observedNoSelection = "Observed input limitations for this unknown result:\n" +
+        "No enabled selection matched the local read.\n" +
+        "These observations are local input facts, not a complete cause or a verified remedy."
+    private val observedMissingValue = "Observed input limitations for this unknown result:\n" +
+        "A referenced value was absent from the captured inputs.\n" +
+        "These observations are local input facts, not a complete cause or a verified remedy."
+    private fun observedCapture(known: Boolean = false): Capture {
+        val rules = document("ruleset")
+        val rule = JSONObject(rules.getJSONArray("rules").getJSONObject(0).toString())
+            .put("id", "rule.fixture.observed").put("affected_kinds", JSONArray().put("workload"))
+            .put("applies_when", JSONObject("""{"op":"eq","left":{"literal":1},"right":{"literal":1}}"""))
+            .put("assert", JSONObject(if (known) """{"op":"eq","left":{"literal":1},"right":{"literal":1}}""" else
+                """{"op":"eq","left":{"ref":{"scope":"selection","kind":"workload","role":"primary","pointer":"/settings/not_supplied"}},"right":{"literal":1}}"""))
+        rules.put("rules", JSONArray().put(rule))
+        return captured(rules = rules)
+    }
+
+    @Test fun capturedUnknownSidesRenderFixedLocalFieldsAndKnownRowsRemainGeneric() {
+        val before = disk()
+        for (known in listOf(false, true)) {
+            val capture = observedCapture(known); val queue = Queue()
+            val expected = DraftAlternativeInspector().inspect(capture.request()) as DraftAlternativeOutcome.Completed
+            val row = expected.observations.single()
+            val instance = browser(capture, queue); queue.runFirstOffMain(); idle(); awaitMenu()
+            dialog().findViewById<Button>(R.id.alternative_rules).performClick(); openRule(0)
+            val fields = readFields()
+            for ((prefix, finding) in listOf("current" to row.current, "candidate" to row.candidate, "slot_empty" to row.slotEmpty)) {
+                assertEquals(finding.ruleId, fields["$prefix.rule_id"])
+                assertEquals(finding.outcome, fields["$prefix.outcome"])
+                assertEquals(finding.severity, fields["$prefix.severity"])
+                assertEquals(finding.code, fields["$prefix.code"])
+                assertEquals(finding.message, fields["$prefix.message"])
+                assertEquals(finding.remediation, fields["$prefix.remediation"])
+                assertEquals(finding.selectionIds.size.toString(), fields["$prefix.selection_ids.length"])
+                finding.selectionIds.forEachIndexed { index, id -> assertEquals(id, fields["$prefix.selection_ids[$index]"]) }
+            }
+            val local = fields.filterKeys { it.contains(".observed_unknown_") }
+            if (known) {
+                assertEquals("pass", row.current.outcome); assertEquals("pass", row.candidate.outcome)
+                assertTrue(local.isEmpty())
+            } else {
+                assertEquals("unknown", row.current.outcome); assertEquals("unknown", row.candidate.outcome)
+                assertEquals(mapOf(
+                    "current.observed_unknown_phase" to observedAssertionPhase,
+                    "current.observed_unknown_inputs" to observedNoSelection,
+                    "candidate.observed_unknown_phase" to observedAssertionPhase,
+                    "candidate.observed_unknown_inputs" to observedMissingValue,
+                ), local)
+            }
+            assertFalse(fields.keys.any { it.startsWith("slot_empty.observed_") || it.startsWith("candidate_reason.observed_") })
+            assertEquals(capture.option.verdict, capture.request().verdict)
+            assertEquals(before, disk()); instance.retire()
+        }
+        assertTrue(loaded().components.selections.isEmpty())
+    }
+
+    @Test fun observedInputPagesAndQueuedResultsRetireWithTheirExactInspectionWindow() {
+        val capture = observedCapture(); val queue = Queue(); val before = disk(); var evaluations = 0
+        val inspector: (DraftAlternativeInspectionRequest, () -> Boolean) -> DraftAlternativeOutcome = { request, cancelled ->
+            evaluations++; DraftAlternativeInspector().inspect(request, cancelled)
+        }
+        val first = browser(capture, queue, inspect = inspector); val firstLoading = dialog()
+        queue.runFirstOffMain(); assertEquals(1, evaluations)
+        first.retire()
+        val second = browser(capture, queue, inspect = inspector)
+        queue.runFirstOffMain(); idle(); awaitMenu(); val secondMenu = dialog()
+        assertEquals(2, evaluations); assertFalse(firstLoading.isShowing)
+        firstLoading.getButton(AlertDialog.BUTTON_NEGATIVE).callOnClick(); idle()
+        assertSame(secondMenu, dialog())
+        secondMenu.findViewById<Button>(R.id.alternative_rules).performClick(); openRule(0)
+        findField("candidate.observed_unknown_inputs")
+        val retiredValue = dialog(); val oldBack = retiredValue.getButton(AlertDialog.BUTTON_NEGATIVE)
+        assertTrue(hasButton(AlertDialog.BUTTON_POSITIVE, R.string.alternative_next_part))
+        val oldNext = retiredValue.getButton(AlertDialog.BUTTON_POSITIVE)
+        second.retire()
+        browser(capture, queue, inspect = inspector); queue.runFirstOffMain(); idle(); awaitMenu()
+        val fresh = dialog()
+        oldBack.callOnClick(); oldNext.callOnClick()
+        secondMenu.findViewById<Button>(R.id.alternative_rules).callOnClick(); idle()
+        assertSame(fresh, dialog()); assertFalse(retiredValue.isShowing); assertEquals(3, evaluations)
+        fresh.findViewById<Button>(R.id.alternative_rules).performClick(); openRule(0)
+        findField("current.observed_unknown_inputs")
+        assertEquals(observedNoSelection, readValue())
+        assertEquals(before, disk()); assertTrue(loaded().components.selections.isEmpty())
+    }
 }

@@ -9,6 +9,9 @@ enum class DraftAlternativeGap {
     RUNTIME_READINESS_NOT_ESTABLISHED,
 }
 
+/** Only these two contexts are freshly evaluated by the inspector; slot-empty stays generic. */
+enum class DraftAlternativeSide { CURRENT, CANDIDATE }
+
 sealed interface DraftAlternativePreparation {
     class Ready(val request: DraftAlternativeInspectionRequest) : DraftAlternativePreparation
     data class Unavailable(val reason: CompatibleOptionsUnavailable) : DraftAlternativePreparation
@@ -87,8 +90,50 @@ class DraftAlternativeRuleObservation internal constructor(
 sealed class DraftAlternativeOutcome protected constructor(private val request: DraftAlternativeInspectionRequest) {
     fun belongsTo(expected: DraftAlternativeInspectionRequest): Boolean = request === expected
     class Completed internal constructor(request: DraftAlternativeInspectionRequest,
-        observations: List<DraftAlternativeRuleObservation>) : DraftAlternativeOutcome(request) {
+        observations: List<DraftAlternativeRuleObservation>,
+        currentTrace: FrozenDiagnosticEvaluator.AlternativeDraftTrace? = null,
+        candidateTrace: FrozenDiagnosticEvaluator.AlternativeDraftTrace? = null) : DraftAlternativeOutcome(request) {
         val observations: List<DraftAlternativeRuleObservation> = alternativeList(observations)
+        private val observationRequest = request
+        private class Unknowns(phases: Map<String, DraftCurrentUnknownPhase>,
+            inputs: Map<String, List<UnknownInputObservation>>) {
+            val phases = Collections.unmodifiableMap(LinkedHashMap(phases))
+            val inputs = Collections.unmodifiableMap(LinkedHashMap(inputs.mapValues { alternativeList(it.value) }))
+        }
+        private fun capture(side: DraftAlternativeSide, trace: FrozenDiagnosticEvaluator.AlternativeDraftTrace?): Unknowns {
+            val producer = trace ?: return Unknowns(emptyMap(), emptyMap())
+            val findings = (producer.evaluation as? DraftRuleEvaluation.Evaluated)?.findings
+                ?: return Unknowns(emptyMap(), emptyMap())
+            if (findings.size != this.observations.size || findings.indices.any { index ->
+                val row = this.observations[index]
+                row.ruleId != findings[index].ruleId || (when (side) {
+                    DraftAlternativeSide.CURRENT -> row.current
+                    DraftAlternativeSide.CANDIDATE -> row.candidate
+                }) !== findings[index]
+            }) return Unknowns(emptyMap(), emptyMap())
+            return Unknowns(producer.phasesFor(observationRequest, side, findings),
+                producer.observationsFor(observationRequest, side, findings))
+        }
+        private val currentUnknowns = capture(DraftAlternativeSide.CURRENT, currentTrace)
+        private val candidateUnknowns = capture(DraftAlternativeSide.CANDIDATE, candidateTrace)
+
+        fun unknownPhase(side: DraftAlternativeSide, row: DraftAlternativeRuleObservation): DraftCurrentUnknownPhase? {
+            if (observations.none { it === row }) return null
+            val finding = when (side) {
+                DraftAlternativeSide.CURRENT -> row.current
+                DraftAlternativeSide.CANDIDATE -> row.candidate
+            }
+            if (finding.outcome != "unknown") return null
+            return when (side) {
+                DraftAlternativeSide.CURRENT -> currentUnknowns
+                DraftAlternativeSide.CANDIDATE -> candidateUnknowns
+            }.phases[row.ruleId]
+        }
+        fun unknownInputObservations(side: DraftAlternativeSide, row: DraftAlternativeRuleObservation): List<UnknownInputObservation> =
+            if (unknownPhase(side, row) == null) emptyList() else when (side) {
+                DraftAlternativeSide.CURRENT -> currentUnknowns
+                DraftAlternativeSide.CANDIDATE -> candidateUnknowns
+            }.inputs[row.ruleId].orEmpty()
     }
     class Unavailable internal constructor(request: DraftAlternativeInspectionRequest,
         val reason: CompatibleOptionsUnavailable) : DraftAlternativeOutcome(request)
@@ -104,13 +149,15 @@ class DraftAlternativeInspector(maxWorkPerEvaluation: Int = 250_000) {
     fun inspect(request: DraftAlternativeInspectionRequest, cancelled: () -> Boolean = { false }): DraftAlternativeOutcome {
         fun unavailable(reason: CompatibleOptionsUnavailable) = DraftAlternativeOutcome.Unavailable(request, reason)
         fun retired() = Thread.currentThread().isInterrupted || cancelled()
-        fun run(context: DraftDiagnosticContext) = evaluator.evaluateDraft(context, request.catalogBytes(), request.rulesetBytes())
+        fun run(side: DraftAlternativeSide) = evaluator.evaluateAlternativeDraft(request, side)
         if (retired()) return unavailable(CompatibleOptionsUnavailable.CANCELLED)
-        val current = run(request.current)
+        val currentTrace = run(DraftAlternativeSide.CURRENT)
+        val current = currentTrace.evaluation
         if (current is DraftRuleEvaluation.Rejected)
             return unavailable(CompatibleOptionsUnavailable.valueOf(current.reason.name))
         if (retired()) return unavailable(CompatibleOptionsUnavailable.CANCELLED)
-        val candidate = run(request.candidate)
+        val candidateTrace = run(DraftAlternativeSide.CANDIDATE)
+        val candidate = candidateTrace.evaluation
         if (candidate is DraftRuleEvaluation.Rejected)
             return unavailable(CompatibleOptionsUnavailable.valueOf(candidate.reason.name))
         if (retired()) return unavailable(CompatibleOptionsUnavailable.CANCELLED)
@@ -132,7 +179,7 @@ class DraftAlternativeInspector(maxWorkPerEvaluation: Int = 250_000) {
             DraftAlternativeRuleObservation(ids[index], before[index], after[index], empty[index], reason)
         }
         if (retired()) return unavailable(CompatibleOptionsUnavailable.CANCELLED)
-        return DraftAlternativeOutcome.Completed(request, rows)
+        return DraftAlternativeOutcome.Completed(request, rows, currentTrace, candidateTrace)
     }
 
     companion object { private val OUTCOMES = setOf("pass", "fail", "unknown", "skipped") }

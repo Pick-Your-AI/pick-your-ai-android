@@ -343,4 +343,162 @@ class DraftAlternativeInspectionTest {
         assertEquals(rule["remediation"].asText(), row.candidate.remediation); assertNull(row.candidateReason)
         assertEquals(CompatibleOptionVerdict.COMPATIBLE, request.verdict)
     }
+
+    private val observedTrue = """{"op":"eq","left":{"literal":1},"right":{"literal":1}}"""
+    private val observedFalse = """{"op":"eq","left":{"literal":1},"right":{"literal":2}}"""
+    private val observedMissing = """{"op":"eq","left":{"ref":{"scope":"selection","kind":"workload","role":"primary","pointer":"/settings/not_supplied"}},"right":{"literal":1}}"""
+    private fun observedRules(i: Inputs, vararg expressions: Pair<String, String>) {
+        val template = i.rules["rules"][0].deepCopy<ObjectNode>()
+        val rules = i.rules.putArray("rules")
+        expressions.forEachIndexed { index, (applies, assertion) ->
+            val rule = template.deepCopy().put("id", "rule.observed.$index")
+            rule.putArray("affected_kinds").add("workload")
+            rule.set<JsonNode>("applies_when", mapper.readTree(applies))
+            rule.set<JsonNode>("assert", mapper.readTree(assertion))
+            rules.add(rule)
+        }
+    }
+    private fun assertGeneric(completed: DraftAlternativeOutcome.Completed) {
+        for (row in completed.observations) for (side in DraftAlternativeSide.entries) {
+            assertNull(completed.unknownPhase(side, row))
+            assertTrue(completed.unknownInputObservations(side, row).isEmpty())
+        }
+    }
+
+    @Test fun sameRuleKeepsDistinctCurrentAndCandidateInputObservationsWithoutChangingFindings() {
+        val i = inputs(); observedRules(i, observedTrue to observedMissing)
+        val (_, source) = saved(); val p = parent(i, source); val result = options(p)
+        val request = capture(p, result); val before = files(); val actual = observations(request)
+        val row = actual.observations.single()
+        assertEquals("unknown", row.current.outcome); assertEquals("unknown", row.candidate.outcome)
+        assertEquals("unknown", row.slotEmpty.outcome)
+        for (side in DraftAlternativeSide.entries)
+            assertEquals(DraftCurrentUnknownPhase.ASSERTION, actual.unknownPhase(side, row))
+        assertEquals(listOf(UnknownInputObservation.NO_MATCHING_SELECTION),
+            actual.unknownInputObservations(DraftAlternativeSide.CURRENT, row))
+        assertEquals(listOf(UnknownInputObservation.MISSING_CAPTURED_VALUE),
+            actual.unknownInputObservations(DraftAlternativeSide.CANDIDATE, row))
+        assertEquals(independent(request.current, i).map(::values), actual.observations.map { values(it.current) })
+        assertEquals(independent(request.candidate, i).map(::values), actual.observations.map { values(it.candidate) })
+        assertEquals(result.baselineFindings.map(::values), actual.observations.map { values(it.slotEmpty) })
+        assertEquals(result.options.single().verdict, request.verdict)
+        assertThrows(UnsupportedOperationException::class.java) {
+            (actual.unknownInputObservations(DraftAlternativeSide.CANDIDATE, row) as MutableList).clear()
+        }
+        assertGeneric(DraftAlternativeOutcome.Completed(request, actual.observations))
+        assertEquals(before, files())
+    }
+
+    @Test fun alternativePhasesKeepApplicabilityAndKnownBooleanMaskingDistinct() {
+        val i = inputs()
+        val unsupported = """{"op":"eq","left":{"literal":1.5},"right":{"literal":1}}"""
+        val absentExists = """{"op":"exists","value":{"ref":{"scope":"selection","kind":"workload","role":"primary","pointer":"/settings/not_supplied"}}}"""
+        observedRules(i, observedMissing to unsupported, observedTrue to observedMissing,
+            observedTrue to """{"op":"all","args":[$observedMissing,$observedFalse]}""",
+            observedTrue to """{"op":"any","args":[$observedMissing,$observedTrue]}""",
+            observedTrue to """{"op":"implies","if":$observedMissing,"then":$observedTrue}""",
+            observedFalse to unsupported, observedTrue to absentExists)
+        val (_, source) = saved(); val p = parent(i, source); val request = capture(p, options(p))
+        val actual = observations(request)
+        assertEquals(listOf("unknown", "unknown", "fail", "pass", "pass", "skipped", "fail"),
+            actual.observations.map { it.current.outcome })
+        assertEquals(actual.observations.map { it.current.outcome }, actual.observations.map { it.candidate.outcome })
+        for (side in DraftAlternativeSide.entries) {
+            assertEquals(DraftCurrentUnknownPhase.APPLICABILITY, actual.unknownPhase(side, actual.observations[0]))
+            assertEquals(DraftCurrentUnknownPhase.ASSERTION, actual.unknownPhase(side, actual.observations[1]))
+            for (row in actual.observations.drop(2)) {
+                assertNull(actual.unknownPhase(side, row))
+                assertTrue(actual.unknownInputObservations(side, row).isEmpty())
+            }
+        }
+        assertEquals(independent(request.current, i).map(::values), actual.observations.map { values(it.current) })
+        assertEquals(independent(request.candidate, i).map(::values), actual.observations.map { values(it.candidate) })
+    }
+
+    @Test fun copiedRelabelledForeignReissuedAndCrossSideTracesCannotBorrowObservedInputs() {
+        val i = inputs(); observedRules(i, observedTrue to observedMissing)
+        val (_, source) = saved(); val p = parent(i, source); val result = options(p)
+        val request = capture(p, result); val repeated = capture(p, result)
+        val evaluator = FrozenDiagnosticEvaluator()
+        val current = evaluator.evaluateAlternativeDraft(request, DraftAlternativeSide.CURRENT)
+        val candidate = evaluator.evaluateAlternativeDraft(request, DraftAlternativeSide.CANDIDATE)
+        val before = (current.evaluation as DraftRuleEvaluation.Evaluated).findings
+        val after = (candidate.evaluation as DraftRuleEvaluation.Evaluated).findings
+        fun rows(c: List<DraftRuleFinding> = before, a: List<DraftRuleFinding> = after, id: String = before.single().ruleId) =
+            listOf(DraftAlternativeRuleObservation(id, c.single(), a.single(), result.baselineFindings.single(), null))
+        val ownedRows = rows()
+        val owned = DraftAlternativeOutcome.Completed(request, ownedRows, current, candidate)
+        assertEquals(listOf(UnknownInputObservation.NO_MATCHING_SELECTION),
+            owned.unknownInputObservations(DraftAlternativeSide.CURRENT, ownedRows.single()))
+        assertEquals(listOf(UnknownInputObservation.MISSING_CAPTURED_VALUE),
+            owned.unknownInputObservations(DraftAlternativeSide.CANDIDATE, ownedRows.single()))
+        assertTrue(current.phasesFor(request, DraftAlternativeSide.CURRENT, before.toList()).isEmpty())
+        assertTrue(candidate.observationsFor(request, DraftAlternativeSide.CURRENT, after).isEmpty())
+        assertTrue(current.observationsFor(repeated, DraftAlternativeSide.CURRENT, before).isEmpty())
+        fun copied(f: DraftRuleFinding) = DraftRuleFinding(f.ruleId, f.outcome, f.severity, f.code,
+            f.message, f.remediation, f.selectionIds.toList())
+        for (untrusted in listOf(
+            DraftAlternativeOutcome.Completed(request, ownedRows),
+            DraftAlternativeOutcome.Completed(repeated, ownedRows, current, candidate),
+            DraftAlternativeOutcome.Completed(request, ownedRows, candidate, current),
+            DraftAlternativeOutcome.Completed(request, rows(before.map(::copied), after.map(::copied)), current, candidate),
+            DraftAlternativeOutcome.Completed(request, rows(id = "rule.relabelled"), current, candidate),
+            DraftAlternativeOutcome.Completed(request, ownedRows,
+                evaluator.evaluateAlternativeDraft(request, DraftAlternativeSide.CURRENT),
+                evaluator.evaluateAlternativeDraft(request, DraftAlternativeSide.CANDIDATE)),
+        )) assertGeneric(untrusted)
+        val foreignRow = rows().single()
+        assertNull(owned.unknownPhase(DraftAlternativeSide.CURRENT, foreignRow))
+        assertTrue(owned.unknownInputObservations(DraftAlternativeSide.CANDIDATE, foreignRow).isEmpty())
+        assertEquals(values(ownedRows.single().current), values(foreignRow.current))
+    }
+
+    @Test fun secondPassWorkFailureAndEveryCancellationBoundaryDiscardObservedRows() {
+        val i = inputs(); observedRules(i, observedTrue to observedMissing)
+        val (_, source) = saved(); val p = parent(i, source); val result = options(p); val request = capture(p, result)
+        val evaluator = FrozenDiagnosticEvaluator(100)
+        val first = evaluator.evaluateAlternativeDraft(request, DraftAlternativeSide.CURRENT)
+        val firstRows = (first.evaluation as DraftRuleEvaluation.Evaluated).findings
+        assertEquals(listOf(UnknownInputObservation.NO_MATCHING_SELECTION),
+            first.observationsFor(request, DraftAlternativeSide.CURRENT, firstRows).getValue(firstRows.single().ruleId))
+        val second = evaluator.evaluateAlternativeDraft(request, DraftAlternativeSide.CANDIDATE)
+        assertEquals(DraftRuleEvaluation.Rejected(DiagnosticRejection.WORK_LIMIT), second.evaluation)
+        val before = files()
+        val failed = DraftAlternativeInspector(100).inspect(request) as DraftAlternativeOutcome.Unavailable
+        assertEquals(CompatibleOptionsUnavailable.WORK_LIMIT, failed.reason); assertTrue(failed.belongsTo(request))
+        for (boundary in 1..4) {
+            var checks = 0
+            val cancelled = DraftAlternativeInspector().inspect(request) { ++checks == boundary } as DraftAlternativeOutcome.Unavailable
+            assertEquals(CompatibleOptionsUnavailable.CANCELLED, cancelled.reason)
+            assertEquals(boundary, checks); assertTrue(cancelled.belongsTo(request))
+        }
+        assertEquals(result.options.single().verdict, request.verdict)
+        assertEquals(before, files())
+    }
+
+    @Test fun firstPassUnknownDoesNotEscapeWhenTheCandidateRejectsAnUnsupportedOperand() {
+        val i = inputs()
+        val candidate = selection(i, "model").deepCopy()
+        (candidate["settings"] as ObjectNode).put("temperature", 0.4)
+        val presentModel = """{"op":"exists","value":{"ref":{"scope":"selection","kind":"model","role":"primary","pointer":"/id"}}}"""
+        val temperature = """{"op":"eq","left":{"ref":{"scope":"selection","kind":"model","role":"primary","pointer":"/settings/temperature"}},"right":{"literal":0}}"""
+        observedRules(i, observedTrue to observedMissing, presentModel to temperature)
+        val (_, source) = saved()
+        val slot = CompatibleOptionSlot("model", "primary", candidate["id"].asText(), false)
+        val p = parent(i, source, slot, listOf(candidate))
+        assertEquals(CompatibleOptionsUnavailable.UNSUPPORTED_OPERATION,
+            (DraftCompatibleOptionsEvaluator().evaluate(p) as DraftCompatibleOptionsOutcome.Unavailable).reason)
+        // An explicitly inconsistent parent result exercises the inspector's independent failure boundary.
+        val baseline = independent(p.baseline, i)
+        val option = DraftCompatibleOption(p.options.single().first, CompatibleOptionVerdict.UNKNOWN, emptyList())
+        val supplied = DraftCompatibleOptionsOutcome.Completed(p, listOf(option), baseline)
+        val request = capture(p, supplied); val before = files()
+        val first = FrozenDiagnosticEvaluator().evaluateAlternativeDraft(request, DraftAlternativeSide.CURRENT)
+        val produced = (first.evaluation as DraftRuleEvaluation.Evaluated).findings
+        assertEquals("unknown", produced.first().outcome)
+        assertTrue(first.observationsFor(request, DraftAlternativeSide.CURRENT, produced).isNotEmpty())
+        val actual = DraftAlternativeInspector().inspect(request) as DraftAlternativeOutcome.Unavailable
+        assertEquals(CompatibleOptionsUnavailable.UNSUPPORTED_OPERATION, actual.reason)
+        assertTrue(actual.belongsTo(request)); assertEquals(before, files())
+    }
 }

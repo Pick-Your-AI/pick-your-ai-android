@@ -157,6 +157,49 @@ class FrozenDiagnosticEvaluator(private val maxWork: Int = 250_000) {
         }
     }
 
+    /** One of the inspector's existing two passes, bound to its exact request and closed side. */
+    internal fun evaluateAlternativeDraft(request: DraftAlternativeInspectionRequest,
+        side: DraftAlternativeSide): AlternativeDraftTrace = AlternativeDraftTrace.evaluate(this, request, side)
+
+    internal class AlternativeDraftTrace private constructor(
+        private val request: DraftAlternativeInspectionRequest,
+        private val side: DraftAlternativeSide,
+        private val context: DraftDiagnosticContext,
+        val evaluation: DraftRuleEvaluation,
+        phases: Map<String, DraftCurrentUnknownPhase>,
+        observations: Map<String, List<UnknownInputObservation>>,
+    ) {
+        private val phases = Collections.unmodifiableMap(LinkedHashMap(phases))
+        private val observations = immutableInputObservations(observations)
+
+        private fun owns(request: DraftAlternativeInspectionRequest, side: DraftAlternativeSide,
+            findings: List<DraftRuleFinding>): Boolean = this.request === request && this.side == side &&
+            context === (when (side) {
+                DraftAlternativeSide.CURRENT -> request.current
+                DraftAlternativeSide.CANDIDATE -> request.candidate
+            }) && (evaluation as? DraftRuleEvaluation.Evaluated)?.findings === findings
+
+        internal fun phasesFor(request: DraftAlternativeInspectionRequest, side: DraftAlternativeSide,
+            findings: List<DraftRuleFinding>): Map<String, DraftCurrentUnknownPhase> =
+            if (owns(request, side, findings)) phases else emptyMap()
+
+        internal fun observationsFor(request: DraftAlternativeInspectionRequest, side: DraftAlternativeSide,
+            findings: List<DraftRuleFinding>): Map<String, List<UnknownInputObservation>> =
+            if (owns(request, side, findings)) observations else emptyMap()
+
+        companion object {
+            internal fun evaluate(evaluator: FrozenDiagnosticEvaluator, request: DraftAlternativeInspectionRequest,
+                side: DraftAlternativeSide): AlternativeDraftTrace {
+                val context = when (side) {
+                    DraftAlternativeSide.CURRENT -> request.current
+                    DraftAlternativeSide.CANDIDATE -> request.candidate
+                }
+                val result = evaluator.evaluateDraftDetails(context, request.catalogBytes(), request.rulesetBytes())
+                return AlternativeDraftTrace(request, side, context, result.evaluation, result.phases, result.observations)
+            }
+        }
+    }
+
     private class DraftDetails(val evaluation: DraftRuleEvaluation, val phases: Map<String, DraftCurrentUnknownPhase>,
         val observations: Map<String, List<UnknownInputObservation>> = emptyMap())
 

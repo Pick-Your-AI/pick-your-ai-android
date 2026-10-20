@@ -20,12 +20,20 @@ Only reached branches contribute. Present JSON null remains distinct from an abs
 
 The seven categories are deduplicated and bounded. Current detail and fresh retained-result descriptions use fixed text; no raw input path or value is exposed by this metadata. Recorded message/remediation text, full-text paging, selection authority, alternative verdicts and explicit replacement remain unchanged. The existing alternative inspector does not acquire these observations merely by displaying equal rule IDs.
 
+## Alternative inspector observations
+
+The existing inspector still evaluates Current and Candidate once each, in that order. Each pass now captures observations under the exact inspection request, its fixed `DraftAlternativeSide`, internally selected context and original produced findings. Metadata is attached only after the complete inspection passes its existing validation and cancellation checks.
+
+`DraftAlternativeOutcome.Completed.unknownPhase(side, row)` and `unknownInputObservations(side, row)` require a row owned by that completed result. Copied findings, relabelled rows, swapped sides, another evaluation or a reissued request cannot borrow the trace. Bare outcomes remain generic, and a failed or cancelled inspection publishes neither side's partial observations.
+
+The browser adds separately labelled local phase/input fields for actual unknown Current and Candidate findings. Slot-empty and candidate-reason findings remain generic. Original field values, relative raw-field order and value-part boundaries are preserved. Verdicts, filters, ranking, explicit choice/replacement and retired-window authority are unchanged; these observations do not establish a feasible remedy.
+
 ## Retained evaluator descriptor
 
 The current `RetainedEvaluationProfile.EVALUATOR_SHA256` is:
 
 ```text
-1f197342eb8c1d6fa294ed082d0ed585bef843ec07c02eac7808a1d3b29cfb14
+3b9716f552df7d5be0ef49ba0adac207eaab5e986f1deb06321248bf298e35d0
 ```
 
 It identifies the current `FrozenDiagnosticEvaluator.kt` bytes. The retained request digest includes this descriptor, so newly prepared request identities reflect the source change. The profile ID, frozen schemas/reference/receiver and stored report bytes are unchanged; no stored-report migration is introduced.
@@ -38,5 +46,7 @@ It identifies the current `FrozenDiagnosticEvaluator.kt` bytes. The retained req
 | `CurrentDraftFindingOutcomeActivityTest` | 6 |
 | `CurrentDraftProvisionalGuidanceActivityTest` | 8 |
 | `SnapshotUnknownPhaseActivityTest` | 5 |
+| `DraftAlternativeInspectionTest` | 17 |
+| `AlternativeInspectionActivityTest` | 15 |
 
 These are source method counts, not execution results. For the current implementation, this addendum supersedes only the descriptive evaluator hash and affected method counts in [Current finding outcomes](CURRENT_FINDING_OUTCOMES.md) and [Retained snapshot evaluation](RETAINED_SNAPSHOT_EVALUATION.md). Their other scope and authority boundaries remain unchanged.

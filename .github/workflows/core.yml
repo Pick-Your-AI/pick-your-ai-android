@@ -453,6 +453,11 @@ jobs:
               "workLimitsCancellationAndInconsistentOriginalOutputNeverReturnPartialRows()",
               "realSavedObjectiveChangeRetiresOldAuthorityAndOnlyAFreshExplicitCommandCanWrite()",
               "unchangedFailOutcomesStillExposeChangedSelectionAssociationsAndLiteralDetails()",
+              "sameRuleKeepsDistinctCurrentAndCandidateInputObservationsWithoutChangingFindings()",
+              "alternativePhasesKeepApplicabilityAndKnownBooleanMaskingDistinct()",
+              "copiedRelabelledForeignReissuedAndCrossSideTracesCannotBorrowObservedInputs()",
+              "secondPassWorkFailureAndEveryCancellationBoundaryDiscardObservedRows()",
+              "firstPassUnknownDoesNotEscapeWhenTheCandidateRejectsAnUnsupportedOperand()",
           }
           report = pathlib.Path("core/build/test-results/test") / f"TEST-ai.pickyour.core.evaluation.DraftAlternativeInspectionTest.xml"
           suite = ET.parse(report).getroot()
@@ -3507,6 +3512,8 @@ jobs:
               "inheritedFindingsAndChoiceConfirmationsMutuallyRetireAlternativeWindows",
               "unsupportedCurrentContextNeverFallsBackToSuccessfulSlotEmptyRows",
               "narrowLargeTextRtlBrowserKeepsEveryLineAndPartControlReachable",
+              "capturedUnknownSidesRenderFixedLocalFieldsAndKnownRowsRemainGeneric",
+              "observedInputPagesAndQueuedResultsRetireWithTheirExactInspectionWindow",
           }
           report = pathlib.Path("preview/build/test-results/testDebugUnitTest") / f"TEST-ai.pickyour.android.preview.AlternativeInspectionActivityTest.xml"
           suite = ET.parse(report).getroot()
