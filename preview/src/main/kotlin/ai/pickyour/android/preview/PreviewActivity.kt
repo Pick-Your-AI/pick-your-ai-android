@@ -98,6 +98,7 @@ class PreviewActivity : Activity() {
     private var pendingDeleteId: PreviewDraftId? = null
     private var savedRecord: PreviewStoredDraft? = null // UI-thread owned.
     private var historyDialog: AlertDialog? = null
+    private var legacyBackDialog: AlertDialog? = null
     private var revisionDialog: AlertDialog? = null
     private var revisionRequest: Any? = null
     private var revisionBrowser: RevisionComparisonBrowser? = null
@@ -107,6 +108,7 @@ class PreviewActivity : Activity() {
     private var failedReadCheckpoint: PreviewDraftRestoration? = null
     private var storageBusy = true
         set(value) {
+            retireLegacyBackDialog()
             if (value) {
                 autosave.cancel()
                 failedReadCheckpoint = null
@@ -818,6 +820,7 @@ class PreviewActivity : Activity() {
 
     private fun formChanged(edited: Boolean = true) {
         if (destroyed) return
+        retireLegacyBackDialog()
         if (::compatibleOptions.isInitialized) compatibleOptions.dismiss()
         invalidateCurrentChecks(PreviewCurrentUnavailable.EDITING)
         updateContextState()
@@ -929,7 +932,7 @@ class PreviewActivity : Activity() {
     }
 
     private fun updateAutosave() {
-        if (!storageReady || storageBusy || !selectionResolved || !autosaveRequested || matchesSaved() || autosave.isPaused) {
+        if (isFinishing || !storageReady || storageBusy || !selectionResolved || !autosaveRequested || matchesSaved() || autosave.isPaused) {
             autosave.cancel()
             return
         }
@@ -1105,6 +1108,7 @@ class PreviewActivity : Activity() {
 
     /** A new inspection owns its sibling windows; data refresh alone does not revoke fixed reports. */
     private fun retireInspectionWindows() {
+        retireLegacyBackDialog()
         retireRevisionInspection()
         if (::snapshots.isInitialized) snapshots.dismiss()
         if (::costInspection.isInitialized) costInspection.dismissInspection()
@@ -1637,7 +1641,7 @@ class PreviewActivity : Activity() {
     }
 
     private fun saveDraft(request: PreviewAutosaveRequest? = null) {
-        if (destroyed) return
+        if (destroyed || isFinishing) return
         if (!storageReady || storageBusy) return
         val id = currentDraftId
         val pending = pendingInput() ?: return
@@ -1682,6 +1686,58 @@ class PreviewActivity : Activity() {
         } catch (_: RejectedExecutionException) {
             accept(PreviewDraftSave.Failed(DraftStorageFailure.IO_FAILURE))
         }
+    }
+
+    private fun retireLegacyBackDialog() {
+        val previous = legacyBackDialog
+        legacyBackDialog = null
+        previous?.dismiss()
+    }
+
+    /** API 31+ retains the platform's task-background/predictive Back behavior unchanged. */
+    @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
+    override fun onBackPressed() {
+        if (android.os.Build.VERSION.SDK_INT >= 31 || !environmentAdmitted || !::workloadSection.isInitialized) {
+            super.onBackPressed()
+            return
+        }
+        if (destroyed || isFinishing || !diagnosticsResumed) return
+        val baseline = savedRecord
+        val pendingFields = fields()
+        val pendingContext = domainContext
+        val pendingWorkload = workloadSection.inputs
+        val changed = pendingFields != (baseline?.fields ?: PreviewDraftFields()) ||
+            pendingContext != (baseline?.contextInput ?: PreviewDraftContext()) ||
+            pendingWorkload != PreviewWorkloadInputs.from(baseline?.workloadInput ?: DraftWorkload())
+        if (!changed) {
+            super.onBackPressed()
+            return
+        }
+        retireInspectionWindows()
+        val id = currentDraftId
+        val authority = storageAuthority
+        val busy = storageBusy
+        lateinit var dialog: AlertDialog
+        fun current() = !destroyed && !isFinishing && diagnosticsResumed && !storageBusy &&
+            legacyBackDialog === dialog && dialog.isShowing && currentDraftId == id &&
+            savedRecord === baseline && storageAuthority === authority && fields() == pendingFields &&
+            domainContext == pendingContext && workloadSection.inputs == pendingWorkload
+        val builder = AlertDialog.Builder(this)
+            .setTitle(if (busy) R.string.legacy_back_wait_title else R.string.legacy_back_title)
+            .setMessage(if (busy) R.string.legacy_back_wait_message else R.string.legacy_back_message)
+            .setNegativeButton(R.string.legacy_back_stay, null)
+        if (!busy) builder.setPositiveButton(R.string.legacy_back_leave) { _, _ ->
+            if (current()) {
+                retireLegacyBackDialog()
+                autosaveRequested = false
+                autosave.cancel()
+                super.onBackPressed()
+            }
+        }
+        dialog = builder.create()
+        legacyBackDialog = dialog
+        dialog.setOnDismissListener { if (legacyBackDialog === dialog) legacyBackDialog = null }
+        dialog.show()
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -1749,6 +1805,7 @@ class PreviewActivity : Activity() {
 
     override fun onPause() {
         diagnosticsResumed = false
+        retireLegacyBackDialog()
         if (::componentSection.isInitialized) componentSection.pause()
         retireCatalogDetailInspection()
         retireHistoryInspection()
@@ -1768,6 +1825,7 @@ class PreviewActivity : Activity() {
 
     override fun onDestroy() {
         destroyed = true
+        retireLegacyBackDialog()
         retireHistoryInspection()
         if (::compatibleOptions.isInitialized) compatibleOptions.close()
         if (::currentChecks.isInitialized) currentChecks.close()
