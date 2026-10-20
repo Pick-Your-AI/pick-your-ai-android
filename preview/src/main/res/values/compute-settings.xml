@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="compute_editor_guidance">Instances is required. Reserved hours and region are optional: choose Supply to enter a value, or clear Supply to remove that field. No value is filled from the catalog.</string>
+    <string name="compute_instances">Instances</string>
+    <string name="compute_reserved_hours">Reserved hours per month</string>
+    <string name="compute_region">Region</string>
+    <string name="compute_supply">Supply %1$s</string>
+    <string name="compute_optional_value">Optional supplied value</string>
+    <string name="compute_not_supplied">Not supplied</string>
+    <string name="compute_region_supplied">Region is supplied exactly as entered, including empty text.</string>
+    <string name="compute_instances_rule">instances: a required whole number of instances, at least 1. This does not establish available capacity.</string>
+    <string name="compute_reserved_hours_rule">reserved_hours_per_month: an optional number of hours, at least 0. Zero is a supplied value. No calendar length, billing period or cost is inferred.</string>
+    <string name="compute_region_rule">region: optional literal text. A supplied empty value, whitespace or the word unknown remains text; it does not verify a region or introduce an answer state.</string>
+    <string name="compute_instances_required">Enter the required instance count.</string>
+    <string name="compute_number_required">Enter a supplied number, or clear Supply to leave this field absent.</string>
+    <string name="compute_number_invalid">Enter a JSON number using ASCII digits and a decimal point when needed.</string>
+    <string name="compute_integer_invalid">Enter a whole JSON number using ASCII digits, without grouping or rounding.</string>
+    <string name="compute_text_invalid">Correct the invalid Unicode text before saving.</string>
+    <string name="compute_too_long">This value exceeds the existing local JSON input limit. Shorten it before saving.</string>
+    <string name="compute_recovery_guidance">Private pending-input recovery retains at most 20,000 characters across these controls (some symbols count as two). Larger input is replaced by an unavailable notice, without retaining a prefix. Recovery requires review and never repeats a save.</string>
+</resources>
