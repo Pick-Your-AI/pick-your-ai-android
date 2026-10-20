@@ -1,19 +1,14 @@
 """Check explicit structural CostEstimate cases against the unchanged frozen Python schema."""
 import copy
-from decimal import Decimal
 import hashlib
-import json
 from pathlib import Path
 
-from jsonschema import Draft202012Validator, FormatChecker
+from jsonschema import FormatChecker
+from frozen_fixture_numbers import FixtureValidator, read_json
 from referencing import Registry, Resource
 
 ROOT = Path(__file__).resolve().parents[1]
 BASE = ROOT / "contracts/v1"
-
-
-def read_json(path):
-    return json.loads(path.read_text(encoding="utf-8"), parse_float=Decimal)
 
 
 def main():
@@ -32,7 +27,7 @@ def main():
     formats = FormatChecker()
     if "date-time" not in formats.checkers:
         raise ValueError("CostEstimate format checker unavailable; install requirements-contracts.txt")
-    validator = Draft202012Validator(read_json(BASE / "schemas/cost-estimate.schema.json"),
+    validator = FixtureValidator(read_json(BASE / "schemas/cost-estimate.schema.json"),
                                     registry=registry, format_checker=formats)
     original = read_json(BASE / "examples/cost-estimate.json")
     names = set()
