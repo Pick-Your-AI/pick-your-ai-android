@@ -624,6 +624,50 @@ jobs:
                   raise SystemExit('Typed model regression did not pass')
               print(f"Verified {len(cases)} {qualified} cases; no installed-device claim")
           PYMODEL
+      - name: Require typed model-provider preparation and managed storage regressions
+        run: |
+          python - <<'PYMODEL'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          required = {
+              'ai.pickyour.core.preview.PreviewModelProviderSettingsTest': {
+                  'threeOptionalStringsUseTheExactFrozenMetadataWithoutInventedRegionConstraints()',
+                  'initialAbsenceSuppliedEmptyAndExplicitRemovalRemainDistinct()',
+                  'regionPreservesWhitespaceUnicodeControlsAndOrdinaryFreeTextLiterally()',
+                  'regionJsonLookingTextCannotSupplyAnotherKeyOrChangeItsStringType()',
+                  'malformedUnicodeAndOverlongFieldsCannotPrepareACommand()',
+                  'completeSettingsBudgetIncludesJsonEnvelopeAndEscapedOriginalValues()',
+                  'opaqueCredentialReferencesPreserveCasePunctuationAndFrozenTerminalLfSemantics()',
+                  'credentialAliasesRawSecretsAndInvalidReferencesCannotSaveOrEnterTypedRecovery()',
+                  'legitimateUriSpellingRemainsLiteralIncludingQueryFragmentAndOpaqueAtSigns()',
+                  'recognizedServerRegistryEncodedAndEmptyAuthorityUserinfoRejectsNewConfiguration()',
+                  'malformedUriDoesNotMasqueradeAsRecognizedUserinfoAndCanBeCorrected()',
+                  'privacyClassificationAndIndependentFieldErrorsDoNotDependOnOtherInputValidity()',
+                  'individuallyAdmittedFieldsCannotBypassTheCombinedSettingsBudget()',
+                  'configurePreservesSelectionIdentityRoleFlagsNotesExtensionsLinksAndUnrelatedContent()',
+                  'managedNoopSuppliedEmptyStaleAndDeletedAuthorityRemainDistinct()',
+                  'managedThreeStringsReopenAndRoundTripThroughAnExplicitValidatedBuildCandidate()',
+                  'rejectedSettingsCannotDispatchOrReplaceAcknowledgedRevisionAndManagedFileBytes()',
+                  'historicalUriSettingsRemainReadableAndRequireExplicitCorrectionForNewConfiguration()',
+                  'unsupportedKindsAndValueFreeDescriptionsCannotLeakOrMutateInputs()',
+              },
+          }
+          for qualified, expected in required.items():
+              module = 'core' if qualified.startswith('ai.pickyour.core.') else 'preview'
+              task = 'test' if module == 'core' else 'testDebugUnitTest'
+              suite = ET.parse(pathlib.Path(module) / 'build/test-results' / task / ('TEST-' + qualified + '.xml')).getroot()
+              cases = suite.findall('testcase')
+              names = [case.attrib['name'] for case in cases]
+              if suite.attrib.get('name') != qualified or any(case.attrib.get('classname') != qualified for case in cases):
+                  raise SystemExit('Wrong typed model-provider regression suite')
+              if not expected <= set(names) or len(names) != len(set(names)):
+                  raise SystemExit('Missing or repeated typed model-provider regression')
+              if int(suite.attrib['tests']) != len(cases) or any(int(suite.attrib[key]) for key in ('failures', 'errors', 'skipped')):
+                  raise SystemExit('Typed model-provider totals do not match passing execution')
+              if any(case.findall('failure') or case.findall('error') or case.findall('skipped') for case in cases):
+                  raise SystemExit('Typed model-provider regression did not pass')
+              print(f"Verified {len(cases)} {qualified} cases; no installed-device claim")
+          PYMODEL
       - name: Require typed compute preparation and managed storage regressions
         run: |
           python - <<'PYCOMPUTE'
@@ -1298,6 +1342,65 @@ jobs:
                   raise SystemExit('Typed model totals do not match passing execution')
               if any(case.findall('failure') or case.findall('error') or case.findall('skipped') for case in cases):
                   raise SystemExit('Typed model regression did not pass')
+              print(f"Verified {len(cases)} {qualified} cases; no installed-device claim")
+          PYMODEL
+      - name: Require typed model-provider Activity and private recovery regressions
+        run: |
+          python - <<'PYMODEL'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          required = {
+              'ai.pickyour.android.preview.ModelProviderSettingsActivityTest': {
+                  'allThreeOptionalFieldsHaveLabelledPrivateLiteralControlsWithoutDefaults',
+                  'providerAddRetainsTheExistingRawSettingsAndRolePath',
+                  'threeValuesRoundTripExactlyAndOneFieldEditPreservesTheOtherTwo',
+                  'suppliedEmptyWhitespaceAndUnknownRegionRemainLiteralAndDistinctFromAbsence',
+                  'invalidReferenceAndUriHaveIndependentValueFreeErrorsWithoutReplacingSavedValues',
+                  'cancelAfterEditingAllFieldsPreservesTheAcknowledgedProviderAndRevision',
+                  'absentCommitClosesAsNoopWithoutCreatingDefaultsOrAnotherRevision',
+                  'suppliedEmptyRegionAndSafeInvalidUriRecoverOnlyAfterExplicitReview',
+                  'invalidReferenceCannotHideUriUserinfoAndRecoveryRetainsOnlyTheFixedMarker',
+                  'pastedCredentialIsExcludedWhileTheLiveFieldCanBeCorrected',
+                  'changedSavedHeadRetainsAllThreeInputsReadOnlyUntilExplicitDiscard',
+                  'suppliedEmptyRegionIsExplicitInReadOnlyRecoveryAndNeverBecomesAbsence',
+                  'readOnlyLiteralPlaceholderWordsRemainDistinctFromEmptyAndAbsentState',
+                  'wrongDraftSelectionOrCatalogIdentityCannotAcquireFreshProviderSaveAuthority',
+                  'inFlightProviderSaveFreezesEveryControlAndNeverReplaysAfterAcknowledgment',
+                  'actualPauseRetiresProviderControlsAndRequiresFreshReview',
+                  'retiredSupplyAndCommitControlsCannotReviveAClosedProviderForm',
+                  'staleManagedCommitCannotOverwriteAnotherWriterOrReenableProviderControls',
+                  'oversizedProviderRecoveryHasNoPrefixOrAutomaticViewStateFallback',
+                  'legacyRawProviderRecoveryKeepsTheExistingRawEditorPath',
+              },
+              'ai.pickyour.android.preview.ModelProviderFormCheckpointTest': {
+                  'allEightPresenceCombinationsAndOriginalIdentitiesSurviveActualParcelRoundTrip',
+                  'suppliedEmptyWhitespaceUnknownAndUnicodeRegionRemainExactLiteralInput',
+                  'combinedTwentyThousandUtf16BudgetRejectsOneExtraWithoutRetainingAPrefix',
+                  'exactPrimitiveKeysRejectMissingExtraAndWrongTypedPayloadValues',
+                  'namespacedStringVersionFormAndKindNeverAliasAnotherRecoveryProtocol',
+                  'everyOriginalIdentityIsRequiredBoundedAndNeverSubstitutedDuringDecoding',
+                  'recognizedApiUserinfoOverridesOtherInvalidInputWithOnlyTheFixedExclusionMarker',
+                  'invalidCredentialsCannotPersistWhileOpaqueReferenceBytesIncludingFinalLfSurvive',
+                  'ordinaryMalformedUrisAndLegitimateAtSignsRemainPrivateCorrectionInput',
+                  'forgedTypedSensitivePayloadsCannotBypassReadSidePrivacyChecks',
+                  'rawProviderV1V2ContextV3AndModelV4KeepTheirSeparateOriginalReaders',
+                  'inFlightFlagRemainsStateAndDescriptionsNeverDiscloseTheThreeValues',
+              },
+          }
+          for qualified, expected in required.items():
+              module = 'core' if qualified.startswith('ai.pickyour.core.') else 'preview'
+              task = 'test' if module == 'core' else 'testDebugUnitTest'
+              suite = ET.parse(pathlib.Path(module) / 'build/test-results' / task / ('TEST-' + qualified + '.xml')).getroot()
+              cases = suite.findall('testcase')
+              names = [case.attrib['name'] for case in cases]
+              if suite.attrib.get('name') != qualified or any(case.attrib.get('classname') != qualified for case in cases):
+                  raise SystemExit('Wrong typed model-provider regression suite')
+              if not expected <= set(names) or len(names) != len(set(names)):
+                  raise SystemExit('Missing or repeated typed model-provider regression')
+              if int(suite.attrib['tests']) != len(cases) or any(int(suite.attrib[key]) for key in ('failures', 'errors', 'skipped')):
+                  raise SystemExit('Typed model-provider totals do not match passing execution')
+              if any(case.findall('failure') or case.findall('error') or case.findall('skipped') for case in cases):
+                  raise SystemExit('Typed model-provider regression did not pass')
               print(f"Verified {len(cases)} {qualified} cases; no installed-device claim")
           PYMODEL
       - name: Require typed compute Activity and private recovery regressions
