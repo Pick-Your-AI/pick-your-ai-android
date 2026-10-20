@@ -1024,6 +1024,7 @@ behind the existing bounded summary. New request/window identities and Activity
 pause/destroy retirement fence canceled or replaced reads and controls. The
 canonical cost adapter and formatter retain exact declared values and unestablished
 freshness/free/included/budget status; guest input, autosave and current-draft
-evaluation remain separately owned. The 18 named simulated Activity regressions
-and strict attendance step cover this boundary; actual source/execution receipts
-and installed/physical/release results remain distinct. Partial refs #103.
+evaluation remain separately owned. The workflow requires all 21
+`CostInspectionActivityTest` cases and all 8 `CostSiblingInspectionActivityTest`
+cases; actual source/execution receipts and installed/physical/release results
+remain distinct. Partial refs #103.
