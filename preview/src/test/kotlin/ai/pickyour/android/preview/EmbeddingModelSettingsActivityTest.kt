@@ -208,6 +208,8 @@ class EmbeddingModelSettingsActivityTest {
             assertEquals(caption == "Region", supplied.isChecked)
             assertEquals(caption == "Region", control.isEnabled)
             assertEquals("", control.text.toString())
+            if (caption == "Region") assertNull(control.hint)
+            else assertEquals(activity.getString(R.string.embedding_model_not_supplied), control.hint.toString())
         }
         assertEquals(before.baselineIdentity, loaded().baselineIdentity)
         assertEquals("", settings().getString("region"))
@@ -294,7 +296,16 @@ class EmbeddingModelSettingsActivityTest {
     @Test fun suppliedEmptyRegionAndIntegralDecimalSurviveARealSaveAndReopen() {
         val before = seedEmbedding("{}")
         val form = configure()
+        assertEquals(activity.getString(R.string.embedding_model_not_supplied), number(form, "Region").hint.toString())
         enter(form, "Region", "")
+        assertNull(number(form, "Region").hint)
+        supply(form, "Region").performClick()
+        assertFalse(number(form, "Region").isEnabled)
+        assertEquals(activity.getString(R.string.embedding_model_not_supplied), number(form, "Region").hint.toString())
+        supply(form, "Region").performClick()
+        assertTrue(number(form, "Region").isEnabled)
+        assertEquals("", number(form, "Region").text.toString())
+        assertNull(number(form, "Region").hint)
         enter(form, "Output dimensions", "1.000")
         val saved = commit(form, before)
         recreate()
@@ -305,6 +316,7 @@ class EmbeddingModelSettingsActivityTest {
         val reopened = configure()
         assertTrue(supply(reopened, "Region").isChecked)
         assertEquals("", number(reopened, "Region").text.toString())
+        assertNull(number(reopened, "Region").hint)
         enter(reopened, "Credential reference", "secret://fixture/ref")
         commit(reopened, saved)
         assertEquals("1.000", PreviewEmbeddingModelSettings.initial(selection()).outputDimensions)
@@ -419,10 +431,13 @@ class EmbeddingModelSettingsActivityTest {
         assertEquals(before.baselineIdentity, loaded().baselineIdentity)
         val restored = reviewPending()
         assertFalse(supply(restored, "Credential reference").isChecked)
+        assertEquals(activity.getString(R.string.embedding_model_not_supplied), number(restored, "Credential reference").hint.toString())
         assertTrue(supply(restored, "Output dimensions").isChecked)
         assertEquals("unfinished", number(restored, "Output dimensions").text.toString())
+        assertNull(number(restored, "Output dimensions").hint)
         assertTrue(supply(restored, "Region").isChecked)
         assertEquals("", number(restored, "Region").text.toString())
+        assertNull(number(restored, "Region").hint)
         enter(restored, "Output dimensions", "1")
         commit(restored, before)
     }
@@ -490,6 +505,22 @@ class EmbeddingModelSettingsActivityTest {
             recreate { it.getBundle(ComponentFormRecovery.KEY)!!.putString(key, "other_fixture_identity") }
             val retained = reviewPending()
             readOnly(retained, "pending value", "Not supplied", "Supplied empty text")
+            assertEquals(before.baselineIdentity, loaded().baselineIdentity)
+            dismiss(retained)
+            button(R.string.component_recovery_discard).performClick()
+        }
+        for (literal in listOf("Not supplied", "Supplied empty text")) {
+            val form = configure()
+            enter(form, "Region", literal)
+            recreate { it.getBundle(ComponentFormRecovery.KEY)!!.putString("draftId", "other_fixture_identity") }
+            val retained = reviewPending()
+            readOnly(retained, literal, activity.getString(R.string.embedding_model_not_supplied))
+            val label = views(retained.window!!.decorView).filterIsInstance<TextView>().single { it.text.toString() == "Region" }
+            val group = label.parent as ViewGroup
+            val index = group.indexOfChild(label)
+            assertEquals(activity.getString(R.string.embedding_model_supplied_value),
+                (group.getChildAt(index + 1) as TextView).text.toString())
+            assertEquals(literal, (group.getChildAt(index + 2) as TextView).text.toString())
             assertEquals(before.baselineIdentity, loaded().baselineIdentity)
             dismiss(retained)
             button(R.string.component_recovery_discard).performClick()

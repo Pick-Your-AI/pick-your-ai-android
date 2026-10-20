@@ -49,7 +49,7 @@ internal class EmbeddingModelSettingsEditor(
             minLines = 1
             maxLines = 4
             setText(initial ?: "")
-            setHint(R.string.embedding_model_not_supplied)
+            hint = if (initial == null) activity.getString(R.string.embedding_model_not_supplied) else null
             isEnabled = initial != null
             addTextChangedListener(object : TextWatcher {
                 override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
@@ -70,6 +70,7 @@ internal class EmbeddingModelSettingsEditor(
                 }
                 supplied[key] = checked
                 if (!checked) editor.setText("")
+                editor.hint = if (checked) null else activity.getString(R.string.embedding_model_not_supplied)
                 editor.error = null
                 editor.isEnabled = checked
             }
@@ -124,11 +125,15 @@ internal class EmbeddingModelSettingsEditor(
                 R.string.embedding_model_dimensions to input.outputDimensions, R.string.embedding_model_region to input.region)) {
                 addView(TextView(activity).apply { setText(label) })
                 addView(TextView(activity).apply {
-                    text = when (value) {
-                        null -> activity.getString(R.string.embedding_model_not_supplied)
-                        "" -> activity.getString(R.string.embedding_model_supplied_empty)
-                        else -> value
-                    }
+                    text = activity.getString(when {
+                        value == null -> R.string.embedding_model_not_supplied
+                        value.isEmpty() -> R.string.embedding_model_supplied_empty
+                        else -> R.string.embedding_model_supplied_value
+                    })
+                    isSaveEnabled = false
+                })
+                if (!value.isNullOrEmpty()) addView(TextView(activity).apply {
+                    text = value
                     setTextIsSelectable(true)
                     isSaveEnabled = false
                 })
