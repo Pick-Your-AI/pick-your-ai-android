@@ -78,7 +78,7 @@ observation, and APK hash. It requires one phone debug APK with DEX code and:
 The artifact contains the debug APK, source/tool/package receipt, decoded
 manifest, signing output, and dependency observation. The receipt explicitly
 records that no installation, enabled service, speech observation, or TalkBack
-acceptance took place. All 23 synthetic Python guard methods must execute with
+acceptance took place. All 25 synthetic Python guard methods must execute with
 no failures or skips. They challenge the verifier and are not Android or
 TalkBack execution.
 
@@ -162,6 +162,19 @@ key presence, representation category, equality flags, source identity and APK
 hash. Observed text is restricted to the bounded public upstream release/timestamp
 vocabulary; other values are omitted. Raw XML, paths, arbitrary attributes and
 signer data are never included. The original validation exception is re-raised,
-and no qualified artifact is produced on failure. The 23 synthetic guards include
+and no qualified artifact is produced on failure. The 25 synthetic guards include
 official-format namespace, collision, privacy and record-failure controls; actual
 corrected APK validation still requires a new original successful build.
+
+## AAPT2 tool-version receipt
+
+The first successful prerequisite artifact from [run 39561510899](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39561510899)
+retained an empty `tools.aapt2` value. Its APK, dependencies and manifest checks
+remain evidence for that source, but it does not provide a complete tool-version
+observation. The [official VersionCommand](https://github.com/aosp-mirror/platform_frameworks_base/blob/android-15.0.0_r1/tools/aapt2/Main.cpp)
+writes a successful version to stderr and returns zero. Version collection now
+captures both output streams for this command only, requires one bounded AAPT2
+version/build fingerprint, and rejects empty, malformed, duplicated or failed
+output before a qualified artifact is copied. Other command output behavior is
+unchanged. Synthetic stdout/stderr and rejection controls are included in the
+25 guards; the corrected receipt still requires new original runtime evidence.

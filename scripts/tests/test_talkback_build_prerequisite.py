@@ -270,6 +270,28 @@ class TalkBackPrerequisiteGuards(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "one observed"):
                 subject.signature_certificate(text)
 
+    def test_aapt2_version_captures_successful_stderr_and_stdout(self):
+        version = b"Android Asset Packaging Tool (aapt) 2.19-12345678\n"
+        for stdout, stderr in ((b"", version), (version, b"")):
+            with patch.object(subject.subprocess, "run", return_value=subprocess.CompletedProcess(
+                    [], 0, stdout=stdout, stderr=stderr)) as command:
+                self.assertEqual(subject.aapt2_version(Path("aapt2")), version.decode().strip())
+                self.assertTrue(command.call_args.kwargs["check"])
+                self.assertEqual(command.call_args.kwargs["stderr"], subprocess.PIPE)
+
+    def test_aapt2_version_rejects_missing_conflicting_malformed_and_failed_output(self):
+        version = b"Android Asset Packaging Tool (aapt) 2.19-12345678\n"
+        for output in (b"", b"unrelated output", version + version, b"x" * 257,
+                       b"Android Asset Packaging Tool (aapt) 1.19-12345678"):
+            with patch.object(subject.subprocess, "run", return_value=subprocess.CompletedProcess(
+                    [], 0, stdout=b"", stderr=output)), self.assertRaises(ValueError):
+                subject.aapt2_version(Path("aapt2"))
+        error = subprocess.CalledProcessError(1, ["aapt2", "version"])
+        with patch.object(subject.subprocess, "run", side_effect=error), self.assertRaises(
+                subprocess.CalledProcessError) as caught:
+            subject.aapt2_version(Path("aapt2"))
+        self.assertIs(caught.exception, error)
+
     def test_aapt2_full_android_namespace_preserves_exact_checks(self):
         # Official AAPT2 Debug.cpp XmlPrinter prints namespace_uri + ':' + name.
         text = xmltree().replace("A: android:", "A: http://schemas.android.com/apk/res/android:")
@@ -450,7 +472,7 @@ class TalkBackPrerequisiteGuards(unittest.TestCase):
 
 if __name__ == "__main__":
     suite = unittest.defaultTestLoader.loadTestsFromTestCase(TalkBackPrerequisiteGuards)
-    if suite.countTestCases() != 23:
-        raise SystemExit("Expected all 23 prerequisite guard methods")
+    if suite.countTestCases() != 25:
+        raise SystemExit("Expected all 25 prerequisite guard methods")
     result = unittest.TextTestRunner(verbosity=2).run(suite)
-    raise SystemExit(0 if result.wasSuccessful() and result.testsRun == 23 and not result.skipped else 1)
+    raise SystemExit(0 if result.wasSuccessful() and result.testsRun == 25 and not result.skipped else 1)

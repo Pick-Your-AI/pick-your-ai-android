@@ -38,13 +38,24 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
-def run(argv: list[str], *, cwd: Path | None = None) -> bytes:
+def run(argv: list[str], *, cwd: Path | None = None, include_stderr: bool = False) -> bytes:
     environment = dict(os.environ, GIT_NO_REPLACE_OBJECTS="1", GIT_NO_LAZY_FETCH="1",
                        GIT_OPTIONAL_LOCKS="0")
     result = subprocess.run(argv, cwd=cwd, env=environment, check=True,
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=120)
-    require(len(result.stdout) <= 16 * 1024 * 1024, "Command output exceeds its bound")
-    return result.stdout
+    output = result.stdout + result.stderr if include_stderr else result.stdout
+    require(len(output) <= 16 * 1024 * 1024, "Command output exceeds its bound")
+    return output
+
+
+def aapt2_version(executable: Path) -> str:
+    # Official AAPT2 VersionCommand writes its successful version to stderr.
+    output = run([str(executable), "version"], include_stderr=True)
+    require(len(output) <= 256, "AAPT2 version output exceeds its bound")
+    value = output.decode("ascii").strip()
+    require(re.fullmatch(r"Android Asset Packaging Tool \(aapt\) 2\.[0-9]{1,3}-[0-9]{1,16}", value)
+            is not None, "Missing or malformed AAPT2 version observation")
+    return value
 
 
 def git(root: Path, *arguments: str) -> bytes:
@@ -453,7 +464,7 @@ def record(project: Path, upstream: Path, work: Path, sdk: Path, expected_projec
         (directory / "manifest-version-failure.json").write_text(
             json.dumps(diagnostic, sort_keys=True, indent=2) + "\n")
         raise
-    aapt_version = run([str(aapt), "version"]).decode().strip()
+    aapt_version = aapt2_version(aapt)
     signer = sdk / "build-tools" / manifest["tools"]["build_tools"] / "apksigner"
     signing_output = run([str(signer), "verify", "--verbose", "--print-certs", str(apk)]).decode()
     certificate = signature_certificate(signing_output)
