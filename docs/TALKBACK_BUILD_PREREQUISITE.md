@@ -99,6 +99,20 @@ requirement.
 
 ## Dependency-failure diagnostics
 
+The first actual producer control in [PR #756's job
+119087081813](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39559499276/job/119087081813)
+completed its synthetic Gradle build but observed only `synthetic:runtime:1`,
+missing the required `synthetic:build-tool:1`. Gradle 8.13's
+[script handler](https://github.com/gradle/gradle/blob/v8.13.0/subprojects/core/src/main/java/org/gradle/api/internal/initialization/DefaultScriptHandler.java)
+resets the buildscript classpath resolution state after assembling it. The
+observer now snapshots actual components and artifact hashes in `afterResolve`,
+before that reset, and emits the receipt only after a successful build. It does
+not force untouched configurations to resolve. The existing producer control
+requires both real synthetic artifact hashes and excludes the unused input.
+This establishes the synthetic failure mechanism; it does not identify the
+missing coordinate in the earlier TalkBack build. The corrected producer still
+requires a successful actual run before it can be considered verified.
+
 The original #754 run 39511501498 built the phone debug variant successfully,
 then stopped at the required dependency-component subset check, before APK,
 ELF, service declaration or signature qualification. Its verified-only upload
