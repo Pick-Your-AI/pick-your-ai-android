@@ -42,6 +42,20 @@ class VerifiedArtifactCacheTest {
         assertArrayEquals(second, bytes(store().active()))
     }
 
+    @Test fun `absent current pointer must not reclaim prior pins on explicit selection`() {
+        val cache = store()
+        assertEquals(CacheInstall.Activated(hash(first)), cache.installCurrent(hash(first), first.inputStream()))
+        assertEquals(CacheInstall.Activated(hash(second)), cache.installCurrent(hash(second), second.inputStream()))
+        // Simulate an absent/unreadable current pointer (crash/other-path between publish steps).
+        Files.delete(root.resolve("active"))
+        val third = "third complete bundle".toByteArray()
+        assertEquals(CacheInstall.Activated(hash(third)), cache.installCurrent(hash(third), third.inputStream()))
+        // An unreadable pointer grants no authority to discard prior pins (VerifiedArtifactCache.kt:139-140).
+        assertArrayEquals(first, bytes(cache.pinned(hash(first))))
+        assertArrayEquals(second, bytes(cache.pinned(hash(second))))
+        assertArrayEquals(third, bytes(cache.active()))
+    }
+
     @Test fun `successful read diagnostics redact active and pinned payloads without changing storage`() {
         val retained = "synthetic private retained workload".toByteArray()
         val current = """{"workload":"synthetic current workload","secret_ref":"fixture-secret-reference"}""".toByteArray()
