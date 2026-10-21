@@ -8,6 +8,7 @@ on:
       - scripts/talkback_build_prerequisite.py
       - scripts/talkback_dependency_observation.gradle
       - scripts/tests/test_talkback_build_prerequisite.py
+      - scripts/tests/test_talkback_dependency_producer.py
       - docs/TALKBACK_BUILD_PREREQUISITE.md
   workflow_dispatch:
 
@@ -70,6 +71,12 @@ jobs:
             --upstream "$GITHUB_WORKSPACE/talkback-source" \
             --work "$RUNNER_TEMP/talkback-prerequisite" \
             --expected-project "$GITHUB_SHA"
+      - name: Exercise the actual observer with offline synthetic dependencies
+        env:
+          GRADLE_USER_HOME: ${{ runner.temp }}/talkback-gradle-user-home
+        run: |
+          python -I -B scripts/tests/test_talkback_dependency_producer.py \
+            --gradle "$RUNNER_TEMP/talkback-prerequisite/wrapper/gradlew"
       - name: Build only the official phone debug variant for x86_64
         env:
           GRADLE_USER_HOME: ${{ runner.temp }}/talkback-gradle-user-home
@@ -101,4 +108,20 @@ jobs:
           path: ${{ runner.temp }}/talkback-prerequisite/artifacts/
           if-no-files-found: error
           compression-level: 0
+          retention-days: 7
+      - name: Retain bounded unqualified dependency diagnostics
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: talkback-unqualified-dependency-diagnostic-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/talkback-prerequisite/diagnostics/dependency-failure.json
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Retain bounded unqualified manifest version diagnostics
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: talkback-unqualified-manifest-version-diagnostic-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/talkback-prerequisite/diagnostics/manifest-version-failure.json
+          if-no-files-found: ignore
           retention-days: 7

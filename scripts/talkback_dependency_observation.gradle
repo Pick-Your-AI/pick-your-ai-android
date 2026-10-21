@@ -1,50 +1,22 @@
 // Build-only observation. First-seen hashes are not a dependency approval manifest.
 import groovy.json.JsonOutput
 import java.security.MessageDigest
-import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.component.ModuleComponentIdentifier
 
 def destination = System.getProperty('talkback.prerequisite.dependencies')
 if (!destination) {
     throw new GradleException('The fixed prerequisite dependency output is required')
 }
-def configurations = new java.util.concurrent.ConcurrentSkipListMap<String, Configuration>()
+def artifacts = [:]
+def components = new TreeSet<String>()
+def used = new TreeSet<String>()
 def androidModules = [:]
 
-gradle.beforeProject { project ->
-    [project.configurations, project.buildscript.configurations].eachWithIndex { container, kind ->
-        container.configureEach { configuration ->
-            configuration.resolutionStrategy.failOnDynamicVersions()
-            configuration.resolutionStrategy.failOnChangingVersions()
-            configurations["${project.path}|${kind}|${configuration.name}"] = configuration
-        }
-    }
-}
-gradle.projectsEvaluated {
-    gradle.rootProject.allprojects.each { project ->
-        def android = project.extensions.findByName('android')
-        if (android != null) {
-            if (android.compileSdkVersion != 'android-36' || android.buildToolsVersion != '35.0.0') {
-                throw new GradleException("Unexpected Android build tools in ${project.path}")
-            }
-            androidModules[project.path] = [
-                compile_sdk: android.compileSdkVersion,
-                build_tools: android.buildToolsVersion
-            ]
-        }
-    }
-}
-gradle.buildFinished { result ->
-    if (result.failure != null) {
-        return
-    }
-    def artifacts = [:]
-    def components = new TreeSet<String>()
-    def used = []
-    configurations.sort().each { key, configuration ->
-        if (configuration.state == Configuration.State.UNRESOLVED) {
-            return
-        }
+// Gradle 8.13 resets buildscript classpath state after assembling the script
+// classloader. Capture the actual resolution before that reset, rather than
+// inspecting Configuration.state at buildFinished or resolving unused inputs.
+def observe = { key, configuration ->
+    synchronized (artifacts) {
         used.add(key)
         configuration.incoming.resolutionResult.allComponents.each { component ->
             if (component.id instanceof ModuleComponentIdentifier) {
@@ -77,6 +49,35 @@ gradle.buildFinished { result ->
             }
         }
     }
+}
+gradle.beforeProject { project ->
+    [project.configurations, project.buildscript.configurations].eachWithIndex { container, kind ->
+        container.configureEach { configuration ->
+            configuration.resolutionStrategy.failOnDynamicVersions()
+            configuration.resolutionStrategy.failOnChangingVersions()
+            def key = "${project.path}|${kind}|${configuration.name}".toString()
+            configuration.incoming.afterResolve { observe(key, configuration) }
+        }
+    }
+}
+gradle.projectsEvaluated {
+    gradle.rootProject.allprojects.each { project ->
+        def android = project.extensions.findByName('android')
+        if (android != null) {
+            if (android.compileSdkVersion != 'android-36' || android.buildToolsVersion != '35.0.0') {
+                throw new GradleException("Unexpected Android build tools in ${project.path}")
+            }
+            androidModules[project.path] = [
+                compile_sdk: android.compileSdkVersion,
+                build_tools: android.buildToolsVersion
+            ]
+        }
+    }
+}
+gradle.buildFinished { result ->
+    if (result.failure != null) {
+        return
+    }
     if (artifacts.isEmpty() || androidModules.isEmpty()) {
         throw new GradleException('Build completed without the required dependency observations')
     }
@@ -86,7 +87,7 @@ gradle.buildFinished { result ->
         preapproved_checksums: false,
         gradle: gradle.gradleVersion,
         android_modules: androidModules.sort(),
-        configurations: used.sort(),
+        configurations: used.toList(),
         components: components.toList(),
         artifacts: artifacts.sort().values().toList()
     ]

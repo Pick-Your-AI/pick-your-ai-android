@@ -38,13 +38,24 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
-def run(argv: list[str], *, cwd: Path | None = None) -> bytes:
+def run(argv: list[str], *, cwd: Path | None = None, include_stderr: bool = False) -> bytes:
     environment = dict(os.environ, GIT_NO_REPLACE_OBJECTS="1", GIT_NO_LAZY_FETCH="1",
                        GIT_OPTIONAL_LOCKS="0")
     result = subprocess.run(argv, cwd=cwd, env=environment, check=True,
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=120)
-    require(len(result.stdout) <= 16 * 1024 * 1024, "Command output exceeds its bound")
-    return result.stdout
+    output = result.stdout + result.stderr if include_stderr else result.stdout
+    require(len(output) <= 16 * 1024 * 1024, "Command output exceeds its bound")
+    return output
+
+
+def aapt2_version(executable: Path) -> str:
+    # Official AAPT2 VersionCommand writes its successful version to stderr.
+    output = run([str(executable), "version"], include_stderr=True)
+    require(len(output) <= 256, "AAPT2 version output exceeds its bound")
+    value = output.decode("ascii").strip()
+    require(re.fullmatch(r"Android Asset Packaging Tool \(aapt\) 2\.[0-9]{1,3}-[0-9]{1,16}", value)
+            is not None, "Missing or malformed AAPT2 version observation")
+    return value
 
 
 def git(root: Path, *arguments: str) -> bytes:
@@ -187,7 +198,7 @@ def prepare(project: Path, upstream: Path, work: Path, expected_project: str) ->
     print("Prepared the pinned TalkBack source and isolated x86_64 build tools")
 
 
-def parse_xmltree(text: str) -> dict:
+def parse_xmltree(text: str, *, normalize_android: bool = True) -> dict:
     """Parse AAPT2's element/attribute hierarchy, without flattening service boundaries."""
     roots, stack = [], []
     for line in text.splitlines():
@@ -204,8 +215,12 @@ def parse_xmltree(text: str) -> dict:
         if attribute:
             require(bool(stack) and len(attribute[1]) > stack[-1][0], "Orphan manifest attribute")
             attributes = stack[-1][1]["attributes"]
-            require(attribute[2] not in attributes, "Duplicate manifest attribute")
-            attributes[attribute[2]] = attribute[3]
+            key = attribute[2]
+            android_namespace = "http://schemas.android.com/apk/res/android:"
+            if normalize_android and key.startswith(android_namespace):
+                key = "android:" + key[len(android_namespace):]
+            require(key not in attributes, "Duplicate manifest attribute")
+            attributes[key] = attribute[3]
     require(len(roots) == 1 and roots[0]["name"] == "manifest", "Missing unique manifest root")
     return roots[0]
 
@@ -214,6 +229,32 @@ def literal(attributes: dict[str, str], key: str) -> str | None:
     value = attributes.get(key, "")
     matched = re.match(r'^"([^"]*)"(?:\s|$)', value)
     return matched[1] if matched else None
+
+
+def manifest_version_diagnostic(text: str, expected: dict) -> dict:
+    """Describe only fixed version keys; never retain raw XML or arbitrary values."""
+    result = {"schema": "talkback-manifest-version-failure/v1", "qualified": False,
+              "expected_version": expected["version_name"], "parsed": False, "attributes": []}
+    if len(text.encode()) > 16 * 1024 * 1024:
+        return result
+    try:
+        attributes = parse_xmltree(text, normalize_android=False)["attributes"]
+    except ValueError:
+        return result
+    result["parsed"] = True
+    for key in ("android:versionName", "http://schemas.android.com/apk/res/android:versionName"):
+        raw = attributes.get(key, "")
+        value = literal(attributes, key)
+        # Only the public upstream release/timestamp vocabulary may be disclosed.
+        safe = value is not None and len(value) <= 96 and re.fullmatch(
+            r"TfPu_release_[0-9_]+-(?:prerequisite_[0-9a-f]{12}|[0-9_]{16})", value) is not None
+        shape = ("literal" if value is not None else "typed" if raw.startswith("(type ")
+                 else "reference" if raw.startswith("@") else "other" if raw else "absent")
+        result["attributes"].append({"key": key, "present": key in attributes,
+                                     "representation": shape,
+                                     "matches_expected": value == expected["version_name"],
+                                     "observed_version": value if safe else None})
+    return result
 
 
 def validate_manifest(text: str, expected: dict) -> None:
@@ -302,7 +343,8 @@ def validate_dependencies(receipt: dict, manifest: dict) -> None:
     component_ids = set(components)
     expected_components = set(manifest["expected"]["dependency_components"])
     require(expected_components <= component_ids,
-            "A pinned build or Volley dependency was not observed")
+            "Pinned dependencies missing from observed graph: "
+            + ", ".join(sorted(expected_components - component_ids)))
     artifacts = receipt.get("artifacts", [])
     require(0 < len(artifacts) <= manifest["limits"]["dependency_artifacts"],
             "Dependency artifact observations are absent or over the bound")
@@ -324,7 +366,28 @@ def validate_dependencies(receipt: dict, manifest: dict) -> None:
         seen.add(key)
         artifact_components.add(component)
     require(expected_components <= artifact_components,
-            "A pinned build or Volley dependency has no observed artifact hash")
+            "Pinned dependencies missing observed artifact hashes: "
+            + ", ".join(sorted(expected_components - artifact_components)))
+
+
+def dependency_diagnostic(receipt: dict, manifest: dict) -> dict:
+    """Allowlisted pin presence only: never publish raw dependency data or paths."""
+    pins = manifest["expected"]["dependency_components"]
+    components = receipt.get("components", [])
+    artifacts = receipt.get("artifacts", [])
+    require(isinstance(components, list) and len(components) <= 20000
+            and isinstance(artifacts, list) and len(artifacts) <= 20000,
+            "Dependency diagnostic exceeds its collection bound")
+    rows = []
+    for pin in pins:
+        rows.append({"expected_component": pin,
+                     "observed_component": pin in components,
+                     "observed_artifact": any(isinstance(item, dict)
+                                              and item.get("component") == pin
+                                              for item in artifacts)})
+    return {"schema": "talkback-dependency-failure/v1", "qualified": False,
+            "component_count": len(components), "artifact_count": len(artifacts),
+            "pins": rows}
 
 
 def signature_certificate(output: str) -> str:
@@ -369,16 +432,39 @@ def record(project: Path, upstream: Path, work: Path, sdk: Path, expected_projec
     require(sdk_records["build-tools/" + manifest["tools"]["build_tools"]]["revision"]
             == manifest["tools"]["build_tools"], "Installed build tools revision differs")
     dependencies_path = work / "dependencies.json"
+    require(dependencies_path.is_file() and not dependencies_path.is_symlink()
+            and dependencies_path.stat().st_size <= 16 * 1024 * 1024,
+            "Dependency observation is absent, indirect or exceeds the byte bound")
     dependencies = json.loads(dependencies_path.read_text())
-    validate_dependencies(dependencies, manifest)
+    try:
+        validate_dependencies(dependencies, manifest)
+    except ValueError:
+        diagnostic = dependency_diagnostic(dependencies, manifest)
+        diagnostic.update(project=state["project"], upstream=state["upstream"],
+                          dependencies_sha256=sha256_file(dependencies_path))
+        directory = work / "diagnostics"
+        directory.mkdir(exist_ok=False)
+        (directory / "dependency-failure.json").write_text(
+            json.dumps(diagnostic, sort_keys=True, indent=2) + "\n")
+        raise
     apks = list((upstream / "build/outputs/apk/phone/debug").glob("*.apk"))
     require(len(apks) == 1, "The phone debug build must produce exactly one APK")
     apk = apks[0]
     natives = inspect_apk(apk, manifest)
     aapt = sdk / "build-tools" / manifest["tools"]["build_tools"] / "aapt2"
     xmltree = run([str(aapt), "dump", "xmltree", str(apk), "--file", "AndroidManifest.xml"]).decode()
-    validate_manifest(xmltree, manifest["expected"])
-    aapt_version = run([str(aapt), "version"]).decode().strip()
+    try:
+        validate_manifest(xmltree, manifest["expected"])
+    except ValueError:
+        diagnostic = manifest_version_diagnostic(xmltree, manifest["expected"])
+        diagnostic.update(project=state["project"], upstream=state["upstream"],
+                          apk_sha256=sha256_file(apk))
+        directory = work / "diagnostics"
+        directory.mkdir(exist_ok=False)
+        (directory / "manifest-version-failure.json").write_text(
+            json.dumps(diagnostic, sort_keys=True, indent=2) + "\n")
+        raise
+    aapt_version = aapt2_version(aapt)
     signer = sdk / "build-tools" / manifest["tools"]["build_tools"] / "apksigner"
     signing_output = run([str(signer), "verify", "--verbose", "--print-certs", str(apk)]).decode()
     certificate = signature_certificate(signing_output)

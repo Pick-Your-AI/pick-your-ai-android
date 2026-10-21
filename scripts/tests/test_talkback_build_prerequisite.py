@@ -1,5 +1,7 @@
 """Synthetic guard tests only; these do not build or run TalkBack."""
 import copy
+from contextlib import ExitStack
+from unittest.mock import patch
 import importlib.util
 import json
 from pathlib import Path
@@ -268,6 +270,165 @@ class TalkBackPrerequisiteGuards(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "one observed"):
                 subject.signature_certificate(text)
 
+    def test_aapt2_version_captures_successful_stderr_and_stdout(self):
+        version = b"Android Asset Packaging Tool (aapt) 2.19-12345678\n"
+        for stdout, stderr in ((b"", version), (version, b"")):
+            with patch.object(subject.subprocess, "run", return_value=subprocess.CompletedProcess(
+                    [], 0, stdout=stdout, stderr=stderr)) as command:
+                self.assertEqual(subject.aapt2_version(Path("aapt2")), version.decode().strip())
+                self.assertTrue(command.call_args.kwargs["check"])
+                self.assertEqual(command.call_args.kwargs["stderr"], subprocess.PIPE)
+
+    def test_aapt2_version_rejects_missing_conflicting_malformed_and_failed_output(self):
+        version = b"Android Asset Packaging Tool (aapt) 2.19-12345678\n"
+        for output in (b"", b"unrelated output", version + version, b"x" * 257,
+                       b"Android Asset Packaging Tool (aapt) 1.19-12345678"):
+            with patch.object(subject.subprocess, "run", return_value=subprocess.CompletedProcess(
+                    [], 0, stdout=b"", stderr=output)), self.assertRaises(ValueError):
+                subject.aapt2_version(Path("aapt2"))
+        error = subprocess.CalledProcessError(1, ["aapt2", "version"])
+        with patch.object(subject.subprocess, "run", side_effect=error), self.assertRaises(
+                subprocess.CalledProcessError) as caught:
+            subject.aapt2_version(Path("aapt2"))
+        self.assertIs(caught.exception, error)
+
+    def test_aapt2_full_android_namespace_preserves_exact_checks(self):
+        # Official AAPT2 Debug.cpp XmlPrinter prints namespace_uri + ':' + name.
+        text = xmltree().replace("A: android:", "A: http://schemas.android.com/apk/res/android:")
+        subject.validate_manifest(text, EXPECTED)
+        for changed in (text.replace(EXPECTED["version_name"], "wrong-version"),
+                        text.replace("BIND_ACCESSIBILITY_SERVICE", "OTHER_PERMISSION"),
+                        text.replace("http://schemas.android.com/apk/res/android:", "https://unknown.example/android:")):
+            with self.assertRaises(ValueError):
+                subject.validate_manifest(changed, EXPECTED)
+
+    def test_namespace_alias_collisions_are_rejected(self):
+        for value in (EXPECTED["version_name"], "different"):
+            text = xmltree().replace("    E: application", '    A: http://schemas.android.com/apk/res/android:versionName="'
+                                     + value + '"\n    E: application')
+            with self.assertRaisesRegex(ValueError, "Duplicate"):
+                subject.validate_manifest(text, EXPECTED)
+
+    def test_manifest_diagnostic_is_bounded_and_allowlisted(self):
+        text = xmltree().replace("A: android:", "A: http://schemas.android.com/apk/res/android:")
+        result = subject.manifest_version_diagnostic(text, EXPECTED)
+        self.assertFalse(result["qualified"])
+        self.assertFalse(result["attributes"][0]["present"])
+        self.assertTrue(result["attributes"][1]["matches_expected"])
+        for value in ("private-provider-token", "/private/credential", "x" * 1000):
+            result = subject.manifest_version_diagnostic(text.replace(EXPECTED["version_name"], value), EXPECTED)
+            self.assertIsNone(result["attributes"][1]["observed_version"])
+            self.assertNotIn(value, json.dumps(result))
+        self.assertFalse(subject.manifest_version_diagnostic("x" * (16 * 1024 * 1024 + 1), EXPECTED)["parsed"])
+
+    def test_record_failure_writes_only_diagnostic_and_reraises_original(self):
+        self.record_failure_control(False)
+
+    def test_record_manifest_failure_preserves_exception_and_no_qualified_artifact(self):
+        self.record_failure_control(True)
+
+    def record_failure_control(self, manifest_failure):
+        project, upstream, work, sdk = [self.root / name for name in
+                                       ("project", "upstream", "work", "sdk")]
+        for path in (project / "scripts", upstream, work / "artifacts"):
+            path.mkdir(parents=True)
+        manifest_bytes = json.dumps(MANIFEST).encode()
+        (project / subject.MANIFEST).write_bytes(manifest_bytes)
+        (project / subject.INIT_SCRIPT).write_text("synthetic observer fixture")
+        project_identity = {"commit": "a" * 40, "tree": "b" * 40}
+        upstream_identity = {key: MANIFEST["upstream"][key] for key in ("commit", "tree")}
+        state = {"project": project_identity, "upstream": upstream_identity,
+                 "manifest_sha256": subject.hashlib.sha256(manifest_bytes).hexdigest(),
+                 "init_sha256": subject.sha256_file(project / subject.INIT_SCRIPT),
+                 "overlay_blobs": {key: value["after_blob"] for key, value in MANIFEST["overlays"].items()},
+                 "project_tracked_files": {}, "upstream_tracked_files": {},
+                 "copied_wrapper_sha256": {}}
+        (work / "prepared.json").write_text(json.dumps(state))
+        (work / "gradle-version.txt").write_text("Gradle 8.13\n")
+        (work / "java-version.txt").write_text('openjdk version "17.0.20"\n')
+        for directory, revision in (("platforms/android-36", "2"),
+                                    ("build-tools/35.0.0", "35.0.0"),
+                                    ("ndk/21.4.7075529", "21.4.7075529")):
+            target = sdk / directory
+            target.mkdir(parents=True)
+            (target / "source.properties").write_text("Pkg.Revision = " + revision + "\n")
+        receipt = dependencies()
+        if not manifest_failure:
+            receipt["components"].remove(EXPECTED["dependency_components"][0])
+        receipt["provider_text"] = "private-provider-value"
+        receipt["artifacts"][0]["path"] = "/private/credential"
+        (work / "dependencies.json").write_text(json.dumps(receipt))
+        original = []
+        validator = subject.validate_manifest if manifest_failure else subject.validate_dependencies
+        if manifest_failure:
+            apk = upstream / "build/outputs/apk/phone/debug/synthetic.apk"
+            apk.parent.mkdir(parents=True)
+            apk.write_bytes(b"synthetic APK fixture, never qualified")
+
+        def capture_failure(*args):
+            try:
+                validator(*args)
+            except ValueError as error:
+                original.append(error)
+                raise
+
+        with ExitStack() as stack:
+            stack.enter_context(patch.object(subject, "identity", side_effect=lambda path:
+                project_identity if path == project else upstream_identity))
+            stack.enter_context(patch.object(subject, "verify_tracked", return_value={}))
+            stack.enter_context(patch.object(subject, "verify_copied_wrapper", return_value={}))
+            stack.enter_context(patch.object(subject, "validate_manifest" if manifest_failure else "validate_dependencies",
+                                             side_effect=capture_failure))
+            if manifest_failure:
+                stack.enter_context(patch.object(subject, "run", return_value=xmltree().replace(
+                    EXPECTED["version_name"], "private-provider-value").encode()))
+            apk_check = stack.enter_context(patch.object(subject, "inspect_apk"))
+            with self.assertRaises(ValueError) as caught:
+                subject.record(project, upstream, work, sdk, project_identity["commit"])
+            self.assertIs(caught.exception, original[0])
+            if manifest_failure:
+                apk_check.assert_called_once()
+            else:
+                apk_check.assert_not_called()
+        target = work / "diagnostics" / ("manifest-version-failure.json" if manifest_failure else "dependency-failure.json")
+        diagnostic = json.loads(target.read_text())
+        self.assertEqual(diagnostic["project"], project_identity)
+        self.assertEqual(diagnostic["upstream"], upstream_identity)
+        if manifest_failure:
+            self.assertEqual(diagnostic["apk_sha256"], subject.sha256_file(apk))
+        else:
+            self.assertEqual(diagnostic["dependencies_sha256"], subject.sha256_file(work / "dependencies.json"))
+        self.assertFalse(diagnostic["qualified"])
+        self.assertNotIn("private-provider-value", target.read_text())
+        self.assertNotIn("/private/credential", target.read_text())
+        self.assertEqual(list((work / "artifacts").iterdir()), [])
+        self.assertEqual(list((work / "diagnostics").iterdir()), [target])
+
+    def test_missing_coordinates_are_exact_and_diagnostic_is_allowlisted(self):
+        receipt = dependencies()
+        missing = EXPECTED["dependency_components"][0]
+        receipt["components"].remove(missing)
+        with self.assertRaisesRegex(ValueError, "missing from observed graph") as caught:
+            subject.validate_dependencies(receipt, MANIFEST)
+        self.assertEqual(str(caught.exception),
+                         "Pinned dependencies missing from observed graph: " + missing)
+        receipt["components"].append("secret arbitrary provider text")
+        receipt["artifacts"].append({"component": "secret arbitrary provider text",
+                                      "path": "/private/credential"})
+        result = subject.dependency_diagnostic(receipt, MANIFEST)
+        self.assertFalse(result["qualified"])
+        self.assertNotIn("secret", json.dumps(result))
+        self.assertNotIn("credential", json.dumps(result))
+        self.assertFalse(result["pins"][0]["observed_component"])
+        with self.assertRaisesRegex(ValueError, "bound"):
+            subject.dependency_diagnostic(dict(receipt, components=["x"] * 20001), MANIFEST)
+        receipt = dependencies()
+        receipt["artifacts"] = receipt["artifacts"][1:]
+        with self.assertRaisesRegex(ValueError, "missing observed artifact hashes") as caught:
+            subject.validate_dependencies(receipt, MANIFEST)
+        self.assertEqual(str(caught.exception),
+                         "Pinned dependencies missing observed artifact hashes: " + missing)
+
     def test_first_resolution_is_observed_and_never_preapproved(self):
         receipt = dependencies()
         subject.validate_dependencies(receipt, MANIFEST)
@@ -311,7 +472,7 @@ class TalkBackPrerequisiteGuards(unittest.TestCase):
 
 if __name__ == "__main__":
     suite = unittest.defaultTestLoader.loadTestsFromTestCase(TalkBackPrerequisiteGuards)
-    if suite.countTestCases() != 17:
-        raise SystemExit("Expected all 17 prerequisite guard methods")
+    if suite.countTestCases() != 25:
+        raise SystemExit("Expected all 25 prerequisite guard methods")
     result = unittest.TextTestRunner(verbosity=2).run(suite)
-    raise SystemExit(0 if result.wasSuccessful() and result.testsRun == 17 and not result.skipped else 1)
+    raise SystemExit(0 if result.wasSuccessful() and result.testsRun == 25 and not result.skipped else 1)
