@@ -1,5 +1,7 @@
 """Synthetic guard tests only; these do not build or run TalkBack."""
 import copy
+from contextlib import ExitStack
+from unittest.mock import patch
 import importlib.util
 import json
 from pathlib import Path
@@ -268,6 +270,93 @@ class TalkBackPrerequisiteGuards(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "one observed"):
                 subject.signature_certificate(text)
 
+    def test_record_failure_writes_only_diagnostic_and_reraises_original(self):
+        project, upstream, work, sdk = [self.root / name for name in
+                                       ("project", "upstream", "work", "sdk")]
+        for path in (project / "scripts", upstream, work / "artifacts"):
+            path.mkdir(parents=True)
+        manifest_bytes = json.dumps(MANIFEST).encode()
+        (project / subject.MANIFEST).write_bytes(manifest_bytes)
+        (project / subject.INIT_SCRIPT).write_text("synthetic observer fixture")
+        project_identity = {"commit": "a" * 40, "tree": "b" * 40}
+        upstream_identity = {key: MANIFEST["upstream"][key] for key in ("commit", "tree")}
+        state = {"project": project_identity, "upstream": upstream_identity,
+                 "manifest_sha256": subject.hashlib.sha256(manifest_bytes).hexdigest(),
+                 "init_sha256": subject.sha256_file(project / subject.INIT_SCRIPT),
+                 "overlay_blobs": {key: value["after_blob"] for key, value in MANIFEST["overlays"].items()},
+                 "project_tracked_files": {}, "upstream_tracked_files": {},
+                 "copied_wrapper_sha256": {}}
+        (work / "prepared.json").write_text(json.dumps(state))
+        (work / "gradle-version.txt").write_text("Gradle 8.13\n")
+        (work / "java-version.txt").write_text('openjdk version "17.0.20"\n')
+        for directory, revision in (("platforms/android-36", "2"),
+                                    ("build-tools/35.0.0", "35.0.0"),
+                                    ("ndk/21.4.7075529", "21.4.7075529")):
+            target = sdk / directory
+            target.mkdir(parents=True)
+            (target / "source.properties").write_text("Pkg.Revision = " + revision + "\n")
+        receipt = dependencies()
+        receipt["components"].remove(EXPECTED["dependency_components"][0])
+        receipt["provider_text"] = "private-provider-value"
+        receipt["artifacts"][0]["path"] = "/private/credential"
+        (work / "dependencies.json").write_text(json.dumps(receipt))
+        original = []
+        validator = subject.validate_dependencies
+
+        def capture_failure(*args):
+            try:
+                validator(*args)
+            except ValueError as error:
+                original.append(error)
+                raise
+
+        with ExitStack() as stack:
+            stack.enter_context(patch.object(subject, "identity", side_effect=lambda path:
+                project_identity if path == project else upstream_identity))
+            stack.enter_context(patch.object(subject, "verify_tracked", return_value={}))
+            stack.enter_context(patch.object(subject, "verify_copied_wrapper", return_value={}))
+            stack.enter_context(patch.object(subject, "validate_dependencies", side_effect=capture_failure))
+            apk_check = stack.enter_context(patch.object(subject, "inspect_apk"))
+            with self.assertRaises(ValueError) as caught:
+                subject.record(project, upstream, work, sdk, project_identity["commit"])
+            self.assertIs(caught.exception, original[0])
+            apk_check.assert_not_called()
+        target = work / "diagnostics/dependency-failure.json"
+        diagnostic = json.loads(target.read_text())
+        self.assertEqual(diagnostic["project"], project_identity)
+        self.assertEqual(diagnostic["upstream"], upstream_identity)
+        self.assertEqual(diagnostic["dependencies_sha256"], subject.sha256_file(work / "dependencies.json"))
+        self.assertFalse(diagnostic["qualified"])
+        self.assertNotIn("private-provider-value", target.read_text())
+        self.assertNotIn("/private/credential", target.read_text())
+        self.assertEqual(list((work / "artifacts").iterdir()), [])
+        self.assertEqual(list((work / "diagnostics").iterdir()), [target])
+
+    def test_missing_coordinates_are_exact_and_diagnostic_is_allowlisted(self):
+        receipt = dependencies()
+        missing = EXPECTED["dependency_components"][0]
+        receipt["components"].remove(missing)
+        with self.assertRaisesRegex(ValueError, "missing from observed graph") as caught:
+            subject.validate_dependencies(receipt, MANIFEST)
+        self.assertEqual(str(caught.exception),
+                         "Pinned dependencies missing from observed graph: " + missing)
+        receipt["components"].append("secret arbitrary provider text")
+        receipt["artifacts"].append({"component": "secret arbitrary provider text",
+                                      "path": "/private/credential"})
+        result = subject.dependency_diagnostic(receipt, MANIFEST)
+        self.assertFalse(result["qualified"])
+        self.assertNotIn("secret", json.dumps(result))
+        self.assertNotIn("credential", json.dumps(result))
+        self.assertFalse(result["pins"][0]["observed_component"])
+        with self.assertRaisesRegex(ValueError, "bound"):
+            subject.dependency_diagnostic(dict(receipt, components=["x"] * 20001), MANIFEST)
+        receipt = dependencies()
+        receipt["artifacts"] = receipt["artifacts"][1:]
+        with self.assertRaisesRegex(ValueError, "missing observed artifact hashes") as caught:
+            subject.validate_dependencies(receipt, MANIFEST)
+        self.assertEqual(str(caught.exception),
+                         "Pinned dependencies missing observed artifact hashes: " + missing)
+
     def test_first_resolution_is_observed_and_never_preapproved(self):
         receipt = dependencies()
         subject.validate_dependencies(receipt, MANIFEST)
@@ -311,7 +400,7 @@ class TalkBackPrerequisiteGuards(unittest.TestCase):
 
 if __name__ == "__main__":
     suite = unittest.defaultTestLoader.loadTestsFromTestCase(TalkBackPrerequisiteGuards)
-    if suite.countTestCases() != 17:
-        raise SystemExit("Expected all 17 prerequisite guard methods")
+    if suite.countTestCases() != 19:
+        raise SystemExit("Expected all 19 prerequisite guard methods")
     result = unittest.TextTestRunner(verbosity=2).run(suite)
-    raise SystemExit(0 if result.wasSuccessful() and result.testsRun == 17 and not result.skipped else 1)
+    raise SystemExit(0 if result.wasSuccessful() and result.testsRun == 19 and not result.skipped else 1)

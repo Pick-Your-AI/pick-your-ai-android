@@ -302,7 +302,8 @@ def validate_dependencies(receipt: dict, manifest: dict) -> None:
     component_ids = set(components)
     expected_components = set(manifest["expected"]["dependency_components"])
     require(expected_components <= component_ids,
-            "A pinned build or Volley dependency was not observed")
+            "Pinned dependencies missing from observed graph: "
+            + ", ".join(sorted(expected_components - component_ids)))
     artifacts = receipt.get("artifacts", [])
     require(0 < len(artifacts) <= manifest["limits"]["dependency_artifacts"],
             "Dependency artifact observations are absent or over the bound")
@@ -324,7 +325,28 @@ def validate_dependencies(receipt: dict, manifest: dict) -> None:
         seen.add(key)
         artifact_components.add(component)
     require(expected_components <= artifact_components,
-            "A pinned build or Volley dependency has no observed artifact hash")
+            "Pinned dependencies missing observed artifact hashes: "
+            + ", ".join(sorted(expected_components - artifact_components)))
+
+
+def dependency_diagnostic(receipt: dict, manifest: dict) -> dict:
+    """Allowlisted pin presence only: never publish raw dependency data or paths."""
+    pins = manifest["expected"]["dependency_components"]
+    components = receipt.get("components", [])
+    artifacts = receipt.get("artifacts", [])
+    require(isinstance(components, list) and len(components) <= 20000
+            and isinstance(artifacts, list) and len(artifacts) <= 20000,
+            "Dependency diagnostic exceeds its collection bound")
+    rows = []
+    for pin in pins:
+        rows.append({"expected_component": pin,
+                     "observed_component": pin in components,
+                     "observed_artifact": any(isinstance(item, dict)
+                                              and item.get("component") == pin
+                                              for item in artifacts)})
+    return {"schema": "talkback-dependency-failure/v1", "qualified": False,
+            "component_count": len(components), "artifact_count": len(artifacts),
+            "pins": rows}
 
 
 def signature_certificate(output: str) -> str:
@@ -369,8 +391,21 @@ def record(project: Path, upstream: Path, work: Path, sdk: Path, expected_projec
     require(sdk_records["build-tools/" + manifest["tools"]["build_tools"]]["revision"]
             == manifest["tools"]["build_tools"], "Installed build tools revision differs")
     dependencies_path = work / "dependencies.json"
+    require(dependencies_path.is_file() and not dependencies_path.is_symlink()
+            and dependencies_path.stat().st_size <= 16 * 1024 * 1024,
+            "Dependency observation is absent, indirect or exceeds the byte bound")
     dependencies = json.loads(dependencies_path.read_text())
-    validate_dependencies(dependencies, manifest)
+    try:
+        validate_dependencies(dependencies, manifest)
+    except ValueError:
+        diagnostic = dependency_diagnostic(dependencies, manifest)
+        diagnostic.update(project=state["project"], upstream=state["upstream"],
+                          dependencies_sha256=sha256_file(dependencies_path))
+        directory = work / "diagnostics"
+        directory.mkdir(exist_ok=False)
+        (directory / "dependency-failure.json").write_text(
+            json.dumps(diagnostic, sort_keys=True, indent=2) + "\n")
+        raise
     apks = list((upstream / "build/outputs/apk/phone/debug").glob("*.apk"))
     require(len(apks) == 1, "The phone debug build must produce exactly one APK")
     apk = apks[0]
