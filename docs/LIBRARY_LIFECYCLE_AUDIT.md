@@ -15,11 +15,44 @@ This audit is a supporting artifact and does not relocate those records.
 14.01 path. The live assignee and receiving-review records remain authoritative;
 role descriptions are not another person's accepted assignment.
 
+## Installed evidence update — 2026-10-20
+
+The installed observations in the original 2026-10-18 intake below are historical.
+[PR #467](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/467) subsequently
+delivered the installed lane as signed main
+`0f5fea42c5cd149472269da2e47559a24689ba71`. The
+[complete original receiving qualification](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/467#issuecomment-6274389871)
+belongs to actual preparation
+`bd2487f63745c0b9d2f83835a810766cc2a043c1`, tree
+`4846f4ebfb499fe11ec8a99166ef23380e492b09`, in
+[run 39294986481](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39294986481).
+All four required general journeys passed: synthetic launch, acknowledged automatic
+save across force-stop and cold relaunch, deliberately invalid pending fields
+across two rotations, and confirmed selected-draft deletion remaining absent after
+another cold relaunch. The original APK, hierarchy/image and restored ACL/identity
+checks belong to that exact execution.
+
+These observations supply bounded installed evidence relevant to #86 and #76.
+They do not establish the complete empty/partial create, rename, duplicate,
+reopen and delete sequence; installed corrupt-neighbor or storage-full recovery;
+the full route/back/task-stack behavior; or accessibility and physical-device
+acceptance. [EMULATOR_SMOKE.md](EMULATOR_SMOKE.md#cases-and-evidence-limits)
+records each case's actual assertion and limit. No current-main product execution
+or new original-artifact acquisition is performed by this documentation update.
+
+The separate literal `0f5fea42` main-push
+[run 39304189399, attempt 1](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39304189399)
+failed during SDK preparation with `Error on ZipFile unknown archive`; no ACL grant
+or installed case ran. Its [retained follow-through](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/467#issuecomment-6274771555)
+preserves that failure and the distinct later observations. A passed receiving
+execution is not a pass on the later main tree, and the earlier #255 launch failure
+below remains failed. Neither issue is completed by these general smoke cases.
+
 ## Accepted source and actual main evidence
 
 [PR #277](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/277) delivered
 canceled-dialog guards, retryable selected deletion and the storage-operation
-identity fence. Its verified squash is the main commit above, tree
+identity fence. Its verified squash is historical main commit `8162a5571147874635d3139e73a171a1077a6d2b`, tree
 `71843091c1ddf3c6476106b137823a49d9628107`. Independent final source reviews
 [5562512080](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/277#pullrequestreview-5562512080)
 and [5562512934](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/277#pullrequestreview-5562512934)
@@ -75,7 +108,7 @@ not grant a remote ownership transfer.
 | Exact acceptance criterion | Implemented source and observed check | Failure/recovery result and remaining evidence |
 | --- | --- | --- |
 | Create, rename, duplicate, list, open and delete local drafts/revisions with durable storage and recovery. | Canonical library, immutable local history, active-pointer store and native library actions; `PreviewDraftLibraryTest`, `PreviewDraftDeletionTest` and the real positive create/duplicate/open/delete Activity case. | Atomic writes, CAS, bounded history, failures before acknowledgment and unconfirmed cleanup are covered in local/simulated tests. Installed durability, actual storage-full behavior and the complete receiving record remain open. |
-| Library operations survive process recreation, and duplicate/delete actions affect only the selected local build. | New duplicate IDs retain explicit source lineage; stale/foreign baselines and canceled callbacks cannot change another draft. Library/active-pointer reopen and Activity recreation cases pass. | A JVM/Activity reconstruction is not Android process termination. The installed four-case chain has not passed; its later library operation sequence and actual process recreation remain unexecuted acceptance work. |
+| Library operations survive process recreation, and duplicate/delete actions affect only the selected local build. | New duplicate IDs retain explicit source lineage; stale/foreign baselines and canceled callbacks cannot change another draft. Library/active-pointer reopen and Activity recreation cases pass. | The later installed receipt above covers acknowledged save and selected deletion across force-stop/cold relaunch. The complete empty/partial library sequence, duplicate isolation and broader process-recreation behavior still need their own installed evidence. |
 | Empty and partial drafts remain usable without satisfying published snapshot minimum-selection requirements through fabricated content. | Empty/partial local content saves and reopens; optional context/workload/selection values remain unanswered where absent. Existing frozen schemas and fixtures are unchanged. | The local editor does not declare a valid published BuildSnapshot. Full UI receiving acceptance still needs the supported device journey; conversion and publication remain their separate contract work. |
 | A corrupt record does not prevent opening other builds or disappear silently from the user's recovery view. | Per-record load failures remain visible; valid neighbors can open. Future-format, symlink and missing rows, scan limits and root replacement have explicit fail-closed tests in library/upgrade suites. | The native error path preserves unsupported bytes; it does not claim a repair/export implementation. Installed corrupt-record presentation, actual storage-full recovery and accessibility review remain open. |
 
@@ -137,7 +170,7 @@ negative/recovery path within the larger navigation requirement.
 | Exact acceptance criterion | Implemented source and observed check | Failure/recovery result and remaining evidence |
 | --- | --- | --- |
 | Stable navigation/routes, deep-link entry and back handling; restore correct screen and draft across rotation, backgrounding and process death. | Existing bounded editing/catalog/comparison saved state, retired callback guards and explicit unsupported incoming-entry handling. | Stable supported routes for all five named destinations are not implemented. Default platform Back and per-task `singleTop` are documented; actual external-entry/back/task-stack and installed process-death checks remain open. |
-| Rotation and process restart restore the correct build and recoverable editing context. | Draft ID, pending title/context/workload, exact catalog selections and baseline checkpoint restore in actual Activity simulations; stale/uncertain state does not acquire save authority. | No actual installed rotation/process-kill success is inferred. Pending Bundle state is not an acknowledged durable revision and is not promised to survive arbitrary task removal. |
+| Rotation and process restart restore the correct build and recoverable editing context. | Draft ID, pending title/context/workload, exact catalog selections and baseline checkpoint restore in actual Activity simulations; stale/uncertain state does not acquire save authority. | The later installed receipt above observes its exact invalid pending fields across two rotations and acknowledged saved fields after force-stop/cold relaunch. Pending Bundle state remains distinct from a durable revision; arbitrary task removal and the full navigation/editing restoration remain unqualified. |
 | External entry/back follows the documented path without duplicate editors; invalid targets cannot overwrite another build. | Seven incoming-entry cases cover cold rejection, warm preservation, envelope variants, blocked recreation and deliberate local recovery. Existing source-navigation tests require explicit reviewed outgoing-URL confirmation. | The manifest's `singleTop` applies only when the Activity is already atop the target task. Installed cold/warm/back behavior across tasks/caller flags still needs observation. Shared-build/deep-link routing, missing/deleted supported-route targets and remote authority remain unimplemented. |
 
 All four implementation steps remain in scope: stable route identifiers for
@@ -148,7 +181,7 @@ The requested catalog-picker-builder and shared-entry/back journeys, recreation,
 termination and relaunch during editing must be exercised on their implemented
 route model. An unsupported-entry fence does not stand in for that model.
 
-## Prerequisites and installed chain
+## Prerequisites and historical installed chain
 
 Both issues name [#67](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/67)
 as a prerequisite. Its named outputs include atomic durable draft/head storage,
@@ -159,7 +192,7 @@ the full Android/storage/retention receiving gate remains open. The adopted
 preview decisions in [REPOSITORY_SCOPE.md](REPOSITORY_SCOPE.md) permit this bounded
 work without asserting product architecture, production package or device approval.
 
-The existing installed controller is [#255](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/255),
+At the original intake, the installed controller was [#255](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/255),
 with its canonical #237/#206 chain. At this intake its head was
 `83bb5c1491b8b08589b5cdc142e74ae9f6720dd2`. The latest
 [run 39117620126](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39117620126)
@@ -171,8 +204,8 @@ predicate into a pass. The [exact artifact review](https://github.com/Pick-Your-
 preserves the original launch failure, process IDs and bounded diagnostic scope.
 No unchanged rerun or second controller was started by this audit.
 
-The next receiving work must preserve that controller's canonical owner and exact
-APK/run lineage while resolving the observed failure. After the installed harness
-passes, the broader issue-specific library/recreation, route/back, storage-full
-and accessibility cases still require their own receipts. Neither issue is
-closed by this source audit or by the #277 merge.
+The later installed-lane delivery and exact original qualification are linked in
+the dated update above. They preserve the earlier failed APK/run lineage. The
+broader issue-specific library/recreation, route/back, storage-full and
+accessibility cases still require their own receipts. Neither issue is closed
+by this supporting audit, the #277 merge or the general installed-lane delivery.
