@@ -270,7 +270,42 @@ class TalkBackPrerequisiteGuards(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "one observed"):
                 subject.signature_certificate(text)
 
+    def test_aapt2_full_android_namespace_preserves_exact_checks(self):
+        # Official AAPT2 Debug.cpp XmlPrinter prints namespace_uri + ':' + name.
+        text = xmltree().replace("A: android:", "A: http://schemas.android.com/apk/res/android:")
+        subject.validate_manifest(text, EXPECTED)
+        for changed in (text.replace(EXPECTED["version_name"], "wrong-version"),
+                        text.replace("BIND_ACCESSIBILITY_SERVICE", "OTHER_PERMISSION"),
+                        text.replace("http://schemas.android.com/apk/res/android:", "https://unknown.example/android:")):
+            with self.assertRaises(ValueError):
+                subject.validate_manifest(changed, EXPECTED)
+
+    def test_namespace_alias_collisions_are_rejected(self):
+        for value in (EXPECTED["version_name"], "different"):
+            text = xmltree().replace("    E: application", '    A: http://schemas.android.com/apk/res/android:versionName="'
+                                     + value + '"\n    E: application')
+            with self.assertRaisesRegex(ValueError, "Duplicate"):
+                subject.validate_manifest(text, EXPECTED)
+
+    def test_manifest_diagnostic_is_bounded_and_allowlisted(self):
+        text = xmltree().replace("A: android:", "A: http://schemas.android.com/apk/res/android:")
+        result = subject.manifest_version_diagnostic(text, EXPECTED)
+        self.assertFalse(result["qualified"])
+        self.assertFalse(result["attributes"][0]["present"])
+        self.assertTrue(result["attributes"][1]["matches_expected"])
+        for value in ("private-provider-token", "/private/credential", "x" * 1000):
+            result = subject.manifest_version_diagnostic(text.replace(EXPECTED["version_name"], value), EXPECTED)
+            self.assertIsNone(result["attributes"][1]["observed_version"])
+            self.assertNotIn(value, json.dumps(result))
+        self.assertFalse(subject.manifest_version_diagnostic("x" * (16 * 1024 * 1024 + 1), EXPECTED)["parsed"])
+
     def test_record_failure_writes_only_diagnostic_and_reraises_original(self):
+        self.record_failure_control(False)
+
+    def test_record_manifest_failure_preserves_exception_and_no_qualified_artifact(self):
+        self.record_failure_control(True)
+
+    def record_failure_control(self, manifest_failure):
         project, upstream, work, sdk = [self.root / name for name in
                                        ("project", "upstream", "work", "sdk")]
         for path in (project / "scripts", upstream, work / "artifacts"):
@@ -296,12 +331,17 @@ class TalkBackPrerequisiteGuards(unittest.TestCase):
             target.mkdir(parents=True)
             (target / "source.properties").write_text("Pkg.Revision = " + revision + "\n")
         receipt = dependencies()
-        receipt["components"].remove(EXPECTED["dependency_components"][0])
+        if not manifest_failure:
+            receipt["components"].remove(EXPECTED["dependency_components"][0])
         receipt["provider_text"] = "private-provider-value"
         receipt["artifacts"][0]["path"] = "/private/credential"
         (work / "dependencies.json").write_text(json.dumps(receipt))
         original = []
-        validator = subject.validate_dependencies
+        validator = subject.validate_manifest if manifest_failure else subject.validate_dependencies
+        if manifest_failure:
+            apk = upstream / "build/outputs/apk/phone/debug/synthetic.apk"
+            apk.parent.mkdir(parents=True)
+            apk.write_bytes(b"synthetic APK fixture, never qualified")
 
         def capture_failure(*args):
             try:
@@ -315,17 +355,27 @@ class TalkBackPrerequisiteGuards(unittest.TestCase):
                 project_identity if path == project else upstream_identity))
             stack.enter_context(patch.object(subject, "verify_tracked", return_value={}))
             stack.enter_context(patch.object(subject, "verify_copied_wrapper", return_value={}))
-            stack.enter_context(patch.object(subject, "validate_dependencies", side_effect=capture_failure))
+            stack.enter_context(patch.object(subject, "validate_manifest" if manifest_failure else "validate_dependencies",
+                                             side_effect=capture_failure))
+            if manifest_failure:
+                stack.enter_context(patch.object(subject, "run", return_value=xmltree().replace(
+                    EXPECTED["version_name"], "private-provider-value").encode()))
             apk_check = stack.enter_context(patch.object(subject, "inspect_apk"))
             with self.assertRaises(ValueError) as caught:
                 subject.record(project, upstream, work, sdk, project_identity["commit"])
             self.assertIs(caught.exception, original[0])
-            apk_check.assert_not_called()
-        target = work / "diagnostics/dependency-failure.json"
+            if manifest_failure:
+                apk_check.assert_called_once()
+            else:
+                apk_check.assert_not_called()
+        target = work / "diagnostics" / ("manifest-version-failure.json" if manifest_failure else "dependency-failure.json")
         diagnostic = json.loads(target.read_text())
         self.assertEqual(diagnostic["project"], project_identity)
         self.assertEqual(diagnostic["upstream"], upstream_identity)
-        self.assertEqual(diagnostic["dependencies_sha256"], subject.sha256_file(work / "dependencies.json"))
+        if manifest_failure:
+            self.assertEqual(diagnostic["apk_sha256"], subject.sha256_file(apk))
+        else:
+            self.assertEqual(diagnostic["dependencies_sha256"], subject.sha256_file(work / "dependencies.json"))
         self.assertFalse(diagnostic["qualified"])
         self.assertNotIn("private-provider-value", target.read_text())
         self.assertNotIn("/private/credential", target.read_text())
@@ -400,7 +450,7 @@ class TalkBackPrerequisiteGuards(unittest.TestCase):
 
 if __name__ == "__main__":
     suite = unittest.defaultTestLoader.loadTestsFromTestCase(TalkBackPrerequisiteGuards)
-    if suite.countTestCases() != 19:
-        raise SystemExit("Expected all 19 prerequisite guard methods")
+    if suite.countTestCases() != 23:
+        raise SystemExit("Expected all 23 prerequisite guard methods")
     result = unittest.TextTestRunner(verbosity=2).run(suite)
-    raise SystemExit(0 if result.wasSuccessful() and result.testsRun == 19 and not result.skipped else 1)
+    raise SystemExit(0 if result.wasSuccessful() and result.testsRun == 23 and not result.skipped else 1)

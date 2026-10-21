@@ -78,7 +78,7 @@ observation, and APK hash. It requires one phone debug APK with DEX code and:
 The artifact contains the debug APK, source/tool/package receipt, decoded
 manifest, signing output, and dependency observation. The receipt explicitly
 records that no installation, enabled service, speech observation, or TalkBack
-acceptance took place. All 19 synthetic Python guard methods must execute with
+acceptance took place. All 23 synthetic Python guard methods must execute with
 no failures or skips. They challenge the verifier and are not Android or
 TalkBack execution.
 
@@ -144,3 +144,24 @@ python -I -B scripts/tests/test_talkback_build_prerequisite.py
 python -I -B scripts/tests/test_talkback_dependency_producer.py \
   --gradle /path/to/prepared/wrapper/gradlew
 ```
+
+## Manifest namespace and bounded version diagnostics
+
+AAPT2's [official XmlPrinter](https://android.googlesource.com/platform/frameworks/base/+/a860141390ad48b3606c38a8db934d35bd54dc4e/tools/aapt2/Debug.cpp)
+prints attribute namespace URIs. The parser normalizes only the exact Android
+namespace URI to `android:` and rejects duplicate canonical attribute names,
+including collisions between full-URI and prefixed spellings. Unknown namespaces,
+exact version requirements, and application/service boundaries remain unchanged.
+
+[Job 119088712313](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39560008780/job/119088712313)
+passed the real observer control and dependency/native checks, then failed the
+manifest version check. Its raw manifest was not retained, so the namespace
+incompatibility is source-proven but is not claimed as that run's observed cause.
+A separate unqualified manifest-version diagnostic now records only fixed version
+key presence, representation category, equality flags, source identity and APK
+hash. Observed text is restricted to the bounded public upstream release/timestamp
+vocabulary; other values are omitted. Raw XML, paths, arbitrary attributes and
+signer data are never included. The original validation exception is re-raised,
+and no qualified artifact is produced on failure. The 23 synthetic guards include
+official-format namespace, collision, privacy and record-failure controls; actual
+corrected APK validation still requires a new original successful build.

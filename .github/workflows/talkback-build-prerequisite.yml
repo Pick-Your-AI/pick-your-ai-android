@@ -117,3 +117,11 @@ jobs:
           path: ${{ runner.temp }}/talkback-prerequisite/diagnostics/dependency-failure.json
           if-no-files-found: ignore
           retention-days: 7
+      - name: Retain bounded unqualified manifest version diagnostics
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: talkback-unqualified-manifest-version-diagnostic-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/talkback-prerequisite/diagnostics/manifest-version-failure.json
+          if-no-files-found: ignore
+          retention-days: 7

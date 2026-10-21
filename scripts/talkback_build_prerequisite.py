@@ -187,7 +187,7 @@ def prepare(project: Path, upstream: Path, work: Path, expected_project: str) ->
     print("Prepared the pinned TalkBack source and isolated x86_64 build tools")
 
 
-def parse_xmltree(text: str) -> dict:
+def parse_xmltree(text: str, *, normalize_android: bool = True) -> dict:
     """Parse AAPT2's element/attribute hierarchy, without flattening service boundaries."""
     roots, stack = [], []
     for line in text.splitlines():
@@ -204,8 +204,12 @@ def parse_xmltree(text: str) -> dict:
         if attribute:
             require(bool(stack) and len(attribute[1]) > stack[-1][0], "Orphan manifest attribute")
             attributes = stack[-1][1]["attributes"]
-            require(attribute[2] not in attributes, "Duplicate manifest attribute")
-            attributes[attribute[2]] = attribute[3]
+            key = attribute[2]
+            android_namespace = "http://schemas.android.com/apk/res/android:"
+            if normalize_android and key.startswith(android_namespace):
+                key = "android:" + key[len(android_namespace):]
+            require(key not in attributes, "Duplicate manifest attribute")
+            attributes[key] = attribute[3]
     require(len(roots) == 1 and roots[0]["name"] == "manifest", "Missing unique manifest root")
     return roots[0]
 
@@ -214,6 +218,32 @@ def literal(attributes: dict[str, str], key: str) -> str | None:
     value = attributes.get(key, "")
     matched = re.match(r'^"([^"]*)"(?:\s|$)', value)
     return matched[1] if matched else None
+
+
+def manifest_version_diagnostic(text: str, expected: dict) -> dict:
+    """Describe only fixed version keys; never retain raw XML or arbitrary values."""
+    result = {"schema": "talkback-manifest-version-failure/v1", "qualified": False,
+              "expected_version": expected["version_name"], "parsed": False, "attributes": []}
+    if len(text.encode()) > 16 * 1024 * 1024:
+        return result
+    try:
+        attributes = parse_xmltree(text, normalize_android=False)["attributes"]
+    except ValueError:
+        return result
+    result["parsed"] = True
+    for key in ("android:versionName", "http://schemas.android.com/apk/res/android:versionName"):
+        raw = attributes.get(key, "")
+        value = literal(attributes, key)
+        # Only the public upstream release/timestamp vocabulary may be disclosed.
+        safe = value is not None and len(value) <= 96 and re.fullmatch(
+            r"TfPu_release_[0-9_]+-(?:prerequisite_[0-9a-f]{12}|[0-9_]{16})", value) is not None
+        shape = ("literal" if value is not None else "typed" if raw.startswith("(type ")
+                 else "reference" if raw.startswith("@") else "other" if raw else "absent")
+        result["attributes"].append({"key": key, "present": key in attributes,
+                                     "representation": shape,
+                                     "matches_expected": value == expected["version_name"],
+                                     "observed_version": value if safe else None})
+    return result
 
 
 def validate_manifest(text: str, expected: dict) -> None:
@@ -412,7 +442,17 @@ def record(project: Path, upstream: Path, work: Path, sdk: Path, expected_projec
     natives = inspect_apk(apk, manifest)
     aapt = sdk / "build-tools" / manifest["tools"]["build_tools"] / "aapt2"
     xmltree = run([str(aapt), "dump", "xmltree", str(apk), "--file", "AndroidManifest.xml"]).decode()
-    validate_manifest(xmltree, manifest["expected"])
+    try:
+        validate_manifest(xmltree, manifest["expected"])
+    except ValueError:
+        diagnostic = manifest_version_diagnostic(xmltree, manifest["expected"])
+        diagnostic.update(project=state["project"], upstream=state["upstream"],
+                          apk_sha256=sha256_file(apk))
+        directory = work / "diagnostics"
+        directory.mkdir(exist_ok=False)
+        (directory / "manifest-version-failure.json").write_text(
+            json.dumps(diagnostic, sort_keys=True, indent=2) + "\n")
+        raise
     aapt_version = run([str(aapt), "version"]).decode().strip()
     signer = sdk / "build-tools" / manifest["tools"]["build_tools"] / "apksigner"
     signing_output = run([str(signer), "verify", "--verbose", "--print-certs", str(apk)]).decode()
