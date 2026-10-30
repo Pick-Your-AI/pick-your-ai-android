@@ -67,4 +67,4 @@ The issue migration preserves the original history and native relationships. The
 
 ## License
 
-Code and documentation are licensed under the MIT License; see `LICENSE`. Pick Your AI names and logos are reserved and are not licensed for reuse except to identify this project.
+Code and documentation are licensed under the MIT License; see `LICENSE`.
