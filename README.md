@@ -1,4 +1,32 @@
+<!-- showcase:banner:start -->
+<p align="center">
+  <img src="docs/images/banner.png" alt="pick-your-ai-android by Pick Your AI" width="100%">
+</p>
+<!-- showcase:banner:end -->
+
+<!-- showcase:nav:start -->
+**Pick Your AI** · [All repositories](https://github.com/Pick-Your-AI) · [Docs](docs/) · [Contributing](CONTRIBUTING.md) · [Security](https://github.com/Pick-Your-AI/.github/blob/main/SECURITY.md)
+<!-- showcase:nav:end -->
+
+<div align="center">
+
 # Pick Your AI — Android
+
+<!-- showcase:badges:start -->
+![Language Kotlin](https://img.shields.io/badge/language-Kotlin-115E59)
+![Type Mobile app](https://img.shields.io/badge/type-Mobile%20app-0F766E)
+![License MIT](https://img.shields.io/badge/license-MIT-64748B)
+<!-- showcase:badges:end -->
+
+<!-- showcase:tagline:start -->
+**Android planning client for Pick Your AI; delivery tracked in Project 4.**
+<!-- showcase:tagline:end -->
+
+</div>
+
+---
+
+## About
 
 The Android planning client for discovering, configuring, checking, costing, comparing and sharing AI stacks. The mobile device is not automatically the inference target.
 
@@ -27,10 +55,16 @@ and verification requirements for enabling affected data flows.
 - [Repository scope](docs/REPOSITORY_SCOPE.md), [contributing](CONTRIBUTING.md), [agent instructions](AGENTS.md), [MIT license](LICENSE).
 - [Local help and public app-bug/evidence-correction reports](SUPPORT.md); private reporting and direct in-app support submission remain unavailable.
 
-## Maintainer execution guidance
+## Notes
+
+### Maintainer execution guidance
 
 Use the [platform program prompt](https://github.com/Pick-Your-AI/pick-your-ai-research/blob/da3c6045f84260506bd326bb24ddfa8a7e6a23e8/prompts/mobile/ANDROID.md), [shared rules](https://github.com/Pick-Your-AI/pick-your-ai-research/blob/da3c6045f84260506bd326bb24ddfa8a7e6a23e8/prompts/mobile/SHARED.md), [launch instructions](https://github.com/Pick-Your-AI/pick-your-ai-research/blob/da3c6045f84260506bd326bb24ddfa8a7e6a23e8/prompts/mobile/README.md), and [issue/acceptance/handoff index](https://github.com/Pick-Your-AI/pick-your-ai-research/blob/da3c6045f84260506bd326bb24ddfa8a7e6a23e8/prompts/mobile/INDEX.md). These immutable links reference the reviewed migration guidance from [research PR 111](https://github.com/Pick-Your-AI/pick-your-ai-research/pull/111), merged on 2026-10-18 at `da3c6045f84260506bd326bb24ddfa8a7e6a23e8`. It reconciles transferred issue identities and preserves the original guidance's implementation and acceptance boundaries.
 
 Planning issues now live in `Pick-Your-AI/pick-your-ai-android`. Refresh live assignees, native parents, prerequisites, Project fields, active work and linked PRs before execution. Do not create duplicate tracking or controllers. Repository creation does not launch a campaign or satisfy a delivery acceptance criterion.
 
 The issue migration preserves the original history and native relationships. The reviewed placement ADRs linked from the [repository scope record](docs/REPOSITORY_SCOPE.md) place only their named acceptance records in this Android repository. Other website acceptance-record locations remain authoritative until their own scoped placement decision changes them; Apple filenames retain their separate ADR requirements.
+
+## License
+
+Code and documentation are licensed under the MIT License; see `LICENSE`. Pick Your AI names and logos are reserved and are not licensed for reuse except to identify this project.
