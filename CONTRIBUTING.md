@@ -78,5 +78,6 @@ team destination and a sanitized decision summary.
 When escalation is needed, include the decision needed, current responsible role,
 prior disposition and proposed next recipient. Reuse information already in the
 issue or PR; routine contributions need no full escalation history. Send nothing
-and change no assignment automatically. Sensitive reports follow the existing
-private security/support process.
+and change no assignment automatically. Follow [Security and private information](SUPPORT.md#security-and-private-information):
+no private destination is verified for this preview. This routing guidance adds
+no private reporting destination.
