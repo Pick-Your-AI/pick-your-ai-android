@@ -9,12 +9,18 @@
 # already selected.
 
 # HOW TO READ THIS FILE
-# - Each entry carries: path (folder), owns (responsibility), does_not_own (what belongs
-#   elsewhere, and where), depends_on (direct parents / sibling modules it may call),
-#   public (its whole interface — every public function/class, nothing else), and card
-#   (its AGENTS.md path).
-# - A top-level module is a Gradle module or a top-level package tree. A sub-module is a
-#   folder inside its parent's folder, with depends_on naming the direct parent.
+# - Active entries carry path, owns, does_not_own, depends_on and invariants.
+#   No module cards or generated public API indexes exist; card/public keys are omitted.
+# - Top-level depends_on lists Gradle module dependencies; status: future entries
+#   describe planned dependencies and paths, not existing code.
+# - core package depends_on lists actual cross-package Kotlin imports, aggregated
+#   recursively to the first segment below ai.pickyour.core, excluding self-imports.
+#   Names resolve to module.core.<name> or leaf_packages.core.packages.
+# - Containment is separate: core.submodules names its eight registered packages;
+#   evidence.submodules names nested folders, not additional Gradle modules or edges.
+# - Named source references in owns use .kt file names relative to the entry's path.
+# - The 14-package inventory counts immediate packages below ai.pickyour.core;
+#   nested evidence packages are included recursively in evidence.
 # - status: future means the module is planned but not created yet.
 # - frozen: true means the module is read-only except through the versioned review path
 #   (research Pick-Your-AI/pick-your-ai-research#40). See the contracts module note below.
@@ -38,12 +44,11 @@ enforced = false
 path = "core/src/main/kotlin/ai/pickyour/core"
 status = "active"
 frozen = false
-card = "core/AGENTS.md"
 line_cap_soft = 400
 line_cap_hard = 600
 description = "SDK-independent Kotlin core: contract adapters, domain state, analysis, evidence semantics, and JVM filesystem/cache adapters. No Android SDK/UI dependency."
 owns = [
-  "Frozen contract value adapters (BuildSnapshot, Selection, CatalogSnapshot, CatalogItem, Ruleset, DependencyGraph, EvaluationReport, etc.) — see submodule contracts",
+  "Frozen contract value adapters — see submodule contracts",
   "Evidence semantics and normalization: answered / unknown / not-applicable / not-selected, membership, placement, and answer-keyword rules",
   "Evaluation and compatibility recomputation, drafts and snapshot projection, pricing, comparison, importing, invalidation, navigation, analysis",
   "JVM filesystem and cache adapters (not portable Swift/Dart implementations)",
@@ -54,8 +59,8 @@ does_not_own = [
   "Product composition and release application — belongs to future module:app",
   "Shared contract schema definitions (JSON/OpenAPI) — belongs to contracts/v1 (frozen, research #40)",
 ]
-depends_on = ["contracts", "evidence", "evaluation", "drafts", "pricing", "comparison", "importing", "analysis", "invalidation", "navigation", "cache", "resources"]
-public = ["ai.pickyour.core.* public API — see core/function_index.json when generated"]
+depends_on = []
+submodules = ["contracts", "evidence", "evaluation", "drafts", "pricing", "comparison", "importing", "preview"]
 invariants = [
   "SDK-independent: core code must not import the Android SDK or any UI framework",
   "Canonical semantics live here; UI does not own compatibility or revision policy",
@@ -72,27 +77,37 @@ invariants = [
 path = "core/src/main/kotlin/ai/pickyour/core/contracts"
 status = "active"
 frozen = true
-depends_on = ["core"]
-card = "core/contracts/AGENTS.md"
+depends_on = ["evidence", "importing"]
 line_cap_soft = 200
 line_cap_hard = 300
 description = "Frozen v1 contract value adapters and the strict validator. Preserve frozen v1; never patch to make a test pass."
 owns = [
-  "Frozen v1 value types: FrozenBuildSnapshot, FrozenSelection, FrozenCatalog, FrozenRuleset, FrozenEvaluationReport, FrozenDependencyGraph, FrozenEvent, FrozenPricebook, FrozenDeploymentManifest, FrozenCostEstimate, FrozenResourceEstimate",
-  "ContractValues and FrozenSchemaValidator — strict field / enum / decimal-string validation at the API and storage boundary",
-  "QualityEvaluationRun and ResourceEstimate typed values",
+  "ContractValues.kt",
+  "DependencyGraph.kt",
+  "FrozenBuildSnapshot.kt",
+  "FrozenCatalog.kt",
+  "FrozenCostEstimate.kt",
+  "FrozenDeploymentManifest.kt",
+  "FrozenEvaluationReport.kt",
+  "FrozenEvent.kt",
+  "FrozenPricebook.kt",
+  "FrozenRuleset.kt",
+  "FrozenSchemaValidator.kt",
+  "FrozenSelection.kt",
+  "QualityEvaluationRun.kt",
+  "ResourceEstimate.kt",
 ]
 does_not_own = [
   "The JSON/OpenAPI schema definitions themselves — those live in contracts/v1/schemas (frozen, research #40)",
   "Evidence semantics — belongs to core.evidence",
   "Evaluation logic — belongs to core.evaluation",
 ]
-public = ["Frozen* value types and FrozenSchemaValidator — see core/contracts/function_index.json when generated"]
 invariants = [
   "FROZEN: never alter frozen v1 to make a test pass. Changes route through research #40 with the agreed versioning and affected-owner review.",
   "Decimal money round-trips without binary-float change; invalid kind/enum/version is rejected",
 ]
 gotchas = [
+  "Known import cycle: contracts -> evidence -> contracts. Frozen adapters import evidence status values; this record does not authorize changing frozen v1.",
   "The 'unknown' evaluation outcome is a valid outcome, not a failure. Do not downgrade or certify claims without reviewing evidence (Android #27, research #40).",
 ]
 
@@ -101,16 +116,15 @@ gotchas = [
 path = "core/src/main/kotlin/ai/pickyour/core/evidence"
 status = "active"
 frozen = false
-depends_on = ["contracts"]
-card = "core/evidence/AGENTS.md"
+depends_on = ["contracts", "importing"]
 line_cap_soft = 500
 line_cap_hard = 700
 description = "Evidence presentation and normalization: how the builder represents and shows answer states, membership, placement, and unknown/unverified data."
 owns = [
   "Typed normalization of answer states: answered / unknown / not-applicable / not-selected",
-  "Evidence presentation policy (EvidencePresentationPolicy)",
-  "Answer-keyword rules (Cd1* and KnownAnswerSchema)",
-  "Membership values (SupportMembership, membership)",
+  "Evidence presentation policy (EvidencePresentationPolicy.kt)",
+  "Answer-keyword rules (answers/Cd1*.kt and answers/KnownAnswerSchema.kt)",
+  "Membership values (membership/SupportMembership.kt and membership/MembershipValues.kt)",
   "Placement semantics (placement, placement/context) — memory, serving, workload, deployment, context-budget math",
 ]
 does_not_own = [
@@ -118,23 +132,20 @@ does_not_own = [
   "Evaluation / compatibility recomputation — belongs to core.evaluation",
   "UI presentation of evidence — belongs to module:preview",
 ]
-public = ["EvidencePresentationPolicy and the evidence.* public API — see core/evidence/function_index.json when generated"]
 invariants = [
   "The string 'unknown' must not be interpreted as a known fact; an unknown or unanswered field cannot pass simply because it exists; unmarked-list omission stays unknown (Android #27)",
   "Evidence grade, candidate verdict, rule outcome, and severity remain independent",
 ]
 submodules = ["answers", "membership", "placement"]
-# nested under evidence: answers (answer-keyword rules), membership (SupportMembership),
-# placement (placement semantics; depends_on evidence), and placement.context (budget math;
-# depends_on placement).
+# Nested folders: answers, membership and placement; placement/context holds budget math.
+# These containment relationships are not dependency edges.
 
 # Evaluation and compatibility recomputation.
 [module.core.evaluation]
 path = "core/src/main/kotlin/ai/pickyour/core/evaluation"
 status = "active"
 frozen = false
-depends_on = ["contracts", "evidence"]
-card = "core/evaluation/AGENTS.md"
+depends_on = ["analysis", "cache", "contracts", "drafts", "importing", "invalidation"]
 line_cap_soft = 400
 line_cap_hard = 600
 description = "Evaluation and compatibility recomputation: compatible options, reference/retained snapshot evaluation, diagnostic evaluation."
@@ -148,7 +159,6 @@ does_not_own = [
   "Comparison of two builds — belongs to core.comparison",
   "Draft projection — belongs to core.drafts",
 ]
-public = ["evaluation.* public API — see core/evaluation/function_index.json when generated"]
 invariants = ["Evaluation recomputes from the frozen snapshot; it does not invent facts"]
 
 # Drafts and snapshot projection.
@@ -156,20 +166,24 @@ invariants = ["Evaluation recomputes from the frozen snapshot; it does not inven
 path = "core/src/main/kotlin/ai/pickyour/core/drafts"
 status = "active"
 frozen = false
-depends_on = ["contracts"]
-card = "core/drafts/AGENTS.md"
+depends_on = ["cache", "contracts", "importing"]
 line_cap_soft = 300
 line_cap_hard = 450
 description = "Draft selections, snapshot projection, local draft store, and snapshot archive types/codec."
 owns = [
-  "DraftSelections, DraftSnapshotProjection, DraftWorkload",
-  "LocalDraftStore, LocalSnapshotArchive, SnapshotArchiveTypes, SnapshotBundleCodec",
+  "DraftHistory.kt",
+  "DraftSelections.kt",
+  "DraftSnapshotProjection.kt",
+  "DraftWorkload.kt",
+  "LocalDraftStore.kt",
+  "LocalSnapshotArchive.kt",
+  "SnapshotArchiveTypes.kt",
+  "SnapshotBundleCodec.kt",
 ]
 does_not_own = [
   "Durable Android storage — belongs to future module:data",
   "The frozen contract value types — belong to core.contracts",
 ]
-public = ["drafts.* public API — see core/drafts/function_index.json when generated"]
 invariants = ["Drafts project from the frozen snapshot; draft edits never mutate frozen v1"]
 
 # Pricing.
@@ -177,8 +191,7 @@ invariants = ["Drafts project from the frozen snapshot; draft edits never mutate
 path = "core/src/main/kotlin/ai/pickyour/core/pricing"
 status = "active"
 frozen = false
-depends_on = ["contracts"]
-card = "core/pricing/AGENTS.md"
+depends_on = ["comparison", "contracts", "evidence", "importing"]
 line_cap_soft = 200
 line_cap_hard = 300
 description = "Pricing and cost-estimate value handling."
@@ -187,27 +200,23 @@ does_not_own = [
   "The frozen pricebook value type — belongs to core.contracts",
   "Data-source freshness and provenance — belongs to research #41",
 ]
-public = ["pricing.* public API — see core/pricing/function_index.json when generated"]
 invariants = ["Decimal money math; no binary-float drift"]
+gotchas = ["Known import cycle: pricing -> comparison -> pricing. This records existing coupling, not a new permitted architecture or a code change."]
 
 # Comparison (of two builds / scenarios).
 [module.core.comparison]
 path = "core/src/main/kotlin/ai/pickyour/core/comparison"
 status = "active"
 frozen = false
-depends_on = ["contracts", "evaluation"]
-card = "core/comparison/AGENTS.md"
+depends_on = ["contracts", "evaluation", "importing", "pricing"]
 line_cap_soft = 200
 line_cap_hard = 300
 description = "Comparison of two builds / evaluations: BuildComparison and RecordedFindings/SelectedCost comparison."
-owns = [
-  "BuildComparison, RecordedFindingsComparison, SelectedCostComparison",
-]
+owns = ["BuildComparison.kt", "RecordedFindingsComparison.kt", "SelectedCostComparison.kt"]
 does_not_own = [
   "Compatibility evaluation — belongs to core.evaluation",
   "Draft projection — belongs to core.drafts",
 ]
-public = ["comparison.* public API — see core/comparison/function_index.json when generated"]
 invariants = ["Comparison reads frozen values; it does not recompute compatibility"]
 
 # Importing (bounded JSON reader at the API/storage boundary).
@@ -215,28 +224,25 @@ invariants = ["Comparison reads frozen values; it does not recompute compatibili
 path = "core/src/main/kotlin/ai/pickyour/core/importing"
 status = "active"
 frozen = false
-depends_on = ["contracts"]
-card = "core/importing/AGENTS.md"
+depends_on = []
 line_cap_soft = 150
 line_cap_hard = 200
 description = "Bounded JSON reader and local snapshot revision — the import boundary that validates unknown values."
-owns = ["BoundedJsonReader, LocalSnapshotRevision"]
+owns = ["BoundedJsonReader.kt", "LocalSnapshotRevision.kt"]
 does_not_own = [
   "Evidence semantics — belongs to core.evidence",
   "The frozen contract value types — belong to core.contracts",
 ]
-public = ["importing.* public API — see core/importing/function_index.json when generated"]
 invariants = [
   "The bounded reader rejects malformed input and preserves unknown values; it never fabricates fields",
 ]
 
 # ---------------------------------------------------------------------------
-# :core LEAF PACKAGES (not modules — single-file packages with no interface of their own)
+# :core LEAF PACKAGES (not separately registered modules)
 # ---------------------------------------------------------------------------
-# These stay as unregistered leaf packages inside core. They are not modules because each
-# is a single file with no public interface of its own. Registering a module for a single
-# file is a junk drawer and is discouraged.
-[module.core.leaves]
+# These single-file packages remain grouped under core, outside the module namespace.
+# They can expose public declarations and be dependency targets without separate modules.
+[leaf_packages.core]
 description = "Unregistered single-file leaf packages inside core (no module of their own)."
 packages = ["analysis", "cache", "configuration", "invalidation", "navigation", "resources"]
 
@@ -250,20 +256,18 @@ packages = ["analysis", "cache", "configuration", "invalidation", "navigation", 
 path = "core/src/main/kotlin/ai/pickyour/core/preview"
 status = "active"
 frozen = false
-depends_on = ["contracts", "evaluation", "drafts"]
-card = "core/preview/AGENTS.md"
+depends_on = ["analysis", "cache", "comparison", "contracts", "drafts", "evaluation", "evidence", "importing"]
 line_cap_soft = 400
 line_cap_hard = 600
 description = "Preview-logic helpers that live inside :core: preview accelerator settings, active-draft store, catalog browser and comparison, and the preview package itself. Core-side preview logic, distinct from the :preview diagnostic UI module."
 owns = [
-  "PreviewAcceleratorSettings, PreviewActiveDraftStore, PreviewCatalogBrowser, PreviewCatalogComparison",
+  "PreviewAcceleratorSettings.kt, PreviewActiveDraftStore.kt, PreviewCatalogBrowser.kt, PreviewCatalogComparison.kt",
   "Core-side preview computation and helpers used by the diagnostic UI",
 ]
 does_not_own = [
   "The synthetic Android diagnostic UI / native Views — belongs to the :preview Gradle module",
   "Canonical contract value types — belong to core.contracts",
 ]
-public = ["preview.* public API (core-side) — see core/preview/function_index.json when generated"]
 invariants = [
   "Core-side preview logic is SDK-independent; the diagnostic UI lives in the :preview module",
 ]
@@ -278,7 +282,6 @@ invariants = [
 path = "preview/src/main/kotlin/ai/pickyour/android/preview"
 status = "opt-in"
 depends_on = ["core"]
-card = "preview/AGENTS.md"
 line_cap_soft = 400
 line_cap_hard = 600
 description = "Current synthetic Android diagnostic: native Views, lifecycle, and app-private path composition. Opt-in via -PandroidPreview=true."
@@ -291,7 +294,6 @@ does_not_own = [
   "Durable storage — belongs to future module:data",
   "Product composition / release application — belongs to future module:app",
 ]
-public = ["ai.pickyour.android.preview public API — see preview/function_index.json when generated"]
 invariants = [
   "Preview is synthetic and opt-in; it does not ship and does not own canonical semantics",
   "All preview behavior depends on :core; preview never duplicates core logic",
@@ -306,7 +308,6 @@ invariants = [
 path = "app/src/main/kotlin/ai/pickyour/android/app"
 status = "future"
 depends_on = ["core", "data"]
-card = "app/AGENTS.md"
 description = "Product composition and native screens for the release application. NOT created yet; adopting the name creates no module today."
 
 # Android storage / network / credential adapters behind explicit interfaces.
@@ -314,5 +315,4 @@ description = "Product composition and native screens for the release applicatio
 path = "data/src/main/kotlin/ai/pickyour/android/data"
 status = "future"
 depends_on = ["core"]
-card = "data/AGENTS.md"
 description = "Android storage / network / credential adapters behind explicit interfaces. Only created when extraction has a concrete boundary benefit. NOT created yet."
