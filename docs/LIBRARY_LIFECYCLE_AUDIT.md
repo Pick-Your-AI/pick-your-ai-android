@@ -41,9 +41,10 @@ records each case's actual assertion and limit. No current-main product executio
 or new original-artifact acquisition is performed by this documentation update.
 
 The separate literal `0f5fea42` main-push
-[run 39304189399, attempt 1](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39304189399)
+[run 39304189399, attempt 1](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39304189399/attempts/1)
 failed during SDK preparation with `Error on ZipFile unknown archive`; no ACL grant
-or installed case ran. Its [retained follow-through](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/467#issuecomment-6274771555)
+or installed case ran. Attempt 2 was cancelled and produced no installed result.
+Its [retained follow-through](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/467#issuecomment-6274771555)
 preserves that failure and the distinct later observations. A passed receiving
 execution is not a pass on the later main tree, and the earlier #255 launch failure
 below remains failed. Neither issue is completed by these general smoke cases.
