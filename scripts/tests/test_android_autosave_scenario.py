@@ -1,4 +1,9 @@
-"""Host-only current-product scenario controls; no Android, subprocess or filesystem mutation."""
+"""Host-only autosave scenario controls; no Android, subprocess or filesystem mutation.
+
+The stateful UI models the four generic journeys. The separately tested typed
+DataSource journey is mocked at its dispatch boundary and verified below; these
+fixture results do not supply its installed controls or complete receipt.
+"""
 
 import contextlib
 import copy
@@ -210,6 +215,7 @@ class CurrentAutosaveScenarioTest(unittest.TestCase):
         receipt = {"cases": [{"id": name, "status": "not_run"} for name in smoke.CASE_IDS]}
         with contextlib.ExitStack() as stack:
             stack.enter_context(patch.object(smoke, "Ui", ScenarioUi))
+            data_source = stack.enter_context(patch.object(smoke, "exercise_data_source", autospec=True))
             log = stack.enter_context(patch.object(smoke, "retain_failure_log"))
             state = stack.enter_context(patch.object(smoke, "retain_case_failure_state"))
             # These commands are outside the fake UI contract and must never run.
@@ -221,13 +227,23 @@ class CurrentAutosaveScenarioTest(unittest.TestCase):
                 smoke.exercise(device, Path("/unused-host-scenario"), receipt)
             except smoke.SmokeFailure as caught:
                 error = caught
+            if error is None:
+                data_source.assert_called_once()
+                observed_ui, observed_device, observed_row = data_source.call_args.args
+                self.assertIsInstance(observed_ui, ScenarioUi)
+                self.assertIs(observed_ui.device, device)
+                self.assertIs(observed_device, device)
+                self.assertIs(observed_row, receipt["cases"][4])
+                self.assertEqual(smoke.DATA_SOURCE_CASE_ID, observed_row["id"])
+            else:
+                data_source.assert_not_called()
         return device, receipt, error, log, state
 
     def require_failure(self, fault, case_index):
         device, receipt, error, log, state = self.run_scenario(fault)
         self.assertIsInstance(error, smoke.SmokeFailure)
         self.assertEqual(["passed"] * case_index + ["failed"] +
-                         ["not_run"] * (3 - case_index), [row["status"] for row in receipt["cases"]])
+                         ["not_run"] * (len(smoke.CASE_IDS) - case_index - 1), [row["status"] for row in receipt["cases"]])
         self.assertEqual(str(error), receipt["cases"][case_index]["error"])
         self.assertEqual("failure", device.checkpoints[-1][0])
         log.assert_called_once()
@@ -237,7 +253,7 @@ class CurrentAutosaveScenarioTest(unittest.TestCase):
     def test_actual_journey_accepts_auto_acknowledgment_and_retains_invalid_pending_input(self):
         device, receipt, error, log, state = self.run_scenario()
         self.assertIsNone(error, str(error))
-        self.assertEqual(["passed"] * 4, [row["status"] for row in receipt["cases"]])
+        self.assertEqual(["passed"] * 5, [row["status"] for row in receipt["cases"]])
         self.assertEqual("automatic-valid-form", receipt["cases"][1]["save_trigger"])
         self.assertEqual("invalid-workload-requests", receipt["cases"][2]["pending_input_constraint"])
         self.assertNotIn(("click", "Save locally"), device.actions)
@@ -264,7 +280,7 @@ class CurrentAutosaveScenarioTest(unittest.TestCase):
                 self.assertEqual(accessible, ScenarioUi(probe, None, None).editor(REQUESTS).get("text"))
                 device, receipt, error, log, state = self.run_scenario(fault)
                 self.assertIsNone(error, str(error))
-                self.assertEqual(["passed"] * 4, [row["status"] for row in receipt["cases"]])
+                self.assertEqual(["passed"] * 5, [row["status"] for row in receipt["cases"]])
                 self.assertIn(("enter", REQUESTS, "invalid"), device.actions)
                 self.assertEqual([1, 0], device.rotations)
                 for name, values in device.checkpoints[3:7]:
