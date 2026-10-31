@@ -17,6 +17,14 @@ existing failure path. Exact-budget writes are allowed; empty payloads still
 consume one identity. Size accounting uses subtraction before addition to avoid
 overflow.
 
+Before pointer activation, an `IOException` while the caller's thread interrupt
+flag is still set returns `CANCELLED`, including interruption observed by provider
+or channel I/O before the next cancellation poll. The flag is not cleared and the
+caller retains ownership of its input stream. Without that flag, an I/O failure
+remains `IO_FAILURE`. An I/O failure after pointer activation has been attempted
+still returns `ActivationUncertain`; callers must reopen and verify. This does
+not unblock a provider read: its transport still owns cancellation and timeouts.
+
 No active artifact or historical pin is evicted. Reads and reactivation of an
 already retained, hash-verified artifact remain available at quota, including
 when a newly configured budget is below an existing directory's usage. A changed
