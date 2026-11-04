@@ -796,7 +796,7 @@ class EmulatorSmokeGuardTest(unittest.TestCase):
                                          "stdout": "accel:\n0\nKVM (version 12) is installed and usable.\naccel\n"},
                    "guest_readiness": {"ready": True, "ui_dump_path": smoke.UI_DUMP_PATH,
                                        "last_checks": ready_checks(), "interactive": ready_interactive()},
-                   "cases": [{"id": name, "status": "passed"} for name in smoke.CASE_IDS]}
+                   "cases": complete_installed_cases()}
         for value in (None, {}, {"mode": "automatic"}):
             receipt["emulation"] = value
             with self.subTest(value=value), self.assertRaises(smoke.SmokeFailure):
@@ -864,7 +864,7 @@ class EmulatorSmokeGuardTest(unittest.TestCase):
                                          "stdout": "accel:\n0\nKVM (version 12) is installed and usable.\naccel\n"},
                    "guest_readiness": {"ready": True, "ui_dump_path": smoke.UI_DUMP_PATH,
                                        "last_checks": ready_checks(), "interactive": ready_interactive()},
-                   "cases": [{"id": name, "status": "passed"} for name in smoke.CASE_IDS]}
+                   "cases": complete_installed_cases()}
         smoke.complete_receipt(receipt, "a" * 40, expected_mode="kvm")
         for missing in ("emulator_version", "host_acceleration", "expected_unsigned_apk_sha256", "guest_readiness", "cases"):
             with self.subTest(missing=missing):
@@ -885,7 +885,7 @@ class EmulatorSmokeGuardTest(unittest.TestCase):
                                          "stdout": "accel:\n0\nHypervisor.Framework OS X Version 15.7\naccel\n"},
                    "guest_readiness": {"ready": True, "ui_dump_path": smoke.UI_DUMP_PATH,
                                        "last_checks": ready_checks(), "interactive": ready_interactive()},
-                   "cases": [{"id": name, "status": "passed"} for name in smoke.CASE_IDS]}
+                   "cases": complete_installed_cases()}
         smoke.complete_receipt(receipt, "a" * 40, expected_mode="hvf")
         smoke.complete_receipt(receipt, "a" * 40)
         invalid = []
@@ -1974,7 +1974,7 @@ class EmulatorSmokeGuardTest(unittest.TestCase):
                                  "unsupported_software_opt_in": True},
                    "guest_readiness": {"ready": True, "ui_dump_path": smoke.UI_DUMP_PATH,
                                        "last_checks": ready_checks(), "interactive": ready_interactive()},
-                   "cases": [{"id": name, "status": "passed"} for name in smoke.CASE_IDS]}
+                   "cases": complete_installed_cases()}
         smoke.complete_receipt(receipt, "a" * 40)
         invalid = []
         for key, value in (("source_commit", "b" * 40), ("scope", "simulated"),
@@ -2005,8 +2005,8 @@ class EmulatorSmokeGuardTest(unittest.TestCase):
             smoke.write_reports(output, receipt)
             suite = ET.parse(output / "junit.xml").getroot()
             self.assertEqual("1", suite.get("failures"))
-            self.assertEqual("4", suite.get("skipped"))
-            self.assertEqual(4, len(suite.findall("testcase/skipped")))
+            self.assertEqual("5", suite.get("skipped"))
+            self.assertEqual(5, len(suite.findall("testcase/skipped")))
             self.assertEqual("No KVM", suite.find("testcase/failure").text)
 
 
@@ -2050,7 +2050,7 @@ def complete_startup_display_fixture():
                                   "stdout": "accel:\n0\nHypervisor.Framework OS X Version 15.7\naccel\n"},
             "guest_readiness": {"ready": True, "ui_dump_path": smoke.UI_DUMP_PATH,
                                 "last_checks": ready_checks(), "interactive": ready_interactive()},
-            "cases": [{"id": name, "status": "passed"} for name in smoke.CASE_IDS]}
+            "cases": complete_installed_cases()}
 
 
 class StartupDisplayGuardTest(unittest.TestCase):
@@ -2299,7 +2299,7 @@ class StartupDisplayGuardTest(unittest.TestCase):
             changed = copy.deepcopy(receipt)
             changed[key] = value
             invalid.append(changed)
-        for case in range(4):
+        for case in range(5):
             changed = copy.deepcopy(receipt)
             changed["cases"][case]["status"] = "not_run"
             invalid.append(changed)
@@ -2339,7 +2339,7 @@ class StartupDisplayGuardTest(unittest.TestCase):
         changed = copy.deepcopy(receipt)
         changed["emulation"]["boot_timeout_seconds"] = 600
         invalid.append(changed)
-        for case in range(4):
+        for case in range(5):
             changed = copy.deepcopy(receipt)
             changed["cases"][case]["status"] = "not_run"
             invalid.append(changed)
@@ -2348,6 +2348,676 @@ class StartupDisplayGuardTest(unittest.TestCase):
                 smoke.complete_receipt(changed, "a" * 40, expected_mode="kvm",
                                        expected_display_profile="raster-720x1280-280")
 
+
+
+def data_source_case_fixture():
+    """Independent synthetic observations; these fixtures are not installed-device evidence."""
+    draft_id = "draft-11111111-2222-4333-8444-555555555555"
+    selection_id = "selection_" + "a" * 32
+    selection_label = "data_source \u00b7 primary \u00b7 " + selection_id
+    data = {
+        "scope": "installed-visible-controls-not-raw-storage",
+        "catalog_choice": "data_source \u00b7 cat.data_source.fixture @ 2026.10-demo",
+        "draft_id": draft_id, "selection_id": selection_id, "selection_label": selection_label,
+        "add_acknowledgment": {
+            "text": "Local selection revision saved. Compatibility, cost and readiness remain unestablished.",
+            "form_retired": True, "draft_id": draft_id},
+        "configure_acknowledgment": {
+            "text": "Local selection revision saved. Compatibility, cost and readiness remain unestablished.",
+            "form_retired": True, "draft_id": draft_id},
+        "reload_acknowledgment": {"text": "Saved locally.", "draft_id": draft_id},
+    }
+    for phase, prefix, supplied in (
+            ("initial", "09-data-source-initial", False),
+            ("configured", "10-data-source-configured", True),
+            ("reopened", "11-data-source-reopened", True)):
+        frames = {}
+        for field in ("connector", "minutes", "enabled"):
+            xml = ('<hierarchy phase="' + phase + '" field="' + field + '" />').encode()
+            frames[field] = {"path": prefix + "-" + field + ".xml", "bytes": len(xml),
+                             "sha256": hashlib.sha256(xml).hexdigest()}
+        data[phase] = {
+            "draft_id": draft_id, "selection_id": selection_id, "selection_label": selection_label,
+            "connector_supplied": False, "connector_editor_enabled": False,
+            "connector_text": "Optional; supply explicitly",
+            "refresh_supplied": supplied, "refresh_editor_enabled": supplied,
+            "refresh_text": "60" if supplied else "Optional; supply explicitly",
+            "refresh_minutes": 60 if supplied else None, "enabled": True if supplied else None,
+            "selection_enabled": False, "frames": frames}
+    return {
+        "id": "typed_data_source_acknowledged_save_survives_force_stop", "status": "passed",
+        "data_source": data,
+        "process_restart": {"terminated_pid": "123", "relaunch_pid": "456", "method": "am force-stop"}}
+
+
+def complete_installed_cases():
+    return [
+        {"id": "installed_synthetic_launch", "status": "passed"},
+        {"id": "acknowledged_save_survives_force_stop", "status": "passed"},
+        {"id": "pending_fields_survive_rotation", "status": "passed"},
+        {"id": "confirmed_deletion_does_not_resurrect", "status": "passed"},
+        data_source_case_fixture(),
+    ]
+
+
+def data_source_optional_fixture(label="Refresh interval (minutes)", *, supplied=False, value=None):
+    """Synthetic accessibility nodes from the native editor's literal control order."""
+    root = ET.Element("hierarchy")
+    parent = ET.SubElement(root, "node")
+    label_node = node(label)
+    supply = node("Supply " + label, "android.widget.CheckBox")
+    supply.set("checkable", "true")
+    supply.set("checked", "true" if supplied else "false")
+    editor = node("Optional; supply explicitly" if value is None else value, "android.widget.EditText")
+    editor.set("enabled", "true" if supplied else "false")
+    parent.extend([label_node, supply, editor, node("Optional field rule")])
+    return root, parent, label_node, supply, editor
+
+
+def data_source_boolean_fixture():
+    root = ET.Element("hierarchy")
+    root.append(node("Data-source setting: enabled"))
+    listing = node(kind="android.widget.ListView")
+    root.append(listing)
+    choices = []
+    for label in ("Not supplied", "False", "True"):
+        choice = node(label, "android.widget.CheckedTextView")
+        choice.set("checkable", "true")
+        choice.set("checked", "true" if label == "Not supplied" else "false")
+        listing.append(choice)
+        choices.append(choice)
+    return root, listing, choices
+
+
+def data_source_list_fixture(title="Saved components", label=None):
+    root = ET.Element("hierarchy")
+    header = node(title)
+    listing = node(kind="android.widget.ListView")
+    row = node(label if label is not None else "data_source \u00b7 primary \u00b7 selection_" + "a" * 32)
+    listing.append(row)
+    root.extend([header, listing])
+    return root, header, listing, row
+
+
+def data_source_form_fixture(*, configured=False, selection_label=None):
+    label = selection_label or "data_source \u00b7 primary \u00b7 selection_" + "a" * 32
+    root = ET.Element("hierarchy")
+    root.append(node(label, box="[0,0][400,40]"))
+    viewport = node(kind="android.widget.ScrollView", box="[0,40][400,460]")
+    root.append(viewport)
+    for index, field in enumerate(("Connector secret reference", "Refresh interval (minutes)")):
+        supplied = configured and index == 1
+        _, parent, title, supply, editor = data_source_optional_fixture(
+            field, supplied=supplied, value="60" if supplied else None)
+        start = 50 + index * 110
+        title.set("bounds", "[10," + str(start) + "][390," + str(start + 20) + "]")
+        supply.set("bounds", "[10," + str(start + 20) + "][390," + str(start + 45) + "]")
+        editor.set("bounds", "[10," + str(start + 45) + "][390," + str(start + 80) + "]")
+        viewport.append(parent)
+    viewport.append(node("Data-source setting: enabled", box="[10,280][390,310]"))
+    viewport.append(node("True" if configured else "Not supplied", "android.widget.Button",
+                         box="[10,310][390,350]"))
+    root.append(node("Commit local revision", "android.widget.Button", box="[0,460][400,500]"))
+    return root, viewport
+
+
+class DataSourceInstalledGuardTest(unittest.TestCase):
+    def test_fifth_case_keeps_all_four_original_case_identities_and_order(self):
+        self.assertEqual((
+            "installed_synthetic_launch",
+            "acknowledged_save_survives_force_stop",
+            "pending_fields_survive_rotation",
+            "confirmed_deletion_does_not_resurrect",
+            "typed_data_source_acknowledged_save_survives_force_stop",
+        ), smoke.CASE_IDS)
+        self.assertEqual(list(smoke.CASE_IDS), [row["id"] for row in complete_installed_cases()])
+
+    def test_data_source_optional_controls_bind_both_literal_supply_rows(self):
+        for label in ("Connector secret reference", "Refresh interval (minutes)"):
+            for supplied, value in ((False, None), (True, None), (True, "60")):
+                root, _, _, supply, editor = data_source_optional_fixture(
+                    label, supplied=supplied, value=value)
+                with self.subTest(label=label, supplied=supplied, value=value):
+                    observed = smoke.data_source_optional_controls(root, label)
+                    self.assertIs(supply, observed[0])
+                    self.assertIs(editor, observed[1])
+        with self.assertRaises(smoke.SmokeFailure):
+            smoke.data_source_optional_controls(ET.Element("hierarchy"), "Another field")
+
+    def test_data_source_optional_controls_reject_reordered_missing_and_duplicate_rows(self):
+        for alteration in ("interposed", "reversed", "missing_editor", "wrong_supply", "duplicate_label"):
+            root, parent, label, supply, editor = data_source_optional_fixture()
+            if alteration == "interposed":
+                parent.insert(1, node("Unrelated control"))
+            elif alteration == "reversed":
+                parent.remove(editor)
+                parent.insert(1, editor)
+            elif alteration == "missing_editor":
+                parent.remove(editor)
+            elif alteration == "wrong_supply":
+                supply.set("text", "Supply Connector secret reference")
+            else:
+                parent.append(copy.deepcopy(label))
+            with self.subTest(alteration=alteration), self.assertRaises(smoke.SmokeFailure):
+                smoke.data_source_optional_controls(root, "Refresh interval (minutes)")
+
+    def test_data_source_optional_controls_reject_inconsistent_or_unwitnessed_authority(self):
+        for target, field, value in (
+                ("supply", "enabled", "false"), ("supply", "checkable", "false"),
+                ("supply", "checkable", ""), ("supply", "checked", "False"),
+                ("supply", "checked", ""), ("editor", "enabled", "true"),
+                ("editor", "enabled", ""), ("editor", "text", ""),
+                ("editor", "text", "Optional; supply explicitly."),
+                ("editor", "text", "60")):
+            root, _, _, supply, editor = data_source_optional_fixture()
+            (supply if target == "supply" else editor).set(field, value)
+            with self.subTest(target=target, field=field, value=value), \
+                    self.assertRaises(smoke.SmokeFailure):
+                smoke.data_source_optional_controls(root, "Refresh interval (minutes)")
+        root, _, _, _, editor = data_source_optional_fixture(supplied=True, value="60")
+        editor.set("enabled", "false")
+        with self.assertRaises(smoke.SmokeFailure):
+            smoke.data_source_optional_controls(root, "Refresh interval (minutes)")
+
+    def test_data_source_optional_controls_cannot_use_foreign_or_invisible_nodes(self):
+        for target in ("label", "supply", "editor"):
+            for field, value in (("package", "another.application"), ("bounds", "[0,0][0,0]")):
+                root, _, label, supply, editor = data_source_optional_fixture()
+                {"label": label, "supply": supply, "editor": editor}[target].set(field, value)
+                with self.subTest(target=target, field=field):
+                    self.assertIsNone(smoke.data_source_optional_controls(root, "Refresh interval (minutes)"))
+
+    def test_data_source_enabled_field_requires_its_current_adjacent_button(self):
+        for text in ("Not supplied", "False", "True"):
+            root = ET.Element("hierarchy")
+            label, button = node("Data-source setting: enabled"), node(text, "android.widget.Button")
+            root.extend([label, button])
+            self.assertIs(button, smoke.data_source_enabled_control(root))
+        for field, value in (("enabled", "false"), ("text", "true"), ("class", "android.widget.TextView")):
+            root = ET.Element("hierarchy")
+            label, button = node("Data-source setting: enabled"), node("Not supplied", "android.widget.Button")
+            button.set(field, value)
+            root.extend([label, button])
+            with self.subTest(field=field), self.assertRaises(smoke.SmokeFailure):
+                smoke.data_source_enabled_control(root)
+        for field, value in (("package", "another.application"), ("bounds", "[0,0][0,0]")):
+            root = ET.Element("hierarchy")
+            button = node("Not supplied", "android.widget.Button")
+            button.set(field, value)
+            root.extend([node("Data-source setting: enabled"), button])
+            self.assertIsNone(smoke.data_source_enabled_control(root))
+        root.append(node("Data-source setting: enabled"))
+        with self.assertRaisesRegex(smoke.SmokeFailure, "Ambiguous"):
+            smoke.data_source_enabled_control(root)
+
+    def test_data_source_boolean_choice_is_the_true_material_checked_text_row(self):
+        root, _, choices = data_source_boolean_fixture()
+        self.assertIs(choices[2], smoke.data_source_boolean_choice(root))
+        self.assertEqual("android.widget.CheckedTextView", choices[2].get("class"))
+        self.assertEqual(["true", "false", "false"], [row.get("checked") for row in choices])
+
+    def test_data_source_boolean_choice_rejects_incomplete_ambiguous_or_stale_dialogs(self):
+        for alteration in ("missing", "reordered", "duplicate", "radio", "foreign", "hidden",
+                           "disabled", "not_checkable", "none_checked", "two_checked", "already_true"):
+            root, listing, choices = data_source_boolean_fixture()
+            if alteration == "missing":
+                listing.remove(choices[1])
+            elif alteration == "reordered":
+                listing.remove(choices[1])
+                listing.append(choices[1])
+            elif alteration == "duplicate":
+                listing.append(copy.deepcopy(choices[2]))
+            elif alteration == "radio":
+                choices[2].set("class", "android.widget.RadioButton")
+            elif alteration == "foreign":
+                choices[2].set("package", "another.application")
+            elif alteration == "hidden":
+                choices[2].set("bounds", "[0,0][0,0]")
+            elif alteration == "disabled":
+                choices[2].set("enabled", "false")
+            elif alteration == "not_checkable":
+                choices[2].set("checkable", "false")
+            elif alteration == "none_checked":
+                choices[0].set("checked", "false")
+            elif alteration == "two_checked":
+                choices[2].set("checked", "true")
+            else:
+                choices[0].set("checked", "false")
+                choices[2].set("checked", "true")
+            with self.subTest(alteration=alteration), self.assertRaises(smoke.SmokeFailure):
+                smoke.data_source_boolean_choice(root)
+        root, listing, _ = data_source_boolean_fixture()
+        root.remove(listing)
+        self.assertIsNone(smoke.data_source_boolean_choice(root))
+        root, _, _ = data_source_boolean_fixture()
+        root[0].set("text", "Another dialog")
+        self.assertIsNone(smoke.data_source_boolean_choice(root))
+
+    def test_data_source_list_row_is_bound_to_its_owned_title_and_list(self):
+        root, header, listing, row = data_source_list_fixture()
+        text = row.get("text")
+        root.append(node(text))
+        self.assertIs(row, smoke.data_source_list_row(root, "Saved components", text=text))
+        self.assertIs(row, smoke.data_source_list_row(
+            root, "Saved components", pattern=r"data_source \u00b7 primary \u00b7 selection_[0-9a-f]{32}"))
+        listing.remove(row)
+        self.assertIsNone(smoke.data_source_list_row(root, "Saved components", text=text))
+        listing.append(row)
+        header.set("text", "Different dialog")
+        self.assertIsNone(smoke.data_source_list_row(root, "Saved components", text=text))
+        for kwargs in ({}, {"text": text, "pattern": ".*"}):
+            with self.assertRaises(smoke.SmokeFailure):
+                smoke.data_source_list_row(root, "Saved components", **kwargs)
+
+    def test_data_source_list_row_rejects_ambiguity_and_cannot_tap_disabled_rows(self):
+        for duplicate in ("header", "listing", "row"):
+            root, header, listing, row = data_source_list_fixture()
+            if duplicate == "header":
+                root.append(copy.deepcopy(header))
+            elif duplicate == "listing":
+                root.append(copy.deepcopy(listing))
+            else:
+                listing.append(copy.deepcopy(row))
+            with self.subTest(duplicate=duplicate), self.assertRaisesRegex(smoke.SmokeFailure, "Ambiguous"):
+                smoke.data_source_list_row(root, "Saved components", text=row.get("text"))
+        for field, value in (("package", "another.application"), ("bounds", "[0,0][0,0]")):
+            root, _, _, row = data_source_list_fixture()
+            row.set(field, value)
+            self.assertIsNone(smoke.data_source_list_row(root, "Saved components", text=row.get("text")))
+        root, _, _, row = data_source_list_fixture()
+        row.set("enabled", "false")
+        device = Mock(spec=smoke.Device)
+        with tempfile.TemporaryDirectory() as temporary:
+            ui = smoke.Ui(device, Path(temporary), {})
+            selected = smoke.data_source_list_row(root, "Saved components", text=row.get("text"))
+            with self.assertRaisesRegex(smoke.SmokeFailure, "disabled"):
+                ui.tap(selected)
+        device.shell.assert_not_called()
+
+    def test_data_source_form_presence_needs_both_exact_owned_controls(self):
+        title = "data_source \u00b7 primary \u00b7 selection_" + "a" * 32
+        root = ET.Element("hierarchy")
+        label, commit = node(title), node("Commit local revision", "android.widget.Button")
+        root.extend([label, commit])
+        self.assertTrue(smoke.data_source_form_present(root, title))
+        root.remove(commit)
+        self.assertFalse(smoke.data_source_form_present(root, title))
+        root.append(commit)
+        label.set("package", "another.application")
+        self.assertFalse(smoke.data_source_form_present(root, title))
+        label.set("package", smoke.PACKAGE)
+        commit.set("class", "android.widget.TextView")
+        self.assertFalse(smoke.data_source_form_present(root, title))
+
+    def test_data_source_commit_ack_requires_the_actual_text_and_retired_form(self):
+        title = "data_source \u00b7 primary \u00b7 selection_" + "a" * 32
+        root = ET.Element("hierarchy")
+        acknowledgment = node(
+            "Local selection revision saved. Compatibility, cost and readiness remain unestablished.")
+        root.append(acknowledgment)
+        self.assertIs(acknowledgment, smoke.data_source_commit_ack(root, title))
+        for remaining in (node(title), node("Commit local revision", "android.widget.Button")):
+            root.append(remaining)
+            self.assertIsNone(smoke.data_source_commit_ack(root, title))
+            root.remove(remaining)
+        acknowledgment.set("text", "Saved locally.")
+        self.assertIsNone(smoke.data_source_commit_ack(root, title))
+        acknowledgment.set("text", smoke.COMPONENT_ACKNOWLEDGMENT)
+        acknowledgment.set("package", "another.application")
+        self.assertIsNone(smoke.data_source_commit_ack(root, title))
+        acknowledgment.set("package", smoke.PACKAGE)
+        root.append(copy.deepcopy(acknowledgment))
+        with self.assertRaisesRegex(smoke.SmokeFailure, "Ambiguous"):
+            smoke.data_source_commit_ack(root, title)
+
+    def test_data_source_selection_identity_requires_the_complete_saved_primary_row(self):
+        selection_id = "selection_" + "a" * 32
+        text = "data_source \u00b7 primary \u00b7 " + selection_id
+        self.assertEqual(selection_id, smoke.data_source_selection_identity(text))
+        for value in (None, False, 1, selection_id, text + "\n", " " + text,
+                      text.replace("data_source", "compute"), text.replace("primary", "secondary"),
+                      text[:-1], text + "a", text.replace("a" * 32, "A" * 32)):
+            with self.subTest(value=value), self.assertRaises(smoke.SmokeFailure):
+                smoke.data_source_selection_identity(value)
+
+
+    def test_data_source_receipt_requires_all_three_complete_observed_phases(self):
+        row = data_source_case_fixture()
+        self.assertTrue(smoke.data_source_case_passes(row))
+        self.assertEqual(("initial", "configured", "reopened"),
+                         tuple(key for key in row["data_source"] if key in ("initial", "configured", "reopened")))
+        for candidate in (None, [], True, "", {}, {"id": row["id"], "status": "passed"}):
+            with self.subTest(candidate=candidate):
+                self.assertFalse(smoke.data_source_case_passes(candidate))
+        for key, value in (("id", "acknowledged_save_survives_force_stop"), ("status", "not_run"),
+                           ("status", "failed"), ("data_source", None), ("data_source", [])):
+            changed = copy.deepcopy(row)
+            changed[key] = value
+            self.assertFalse(smoke.data_source_case_passes(changed))
+
+    def test_data_source_receipt_rejects_missing_or_unreviewed_observation_keys(self):
+        valid = data_source_case_fixture()
+        paths = [("data_source",)]
+        paths.extend(("data_source", phase) for phase in ("initial", "configured", "reopened"))
+        paths.extend(("data_source", name) for name in (
+            "add_acknowledgment", "configure_acknowledgment", "reload_acknowledgment"))
+        paths.extend(("data_source", phase, "frames") for phase in ("initial", "configured", "reopened"))
+        paths.extend(("data_source", phase, "frames", field)
+                     for phase in ("initial", "configured", "reopened")
+                     for field in ("connector", "minutes", "enabled"))
+        paths.append(("process_restart",))
+        for path in paths:
+            original = valid
+            for part in path:
+                original = original[part]
+            for missing in tuple(original):
+                changed = copy.deepcopy(valid)
+                target = changed
+                for part in path:
+                    target = target[part]
+                target.pop(missing)
+                with self.subTest(path=path, missing=missing):
+                    self.assertFalse(smoke.data_source_case_passes(changed))
+            changed = copy.deepcopy(valid)
+            target = changed
+            for part in path:
+                target = target[part]
+            target["unreviewed"] = "extra observation"
+            with self.subTest(path=path, extra=True):
+                self.assertFalse(smoke.data_source_case_passes(changed))
+
+    def test_data_source_receipt_cannot_join_other_drafts_selections_or_catalogs(self):
+        valid = data_source_case_fixture()
+        other_draft = "draft-aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"
+        other_selection = "selection_" + "b" * 32
+        for field, value in (
+                ("scope", "raw-storage-only"), ("catalog_choice", "data_source \u00b7 another fixture"),
+                ("draft_id", "guest-draft"), ("draft_id", other_draft), ("draft_id", None),
+                ("selection_id", other_selection), ("selection_id", True),
+                ("selection_label", "data_source \u00b7 primary \u00b7 " + other_selection),
+                ("selection_label", valid["data_source"]["selection_label"] + "\n")):
+            changed = copy.deepcopy(valid)
+            changed["data_source"][field] = value
+            with self.subTest(field=field, value=value):
+                self.assertFalse(smoke.data_source_case_passes(changed))
+        for phase in ("initial", "configured", "reopened"):
+            for field, value in (("draft_id", other_draft), ("selection_id", other_selection),
+                                 ("selection_label", "data_source \u00b7 primary \u00b7 " + other_selection)):
+                changed = copy.deepcopy(valid)
+                changed["data_source"][phase][field] = value
+                with self.subTest(phase=phase, field=field):
+                    self.assertFalse(smoke.data_source_case_passes(changed))
+
+    def test_data_source_receipt_requires_omission_typed_values_and_separate_outer_state(self):
+        valid = data_source_case_fixture()
+        for phase in ("initial", "configured", "reopened"):
+            alterations = [
+                ("connector_supplied", True), ("connector_supplied", 0),
+                ("connector_editor_enabled", True), ("connector_editor_enabled", 0),
+                ("connector_text", ""), ("connector_text", "Optional; supply explicitly."),
+                ("selection_enabled", True), ("selection_enabled", 0),
+                ("refresh_supplied", "true"), ("refresh_editor_enabled", "true")]
+            if phase == "initial":
+                alterations.extend([
+                    ("refresh_supplied", True), ("refresh_supplied", 0),
+                    ("refresh_editor_enabled", True), ("refresh_editor_enabled", 0),
+                    ("refresh_text", ""), ("refresh_text", "60"),
+                    ("refresh_minutes", 0), ("refresh_minutes", False), ("enabled", False)])
+            else:
+                alterations.extend([
+                    ("refresh_supplied", False), ("refresh_supplied", 1),
+                    ("refresh_editor_enabled", False), ("refresh_editor_enabled", 1),
+                    ("refresh_text", "060"), ("refresh_text", "60 "),
+                    ("refresh_minutes", 60.0), ("refresh_minutes", "60"),
+                    ("refresh_minutes", 61), ("refresh_minutes", True),
+                    ("enabled", False), ("enabled", 1), ("enabled", "True")])
+            for field, value in alterations:
+                changed = copy.deepcopy(valid)
+                changed["data_source"][phase][field] = value
+                with self.subTest(phase=phase, field=field, value=value):
+                    self.assertFalse(smoke.data_source_case_passes(changed))
+
+    def test_data_source_receipt_binds_each_phase_to_its_distinct_xml_frame_paths(self):
+        valid = data_source_case_fixture()
+        for phase in ("initial", "configured", "reopened"):
+            for field in ("connector", "minutes", "enabled"):
+                for key, value in (
+                        ("path", "another-phase.xml"), ("path", "../outside.xml"),
+                        ("bytes", 0), ("bytes", -1), ("bytes", True), ("bytes", "64"),
+                        ("sha256", "a" * 63), ("sha256", "A" * 64), ("sha256", None)):
+                    changed = copy.deepcopy(valid)
+                    changed["data_source"][phase]["frames"][field][key] = value
+                    with self.subTest(phase=phase, field=field, key=key, value=value):
+                        self.assertFalse(smoke.data_source_case_passes(changed))
+        changed = copy.deepcopy(valid)
+        changed["data_source"]["reopened"]["frames"] = copy.deepcopy(
+            changed["data_source"]["configured"]["frames"])
+        self.assertFalse(smoke.data_source_case_passes(changed))
+
+    def test_data_source_receipt_requires_both_retired_commit_acks_before_reload(self):
+        valid = data_source_case_fixture()
+        for acknowledgment in ("add_acknowledgment", "configure_acknowledgment"):
+            for key, value in (
+                    ("text", "Saved locally."), ("text", "Local selection revision saved."),
+                    ("form_retired", False), ("form_retired", 1),
+                    ("draft_id", "draft-aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee")):
+                changed = copy.deepcopy(valid)
+                changed["data_source"][acknowledgment][key] = value
+                with self.subTest(acknowledgment=acknowledgment, key=key):
+                    self.assertFalse(smoke.data_source_case_passes(changed))
+        for value in (None, {}, {"text": "Saved locally."},
+                      {"text": smoke.COMPONENT_ACKNOWLEDGMENT,
+                       "draft_id": valid["data_source"]["draft_id"]}):
+            changed = copy.deepcopy(valid)
+            changed["data_source"]["reload_acknowledgment"] = value
+            self.assertFalse(smoke.data_source_case_passes(changed))
+
+    def test_data_source_receipt_requires_two_distinct_observed_decimal_process_ids(self):
+        valid = data_source_case_fixture()
+        for field in ("terminated_pid", "relaunch_pid"):
+            for value in (None, True, 123, "", "0", "00", "0123", "123 456", "-1", "1.0", "\n123", "123\n", "unknown"):
+                changed = copy.deepcopy(valid)
+                changed["process_restart"][field] = value
+                with self.subTest(field=field, value=value):
+                    self.assertFalse(smoke.data_source_case_passes(changed))
+        changed = copy.deepcopy(valid)
+        changed["process_restart"]["relaunch_pid"] = changed["process_restart"]["terminated_pid"]
+        self.assertFalse(smoke.data_source_case_passes(changed))
+        changed = copy.deepcopy(valid)
+        changed["process_restart"]["method"] = "activity recreation"
+        self.assertFalse(smoke.data_source_case_passes(changed))
+
+    def test_every_emulation_mode_requires_fifth_case_observations_beyond_passed_status(self):
+        for mode in ("software", "kvm", "hvf"):
+            receipt = complete_startup_display_fixture()
+            receipt.pop("startup_display")
+            receipt.pop("avd_name")
+            if mode == "software":
+                receipt["emulation"] = {
+                    "mode": "software", "accel_argument": "off", "boot_timeout_seconds": 900,
+                    "unsupported_software_opt_in": True}
+            elif mode == "kvm":
+                receipt["emulation"] = {
+                    "mode": "kvm", "accel_argument": "on", "boot_timeout_seconds": 300,
+                    "unsupported_software_opt_in": False}
+                receipt["host_acceleration"] = {
+                    "exit_code": 0, "stderr": "", "output_truncated": False,
+                    "stdout": "accel:\n0\nKVM (version 12) is installed and usable.\naccel\n"}
+                receipt["emulator_version"] = "Android emulator version 37.1.11.0 (build_id 15917651) (CL:N/A)"
+            smoke.complete_receipt(receipt, "a" * 40, expected_mode=mode)
+            for defect in ("bare_status", "missing_reopened", "unretired_form", "same_pid"):
+                changed = copy.deepcopy(receipt)
+                row = changed["cases"][4]
+                if defect == "bare_status":
+                    changed["cases"][4] = {"id": row["id"], "status": "passed"}
+                elif defect == "missing_reopened":
+                    row["data_source"].pop("reopened")
+                elif defect == "unretired_form":
+                    row["data_source"]["configure_acknowledgment"]["form_retired"] = False
+                else:
+                    row["process_restart"]["relaunch_pid"] = row["process_restart"]["terminated_pid"]
+                with self.subTest(mode=mode, defect=defect), self.assertRaises(smoke.SmokeFailure):
+                    smoke.complete_receipt(changed, "a" * 40, expected_mode=mode)
+
+    def test_fifth_case_failure_keeps_the_first_four_results_and_fails_the_whole_report(self):
+        receipt = {"status": "failed", "cases": [{"id": name, "status": "not_run"} for name in smoke.CASE_IDS]}
+        device, ui = Mock(spec=smoke.Device), Mock(spec=smoke.Ui)
+        device.cold_restart.return_value = {
+            "terminated_pid": "123", "relaunch_pid": "456", "method": "am force-stop"}
+        ui.editor.return_value = node(smoke.PENDING_REQUESTS, "android.widget.EditText")
+        ui.text.side_effect = lambda text, **kwargs: node(
+            "SyntheticEmulatorDraft\n" + text if text == "Local ID: guest-draft" else text)
+        original = smoke.SmokeFailure("DataSource form was not retired")
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary)
+            with patch.object(smoke, "Ui", return_value=ui), \
+                    patch.object(smoke, "exercise_data_source", side_effect=original) as fifth, \
+                    patch.object(smoke, "retain_failure_log") as failure_log, \
+                    patch.object(smoke, "retain_case_failure_state") as failure_state:
+                with self.assertRaises(smoke.SmokeFailure) as raised:
+                    smoke.exercise(device, output, receipt)
+            self.assertIs(original, raised.exception)
+            fifth.assert_called_once_with(ui, device, receipt["cases"][4])
+            failure_log.assert_called_once_with(device, output, receipt)
+            failure_state.assert_called_once_with(device, receipt)
+            self.assertEqual(["passed"] * 4 + ["failed"], [row["status"] for row in receipt["cases"]])
+            self.assertEqual("DataSource form was not retired", receipt["cases"][4]["error"])
+            ui.checkpoint.assert_any_call("failure")
+            smoke.write_reports(output, receipt)
+            suite = ET.parse(output / "junit.xml").getroot()
+            self.assertEqual(("5", "1", "0"),
+                             (suite.get("tests"), suite.get("failures"), suite.get("skipped")))
+            self.assertEqual(list(smoke.CASE_IDS), [row.get("name") for row in suite.findall("testcase")])
+            self.assertEqual("DataSource form was not retired", suite.find("testcase/failure").text)
+            self.assertEqual(1, len(suite.findall("testcase/failure")))
+            self.assertEqual(0, len(suite.findall("testcase/skipped")))
+
+
+    def test_data_source_scroll_accepts_only_the_declared_container_classes(self):
+        device = Mock(spec=smoke.Device)
+        device.adb.return_value = subprocess.CompletedProcess([], 0, "", "")
+        with tempfile.TemporaryDirectory() as temporary:
+            ui = smoke.Ui(device, Path(temporary), {})
+            for kind in ("android.widget.ScrollView", "android.widget.ListView"):
+                root = ET.Element("hierarchy")
+                root.append(node(kind=kind))
+                self.assertTrue(ui.scroll(root, True, scroll_kind=kind))
+                device.adb.assert_called_once_with(
+                    "shell", "input", "mouse", "scroll", "88", "50", "--axis", "VSCROLL,-2",
+                    timeout=30, check=False)
+                device.adb.reset_mock()
+            root = ET.Element("hierarchy")
+            listing = node(kind="android.widget.ListView")
+            root.append(listing)
+            self.assertFalse(ui.scroll(root, True))
+            for kind in ("android.widget.EditText", "another.application.List", ""):
+                with self.subTest(kind=kind), self.assertRaises(smoke.SmokeFailure):
+                    ui.scroll(root, True, scroll_kind=kind)
+            device.adb.assert_not_called()
+            root.append(copy.deepcopy(listing))
+            with self.assertRaisesRegex(smoke.SmokeFailure, "Ambiguous"):
+                ui.scroll(root, True, scroll_kind="android.widget.ListView")
+            device.adb.assert_not_called()
+
+    def test_data_source_list_action_rereads_the_same_current_row_before_tapping(self):
+        initial, _, _, old_row = data_source_list_fixture()
+        fresh, _, _, current_row = data_source_list_fixture()
+        ui = Mock(spec=smoke.Ui)
+        ui.observations = {}
+        ui.snapshot.side_effect = [initial, fresh]
+        self.assertEqual(current_row.get("text"), smoke.data_source_list_item(
+            ui, "Saved components", text=old_row.get("text"), tap=True))
+        ui.tap.assert_called_once_with(current_row)
+        ui.scroll.assert_not_called()
+        self.assertEqual(2, ui.snapshot.call_count)
+        trace = ui.observations["data_source_lists"][0]
+        self.assertEqual("tapped", trace["status"])
+        self.assertEqual(hashlib.sha256(ET.tostring(fresh)).hexdigest(), trace["action_xml_sha256"])
+        for replacement in ("row", "title"):
+            changed, header, _, changed_row = data_source_list_fixture()
+            (changed_row if replacement == "row" else header).set("text", "Different current identity")
+            ui = Mock(spec=smoke.Ui)
+            ui.observations = {}
+            ui.snapshot.side_effect = [initial, changed]
+            with self.subTest(replacement=replacement), self.assertRaises(smoke.SmokeFailure):
+                smoke.data_source_list_item(ui, "Saved components", text=old_row.get("text"), tap=True)
+            ui.tap.assert_not_called()
+            ui.scroll.assert_not_called()
+        title = old_row.get("text")
+        first, _, _, _ = data_source_list_fixture(title, "Enable selection")
+        conflicting, _, listing, _ = data_source_list_fixture(title, "Enable selection")
+        listing.append(node("Disable selection"))
+        ui = Mock(spec=smoke.Ui)
+        ui.observations = {}
+        ui.snapshot.side_effect = [first, conflicting]
+        with self.assertRaisesRegex(smoke.SmokeFailure, "Conflicting"):
+            smoke.data_source_list_item(ui, title, text="Enable selection")
+        ui.tap.assert_not_called()
+
+    def test_data_source_observation_writes_the_actual_xml_and_retains_typed_omission(self):
+        for phase in ("initial", "configured", "reopened"):
+            fixture = data_source_case_fixture()
+            expected = fixture["data_source"][phase]
+            identity = {key: expected[key] for key in (
+                "draft_id", "selection_id", "selection_label", "selection_enabled")}
+            root, _ = data_source_form_fixture(configured=phase != "initial")
+            with self.subTest(phase=phase), tempfile.TemporaryDirectory() as temporary:
+                ui = Mock(spec=smoke.Ui)
+                ui.output, ui.observations = Path(temporary), {}
+                ui.snapshot.return_value = root
+                actual = smoke.observe_data_source(ui, identity, phase)
+                self.assertEqual({key: value for key, value in expected.items() if key != "frames"},
+                                 {key: value for key, value in actual.items() if key != "frames"})
+                raw = ET.tostring(root, encoding="utf-8", xml_declaration=True)
+                for metadata in actual["frames"].values():
+                    self.assertEqual(raw, (ui.output / metadata["path"]).read_bytes())
+                    self.assertEqual(len(raw), metadata["bytes"])
+                    self.assertEqual(hashlib.sha256(raw).hexdigest(), metadata["sha256"])
+                self.assertEqual(3, len(list(ui.output.iterdir())))
+                fixture["data_source"][phase] = actual
+                self.assertTrue(smoke.data_source_case_passes(fixture))
+                ui.snapshot.assert_called_once_with()
+                ui.scroll.assert_not_called()
+                with self.assertRaisesRegex(smoke.SmokeFailure, "Duplicate"):
+                    smoke.observe_data_source(ui, identity, phase)
+                self.assertEqual(1, ui.snapshot.call_count)
+
+    def test_data_source_observation_rejects_form_replacement_without_writing_mixed_frames(self):
+        expected = data_source_case_fixture()["data_source"]["initial"]
+        identity = {key: expected[key] for key in (
+            "draft_id", "selection_id", "selection_label", "selection_enabled")}
+        first, viewport = data_source_form_fixture()
+        for child in list(viewport)[1:]:
+            viewport.remove(child)
+        changed, _ = data_source_form_fixture(
+            selection_label="data_source \u00b7 primary \u00b7 selection_" + "b" * 32)
+        with tempfile.TemporaryDirectory() as temporary:
+            ui = Mock(spec=smoke.Ui)
+            ui.output, ui.observations = Path(temporary), {}
+            ui.snapshot.side_effect = [first, changed]
+            ui.scroll.return_value = True
+            with self.assertRaisesRegex(smoke.SmokeFailure, "form changed"):
+                smoke.observe_data_source(ui, identity, "initial")
+            self.assertEqual([], list(ui.output.iterdir()))
+            self.assertEqual(2, ui.snapshot.call_count)
+            self.assertEqual(["connector"],
+                             ui.observations["data_source_observations"]["initial"]["observed_fields"])
+
+    def test_data_source_frame_names_are_closed_and_existing_evidence_is_not_overwritten(self):
+        root, _ = data_source_form_fixture()
+        with tempfile.TemporaryDirectory() as temporary:
+            ui = Mock(spec=smoke.Ui)
+            ui.output = Path(temporary)
+            for prefix, name in (("../outside", "connector"), ("09-data-source-initial", "../outside"),
+                                 ("unreviewed-phase", "enabled"), ("09-data-source-initial", "raw-secret")):
+                with self.subTest(prefix=prefix, name=name), self.assertRaises(smoke.SmokeFailure):
+                    smoke.data_source_frame(ui, prefix, name, root)
+            self.assertEqual([], list(ui.output.iterdir()))
+            path = ui.output / "09-data-source-initial-connector.xml"
+            path.write_bytes(b"retained original evidence")
+            with self.assertRaises(FileExistsError):
+                smoke.data_source_frame(ui, "09-data-source-initial", "connector", root)
+            self.assertEqual(b"retained original evidence", path.read_bytes())
 
 if __name__ == "__main__":
     unittest.main()

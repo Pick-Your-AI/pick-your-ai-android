@@ -1,5 +1,102 @@
 # Installed synthetic emulator verification
 
+## Typed DataSource installed journey — 20 October 2026 source preparation
+
+This source adds a fifth required journey after the four existing cases. It is
+a bounded follow-through to the typed editor delivered in
+[PR #724](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/724), signed
+`c7d9febfafc7499812b7e34ec6538e0b6996a23a`. The source preparation itself
+does not establish a passing host guard or installed execution. All older
+four-case results below retain their original source and observation scope.
+
+The journey creates a fresh synthetic draft and captures its actual generated
+draft ID. It chooses the exact `cat.data_source.fixture` version
+`2026.10-demo`, adds a `primary` Selection through the existing generic ADD
+form with empty settings and outer enabled false, and waits for the exact
+changed-selection acknowledgment after the ADD dialog retires. It captures
+the actual saved Selection ID and complete displayed row before opening its
+typed CONFIGURE form.
+
+The initial form must show all optional settings omitted. The journey supplies
+the fixed integer text `60` for `refresh_minutes` and chooses explicit
+inner `enabled=true`. The connector reference remains omitted, and outer
+`Selection.enabled` remains false. It observes the configured controls,
+commits through the existing Activity, and requires both retired editor controls
+and this exact acknowledgment:
+
+> Local selection revision saved. Compatibility, cost and readiness remain unestablished.
+
+The existing owned-process restart then observes the old decimal PID, verifies
+its absence after `am force-stop`, and requires a different decimal PID after
+launch. After the load acknowledgment, the journey must reopen the same actual
+draft ID, Selection ID, complete displayed row and typed values. The visible
+`Enable selection` action proves the outer flag remains false; that action
+is inspected without activating it. Closing the final form makes no further
+commit.
+
+### Selectors and retained fifth-case observations
+
+The two optional controls are bound to their exact current label, adjacent
+`Supply` checkbox and adjacent `EditText`. Omission requires an unchecked
+checkbox, disabled editor and the exact accessibility hint
+`Optional; supply explicitly`. The hint is not supplied input. The enabled
+picker requires the exact three Material `CheckedTextView` choices
+`Not supplied`, `False`, `True`, with only the initial omitted choice
+checked. A current dialog title, unique package-owned `ListView` and exact
+visible row are re-read immediately before each list-row tap. Visible-row
+uniqueness is not a claim about every virtualized catalog row; the exact catalog
+version and observed saved identities remain separate checks.
+
+The receipt's fifth case is
+`typed_data_source_acknowledged_save_survives_force_stop`. Its strict
+`data_source` object records `initial`, `configured` and `reopened`
+states, the two changed-selection acknowledgments, the reload acknowledgment
+and the fixed catalog choice. `configured` records entered visible fields
+before Commit; only its separate retired-form acknowledgment and the later
+reopened state establish the observed save/reload sequence.
+
+Each phase serializes three parsed hierarchy observations to
+`09-data-source-initial-{connector,minutes,enabled}.xml`,
+`10-data-source-configured-{connector,minutes,enabled}.xml` and
+`11-data-source-reopened-{connector,minutes,enabled}.xml`. Each recorded
+path has its actual serialized byte count and SHA-256. Several field files may
+represent the same fresh hierarchy. One directional form sweep reuses each
+fresh hierarchy to limit extra reads; it rejects a replaced form, ambiguous
+controls, obscured targets, or an incomplete bounded sweep. These parsed XML
+files do not claim to be the original command stream or new PNG checkpoints.
+
+Complete-receipt admission requires all five case identities in order and
+successful status, then validates the fifth case's closed observation shape.
+It requires the same actual draft and Selection identities throughout, exact
+Boolean distinctions, the integer value 60, explicit connector omission and
+the two different observed process IDs. A bare `status="passed"`, a missing
+phase or a substituted identity is insufficient.
+
+The evidence scope is `installed-visible-controls-not-raw-storage`. Reopening
+canonical visible values exercises the production reader and managed save
+path; the harness does not directly inspect private storage bytes, general
+numeric representation, remote execution, a connector, credentials, real data,
+power-loss behavior, physical devices or accessibility conformance. It supplies
+no whole-issue #99/#127 or release decision.
+
+### Runtime and preserved boundaries
+
+The existing four case bodies, their checkpoints, generic input helper,
+current-identity checks, save authority, ACL/process cleanup, emulator image,
+runner and dependencies remain unchanged. The only added scroll option is the
+two-class closed choice `ScrollView` / `ListView`; all existing callers keep
+the original `ScrollView` default. No general click, search or text-input
+helper is broadened.
+
+The job still has its 25-minute cap. The actual previous signed
+`6d786aadba1f25f88822ca5c3beb8217a8780574` receiving Installed job
+[118603671845](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39413978302/job/118603671845)
+ran from approximately 11:31:49 to 11:53:56 UTC on 20 October 2026. Its four-case
+success leaves less than three minutes of that configured cap; it does not prove
+the fifth journey fits. The new phase sweep avoids repeated full-form searches
+and extra PNG captures. Actual host and installed outcomes, including a timeout
+or failure, must be retained from a later execution of the candidate.
+
 ## Delivered result and separate main-push failure — 2026-10-19
 
 [PR #467](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/467)
@@ -61,6 +158,7 @@ package, support matrix, service contract, signing policy or release.
 | `acknowledged_save_survives_force_stop` | Enter fixed synthetic title/objective/context; require the automatic valid-form save acknowledgement and disabled Save; HOME then force-stop terminates the process; a new process reopens the same acknowledged fields and local ID | Automatic save and force-stop/cold relaunch; no installed manual-save action, low-memory process death or power-loss durability claim |
 | `pending_fields_survive_rotation` | Enter the exact invalid Requests-per-day workload, then pending title/objective edits; both observed rotations retain the complete raw fields and invalid-workload explanation, unchanged context, disabled Save and explicitly unsaved state | Deliberately invalid pending input across two orientations in one emulator configuration; no support-matrix or general adaptive/accessibility qualification |
 | `confirmed_deletion_does_not_resurrect` | Select the exact saved library row, inspect the ID-specific deletion confirmation, confirm removal, retain pending editor fields with Save/history disabled, then verify an empty library before and after another cold relaunch | Current readable local draft, not every corrupt/interrupted cleanup, storage-full, another-draft, secure-erasure or remote-deletion case |
+| `typed_data_source_acknowledged_save_survives_force_stop` | Create and bind an actual draft/Selection, observe three omitted settings, configure exact refresh 60 and inner true while connector remains omitted and outer enabled remains false, require retired-form save acknowledgment, then force-stop/relaunch and reopen the same identities and values | Visible installed controls on the fixed synthetic fixture; no direct storage-byte, connector, physical-device or whole-issue acceptance |
 
 The harness drives the installed app through `adb` input and UI Automator hierarchy
 dumps. It locates current visible labels, adjacent editors and exact button text;
