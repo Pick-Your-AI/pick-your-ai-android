@@ -39,11 +39,30 @@ DISPLAY_CONFIGS = {
     "raster-720x1280-280": {"hw.lcd.width": "720", "hw.lcd.height": "1280", "hw.lcd.density": "280"},
 }
 DISPLAY_COMMANDS = {"size": ("shell", "wm", "size"), "density": ("shell", "wm", "density")}
+DATA_SOURCE_CASE_ID = "typed_data_source_acknowledged_save_survives_force_stop"
+DATA_SOURCE_CATALOG_CHOICE = "data_source · cat.data_source.fixture @ 2026.10-demo"
+DATA_SOURCE_CATALOG_TITLE = "cat.data_source.fixture @ 2026.10-demo"
+DATA_SOURCE_REFERENCE_LABEL = "Connector secret reference"
+DATA_SOURCE_MINUTES_LABEL = "Refresh interval (minutes)"
+DATA_SOURCE_ENABLED_LABEL = "Data-source setting: enabled"
+DATA_SOURCE_OPTIONAL_HINT = "Optional; supply explicitly"
+COMPONENT_COMMIT = "Commit local revision"
+COMPONENT_ACKNOWLEDGMENT = "Local selection revision saved. Compatibility, cost and readiness remain unestablished."
+DATA_SOURCE_DRAFT_PATTERN = r"draft-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+DATA_SOURCE_SELECTION_PATTERN = r"data_source · primary · (selection_[0-9a-f]{32})"
+DATA_SOURCE_FRAME_PREFIXES = {"initial": "09-data-source-initial",
+                              "configured": "10-data-source-configured",
+                              "reopened": "11-data-source-reopened"}
+TEXT_VIEW = "android.widget.TextView"
+CHECKBOX = "android.widget.CheckBox"
+CHECKED_TEXT_VIEW = "android.widget.CheckedTextView"
+LIST_VIEW = "android.widget.ListView"
 CASE_IDS = (
     "installed_synthetic_launch",
     "acknowledged_save_survives_force_stop",
     "pending_fields_survive_rotation",
     "confirmed_deletion_does_not_resurrect",
+    DATA_SOURCE_CASE_ID,
 )
 TITLE_LABEL = "Draft title (up to 120 characters)"
 OBJECTIVE_LABEL = "Draft objective (optional)"
@@ -369,6 +388,187 @@ def labelled_editor(root: ET.Element, label: str) -> ET.Element | None:
             if field.get("class") == EDITOR and visible(field):
                 return field
     return None
+
+def data_source_selection_identity(label: str) -> str:
+    require(isinstance(label, str), "Selection label must be observed text")
+    match = re.fullmatch(DATA_SOURCE_SELECTION_PATTERN, label)
+    require(match is not None, "The observed row is not one exact primary DataSource selection")
+    return match.group(1)
+
+
+def data_source_form_present(root: ET.Element, selection_label: str) -> bool:
+    return (single_match(root, lambda node: node.get("class") == TEXT_VIEW
+                         and node.get("text") == selection_label) is not None
+            and single_match(root, lambda node: node.get("class") == BUTTON
+                             and node.get("text") == COMPONENT_COMMIT) is not None)
+
+
+def data_source_optional_controls(root: ET.Element, label: str):
+    require(label in (DATA_SOURCE_REFERENCE_LABEL, DATA_SOURCE_MINUTES_LABEL),
+            "Only the two fixed DataSource optional controls are permitted")
+    field_label = single_match(root, lambda node: node.get("class") == TEXT_VIEW
+                               and node.get("text") == label)
+    if field_label is None:
+        return None
+    for parent in root.iter():
+        children = list(parent)
+        if field_label not in children:
+            continue
+        index = children.index(field_label)
+        require(index + 2 < len(children), "Incomplete DataSource Supply/editor row")
+        supply, editor = children[index + 1:index + 3]
+        require(supply.get("class") == CHECKBOX and supply.get("text") == "Supply " + label
+                and editor.get("class") == EDITOR,
+                "DataSource label is not followed by its exact Supply checkbox and editor")
+        if not visible(supply) or not visible(editor):
+            return None
+        require(supply.get("enabled") == "true" and supply.get("checkable") == "true"
+                and supply.get("checked") in ("false", "true")
+                and editor.get("enabled") == supply.get("checked"),
+                "DataSource supplied state and current editor authority disagree")
+        if supply.get("checked") == "false":
+            # Android's accessibility text is the hint when the actual EditText is empty.
+            require(editor.get("text") == DATA_SOURCE_OPTIONAL_HINT,
+                    "Omitted DataSource input does not expose its exact optional hint")
+        return supply, editor
+    return None
+
+
+def data_source_enabled_control(root: ET.Element):
+    label = single_match(root, lambda node: node.get("class") == TEXT_VIEW
+                         and node.get("text") == DATA_SOURCE_ENABLED_LABEL)
+    if label is None:
+        return None
+    for parent in root.iter():
+        children = list(parent)
+        if label not in children:
+            continue
+        index = children.index(label) + 1
+        require(index < len(children), "Missing DataSource enabled choice")
+        button = children[index]
+        require(button.get("class") == BUTTON, "Enabled label does not identify its adjacent choice")
+        if not visible(button):
+            return None
+        require(button.get("enabled") == "true"
+                and button.get("text") in ("Not supplied", "False", "True"),
+                "DataSource enabled choice is unavailable or ambiguous")
+        return button
+    return None
+
+
+def data_source_list_row(root: ET.Element, title: str, *, text: str | None = None,
+                         pattern: str | None = None):
+    require((text is None) != (pattern is None), "One exact DataSource list selector is required")
+    header = single_match(root, lambda node: node.get("class") == TEXT_VIEW
+                          and node.get("text") == title)
+    if header is None:
+        return None
+    listing = single_match(root, lambda node: node.get("class") == LIST_VIEW)
+    if listing is None:
+        return None
+    return single_match(listing, lambda node: node.get("class") == TEXT_VIEW
+                        and (node.get("text") == text if text is not None
+                             else re.fullmatch(pattern, node.get("text", "")) is not None))
+
+
+def data_source_boolean_choice(root: ET.Element):
+    title = single_match(root, lambda node: node.get("class") == TEXT_VIEW
+                         and node.get("text") == DATA_SOURCE_ENABLED_LABEL)
+    if title is None:
+        return None
+    listing = single_match(root, lambda node: node.get("class") == LIST_VIEW)
+    if listing is None:
+        return None
+    rows = [node for node in listing.iter("node") if visible(node)
+            and node.get("class") == CHECKED_TEXT_VIEW]
+    require([node.get("text") for node in rows] == ["Not supplied", "False", "True"],
+            "The enabled dialog must contain all three exact Material single choices")
+    require(all(node.get("enabled") == "true" and node.get("checkable") == "true" for node in rows)
+            and [node.get("checked") for node in rows] == ["true", "false", "false"],
+            "The initial omitted enabled choice is not the sole current checked value")
+    return rows[2]
+
+
+def data_source_commit_ack(root: ET.Element, form_title: str):
+    # The acknowledgment can already exist behind the next form. Its text alone is insufficient.
+    if any(visible(node) and ((node.get("class") == BUTTON and node.get("text") == COMPONENT_COMMIT)
+                             or (node.get("class") == TEXT_VIEW and node.get("text") == form_title))
+           for node in root.iter("node")):
+        return None
+    return single_match(root, lambda node: node.get("class") == TEXT_VIEW
+                        and node.get("text") == COMPONENT_ACKNOWLEDGMENT)
+
+
+def data_source_case_passes(row: dict) -> bool:
+    """Require the fifth journey's concrete visible-control and restart observations."""
+    if not isinstance(row, dict) or row.get("id") != DATA_SOURCE_CASE_ID or row.get("status") != "passed":
+        return False
+    data = row.get("data_source")
+    keys = {"scope", "catalog_choice", "draft_id", "selection_id", "selection_label",
+            "initial", "configured", "reopened", "add_acknowledgment",
+            "configure_acknowledgment", "reload_acknowledgment"}
+    if not isinstance(data, dict) or set(data) != keys:
+        return False
+    draft_id, selection_id, selection_label = (data.get(key) for key in
+                                               ("draft_id", "selection_id", "selection_label"))
+    if (not isinstance(draft_id, str) or re.fullmatch(DATA_SOURCE_DRAFT_PATTERN, draft_id) is None
+            or not isinstance(selection_id, str) or re.fullmatch(r"selection_[0-9a-f]{32}", selection_id) is None
+            or selection_label != "data_source · primary · " + selection_id
+            or data.get("catalog_choice") != DATA_SOURCE_CATALOG_CHOICE
+            or data.get("scope") != "installed-visible-controls-not-raw-storage"):
+        return False
+    fields = {"draft_id", "selection_id", "selection_label", "connector_supplied",
+              "connector_editor_enabled", "connector_text", "refresh_supplied",
+              "refresh_editor_enabled", "refresh_text", "refresh_minutes",
+              "enabled", "selection_enabled", "frames"}
+    for phase, prefix in DATA_SOURCE_FRAME_PREFIXES.items():
+        observed = data.get(phase)
+        supplied = phase != "initial"
+        if (not isinstance(observed, dict) or set(observed) != fields
+                or observed.get("draft_id") != draft_id or observed.get("selection_id") != selection_id
+                or observed.get("selection_label") != selection_label
+                or observed.get("connector_supplied") is not False
+                or observed.get("connector_editor_enabled") is not False
+                or observed.get("connector_text") != DATA_SOURCE_OPTIONAL_HINT
+                or observed.get("refresh_supplied") is not supplied
+                or observed.get("refresh_editor_enabled") is not supplied
+                or observed.get("refresh_text") != ("60" if supplied else DATA_SOURCE_OPTIONAL_HINT)
+                or observed.get("selection_enabled") is not False):
+            return False
+        if supplied:
+            if type(observed.get("refresh_minutes")) is not int or observed["refresh_minutes"] != 60 \
+                    or observed.get("enabled") is not True:
+                return False
+        elif observed.get("refresh_minutes") is not None or observed.get("enabled") is not None:
+            return False
+        frames = observed.get("frames")
+        if not isinstance(frames, dict) or set(frames) != {"connector", "minutes", "enabled"}:
+            return False
+        for name, frame in frames.items():
+            if (not isinstance(frame, dict) or set(frame) != {"path", "bytes", "sha256"}
+                    or frame.get("path") != prefix + "-" + name + ".xml"
+                    or type(frame.get("bytes")) is not int or frame["bytes"] <= 0
+                    or not isinstance(frame.get("sha256"), str)
+                    or re.fullmatch(r"[0-9a-f]{64}", frame["sha256"]) is None):
+                return False
+    for key in ("add_acknowledgment", "configure_acknowledgment"):
+        acknowledgment = data.get(key)
+        if (not isinstance(acknowledgment, dict)
+                or set(acknowledgment) != {"text", "form_retired", "draft_id"}
+                or acknowledgment.get("text") != COMPONENT_ACKNOWLEDGMENT
+                or acknowledgment.get("form_retired") is not True
+                or acknowledgment.get("draft_id") != draft_id):
+            return False
+    if data.get("reload_acknowledgment") != {"text": "Saved locally.", "draft_id": draft_id}:
+        return False
+    restart = row.get("process_restart")
+    return (isinstance(restart, dict)
+            and set(restart) == {"terminated_pid", "relaunch_pid", "method"}
+            and restart.get("method") == "am force-stop"
+            and all(isinstance(restart.get(key), str)
+                    and re.fullmatch(r"[1-9][0-9]*", restart[key]) is not None
+                    for key in ("terminated_pid", "relaunch_pid"))
+            and restart["terminated_pid"] != restart["relaunch_pid"])
 
 
 def wait_for_boot_completed(device, receipt: dict, timeout_seconds):
@@ -717,6 +917,7 @@ def complete_receipt(receipt: dict, source_sha: str, expected_mode: str | None =
     cases = receipt.get("cases", [])
     require([case.get("id") for case in cases] == list(CASE_IDS), "Missing or duplicate smoke case")
     require(all(case.get("status") == "passed" for case in cases), "A smoke case did not execute successfully")
+    require(data_source_case_passes(cases[4]), "Complete typed DataSource configure/restart observations are missing")
     require(receipt.get("unsigned_apk_unchanged") is True, "Unsigned build preservation was not verified")
     emulation = receipt.get("emulation")
     require(isinstance(emulation, dict) and emulation.get("mode") in ("kvm", "software", "hvf"),
@@ -2149,8 +2350,10 @@ class Ui:
         finally:
             attempt["seconds"] = round(time.monotonic() - started, 3)
 
-    def scroll(self, root: ET.Element, down: bool, *, observation: dict | None = None) -> bool:
-        node = single_match(root, lambda item: item.get("class") == "android.widget.ScrollView")
+    def scroll(self, root: ET.Element, down: bool, *, observation: dict | None = None,
+               scroll_kind: str = "android.widget.ScrollView") -> bool:
+        require(scroll_kind in ("android.widget.ScrollView", LIST_VIEW), "Unsupported scroll container class")
+        node = single_match(root, lambda item: item.get("class") == scroll_kind)
         if node is None:
             return False
         left, top, right, bottom = bounds(node)
@@ -2472,6 +2675,262 @@ def retain_case_failure_state(device: Device, receipt: dict, *, phase="after_fai
     finally:
         state["seconds"] = round(time.monotonic() - started, 3)
 
+def data_source_draft_id(ui: Ui, expected: str | None = None) -> str:
+    node = ui.seek(lambda root: single_match(root, lambda item:
+                   item.get("class") == TEXT_VIEW and re.fullmatch(
+                       r"Active local draft ID: (" + DATA_SOURCE_DRAFT_PATTERN + r")",
+                       item.get("text", "")) is not None), "the newly created DataSource draft identity")
+    observed = node.get("text").removeprefix("Active local draft ID: ")
+    require(expected is None or observed == expected, "The active draft changed during the DataSource journey")
+    return observed
+
+
+def data_source_list_item(ui: Ui, title: str, *, text: str | None = None,
+                          pattern: str | None = None, tap: bool = False) -> str:
+    """Search only the current owned dialog list; never guess a coordinate or invisible item."""
+    ui.seek(lambda root: single_match(root, lambda node: node.get("class") == TEXT_VIEW
+            and node.get("text") == title), "exact DataSource dialog title", scroll=False)
+    trace = {"title": title, "target": text if text is not None else pattern,
+             "tap_requested": tap, "status": "searching", "frames": []}
+    ui.observations.setdefault("data_source_lists", []).append(trace)
+    for down in (False, True):
+        previous = None
+        for step in range(UI_SCROLL_MAX_STEPS + 1):
+            root = ui.snapshot()
+            require(single_match(root, lambda node: node.get("class") == TEXT_VIEW
+                    and node.get("text") == title) is not None, "DataSource list dialog was replaced")
+            frame = {"direction": "down" if down else "up", "step": step,
+                     "parsed_xml_sha256": hashlib.sha256(ET.tostring(root)).hexdigest()}
+            trace["frames"].append(frame)
+            del trace["frames"][:-16]
+            node = data_source_list_row(root, title, text=text, pattern=pattern)
+            if node is not None:
+                observed = node.get("text")
+                left, top, right, bottom = bounds(node)
+                x, y = (left + right) // 2, (top + bottom) // 2
+                if not any(a <= x < c and b <= y < d for a, b, c, d in system_bar_bounds(root)):
+                    # Re-read the exact title/list/row immediately before a tap. A retained
+                    # element or an item found in a different dialog grants no authority.
+                    fresh = ui.snapshot()
+                    current = data_source_list_row(fresh, title, text=observed)
+                    require(current is not None, "DataSource list row changed before its action")
+                    if text == "Enable selection":
+                        require(single_match(fresh, lambda item: item.get("class") == TEXT_VIEW
+                                and item.get("text") == "Disable selection") is None,
+                                "Conflicting outer Selection enabled actions")
+                    left, top, right, bottom = bounds(current)
+                    x, y = (left + right) // 2, (top + bottom) // 2
+                    require(not any(a <= x < c and b <= y < d for a, b, c, d in system_bar_bounds(fresh)),
+                            "Current DataSource row is covered by a system bar")
+                    require(current.get("enabled") == "true", "DataSource list row is disabled")
+                    trace.update(status="observed", observed_text=observed,
+                                 action_xml_sha256=hashlib.sha256(ET.tostring(fresh)).hexdigest())
+                    if tap:
+                        ui.tap(current)
+                        trace["status"] = "tapped"
+                    return observed
+            current_xml = ET.tostring(root)
+            if current_xml == previous or step == UI_SCROLL_MAX_STEPS:
+                break
+            if not ui.scroll(root, down, observation=frame.setdefault("wheel_command", {}),
+                             scroll_kind=LIST_VIEW):
+                break
+            previous = current_xml
+    raise SmokeFailure("Exact DataSource dialog row was not observed")
+
+
+def data_source_control(ui: Ui, selection_label: str, label: str):
+    captured = {}
+    def selector(root):
+        if not data_source_form_present(root, selection_label):
+            return None
+        controls = data_source_optional_controls(root, label)
+        if controls is None:
+            return None
+        captured.update(root=root, supply=controls[0], editor=controls[1])
+        return controls[1]
+    ui.seek(selector, "DataSource " + label)
+    return captured
+
+
+def data_source_enabled(ui: Ui, selection_label: str):
+    captured = {}
+    def selector(root):
+        if not data_source_form_present(root, selection_label):
+            return None
+        button = data_source_enabled_control(root)
+        if button is not None:
+            captured.update(root=root, button=button)
+        return button
+    ui.seek(selector, DATA_SOURCE_ENABLED_LABEL)
+    return captured
+
+
+def data_source_frame(ui: Ui, prefix: str, name: str, root: ET.Element) -> dict:
+    require(prefix in DATA_SOURCE_FRAME_PREFIXES.values() and name in ("connector", "minutes", "enabled"),
+            "Unknown DataSource evidence frame")
+    path = prefix + "-" + name + ".xml"
+    raw = ET.tostring(root, encoding="utf-8", xml_declaration=True)
+    with (ui.output / path).open("xb") as target:
+        target.write(raw)
+    return {"path": path, "bytes": len(raw), "sha256": hashlib.sha256(raw).hexdigest()}
+
+
+def observe_data_source(ui: Ui, identity: dict, phase: str) -> dict:
+    """Retain actual XML for the three controls in one directional form sweep."""
+    require(phase in DATA_SOURCE_FRAME_PREFIXES, "Unknown DataSource observation phase")
+    prefix, label = DATA_SOURCE_FRAME_PREFIXES[phase], identity["selection_label"]
+    traces = ui.observations.setdefault("data_source_observations", {})
+    require(phase not in traces, "Duplicate DataSource observation phase")
+    trace = traces[phase] = {"direction": "up" if phase == "configured" else "down",
+                             "status": "searching", "snapshots": 0, "wheel_events": 0}
+    root = None
+    for _ in range(8):
+        current = ui.snapshot()
+        trace["snapshots"] += 1
+        if data_source_form_present(current, label):
+            root = current
+            break
+        time.sleep(0.25)
+    require(root is not None, "The exact DataSource form did not become current")
+    captured, previous = {}, None
+    down = phase != "configured"
+    for step in range(UI_SCROLL_MAX_STEPS + 1):
+        require(data_source_form_present(root, label), "DataSource form changed during observation")
+        viewport = single_match(root, lambda item: item.get("class") == "android.widget.ScrollView")
+        require(viewport is not None, "The current DataSource form has no unique scroll viewport")
+        left, top, right, bottom = bounds(viewport)
+        bars = system_bar_bounds(root)
+        def unobscured(node):
+            a, b, c, d = bounds(node)
+            x, y = (a + c) // 2, (b + d) // 2
+            return (left <= x < right and top <= y < bottom
+                    and not any(a <= x < c and b <= y < d for a, b, c, d in bars))
+        for name, field in (("connector", DATA_SOURCE_REFERENCE_LABEL), ("minutes", DATA_SOURCE_MINUTES_LABEL)):
+            if name in captured:
+                continue
+            controls = data_source_optional_controls(root, field)
+            if controls is not None and all(unobscured(node) for node in controls):
+                captured[name] = {"root": root, "supply": controls[0], "editor": controls[1]}
+        if "enabled" not in captured:
+            button = data_source_enabled_control(root)
+            if button is not None and unobscured(button):
+                captured["enabled"] = {"root": root, "button": button}
+        trace["observed_fields"] = sorted(captured)
+        if set(captured) == {"connector", "minutes", "enabled"}:
+            trace["status"] = "observed"
+            break
+        current_xml = ET.tostring(root)
+        if current_xml == previous or step == UI_SCROLL_MAX_STEPS:
+            break
+        if not ui.scroll(root, down, observation=trace.setdefault("last_wheel_command", {})):
+            break
+        trace["wheel_events"] += 1
+        previous, root = current_xml, ui.snapshot()
+        trace["snapshots"] += 1
+    require(set(captured) == {"connector", "minutes", "enabled"},
+            "The bounded DataSource form sweep did not observe all three exact controls")
+    reference, minutes, enabled = (captured[name] for name in ("connector", "minutes", "enabled"))
+    supplied = minutes["supply"].get("checked") == "true"
+    minute_text = minutes["editor"].get("text")
+    require(not supplied or minute_text == "60", "The exact configured refresh value was not observed")
+    return dict(identity,
+        connector_supplied=reference["supply"].get("checked") == "true",
+        connector_editor_enabled=reference["editor"].get("enabled") == "true",
+        connector_text=reference["editor"].get("text"),
+        refresh_supplied=supplied, refresh_editor_enabled=minutes["editor"].get("enabled") == "true",
+        refresh_text=minute_text, refresh_minutes=int(minute_text) if supplied else None,
+        enabled={"Not supplied": None, "False": False, "True": True}[enabled["button"].get("text")],
+        frames={
+            "connector": data_source_frame(ui, prefix, "connector", reference["root"]),
+            "minutes": data_source_frame(ui, prefix, "minutes", minutes["root"]),
+            "enabled": data_source_frame(ui, prefix, "enabled", enabled["root"]),
+        })
+
+def open_data_source_settings(ui: Ui, draft_id: str, expected_label: str | None = None) -> dict:
+    data_source_draft_id(ui, draft_id)
+    ui.click("Manage saved components")
+    label = data_source_list_item(ui, "Manage saved components",
+                                 text=expected_label, pattern=DATA_SOURCE_SELECTION_PATTERN if expected_label is None else None,
+                                 tap=True)
+    selection_id = data_source_selection_identity(label)
+    enabled_action = data_source_list_item(ui, label, text="Enable selection")
+    require(enabled_action == "Enable selection", "Outer Selection must remain disabled")
+    data_source_list_item(ui, label, text="Edit settings", tap=True)
+    ui.seek(lambda root: single_match(root, lambda item: item.get("class") == TEXT_VIEW
+            and item.get("text") == label) if data_source_form_present(root, label) else None,
+            "the exact current DataSource form", scroll=False)
+    return {"draft_id": draft_id, "selection_id": selection_id, "selection_label": label,
+            "selection_enabled": False}
+
+
+def acknowledge_data_source_commit(ui: Ui, form_title: str, draft_id: str) -> dict:
+    node = ui.seek(lambda root: data_source_commit_ack(root, form_title),
+                   "changed-selection acknowledgment after the exact form retires")
+    return {"text": node.get("text"), "form_retired": True,
+            "draft_id": data_source_draft_id(ui, draft_id)}
+
+
+def exercise_data_source(ui: Ui, device: Device, row: dict):
+    ui.click("Create local draft")
+    ui.click("Continue", scroll=False)
+    draft_id = data_source_draft_id(ui)
+    ui.text("Saved locally.")
+    ui.click("Choose exact fixture component")
+    catalog_choice = data_source_list_item(ui, "Choose exact fixture component",
+                                           text=DATA_SOURCE_CATALOG_CHOICE, tap=True)
+    data_source_list_item(ui, DATA_SOURCE_CATALOG_TITLE, text="Add new selection", tap=True)
+    ui.enter("Explicit selection role", "primary")
+    require(ui.editor("Settings JSON object (maximum 16,384 characters)").get("text") == "{}",
+            "The ADD journey must begin with the exact empty optional settings object")
+    outer = ui.seek(lambda root: single_match(root, lambda item: item.get("class") == CHECKBOX
+                    and item.get("text") == "Enabled in local draft"), "outer Selection enabled checkbox")
+    require(outer.get("checkable") == "true" and outer.get("checked") == "false"
+            and outer.get("enabled") == "true", "The new DataSource selection must be explicitly disabled")
+    ui.click(COMPONENT_COMMIT, scroll=False)
+    add_ack = acknowledge_data_source_commit(ui, "Add new selection", draft_id)
+    identity = open_data_source_settings(ui, draft_id)
+    data = row["data_source"] = {
+        "scope": "installed-visible-controls-not-raw-storage", "catalog_choice": catalog_choice,
+        "draft_id": draft_id, "selection_id": identity["selection_id"],
+        "selection_label": identity["selection_label"], "add_acknowledgment": add_ack,
+    }
+    data["initial"] = observe_data_source(ui, identity, "initial")
+    require(data["initial"]["refresh_supplied"] is False and data["initial"]["enabled"] is None
+            and data["initial"]["connector_supplied"] is False, "Initial settings were not all omitted")
+    minutes = data_source_control(ui, identity["selection_label"], DATA_SOURCE_MINUTES_LABEL)
+    ui.tap(minutes["supply"])
+    minutes = data_source_control(ui, identity["selection_label"], DATA_SOURCE_MINUTES_LABEL)
+    require(minutes["supply"].get("checked") == "true"
+            and minutes["editor"].get("text") == DATA_SOURCE_OPTIONAL_HINT,
+            "Refresh input is not a fresh explicitly supplied empty field")
+    ui.tap(minutes["editor"])
+    device.shell("input", "keyevent", "KEYCODE_MOVE_END")
+    device.shell("input", "text", "60")  # One fixed synthetic value; the original ASCII enter() is unchanged.
+    if re.search(r"\bmInputShown=true\b", device.shell("dumpsys", "input_method")):
+        device.shell("input", "keyevent", "KEYCODE_BACK")
+    enabled = data_source_enabled(ui, identity["selection_label"])
+    require(enabled["button"].get("text") == "Not supplied", "Enabled setting changed before explicit choice")
+    ui.tap(enabled["button"])
+    ui.seek(data_source_boolean_choice, "all three current DataSource single choices", scroll=False)
+    choice = data_source_boolean_choice(ui.snapshot())
+    require(choice is not None, "The DataSource single-choice dialog was replaced before the tap")
+    ui.tap(choice)
+    data["configured"] = observe_data_source(ui, identity, "configured")
+    ui.click(COMPONENT_COMMIT, scroll=False)
+    data["configure_acknowledgment"] = acknowledge_data_source_commit(
+        ui, identity["selection_label"], draft_id)
+    ui.expect_button("Manage saved components", True)
+    row["process_restart"] = device.cold_restart()
+    loaded = ui.seek(lambda root: single_match(root, lambda item: item.get("class") == TEXT_VIEW
+                     and item.get("text") == "Saved locally."), "cold-loaded draft acknowledgment")
+    data["reload_acknowledgment"] = {"text": loaded.get("text"),
+                                     "draft_id": data_source_draft_id(ui, draft_id)}
+    reopened_identity = open_data_source_settings(ui, draft_id, identity["selection_label"])
+    require(reopened_identity == identity, "Cold reload substituted a different draft or selection")
+    data["reopened"] = observe_data_source(ui, reopened_identity, "reopened")
+    ui.click("Close", scroll=False)  # Inspection ends without another commit or enabled-state change.
+
 
 def exercise(device: Device, output: Path, receipt: dict):
     ui = Ui(device, output, receipt)
@@ -2557,6 +3016,8 @@ def exercise(device: Device, output: Path, receipt: dict):
             ui.text("No local draft directories found.", scroll=False)
             ui.checkpoint("08-deleted-draft-stays-absent-after-relaunch")
             ui.click("Close", scroll=False)
+        with case(receipt, DATA_SOURCE_CASE_ID) as row:
+            exercise_data_source(ui, device, row)
     except Exception:
         retain_failure_log(device, output, receipt)
         try:
