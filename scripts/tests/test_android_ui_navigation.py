@@ -15,9 +15,12 @@ smoke = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(smoke)
 
 
-def node(text="", kind="android.widget.TextView", package=smoke.PACKAGE, box="[20,20][280,64]"):
-    return ET.Element("node", text=text, **{
+def node(text="", kind="android.widget.TextView", package=smoke.PACKAGE, box="[20,20][280,64]", *, scrollable=None):
+    result = ET.Element("node", text=text, **{
         "class": kind, "package": package, "bounds": box, "enabled": "true"})
+    if scrollable is not None:
+        result.set("scrollable", scrollable)
+    return result
 
 
 class ScrollDocument:
@@ -55,7 +58,7 @@ class ScrollDocument:
         self.snapshots += 1
         self.offsets.append(self.offset)
         root = ET.Element("hierarchy", rotation="0")
-        container = node(kind="android.widget.ScrollView", box=f"[0,0][300,{self.height}]")
+        container = node(kind="android.widget.ScrollView", box=f"[0,0][300,{self.height}]", scrollable="true")
         root.append(container)
         container.append(node("Synthetic viewport " + str(self.offset)))
         top, bottom = self.target - self.offset, self.target + 44 - self.offset
@@ -163,7 +166,7 @@ class UiNavigationGuardTest(unittest.TestCase):
             for reverse in (False, True):
                 with self.subTest(viewport=viewport, reverse=reverse):
                     root = ET.Element("hierarchy", rotation="0")
-                    root.append(node(kind="android.widget.ScrollView", box=viewport))
+                    root.append(node(kind="android.widget.ScrollView", box=viewport, scrollable="true"))
                     bars = []
                     for identity, box in (("android:id/navigationBarBackground", nav_box),
                                           ("android:id/statusBarBackground", status_box)):
@@ -234,7 +237,7 @@ class UiNavigationGuardTest(unittest.TestCase):
                 device, receipt = Mock(spec=smoke.Device), {}
                 root = ET.Element("hierarchy", rotation="0")
                 kind = smoke.BUTTON if ambiguous_target else "android.widget.ScrollView"
-                root.extend([node("Save locally" if ambiguous_target else "", kind) for _ in range(2)])
+                root.extend([node("Save locally" if ambiguous_target else "", kind, scrollable="true") for _ in range(2)])
                 ui = smoke.Ui(device, Path("unused"), receipt)
                 with patch.object(ui, "snapshot", return_value=root):
                     with self.assertRaisesRegex(smoke.SmokeFailure, "Ambiguous UI selector"):
@@ -242,10 +245,10 @@ class UiNavigationGuardTest(unittest.TestCase):
                 device.adb.assert_not_called()
 
     def test_foreign_invisible_or_invalid_scroll_bounds_never_receive_wheel_input(self):
-        containers = [node(kind="android.widget.ScrollView", package="foreign.app"),
-                      node(kind="android.widget.ScrollView", box="[0,0][0,100]"),
-                      node(kind="android.widget.ScrollView", box="[0,30][100,20]"),
-                      node(kind="android.widget.ScrollView", box="malformed")]
+        containers = [node(kind="android.widget.ScrollView", package="foreign.app", scrollable="true"),
+                      node(kind="android.widget.ScrollView", box="[0,0][0,100]", scrollable="true"),
+                      node(kind="android.widget.ScrollView", box="[0,30][100,20]", scrollable="true"),
+                      node(kind="android.widget.ScrollView", box="malformed", scrollable="true")]
         for container in containers:
             with self.subTest(container=container.attrib):
                 device, receipt = Mock(spec=smoke.Device), {}
@@ -265,7 +268,7 @@ class UiNavigationGuardTest(unittest.TestCase):
                     device, observed = Mock(spec=smoke.Device), {}
                     device.adb.return_value = subprocess.CompletedProcess([], 0, "", "")
                     root = ET.Element("hierarchy", rotation="0")
-                    root.append(node(kind="android.widget.ScrollView", box=box))
+                    root.append(node(kind="android.widget.ScrollView", box=box, scrollable="true"))
                     self.assertTrue(smoke.Ui(device, Path("unused"), {}).scroll(root, down, observation=observed))
                     device.adb.assert_called_once_with("shell", "input", "mouse", "scroll", *expected,
                                                        "--axis", axis, timeout=30, check=False)
