@@ -20,8 +20,11 @@ smoke = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(smoke)
 
 
-def node(text="", kind="android.widget.TextView", package=smoke.PACKAGE, box="[0,0][100,100]"):
-    return ET.Element("node", text=text, **{"class": kind, "package": package, "bounds": box, "enabled": "true"})
+def node(text="", kind="android.widget.TextView", package=smoke.PACKAGE, box="[0,0][100,100]", *, scrollable=None):
+    result = ET.Element("node", text=text, **{"class": kind, "package": package, "bounds": box, "enabled": "true"})
+    if scrollable is not None:
+        result.set("scrollable", scrollable)
+    return result
 
 
 def ready_checks():
@@ -2900,14 +2903,14 @@ class DataSourceInstalledGuardTest(unittest.TestCase):
             ui = smoke.Ui(device, Path(temporary), {})
             for kind in ("android.widget.ScrollView", "android.widget.ListView"):
                 root = ET.Element("hierarchy")
-                root.append(node(kind=kind))
+                root.append(node(kind=kind, scrollable="true"))
                 self.assertTrue(ui.scroll(root, True, scroll_kind=kind))
                 device.adb.assert_called_once_with(
                     "shell", "input", "mouse", "scroll", "88", "50", "--axis", "VSCROLL,-2",
                     timeout=30, check=False)
                 device.adb.reset_mock()
             root = ET.Element("hierarchy")
-            listing = node(kind="android.widget.ListView")
+            listing = node(kind="android.widget.ListView", scrollable="true")
             root.append(listing)
             self.assertFalse(ui.scroll(root, True))
             for kind in ("android.widget.EditText", "another.application.List", ""):

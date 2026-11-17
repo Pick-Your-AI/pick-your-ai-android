@@ -2354,7 +2354,9 @@ class Ui:
     def scroll(self, root: ET.Element, down: bool, *, observation: dict | None = None,
                scroll_kind: str = "android.widget.ScrollView") -> bool:
         require(scroll_kind in ("android.widget.ScrollView", LIST_VIEW), "Unsupported scroll container class")
-        node = single_match(root, lambda item: item.get("class") == scroll_kind)
+        # A dialog's action panel may share the class without accepting scroll input.
+        node = single_match(root, lambda item: item.get("class") == scroll_kind
+                            and item.get("scrollable") == "true" and item.get("enabled") == "true")
         if node is None:
             return False
         left, top, right, bottom = bounds(node)
@@ -2798,10 +2800,23 @@ def observe_data_source(ui: Ui, identity: dict, phase: str) -> dict:
     down = phase != "configured"
     for step in range(UI_SCROLL_MAX_STEPS + 1):
         require(data_source_form_present(root, label), "DataSource form changed during observation")
-        viewport = single_match(root, lambda item: item.get("class") == "android.widget.ScrollView")
+        # Observation needs the content viewport even when all fields fit without
+        # scrolling; the separately identified action panel is not form content.
+        viewport = single_match(root, lambda item: item.get("class") == "android.widget.ScrollView"
+                                and item.get("enabled") == "true"
+                                and item.get("resource-id") != "android:id/buttonPanel")
         require(viewport is not None, "The current DataSource form has no unique scroll viewport")
         left, top, right, bottom = bounds(viewport)
         bars = system_bar_bounds(root)
+        content_nodes = {id(item) for item in viewport.iter("node")}
+        def require_content_row(label, *controls):
+            # Keep the whole-form uniqueness check. Coordinates alone cannot bind
+            # controls from an excluded or disabled sibling to this viewport.
+            field_label = single_match(root, lambda item: item.get("class") == TEXT_VIEW
+                                       and item.get("text") == label)
+            require(field_label is not None and all(id(item) in content_nodes
+                    for item in (field_label, *controls)),
+                    "DataSource controls are outside the selected content viewport")
         def unobscured(node):
             a, b, c, d = bounds(node)
             x, y = (a + c) // 2, (b + d) // 2
@@ -2811,12 +2826,16 @@ def observe_data_source(ui: Ui, identity: dict, phase: str) -> dict:
             if name in captured:
                 continue
             controls = data_source_optional_controls(root, field)
-            if controls is not None and all(unobscured(node) for node in controls):
-                captured[name] = {"root": root, "supply": controls[0], "editor": controls[1]}
+            if controls is not None:
+                require_content_row(field, *controls)
+                if all(unobscured(node) for node in controls):
+                    captured[name] = {"root": root, "supply": controls[0], "editor": controls[1]}
         if "enabled" not in captured:
             button = data_source_enabled_control(root)
-            if button is not None and unobscured(button):
-                captured["enabled"] = {"root": root, "button": button}
+            if button is not None:
+                require_content_row(DATA_SOURCE_ENABLED_LABEL, button)
+                if unobscured(button):
+                    captured["enabled"] = {"root": root, "button": button}
         trace["observed_fields"] = sorted(captured)
         if set(captured) == {"connector", "minutes", "enabled"}:
             trace["status"] = "observed"
