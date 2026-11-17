@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="embedding_model_editor_guidance">Edit the saved embedding-model settings. Supply each optional value explicitly; clearing Supply removes only that field.</string>
+    <string name="embedding_model_credential">Credential reference</string>
+    <string name="embedding_model_dimensions">Output dimensions</string>
+    <string name="embedding_model_region">Region</string>
+    <string name="embedding_model_credential_rule">Optional opaque secret:// reference. Enter a reference, never a password or credential.</string>
+    <string name="embedding_model_dimensions_rule">Optional whole number of at least 1. No maximum is specified.</string>
+    <string name="embedding_model_region_rule">Optional literal text. Supplied empty or whitespace text is retained; clear Supply to omit the region. No region availability is inferred.</string>
+    <string name="embedding_model_not_supplied">Not supplied</string>
+    <string name="embedding_model_supplied_empty">Supplied empty text</string>
+    <string name="embedding_model_supplied_value">Supplied value</string>
+    <string name="embedding_model_supply">Supply %1$s</string>
+    <string name="embedding_model_value_required">Enter the supplied value or clear Supply.</string>
+    <string name="embedding_model_integer_invalid">Enter a whole number; separators and nonnumeric values are not accepted.</string>
+    <string name="embedding_model_reference_invalid">Enter a valid secret:// reference.</string>
+    <string name="embedding_model_text_invalid">This text cannot be saved. Check the text and try again.</string>
+    <string name="embedding_model_too_long">This value is too long to save. Shorten it and try again; no partial value is saved.</string>
+    <string name="embedding_model_recovery_guidance">Review recovered input before saving it. Long pending input or an invalid credential reference can make the entire form unavailable after an interruption. You can correct the text while the form remains open.</string>
+</resources>

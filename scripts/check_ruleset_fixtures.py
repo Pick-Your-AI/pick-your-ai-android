@@ -1,19 +1,15 @@
 """Check explicit structural Ruleset cases against the unchanged frozen Python schema."""
 import copy
-from decimal import Decimal
 import hashlib
-import json
 from pathlib import Path
 
 from jsonschema import Draft202012Validator, FormatChecker
 from referencing import Registry, Resource
 
+from frozen_fixture_numbers import read_json
+
 ROOT = Path(__file__).resolve().parents[1]
 BASE = ROOT / "contracts/v1"
-
-
-def read_json(path):
-    return json.loads(path.read_text(encoding="utf-8"), parse_float=Decimal)
 
 
 def main():

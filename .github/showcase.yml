@@ -1,0 +1,7 @@
+# Showcase overrides (content only; colours and fonts come from the github-showcase-skill brand data).
+for: Pick-Your-AI/pick-your-ai-android
+type: mobile-app          # the Android client; no application code has landed yet, so the file tree cannot show it
+subtitle: "Android planning client for AI stack building"
+chips:
+  key: ["Project 4"]
+  attrs: ["Planning only", "MIT license"]

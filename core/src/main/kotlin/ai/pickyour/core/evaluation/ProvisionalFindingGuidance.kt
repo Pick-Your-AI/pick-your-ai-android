@@ -1,5 +1,6 @@
 package ai.pickyour.core.evaluation
 
+import ai.pickyour.core.drafts.DraftSelections
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.JsonNodeFactory
 import java.security.MessageDigest
@@ -13,17 +14,36 @@ enum class ProvisionalFindingGuidance { UNCLASSIFIED, INCOMPLETE, REPORTED_INCOM
  * The two separately pinned profiles differ only in their top-level ID. Nothing normalizes a new
  * identity, interprets arbitrary rule syntax, or treats a reason/severity as classification metadata.
  */
-internal fun recordedProvisionalGuidance(build: JsonNode, ruleset: JsonNode, report: JsonNode): Map<String, ProvisionalFindingGuidance> {
+internal fun recordedProvisionalGuidance(build: JsonNode, ruleset: JsonNode, report: JsonNode): Map<String, ProvisionalFindingGuidance> =
+    provisionalGuidance(ruleset, {
+        build["selections"].map { GuidanceSelection(it["id"].asText(), it["kind"].asText(), it["role"].asText(), it["enabled"].asBoolean()) }
+    }, {
+        report["findings"].map { GuidanceFinding(it["rule_id"].asText(), it["outcome"].asText()) }
+    })
+
+/** Actual private selections and evaluated findings; no synthetic Build or report is admitted. */
+internal fun currentProvisionalGuidance(selections: DraftSelections, ruleset: JsonNode,
+    findings: List<DraftRuleFinding>): Map<String, ProvisionalFindingGuidance> = provisionalGuidance(ruleset, {
+        selections.selections.map { GuidanceSelection(it.id, it.kind, it.role, it.enabled) }
+    }, {
+        findings.map { GuidanceFinding(it.ruleId, it.outcome) }
+    })
+
+private data class GuidanceSelection(val id: String, val kind: String, val role: String, val enabled: Boolean)
+private data class GuidanceFinding(val ruleId: String, val outcome: String)
+
+/** Both adapters share the complete profile gate and the same finite typed presence policy. */
+private fun provisionalGuidance(ruleset: JsonNode, selections: () -> List<GuidanceSelection>,
+    findings: () -> List<GuidanceFinding>): Map<String, ProvisionalFindingGuidance> {
     if (!FindingGuidanceProfile.matches(ruleset)) return emptyMap()
-    val selections = build["selections"].toList()
+    val selected = selections()
     // Even a disabled duplicate makes recorded identity ambiguous; do not select a convenient row.
-    if (selections.map { it["id"].asText() }.distinct().size != selections.size) return emptyMap()
-    val active = selections.filter { it["enabled"].asBoolean() }
-        .groupBy { it["kind"].asText() to it["role"].asText() }
+    if (selected.map { it.id }.distinct().size != selected.size) return emptyMap()
+    val active = selected.filter { it.enabled }.groupBy { it.kind to it.role }
     val guidance = linkedMapOf<String, ProvisionalFindingGuidance>()
-    for (finding in report["findings"]) {
-        if (finding["outcome"].asText() != "fail") continue
-        val id = finding["rule_id"].asText()
+    for (finding in findings()) {
+        if (finding.outcome != "fail") continue
+        val id = finding.ruleId
         val required = FindingGuidanceProfile.required[id].orEmpty()
         val fit = FindingGuidanceProfile.fit[id].orEmpty()
         fun count(kind: String) = active[kind to "primary"].orEmpty().size

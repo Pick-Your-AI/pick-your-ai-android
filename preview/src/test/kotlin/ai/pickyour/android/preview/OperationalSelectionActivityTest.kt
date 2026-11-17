@@ -164,6 +164,16 @@ class OperationalSelectionActivityTest {
             assertTypedDeploymentSettings(form, selection)
             return
         }
+        if (selection.kind == "monitoring_stack") {
+            assertEquals(1, views(form.window!!.decorView).filterIsInstance<MonitoringStackSettingsEditor>().size)
+            assertEquals("0.123456789123456789", field(form, R.string.monitoring_stack_sample).text.toString())
+            assertEquals("900719925474099312345678", field(form, R.string.monitoring_stack_retention).text.toString())
+            assertEquals("secret://synthetic/monitoring:reference-1", field(form, R.string.monitoring_stack_credential).text.toString())
+            val supplies = views(form.window!!.decorView).filterIsInstance<CheckBox>()
+            assertEquals(3, supplies.size)
+            assertTrue(supplies.all { it.isChecked })
+            return
+        }
         if (selection.kind != "cost_policy") {
             assertEquals(entered.getValue(selection.kind), field(form, R.string.component_settings).text.toString())
             return

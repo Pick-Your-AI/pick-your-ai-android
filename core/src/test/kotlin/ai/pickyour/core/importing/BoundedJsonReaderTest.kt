@@ -123,6 +123,68 @@ class BoundedJsonReaderTest {
         assertInstanceOf(JsonInputResult.Parsed::class.java, parse("""{"v":"\uD83D\uDE00"}"""))
     }
 
+    @Test fun `provider chunks preserve multibyte names values and exact numbers`() {
+        val text = """{"é€😀":"😀€é","number":9007199254740993,"decimal":1.2300}"""
+        val bytes = text.toByteArray(Charsets.UTF_8)
+        for (chunk in 1..bytes.size) {
+            val source = TrackingStream(bytes, chunk = chunk)
+            val parsed = assertInstanceOf(JsonInputResult.Parsed::class.java,
+                BoundedJsonReader(JsonInputLimits(maxBytes = bytes.size)).read(source))
+            assertEquals("😀€é", parsed.value["é€😀"].textValue(), "chunk=$chunk")
+            assertEquals("9007199254740993", parsed.value["number"].bigIntegerValue().toString())
+            assertEquals(BigDecimal("1.2300"), parsed.value["decimal"].decimalValue())
+            assertEquals(bytes.size, source.bytesRead)
+            assertFalse(source.closed)
+        }
+    }
+
+    @Test fun `every truncated multibyte prefix rejects across provider chunks`() {
+        val prefix = "{\"v\":\"".toByteArray()
+        for (character in listOf("é", "€", "😀")) {
+            val encoded = character.toByteArray(Charsets.UTF_8)
+            for (length in 1 until encoded.size) {
+                val bytes = prefix + encoded.copyOf(length)
+                for (chunk in 1..bytes.size) {
+                    val source = TrackingStream(bytes, chunk = chunk)
+                    rejected(BoundedJsonReader(JsonInputLimits(maxBytes = bytes.size)).read(source),
+                        JsonRejection.INVALID_UTF8)
+                    assertEquals(bytes.size, source.bytesRead)
+                    assertFalse(source.closed)
+                }
+            }
+        }
+    }
+
+    @Test fun `literal and escaped unicode each enforce their original byte budget`() {
+        for (text in listOf("""{"v":"é€😀"}""", """{"v":"\u00e9\u20ac\uD83D\uDE00"}""")) {
+            val bytes = text.toByteArray(Charsets.UTF_8)
+            for (chunk in 1..bytes.size) {
+                val exact = TrackingStream(bytes, chunk = chunk)
+                val parsed = assertInstanceOf(JsonInputResult.Parsed::class.java,
+                    BoundedJsonReader(JsonInputLimits(maxBytes = bytes.size)).read(exact))
+                assertEquals("é€😀", parsed.value["v"].textValue())
+                val overflow = TrackingStream(bytes, chunk = chunk)
+                rejected(BoundedJsonReader(JsonInputLimits(maxBytes = bytes.size - 1)).read(overflow),
+                    JsonRejection.LIMIT_EXCEEDED)
+                assertEquals(bytes.size, overflow.bytesRead)
+                assertFalse(exact.closed)
+                assertFalse(overflow.closed)
+            }
+        }
+    }
+
+    @Test fun `duplicate keys compare decoded scalars without unicode normalization`() {
+        for (text in listOf("""{"😀":1,"\uD83D\uDE00":2}""",
+                """{"é":1,"\u00e9":2}""", """{"é":1,"e\u0301":2}""")) {
+            rejected(parse(text), JsonRejection.INVALID_JSON)
+        }
+        val distinct = assertInstanceOf(JsonInputResult.Parsed::class.java,
+            parse("""{"é":1,"e\u0301":2}""")).value
+        assertEquals(2, distinct.size())
+        assertEquals(1, distinct["é"].intValue())
+        assertEquals(2, distinct["e\u0301"].intValue())
+    }
+
     @Test fun `leaves caller stream open for every outcome and redacts diagnostics`() {
         for (text in listOf("{}", "{", "[]", "{} {}", """{"secret":"my-secret",invalid}""")) {
             val source = TrackingStream(text.toByteArray())

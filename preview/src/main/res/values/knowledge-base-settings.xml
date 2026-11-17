@@ -1,0 +1,20 @@
+<resources>
+    <string name="knowledge_base_editor_guidance">All four settings are optional. Choose Supply to enter a value, or clear Supply to remove that field. No value is filled from the catalog.</string>
+    <string name="knowledge_base_chunk_size">Chunk size in tokens</string>
+    <string name="knowledge_base_chunk_overlap">Chunk overlap in tokens</string>
+    <string name="knowledge_base_refresh">Refresh interval in minutes</string>
+    <string name="knowledge_base_acl">Declared ACL enforcement</string>
+    <string name="knowledge_base_positive_rule">Enter an exact integer of at least 1. The frozen schema sets no upper limit.</string>
+    <string name="knowledge_base_overlap_rule">Enter an exact integer of at least 0. The frozen schema sets no relationship to chunk size.</string>
+    <string name="knowledge_base_acl_rule">This is your stored declaration, not a check of a service or its access controls. Supplied and unchecked means false; clearing Supply means not supplied.</string>
+    <string name="knowledge_base_acl_true">ACL enforcement declared true</string>
+    <string name="knowledge_base_acl_false">ACL enforcement declared false</string>
+    <string name="knowledge_base_acl_value">Declare ACL enforcement</string>
+    <string name="knowledge_base_optional_value">Not supplied</string>
+    <string name="knowledge_base_not_supplied">Not supplied</string>
+    <string name="knowledge_base_supply">Supply %1$s</string>
+    <string name="knowledge_base_number_required">Enter an integer or clear Supply to remove this field.</string>
+    <string name="knowledge_base_integer_invalid">Enter a valid exact JSON integer. Commas, fractional values and answer-state words are not accepted.</string>
+    <string name="knowledge_base_too_long">This input exceeds the existing bounded settings reader. Shorten it before saving.</string>
+    <string name="knowledge_base_recovery_guidance">Private pending-input recovery retains at most 20,000 characters across these controls (some symbols count as two). Larger input is replaced by an unavailable notice, without retaining a prefix. Recovery requires review and never repeats a save.</string>
+</resources>

@@ -1,0 +1,22 @@
+<resources>
+    <string name="monitoring_stack_settings_title">Monitoring settings</string>
+    <string name="monitoring_stack_editor_guidance">These optional values describe a local monitoring plan. They do not activate instrumentation, resolve credentials, establish telemetry coverage or prove readiness. Supply each value explicitly; omission is not zero, unknown or not applicable.</string>
+    <string name="monitoring_stack_sample">Sample rate (fraction)</string>
+    <string name="monitoring_stack_retention">Retention (days)</string>
+    <string name="monitoring_stack_credential">Credential reference</string>
+    <string name="monitoring_stack_sample_rule">Optional exact number from 0 through 1, inclusive. Enter a fraction, not a percentage. Use a dot for a decimal value.</string>
+    <string name="monitoring_stack_retention_rule">Optional whole number of days, at least 0. A supplied zero remains a declared value; it does not prove that data is deleted.</string>
+    <string name="monitoring_stack_credential_rule">Optional opaque secret:// reference. Never paste the credential itself. This editor neither opens nor resolves the reference.</string>
+    <string name="monitoring_stack_recovery_guidance">Only bounded input and its original draft, revision and selection identity can be recovered. Unrecognized credential input is excluded from recovery. A pending save or changed source is read-only; recovery never replays a write.</string>
+    <string name="monitoring_stack_not_supplied">Not supplied</string>
+    <string name="monitoring_stack_empty_value">Supplied empty input</string>
+    <string name="monitoring_stack_supplied_value">Supplied input</string>
+    <string name="monitoring_stack_supply">Supply %1$s</string>
+    <string name="monitoring_stack_required">Enter a value or clear Supply to omit this setting.</string>
+    <string name="monitoring_stack_number_invalid">Enter one JSON number using a dot for decimals; text, comma decimals and extra values are not accepted.</string>
+    <string name="monitoring_stack_integer_invalid">Enter one whole JSON number of days; fractions, comma decimals and extra values are not accepted.</string>
+    <string name="monitoring_stack_sample_range">Sample rate must be between 0 and 1, inclusive.</string>
+    <string name="monitoring_stack_retention_range">Retention days must be at least 0.</string>
+    <string name="monitoring_stack_reference_invalid">Enter an opaque secret:// reference using only letters, digits, /, _, :, . or - after the prefix. Never paste a credential value.</string>
+    <string name="monitoring_stack_too_long">This input exceeds the local editor limit. Shorten it or clear Supply.</string>
+</resources>

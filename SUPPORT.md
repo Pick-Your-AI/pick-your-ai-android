@@ -126,3 +126,17 @@ report should avoid quoting it, identify the affected public location without
 repeating secrets, and record only a safe disposition. A confidential intake or
 incident response requiring a private channel remains unavailable until an
 actual destination and receiving responsibility are verified.
+
+## Unresolved decisions
+
+Use [the routing procedure](CONTRIBUTING.md#routing-decisions) for a decision that
+needs another responsible role. Keep the original issue and accepted owner;
+summarize the decision, prior disposition and next recipient without copying private
+rosters or raw API data. Central routing depends on the organization governance
+change merging and a successful private refresh; it does not promise a response
+time or assign an unaccepted owner.
+
+Keep credentials, account details, personal/customer data and confidential reports
+out of public issues. Follow [Security and private information](#security-and-private-information):
+no private destination is verified for this preview. This routing guidance adds
+no private reporting destination.

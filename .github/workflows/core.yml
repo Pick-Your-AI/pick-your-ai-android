@@ -60,6 +60,98 @@ jobs:
         run: sha256sum --check gradle/wrapper/wrapper.sha256
       - name: Compile and test JVM core
         run: ./gradlew --no-daemon --dependency-verification=strict --init-script scripts/runtime_inventory.init.gradle.kts :core:check :core:assemble runtimeInventory
+      - name: Require typed hosting platform Core regressions
+        run: |
+          python - <<'PYHOSTINGCORE'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          required = {
+              'ai.pickyour.core.preview.PreviewHostingPlatformSettingsTest': {
+                  'threeOptionalFieldsUseTheExactFrozenStringPatternAndChoiceMetadata()',
+                  'allEightPresenceCombinationsAndExplicitRemovalKeepOmissionDistinct()',
+                  'regionPreservesEmptyWhitespaceUnicodeControlsAndUnknownAsLiteralStrings()',
+                  'jsonLookingRegionTextCannotInjectSettingsOrChangeItsStringType()',
+                  'everyNetworkChoiceAndOmissionRoundTripWithoutDefaultsOrCaseCoercion()',
+                  'frozenReceiverRejectsNonStringFieldsAndUnrecognizedKeysWithoutTypedCoercion()',
+                  'malformedUnicodeAndOverlongFieldsCannotPrepareACommand()',
+                  'completeSettingsBudgetIncludesJsonEnvelopeAndEscapedOriginalValues()',
+                  'opaqueAccountReferencesPreserveCasePunctuationAndFrozenFinalLfSemantics()',
+                  'rawSecretsAndInvalidReferencesCannotSaveOrEnterBoundedTypedRecovery()',
+                  'independentFieldErrorsAreValueFreeAndNeverExposeAPartialCommand()',
+                  'individuallyAdmittedFieldsCannotBypassTheCombinedSettingsBudget()',
+                  'configurePreservesIdentityRoleFlagsNotesExtensionsLinksAndUnrelatedContent()',
+                  'managedNoopSuppliedEmptyStaleAndDeletedAuthorityRemainDistinct()',
+                  'removedSelectionCannotBeRecreatedByAPreparedHostingCommand()',
+                  'threeStringsReopenAndRoundTripThroughAnExplicitValidatedBuildCandidate()',
+                  'rejectedSettingsCannotReplaceAcknowledgedRevisionOrManagedFileBytes()',
+                  'unsupportedKindsStayUnchangedAndCannotSupplyHostingPreparation()',
+              },
+          }
+          for qualified, expected in required.items():
+              path = pathlib.Path('core/build/test-results/test') / ("TEST-" + qualified + ".xml")
+              suite = ET.parse(path).getroot()
+              cases = suite.findall("testcase")
+              names = [case.attrib.get("name") for case in cases]
+              if suite.tag != "testsuite" or suite.attrib.get("name") != qualified or any(case.attrib.get("classname") != qualified for case in cases):
+                  raise SystemExit("Wrong typed hosting platform regression report")
+              if set(names) != expected or len(names) != len(expected):
+                  raise SystemExit("Missing, unexpected or repeated typed hosting platform regression")
+              if int(suite.attrib.get("tests", "-1")) != len(cases) or any(int(suite.attrib.get(key, "-1")) != 0 for key in ("failures", "errors", "skipped")):
+                  raise SystemExit("Typed hosting platform result totals do not match passing execution")
+              if any(case.find(tag) is not None for case in cases for tag in ("failure", "error", "skipped")):
+                  raise SystemExit("Typed hosting platform regression did not execute successfully")
+              print(f"Verified {len(cases)} source-named cases in {qualified}; no installed-device claim")
+          PYHOSTINGCORE
+      - name: Require current and recorded provisional-guidance Core regressions
+        run: |
+          python - <<'PYCURRENTGUIDANCE'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          required = {
+              'ai.pickyour.core.evaluation.DraftCurrentProvisionalGuidanceTest': {
+                  'bothRegisteredProfilesUseRealEmptyCurrentFailureWithoutChangingFindings()',
+                  'realProviderConflictAndMissingFoundationKeepIndependentGuidance()',
+                  'realPassUnknownAndSkippedNeverAcquireProvisionalGuidance()',
+                  'disabledPrimaryAndEnabledFallbackRemainMissingRequiredPresence()',
+                  'optionalRequiredGuidanceAppearsOnlyForAnActuallyFailedActiveRule()',
+                  'changedRulesetIdentityMetadataAndOrderRefuseAllCurrentFacets()',
+                  'objectKeyOrderDoesNotChangeTheRegisteredCurrentProfile()',
+                  'callerMutationCannotChangeCapturedRulesFindingsOrGuidance()',
+                  'removedAndDisabledPredecessorIdsCannotSupplyCurrentPresence()',
+                  'unavailableCurrentAttemptsDoNotProduceGuidanceBearingOutcomes()',
+              },
+              'ai.pickyour.core.evaluation.ProvisionalFindingGuidanceTest': {
+                  'both exact profiles recognize the same failed presence and fit contexts()',
+                  'pass unknown and skipped never acquire either provisional label()',
+                  'all required conjunction rows need an actual failure and a missing primary choice()',
+                  'present choice failures use only the finite fit inventory and leave other rules unclassified()',
+                  'overlapping required and fit rows distinguish absence from a reported conflict()',
+                  'object key order is irrelevant while rules and expression array order stay pinned()',
+                  'unrecognized identity and changed metadata cannot borrow the registered rules()',
+                  'raw floating types cannot impersonate integral pinned operands()',
+                  'duplicate IDs including disabled rows withhold every guidance facet()',
+                  'ambiguous referenced roles are withheld while an independent missing choice remains visible()',
+                  'fallback and disabled selections never substitute for the required primary()',
+                  'captured guidance stays with its admitted Build and exposes no private source fields()',
+              },
+          }
+          total = 0
+          for name, expected in required.items():
+              path = pathlib.Path('core/build/test-results/test') / f"TEST-{name}.xml"
+              suite = ET.parse(path).getroot()
+              cases = suite.findall("testcase")
+              names = [case.attrib.get("name", "") for case in cases]
+              if suite.tag != "testsuite" or suite.attrib.get("name") != name or any(case.attrib.get("classname") != name for case in cases):
+                  raise SystemExit('Foreign current and recorded provisional-guidance report')
+              if len(cases) != len(list(suite.iter("testcase"))) or any(not item.strip() for item in names) or len(names) != len(set(names)) or not expected.issubset(names):
+                  raise SystemExit('Missing, empty, nested or repeated current and recorded provisional-guidance regression')
+              if int(suite.attrib.get("tests", "-1")) != len(cases) or any(int(suite.attrib.get(key, "-1")) != 0 for key in ("failures", "errors", "skipped")):
+                  raise SystemExit('Current and recorded provisional-guidance totals did not pass')
+              if any(case.find(".//" + tag) is not None for case in cases for tag in ("failure", "error", "skipped")):
+                  raise SystemExit('Current and recorded provisional-guidance regression did not execute successfully')
+              total += len(cases)
+          print(f"Verified {total} distinct passing current and recorded provisional-guidance cases across {len(required)} suites; no installed-device claim")
+          PYCURRENTGUIDANCE
       - name: Require current-draft binding and invalidation Core regressions
         run: |
           python - <<'PYCURRENT'
@@ -620,6 +712,84 @@ jobs:
                   raise SystemExit('Typed cost-policy regression did not execute successfully')
               print(f'Verified {len(cases)} source-named typed cost-policy cases in {name}; no installed-device claim')
           PYCOSTCORE
+      - name: Require typed monitoring-stack preparation and managed storage regressions
+        run: |
+          python - <<'PYMONITORCORE'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          required = {
+              'ai.pickyour.core.preview.PreviewMonitoringStackSettingsTest': {
+                  'threeOptionalFieldsUseOnlyFrozenTypesBoundsAndReferencePattern()',
+                  'omittedAndSuppliedZeroRemainDifferentAndRemovalDoesNotSupplyDefaults()',
+                  'sampleRateUsesExactInclusiveFractionBoundsWithoutBinaryRounding()',
+                  'retentionKeepsExactWideIntegersAndRejectsNegativeOrFractionalDays()',
+                  'localeSyntaxNonNumbersAndInjectedMembersCannotPrepareEitherNumericField()',
+                  'emptyAndOverBudgetNumericInputHasFieldErrorsWithoutPartialCommands()',
+                  'credentialReferencesRetainFrozenLiteralSpellingAndNeverAcceptCredentialValues()',
+                  'credentialRecoveryClassificationIsIndependentOfInvalidNumericSiblingsAndBounded()',
+                  'independentErrorsRemainValueFreeImmutableAndRejectValidSiblingEdits()',
+                  'untouchedAdmittedNumberNodesAndFinalLfReferenceSurviveSiblingChanges()',
+                  'configurationPreservesWholeSelectionLinksAndOptionalIntent()',
+                  'finalWholeSelectionAndCombinedSettingsBudgetsRemainMandatory()',
+                  'managedNoopStaleAndDeletedAuthorityRemainDistinct()',
+                  'savedProjectionReopenHistoryAndPrivateMetadataRetainExactSettings()',
+                  'anotherKindCannotAcquireMonitoringSettingsOrRecoveryAuthority()',
+              },
+          }
+          for name, expected in required.items():
+              path = pathlib.Path('core/build/test-results/test') / ('TEST-' + name + '.xml')
+              suite = ET.parse(path).getroot()
+              cases = suite.findall('testcase')
+              names = [case.attrib.get('name') for case in cases]
+              if suite.attrib.get('name') != name or any(case.attrib.get('classname') != name for case in cases):
+                  raise SystemExit('Foreign typed monitoring-stack report')
+              if len(names) != len(set(names)) or not expected.issubset(set(names)):
+                  raise SystemExit('Missing or repeated typed monitoring-stack regression')
+              if int(suite.attrib.get('tests', '-1')) != len(cases) or any(int(suite.attrib.get(key, '-1')) != 0 for key in ('failures', 'errors', 'skipped')):
+                  raise SystemExit('Typed monitoring-stack report totals did not pass')
+              if any(case.find(tag) is not None for case in cases for tag in ('failure', 'error', 'skipped')):
+                  raise SystemExit('Typed monitoring-stack regression did not execute successfully')
+              print(f'Verified {len(cases)} source-named typed monitoring-stack cases in {name}; no installed-device claim')
+          PYMONITORCORE
+      - name: Require typed embedding preparation and managed storage regressions
+        run: |
+          python - <<'PYEMBEDDING'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          required = {
+              'ai.pickyour.core.preview.PreviewEmbeddingModelSettingsTest': {
+                  'threeOptionalFieldsUseExactFrozenMetadataWithoutDefaults()',
+                  'absenceAndExplicitRemovalNeverCreateOptionalValues()',
+                  'suppliedEmptyWhitespaceAndLiteralRegionRemainDistinctFromAbsence()',
+                  'outputDimensionsKeepWideExactIntegersAndIntegralDecimalAliases()',
+                  'numericSyntaxRejectsLocaleCoercionInjectionAndBoundedReaderLimits()',
+                  'untouchedNumericNodesRetainScaleTypeAndExactValue()',
+                  'credentialAdmissionMatchesFrozenFindAndTerminalLfSemantics()',
+                  'independentValueFreeErrorsDoNotHideInvalidCredentialCapture()',
+                  'fieldAndCombinedWholeSelectionBudgetsRemainTheExistingAuthority()',
+                  'textReplacementUsesFinalSiblingRemovalOrShrinkWithinWholeSelectionBudget()',
+                  'configurationPreservesSelectionIdentityNotesExtensionsLinksAndUnrelatedDraftContent()',
+                  'managedNoopStaleAndDeletedAuthoritiesRemainDistinct()',
+                  'exactSettingsRoundTripThroughStoreHistoryAndValidatedBuildCandidate()',
+                  'anotherKindCannotEnterTheEmbeddingPreparationRoute()',
+              },
+          }
+          for qualified, expected in required.items():
+              module = 'core' if qualified.startswith('ai.pickyour.core.') else 'preview'
+              task = 'test' if module == 'core' else 'testDebugUnitTest'
+              suite = ET.parse(pathlib.Path(module) / 'build/test-results' / task / ('TEST-' + qualified + '.xml')).getroot()
+              cases = suite.findall('testcase')
+              names = [case.attrib['name'] for case in cases]
+              if suite.attrib.get('name') != qualified or any(case.attrib.get('classname') != qualified for case in cases):
+                  raise SystemExit('Wrong typed embedding regression suite')
+              if set(names) != expected or len(names) != len(set(names)):
+                  raise SystemExit('Missing, unexpected or repeated typed embedding regression')
+              if int(suite.attrib['tests']) != len(cases) or any(int(suite.attrib[key]) for key in ('failures', 'errors', 'skipped')):
+                  raise SystemExit('Typed embedding totals do not match passing execution')
+              if any(case.findall('failure') or case.findall('error') or case.findall('skipped') for case in cases):
+                  raise SystemExit('Typed embedding regression did not pass')
+              print(f'Verified {len(cases)} {qualified} cases; no installed-device claim')
+          PYEMBEDDING
       - name: Require typed model preparation and managed storage regressions
         run: |
           python - <<'PYMODEL'
@@ -740,6 +910,47 @@ jobs:
                   raise SystemExit("Typed evaluation-suite regression did not execute and pass")
           print("Verified typed evaluation-suite Core cases; no evaluation execution or whole-issue acceptance inferred")
           PYEVALUATIONSUITE
+      - name: Require typed training-compute preparation and managed storage regressions
+        run: |
+          python - <<'PYTRAININGCOMPUTE'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          expected = {
+              'ai.pickyour.core.preview.PreviewTrainingComputeSettingsTest': {
+                  'frozenMetadataKeepsZeroGpuBudgetAndPositiveCheckpointWithoutCapsOrDefaults()',
+                  'allEightPresenceCombinationsRoundTripWithoutInventedDefaults()',
+                  'exactGpuBudgetAcceptsZeroFractionalWideAndExponentValuesWithoutRounding()',
+                  'negativeGpuBudgetsCannotBecomeAbsenceZeroOrRoundedPositiveValues()',
+                  'checkpointIntervalRetainsWideIntegersAndAcceptsExactIntegralAliases()',
+                  'omittedFalseAndTrueSpotRemainSeparateFromOuterSelectionEnabled()',
+                  'suppliedBlankNumbersStayInvalidUntilExplicitlyOmitted()',
+                  'malformedAndLocaleNumericTextCannotBecomeContractFacts()',
+                  'bothNumericFieldsRetainReaderLengthAndExponentBudgets()',
+                  'numericControlsRejectInjectedMembersDuplicateValuesAndTrailingDocuments()',
+                  'independentFieldErrorsCannotPublishAPartialCommand()',
+                  'unchangedNumericNodesAndRemovedSiblingsUseOnlyFinalSettingsAdmission()',
+                  'finalWholeSelectionBudgetStillRejectsWithoutInventingFieldErrors()',
+                  'simultaneousSiblingRemovalAdmitsTheFinalSelectionNearItsByteBudget()',
+                  'configurationPreservesMetadataLinksPeersAndOtherDraftInputs()',
+                  'closedTrainingSettingsKeepUnknownKeysOutsideFrozenAdmission()',
+                  'managedNoopStaleAndDeletedSaveAuthorityRemainDistinct()',
+                  'typedSettingsRoundTripThroughStorageAndExplicitFrozenBuildProjection()',
+                  'descriptionsAndIssuesNeverEchoInputAndOtherKindsAreRejected()',
+              },
+          }
+          for name, required in expected.items():
+              report = pathlib.Path('core/build/test-results/test') / f"TEST-{name}.xml"
+              suite = ET.parse(report).getroot()
+              cases = suite.findall("testcase")
+              names = [case.get("name") for case in cases]
+              if suite.get("name") != name or set(names) != required or len(names) != len(required):
+                  raise SystemExit("Missing, extra or repeated typed training-compute regression")
+              if int(suite.get("tests", "-1")) != len(cases) or any(int(suite.get(key, "-1")) != 0 for key in ("failures", "errors", "skipped")):
+                  raise SystemExit("Typed training-compute totals do not match passing execution")
+              if any(case.get("classname") != name or any(case.find(tag) is not None for tag in ("failure", "error", "skipped")) for case in cases):
+                  raise SystemExit("Typed training-compute regression did not execute and pass")
+          print("Verified typed training-compute Core cases; no training execution or whole-issue acceptance inferred")
+          PYTRAININGCOMPUTE
       - name: Require typed model-provider preparation and managed storage regressions
         run: |
           python - <<'PYMODEL'
@@ -865,6 +1076,46 @@ jobs:
                   raise SystemExit('Typed deployment-target regression did not pass')
               print(f"Verified {len(cases)} {qualified} cases; no installed-device claim")
           PYDEPLOYMENT
+      - name: Require typed RAG-pipeline preparation and managed storage regressions
+        run: |
+          python - <<'PYRAG'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          required = {
+              'ai.pickyour.core.preview.PreviewRagPipelineSettingsTest': {
+                  'fieldsMatchTheOptionalFrozenTypesAndBoundsWithoutAddedRelations()',
+                  'absenceFalseTrueAndRemovalRemainDistinct()',
+                  'bothCountsKeepWideExactIntegersAndMathematicalIntegerAliases()',
+                  'bothCountsUseFrozenMinimumWithoutAnInventedRelativeLimit()',
+                  'suppliedBlankNumbersNeedCorrectionRatherThanRemoval()',
+                  'numericSyntaxRejectsCoercionFractionsAndMalformedUnicode()',
+                  'numericControlsRejectInjectedKeysDuplicatesAndTrailingDocuments()',
+                  'existingParserAndControlBudgetsRemainFieldErrors()',
+                  'independentErrorsDoNotPublishPartialSettings()',
+                  'untouchedAdmittedNumericNodesRetainClassAndScale()',
+                  'completeSelectionBudgetRejectsOtherwiseValidGrowth()',
+                  'completeSelectionAdmissionUsesFinalSiblingRemovalOrShrink()',
+                  'configurePreservesCompleteSelectionAndUnrelatedDraftData()',
+                  'managedNoopFalseAcknowledgmentStaleAndDeletedAuthorityRemainDistinct()',
+                  'canonicalRejectionCannotReplaceAcknowledgedStorage()',
+                  'typedValuesRoundTripThroughManagedStorageAndExplicitFrozenBuildProjection()',
+                  'wrongKindsAndDiagnosticDescriptionsRemainValueFree()',
+              },
+          }
+          for qualified, expected in required.items():
+              module = 'core' if qualified.startswith('ai.pickyour.core.') else 'preview'
+              task = 'test' if module == 'core' else 'testDebugUnitTest'
+              suite = ET.parse(pathlib.Path(module) / 'build/test-results' / task / ('TEST-' + qualified + '.xml')).getroot()
+              cases = suite.findall('testcase')
+              identities = [(case.attrib['classname'], case.attrib['name']) for case in cases]
+              if suite.attrib['name'] != qualified or set(identities) != {(qualified, name) for name in expected} or len(identities) != len(expected):
+                  raise SystemExit('Missing, unexpected or repeated typed RAG-pipeline regression')
+              if int(suite.attrib['tests']) != len(cases) or any(int(suite.attrib.get(key, '0')) != 0 for key in ('failures', 'errors', 'skipped')):
+                  raise SystemExit('Typed RAG-pipeline totals do not match passing execution')
+              if any(case.findall('failure') or case.findall('error') or case.findall('skipped') for case in cases):
+                  raise SystemExit('Typed RAG-pipeline regression did not pass')
+              print(f'Verified {len(cases)} {qualified} cases; no installed-device claim')
+          PYRAG
       - name: Require typed compute preparation and managed storage regressions
         run: |
           python - <<'PYCOMPUTE'
@@ -903,6 +1154,120 @@ jobs:
                   raise SystemExit('Typed compute regression did not pass')
               print(f'Verified {len(cases)} exact {qualified} cases; local simulation only')
           PYCOMPUTE
+      - name: Require typed knowledge-base preparation and managed storage regressions
+        run: |
+          python - <<'PYKNOWLEDGE'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          required = {
+              'ai.pickyour.core.preview.PreviewKnowledgeBaseSettingsTest': {
+                  'fourFieldsUseTheExactFrozenOptionalTypesAndBounds()',
+                  'optionalAbsenceExplicitZeroAndFalseStayDistinct()',
+                  'eachOptionalFieldCanBeSuppliedWithoutInventingItsPeers()',
+                  'allThreeIntegerControlsKeepWideExactValuesAndIntegerAliases()',
+                  'minimaAreIndependentAndNoOverlapOrRefreshCeilingIsInvented()',
+                  'suppliedEmptyAndWhitespaceNumbersNeedCorrectionUntilExplicitRemoval()',
+                  'numericSyntaxRejectsCoercionAnswerStatesAndExistingReaderOverflows()',
+                  'numericControlsCannotInjectKeysDuplicatesOrTrailingDocuments()',
+                  'changingTheBooleanPreservesUntouchedAdmittedIntegerNodes()',
+                  'independentInvalidNumbersCannotPublishAPartialBooleanOrSettingsChange()',
+                  'explicitBooleanChangesNeverImplyAnEnforcementOrServiceCheck()',
+                  'configurePreservesSelectionIdentityLinksFlagsNotesAndUnrelatedDraftData()',
+                  'managedNoopStaleAndDeletedSaveAuthorityRemainDistinct()',
+                  'fourTypedValuesRoundTripThroughManagedStorageAndExplicitFrozenBuildProjection()',
+                  'descriptionsDoNotEchoInputAndOtherKindsCannotUseThisEditor()',
+              },
+          }
+          for qualified, expected in required.items():
+              suite = ET.parse(pathlib.Path('core') / 'build/test-results' / 'test' / ('TEST-' + qualified + '.xml')).getroot()
+              cases = suite.findall('testcase')
+              names = [case.attrib['name'] for case in cases]
+              if suite.attrib.get('name') != qualified or any(case.attrib.get('classname') != qualified for case in cases):
+                  raise SystemExit('Wrong typed knowledge-base regression suite')
+              if expected != set(names) or len(names) != len(set(names)):
+                  raise SystemExit('Missing, extra or repeated typed knowledge-base regression')
+              if int(suite.attrib['tests']) != len(cases) or any(int(suite.attrib[key]) for key in ('failures', 'errors', 'skipped')):
+                  raise SystemExit('Typed knowledge-base totals do not match passing execution')
+              if any(case.findall('failure') or case.findall('error') or case.findall('skipped') for case in cases):
+                  raise SystemExit('Typed knowledge-base regression did not pass')
+              print(f'Verified {len(cases)} exact {qualified} cases; local simulation only')
+          PYKNOWLEDGE
+      - name: Require typed inference preparation and managed storage regressions
+        run: |
+          python - <<'PYINFERENCE'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          required = {
+              'ai.pickyour.core.preview.PreviewInferenceSettingsTest': {
+                  'fourOptionalFieldsRetainExactFrozenMetadataWithoutDefaults()',
+                  'absentAndExplicitNoneRemainDifferentAndRemovalTouchesOnlyItsField()',
+                  'suppliedEmptyAndWhitespaceNeedCorrectionWithoutBecomingAbsent()',
+                  'bothIntegerFieldsKeepWideExactValuesAndMathematicalIntegerAliases()',
+                  'bothIntegerFieldsEnforceMinimumAndRejectFractionalValuesWithoutRounding()',
+                  'malformedLocaleUnicodeNonNumbersAndRepresentationLimitsCannotPrepareACommand()',
+                  'numericInputCannotInjectAnAdditionalKeyDuplicateOrTrailingDocument()',
+                  'untouchedAdmittedNumericNodesPreserveTheirScaleAndType()',
+                  'everyCanonicalPrecisionAndQuantizationRemainsIndependentAndOptional()',
+                  'enumDisplayLabelsUnknownEmptyCaseAndWhitespaceAliasesAreRejected()',
+                  'configurePreservesIdentityRoleFlagsNotesExtensionsLinksAndUnrelatedContent()',
+                  'currentNoopStaleAndDeletedManagedAuthorityRemainDistinct()',
+                  'typedValuesRoundTripThroughStorageAndExplicitValidatedBuildProjection()',
+                  'errorsStayIndependentValueFreeImmutableAndWrongKindsCannotUseThisAdapter()',
+              },
+          }
+          for qualified, expected in required.items():
+              module = 'core' if qualified.startswith('ai.pickyour.core.') else 'preview'
+              task = 'test' if module == 'core' else 'testDebugUnitTest'
+              suite = ET.parse(pathlib.Path(module) / 'build/test-results' / task / ('TEST-' + qualified + '.xml')).getroot()
+              cases = suite.findall('testcase')
+              names = [case.attrib['name'] for case in cases]
+              if suite.attrib.get('name') != qualified or any(case.attrib.get('classname') != qualified for case in cases):
+                  raise SystemExit('Wrong typed inference regression suite')
+              if not expected <= set(names) or len(names) != len(set(names)):
+                  raise SystemExit('Missing or repeated typed inference regression')
+              if int(suite.attrib['tests']) != len(cases) or any(int(suite.attrib[key]) for key in ('failures', 'errors', 'skipped')):
+                  raise SystemExit('Typed inference totals do not match passing execution')
+              if any(case.findall('failure') or case.findall('error') or case.findall('skipped') for case in cases):
+                  raise SystemExit('Typed inference regression did not pass')
+              print(f"Verified {len(cases)} {qualified} cases; no installed-device claim")
+          PYINFERENCE
+      - name: Require typed accelerator preparation and managed storage regressions
+        run: |
+          python - <<'PYACCELERATOR'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          required = {
+              'ai.pickyour.core.preview.PreviewAcceleratorSettingsTest': {
+                  'requiredDeviceAndOptionalGroupsRetainFrozenIntegerMetadata()',
+                  'optionalAbsenceHasNoDefaultAndRemovalPreservesRequiredDeviceCount()',
+                  'requiredAndExplicitlySuppliedBlankInputsNeedCorrectionWithoutDefaulting()',
+                  'exactLargeAndIntegralDecimalAliasesAreAdmittedWithoutCountRelations()',
+                  'exactMinimumAndFractionalRejectionNeverUseFloatingPointRounding()',
+                  'malformedTypesLocaleSentinelsAndParserLimitsNeverBecomeCounts()',
+                  'injectedKeysDuplicateValuesAndTrailingDocumentsCannotEscapeOneNumericValue()',
+                  'untouchedAdmittedNumericNodesKeepTheirScaleTypeAndExactValue()',
+                  'configurePreservesIdentityRoleFlagsNotesExtensionsLinksAndUnrelatedContent()',
+                  'currentNoopStaleAndDeletedManagedAuthorityRemainDistinct()',
+                  'exactCountsRoundTripThroughStorageAndExplicitValidatedBuildProjection()',
+                  'errorsStayIndependentValueFreeImmutableAndWrongKindsCannotUseThisAdapter()',
+              },
+          }
+          for qualified, expected in required.items():
+              module = 'core'
+              task = 'test'
+              suite = ET.parse(pathlib.Path(module) / 'build/test-results' / task / ('TEST-' + qualified + '.xml')).getroot()
+              cases = suite.findall('testcase')
+              names = [case.attrib['name'] for case in cases]
+              if suite.attrib.get('name') != qualified or any(case.attrib.get('classname') != qualified for case in cases):
+                  raise SystemExit('Wrong typed accelerator regression suite')
+              if set(names) != expected or len(names) != len(expected):
+                  raise SystemExit('Missing, unexpected or repeated typed accelerator regression')
+              if int(suite.attrib['tests']) != len(cases) or any(int(suite.attrib[key]) for key in ('failures', 'errors', 'skipped')):
+                  raise SystemExit('Typed accelerator totals do not match passing execution')
+              if any(case.findall('failure') or case.findall('error') or case.findall('skipped') for case in cases):
+                  raise SystemExit('Typed accelerator regression did not pass')
+              print(f"Verified {len(cases)} {qualified} cases; no installed-device claim")
+          PYACCELERATOR
       - name: Require every retained configuration golden
         run: |
           python - <<'PYCONFIGURATION'
@@ -1466,6 +1831,64 @@ jobs:
               raise SystemExit("Draft identity recovery regression failed or skipped")
           print(f"Verified {len(cases)} simulated draft identity recovery tests; no installed-device claim")
           PYIDENTITY
+      - name: Require typed hosting platform Activity and private recovery regressions
+        run: |
+          python - <<'PYHOSTINGPREVIEW'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          required = {
+              'ai.pickyour.android.preview.HostingPlatformSettingsActivityTest': {
+                  'threeOptionalFieldsHaveLabelledPrivateControlsAndNoImplicitSelection',
+                  'hostingAddRetainsTheExistingRawSettingsAndRolePath',
+                  'threeValuesRoundTripExactlyAndOneFieldEditPreservesTheOtherTwo',
+                  'suppliedEmptyWhitespaceAndUnknownRegionRemainLiteralAndDistinctFromAbsence',
+                  'invalidAccountHasAValueFreeErrorWithoutReplacingTheOtherSavedFields',
+                  'cancelAfterEditingAllFieldsPreservesTheAcknowledgedHostingAndRevision',
+                  'absentCommitClosesAsNoopWithoutCreatingDefaultsOrAnotherRevision',
+                  'suppliedEmptyRegionReferenceAndChoiceRecoverOnlyAfterExplicitReview',
+                  'pastedAccountIsExcludedWhileTheLiveFieldCanBeCorrected',
+                  'changedSavedHeadRetainsAllThreeInputsReadOnlyUntilExplicitDiscard',
+                  'suppliedEmptyRegionIsExplicitInReadOnlyRecoveryAndNeverBecomesAbsence',
+                  'readOnlyLiteralPlaceholderWordsRemainDistinctFromEmptyAndAbsentState',
+                  'wrongDraftSelectionOrCatalogIdentityCannotAcquireFreshHostingSaveAuthority',
+                  'actualPauseRetiresHostingControlsAndRequiresFreshReview',
+                  'inFlightHostingSaveFreezesEveryControlAndNeverReplaysAfterAcknowledgment',
+                  'retiredSupplyAndCommitControlsCannotReviveAClosedHostingForm',
+                  'staleManagedCommitCannotOverwriteAnotherWriterOrReenableHostingControls',
+                  'oversizedHostingRecoveryHasNoPrefixOrAutomaticViewStateFallback',
+                  'legacyRawHostingRecoveryKeepsTheExistingRawEditorPath',
+                  'allNetworkChoicesCanBeSelectedRemovedAndCancelledWithoutChangingOtherValues',
+                  'networkPickerShowsExactChoicesAndRetiredCallbacksCannotReviveClosedInput',
+                  'removedSelectionRetainsOnlyReadOnlyRecoveryAndCannotBeRecreatedByOldControls',
+              },
+              'ai.pickyour.android.preview.HostingPlatformFormCheckpointTest': {
+                  'allPresenceCombinationsAndOriginalFiveIdentitiesSurviveActualParcelRoundTrip',
+                  'suppliedEmptyWhitespaceUnknownAndUnicodeRegionRemainExactLiteralInput',
+                  'combinedTwentyThousandUtf16BudgetRejectsOneExtraWithoutRetainingAPrefix',
+                  'exactPrimitiveKeysRejectMissingExtraAndWrongTypedPayloadValues',
+                  'namespacedVersionFormAndKindNeverAliasAnotherRecoveryProtocol',
+                  'everyOriginalIdentityIsRequiredBoundedAndNeverSubstitutedDuringDecoding',
+                  'allNetworkChoicesAndOmissionSurviveWhileForgedAliasesAreUnavailable',
+                  'invalidAccountsAreExcludedWhileExactOpaqueReferencesIncludingFinalLfSurvive',
+                  'rawV1V2ContextV3AndModelV4KeepTheirSeparateOriginalReaders',
+                  'inFlightStateAndFixedMarkersRemainSeparateWithoutDiagnosticValues',
+              },
+          }
+          for qualified, expected in required.items():
+              path = pathlib.Path('preview/build/test-results/testDebugUnitTest') / ("TEST-" + qualified + ".xml")
+              suite = ET.parse(path).getroot()
+              cases = suite.findall("testcase")
+              names = [case.attrib.get("name") for case in cases]
+              if suite.tag != "testsuite" or suite.attrib.get("name") != qualified or any(case.attrib.get("classname") != qualified for case in cases):
+                  raise SystemExit("Wrong typed hosting platform regression report")
+              if set(names) != expected or len(names) != len(expected):
+                  raise SystemExit("Missing, unexpected or repeated typed hosting platform regression")
+              if int(suite.attrib.get("tests", "-1")) != len(cases) or any(int(suite.attrib.get(key, "-1")) != 0 for key in ("failures", "errors", "skipped")):
+                  raise SystemExit("Typed hosting platform result totals do not match passing execution")
+              if any(case.find(tag) is not None for case in cases for tag in ("failure", "error", "skipped")):
+                  raise SystemExit("Typed hosting platform regression did not execute successfully")
+              print(f"Verified {len(cases)} source-named cases in {qualified}; no installed-device claim")
+          PYHOSTINGPREVIEW
       - name: Require typed context policy Activity and private recovery regressions
         run: |
           python - <<'PYTEST'
@@ -1563,6 +1986,108 @@ jobs:
                   raise SystemExit('Typed cost-policy regression did not execute successfully')
               print(f'Verified {len(cases)} source-named typed cost-policy cases in {name}; no installed-device claim')
           PYCOSTNATIVE
+      - name: Require typed monitoring-stack Activity and private recovery regressions
+        run: |
+          python - <<'PYMONITORNATIVE'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          required = {
+              'ai.pickyour.android.preview.MonitoringStackFormCheckpointTest': {
+                  'exactInvalidNumericInputReferenceAndCapturedPinsSurviveActualParcel',
+                  'absentEmptyNumericAndSuppliedZeroRemainDistinctPrimitiveStates',
+                  'malformedCredentialInputCannotEnterParcelEvenWhenOtherFieldsAreInvalid',
+                  'combinedUtf16BoundaryRejectsOneExtraWithoutRetainingPartialInput',
+                  'exactKeysAndNullableStringsRejectMissingExtrasAndPrimitiveCoercion',
+                  'wrongVersionFormAndKindCannotSelectAnotherRecoveryProtocol',
+                  'capturedIdentityMustBePresentBoundedAndNeverBorrowedFromAnotherState',
+                  'existingRawContextAndModelRecoveryRemainDisjoint',
+                  'savingFlagAndDescriptionsPreserveInputWithoutEchoingOrGrantingAuthority',
+              },
+              'ai.pickyour.android.preview.MonitoringStackSettingsActivityTest': {
+                  'freshEditorKeepsThreeFieldsAbsentAndUnchangedConfirmationCreatesNoRevision',
+                  'exactFractionWideDaysAndReferenceSaveAndReopenWithoutChangingOtherInputs',
+                  'zeroAndUntouchedAdmittedNodesRemainDistinctFromIndependentOmission',
+                  'independentInvalidFieldsKeepExactTextAndDiskUntilEveryValueIsCorrected',
+                  'suppliedEmptyInputHasNoAbsentHintAndNeedsCorrectionOrExplicitOmission',
+                  'canceledAndRetainedControlsCannotReopenOrWriteAndFreshInputStartsAbsent',
+                  'invalidNumericInputAndAllowedReferenceRecoverWithOriginalPinsAndNewConsent',
+                  'pastedCredentialIsExcludedFromCaptureWhileTheLiveFieldCanBeCorrected',
+                  'invalidCredentialWithInvalidNumbersRecreatesOnlyAnUnavailableMarker',
+                  'newerSavedHeadRejectsCommitAndKeepsAllRecoveredInputReadOnly',
+                  'differentDraftSelectionAndCatalogPinsCannotAcquireCurrentSaveAuthority',
+                  'inFlightWriteFreezesEveryControlAndCannotReplayAfterAcknowledgment',
+                  'actualPauseRetiresInputAndCommitUntilFreshReviewedConfirmation',
+                  'oversizedNumericRecoveryHasOnlyTheMarkerAndNoAutomaticViewStateFallback',
+                  'legacyRawConfigureRecoveryStaysExplicitAndFreshConfigureUsesTypedControls',
+                  'narrowRtlLargeTextKeepsIdentityFieldsGuidanceAndTouchTargetsReachable',
+              },
+          }
+          for name, expected in required.items():
+              path = pathlib.Path('preview/build/test-results/testDebugUnitTest') / ('TEST-' + name + '.xml')
+              suite = ET.parse(path).getroot()
+              cases = suite.findall('testcase')
+              names = [case.attrib.get('name') for case in cases]
+              if suite.attrib.get('name') != name or any(case.attrib.get('classname') != name for case in cases):
+                  raise SystemExit('Foreign typed monitoring-stack report')
+              if len(names) != len(set(names)) or not expected.issubset(set(names)):
+                  raise SystemExit('Missing or repeated typed monitoring-stack regression')
+              if int(suite.attrib.get('tests', '-1')) != len(cases) or any(int(suite.attrib.get(key, '-1')) != 0 for key in ('failures', 'errors', 'skipped')):
+                  raise SystemExit('Typed monitoring-stack report totals did not pass')
+              if any(case.find(tag) is not None for case in cases for tag in ('failure', 'error', 'skipped')):
+                  raise SystemExit('Typed monitoring-stack regression did not execute successfully')
+              print(f'Verified {len(cases)} source-named typed monitoring-stack cases in {name}; no installed-device claim')
+          PYMONITORNATIVE
+      - name: Require typed embedding Activity and private recovery regressions
+        run: |
+          python - <<'PYEMBEDDING'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          required = {
+              'ai.pickyour.android.preview.EmbeddingModelSettingsActivityTest': {
+                  'configureShowsTypedOptionalEmbeddingFields',
+                  'rawAddRemainsExplicitAndUnchangedWithoutOptionalDefaults',
+                  'threeExactValuesSaveReopenAndRemoveOnlyTheExplicitlyClearedField',
+                  'suppliedEmptyRegionAndIntegralDecimalSurviveARealSaveAndReopen',
+                  'cancelRetiresSupplyAndCommitCallbacksWithoutChangingAnySavedBytes',
+                  'untouchedTypedCommitClosesWithoutNewRevisionOrInventedValues',
+                  'independentInvalidFieldsKeepCorrectionTextAndCannotPartiallySave',
+                  'invalidCredentialCaptureIsUnavailableWhileLiveCorrectionAndFinalLfRemainExact',
+                  'legacyRawEmbeddingCheckpointsKeepTheirExactReaderAndInvalidText',
+                  'recreationRetainsInvalidNumericAndSuppliedEmptyRegionOnlyAfterExplicitReview',
+                  'actualPauseRetiresControlsAndRequiresExplicitResumeReview',
+                  'changedSavedHeadRetainsExactInputReadOnlyUntilExplicitDiscardAndReopen',
+                  'foreignDraftSelectionAndCatalogIdentityNeverGainFreshSaveAuthority',
+                  'inFlightSaveFreezesControlsAndCannotReplayAfterItsOriginalAcknowledgment',
+                  'staleManagedCommitCannotOverwriteAnotherWriterOrReenableControls',
+                  'oversizedRecoveryHasNoPrefixAndControlsHaveNoAutomaticViewStateFallback',
+              },
+              'ai.pickyour.android.preview.EmbeddingModelFormCheckpointTest': {
+                  'exactValuesAbsentAndSuppliedEmptyRegionSurviveParcelRoundTrip',
+                  'combinedUtf16BudgetIncludesAllThreeFieldsWithoutKeepingAPrefix',
+                  'strictPrimitiveShapeNeverCoercesMissingEmptyAndWrongTypedValues',
+                  'foreignNamespacesVersionsFormsAndKindsCannotSelectTheEmbeddingCodec',
+                  'exactOriginalIdentitiesAreRequiredBoundedAndNeverReplaced',
+                  'invalidCredentialsNeverEnterCaptureOrForgedReadEvenWithOtherInvalidFields',
+                  'rawAndExistingTypedProtocolsKeepTheirOwnReadersAndValues',
+                  'savingIsOnlyRetainedStateAndDescriptionsNeverEchoInput',
+              },
+          }
+          for qualified, expected in required.items():
+              module = 'core' if qualified.startswith('ai.pickyour.core.') else 'preview'
+              task = 'test' if module == 'core' else 'testDebugUnitTest'
+              suite = ET.parse(pathlib.Path(module) / 'build/test-results' / task / ('TEST-' + qualified + '.xml')).getroot()
+              cases = suite.findall('testcase')
+              names = [case.attrib['name'] for case in cases]
+              if suite.attrib.get('name') != qualified or any(case.attrib.get('classname') != qualified for case in cases):
+                  raise SystemExit('Wrong typed embedding regression suite')
+              if set(names) != expected or len(names) != len(set(names)):
+                  raise SystemExit('Missing, unexpected or repeated typed embedding regression')
+              if int(suite.attrib['tests']) != len(cases) or any(int(suite.attrib[key]) for key in ('failures', 'errors', 'skipped')):
+                  raise SystemExit('Typed embedding totals do not match passing execution')
+              if any(case.findall('failure') or case.findall('error') or case.findall('skipped') for case in cases):
+                  raise SystemExit('Typed embedding regression did not pass')
+              print(f'Verified {len(cases)} {qualified} cases; no installed-device claim')
+          PYEMBEDDING
       - name: Require typed model Activity and private recovery regressions
         run: |
           python - <<'PYMODEL'
@@ -1719,6 +2244,54 @@ jobs:
                   raise SystemExit("Typed evaluation-suite regression did not execute and pass")
           print("Verified typed evaluation-suite simulated Activity and recovery cases; no evaluation execution or whole-issue acceptance inferred")
           PYEVALUATIONSUITE
+      - name: Require typed training-compute Activity and private recovery regressions
+        run: |
+          python - <<'PYTRAININGCOMPUTE'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          expected = {
+              'ai.pickyour.android.preview.TrainingComputeSettingsActivityTest': {
+                  'optionalTrainingComputeFieldsHaveLabeledPrivateNativeControls',
+                  'genericTrainingComputeAddRetainsExplicitRawSettingsAndOuterEnabled',
+                  'exactThreeFieldSaveAndReopenPreserveSelectionAndUnrelatedDraftState',
+                  'falseTrueAndNotSuppliedRemainDistinctWithoutChangingTheComponentFlag',
+                  'independentFieldErrorsPreserveRawInputAndAcknowledgedStorage',
+                  'cancelAndUntouchedCommitDoNotSaveDefaultsOrAnotherRevision',
+                  'rawNumbersAndFalseRecoverOnlyAfterReviewWhileOldControlsRemainRetired',
+                  'wrongDraftSelectionAndCatalogIdentitiesNeverReceiveFreshSaveAuthority',
+                  'changedSavedHeadKeepsPendingValuesReadOnlyUntilExplicitDiscardAndReopen',
+                  'inFlightSaveFreezesAllControlsAndRecoveryNeverReplaysTheCommit',
+                  'actualPauseRetiresOpenBooleanPickerAndRequiresFreshInputReview',
+                  'canceledAndConsumedBooleanChoicesCannotReplaceTheCurrentChoice',
+                  'zeroBudgetIsValidAndNegativeBudgetRecoversForCorrectionWithoutAnUpperCap',
+                  'oversizedInputRetainsNoPrefixOrAutomaticViewState',
+                  'staleManagedCommitCannotOverwriteAnotherWriterOrReenableControls',
+                  'legacyRawTrainingComputeCheckpointsKeepTheirOriginalCorrectionReader',
+                  'narrowRtlLargeTextKeepsIdentityFieldsGuidanceAndConfirmationReachable',
+              },
+              'ai.pickyour.android.preview.TrainingComputeFormCheckpointTest': {
+                  'optionalRawNumbersAndThreeBooleanStatesSurviveParcelWithoutCoercion',
+                  'malformedNumericCorrectionsRemainInputWithoutSaveAuthority',
+                  'aggregateUtf16LimitRejectsWholeInputWithoutAPrefixFallback',
+                  'exactPrimitiveShapeRejectsMissingFieldsBooleanAliasesAndExtraAuthority',
+                  'everyIdentityRemainsRequiredAndBoundedWithoutCurrentStateSubstitution',
+                  'legacyRawTrainingComputeAndNumericTypedComputeReadersRemainIndependent',
+                  'savingFlagAndDescriptionsCarryInputWithoutClaimingAcknowledgement',
+              },
+          }
+          for name, required in expected.items():
+              report = pathlib.Path('preview/build/test-results/testDebugUnitTest') / f"TEST-{name}.xml"
+              suite = ET.parse(report).getroot()
+              cases = suite.findall("testcase")
+              names = [case.get("name") for case in cases]
+              if suite.get("name") != name or set(names) != required or len(names) != len(required):
+                  raise SystemExit("Missing, extra or repeated typed training-compute regression")
+              if int(suite.get("tests", "-1")) != len(cases) or any(int(suite.get(key, "-1")) != 0 for key in ("failures", "errors", "skipped")):
+                  raise SystemExit("Typed training-compute totals do not match passing execution")
+              if any(case.get("classname") != name or any(case.find(tag) is not None for tag in ("failure", "error", "skipped")) for case in cases):
+                  raise SystemExit("Typed training-compute regression did not execute and pass")
+          print("Verified typed training-compute simulated Activity and recovery cases; no training execution or whole-issue acceptance inferred")
+          PYTRAININGCOMPUTE
       - name: Require typed model-provider Activity and private recovery regressions
         run: |
           python - <<'PYMODEL'
@@ -1881,6 +2454,57 @@ jobs:
                   raise SystemExit('Typed deployment-target regression did not pass')
               print(f"Verified {len(cases)} {qualified} cases; no installed-device claim")
           PYDEPLOYMENT
+      - name: Require typed RAG-pipeline Activity and private recovery regressions
+        run: |
+          python - <<'PYRAG'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          required = {
+              'ai.pickyour.android.preview.RagPipelineSettingsActivityTest': {
+                  'configureShowsTypedOptionalRagPipelineFields',
+                  'labelledControlsAndSupplyHintsKeepEveryOptionalStatePrivateAndExplicit',
+                  'ragAddKeepsTheExplicitRawSettingsRoleAndEnabledPath',
+                  'exactOptionalIntegersAndFalseSaveAndReopenWithoutChangingSelectionOrOtherDraftState',
+                  'explicitFalseTrueAndAbsenceRemainThreeDifferentSavedStates',
+                  'everyOptionalValueCanBeRemovedWithoutCreatingDefaults',
+                  'independentNumericErrorsRetainLiteralInputAndCannotReplaceAcknowledgedSettings',
+                  'cancelAndUnchangedCommitDoNotCreateARevisionOrOptionalDefaults',
+                  'invalidInputAndExplicitFalseRecoverOnlyAfterReviewWithRetiredControls',
+                  'changedSavedHeadKeepsPendingRagInputReadOnlyUntilDiscardAndReopen',
+                  'everyOriginalIdentityAndTheRagKindRemainNecessaryForWritableRecovery',
+                  'inFlightRagSaveFreezesAllControlsAndRecoveryCannotReplayTheAcknowledgedWrite',
+                  'actualPauseRetiresRagControlsAndRequiresExplicitReviewBeforeEditing',
+                  'staleManagedRagCommitCannotOverwriteAnotherWriterOrRestoreSaveAuthority',
+                  'combinedOversizedInputRetainsNoRecoveryPrefixOrAutomaticViewState',
+                  'readOnlyLiteralStateWordsAndSuppliedEmptyRemainDifferentFromAbsence',
+                  'legacyRawRagRecoveryStillUsesItsOriginalCorrectionReader',
+              },
+              'ai.pickyour.android.preview.RagPipelineFormCheckpointTest': {
+                  'allTwelvePresenceCombinationsAndFiveOriginalIdentitiesSurviveActualParcelRoundTrip',
+                  'suppliedEmptyMalformedAndExactNumericTextRemainsPrivatePendingInput',
+                  'closedKeysAndExactPrimitiveTypesRejectMissingExtraAndCoercedPayloads',
+                  'namespacedVersionFormAndKindNeverAliasAnotherRecoveryProtocol',
+                  'rerankAbsenceFalseAndTrueRemainDistinctAndForgedAbsenceTrueIsRejected',
+                  'combinedTwentyThousandUtf16BudgetRejectsEitherOverflowWithoutKeepingAPrefix',
+                  'everyOriginalIdentityIsRequiredBoundedAndNeverReplacedWhileDecoding',
+                  'legacyRawComputeAndProviderRecoveriesKeepTheirSeparateOriginalReaders',
+                  'savingFlagRemainsRetainedStateAndDescriptionsNeverDiscloseInputValues',
+              },
+          }
+          for qualified, expected in required.items():
+              module = 'core' if qualified.startswith('ai.pickyour.core.') else 'preview'
+              task = 'test' if module == 'core' else 'testDebugUnitTest'
+              suite = ET.parse(pathlib.Path(module) / 'build/test-results' / task / ('TEST-' + qualified + '.xml')).getroot()
+              cases = suite.findall('testcase')
+              identities = [(case.attrib['classname'], case.attrib['name']) for case in cases]
+              if suite.attrib['name'] != qualified or set(identities) != {(qualified, name) for name in expected} or len(identities) != len(expected):
+                  raise SystemExit('Missing, unexpected or repeated typed RAG-pipeline regression')
+              if int(suite.attrib['tests']) != len(cases) or any(int(suite.attrib.get(key, '0')) != 0 for key in ('failures', 'errors', 'skipped')):
+                  raise SystemExit('Typed RAG-pipeline totals do not match passing execution')
+              if any(case.findall('failure') or case.findall('error') or case.findall('skipped') for case in cases):
+                  raise SystemExit('Typed RAG-pipeline regression did not pass')
+              print(f'Verified {len(cases)} {qualified} cases; no installed-device claim')
+          PYRAG
       - name: Require typed compute Activity and private recovery regressions
         run: |
           python - <<'PYCOMPUTE'
@@ -1926,6 +2550,151 @@ jobs:
                   raise SystemExit('Typed compute regression did not pass')
               print(f'Verified {len(cases)} exact {qualified} cases; local simulation only')
           PYCOMPUTE
+      - name: Require typed knowledge-base Activity and private recovery regressions
+        run: |
+          python - <<'PYKNOWLEDGE'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          required = {
+              'ai.pickyour.android.preview.KnowledgeBaseSettingsActivityTest': {
+                  'fourOptionalFieldsHaveLabeledPrivateControlsWithoutInferredValues',
+                  'knowledgeBaseAddRemainsRawAndEmptySettingsDoNotSupplyAnyField',
+                  'exactFourFieldSaveAndReopenPreserveSelectionAndUnrelatedDraftState',
+                  'zeroOverlapAndFalseRemainSuppliedUntilExplicitlyRemoved',
+                  'explicitTrueFalseAndAbsentBooleanCanEachBeReviewedAndSaved',
+                  'invalidNumbersKeepIndependentValueFreeErrorsAndTheAcknowledgedDraft',
+                  'cancelAndUnchangedCommitDoNotCreateAnotherRevision',
+                  'invalidInputAndFalseRecoverOnlyAfterReviewAndOldControlsStayRetired',
+                  'changedSavedHeadKeepsPendingValuesReadOnlyUntilDiscardAndReopen',
+                  'wrongDraftSelectionAndCatalogIdentityCannotReceiveNewSaveAuthority',
+                  'inFlightSaveFreezesAllControlsAndRecoveryNeverReplaysTheCommit',
+                  'staleManagedCommitCannotOverwriteAnotherWriterOrReenableControls',
+                  'oversizedInputStaysLiveButCheckpointRetainsNoPrefixOrAutomaticViewState',
+                  'legacyRawKnowledgeBaseCheckpointsKeepTheirExistingCorrectionReader',
+              },
+              'ai.pickyour.android.preview.KnowledgeBaseFormCheckpointTest': {
+                  'absentEmptyInvalidAndExactNumericInputSurviveParcelWithOriginalIdentity',
+                  'booleanPresenceAndFalseRemainDistinctAndMalformedPairsAreRejected',
+                  'totalUtf16BudgetIncludesAllThreeRawFieldsAndRejectsPrefixFallback',
+                  'exactPrimitiveShapeNeverCoercesMissingNumbersOrBooleanValues',
+                  'descriptiveVersionFormAndKindCannotSelectAnotherRecoveryProtocol',
+                  'everyCapturedIdentityIsRequiredAndBoundedWithoutCurrentStateSubstitution',
+                  'legacyRawAndTypedContextAndModelReadersKeepTheirOriginalBoundaries',
+                  'savingFlagRetainsInputOnlyAndDescriptionsNeverEchoPrivateValues',
+              },
+          }
+          for qualified, expected in required.items():
+              suite = ET.parse(pathlib.Path('preview') / 'build/test-results' / 'testDebugUnitTest' / ('TEST-' + qualified + '.xml')).getroot()
+              cases = suite.findall('testcase')
+              names = [case.attrib['name'] for case in cases]
+              if suite.attrib.get('name') != qualified or any(case.attrib.get('classname') != qualified for case in cases):
+                  raise SystemExit('Wrong typed knowledge-base regression suite')
+              if expected != set(names) or len(names) != len(set(names)):
+                  raise SystemExit('Missing, extra or repeated typed knowledge-base regression')
+              if int(suite.attrib['tests']) != len(cases) or any(int(suite.attrib[key]) for key in ('failures', 'errors', 'skipped')):
+                  raise SystemExit('Typed knowledge-base totals do not match passing execution')
+              if any(case.findall('failure') or case.findall('error') or case.findall('skipped') for case in cases):
+                  raise SystemExit('Typed knowledge-base regression did not pass')
+              print(f'Verified {len(cases)} exact {qualified} cases; local simulation only')
+          PYKNOWLEDGE
+      - name: Require typed inference Activity and private recovery regressions
+        run: |
+          python - <<'PYINFERENCE'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          required = {
+              'ai.pickyour.android.preview.InferenceSettingsActivityTest': {
+                  'bothIntegersHaveExplicitOptionalControlsWithoutDefaults',
+                  'precisionAndQuantizationHaveExplicitOptionalEnumControls',
+                  'inferenceAddRetainsRawJsonWithoutPrefillingOptionalSettings',
+                  'cancelConfigurePreservesTheAcknowledgedInference',
+                  'legacyRawInferenceCheckpointsKeepInvalidTextWithoutFreshAuthority',
+                  'absentTypedCommitClosesWithoutCreatingAnotherRevisionOrDefaults',
+                  'wrongDraftSelectionAndCatalogIdentityNeverReceiveFreshInferenceSaveAuthority',
+                  'inFlightTypedInferenceFreezesAllControlsAndNeverReplaysAfterAcknowledgment',
+                  'retiredPrecisionPickerAndSupplyControlCannotReviveAClosedForm',
+                  'staleManagedCommitCannotOverwriteAnotherWriterOrReenableTypedControls',
+                  'oversizedTypedInferenceRecoveryHasNoPrefixAndNoAutomaticViewStateFallback',
+                  'fourValuesSaveExactlyAndQuantizationChangesPreserveOtherFields',
+                  'actualPauseRetiresTypedInferenceControlsAndRequiresFreshReview',
+                  'independentSuppliedErrorsPersistUntilCorrectionOrExplicitRemoval',
+                  'privateInvalidTextAndExplicitPresenceRecoverOnlyAfterReview',
+                  'changedSavedHeadRetainsAllInputsReadOnlyUntilExplicitDiscardAndReopen',
+              },
+              'ai.pickyour.android.preview.InferenceFormCheckpointTest': {
+                  'allFourPrimitiveValuesExplicitAbsenceAndInvalidTextSurviveActualParcelRoundTrip',
+                  'combinedTwentyThousandUtf16BudgetIncludesEveryFieldAndRejectsOneExtraWithoutPrefix',
+                  'strictPrimitiveKeysNeverCoerceAbsentEmptyOrWrongTypedValues',
+                  'wrongVersionFormKindAndEnumValuesNeverSelectAnotherRecoveryProtocol',
+                  'allOriginalIdentityFieldsAreRequiredBoundedAndNeverReplacedByCurrentIdentity',
+                  'rawV1V2ContextV3AndModelV4RemainSeparateUnmodifiedReaders',
+                  'savingFlagRetainsOnlyStateAndDescriptionsNeverEchoInput',
+              },
+          }
+          for qualified, expected in required.items():
+              module = 'core' if qualified.startswith('ai.pickyour.core.') else 'preview'
+              task = 'test' if module == 'core' else 'testDebugUnitTest'
+              suite = ET.parse(pathlib.Path(module) / 'build/test-results' / task / ('TEST-' + qualified + '.xml')).getroot()
+              cases = suite.findall('testcase')
+              names = [case.attrib['name'] for case in cases]
+              if suite.attrib.get('name') != qualified or any(case.attrib.get('classname') != qualified for case in cases):
+                  raise SystemExit('Wrong typed inference regression suite')
+              if not expected <= set(names) or len(names) != len(set(names)):
+                  raise SystemExit('Missing or repeated typed inference regression')
+              if int(suite.attrib['tests']) != len(cases) or any(int(suite.attrib[key]) for key in ('failures', 'errors', 'skipped')):
+                  raise SystemExit('Typed inference totals do not match passing execution')
+              if any(case.findall('failure') or case.findall('error') or case.findall('skipped') for case in cases):
+                  raise SystemExit('Typed inference regression did not pass')
+              print(f"Verified {len(cases)} {qualified} cases; no installed-device claim")
+          PYINFERENCE
+      - name: Require typed accelerator Activity and private recovery regressions
+        run: |
+          python - <<'PYACCELERATOR'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          required = {
+              'ai.pickyour.android.preview.AcceleratorSettingsActivityTest': {
+                  'deviceCountIsRequiredAndOnlyGroupsHaveAnOptionalSupplyControl',
+                  'acceleratorAddRemainsRawAndMissingRequiredCountCannotBeSaved',
+                  'unchangedRequiredCountAndAbsentGroupsCloseWithoutAnotherRevision',
+                  'cancelRetiresCommitAndOptionalControlWithoutSavingOrRecoveringInput',
+                  'exactCountsSaveReopenAndRemoveOnlyOptionalGroups',
+                  'independentErrorsRequireDeviceCorrectionAndAllowExplicitGroupRemoval',
+                  'privateInvalidRequiredTextAndSuppliedEmptyGroupsRecoverOnlyAfterReview',
+                  'wrongOriginalDraftSelectionAndCatalogIdentityNeverReceiveNewSaveAuthority',
+                  'changedSavedHeadKeepsPrivateCountsReadOnlyUntilDiscardAndReopen',
+                  'staleManagedCommitCannotOverwriteAnotherWriterOrReenableControls',
+                  'inFlightAcceleratorFreezesControlsAndNeverReplaysAfterAcknowledgment',
+                  'actualPauseRetiresControlsAndRequiresExplicitFreshAcceleratorReview',
+                  'oversizedRecoveryHasNoPrefixAndCannotUseAutomaticViewStateFallback',
+                  'legacyRawV1V2AcceleratorRecoveryRemainsRawWithoutTypedPromotion',
+              },
+              'ai.pickyour.android.preview.AcceleratorFormCheckpointTest': {
+                  'requiredInvalidTextAndOptionalAbsenceRemainExactAcrossActualParcelRoundTrip',
+                  'combinedTwentyThousandUtf16BudgetIncludesBothInputsWithoutPrefixRecovery',
+                  'strictPrimitiveKeysNeverCoerceRequiredNullOptionalAbsenceOrWrongTypes',
+                  'namespacedVersionFormAndKindCannotSelectAnyParallelRecoveryProtocol',
+                  'allOriginalIdentityFieldsAreRequiredBoundedAndNeverReplacedByCurrentIdentity',
+                  'rawV1V2ContextV3AndModelV4KeepTheirIndependentUnmodifiedReaders',
+                  'savingFlagRetainsOnlyStateAndDescriptionsNeverEchoInput',
+              },
+          }
+          for qualified, expected in required.items():
+              module = 'preview'
+              task = 'testDebugUnitTest'
+              suite = ET.parse(pathlib.Path(module) / 'build/test-results' / task / ('TEST-' + qualified + '.xml')).getroot()
+              cases = suite.findall('testcase')
+              names = [case.attrib['name'] for case in cases]
+              if suite.attrib.get('name') != qualified or any(case.attrib.get('classname') != qualified for case in cases):
+                  raise SystemExit('Wrong typed accelerator regression suite')
+              if set(names) != expected or len(names) != len(expected):
+                  raise SystemExit('Missing, unexpected or repeated typed accelerator regression')
+              if int(suite.attrib['tests']) != len(cases) or any(int(suite.attrib[key]) for key in ('failures', 'errors', 'skipped')):
+                  raise SystemExit('Typed accelerator totals do not match passing execution')
+              if any(case.findall('failure') or case.findall('error') or case.findall('skipped') for case in cases):
+                  raise SystemExit('Typed accelerator regression did not pass')
+              print(f"Verified {len(cases)} {qualified} cases; no installed-device claim")
+          PYACCELERATOR
       - name: Require bounded component form recovery regressions to execute
         run: |
           python - <<'PYTEST'
@@ -2824,6 +3593,98 @@ jobs:
               raise SystemExit("Current-finding full-text regression did not execute successfully")
           print(f"Verified {len(cases)} distinct passing current-finding full-text cases, including all {len(required)} required names; no installed-device claim")
           PYFINDINGTEXT
+      - name: Require actual current-finding affected-selection regressions
+        run: |
+          python - <<'PYFINDINGCONTEXT'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          name = "ai.pickyour.android.preview.CurrentDraftFindingContextActivityTest"
+          required = {
+              "actualCurrentContextResolvesReportedRolesAndVersionsWithoutWrites",
+              "completeVersionPreservesEveryEscapedUtf16PartAndTail",
+              "noAffectedIdsRemainExplicitWithoutInventingMissingChoices",
+              "contextListPagingAndBackKeepTheSameFindingAndSelection",
+              "dismissedAndSupersededContextControlsNeverRevive",
+              "siblingEntryRetiresContextRowsAndVersionCallbacks",
+              "retryAndInputReplacementRetireContextBeforeFreshPublication",
+              "savedReplacementAndDisableNeverRedirectOldContext",
+              "storeSwitchPauseAndRecreationCannotRestoreContextAuthority",
+              "narrowLargeTextKeepsContextActionMessageAndExistingButtonsReachable",
+          }
+          path = pathlib.Path("preview/build/test-results/testDebugUnitTest") / f"TEST-{name}.xml"
+          suite = ET.parse(path).getroot()
+          cases = suite.findall("testcase")
+          names = [case.attrib.get("name", "") for case in cases]
+          if suite.tag != "testsuite" or suite.attrib.get("name") != name or any(case.attrib.get("classname") != name for case in cases):
+              raise SystemExit("Foreign current-finding affected-selection report")
+          if len(cases) != len(list(suite.iter("testcase"))) or any(not item.strip() for item in names) or len(names) != len(set(names)) or not required.issubset(names):
+              raise SystemExit("Missing, empty, nested or repeated current-finding affected-selection regression")
+          if int(suite.attrib.get("tests", "-1")) != len(cases) or any(int(suite.attrib.get(key, "-1")) != 0 for key in ("failures", "errors", "skipped")):
+              raise SystemExit("Current-finding affected-selection totals did not pass")
+          if any(case.find(".//" + tag) is not None for case in cases for tag in ("failure", "error", "skipped")):
+              raise SystemExit("Current-finding affected-selection regression did not execute successfully")
+          print(f"Verified {len(cases)} distinct passing current-finding affected-selection cases, including all {len(required)} required names; no installed-device claim")
+          PYFINDINGCONTEXT
+      - name: Require actual current-finding outcome-meaning regressions
+        run: |
+          python - <<'PYFINDINGOUTCOME'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          name = "ai.pickyour.android.preview.CurrentDraftFindingOutcomeActivityTest"
+          required = {
+              "unresolvedApplicabilityExplainsUnknownWithoutRewritingWarningOrRecordedText",
+              "unresolvedEligibleAssertionHasTheSameUnknownMeaningWithoutInferringACause",
+              "falseApplicabilityExplainsSkippedWithoutPromotingErrorSeverityToFailureOrPass",
+              "naturalFailKeepsItsExactOriginalDetailDespiteMisleadingRecordedStatusWords",
+              "admittedSyntheticPassKeepsItsExactOriginalDetailDespiteErrorSeverity",
+          }
+          path = pathlib.Path("preview/build/test-results/testDebugUnitTest") / f"TEST-{name}.xml"
+          suite = ET.parse(path).getroot()
+          cases = suite.findall("testcase")
+          names = [case.attrib.get("name", "") for case in cases]
+          if suite.tag != "testsuite" or suite.attrib.get("name") != name or any(case.attrib.get("classname") != name for case in cases):
+              raise SystemExit("Foreign current-finding outcome-meaning report")
+          if len(cases) != len(list(suite.iter("testcase"))) or any(not item.strip() for item in names) or len(names) != len(set(names)) or not required.issubset(names):
+              raise SystemExit("Missing, empty, nested or repeated current-finding outcome-meaning regression")
+          if int(suite.attrib.get("tests", "-1")) != len(cases) or any(int(suite.attrib.get(key, "-1")) != 0 for key in ("failures", "errors", "skipped")):
+              raise SystemExit("Current-finding outcome-meaning totals did not pass")
+          if any(case.find(".//" + tag) is not None for case in cases for tag in ("failure", "error", "skipped")):
+              raise SystemExit("Current-finding outcome-meaning regression did not execute successfully")
+          print(f"Verified {len(cases)} distinct passing current-finding outcome-meaning cases, including all {len(required)} required names; no installed-device claim")
+          PYFINDINGOUTCOME
+      - name: Require actual current provisional-guidance Activity regressions
+        run: |
+          python - <<'PYACTIVITYGUIDANCE'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          required = {
+              'ai.pickyour.android.preview.CurrentDraftProvisionalGuidanceActivityTest': {
+                  'emptyCurrentFailureShowsProvisionalIncompleteWithoutChangingItsVerdict',
+                  'mixedCurrentShowsReportedConflictAlongsideIndependentMissingChoices',
+                  'disabledPrimaryAndEnabledFallbackNeverSatisfyRequiredPresence',
+                  'realUnknownKeepsItsRawOutcomeAndMeaningWithoutProvisionalGuidance',
+                  'realSkippedKeepsItsRawOutcomeAndMeaningWithoutProvisionalGuidance',
+                  'matchingProviderPassNeverAcquiresConflictOrIncompleteGuidance',
+                  'changedRegisteredRulesCannotBorrowProvisionalGuidance',
+              },
+          }
+          total = 0
+          for name, expected in required.items():
+              path = pathlib.Path('preview/build/test-results/testDebugUnitTest') / f"TEST-{name}.xml"
+              suite = ET.parse(path).getroot()
+              cases = suite.findall("testcase")
+              names = [case.attrib.get("name", "") for case in cases]
+              if suite.tag != "testsuite" or suite.attrib.get("name") != name or any(case.attrib.get("classname") != name for case in cases):
+                  raise SystemExit('Foreign current provisional-guidance Activity report')
+              if len(cases) != len(list(suite.iter("testcase"))) or any(not item.strip() for item in names) or len(names) != len(set(names)) or not expected.issubset(names):
+                  raise SystemExit('Missing, empty, nested or repeated current provisional-guidance Activity regression')
+              if int(suite.attrib.get("tests", "-1")) != len(cases) or any(int(suite.attrib.get(key, "-1")) != 0 for key in ("failures", "errors", "skipped")):
+                  raise SystemExit('Current provisional-guidance activity totals did not pass')
+              if any(case.find(".//" + tag) is not None for case in cases for tag in ("failure", "error", "skipped")):
+                  raise SystemExit('Current provisional-guidance activity regression did not execute successfully')
+              total += len(cases)
+          print(f"Verified {total} distinct passing current provisional-guidance Activity cases across {len(required)} suites; no installed-device claim")
+          PYACTIVITYGUIDANCE
       - name: Require alternative sibling inspection retirement regressions
         run: |
           python - <<'PYALTERNATIVESIBLING'

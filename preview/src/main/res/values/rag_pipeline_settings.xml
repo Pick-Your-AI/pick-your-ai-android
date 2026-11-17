@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rag_pipeline_editor_guidance">These optional settings describe this plan. Supply a value only when you want it included; saving does not run retrieval or reranking.</string>
+    <string name="rag_pipeline_top_k">Top K</string>
+    <string name="rag_pipeline_max_chunks">Maximum chunks</string>
+    <string name="rag_pipeline_rerank_enabled">Reranking enabled</string>
+    <string name="rag_pipeline_boolean_value">Enable reranking</string>
+    <string name="rag_pipeline_supply">Supply %1$s</string>
+    <string name="rag_pipeline_rerank_rule">When supplied, the checkbox records true or false. Clear Supply to leave the choice absent.</string>
+    <string name="rag_pipeline_not_supplied">Not supplied</string>
+    <string name="rag_pipeline_supplied_value">Supplied value</string>
+    <string name="rag_pipeline_empty_value">Supplied empty value</string>
+    <string name="rag_pipeline_supplied_false">Supplied: false</string>
+    <string name="rag_pipeline_supplied_true">Supplied: true</string>
+    <string name="rag_pipeline_integer_rule">Use a whole number of at least 1.</string>
+    <string name="rag_pipeline_value_required">Enter a value, or clear Supply to leave this setting absent.</string>
+    <string name="rag_pipeline_integer_invalid">Enter a valid whole number, or clear Supply to leave this setting absent.</string>
+    <string name="rag_pipeline_too_long">This value is too long. Shorten it before saving.</string>
+    <string name="rag_pipeline_recovery_guidance">Pending input is kept only in bounded private recovery. Review restored input before saving; recovery does not confirm that a save completed.</string>
+</resources>

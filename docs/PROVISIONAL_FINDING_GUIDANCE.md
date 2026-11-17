@@ -2,9 +2,10 @@
 
 Refs #101. The local `android-local-finding-guidance/1` presentation policy
 separates a reported missing required choice from a reported component conflict.
-It adds a fixed guidance line to the existing fixture Findings detail and saved
-snapshot inspection. The original outcome, severity, report JSON, result and
-readiness remain unchanged and visible. No failure becomes a pass.
+It adds a fixed guidance line to fixture Findings detail, saved snapshot
+inspection and current saved-draft observations. The original outcome, severity,
+report JSON where present, result and readiness remain unchanged and visible.
+No failure becomes a pass.
 
 The frozen [Ruleset schema](../contracts/v1/schemas/ruleset.schema.json) has no
 presence/compatibility category. These labels are explicitly **provisional local
@@ -34,6 +35,8 @@ message-text, severity-only or generalized expression classifier.
 
 ## Admission and presentation
 
+### Recorded findings
+
 The existing `ReferenceReportAdapter` first completes its schema, binding,
 rule/finding order, affected-ID, severity, count, result and readiness checks.
 Only its successful return captures the immutable facet, using the **same admitted
@@ -48,6 +51,34 @@ profile ID, reference time, evaluator/reference/schema pins, canonical report
 bytes and golden cases are unchanged. Earlier source descriptors and focused
 results retain their original identities; the updated descriptor requires its
 own source-pin and build verification.
+
+### Current saved-draft observations
+
+`DraftCurrentInputs.read` retains its privately parsed, admitted Ruleset alongside
+the existing copied input bytes. It exposes no mutable rule tree or guidance
+override. The ordinary `DraftCurrentEvaluator` still evaluates the exact captured
+stored source once through its existing bounded private entry point. Only a
+`Completed` outcome captures guidance, using those actual findings and that
+source's immutable `DraftSelections`. Unavailable attempts have no guidance-bearing
+outcome. The request, source/input binding, finding fields, summary and readiness
+semantics are unchanged.
+
+The recorded and current adapters feed one typed presence policy. They share the
+complete profile matcher and finite maps below; current inputs do not fabricate
+a frozen Build, a report or a `ReferenceReportView`. Presence comes from the
+captured source selections, never the predecessor IDs in a recheck explanation,
+current editor text, a later catalog or another result. Disabled and fallback
+selections keep their actual roles and do not fill a missing primary choice.
+The existing optional-intent admission remains in force.
+
+Current observation detail appends the same existing resource-backed line from
+the captured outcome. It preserves the exact raw outcome, severity, message,
+guidance text and affected IDs, plus the separate unknown/skipped explanation.
+Full-text and affected-selection navigation, showing-window authority, sibling
+retirement and the three original detail actions are unchanged. This addition
+does not save, edit, reevaluate, or give a retained callback new authority.
+
+### Shared finite policy
 
 The fixed selection role is `primary`. Only enabled selections count as present.
 Any repeated selection ID, including a disabled duplicate, withholds all guidance.
@@ -125,7 +156,7 @@ The following is the complete 45-row policy. There are 12 required-choice rows,
 
 ## Consumer and ownership limits
 
-Both existing consumers add the same line without altering literal source
+All three consumers add the same line without altering literal source
 formatting, severity, affected selection IDs, role/version context, pagination,
 request identity, callback retirement, Activity lifetime, save/CAS or editor
 navigation. The saved-snapshot renderer continues its existing read-only
@@ -141,6 +172,8 @@ path remains `docs/delivery/android/work-packages/09.03.md` in `pickyour.ai`.
 Issue-level receiving remains separate from local compilation and simulation.
 
 ## Verification scope
+
+### Recorded receiver and saved snapshots
 
 The four original native TextView controls use the existing bounded evaluator
 and receiver on controlled copies of packaged Build/Catalog/Ruleset inputs:
@@ -168,6 +201,37 @@ Existing formatter, recorded-context and saved-snapshot lifecycle regressions
 remain part of focused receiving validation. A workflow attendance guard requires
 all six new native methods, exact identities, no duplicates, and no failure,
 error or skip. Actual result receipts identify their executed source separately.
+
+### Current saved-draft observations
+
+Seven new Activity methods use actual private saves, validated catalog/Ruleset
+inputs, real reopen or retry, and the existing current evaluator. They assert the
+actual Current result, exact reported IDs, raw fields, source and input binding,
+summary counts and private draft/library file bytes before looking for a new
+guidance line. The cases cover an empty required set, a genuine provider-ID
+conflict alongside a separate missing foundation choice, disabled-primary and
+enabled-fallback presence, actual pass/unknown/skipped, and an altered whole
+Ruleset that must remain unclassified. No test constructs a Current result or
+supplied report to force a presentation label.
+
+The final unchanged-production V2 baseline executes all seven: four controls
+pass and three stop at the missing guidance line. Its predecessor had one
+causal failure and three earlier prefix failures because the test's Android JSON
+quoting escaped solidus while the unchanged renderer did not. V2 normalizes only
+that optional spelling and independently decodes it to the original raw string.
+An earlier local socket denial occurred before any test. Those histories remain
+separate; the corrected run uses the exact V2 assertions.
+
+Ten new Core methods exercise the same real producer with both registered
+profiles, independent presence/conflict results, optional-rule scope, whole-profile
+refusals, object-key order, caller mutation, removed/disabled predecessor IDs and
+unavailable attempts. The twelve recorded-policy controls and the existing
+current-evaluation and current-analysis suites remain unchanged. Two additive
+workflow guards require every named new Core/Activity case and all twelve
+recorded-policy cases, permit additional distinct passing cases, and reject
+missing, duplicate, foreign, nested, failed, errored or skipped attendance.
+The 48 previous current-observation Activity companions remain unchanged.
+Result receipts bind each actual local or hosted execution to its own source.
 
 These are JVM and Robolectric results, not an installed device, real TalkBack
 journey, production evaluator, empirical compatibility, deployment or release.

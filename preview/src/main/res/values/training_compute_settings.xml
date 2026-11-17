@@ -1,0 +1,20 @@
+<resources>
+    <string name="training_compute_settings_title">Training compute</string>
+    <string name="training_compute_editor_guidance">These optional inputs describe requested training resources. Saving them does not allocate compute or start a training run.</string>
+    <string name="training_compute_gpu_hours">GPU-hour budget</string>
+    <string name="training_compute_hours_rule">Enter GPU hours as an exact JSON number, zero or greater. No maximum or recommended budget is supplied.</string>
+    <string name="training_compute_checkpoint">Checkpoint interval (minutes)</string>
+    <string name="training_compute_checkpoint_rule">Enter a whole number of minutes, at least 1.</string>
+    <string name="training_compute_spot">Spot allowed</string>
+    <string name="training_compute_spot_rule">Not supplied, false and true are distinct. Allowing spot usage does not confirm its availability or change whether this component is enabled.</string>
+    <string name="training_compute_not_supplied">Not supplied</string>
+    <string name="training_compute_false">False</string>
+    <string name="training_compute_true">True</string>
+    <string name="training_compute_supply">Supply %1$s</string>
+    <string name="training_compute_optional_value">Optional; supply explicitly</string>
+    <string name="training_compute_value_required">Enter a value or clear the supply option.</string>
+    <string name="training_compute_number_invalid">Enter an exact JSON number without grouping or locale separators.</string>
+    <string name="training_compute_integer_invalid">Enter an exact JSON whole number without grouping or locale separators.</string>
+    <string name="training_compute_too_long">This input exceeds the local editor limit.</string>
+    <string name="training_compute_recovery_guidance">Pending input is retained only within the local recovery limit and requires explicit review. Recovering input does not confirm a save or start training.</string>
+</resources>
