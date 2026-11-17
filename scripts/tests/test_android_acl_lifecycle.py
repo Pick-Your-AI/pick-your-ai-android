@@ -6,12 +6,15 @@ getfacl, SDKs or devices. The test runner's existing UID is retained.
 """
 
 import copy
+from contextlib import contextmanager
 import errno
 import importlib.util
 import json
 import os
 from pathlib import Path
 import signal
+import select
+import socket
 import subprocess
 import sys
 import tempfile
@@ -65,6 +68,193 @@ class AclLifecycleTest(unittest.TestCase):
             observed.update(supervisor_pid=pid, supervisor_wait_status=status)
             return observed
 
+    def join_fixture_supervisor(self, pid, seconds=5):
+        try:
+            return lifecycle.wait_for_supervisor(pid, seconds)
+        except lifecycle.SupervisorDeadline as failure:
+            # This sole wait establishes an unreaped direct child. A different
+            # wait error does not authorize a signal to a potentially reused PID.
+            try:
+                os.kill(pid, signal.SIGKILL)
+            except OSError as error:
+                failure.add_note("Fixture SIGKILL failed: " + repr(error))
+            try:
+                status = lifecycle.wait_for_supervisor(pid, 2)
+                failure.add_note("Fixture joined after SIGKILL with wait status " + str(status))
+            except BaseException as error:
+                failure.add_note("Owned fixture child remains unconfirmed: " + repr(error))
+            raise
+
+    @contextmanager
+    def ready_lingering_orphan(self, marker, startup_seconds):
+        """Hold one actual orphan alive until the test releases its owning supervisor.
+
+        Readiness delays only Popen's return in this fixture. The production loop,
+        clock and short command/quiescence deadlines remain unchanged. Keeping
+        the supervisor alive after its observation lets that same owner reap the
+        orphan instead of abandoning it to the test environment's init process.
+        """
+        parent, child = socket.socketpair()
+        parent.settimeout(5)
+        child.settimeout(5)
+        pid = os.fork()
+        if pid == 0:
+            parent.close()
+            ready_read, ready_write = os.pipe()
+            release_read, release_write = os.pipe()
+            ready_pid = None
+            started_process = None
+            readiness_error = None
+            popen = lifecycle.subprocess.Popen
+            script = "\n".join([
+                "import os, signal, time", "from pathlib import Path",
+                "time.sleep(" + repr(startup_seconds) + ")", "child = os.fork()", "if child == 0:",
+                "    signal.signal(signal.SIGTERM, signal.SIG_IGN)",
+                "    deadline = time.monotonic() + 2",
+                "    while os.getppid() != " + str(os.getpid()) + ":",
+                "        if time.monotonic() >= deadline: os._exit(3)",
+                "        time.sleep(0.005)",
+                "    os.write(" + str(ready_write) + ", str(os.getpid()).encode() + b'\\n')",
+                "    os.close(" + str(ready_write) + ")",
+                "    released = os.read(" + str(release_read) + ", 1)",
+                "    os.close(" + str(release_read) + ")",
+                "    if released != b'R': os._exit(2)",
+                "    Path(" + repr(str(marker)) + ").write_text('late')",
+                "    os._exit(0)", "os._exit(1)"])
+
+            def start_and_wait_for_ready(*arguments, **keywords):
+                nonlocal ready_pid, started_process, readiness_error
+                started_process = popen(*arguments, **keywords, pass_fds=(ready_write, release_read))
+                try:
+                    if not select.select([ready_read], [], [], 2)[0]:
+                        raise TimeoutError("Harmless orphan did not report readiness")
+                    payload = os.read(ready_read, 64)
+                    if not payload.endswith(b"\n") or not payload[:-1].isdigit():
+                        raise RuntimeError("Harmless orphan readiness was malformed")
+                    ready_pid = int(payload)
+                except BaseException as error:
+                    readiness_error = {"type": type(error).__name__, "message": str(error)}
+                # Even failed readiness must transfer the existing process to
+                # the production loop, which retains its original timeout rules.
+                return started_process
+
+            def send(value):
+                payload = json.dumps(value).encode() + b"\n"
+                if len(payload) > lifecycle.TRANSPORT_LIMIT:
+                    raise RuntimeError("Harmless fixture receipt exceeded its bound")
+                child.sendall(payload)
+
+            status = 1
+            try:
+                with patch.object(lifecycle.subprocess, "Popen", side_effect=start_and_wait_for_ready):
+                    observed = lifecycle.supervise([sys.executable, "-I", "-c", script], ENVIRONMENT,
+                                                   command_seconds=0.08, quiesce_seconds=0.06)
+                observed["orphan_ready"] = ready_pid is not None
+                observed["readiness_error"] = readiness_error
+                observed["orphan_alive_at_observation"] = ready_pid is not None and \
+                    os.waitpid(ready_pid, os.WNOHANG | lifecycle.WAIT_ALL) == (0, 0)
+                send(observed)
+                with child.makefile("rb") as release:
+                    if release.readline(32) != b"release\n":
+                        raise RuntimeError("Harmless orphan release was not explicit")
+                status = 0
+            except BaseException:
+                status = 1
+            finally:
+                # Only this fixture owns these descriptors and descendants. EOF
+                # also releases the orphan if the supervising process is lost.
+                os.close(ready_read)
+                os.close(ready_write)
+                os.close(release_read)
+                try:
+                    os.write(release_write, b"R")
+                except BrokenPipeError:
+                    pass
+                os.close(release_write)
+                reaped = []
+                cleanup = {"complete": False, "reaped": reaped}
+                if started_process is not None and started_process.returncode is None:
+                    try:
+                        ended, wait_status = os.waitpid(started_process.pid, os.WNOHANG | lifecycle.WAIT_ALL)
+                        if ended:
+                            reaped.append({"pid": ended, "wait_status": wait_status})
+                            started_process.returncode = os.waitstatus_to_exitcode(wait_status)
+                        else:
+                            # A pre-readiness exception cannot discard ownership.
+                            # Only our confirmed unreaped direct child is signalled.
+                            os.kill(started_process.pid, signal.SIGKILL)
+                    except OSError as error:
+                        if error.errno != errno.ECHILD:
+                            cleanup["termination_error"] = repr(error)
+                deadline = time.monotonic() + 2
+                while time.monotonic() < deadline:
+                    try:
+                        ended, wait_status = os.waitpid(-1, os.WNOHANG | lifecycle.WAIT_ALL)
+                    except ChildProcessError as error:
+                        if error.errno == errno.ECHILD:
+                            cleanup.update(complete=True, final_wait_errno=errno.ECHILD)
+                        break
+                    if ended:
+                        reaped.append({"pid": ended, "wait_status": wait_status})
+                        if started_process is not None and ended == started_process.pid:
+                            started_process.returncode = os.waitstatus_to_exitcode(wait_status)
+                    else:
+                        time.sleep(0.01)
+                try:
+                    send(cleanup)
+                except BaseException:
+                    status = 1
+                child.close()
+                os._exit(status if cleanup["complete"] else 1)
+        child.close()
+        with parent, parent.makefile("rb") as transport:
+            def receive():
+                payload = transport.readline(lifecycle.TRANSPORT_LIMIT + 1)
+                self.assertTrue(payload.endswith(b"\n"))
+                self.assertLessEqual(len(payload), lifecycle.TRANSPORT_LIMIT)
+                return json.loads(payload)
+
+            observed = None
+            failure = None
+            cleanup_errors = []
+            try:
+                observed = receive()
+                observed["supervisor_pid"] = pid
+                if observed.get("readiness_error") is not None:
+                    error = observed["readiness_error"]
+                    exception = TimeoutError if error["type"] == "TimeoutError" else RuntimeError
+                    raise exception(error["message"])
+                yield observed
+            except BaseException as error:
+                failure = error
+            finally:
+                try:
+                    parent.sendall(b"release\n")
+                    cleanup = receive()
+                    self.assertTrue(cleanup["complete"], "Owned fixture descendants remain unconfirmed: " +
+                                    json.dumps(cleanup, sort_keys=True))
+                    self.assertEqual(errno.ECHILD, cleanup["final_wait_errno"])
+                    if observed is not None and observed.get("orphan_ready"):
+                        self.assertEqual(1, len(cleanup["reaped"]))
+                        self.assertEqual(0, cleanup["reaped"][0]["wait_status"])
+                except BaseException as error:
+                    cleanup_errors.append(error)
+                try:
+                    status = self.join_fixture_supervisor(pid)
+                    self.assertEqual(0, status)
+                    if observed is not None:
+                        observed["supervisor_wait_status"] = status
+                except BaseException as error:
+                    cleanup_errors.append(error)
+                if failure is None and cleanup_errors:
+                    failure = cleanup_errors.pop(0)
+                if failure is not None:
+                    for error in cleanup_errors:
+                        failure.add_note("Fixture cleanup failed: " + repr(error))
+                        for note in getattr(error, "__notes__", []):
+                            failure.add_note(note)
+                    raise failure
+
     def test_actual_normal_command_is_reaped_before_positive_absence(self):
         observed = self.run_harmless_subtree("print('harmless complete')")
         self.assertEqual(0, observed["exit_code"])
@@ -101,22 +291,155 @@ class AclLifecycleTest(unittest.TestCase):
         self.assertTrue(lifecycle.quiescence_passes(observed, lifecycle.process_identity()))
 
     def test_actual_lingering_orphan_cannot_supply_quiescence_proof(self):
-        marker = self.directory / "operation-after-timeout"
-        script = "\n".join([
-            "import os, signal, time", "from pathlib import Path", "child = os.fork()", "if child == 0:",
-            "    signal.signal(signal.SIGTERM, signal.SIG_IGN)", "    time.sleep(0.3)",
-            "    Path(" + repr(str(marker)) + ").write_text('late')", "    os._exit(0)", "os._exit(1)"])
-        observed = self.run_harmless_subtree(script, command_seconds=0.08, quiesce_seconds=0.06)
-        self.assertFalse(observed["quiescent"])
-        self.assertFalse(lifecycle.quiescence_passes(observed, lifecycle.process_identity()))
-        self.assertNotIn("final_wait_errno", observed)
-        self.assertFalse(marker.exists())
-        # The self-limiting harmless orphan completes its only file write before
-        # this directory is removed. No signal or operation targets another job.
-        deadline = time.monotonic() + 2
-        while not marker.exists() and time.monotonic() < deadline:
-            time.sleep(0.02)
-        self.assertEqual("late", marker.read_text())
+        for startup_seconds in (0, 0.2):
+            with self.subTest(startup_seconds=startup_seconds):
+                marker = self.directory / ("operation-after-timeout-" + str(startup_seconds))
+                with self.ready_lingering_orphan(marker, startup_seconds) as observed:
+                    self.assertTrue(observed["orphan_ready"])
+                    self.assertTrue(observed["orphan_alive_at_observation"])
+                    self.assertFalse(observed["quiescent"])
+                    self.assertFalse(lifecycle.quiescence_passes(observed, lifecycle.process_identity()))
+                    self.assertNotIn("final_wait_errno", observed)
+                    self.assertFalse(marker.exists())
+                # The complete, actually joined supervisor receipt still cannot
+                # turn its earlier live-descendant observation into a proof.
+                self.assertFalse(lifecycle.quiescence_passes(observed, lifecycle.process_identity()))
+                # Explicit release and owned reaping precede directory removal.
+                deadline = time.monotonic() + 2
+                while not marker.exists() and time.monotonic() < deadline:
+                    time.sleep(0.02)
+                self.assertEqual("late", marker.read_text())
+
+    def test_actual_pre_ready_startup_timeout_has_no_lingering_orphan(self):
+        for startup_seconds in (0, 0.2):
+            with self.subTest(startup_seconds=startup_seconds):
+                marker = self.directory / ("unexpected-readiness-" + str(startup_seconds))
+                script = "\n".join([
+                    "import signal, time", "from pathlib import Path",
+                    "time.sleep(" + repr(startup_seconds) + ")",
+                    "signal.pause()",  # Explicitly held before readiness, until owned SIGTERM.
+                    "Path(" + repr(str(marker)) + ").write_text('unexpected')"])
+                observed = self.run_harmless_subtree(script, command_seconds=0.08)
+                self.assertEqual(-int(signal.SIGTERM), observed["exit_code"])
+                self.assertEqual(0.08, observed["timeout_seconds"])
+                self.assertEqual(int(signal.SIGTERM), observed["termination_signal"])
+                self.assertEqual(1, len(observed["reaped"]))
+                self.assertEqual(errno.ECHILD, observed["final_wait_errno"])
+                self.assertTrue(lifecycle.quiescence_passes(observed, lifecycle.process_identity()))
+                self.assertFalse(marker.exists())
+
+    def test_readiness_failure_keeps_ownership_before_fork(self):
+        for readiness_exception in (None, OSError("injected readiness failure")):
+            with self.subTest(readiness_exception=readiness_exception), tempfile.TemporaryFile() as transport:
+                # The outer disposable owner also contains the old leaking
+                # fixture: its static child finishes within five + two seconds.
+                # It never signals an unclassified or unrelated process.
+                pid = os.fork()
+                if pid == 0:
+                    result = {"yielded": False, "children_absent_on_return": False,
+                              "outer_cleanup_complete": False, "outer_reaped": []}
+                    try:
+                        lifecycle.enable_subreaper({})
+                        try:
+                            with patch.object(select, "select", wraps=select.select,
+                                              side_effect=readiness_exception):
+                                with self.ready_lingering_orphan(self.directory / "late-startup", 5):
+                                    result["yielded"] = True
+                        except BaseException as error:
+                            result["error"] = {"type": type(error).__name__, "message": str(error),
+                                               "notes": getattr(error, "__notes__", [])}
+                        first_wait = True
+                        deadline = time.monotonic() + 8
+                        while time.monotonic() < deadline:
+                            try:
+                                ended, status = os.waitpid(-1, os.WNOHANG | lifecycle.WAIT_ALL)
+                            except ChildProcessError as error:
+                                if error.errno != errno.ECHILD:
+                                    raise
+                                result.update(children_absent_on_return=first_wait,
+                                              outer_cleanup_complete=True)
+                                break
+                            first_wait = False
+                            if ended:
+                                result["outer_reaped"].append({"pid": ended, "wait_status": status})
+                            else:
+                                time.sleep(0.01)
+                        transport.write(json.dumps(result).encode())
+                        transport.flush()
+                        os._exit(0 if result["outer_cleanup_complete"] else 1)
+                    except BaseException:
+                        os._exit(2)
+                status = self.join_fixture_supervisor(pid, 12)
+                self.assertEqual(0, status)
+                transport.seek(0)
+                result = json.loads(transport.read())
+                self.assertFalse(result["yielded"])
+                expected = {"type": "TimeoutError", "message": "Harmless orphan did not report readiness"} \
+                    if readiness_exception is None else {"type": "RuntimeError", "message": str(readiness_exception)}
+                self.assertEqual(expected["type"], result["error"]["type"])
+                self.assertEqual(expected["message"], result["error"]["message"])
+                self.assertEqual([], result["error"]["notes"])
+                self.assertTrue(result["children_absent_on_return"])
+                self.assertTrue(result["outer_cleanup_complete"])
+                self.assertEqual([], result["outer_reaped"])
+
+    def test_fixture_deadline_recovery_has_a_separate_bounded_join(self):
+        for recovery in (int(signal.SIGKILL), lifecycle.SupervisorDeadline("recovery deadline")):
+            with self.subTest(recovery=recovery):
+                failure = lifecycle.SupervisorDeadline("primary deadline")
+                with patch.object(lifecycle, "wait_for_supervisor", side_effect=[failure, recovery]) as wait, \
+                        patch.object(os, "kill") as kill:
+                    with self.assertRaises(lifecycle.SupervisorDeadline) as caught:
+                        self.join_fixture_supervisor(101)
+                self.assertIs(failure, caught.exception)
+                self.assertEqual([(101, 5), (101, 2)], [call.args for call in wait.call_args_list])
+                kill.assert_called_once_with(101, signal.SIGKILL)
+                message = "remains unconfirmed" if isinstance(recovery, BaseException) else "joined after SIGKILL"
+                self.assertTrue(any(message in note for note in failure.__notes__))
+
+    def test_fixture_unclassified_wait_error_does_not_authorize_a_signal(self):
+        failure = ChildProcessError(errno.ECHILD, "status already unavailable")
+        with patch.object(lifecycle, "wait_for_supervisor", side_effect=failure) as wait, \
+                patch.object(os, "kill") as kill:
+            with self.assertRaises(ChildProcessError) as caught:
+                self.join_fixture_supervisor(101)
+        self.assertIs(failure, caught.exception)
+        wait.assert_called_once_with(101, 5)
+        kill.assert_not_called()
+
+    def test_fixture_recovery_syscalls_never_use_a_blocking_wait(self):
+        for recovered in (True, False):
+            with self.subTest(recovered=recovered):
+                recovery = (101, int(signal.SIGKILL)) if recovered else (0, 0)
+                with patch.object(os, "waitpid", side_effect=[(0, 0), recovery]) as wait, \
+                        patch.object(os, "kill") as kill, \
+                        patch.object(time, "monotonic", side_effect=[0, 5, 10, 12]), \
+                        patch.object(time, "sleep") as sleep:
+                    with self.assertRaises(lifecycle.SupervisorDeadline) as caught:
+                        self.join_fixture_supervisor(101)
+                self.assertEqual([(101, os.WNOHANG)] * 2, [call.args for call in wait.call_args_list])
+                kill.assert_called_once_with(101, signal.SIGKILL)
+                sleep.assert_not_called()
+                message = "joined after SIGKILL" if recovered else "remains unconfirmed"
+                self.assertTrue(any(message in note for note in caught.exception.__notes__))
+
+    def test_fixture_preserves_primary_error_and_cleanup_uncertainty(self):
+        primary = AssertionError("original readiness assertion")
+        recovery = lifecycle.SupervisorDeadline("synthetic cleanup deadline")
+        recovery.add_note("Owned fixture child remains unconfirmed: synthetic join failure")
+        real_join = self.join_fixture_supervisor
+
+        def join_then_report_failure(pid):
+            real_join(pid)  # Reap the real child before injecting the error.
+            raise recovery
+
+        with patch.object(self, "join_fixture_supervisor", side_effect=join_then_report_failure):
+            with self.assertRaises(AssertionError) as caught:
+                with self.ready_lingering_orphan(self.directory / "primary-error-marker", 0):
+                    raise primary
+        self.assertIs(primary, caught.exception)
+        self.assertTrue(any("synthetic cleanup deadline" in note for note in primary.__notes__))
+        self.assertIn(recovery.__notes__[0], primary.__notes__)
 
     def test_actual_command_timeout_reaps_its_signalled_direct_child(self):
         observed = self.run_harmless_subtree("import time; time.sleep(1)",
