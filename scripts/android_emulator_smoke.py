@@ -20,6 +20,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import types
 import uuid
 import xml.etree.ElementTree as ET
 import zlib
@@ -3018,7 +3019,8 @@ def exercise(device: Device, output: Path, receipt: dict):
             ui.click("Close", scroll=False)
         with case(receipt, DATA_SOURCE_CASE_ID) as row:
             exercise_data_source(ui, device, row)
-    except Exception:
+    except Exception as error:
+        retain_scenario_failure_context(receipt, error)
         retain_failure_log(device, output, receipt)
         try:
             ui.checkpoint("failure")
@@ -3029,6 +3031,79 @@ def exercise(device: Device, output: Path, receipt: dict):
         except Exception as error:
             receipt.setdefault("case_failure_observations", {})["error"] = bounded_text(str(error), 1200)
         raise
+
+
+# Identity is the actual checked-in code object, never a traceback function name,
+# filename, UI label, selector description, exception value or frame local.
+_SCENARIO_OPERATION_CODES = {
+    id(function.__code__): (function.__code__, name,
+        frozenset(line for _, _, line in function.__code__.co_lines() if line is not None))
+    for name, function in (
+        ("scenario", exercise), ("data_source_scenario", exercise_data_source),
+        ("data_source_draft_id", data_source_draft_id), ("data_source_list_item", data_source_list_item),
+        ("data_source_list_row", data_source_list_row), ("data_source_control", data_source_control),
+        ("data_source_enabled", data_source_enabled), ("data_source_observation", observe_data_source),
+        ("data_source_form", data_source_form_present), ("data_source_optional_controls", data_source_optional_controls),
+        ("data_source_enabled_control", data_source_enabled_control),
+        ("data_source_boolean_choice", data_source_boolean_choice),
+        ("data_source_open_settings", open_data_source_settings),
+        ("data_source_acknowledgment", acknowledge_data_source_commit),
+        ("unique_visible_match", single_match), ("system_bar_bounds", system_bar_bounds),
+        ("labelled_editor", labelled_editor), ("ui_snapshot", Ui.snapshot), ("ui_scroll", Ui.scroll),
+        ("ui_seek", Ui.seek), ("ui_text", Ui.text), ("ui_tap", Ui.tap), ("ui_click", Ui.click),
+        ("ui_editor", Ui.editor), ("ui_enter", Ui.enter), ("ui_expect_fields", Ui.expect_fields),
+        ("ui_expect_button", Ui.expect_button), ("ui_checkpoint", Ui.checkpoint), ("ui_rotate", Ui.rotate),
+        ("device_launch", Device.launch), ("device_cold_restart", Device.cold_restart),
+        ("device_shell", Device.shell), ("device_adb", Device.adb),
+    )
+}
+
+
+def scenario_failure_context(receipt: dict, error: Exception) -> dict:
+    """Bounded source coordinates for the failed case; no supplied values are formatted."""
+    case_id = "unclassified"
+    rows = receipt.get("cases") if type(receipt) is dict else None
+    if (type(rows) is list and len(rows) == len(CASE_IDS)
+            and all(type(row) is dict and type(row.get("id")) is str
+                    and type(row.get("status")) is str
+                    and row["status"] in ("not_run", "running", "passed", "failed") for row in rows)
+            and tuple(row["id"] for row in rows) == CASE_IDS):
+        failed = [index for index, row in enumerate(rows) if row["status"] == "failed"]
+        if len(failed) == 1:
+            case_id = CASE_IDS[failed[0]]
+    operations = []
+    # Bypass an exception subclass's attribute/property overrides. Only real
+    # interpreter traceback objects may supply the frame and source coordinates.
+    trace = BaseException.__traceback__.__get__(error)
+    # Fixed traversal/output bounds apply even to recursive or foreign stacks.
+    for _ in range(64):
+        if type(trace) is not types.TracebackType:
+            break
+        code = trace.tb_frame.f_code
+        line = trace.tb_lineno
+        known = _SCENARIO_OPERATION_CODES.get(id(code))
+        if (known is not None and known[0] is code
+                and type(line) is int and line in known[2]):
+            operations.append({"operation": known[1], "line": line})
+            if len(operations) > 8:
+                # Keep the outer source callsite and the most recent inner calls.
+                del operations[4]
+        trace = trace.tb_next
+    return {"version": 1, "case": case_id, "operations": operations}
+
+
+def retain_scenario_failure_context(receipt: dict, error: Exception) -> None:
+    # Called before failure checkpoints so their later exceptions cannot replace
+    # the actual failed operation. Diagnostic failure cannot mask that exception.
+    try:
+        context = scenario_failure_context(receipt, error)
+    except Exception:
+        context = {"version": 1, "case": "unclassified", "operations": []}
+    receipt["scenario_failure_context"] = context
+    try:
+        print("Installed synthetic case failure context: " + json.dumps(context, sort_keys=True), file=sys.stderr)
+    except Exception:
+        pass
 
 
 def write_reports(output: Path, receipt: dict):

@@ -97,6 +97,40 @@ the fifth journey fits. The new phase sweep avoids repeated full-form searches
 and extra PNG captures. Actual host and installed outcomes, including a timeout
 or failure, must be retained from a later execution of the candidate.
 
+### Bounded failed-case operation context
+
+The scenario failure handler now retains `scenario_failure_context` and prints
+one separate `Installed synthetic case failure context` JSON line before its
+best-effort failure checkpoint and framework observations. The diagnostic records
+version 1, the failed canonical case ID, and at most eight allowlisted operation
+codes with source line numbers. Those coordinates refer to the exact harness
+checkout recorded by the run; they are not coordinates in a later source version.
+
+Case identity requires the complete ordered five-case list and one failed row.
+Malformed or ambiguous case state is `unclassified`. Operation identity requires
+the actual known code object and one of its source lines, not a matching function
+name. The built-in BaseException traceback descriptor bypasses instance
+overrides; only exact interpreter traceback objects are visited, and each source
+line is read once before admission and retention. At most 64 traceback frames are visited; the outer four admitted calls and
+latest inner calls fit the eight-entry bound. Foreign frames are omitted. No
+filename, selector description/value, hierarchy label, frame local or exception
+argument is copied into this new context. Existing synthetic XML/diagnostic
+artifacts retain their separate behavior and evidence scope.
+
+The context is captured from the original scenario exception before later
+diagnostics can fail. A failed context collector or diagnostic console exception
+cannot replace that exception. It does not select a target, retry a command,
+change a case status, grant a pass or modify any successful scenario path. A new
+source-bound Installed run must still identify the actual failing operation and
+retain its original hierarchy before any selector correction is justified. The
+older generic ambiguity failure remains unresolved; this addition does not infer
+its case or selector from unavailable artifacts.
+
+Offline guards are discovered by the existing `test_android*.py` command. Run
+`python -m unittest discover -s scripts/tests -p 'test_android_scenario_failure_context.py' -v`
+for the focused controls. These are host Python tests with process/fork/signal
+execution prohibited, not an emulator rerun or a passing fifth-case receipt.
+
 ## Delivered result and separate main-push failure — 2026-10-19
 
 [PR #467](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/467)
