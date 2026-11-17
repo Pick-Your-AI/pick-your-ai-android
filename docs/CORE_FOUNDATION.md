@@ -41,7 +41,7 @@ Install a full JDK 21 (a JRE alone is insufficient), Python 3.12 and dependencie
 
 ```sh
 python -m venv .venv
-.venv/bin/python -m pip install -r requirements-contracts.txt
+.venv/bin/python -m pip install --require-hashes --only-binary=:all: --force-reinstall -r requirements-contracts.lock
 .venv/bin/python scripts/check_contracts.py
 sha256sum --check gradle/wrapper/wrapper.sha256
 ./gradlew --no-daemon :core:check :core:assemble
@@ -63,6 +63,10 @@ trust-store overrides or credentials. The cloud test environment uses its existi
 trusted proxy and a workspace-local JDK; normal checkout commands need no such
 paths. Dependency download requires network on the first run; subsequent cached
 `--offline` runs do not.
+
+The [Python dependency lock](PYTHON_DEPENDENCIES.md) verifies official wheel
+bytes for the existing pinned reference dependencies and rejects unpinned source
+builds. Its offline pip controls remain separate from Android runtime evidence.
 
 ## Boundaries and behavior
 
