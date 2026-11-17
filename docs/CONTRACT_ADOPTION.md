@@ -31,7 +31,7 @@ Use Python 3.12 and an isolated environment:
 
 ```sh
 python3.12 -m venv .venv-contracts
-.venv-contracts/bin/python -m pip install --require-hashes --only-binary=:all: --force-reinstall -r requirements-contracts.lock
+.venv-contracts/bin/python -m pip install -r requirements-contracts.txt
 .venv-contracts/bin/python scripts/check_contracts.py
 ```
 

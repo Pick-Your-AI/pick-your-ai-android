@@ -43,8 +43,13 @@ the existing reference/CI suites before delivery. Hashes establish consistency
 with the reviewed initial artifact set; they do not independently establish that
 an upstream artifact is safe.
 
-Historical acceptance records retain their original commands for their recorded
-source; use these current instructions for the current checkout.
+The acceptance ledger pins the exact bytes of the original version inventory
+(`requirements-contracts.txt`) and contract-adoption record
+(`docs/CONTRACT_ADOPTION.md`). They remain unchanged, including the adoption
+record's historical installation example. Other historical acceptance records
+also retain their recorded commands. Use this guide and the current Core setup
+instructions for hash-enforced installation on the current checkout; no existing
+acceptance receipt or test is rewritten to accommodate the new lock.
 
 This is partial progress for [Android #69](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/69).
 Release notices, monitored vulnerability intake, release-linked inventory and
