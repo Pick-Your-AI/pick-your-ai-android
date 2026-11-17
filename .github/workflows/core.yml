@@ -44,6 +44,8 @@ jobs:
           python -m unittest discover -s scripts/tests -p 'test_delivery_ledger.py'
       - name: Verify emulator harness target and evidence guards
         run: python -m unittest discover -s scripts/tests -p 'test_android*.py' -v
+      - name: Verify offline TalkBack prerequisite guards
+        run: python -I -B scripts/tests/test_talkback_build_prerequisite.py
       - name: Verify pinned conformance inputs and adversarial receipt guards
         run: |
           python scripts/check_conformance_fixtures.py
