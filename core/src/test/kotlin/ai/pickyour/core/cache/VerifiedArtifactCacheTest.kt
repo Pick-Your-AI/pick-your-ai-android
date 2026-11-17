@@ -120,6 +120,72 @@ class VerifiedArtifactCacheTest {
         assertFalse(Files.exists(root.resolve("stage-pointer")))
     }
 
+    @Test fun `interrupted provider failure reports cancellation and preserves the prior artifact`() {
+        install()
+        val source = object : InputStream() {
+            var closed = false
+            override fun read(): Int {
+                Thread.currentThread().interrupt()
+                throw IOException("interrupted provider")
+            }
+            override fun close() { closed = true }
+        }
+        try {
+            assertEquals(CacheInstall.Failed(CacheFailure.CANCELLED), store().install(hash(second), source))
+            assertTrue(Thread.currentThread().isInterrupted)
+            assertFalse(source.closed)
+        } finally { Thread.interrupted() }
+        assertArrayEquals(first, bytes(store().active()))
+        assertArrayEquals(first, bytes(store().pinned(hash(first))))
+        assertEquals(CacheRead.Missing, store().pinned(hash(second)))
+        assertFalse(Files.exists(root.resolve("stage-artifact")))
+        assertFalse(Files.exists(root.resolve("stage-pointer")))
+        assertEquals(CacheInstall.Activated(hash(second)), install(second))
+    }
+
+    @Test fun `interruption at provider EOF reports cancellation when the staging channel is forced`() {
+        install()
+        val source = object : ByteArrayInputStream(second) {
+            var closed = false
+            override fun read(bytes: ByteArray, offset: Int, length: Int): Int {
+                val result = super.read(bytes, offset, length)
+                if (result == -1) Thread.currentThread().interrupt()
+                return result
+            }
+            override fun close() { closed = true }
+        }
+        try {
+            assertEquals(CacheInstall.Failed(CacheFailure.CANCELLED), store().install(hash(second), source))
+            assertTrue(Thread.currentThread().isInterrupted)
+            assertFalse(source.closed)
+        } finally { Thread.interrupted() }
+        assertArrayEquals(first, bytes(store().active()))
+        assertArrayEquals(first, bytes(store().pinned(hash(first))))
+        assertEquals(CacheRead.Missing, store().pinned(hash(second)))
+        assertFalse(Files.exists(root.resolve("stage-artifact")))
+        assertFalse(Files.exists(root.resolve("stage-pointer")))
+        assertEquals(CacheInstall.Activated(hash(second)), install(second))
+    }
+
+    @Test fun `interrupted failure after activation remains uncertain with both artifacts readable`() {
+        install()
+        val cache = VerifiedArtifactCache(root, 128) {
+            if (it == CacheWritePoint.POINTER_ACTIVATED) {
+                Thread.currentThread().interrupt()
+                throw IOException("interrupted after activation")
+            }
+        }
+        try {
+            assertEquals(CacheInstall.ActivationUncertain(hash(second)), cache.install(hash(second), second.inputStream()))
+            assertTrue(Thread.currentThread().isInterrupted)
+        } finally { Thread.interrupted() }
+        assertArrayEquals(second, bytes(store().active()))
+        assertArrayEquals(first, bytes(store().pinned(hash(first))))
+        assertFalse(Files.exists(root.resolve("stage-artifact")))
+        assertFalse(Files.exists(root.resolve("stage-pointer")))
+        assertEquals(CacheInstall.Activated(hash(second)), install(second))
+    }
+
     @Test fun `exact byte limit accepts and overflow consumes only one extra byte`() {
         val cache = VerifiedArtifactCache(root, 3)
         val content = byteArrayOf(1, 2, 3)
