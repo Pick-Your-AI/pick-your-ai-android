@@ -75,7 +75,36 @@ class FrozenDiagnosticEvaluator(private val maxWork: Int = 250_000) {
      * admitting an EvaluationReport. Missing shared Build fields stay absent in the local context.
      * The caller binds the exact stored source and artifact pins before exposing these findings.
      */
-    internal fun evaluateDraft(context: DraftDiagnosticContext, catalog: ByteArray, ruleset: ByteArray): DraftRuleEvaluation = try {
+    internal fun evaluateDraft(context: DraftDiagnosticContext, catalog: ByteArray, ruleset: ByteArray): DraftRuleEvaluation =
+        evaluateDraftDetails(context, catalog, ruleset).evaluation
+
+    /** The opaque trace is produced only by evaluating this captured Current request once. */
+    internal fun evaluateCurrentDraft(request: DraftCurrentEvaluation): CurrentDraftTrace =
+        CurrentDraftTrace.evaluate(this, request)
+
+    internal class CurrentDraftTrace private constructor(
+        private val request: DraftCurrentEvaluation,
+        val evaluation: DraftRuleEvaluation,
+        phases: Map<String, DraftCurrentUnknownPhase>,
+    ) {
+        private val phases = Collections.unmodifiableMap(LinkedHashMap(phases))
+
+        internal fun phasesFor(request: DraftCurrentEvaluation, findings: List<DraftRuleFinding>): Map<String, DraftCurrentUnknownPhase> =
+            if (this.request === request && (evaluation as? DraftRuleEvaluation.Evaluated)?.findings === findings)
+                phases else emptyMap()
+
+        companion object {
+            internal fun evaluate(evaluator: FrozenDiagnosticEvaluator, request: DraftCurrentEvaluation): CurrentDraftTrace {
+                val context = DraftDiagnosticContext.create(request.source.content.components, request.source.content.workload)
+                val result = evaluator.evaluateDraftDetails(context, request.inputs.catalogBytes(), request.inputs.rulesBytes())
+                return CurrentDraftTrace(request, result.evaluation, result.phases)
+            }
+        }
+    }
+
+    private class DraftDetails(val evaluation: DraftRuleEvaluation, val phases: Map<String, DraftCurrentUnknownPhase>)
+
+    private fun evaluateDraftDetails(context: DraftDiagnosticContext, catalog: ByteArray, ruleset: ByteArray): DraftDetails = try {
         val b = context.node()
         val c = parse(FrozenDocument.CATALOG, catalog.inputStream())
         val r = parse(FrozenDocument.RULESET, ruleset.inputStream())
@@ -90,16 +119,17 @@ class FrozenDiagnosticEvaluator(private val maxWork: Int = 250_000) {
             if (item["version"] != selection["catalog_item_version"] || item["kind"] != selection["kind"])
                 fail(DiagnosticRejection.BINDING_MISMATCH)
         }
-        val findings = Run(b, c, r).evaluateFindings().findings.map { finding ->
+        val result = Run(b, c, r).evaluateFindings()
+        val findings = result.findings.map { finding ->
             DraftRuleFinding(finding["rule_id"].asText(), finding["outcome"].asText(), finding["severity"].asText(),
                 finding["code"].asText(), finding["message"].asText(), finding["remediation"].asText(),
                 Collections.unmodifiableList(finding["selection_ids"].map { it.asText() }))
         }
-        DraftRuleEvaluation.Evaluated(Collections.unmodifiableList(findings))
-    } catch (failure: Rejection) { DraftRuleEvaluation.Rejected(failure.reason) }
+        DraftDetails(DraftRuleEvaluation.Evaluated(Collections.unmodifiableList(findings)), result.phases)
+    } catch (failure: Rejection) { DraftDetails(DraftRuleEvaluation.Rejected(failure.reason), emptyMap()) }
 
     private class RuleResults(val findings: ArrayNode, val errors: Boolean, val unknowns: Boolean,
-        val blocks: Boolean, val counts: Map<String, Int>)
+        val blocks: Boolean, val counts: Map<String, Int>, val phases: Map<String, DraftCurrentUnknownPhase>)
 
     private inner class Run(val build: ObjectNode, catalog: ObjectNode, val ruleset: ObjectNode) {
         var remaining = maxWork.toLong()
@@ -299,6 +329,7 @@ class FrozenDiagnosticEvaluator(private val maxWork: Int = 250_000) {
 
         fun evaluateFindings(): RuleResults {
             val findings = nodes.arrayNode()
+            val phases = linkedMapOf<String, DraftCurrentUnknownPhase>()
             var errors = false; var unknowns = false; var blocks = false
             val counts = mutableMapOf("pass" to 0, "fail" to 0, "unknown" to 0, "skipped" to 0)
             for (rule in ruleset["rules"]) {
@@ -312,6 +343,9 @@ class FrozenDiagnosticEvaluator(private val maxWork: Int = 250_000) {
                 blocks = blocks || (outcome == "unknown" && rule["on_unknown"].asText() == "block")
                 val finding = findings.addObject()
                 val id = rule["id"].asText()
+                // Retain only the branch already observed; never reevaluate an expression for metadata.
+                if (outcome == "unknown") phases[id] = if (applicable == null)
+                    DraftCurrentUnknownPhase.APPLICABILITY else DraftCurrentUnknownPhase.ASSERTION
                 finding.put("rule_id", id).put("outcome", outcome).put("severity", rule["severity"].asText())
                     .put("code", id.replace('.', '_').uppercase(Locale.ROOT))
                     .put("message", if (outcome in listOf("fail", "unknown")) rule["message"].asText() else "$id: $outcome")
@@ -320,7 +354,7 @@ class FrozenDiagnosticEvaluator(private val maxWork: Int = 250_000) {
                 for (s in active) { charge(); if (rule["affected_kinds"].any { charge(); it == s["kind"] }) { val id = s["id"].asText(); charge(id.length.toLong() * 32); ids.add(id) } }
                 val selections = finding.putArray("selection_ids"); ids.forEach { selections.add(it) }
             }
-            return RuleResults(findings, errors, unknowns, blocks, counts)
+            return RuleResults(findings, errors, unknowns, blocks, counts, phases)
         }
     }
     private class Rejection(val reason: DiagnosticRejection) : RuntimeException()

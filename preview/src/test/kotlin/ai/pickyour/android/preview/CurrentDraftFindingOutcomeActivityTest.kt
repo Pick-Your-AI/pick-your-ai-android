@@ -44,6 +44,10 @@ class CurrentDraftFindingOutcomeActivityTest {
         "This is not a pass or proof of readiness."
     private val skippedMeaning = "Outcome meaning: This rule was not evaluated for these captured inputs. " +
         "A skipped result is not a pass or proof of readiness."
+    private val applicabilityPhase = "Unknown phase: Whether this rule applies could not be determined. Its assertion was not evaluated. " +
+        "This phase does not identify a cause or a feasible next action."
+    private val assertionPhase = "Unknown phase: This rule applies, but its assertion did not determine a pass or fail. " +
+        "This phase does not identify a cause or a feasible next action."
     private val suppliedMessage = "pass Ready unknown skipped\n\u202equoted \\\" observation"
     private val suppliedGuidance = "Recorded only: fail pass\t\u2066no promised fix\\"
 
@@ -181,7 +185,7 @@ class CurrentDraftFindingOutcomeActivityTest {
         return JSONArray("[$quoted]").getString(0)
     }
 
-    private fun verifyMeaning(current: PreviewCurrentDraftState.Current, ruleId: String, explanation: String?) {
+    private fun verifyMeaning(current: PreviewCurrentDraftState.Current, ruleId: String, explanation: String?, phase: String? = null) {
         val saved = loaded().baselineIdentity
         val before = disk()
         val binding = current.request.binding.copy()
@@ -194,6 +198,7 @@ class CurrentDraftFindingOutcomeActivityTest {
         assertEquals(expectedSummary, summary.text.toString())
         val index = rows.indexOfFirst { it.ruleId == ruleId }
         val row = rows[index]
+        if (row.outcome != "unknown") assertNull(current.outcome.unknownPhase(ruleId))
         val window = detail(current, index)
         val previous = previousDetail(row)
         val text = body(window)
@@ -214,8 +219,9 @@ class CurrentDraftFindingOutcomeActivityTest {
         assertEquals(saved, loaded().baselineIdentity)
         assertEquals(before, disk())
 
-        val expected = if (explanation == null) previous else "$previous\n\n$explanation"
-        assertEquals("Outcome meaning must be separate and selected only by the actual outcome token", expected, text)
+        val meaning = if (explanation == null) previous else "$previous\n\n$explanation"
+        val expected = if (phase == null) meaning else "$meaning\n\n$phase"
+        assertEquals("General meaning and producer-observed phase must preserve the exact recorded prefix", expected, text)
 
         window.getButton(AlertDialog.BUTTON_POSITIVE).performClick(); idle()
         val page = dialog()
@@ -239,14 +245,38 @@ class CurrentDraftFindingOutcomeActivityTest {
         val id = "rule.model.serving.mode.selfhost"
         // The unchanged applicability compares a missing primary deployment mode with self_hosted.
         val current = admitted(id, "unknown", "warning")
-        verifyMeaning(current, id, unknownMeaning)
+        assertEquals(ai.pickyour.core.evaluation.DraftCurrentUnknownPhase.APPLICABILITY, current.outcome.unknownPhase(id))
+        verifyMeaning(current, id, unknownMeaning, applicabilityPhase)
+
+        val before = disk()
+        val oldWindow = detail(current, current.outcome.findings.indexOfFirst { it.ruleId == id })
+        val oldBack = oldWindow.getButton(AlertDialog.BUTTON_POSITIVE)
+        val oldFullText = oldWindow.getButton(AlertDialog.BUTTON_NEUTRAL)
+        val replacement = admitted(id, "unknown", "warning") { it.put("applies_when", trueExpression()) }
+        assertNotSame(current, replacement)
+        assertNotEquals(current.request.binding.rulesetHash, replacement.request.binding.rulesetHash)
+        assertFalse(oldWindow.isShowing)
+        assertEquals(ai.pickyour.core.evaluation.DraftCurrentUnknownPhase.ASSERTION, replacement.outcome.unknownPhase(id))
+        val fresh = detail(replacement, replacement.outcome.findings.indexOfFirst { it.ruleId == id })
+        val row = replacement.outcome.findings.single { it.ruleId == id }
+        val expected = previousDetail(row) + "\n\n" + unknownMeaning + "\n\n" + assertionPhase
+        assertEquals(expected, body(fresh))
+        assertFalse(body(fresh).contains(applicabilityPhase))
+        oldBack.performClick(); oldFullText.performClick(); idle()
+        assertSame(fresh, dialog())
+        assertTrue(fresh.isShowing)
+        assertEquals(expected, body(fresh))
+        assertSame(replacement, state())
+        assertEquals(before, disk())
+        fresh.getButton(AlertDialog.BUTTON_NEGATIVE).performClick(); idle()
     }
 
     @Test fun unresolvedEligibleAssertionHasTheSameUnknownMeaningWithoutInferringACause() {
         val id = "rule.model.serving.mode.selfhost"
         // Explicit synthetic applicability is true; the unchanged assertion has no selected model.
         val current = admitted(id, "unknown", "info") { it.put("applies_when", trueExpression()) }
-        verifyMeaning(current, id, unknownMeaning)
+        assertEquals(ai.pickyour.core.evaluation.DraftCurrentUnknownPhase.ASSERTION, current.outcome.unknownPhase(id))
+        verifyMeaning(current, id, unknownMeaning, assertionPhase)
     }
 
     @Test fun falseApplicabilityExplainsSkippedWithoutPromotingErrorSeverityToFailureOrPass() {

@@ -10,8 +10,8 @@ Android-local record's placement; normal reviewed record delivery and the separa
 strict-ledger amendment still govern completion.
 
 The retained-snapshot implementation/profile boundary and chronological
-source-time observations below retain their original scope. The subsequent #96
-comparison factorization updates the interpreter source descriptor to
+source-time observations below retain their original scope. The earlier #96
+comparison factorization used the interpreter source descriptor
 `b0bc63de8d6d4fed412344c4cb58864248782edf74aa9fb0fa75df9f3e80667f`; it does not
 reattribute the original #84 record or executions to that implementation. Their
 original pending-review language describes those earlier slices, not a reversal
@@ -91,16 +91,32 @@ source text changes the bundle identity even when the projected Build is identic
 | --- | --- |
 | Unchanged frozen Python evaluator | `092c8a99495f9b5ae960df40b27e33f15eefe6d1a7cd80119658fdc79ada1a5a` |
 | Existing 14-schema CD-7 descriptor | `eaaf51a04c9bd0c7fce23e7ecc75724226e26b337cc1da04b88a59d2a912914f` |
-| Kotlin `FrozenDiagnosticEvaluator.kt` | `b0bc63de8d6d4fed412344c4cb58864248782edf74aa9fb0fa75df9f3e80667f` |
+| Kotlin `FrozenDiagnosticEvaluator.kt` | `c8f4f35e0ce5e042578ac83fc8daa705139d27b00d1848d9ff20165e81de6fd1` |
 | Kotlin `ReferenceReportAdapter.kt` | `d39e266490ffb7814b0bb2cc05a108d60206f036a3be7beb6c340b29723fa525` |
 
-The previous interpreter descriptor
+The Current unknown-phase follow-up records the existing evaluator branch and
+therefore changes the shared interpreter's source bytes. Its descriptor advances
+from `b0bc63de8d6d4fed412344c4cb58864248782edf74aa9fb0fa75df9f3e80667f`
+to the value in the table. The profile name, frozen reference, schema descriptor,
+report receiver and fixed reference time remain unchanged.
+
+The digest of `SnapshotEvaluationRequest` includes the implementation descriptor,
+so newly prepared retained requests have different digests after this change,
+even when their archived inputs and resulting frozen report bytes are identical.
+`PreviewSnapshotAnalysis` uses that digest in its analysis identity and issues a
+fresh opaque ticket for every open or retry. These viewing classes provide no
+persisted report cache or migration: the correction does not rewrite archived
+source bytes, relabel historical reports or assign earlier executions to the new
+implementation. Current-draft requests use their separate unchanged binding.
+
+The original interpreter descriptor
 `5d01c0851f3731519869cb8a546d92de10a717c4a5236a557ff70091a1db8fb6`
-remains the identity of the original retained-profile executions. The current
-source factors the same rule loop for a separate typed private-draft candidate
-caller; frozen Build admission, complete report construction and archived-report
-re-admission remain intact. This new source descriptor does not relabel the
-earlier runs or admit incomplete draft contexts into this retained profile. See
+remains the identity of the original retained-profile executions. The later #96
+source factorization at `b0bc63de8d6d4fed412344c4cb58864248782edf74aa9fb0fa75df9f3e80667f`
+shared the rule loop with a separate typed private-draft candidate caller; frozen
+Build admission, complete report construction and archived-report re-admission
+remained intact. Neither implementation change relabels those earlier runs or
+admits incomplete draft contexts into this retained profile. See
 [the local compatible-options boundary](COMPATIBLE_OPTIONS.md).
 
 The previous report-receiver descriptor
