@@ -15,7 +15,7 @@ dependencies. From a clean committed checkout, first complete the applicable
 strict Gradle command in [RUNTIME_INVENTORY.md](RUNTIME_INVENTORY.md), then run:
 
 ```sh
-python -m pip install -r requirements-contracts.txt
+python -m pip install --require-hashes --only-binary=:all: --force-reinstall -r requirements-contracts.lock
 python scripts/runtime_sbom.py
 ```
 

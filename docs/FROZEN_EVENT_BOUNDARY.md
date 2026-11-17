@@ -100,7 +100,7 @@ universal cross-client equivalence or of accepted domain behavior.
 Use the toolchain in [CORE_FOUNDATION.md](CORE_FOUNDATION.md):
 
 ```sh
-python -m pip install -r requirements-contracts.txt
+python -m pip install --require-hashes --only-binary=:all: --force-reinstall -r requirements-contracts.lock
 python scripts/check_contracts.py
 ./gradlew --no-daemon :core:check :core:assemble
 ```

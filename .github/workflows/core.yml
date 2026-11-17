@@ -26,7 +26,10 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install reference validator dependencies
-        run: python -m pip install -r requirements-contracts.txt
+        run: |
+          python -m pip install --require-hashes --only-binary=:all: --force-reinstall -r requirements-contracts.lock
+      - name: Verify Python dependency hash enforcement
+        run: python -m unittest discover -s scripts/tests -p 'test_python_dependency_lock.py' -v
       - name: Verify frozen import and reference conformance
         run: python scripts/check_contracts.py
       - name: Verify versioned synthetic scenario data
@@ -1352,7 +1355,8 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install pinned schema validator dependencies
-        run: python -m pip install -r requirements-contracts.txt
+        run: |
+          python -m pip install --require-hashes --only-binary=:all: --force-reinstall -r requirements-contracts.lock
       - name: Ensure experimental SDK inputs
         shell: bash
         run: |
