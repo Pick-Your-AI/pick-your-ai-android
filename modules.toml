@@ -22,8 +22,8 @@
 # - The 14-package inventory counts immediate packages below ai.pickyour.core;
 #   nested evidence packages are included recursively in evidence.
 # - status: future means the module is planned but not created yet.
-# - frozen: true means the module is read-only except through the versioned review path
-#   (research Pick-Your-AI/pick-your-ai-research#40). See the contracts module note below.
+# - frozen: true applies to the imported contract package at its declared path,
+#   not to local Kotlin implementations that consume it. See contract_package.v1.
 
 # ---------------------------------------------------------------------------
 # PROJECT-LEVEL POLICY
@@ -33,11 +33,18 @@
 # advisory, not enforced by a script. The registry's job here is the boundary record.
 enforced = false
 
+# Imported data is separate from the Android implementation packages below.
+[contract_package.v1]
+path = "contracts/v1"
+frozen = true
+description = "Imported 43-file ai-builder-contract-v1 package. Preserve pinned bytes; successor versions require upstream acceptance, migration decisions and affected-owner review."
+authority = "docs/CONTRACT_ADOPTION.md"
+
 # ---------------------------------------------------------------------------
 # TOP-LEVEL MODULES
 # ---------------------------------------------------------------------------
 
-# The SDK-independent Kotlin core. No Android SDK / UI dependency. This is the frozen
+# The SDK-independent Kotlin core. No Android SDK / UI dependency. This is the local
 # logic layer: contract adapters, domain state, analysis, evidence semantics, and the
 # JVM filesystem/cache adapters.
 [module.core]
@@ -71,16 +78,16 @@ invariants = [
 # :core SUB-MODULES
 # ---------------------------------------------------------------------------
 
-# FROZEN. The frozen v1 contract value adapters. Read-only except through the versioned
-# review path. This is the crown jewel of this repository.
+# Local Kotlin consumers of frozen v1. Implementation maintenance uses normal Android
+# review and must preserve the imported contract bytes and accepted semantics.
 [module.core.contracts]
 path = "core/src/main/kotlin/ai/pickyour/core/contracts"
 status = "active"
-frozen = true
+frozen = false
 depends_on = ["evidence", "importing"]
 line_cap_soft = 200
 line_cap_hard = 300
-description = "Frozen v1 contract value adapters and the strict validator. Preserve frozen v1; never patch to make a test pass."
+description = "Local v1 contract value adapters and the strict validator. Preserve frozen v1 bytes and semantics while maintaining Android conformance."
 owns = [
   "ContractValues.kt",
   "DependencyGraph.kt",
@@ -103,11 +110,12 @@ does_not_own = [
   "Evaluation logic — belongs to core.evaluation",
 ]
 invariants = [
-  "FROZEN: never alter frozen v1 to make a test pass. Changes route through research #40 with the agreed versioning and affected-owner review.",
+  "Never alter imported contracts/v1 to make a test pass. Shared field, meaning or version changes route through research #40 with agreed versioning and affected-owner review.",
+  "Local Kotlin implementation fixes use normal Android review; frozen-contract conformance and existing acceptance requirements still apply.",
   "Decimal money round-trips without binary-float change; invalid kind/enum/version is rejected",
 ]
 gotchas = [
-  "Known import cycle: contracts -> evidence -> contracts. Frozen adapters import evidence status values; this record does not authorize changing frozen v1.",
+  "Known import cycle: contracts -> evidence -> contracts. Local adapters import evidence status values; this record does not authorize changing frozen v1.",
   "The 'unknown' evaluation outcome is a valid outcome, not a failure. Do not downgrade or certify claims without reviewing evidence (Android #27, research #40).",
 ]
 
