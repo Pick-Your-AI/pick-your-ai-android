@@ -63,3 +63,11 @@ body:
     attributes:
       label: Optional synthetic reproduction or related issue
       description: Name the relevant controls or an existing public report. Do not attach a private draft or automatically collected diagnostics.
+  - type: textarea
+    id: routing_context
+    attributes:
+      label: Routing context (optional)
+      description: Only for an unresolved decision. Reuse answers above; do not include private rosters or security details. See CONTRIBUTING.md, Routing decisions.
+      placeholder: "Decision needed; current responsible role; prior disposition; proposed next recipient."
+    validations:
+      required: false

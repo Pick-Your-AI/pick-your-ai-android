@@ -12,3 +12,13 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md), [repository scope](docs/REPOSITORY_SCOP
 - Never shut down or terminate the shared WSL VM. Diagnose individual sessions/services without affecting other workloads.
 
 The pinned prompt migration was reviewed and merged in https://github.com/Pick-Your-AI/pick-your-ai-research/pull/111 on 2026-10-18 at `da3c6045f84260506bd326bb24ddfa8a7e6a23e8`. Its publication preserves issue scope, ownership and acceptance paths; it does not establish implementation or release acceptance. Refresh live issues and active work before execution.
+
+## Decisions and escalation
+
+For unresolved decisions, follow [CONTRIBUTING.md#routing-decisions](CONTRIBUTING.md#routing-decisions)
+and the [canonical escalation guide](https://github.com/Pick-Your-AI/.github/blob/main/docs/governance/ESCALATION.md).
+Refresh private routing evidence before choosing a recipient. Report unresolved
+roles and failed or stale lookups explicitly; do not infer accepted ownership from
+membership or access. Preserve the existing assignee, local gates and private-reporting
+boundaries. Central links depend on the governance change merging; no automatic
+routing, permission change or recurring job is enabled by these instructions.

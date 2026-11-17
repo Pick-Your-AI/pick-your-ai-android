@@ -1,0 +1,18 @@
+<resources>
+    <string name="data_source_editor_guidance">These optional settings record a data-source configuration. They do not connect to a source, retrieve credentials, schedule refreshes or establish source rights.</string>
+    <string name="data_source_reference">Connector secret reference</string>
+    <string name="data_source_reference_rule">Use an opaque secret:// reference with letters, digits, slash, underscore, colon, dot or hyphen. Do not enter a password, token or credential value.</string>
+    <string name="data_source_minutes">Refresh interval (minutes)</string>
+    <string name="data_source_minutes_rule">Supply an exact whole number of minutes, at least 1.</string>
+    <string name="data_source_enabled">Data-source setting: enabled</string>
+    <string name="data_source_enabled_rule">Not supplied, false and true are distinct. This setting does not change whether the component itself is enabled and does not start a connector.</string>
+    <string name="data_source_not_supplied">Not supplied</string>
+    <string name="data_source_false">False</string>
+    <string name="data_source_true">True</string>
+    <string name="data_source_supply">Supply %1$s</string>
+    <string name="data_source_optional_value">Optional; supply explicitly</string>
+    <string name="data_source_value_required">Enter a value or clear the supply option.</string>
+    <string name="data_source_integer_invalid">Enter an exact JSON whole number without grouping or locale separators.</string>
+    <string name="data_source_too_long">This input exceeds the local editor limit.</string>
+    <string name="data_source_recovery_guidance">Pending input is retained only within the local recovery limit. A supplied connector reference that does not match the opaque reference format is not retained after leaving this form. Recovering input does not confirm a save.</string>
+</resources>

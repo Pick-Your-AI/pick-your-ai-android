@@ -73,8 +73,12 @@ Restored input requires explicit review. A changed draft, baseline, selection,
 catalog identity or saved in-flight flag cannot acquire fresh save authority.
 Stale input remains read-only where its checkpoint is otherwise valid. Every
 control and nested picker freezes while saving and retires when its form closes.
-View state saving, autofill and personalized-learning input are disabled for the
-typed controls; the bounded checkpoint owns recovery.
+View-state saving is disabled and the controls opt out of autofill. They request
+no personalized keyboard learning through Android's
+[`IME_FLAG_NO_PERSONALIZED_LEARNING`](https://developer.android.com/reference/android/view/inputmethod/EditorInfo#IME_FLAG_NO_PERSONALIZED_LEARNING)
+flag. The keyboard determines whether it honors that request; the bounded
+checkpoint remains responsible for recovery. The API reference was checked on
+20 October 2026.
 
 Legacy raw version-1 and version-2 model checkpoints remain readable through
 their original raw reader. Version-3 context policy checkpoints are unchanged.
@@ -124,5 +128,7 @@ execution. These local JVM/Robolectric results do not establish installed proces
 death, physical-device behavior, signed release or production acceptance. Typed
 ADD, other component editors, broader answer-state UI/storage/export and the
 remaining #99 criteria retain their own owners and acceptance.
-The existing [08.04 acceptance coordinate](https://github.com/Pick-Your-AI/pick-your-ai-website/blob/main/docs/delivery/android/work-packages/08.04.md)
-is preserved.
+The intended #99 acceptance destination remains
+`docs/delivery/android/work-packages/08.04.md` in `Pick-Your-AI/pickyour.ai`.
+The [live issue's delivery record](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/99#delivery-record-and-receiving-review)
+tracks its placement and receiving evidence.

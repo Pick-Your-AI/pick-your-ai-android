@@ -52,6 +52,31 @@ tests GitHub's prepared merge commit. Record the artifact ID, downloaded ZIP SHA
 embedded source/tree where supplied and the observed test result before relying on
 an artifact. An expired or unavailable artifact is an evidence gap, not a pass.
 
+### Core job time budget
+
+The Core job has a bounded 20-minute wall-clock budget for its complete serial
+reference/tamper, ledger, JVM, packaging-negative and SPDX validation sequence.
+This is a CI scheduling ceiling, not a device-performance measurement or a
+promise that every run finishes within that time.
+
+The [PR #747 receiving job](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39430841285/job/118655189801)
+for actual checkout `9fb7e597eb1d763e2092947aab895ec90c6d5779` was cancelled
+at the former 15-minute boundary. Its JVM build/tests and all required regression
+groups had succeeded. The actual inventory-producer Git-replacement control was
+cancelled, and SPDX export/schema validation was skipped. The original console
+says "The operation was canceled."; the configured limit and job/step timings
+support budget exhaustion, rather than an explicit timeout sentence in that log.
+Those two unfinished validation phases remain incomplete in that original run.
+
+The [earlier same-tree staging job](https://github.com/Pick-Your-AI/pick-your-ai-android/actions/runs/39424733130/job/118634307710)
+completed the entire Core lane in 12 minutes 10 seconds. In the receiving run,
+the tamper suite took 362.386 seconds instead of 259.369, and the delivery-ledger
+suite took 211.702 instead of 170.653. The extra five minutes provide bounded
+headroom for the remaining checks. Every configured command, assertion, step
+condition, permission, input pin and artifact check retains its existing role;
+Preview and Installed keep their respective 20- and 25-minute budgets.
+A fresh natural run must execute all required Core phases before qualification.
+
 ### Configured and recorded job steps
 
 Keep workflow-defined steps separate from runner lifecycle steps. The [a82

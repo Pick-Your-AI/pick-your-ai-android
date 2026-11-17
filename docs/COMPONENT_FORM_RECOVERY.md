@@ -76,6 +76,15 @@ Boolean preserves omission versus false. Draft/baseline/selection/catalog pins
 and the in-flight flag constrain review. It does not change the raw version-1/2
 reader, existing typed readers, durable format or frozen contract version.
 
+The separate [monitoring-stack reader](MONITORING_STACK_SETTINGS_EDITOR.md) uses
+the string discriminator `typed-monitoring-stack/1`. Its three nullable strings
+share the same raw-input budget and retain original draft/baseline/Selection and
+catalog pins plus in-flight state. Invalid numeric text may remain for correction;
+newly captured typed credential input must match the frozen opaque-reference
+pattern even when a numeric sibling is invalid. Otherwise only the generic
+unavailable marker is captured. This does not classify arbitrary numeric text or
+change legacy raw recovery, saved history or the existing URI-userinfo policy.
+
 Oversized input is never prefix-truncated into apparently valid JSON. Unsupported
 versions, shapes or primitive types and over-budget state produce a small
 **input unavailable** marker with explicit user-visible guidance. No raw input

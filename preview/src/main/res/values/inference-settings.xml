@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="inference_editor_guidance">All four inference engine settings are optional. Choose Supply to enter a value; clear Supply to remove that field. Empty supplied text needs correction. No value is filled from the catalog.</string>
+    <string name="inference_tensor_parallel">Tensor parallel size</string>
+    <string name="inference_max_batch">Maximum batch tokens</string>
+    <string name="inference_precision">Precision</string>
+    <string name="inference_quantization">Quantization</string>
+    <string name="inference_supply">Supply %1$s</string>
+    <string name="inference_not_supplied">Not supplied</string>
+    <string name="inference_tensor_parallel_rule">tensor_parallel_size: a whole number, at least 1. This setting does not establish available hardware or engine compatibility.</string>
+    <string name="inference_max_batch_rule">max_batch_tokens: a whole number of tokens, at least 1. This setting does not establish throughput or a capacity limit.</string>
+    <string name="inference_choice_rule">%1$s: choose a literal value or leave it not supplied.</string>
+    <string name="inference_recovery_guidance">Recovery retains at most 20,000 characters across these controls (some symbols count as two). Longer input is replaced by a fixed unavailable notice. Live text stays available for correction until the form closes.</string>
+    <string name="inference_value_required">Enter a supplied value, or clear Supply to leave this field absent.</string>
+    <string name="inference_integer_invalid">Enter a whole JSON number using ASCII digits, without grouping or rounding.</string>
+    <string name="inference_choice_invalid">Choose one of the listed literal values or Not supplied.</string>
+    <string name="inference_too_long">This value exceeds the existing local JSON input limit. Shorten it before saving.</string>
+</resources>

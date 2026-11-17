@@ -65,3 +65,11 @@ body:
     attributes:
       label: Related public report
       description: Optional existing public issue or reviewed-fix URL. Do not include private or credential-bearing URLs.
+  - type: textarea
+    id: routing_context
+    attributes:
+      label: Routing context (optional)
+      description: Only for an unresolved decision. Reuse answers above; do not include private rosters or security details. See CONTRIBUTING.md, Routing decisions.
+      placeholder: "Decision needed; current responsible role; prior disposition; proposed next recipient."
+    validations:
+      required: false

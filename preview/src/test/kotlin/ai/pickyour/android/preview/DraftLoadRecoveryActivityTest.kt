@@ -361,6 +361,8 @@ class DraftLoadRecoveryActivityTest {
         button(R.string.reopen_draft).performClick()
         val acknowledgedDialog = ShadowAlertDialog.getLatestAlertDialog()!!
         val acknowledgedRetry = keepingEditsChoice(acknowledgedDialog)
+        assertFalse(busyDialog.isShowing)
+        assertTrue(acknowledgedDialog.isShowing)
         val entered = CountDownLatch(1)
         val release = CountDownLatch(1)
         val blocked = worker().submit { entered.countDown(); assertTrue(release.await(15, TimeUnit.SECONDS)) }
@@ -371,7 +373,8 @@ class DraftLoadRecoveryActivityTest {
             advanceAutosave(1)
             assertTrue(hasText(activity.getString(R.string.draft_saving)))
             val savingAuthority = storageAuthority()
-            assertTrue(busyDialog.isShowing)
+            assertFalse(busyDialog.isShowing)
+            assertFalse(acknowledgedDialog.isShowing)
             busyRetry.performClick()
             AutosaveUiClock.idle()
             assertFalse("A busy action cannot pause the in-flight autosave", autosave().isPaused)
@@ -388,7 +391,7 @@ class DraftLoadRecoveryActivityTest {
         assertEquals("pending synthetic title", saved.fields.title)
         val afterSave = retainedBytes()
         val acknowledgedAuthority = storageAuthority()
-        assertTrue(acknowledgedDialog.isShowing)
+        assertFalse(acknowledgedDialog.isShowing)
         acknowledgedRetry.performClick()
         AutosaveUiClock.idle()
         assertFalse("An old baseline cannot pause the current pending save", autosave().isPaused)

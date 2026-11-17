@@ -1,5 +1,107 @@
 # Criterion evidence ledger
 
+## Version 17: the received current-draft invalidation outcome for #100
+
+This amendment completes only **100.1–100.4** for
+`local-stored-draft-current-diagnostics/1`. There are **54 complete criteria out
+of 441**: 25 reviewed design, 25 reviewed implementation, one import-integrity
+and three support criteria. **387 remain incomplete.** Every original criterion
+ID, sentence and digest is preserved, along with all four tasks and both
+validation methods in the [09.02 record](android/work-packages/09.02.md).
+
+### Actual receiving and effective record placement
+
+The actual [governed compatibility/capacity decision
+6281024595](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/100#issuecomment-6281024595)
+and [Android-domain decision
+6281144652](https://github.com/Pick-Your-AI/pick-your-ai-android/issues/100#issuecomment-6281144652)
+accept all four criteria and tasks with constraints. Their exact body hashes,
+timestamps, roles, reviewed V1 tree and explicit same-account attribution are
+fixed in the receipt. These are actual in-session engineering reviews under the
+maintainer's delegation; no absent assignee or separate-account approving vote
+is invented.
+
+[PR #663](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/663) delivered
+the independently reviewed four-document amendment at signed
+`d6697ed824332070a30f8d7ecab938add5838156`, tree
+`c804f446f6cb555ddfac365d433b461215053417`, on **2026-10-20 03:36:23 UTC**.
+Its sole parent is `3b49f484ea848a635e1c8fee8edb5c9f427a9f3b`.
+The [complete delivery qualification
+6282823662](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/663#issuecomment-6282823662)
+verifies the four exact document leaves and all 747 unaffected main entries.
+The [exact source review
+5579846515](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/663#pullrequestreview-5579846515)
+binds the earlier unsigned `dd0643dd` transport separately from signed delivery.
+
+That event makes [ADR0015](../decisions/0015-android-100-acceptance-record.md)
+effective for **only** the 09.02 record. The same relative path now belongs to
+`Pick-Your-AI/pick-your-ai-android`; its original
+`Pick-Your-AI/pickyour.ai` coordinate remains in the fixed receipt and the
+byte-exact predecessor ledger. Every other coordinate, prerequisite and issue
+row stays unchanged. The record retains its historical preparation-time pending
+statements; this later reconciliation does not rewrite those observations.
+
+### Source and original executions keep their actual identities
+
+Implementation #620 delivered signed `32f5bd7b`, tree `285244c4`, with the
+16 exact source pins retained in the record. The accepted #84 interpreter and
+frozen-v1 local profile remain the prerequisite. Conservative affected sets,
+before/after source binding, finite one-shot evaluation, current UI admission
+and immutable history are the accepted behavior. Current resource/cost producers
+remain unavailable. Missing evidence is not compatibility, capacity or zero cost.
+
+The implementation owner's qualified **c111** originals contain **6,352 Core,
+683 Preview and four installed cases**. Their qualifications, APK and installed
+archive identities remain fixed. The accepted 32f5 composition adds a separately
+reviewed count-label change; neither main nor later documentation is relabeled
+as the execution source. Historical compile/test failures and other successful
+cohorts remain separate in 09.02.
+
+The record's distinct **a05f605b** original run39355159448 contains **6,366 Core,
+716 Preview and four installed cases**, with zero failures/errors/skips.
+The later qualifier acquired all four original archives and checked all **479**
+safe unique members, exact source/output pins, producer APK binding, complete
+console identities, original UID1001 and restored historical KVM ACL. The
+fixed receipt records that original source/tree, each artifact and console hash,
+the twelve complete command-text links and eight PNG/XML bindings. Its scanner
+retains **three reviewed raw findings, zero unresolved findings and 45 passing
+guards**. No new emulator, pixel, physical-device, TalkBack, release or actual
+main-push execution is inferred from these document checks.
+
+### Strict preservation and checks
+
+The validator requires the complete source-fixed #100 receipt, both real receiving
+decisions, effective placement, exact merged evidence and four completion field
+sets. Its detached inverse changes only #100's four completion fields, new receipt,
+record repository, new evidence entry and current version/purpose. It then calls
+the **entire unchanged v16 validator** with the same optional live-source input.
+Unknown or altered history survives the inverse and must fail admission.
+
+Reconstruction restores all **701,444 bytes** of the accepted v16 ledger,
+SHA-256 `b75ef6275cbed9c555f9b0a541025f427852224ad958a7059d1baa8fa1aaadda`.
+The separate canonical JSON digest is
+`72f771fa30b21cbe1ac1a9520392ac351350c24f8c8d638c332bf9dcfec1ab77`.
+All 128 other issue objects, 37 earlier evidence entries and 50 previous
+completions remain exact. Prior narrative and original test identities remain;
+historical count assertions explicitly inspect their original schema before
+continuing their earlier inverses. Current negative controls still exercise
+the public v17 validator.
+
+The focused controls reject source/execution substitutions, fabricated receiving,
+extra or missing receipt fields, scalar-type aliases, modified literal criteria,
+borrowed completion, unrelated history and altered placement. Normal and optimized
+Python CLI paths retain the same fail-closed behavior. Offline validation remains
+explicitly different from a fresh all-state live-issue comparison. Issue checkbox
+and status reconciliation follows reviewed delivery and qualified required checks.
+
+This is the successor to the accepted #98 reconciliation from
+[#688](https://github.com/Pick-Your-AI/pick-your-ai-android/pull/688), retained
+unchanged in current main `7cdaac6205899a55d945c32caad2c755b248196d`.
+Its schema16 receipt, all 210 existing test identities and the accepted #676
+terminology remain intact. Eleven #100 controls bring the suite to 221 methods.
+The earlier unpublished #100/schema16 preparation is historical and is not the
+accepted predecessor or a current-main execution result.
+
 ## Version 16: received local catalog selection and component links
 
 This amendment records **50 of 441 criteria complete; 391 remain incomplete**.

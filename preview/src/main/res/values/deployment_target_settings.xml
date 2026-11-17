@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="deployment_target_editor_title">Deployment</string>
+    <string name="deployment_target_editor_guidance">These are declared planning settings. They do not deploy anything or establish approval, regional support, capacity or readiness.</string>
+    <string name="deployment_target_environment">Environment</string>
+    <string name="deployment_target_environment_rule">Choose a frozen environment value, or leave it not supplied. No environment is selected automatically.</string>
+    <string name="deployment_target_replicas_min">Minimum replicas</string>
+    <string name="deployment_target_replicas_min_rule">Optional whole number, at least 0. Zero is a supplied value. No relationship to maximum replicas is inferred here.</string>
+    <string name="deployment_target_replicas_max">Maximum replicas</string>
+    <string name="deployment_target_replicas_max_rule">Optional whole number, at least 1. This is a declared bound, not verified available capacity.</string>
+    <string name="deployment_target_region">Region</string>
+    <string name="deployment_target_region_rule">Optional literal text; blank, whitespace and unknown remain declared input. This does not verify a region or its availability.</string>
+    <string name="deployment_target_approval_ticket">Approval ticket reference</string>
+    <string name="deployment_target_approval_ticket_rule">Optional unverified reference text. It grants no approval or access. Do not enter credentials or authorization tokens.</string>
+    <string name="deployment_target_not_supplied">Not supplied</string>
+    <string name="deployment_target_supply">Supply %1$s</string>
+    <string name="deployment_target_number_required">Enter a whole number, or clear Supply to leave this field not supplied.</string>
+    <string name="deployment_target_integer_invalid">Use an exact JSON whole number with a dot for any decimal notation; do not use grouping, locale separators or units.</string>
+    <string name="deployment_target_environment_invalid">Choose one of the listed environments, or Not supplied.</string>
+    <string name="deployment_target_text_invalid">This text cannot be represented as valid Unicode. Correct it before saving.</string>
+    <string name="deployment_target_too_long">This field exceeds the local editor limit. Shorten it before saving.</string>
+    <string name="deployment_target_recovery_guidance">Only bounded private pending input can be recovered. Recovery requires review and a new save; it does not restore approval or write authority.</string>
+    <string name="deployment_target_supplied_text">Supplied literal text; an empty value remains distinct from Not supplied.</string>
+</resources>

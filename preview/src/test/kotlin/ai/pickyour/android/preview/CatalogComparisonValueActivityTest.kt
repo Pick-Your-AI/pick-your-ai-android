@@ -317,16 +317,28 @@ class CatalogComparisonValueActivityTest {
         val picker = libraryPicker()
         val index = libraryIndex(picker, PreviewDraftId("guest-draft"))
         assertStoragePresentationRetiresValue {
-            assertTrue(picker.isShowing)
-            shadowOf(picker).clickOnItem(index)
+            assertFalse(picker.isShowing)
+            val value = dialog()
+            shadowOf(picker).clickOnItem(index); idle()
+            assertSame(value, dialog())
+            assertTrue(value.isShowing)
+            val fresh = libraryPicker()
+            assertNotSame(picker, fresh)
+            shadowOf(fresh).clickOnItem(libraryIndex(fresh, PreviewDraftId("guest-draft")))
         }
     }
 
     @Test fun deleteConfirmationRetiresCompleteValueCallbacks() {
         val entry = libraryEntry(PreviewDraftId("guest-draft"))
         assertStoragePresentationRetiresValue {
-            assertTrue(entry.isShowing)
-            entry.getButton(AlertDialog.BUTTON_NEUTRAL).performClick()
+            assertFalse(entry.isShowing)
+            val value = dialog()
+            entry.getButton(AlertDialog.BUTTON_NEUTRAL).performClick(); idle()
+            assertSame(value, dialog())
+            assertTrue(value.isShowing)
+            val fresh = libraryEntry(PreviewDraftId("guest-draft"))
+            assertNotSame(entry, fresh)
+            fresh.getButton(AlertDialog.BUTTON_NEUTRAL).performClick()
         }
     }
 

@@ -68,6 +68,25 @@ class OperationalSelectionActivityTest {
     }
     private fun field(dialog: AlertDialog, label: Int) = field(dialog.window!!.decorView, label)
     private fun checkbox(dialog: AlertDialog) = views(dialog.window!!.decorView).filterIsInstance<CheckBox>().single()
+    private fun assertTypedDeploymentSettings(form: AlertDialog, selection: LocalSelection) {
+        val expected = PreviewDeploymentTargetSettings.initial(selection)
+        val texts = views(form.window!!.decorView).filterIsInstance<TextView>()
+        val environmentLabel = texts.single { it.text.toString() == activity.getString(R.string.deployment_target_environment) }
+        assertNotEquals(View.NO_ID, environmentLabel.labelFor)
+        val environment = form.findViewById<Button>(environmentLabel.labelFor)
+        assertEquals(expected.environment ?: activity.getString(R.string.deployment_target_not_supplied), environment.text.toString())
+        for ((label, value) in listOf(R.string.deployment_target_replicas_min to expected.replicasMin,
+            R.string.deployment_target_replicas_max to expected.replicasMax,
+            R.string.deployment_target_region to expected.region,
+            R.string.deployment_target_approval_ticket to expected.approvalTicket)) {
+            val supplied = views(form.window!!.decorView).filterIsInstance<CheckBox>().single {
+                it.text.toString() == activity.getString(R.string.deployment_target_supply, activity.getString(label))
+            }
+            assertEquals(value != null, supplied.isChecked)
+            assertEquals(value ?: "", field(form, label).text.toString())
+        }
+        assertEquals(entered.getValue(selection.kind), PreviewSelectionForms.settingsText(selection))
+    }
     private fun dialog() = requireNotNull(ShadowAlertDialog.getLatestAlertDialog())
     private fun idle() = shadowOf(Looper.getMainLooper()).idle()
     private fun await(condition: () -> Boolean) {
@@ -141,6 +160,20 @@ class OperationalSelectionActivityTest {
     }
     private fun assertConfiguredSettings(form: AlertDialog, selection: LocalSelection) {
         assertEquals(entered.getValue(selection.kind), PreviewSelectionForms.settingsText(selection))
+        if (selection.kind == PreviewDeploymentTargetSettings.KIND) {
+            assertTypedDeploymentSettings(form, selection)
+            return
+        }
+        if (selection.kind == "monitoring_stack") {
+            assertEquals(1, views(form.window!!.decorView).filterIsInstance<MonitoringStackSettingsEditor>().size)
+            assertEquals("0.123456789123456789", field(form, R.string.monitoring_stack_sample).text.toString())
+            assertEquals("900719925474099312345678", field(form, R.string.monitoring_stack_retention).text.toString())
+            assertEquals("secret://synthetic/monitoring:reference-1", field(form, R.string.monitoring_stack_credential).text.toString())
+            val supplies = views(form.window!!.decorView).filterIsInstance<CheckBox>()
+            assertEquals(3, supplies.size)
+            assertTrue(supplies.all { it.isChecked })
+            return
+        }
         if (selection.kind != "cost_policy") {
             assertEquals(entered.getValue(selection.kind), field(form, R.string.component_settings).text.toString())
             return

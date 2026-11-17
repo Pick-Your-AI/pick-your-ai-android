@@ -144,7 +144,7 @@ class VerifiedArtifactCache internal constructor(
                             if (failure.reason == CacheFailure.CANCELLED) throw failure
                             null
                         } catch (_: IOException) { null }
-                        if (previous != null) {
+                        if (previous?.hash != null) {
                             checkpoint(CacheWritePoint.CURRENT_POINTER_VERIFIED)
                             // A prior uncertain activation may be visible but not durable yet.
                             // Confirm its pointer before discarding any possible predecessor.
@@ -184,7 +184,9 @@ class VerifiedArtifactCache internal constructor(
         } catch (error: Failure) {
             if (activationAttempted) CacheInstall.ActivationUncertain(expected) else CacheInstall.Failed(error.reason)
         } catch (_: IOException) {
-            if (activationAttempted) CacheInstall.ActivationUncertain(expected) else CacheInstall.Failed(CacheFailure.IO_FAILURE)
+            // Provider or channel I/O can observe interruption before the next cancellation poll.
+            if (activationAttempted) CacheInstall.ActivationUncertain(expected)
+            else CacheInstall.Failed(if (Thread.currentThread().isInterrupted) CacheFailure.CANCELLED else CacheFailure.IO_FAILURE)
         }
     }
 

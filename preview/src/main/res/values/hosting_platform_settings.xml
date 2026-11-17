@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="hosting_platform_editor_guidance">These are declared hosting settings. Saving does not verify a region, resolve an account, or establish network isolation.</string>
+    <string name="hosting_platform_region">Region</string>
+    <string name="hosting_platform_account">Account reference</string>
+    <string name="hosting_platform_network">Network isolation</string>
+    <string name="hosting_platform_supply">Supply %1$s</string>
+    <string name="hosting_platform_not_supplied">Not supplied</string>
+    <string name="hosting_platform_empty_value">Supplied empty string</string>
+    <string name="hosting_platform_supplied_value">Supplied value</string>
+    <string name="hosting_platform_region_rule">Optional literal text. Supplied empty text, whitespace and the word unknown stay distinct from omission. No region is selected automatically.</string>
+    <string name="hosting_platform_account_rule">Optional opaque secret:// reference only. Do not enter an account password, token or credential. The reference is not resolved here.</string>
+    <string name="hosting_platform_network_rule">Optional declared choice: public, private or air_gapped. No network setting is applied or verified.</string>
+    <string name="hosting_platform_recovery_guidance">Pending input is retained only within the private recovery limit and requires explicit review. Invalid account references are excluded from recovery. No pending input is a saved revision.</string>
+    <string name="hosting_platform_text_invalid">Enter valid text or remove the supplied field.</string>
+    <string name="hosting_platform_reference_invalid">Use an opaque secret:// reference with only the permitted letters, numbers, slash, underscore, colon, period or hyphen; or remove the supplied field.</string>
+    <string name="hosting_platform_enum_invalid">Choose public, private or air_gapped, or leave this field not supplied.</string>
+    <string name="hosting_platform_too_long">This field exceeds the local editor limit. Shorten it or remove the supplied field.</string>
+</resources>
