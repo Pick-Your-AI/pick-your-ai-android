@@ -923,7 +923,7 @@ class PreviewActivity : Activity() {
         if (!current()) return
         catalog.cancelViewportRestore()
         prepareInspection()
-        if (current()) componentSection.reviewCurrentSelection(expected, selectionId)
+        if (current()) componentSection.reviewCurrentSelection(expected, selectionId) { compatibleOptions.dismiss() }
     }
 
     private fun invalidateCurrentChecks(reason: PreviewCurrentUnavailable) {

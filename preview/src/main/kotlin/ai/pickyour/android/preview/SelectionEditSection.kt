@@ -101,10 +101,10 @@ internal class SelectionEditSection(private val activity: Activity,
     }
 
     /** Open only the reported saved ID; never choose a kind/role/catalog fallback or an option. */
-    internal fun reviewCurrentSelection(expected: PreviewStoredDraft, selectionId: String) {
+    internal fun reviewCurrentSelection(expected: PreviewStoredDraft, selectionId: String, retirePresentation: () -> Unit) {
         if (!canReviewCurrentChoices(expected)) return
         val selection = expected.components.selections.singleOrNull { it.id == selectionId } ?: return
-        chooseAction(expected, selection)
+        chooseAction(expected, selection, beforeShow = retirePresentation)
     }
 
     fun update(record: PreviewStoredDraft?, enabled: Boolean, draftId: String? = currentDraftId) {
@@ -188,8 +188,8 @@ internal class SelectionEditSection(private val activity: Activity,
         publishReviewAvailability()
         onReviewAvailabilityChanged = null
     }
-    private fun show(dialog: AlertDialog, feedback: TextView? = null): AlertDialog {
-        retireOptions()
+    private fun show(dialog: AlertDialog, feedback: TextView? = null, beforeShow: () -> Unit = retireOptions): AlertDialog {
+        beforeShow()
         dialogs += dialog
         if (feedback != null) dialogFeedback[dialog] = feedback
         dialog.setOnDismissListener {
@@ -739,11 +739,11 @@ internal class SelectionEditSection(private val activity: Activity,
             }.setNegativeButton(R.string.close, null).create())
     }
 
-    private fun chooseAction(expected: PreviewStoredDraft, selection: LocalSelection) {
+    private fun chooseAction(expected: PreviewStoredDraft, selection: LocalSelection, beforeShow: () -> Unit = retireOptions) {
         if (!canOpen(expected)) return
         if (!PreviewSelectionForms.supported(selection.kind)) {
             show(AlertDialog.Builder(activity).setTitle(label(selection)).setMessage(R.string.component_unsupported)
-                .setNegativeButton(R.string.close, null).create())
+                .setNegativeButton(R.string.close, null).create(), beforeShow = beforeShow)
             return
         }
         val options = arrayOf(activity.getString(R.string.component_configure), activity.getString(R.string.component_edit_role),
@@ -766,7 +766,7 @@ internal class SelectionEditSection(private val activity: Activity,
                 }
                 4 -> compareReplacement(expected, selection)
             }
-        }.setNegativeButton(R.string.close, null).create())
+        }.setNegativeButton(R.string.close, null).create(), beforeShow = beforeShow)
     }
 
     private fun compareReplacement(expected: PreviewStoredDraft, selection: LocalSelection) {

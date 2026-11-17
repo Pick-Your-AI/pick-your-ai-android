@@ -40,7 +40,13 @@ management availability, resolves the exact ID again, and delegates to the
 unchanged management menu. Its existing Edit settings, Edit role, Enable/Disable,
 Remove and Compare choices actions retain their normal captured identities,
 explicit confirmations, lifecycle guards and managed compare-and-swap writes.
-Opening the menu itself performs no write or compatible-choice calculation.
+Opening this menu uses a presentation-only retirement callback that dismisses
+any compatible-options session without invalidating Current analysis or posting
+a refresh. It retains the exact Current state, request and active evaluation
+attempt. The generic editor/menu helper keeps its existing invalidating callback
+as the default; subsequent explicit editor or confirmation actions retain that
+boundary. Opening this menu performs no evaluation, write or compatible-choice
+calculation.
 
 **Compare choices for this slot** still requires another explicit action. It
 uses the unchanged picker and typed evaluator with the selected ID, kind and
@@ -67,13 +73,24 @@ and exact matching versions; saved order differs from the evaluator's reported
 ID order. Admission, source/catalog/rules bindings, actual foundation failure
 and reported IDs are asserted before the missing-entry assertion.
 
-The eleven declared methods cover the exact secondary destination, explicit
+The original eleven declared methods cover the exact secondary destination, explicit
 comparison slot, no-ID control, one-use and retired controls, sibling/retry/input
 retirement, pending-field ABA, replacement/removal/disable, store switch and
 lifecycle recovery, a real changed durable-head CAS rejection, and narrow RTL
 large-text reachability. The geometry case measures the real attached window,
 all four full action targets and complete labels, original message-tail
 reachability, and native action-bar scrolling when an action needs revealing.
+
+A twelfth regression holds the real Activity worker with a latch, opens only the
+management menu, drains posted UI callbacks and checks exact Current state,
+request, active attempt and authority identities. It checks those identities
+again after releasing and draining the worker, along with the exact secondary
+menu, absent comparison session and unchanged private bytes. A later explicit
+Edit role entry must still invalidate analysis through the existing editor path.
+This case addresses a source-review finding that the original eleven tests did
+not detect: generic menu presentation invalidated and reissued Current work.
+Its execution result must come from the new exact-source hosted run; adding the
+assertions is not a local native reproduction.
 
 The new workflow step is additive after the existing affected-selection guard.
 It requires every declared name, direct unique cases in the exact class, matching

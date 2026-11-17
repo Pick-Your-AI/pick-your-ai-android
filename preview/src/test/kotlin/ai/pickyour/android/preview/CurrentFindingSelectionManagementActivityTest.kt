@@ -302,6 +302,67 @@ class CurrentFindingSelectionManagementActivityTest {
         actions.cancel(); idle()
     }
 
+    @Test fun openingManagementRetainsCurrentStateRequestAndAttemptWithoutEvaluationOrWrite() {
+        val before = installModels()
+        val selected = selectionContext(before)
+        finishWork()
+        assertSame(before, state())
+        val request = before.request
+        val authority = field<Any>("currentCheckAuthority")
+        val saved = field<PreviewStoredDraft>("savedRecord")
+        val bytes = disk()
+        val section = field<CurrentDraftCheckSection>("currentChecks")
+        val analysis = CurrentDraftCheckSection::class.java.getDeclaredField("analysis")
+            .apply { isAccessible = true }.get(section) as PreviewCurrentDraftAnalysis
+        val active = PreviewCurrentDraftAnalysis::class.java.getDeclaredField("active").apply { isAccessible = true }
+        val attempt = requireNotNull(active.get(analysis))
+        val picker = field<CompatibleOptionsPicker>("compatibleOptions")
+        val session = CompatibleOptionsPicker::class.java.getDeclaredField("session").apply { isAccessible = true }
+        assertNull(session.get(picker))
+        fun unchangedCurrent() {
+            assertSame("Management navigation must retain the exact Current state", before, state())
+            assertSame("Management navigation must not issue a Current request", request, current().request)
+            assertSame("Management navigation must not revoke or replace the active attempt", attempt, active.get(analysis))
+            assertSame("Management navigation must not invalidate Current authority", authority, field<Any>("currentCheckAuthority"))
+            assertNull("Management navigation must not start a compatible-options session", session.get(picker))
+            assertEquals("Management navigation must not write draft/library files", bytes, disk())
+        }
+        val entered = CountDownLatch(1)
+        val release = CountDownLatch(1)
+        val blocker = worker().submit { entered.countDown(); check(release.await(25, TimeUnit.SECONDS)) }
+        lateinit var actions: AlertDialog
+        try {
+            assertTrue("The real Activity worker is held before management navigation", entered.await(10, TimeUnit.SECONDS))
+            actions = management(selected)
+            assertManagement(actions, "sel_model_a_01", "secondary_1")
+            // Drain posted UI refreshes while any accidentally issued evaluation must remain queued.
+            repeat(5) { idle() }
+            unchangedCurrent()
+        } finally {
+            release.countDown()
+            blocker.get(25, TimeUnit.SECONDS)
+            finishWork()
+        }
+        // Draining real worker/UI work must not hide a replacement Current result or request.
+        unchangedCurrent()
+        assertTrue(actions.isShowing)
+        assertManagement(actions, "sel_model_a_01", "secondary_1")
+        selectionInputsRemain(saved, bytes)
+        unchangedCurrent()
+
+        // A later explicit editor entry must still use the existing analysis-invalidation boundary.
+        shadowOf(actions).clickOnItem(1); idle()
+        val edit = dialog()
+        assertNotSame(actions, edit)
+        assertTrue(edit.isShowing)
+        assertTrue(state() is PreviewCurrentDraftState.Unavailable)
+        assertEquals(PreviewCurrentUnavailable.EDITING, (state() as PreviewCurrentDraftState.Unavailable).reason)
+        assertNotSame(authority, field<Any>("currentCheckAuthority"))
+        assertNull(active.get(analysis))
+        assertEquals(bytes, disk())
+        edit.cancel(); idle(); finishWork()
+    }
+
     @Test fun compareChoicesNeedsAnotherExplicitActionAndKeepsTheExactReportedSlot() {
         val result = installModels(secondaryVersion = "secondary-version-2")
         val saved = field<PreviewStoredDraft>("savedRecord"); val before = disk()

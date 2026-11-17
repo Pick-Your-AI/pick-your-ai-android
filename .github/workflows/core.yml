@@ -3633,6 +3633,7 @@ jobs:
           name = "ai.pickyour.android.preview.CurrentFindingSelectionManagementActivityTest"
           required = {
               "reportedSecondarySelectionOpensOnlyItsExistingManagementActions",
+              "openingManagementRetainsCurrentStateRequestAndAttemptWithoutEvaluationOrWrite",
               "compareChoicesNeedsAnotherExplicitActionAndKeepsTheExactReportedSlot",
               "noReportedSelectionOffersNoManagementDestination",
               "dismissedAndSupersededManagementControlsCannotReviveOrRepeat",
