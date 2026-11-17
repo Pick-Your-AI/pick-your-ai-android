@@ -3,21 +3,32 @@
 from __future__ import annotations
 
 import argparse
+from contextlib import ExitStack, contextmanager
 import hashlib
 import json
 import os
 from pathlib import Path, PurePosixPath
 import re
+import selectors
 import shutil
+import signal
 import stat
 import struct
 import subprocess
+import time
+import uuid
 import zipfile
 
 MANIFEST = "scripts/talkback_build_prerequisite.json"
 INIT_SCRIPT = "scripts/talkback_dependency_observation.gradle"
 HEX40 = re.compile(r"[0-9a-f]{40}")
 HEX64 = re.compile(r"[0-9a-f]{64}")
+COMMAND_OUTPUT_LIMIT = 16 * 1024 * 1024
+COMMAND_TIMEOUT = 120
+OBSERVATION_BYTES = 64 * 1024
+SPECIFICATION_BYTES = 1024 * 1024
+DEPENDENCY_BYTES = 16 * 1024 * 1024
+RECEIPT_BYTES = 1024 * 1024
 
 
 def require(condition: bool, message: str) -> None:
@@ -38,14 +49,210 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
+def bounded_run(argv, *, cwd, env, check, stdout, stderr, timeout):
+    """Drain both pipes with one byte/deadline budget; own a POSIX process group."""
+    require(stdout == stderr == subprocess.PIPE, "Both command streams must be bounded")
+    deadline = time.monotonic() + timeout
+    process = subprocess.Popen(argv, cwd=cwd, env=env, stdout=stdout, stderr=stderr,
+                               start_new_session=True, bufsize=0)
+    buffers = [bytearray(), bytearray()]
+    total = 0
+    try:
+        with selectors.DefaultSelector() as selector:
+            for stream, buffer in zip((process.stdout, process.stderr), buffers):
+                os.set_blocking(stream.fileno(), False)
+                selector.register(stream, selectors.EVENT_READ, buffer)
+            while selector.get_map():
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise subprocess.TimeoutExpired(argv, timeout)
+                for key, _ in selector.select(remaining):
+                    # Read at most one byte beyond the remaining aggregate budget.
+                    chunk = os.read(key.fd, min(65536, COMMAND_OUTPUT_LIMIT - total + 1))
+                    if not chunk:
+                        selector.unregister(key.fileobj)
+                        continue
+                    total += len(chunk)
+                    require(total <= COMMAND_OUTPUT_LIMIT, "Command output exceeds its bound")
+                    key.data.extend(chunk)
+        process.wait(timeout=max(0, deadline - time.monotonic()))
+        result = subprocess.CompletedProcess(argv, process.returncode,
+                                             bytes(buffers[0]), bytes(buffers[1]))
+        if check:
+            result.check_returncode()
+        return result
+    except subprocess.TimeoutExpired as error:
+        raise subprocess.TimeoutExpired(argv, timeout, output=bytes(buffers[0]) or None,
+                                        stderr=bytes(buffers[1]) or None) from error
+    finally:
+        # Includes descendants retaining a pipe after their parent exits. Never use
+        # communicate() or an unbounded wait during rejection/timeout cleanup.
+        try:
+            os.killpg(process.pid, signal.SIGTERM)
+        except ProcessLookupError:
+            pass
+        finally:
+            try:
+                process.wait(timeout=0.2)
+            except subprocess.TimeoutExpired:
+                pass
+            finally:
+                try:
+                    os.killpg(process.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+                finally:
+                    process.stdout.close()
+                    process.stderr.close()
+                    process.wait(timeout=5)
+
+
 def run(argv: list[str], *, cwd: Path | None = None, include_stderr: bool = False) -> bytes:
     environment = dict(os.environ, GIT_NO_REPLACE_OBJECTS="1", GIT_NO_LAZY_FETCH="1",
                        GIT_OPTIONAL_LOCKS="0")
-    result = subprocess.run(argv, cwd=cwd, env=environment, check=True,
-                            stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=120)
+    result = bounded_run(argv, cwd=cwd, env=environment, check=True,
+                         stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=COMMAND_TIMEOUT)
     output = result.stdout + result.stderr if include_stderr else result.stdout
-    require(len(output) <= 16 * 1024 * 1024, "Command output exceeds its bound")
     return output
+
+
+@contextmanager
+def output_directory(path: Path, *, create: bool = False):
+    """Walk from / using directory descriptors, rejecting every linked component."""
+    path = path.absolute()
+    require(".." not in path.parts, "Output directory must not contain parent traversal")
+    flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+    descriptor = os.open(path.anchor, flags)
+    try:
+        for index, component in enumerate(path.parts[1:], 1):
+            if create and index == len(path.parts) - 1:
+                os.mkdir(component, mode=0o700, dir_fd=descriptor)
+            child = os.open(component, flags, dir_fd=descriptor)
+            os.close(descriptor)
+            descriptor = child
+        yield descriptor
+    finally:
+        os.close(descriptor)
+
+
+def read_observation(path: Path, limit: int) -> bytes:
+    """Read one ordinary, unlinked file through verified ancestors, at most limit+1."""
+    with output_directory(path.parent) as parent:
+        descriptor = os.open(path.name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=parent)
+        try:
+            info = os.fstat(descriptor)
+            require(stat.S_ISREG(info.st_mode) and info.st_nlink == 1,
+                    "Observation must be an ordinary unlinked file")
+            require(info.st_size <= limit, "Observation exceeds its byte bound")
+            chunks, remaining = [], limit + 1
+            while remaining:
+                chunk = os.read(descriptor, min(65536, remaining))
+                if not chunk:
+                    break
+                chunks.append(chunk)
+                remaining -= len(chunk)
+            require(remaining > 0, "Observation exceeds its byte bound")
+            return b"".join(chunks)
+        finally:
+            os.close(descriptor)
+
+
+def receipt_bytes(value: dict) -> bytes:
+    result = bytearray()
+    for chunk in json.JSONEncoder(sort_keys=True, indent=2).iterencode(value):
+        encoded = chunk.encode()
+        require(len(result) + len(encoded) + 1 <= RECEIPT_BYTES, "Receipt exceeds its byte bound")
+        result.extend(encoded)
+    return bytes(result) + b"\n"
+
+
+def observer_hash(project: Path) -> str:
+    # This offline slice does not deliver the external Gradle observer. Fail before
+    # creating output or changing upstream source until it is integrated and tracked.
+    try:
+        data = read_observation(project / INIT_SCRIPT, SPECIFICATION_BYTES)
+        entries = git(project, "ls-tree", "-z", "HEAD", "--", INIT_SCRIPT).split(b"\0")
+        require(len(entries) == 2 and not entries[1], "Missing tracked observer")
+        header, name = entries[0].split(b"\t", 1)
+        mode, kind, expected = header.decode().split()
+        require(name.decode() == INIT_SCRIPT and mode in {"100644", "100755"}
+                and kind == "blob" and blob(data) == expected, "Observer differs from tracked source")
+    except (OSError, ValueError):
+        raise ValueError("Required tracked dependency observer is unavailable; integrate it before preparation or recording") from None
+    return hashlib.sha256(data).hexdigest()
+
+
+def dependency_object(pairs: list[tuple[str, object]]) -> dict:
+    """Do not publish raw members hidden by JSON's default last-value decoding."""
+    result = {}
+    for key, value in pairs:
+        require(key not in result, "Duplicate dependency observation member")
+        result[key] = value
+    return result
+
+
+def prepare_wrapper(directory: int, wrapper: dict[str, bytes]) -> None:
+    """Create the complete wrapper exclusively before permitting any source edits."""
+    with ExitStack() as stack:
+        directories = {"": directory}
+        for path, data in wrapper.items():
+            parts = PurePosixPath("wrapper/" + path).parts
+            require(path == "/".join(parts[1:]) and ".." not in parts and not path.startswith("/"),
+                    "Invalid wrapper output path")
+            parent = ""
+            for component in parts[:-1]:
+                current = parent + "/" + component
+                if current not in directories:
+                    os.mkdir(component, mode=0o700, dir_fd=directories[parent])
+                    child = os.open(component, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,
+                                    dir_fd=directories[parent])
+                    stack.callback(os.close, child)
+                    directories[current] = child
+                parent = current
+            descriptor = os.open(parts[-1], os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+                                 0o600, dir_fd=directories[parent])
+            with os.fdopen(descriptor, "wb") as stream:
+                stream.write(data)
+                os.fchmod(stream.fileno(), 0o755 if path == "gradlew" else 0o644)
+
+
+def publish_files(directory: Path, contents: dict[str, bytes | Path], *, create=False,
+                  expected_hashes: dict[str, str] | None = None) -> None:
+    """Stage ordinary files privately, then publish exclusively in insertion order."""
+    with output_directory(directory, create=create) as destination:
+        for name in contents:
+            require(name not in {"", ".", ".."} and "/" not in name, "Invalid output name")
+            try:
+                os.stat(name, dir_fd=destination, follow_symlinks=False)
+            except FileNotFoundError:
+                continue
+            raise ValueError("A prerequisite output already exists")
+        staging = ".record-" + uuid.uuid4().hex
+        os.mkdir(staging, mode=0o700, dir_fd=destination)
+        with ExitStack() as stack:
+            stage = os.open(staging, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,
+                            dir_fd=destination)
+            stack.callback(os.rmdir, staging, dir_fd=destination)
+            stack.callback(os.close, stage)
+            for name, data in contents.items():
+                descriptor = os.open(name, os.O_RDWR | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+                                     0o600, dir_fd=stage)
+                stack.callback(os.unlink, name, dir_fd=stage)
+                with os.fdopen(descriptor, "w+b") as stream:
+                    if isinstance(data, Path):
+                        digest = (expected_hashes or {}).get(name) or sha256_file(data)
+                        with data.open("rb") as source:
+                            shutil.copyfileobj(source, stream, length=65536)
+                        stream.seek(0)
+                        copied = hashlib.file_digest(stream, "sha256").hexdigest()
+                        require(copied == digest, "Copied artifact bytes differ")
+                    else:
+                        stream.write(data)
+            # link() never replaces an existing destination, including dangling
+            # symlinks. The receipt is last and is published only as a complete file.
+            for name in contents:
+                os.link(name, name, src_dir_fd=stage, dst_dir_fd=destination,
+                        follow_symlinks=False)
 
 
 def aapt2_version(executable: Path) -> str:
@@ -129,7 +336,7 @@ def isolated_roots(project: Path, upstream: Path, work: Path) -> None:
 def expected_wrapper(project: Path, manifest: dict) -> dict[str, bytes]:
     wrapper = {}
     for path, expected in manifest["wrapper_blobs"].items():
-        data = (project / path).read_bytes()
+        data = read_observation(project / path, SPECIFICATION_BYTES)
         require(blob(data) == expected, "The retained project wrapper differs")
         wrapper[path] = data
     properties_path = "gradle/wrapper/gradle-wrapper.properties"
@@ -152,49 +359,75 @@ def verify_copied_wrapper(project: Path, work: Path, manifest: dict,
     for path, data in expected.items():
         copied = work / "wrapper" / path
         require(copied.is_file() and not copied.is_symlink(), "A copied wrapper file is missing or linked")
-        require(copied.read_bytes() == data, "Copied wrapper bytes differ from the pinned transformation")
+        require(read_observation(copied, SPECIFICATION_BYTES) == data,
+                "Copied wrapper bytes differ from the pinned transformation")
     return digests
 
 
 def prepare(project: Path, upstream: Path, work: Path, expected_project: str) -> None:
     isolated_roots(project, upstream, work)
     require(bool(HEX40.fullmatch(expected_project)), "An exact project commit is required")
-    manifest_bytes = (project / MANIFEST).read_bytes()
+    manifest_bytes = read_observation(project / MANIFEST, SPECIFICATION_BYTES)
     manifest = json.loads(manifest_bytes)
     require(manifest["schema"] == "talkback-build-prerequisite/v1", "Unsupported prerequisite")
     project_identity, upstream_identity = identity(project), identity(upstream)
     require(project_identity["commit"] == expected_project, "Project checkout differs")
     require(upstream_identity == {key: manifest["upstream"][key] for key in ("commit", "tree")},
             "Official TalkBack checkout differs")
+    init_sha256 = observer_hash(project)
     for root in (project, upstream):
         require(not git(root, "status", "--porcelain", "--untracked-files=all"),
                 "Preparation requires a clean source checkout")
         verify_tracked(root)
-    require(not work.exists(), "The prerequisite output directory must be new")
-    planned = {path: overlay((upstream / path).read_bytes(), specification)
+    planned = {path: overlay(read_observation(upstream / path, SPECIFICATION_BYTES), specification)
                for path, specification in manifest["overlays"].items()}
     wrapper = expected_wrapper(project, manifest)
-    work.mkdir(parents=True)
-    (work / "artifacts").mkdir()
-    for path, data in planned.items():
-        (upstream / path).write_bytes(data)
-    for path, data in wrapper.items():
-        destination = work / "wrapper" / path
-        destination.parent.mkdir(parents=True, exist_ok=True)
-        destination.write_bytes(data)
-        destination.chmod(0o755 if path == "gradlew" else 0o644)
+    with output_directory(work, create=True) as directory:
+        created = os.fstat(directory)
+        os.mkdir("artifacts", mode=0o700, dir_fd=directory)
+        prepare_wrapper(directory, wrapper)
+        with output_directory(work) as current:
+            observed = os.fstat(current)
+            require((observed.st_dev, observed.st_ino) == (created.st_dev, created.st_ino),
+                    "Preparation output directory changed")
+        try:
+            os.stat("prepared.json", dir_fd=directory, follow_symlinks=False)
+        except FileNotFoundError:
+            pass
+        else:
+            raise ValueError("A prerequisite output already exists")
+    # All output ancestors and wrapper destinations have passed exclusive creation.
+    # Open every overlay without truncation and verify it again before changing any.
+    with ExitStack() as stack:
+        streams = []
+        for path, data in planned.items():
+            parent = stack.enter_context(output_directory((upstream / path).parent))
+            descriptor = os.open(Path(path).name, os.O_RDWR | os.O_NOFOLLOW | os.O_NONBLOCK,
+                                 dir_fd=parent)
+            stream = stack.enter_context(os.fdopen(descriptor, "r+b"))
+            info = os.fstat(stream.fileno())
+            require(stat.S_ISREG(info.st_mode) and info.st_nlink == 1,
+                    "Overlay source must be an ordinary unlinked file")
+            require(blob(stream.read(SPECIFICATION_BYTES + 1)) == manifest["overlays"][path]["before_blob"],
+                    "Overlay source changed before preparation")
+            streams.append((stream, data))
+        for stream, data in streams:
+            stream.seek(0)
+            stream.write(data)
+            stream.truncate()
     overrides = {path: value["after_blob"] for path, value in manifest["overlays"].items()}
     upstream_files = verify_tracked(upstream, overrides)
     project_files = verify_tracked(project)
     state = {
         "schema": manifest["schema"], "project": project_identity, "upstream": upstream_identity,
         "manifest_sha256": hashlib.sha256(manifest_bytes).hexdigest(),
-        "init_sha256": sha256_file(project / INIT_SCRIPT),
+        "init_sha256": init_sha256,
         "overlay_blobs": overrides, "upstream_tracked_files": upstream_files,
         "project_tracked_files": project_files,
-        "copied_wrapper_sha256": {path: sha256_file(work / "wrapper" / path) for path in wrapper}
+        "copied_wrapper_sha256": {path: hashlib.sha256(data).hexdigest() for path, data in wrapper.items()}
     }
-    (work / "prepared.json").write_text(json.dumps(state, sort_keys=True, indent=2) + "\n")
+    verify_copied_wrapper(project, work, manifest, state["copied_wrapper_sha256"])
+    publish_files(work, {"prepared.json": receipt_bytes(state)})
     print("Prepared the pinned TalkBack source and isolated x86_64 build tools")
 
 
@@ -327,6 +560,9 @@ def inspect_apk(path: Path, manifest: dict) -> list[dict]:
 
 
 def validate_dependencies(receipt: dict, manifest: dict) -> None:
+    require(isinstance(receipt, dict) and set(receipt) == {
+        "schema", "build_completed", "preapproved_checksums", "gradle", "android_modules",
+        "configurations", "components", "artifacts"}, "Dependency observation fields differ")
     require(receipt.get("schema") == "talkback-dependency-observation/v1"
             and receipt.get("build_completed") is True
             and receipt.get("preapproved_checksums") is False, "Dependency build observation differs")
@@ -336,6 +572,12 @@ def validate_dependencies(receipt: dict, manifest: dict) -> None:
     for module in modules.values():
         require(module == {"compile_sdk": manifest["tools"]["compile_sdk"],
                            "build_tools": manifest["tools"]["build_tools"]}, "Android tool version differs")
+    configurations = receipt["configurations"]
+    require(isinstance(configurations, list) and 0 < len(configurations) <= 20000
+            and all(isinstance(item, str) and len(item) <= 4096
+                    and re.fullmatch(r":[^|\r\n]*\|[01]\|[^|\r\n]+", item) is not None
+                    for item in configurations)
+            and len(set(configurations)) == len(configurations), "Dependency configurations differ")
     components = receipt.get("components", [])
     require(isinstance(components, list) and 0 < len(components) <= 20000
             and all(isinstance(item, str) for item in components)
@@ -346,10 +588,12 @@ def validate_dependencies(receipt: dict, manifest: dict) -> None:
             "Pinned dependencies missing from observed graph: "
             + ", ".join(sorted(expected_components - component_ids)))
     artifacts = receipt.get("artifacts", [])
-    require(0 < len(artifacts) <= manifest["limits"]["dependency_artifacts"],
+    require(isinstance(artifacts, list) and 0 < len(artifacts) <= manifest["limits"]["dependency_artifacts"],
             "Dependency artifact observations are absent or over the bound")
     seen, artifact_components = set(), set()
     for artifact in artifacts:
+        require(isinstance(artifact, dict) and set(artifact) == {"component", "name", "bytes", "sha256"},
+                "Dependency artifact fields differ")
         component = artifact.get("component", "")
         require(isinstance(component, str) and component.count(":") == 2
                 and not re.search(r"[+\[\](),]|latest\.|SNAPSHOT", component, re.I),
@@ -398,23 +642,23 @@ def signature_certificate(output: str) -> str:
 
 def record(project: Path, upstream: Path, work: Path, sdk: Path, expected_project: str) -> None:
     isolated_roots(project, upstream, work)
-    manifest_bytes = (project / MANIFEST).read_bytes()
+    manifest_bytes = read_observation(project / MANIFEST, SPECIFICATION_BYTES)
     manifest = json.loads(manifest_bytes)
-    state = json.loads((work / "prepared.json").read_text())
+    state = json.loads(read_observation(work / "prepared.json", SPECIFICATION_BYTES))
     require(identity(project) == state["project"] and state["project"]["commit"] == expected_project,
             "Project identity changed during the build")
     require(identity(upstream) == state["upstream"]
             == {key: manifest["upstream"][key] for key in ("commit", "tree")},
             "Upstream identity changed during the build")
     require(hashlib.sha256(manifest_bytes).hexdigest() == state["manifest_sha256"]
-            and sha256_file(project / INIT_SCRIPT) == state["init_sha256"], "Build specification changed")
+            and observer_hash(project) == state["init_sha256"], "Build specification changed")
     overrides = {path: value["after_blob"] for path, value in manifest["overlays"].items()}
     require(overrides == state["overlay_blobs"], "The prepared overlay differs")
     require(verify_tracked(project) == state["project_tracked_files"], "Project file set changed")
     require(verify_tracked(upstream, overrides) == state["upstream_tracked_files"], "Upstream file set changed")
     wrapper_hashes = verify_copied_wrapper(project, work, manifest, state["copied_wrapper_sha256"])
-    gradle_version = (work / "gradle-version.txt").read_text()
-    java_version = (work / "java-version.txt").read_text()
+    gradle_version = read_observation(work / "gradle-version.txt", OBSERVATION_BYTES).decode()
+    java_version = read_observation(work / "java-version.txt", OBSERVATION_BYTES).decode()
     require("\nGradle " + manifest["tools"]["gradle"] + "\n" in "\n" + gradle_version,
             "Actual Gradle version output differs")
     require(bool(re.search(r'version "17(?:\.|")', java_version)), "JDK 17 was not observed")
@@ -422,7 +666,7 @@ def record(project: Path, upstream: Path, work: Path, sdk: Path, expected_projec
     for directory in ("platforms/" + manifest["tools"]["compile_sdk"],
                       "build-tools/" + manifest["tools"]["build_tools"],
                       "ndk/" + manifest["tools"]["ndk"]):
-        properties = (sdk / directory / "source.properties").read_text()
+        properties = read_observation(sdk / directory / "source.properties", OBSERVATION_BYTES).decode()
         revision = re.search(r"(?m)^Pkg\.Revision\s*=\s*(\S+)", properties)
         require(revision is not None, "SDK package revision is absent")
         sdk_records[directory] = {"revision": revision[1],
@@ -432,20 +676,20 @@ def record(project: Path, upstream: Path, work: Path, sdk: Path, expected_projec
     require(sdk_records["build-tools/" + manifest["tools"]["build_tools"]]["revision"]
             == manifest["tools"]["build_tools"], "Installed build tools revision differs")
     dependencies_path = work / "dependencies.json"
-    require(dependencies_path.is_file() and not dependencies_path.is_symlink()
-            and dependencies_path.stat().st_size <= 16 * 1024 * 1024,
-            "Dependency observation is absent, indirect or exceeds the byte bound")
-    dependencies = json.loads(dependencies_path.read_text())
+    dependencies_bytes = read_observation(dependencies_path, DEPENDENCY_BYTES)
+    dependencies_hash = hashlib.sha256(dependencies_bytes).hexdigest()
+    dependencies = json.loads(dependencies_bytes, object_pairs_hook=dependency_object)
     try:
         validate_dependencies(dependencies, manifest)
-    except ValueError:
-        diagnostic = dependency_diagnostic(dependencies, manifest)
-        diagnostic.update(project=state["project"], upstream=state["upstream"],
-                          dependencies_sha256=sha256_file(dependencies_path))
-        directory = work / "diagnostics"
-        directory.mkdir(exist_ok=False)
-        (directory / "dependency-failure.json").write_text(
-            json.dumps(diagnostic, sort_keys=True, indent=2) + "\n")
+    except ValueError as original:
+        try:
+            diagnostic = dependency_diagnostic(dependencies, manifest)
+            diagnostic.update(project=state["project"], upstream=state["upstream"],
+                              dependencies_sha256=dependencies_hash)
+            publish_files(work / "diagnostics", {"dependency-failure.json":
+                receipt_bytes(diagnostic)}, create=True)
+        except Exception:
+            original.add_note("The failure diagnostic could not be written")
         raise
     apks = list((upstream / "build/outputs/apk/phone/debug").glob("*.apk"))
     require(len(apks) == 1, "The phone debug build must produce exactly one APK")
@@ -455,14 +699,15 @@ def record(project: Path, upstream: Path, work: Path, sdk: Path, expected_projec
     xmltree = run([str(aapt), "dump", "xmltree", str(apk), "--file", "AndroidManifest.xml"]).decode()
     try:
         validate_manifest(xmltree, manifest["expected"])
-    except ValueError:
-        diagnostic = manifest_version_diagnostic(xmltree, manifest["expected"])
-        diagnostic.update(project=state["project"], upstream=state["upstream"],
-                          apk_sha256=sha256_file(apk))
-        directory = work / "diagnostics"
-        directory.mkdir(exist_ok=False)
-        (directory / "manifest-version-failure.json").write_text(
-            json.dumps(diagnostic, sort_keys=True, indent=2) + "\n")
+    except ValueError as original:
+        try:
+            diagnostic = manifest_version_diagnostic(xmltree, manifest["expected"])
+            diagnostic.update(project=state["project"], upstream=state["upstream"],
+                              apk_sha256=sha256_file(apk))
+            publish_files(work / "diagnostics", {"manifest-version-failure.json":
+                receipt_bytes(diagnostic)}, create=True)
+        except Exception:
+            original.add_note("The failure diagnostic could not be written")
         raise
     aapt_version = aapt2_version(aapt)
     signer = sdk / "build-tools" / manifest["tools"]["build_tools"] / "apksigner"
@@ -470,13 +715,7 @@ def record(project: Path, upstream: Path, work: Path, sdk: Path, expected_projec
     certificate = signature_certificate(signing_output)
     output = work / "artifacts"
     target = output / "talkback-phone-x86_64.apk"
-    require(not target.exists() and not (output / "receipt.json").exists(), "A prerequisite artifact already exists")
     digest = sha256_file(apk)
-    shutil.copyfile(apk, target)
-    require(sha256_file(target) == digest, "Copied APK bytes differ")
-    shutil.copyfile(dependencies_path, output / "dependencies.json")
-    (output / "manifest.xmltree.txt").write_text(xmltree)
-    (output / "signing.txt").write_text(signing_output)
     receipt = {
         "schema": "talkback-build-prerequisite-result/v1",
         "project": state["project"], "upstream": state["upstream"],
@@ -486,9 +725,9 @@ def record(project: Path, upstream: Path, work: Path, sdk: Path, expected_projec
         "copied_wrapper_sha256": wrapper_hashes,
         "tools": {"java_output": java_version, "gradle_output": gradle_version,
                   "aapt2": aapt_version, "sdk_packages": sdk_records},
-        "dependencies_sha256": sha256_file(dependencies_path),
+        "dependencies_sha256": dependencies_hash,
         "dependency_checksums_preapproved": False,
-        "apk": {"name": target.name, "bytes": target.stat().st_size, "sha256": digest,
+        "apk": {"name": target.name, "bytes": apk.stat().st_size, "sha256": digest,
                 "package": manifest["expected"]["package"], "service": manifest["expected"]["service"],
                 "native_libraries": natives,
                 "signing": {"verified": True, "certificate_sha256": certificate,
@@ -497,7 +736,11 @@ def record(project: Path, upstream: Path, work: Path, sdk: Path, expected_projec
                   "service_declaration_checked": True, "installed": False, "service_enabled": False,
                   "speech_observed": False, "talkback_acceptance": False}
     }
-    (output / "receipt.json").write_text(json.dumps(receipt, sort_keys=True, indent=2) + "\n")
+    publish_files(output, {
+        target.name: apk, "dependencies.json": dependencies_bytes,
+        "manifest.xmltree.txt": xmltree.encode(), "signing.txt": signing_output.encode(),
+        "receipt.json": receipt_bytes(receipt)
+    }, expected_hashes={target.name: digest})
     print("Verified the source-built x86_64 APK prerequisite; no TalkBack service was run")
 
 
