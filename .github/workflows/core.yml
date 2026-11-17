@@ -60,6 +60,47 @@ jobs:
         run: sha256sum --check gradle/wrapper/wrapper.sha256
       - name: Compile and test JVM core
         run: ./gradlew --no-daemon --dependency-verification=strict --init-script scripts/runtime_inventory.init.gradle.kts :core:check :core:assemble runtimeInventory
+      - name: Require typed agent-framework preparation and managed storage regressions
+        run: |
+          python - <<'PYAGENT'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          required = {
+              'ai.pickyour.core.preview.PreviewAgentFrameworkSettingsTest': {
+                  'fieldsMatchTheOptionalFrozenTypesAndBoundsWithoutAddedRelations()',
+                  'allEightOptionalPresenceCombinationsAndExplicitRemovalRemainDistinct()',
+                  'allThreeFieldsKeepWideExactIntegersAndMathematicalIntegerAliases()',
+                  'allThreeFieldsUseFrozenMinimumWithoutAnInventedRelativeLimit()',
+                  'jsonSurroundingWhitespaceIsAcceptedAndNormalizedForEachNumericControl()',
+                  'suppliedBlankNumbersNeedCorrectionRatherThanRemoval()',
+                  'numericSyntaxRejectsCoercionFractionsAndMalformedUnicode()',
+                  'numericControlsRejectInjectedKeysDuplicatesAndTrailingDocuments()',
+                  'existingParserAndControlBudgetsRemainFieldErrors()',
+                  'independentErrorsDoNotPublishPartialSettings()',
+                  'untouchedAdmittedNumericNodesRetainClassAndScale()',
+                  'completeSelectionBudgetRejectsOtherwiseValidGrowth()',
+                  'completeSelectionAdmissionUsesFinalSiblingRemovalOrShrink()',
+                  'configurePreservesCompleteSelectionAndUnrelatedDraftData()',
+                  'managedNoopAcknowledgmentStaleAndDeletedAuthorityRemainDistinct()',
+                  'canonicalRejectionCannotReplaceAcknowledgedStorage()',
+                  'typedValuesRoundTripThroughManagedStorageAndExplicitFrozenBuildProjection()',
+                  'wrongKindsAndDiagnosticDescriptionsRemainValueFree()',
+              },
+          }
+          for qualified, expected in required.items():
+              module = 'core' if qualified.startswith('ai.pickyour.core.') else 'preview'
+              task = 'test' if module == 'core' else 'testDebugUnitTest'
+              suite = ET.parse(pathlib.Path(module) / 'build/test-results' / task / ('TEST-' + qualified + '.xml')).getroot()
+              cases = suite.findall('testcase')
+              identities = [(case.attrib['classname'], case.attrib['name']) for case in cases]
+              if suite.attrib['name'] != qualified or set(identities) != {(qualified, name) for name in expected} or len(identities) != len(expected):
+                  raise SystemExit('Missing, unexpected or repeated typed agent-framework regression')
+              if int(suite.attrib['tests']) != len(cases) or any(int(suite.attrib.get(key, '0')) != 0 for key in ('failures', 'errors', 'skipped')):
+                  raise SystemExit('Typed agent-framework totals do not match passing execution')
+              if any(case.findall('failure') or case.findall('error') or case.findall('skipped') for case in cases):
+                  raise SystemExit('Typed agent-framework regression did not pass')
+              print(f'Verified {len(cases)} {qualified} cases; no installed-device claim')
+          PYAGENT
       - name: Require typed hosting platform Core regressions
         run: |
           python - <<'PYHOSTINGCORE'
