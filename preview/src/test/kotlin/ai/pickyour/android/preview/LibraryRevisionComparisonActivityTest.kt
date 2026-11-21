@@ -90,13 +90,22 @@ class LibraryRevisionComparisonActivityTest {
         return release
     }
     private fun library() = PreviewDraftLibrary(activity.noBackupFilesDir.toPath())
-    private fun append(id: PreviewDraftId, title: String, objective: String): PreviewStoredDraft {
-        val path = activity.noBackupFilesDir.toPath().resolve(id.value)
-        Files.createDirectories(path)
-        val adapter = PreviewDraftPersistence(LocalDraftStore(path))
-        val record = (adapter.load() as? PreviewDraftLoad.Available)?.record
-        return (adapter.save(record, PreviewDraftFields(title), PreviewDraftContext(objective)) as PreviewDraftSave.Saved).record
-    }
+    private fun append(id: PreviewDraftId, title: String, objective: String): PreviewStoredDraft =
+        worker().submit<PreviewStoredDraft> {
+            // Serialize the one fixture transaction with the Activity's owned background reads.
+            val path = activity.noBackupFilesDir.toPath().resolve(id.value)
+            Files.createDirectories(path)
+            val adapter = PreviewDraftPersistence(LocalDraftStore(path))
+            val record = when (val loaded = adapter.load()) {
+                PreviewDraftLoad.Missing -> null
+                is PreviewDraftLoad.Available -> loaded.record
+                is PreviewDraftLoad.Failed -> error("Fixture load failed: ${loaded.reason}")
+            }
+            when (val saved = adapter.save(record, PreviewDraftFields(title), PreviewDraftContext(objective))) {
+                is PreviewDraftSave.Saved -> saved.record
+                else -> error("Fixture save was not acknowledged: $saved")
+            }
+        }.get(15, TimeUnit.SECONDS)
     private fun loaded(id: PreviewDraftId = first) =
         (readDraftAfterOwnedWork(activity) { library().open(id) } as PreviewDraftLoad.Available).record
     private fun histories() {
